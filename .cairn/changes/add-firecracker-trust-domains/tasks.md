@@ -4,6 +4,7 @@
 - [x] [serial] Reject domains shared by untrusted and workload-bearing runners. r[kiln.hosted.microvm.trust_domain]
 - [x] [serial] Add host identity, require it for untrusted runners and reject mixed hosts. r[kiln.hosted.microvm.trust_domain]
 - [x] [serial] Record the attempt-local co-residency set in the receipt. r[kiln.hosted.microvm.trust_domain]
+- [x] [serial] Reserve declared host placements and reject active cross-attempt trust overlap. r[kiln.hosted.microvm.trust_domain]
 
 ## Phase 2: Receipt and verification
 

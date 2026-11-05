@@ -458,7 +458,9 @@ fn clean(p: &Path) -> bool {
 pub fn init(db: &Connection) -> Result<(), String> {
     db.execute_batch("CREATE TABLE IF NOT EXISTS hosted_execution_config(singleton INTEGER PRIMARY KEY CHECK(singleton=1),identity TEXT NOT NULL,config TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS hosted_execution(org TEXT NOT NULL,project TEXT NOT NULL,attempt TEXT NOT NULL,pipeline TEXT NOT NULL,request_identity TEXT NOT NULL,config_identity TEXT NOT NULL,unit TEXT NOT NULL,state TEXT NOT NULL,reserved_ms INTEGER NOT NULL,result TEXT,PRIMARY KEY(org,attempt));
-      CREATE TABLE IF NOT EXISTS hosted_microvm_job(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,lifecycle TEXT NOT NULL,result TEXT,PRIMARY KEY(org,attempt,job));") .map_err(|e|e.to_string())?;
+      CREATE TABLE IF NOT EXISTS hosted_microvm_job(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,lifecycle TEXT NOT NULL,result TEXT,PRIMARY KEY(org,attempt,job));
+      CREATE TABLE IF NOT EXISTS hosted_microvm_placement(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,host TEXT NOT NULL,trust_domain TEXT NOT NULL,class TEXT NOT NULL CHECK(class IN('untrusted','workload','trusted')),started_ms INTEGER NOT NULL,PRIMARY KEY(org,attempt,job));
+      CREATE INDEX IF NOT EXISTS hosted_microvm_placement_host ON hosted_microvm_placement(host);") .map_err(|e|e.to_string())?;
     crate::debug_hold::init(db)
 }
 /// Trusted startup only. Existing in-flight/unknown effects pin their configuration.
@@ -746,7 +748,9 @@ pub fn run_pipeline(
             .get(..32)
             .ok_or("execution identity length invalid")?
     );
-    let tx = db.transaction().map_err(|e| e.to_string())?;
+    let tx = db
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .map_err(|e| e.to_string())?;
     if let Err(error) = check_capacity(&tx, config.maximum_concurrent) {
         drop(tx);
         // r[impl kiln.hosted.microvm.debug_hold.end]
@@ -774,6 +778,16 @@ pub fn run_pipeline(
         ],
     )
     .map_err(|e| e.to_string())?;
+    reserve_placements(
+        &tx,
+        &actor.organization,
+        &request.attempt_id,
+        &plan,
+        &request.project,
+        &config,
+        untrusted_run(&request),
+        now_ms,
+    )?;
     tx.commit().map_err(|e| e.to_string())?;
     let financial_exists: bool = db
         .query_row(
@@ -1377,6 +1391,103 @@ fn hold_grants(
         untrusted: untrusted_run(request),
     }
 }
+/// Static host and trust facts one job contributes to the placement ledger.
+fn placement_facts(
+    config: &Config,
+    organization: &str,
+    project: &str,
+    job: &crate::pipelines::CompiledJob,
+    untrusted: bool,
+) -> (String, String, &'static str) {
+    let (host, domain) = config
+        .runners
+        .get(&job.runner)
+        .and_then(|backend| match backend {
+            Backend::Firecracker {
+                host_identity,
+                trust_domain,
+                ..
+            } => Some((
+                host_identity.clone().unwrap_or_else(|| job.runner.clone()),
+                trust_domain.clone().unwrap_or_else(|| job.runner.clone()),
+            )),
+            _ => None,
+        })
+        .unwrap_or_else(|| (job.runner.clone(), job.runner.clone()));
+    let class = if untrusted {
+        "untrusted"
+    } else if config.workload.iter().any(|policy| {
+        policy.organization == organization
+            && policy.project == project
+            && policy.runner == job.runner
+    }) {
+        "workload"
+    } else {
+        "trusted"
+    };
+    (host, domain, class)
+}
+
+/// Reserve this attempt's declared host placements before any financial or
+/// process effect. A stale row is ignored unless its attempt is active.
+fn reserve_placements(
+    db: &Connection,
+    organization: &str,
+    attempt: &str,
+    plan: &crate::pipelines::CompiledPipeline,
+    project: &str,
+    config: &Config,
+    untrusted: bool,
+    now_ms: u64,
+) -> Result<(), String> {
+    db.execute(
+        "DELETE FROM hosted_microvm_placement WHERE attempt NOT IN (SELECT attempt FROM hosted_execution WHERE state IN ('reserved','running','unknown'))",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    for job in &plan.jobs {
+        let (host, _, class) = placement_facts(config, organization, project, job, untrusted);
+        let opposite = if class == "untrusted" {
+            "workload"
+        } else if class == "workload" {
+            "untrusted"
+        } else {
+            ""
+        };
+        if !opposite.is_empty() {
+            let conflict: i64 = db
+                .query_row(
+                    "SELECT count(*) FROM hosted_microvm_placement WHERE host=?1 AND class=?2",
+                    params![host, opposite],
+                    |row| row.get(0),
+                )
+                .map_err(|e| e.to_string())?;
+            if conflict > 0 {
+                return Err(
+                    "host placement conflict: untrusted and workload-bearing jobs overlap".into(),
+                );
+            }
+        }
+    }
+    for job in &plan.jobs {
+        let (host, domain, class) = placement_facts(config, organization, project, job, untrusted);
+        db.execute(
+            "INSERT INTO hosted_microvm_placement VALUES(?1,?2,?3,?4,?5,?6,?7)",
+            params![
+                organization,
+                attempt,
+                job.id,
+                host,
+                domain,
+                class,
+                crate::sqlite_integer(now_ms)?
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn check_capacity(db: &Connection, maximum: u32) -> Result<(), String> {
     let occupied: u32 = db
         .query_row(
@@ -2576,5 +2687,42 @@ mod tests {
             )
             .is_err()
         );
+    }
+    #[test]
+    fn placement_ledger_rejects_cross_attempt_trust_overlap() {
+        let config = firecracker_config(firecracker_backend(json!({})), None);
+        let db =
+            rusqlite::Connection::open_in_memory().unwrap_or_else(|error| unreachable!("{error}"));
+        db.execute_batch(
+            "CREATE TABLE hosted_execution(org TEXT,attempt TEXT,state TEXT);             CREATE TABLE hosted_microvm_placement(org TEXT,attempt TEXT,job TEXT,host TEXT,trust_domain TEXT,class TEXT,started_ms INTEGER);",
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        db.execute(
+            "INSERT INTO hosted_execution VALUES('acme','prior','running')",
+            [],
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        db.execute(
+            "INSERT INTO hosted_microvm_placement VALUES('acme','prior','job','host-trusted','trusted','workload',1)",
+            [],
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let plan = crate::pipelines::CompiledPipeline {
+            schema: "kiln.pipeline.v1".into(),
+            identity: "0".repeat(64),
+            name: "app".into(),
+            triggers: Vec::new(),
+            schedules: std::collections::BTreeMap::new(),
+            jobs: vec![crate::pipelines::CompiledJob {
+                id: "job".into(),
+                source_job: "job".into(),
+                needs: Vec::new(),
+                runner: "vm".into(),
+                matrix: std::collections::BTreeMap::new(),
+                steps: Vec::new(),
+                timeout_ms: 1000,
+            }],
+        };
+        assert!(reserve_placements(&db, "acme", "next", &plan, "app", &config, true, 2).is_err());
     }
 }

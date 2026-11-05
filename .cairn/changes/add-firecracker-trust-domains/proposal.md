@@ -16,6 +16,9 @@ had no reviewed placement-pool identity and accepted any runner label.
 - Record the trust domain and host identity in the Firecracker `vm` receipt.
 - Record the attempt-local co-residency set: other jobs in the same attempt with
   the same declared host identity.
+- Reserve each attempt's declared host placements in a durable ledger before
+  finance or process effects and reject an active cross-attempt overlap between
+  untrusted and workload-bearing jobs.
 - Add typed Nickel fields and hosted documentation.
 
 ## Impact

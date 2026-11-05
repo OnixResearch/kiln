@@ -15,6 +15,12 @@ host-assignment separation and MUST NOT claim live cross-attempt observation,
 LLC, core or cache isolation. The receipt MUST also record the other jobs in the
 same attempt whose runner declares the same host identity.
 
+#### Scenario: Cross-attempt overlap is rejected
+
+- GIVEN an active attempt with a workload-bearing job on a declared host
+- WHEN another attempt requests an untrusted job on the same declared host
+- THEN admission fails before finance reservation or process effects.
+
 #### Scenario: Attempt co-residency is recorded
 
 - GIVEN two jobs in one attempt whose runners declare one host identity

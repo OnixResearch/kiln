@@ -6,7 +6,8 @@ Firecracker runners now have a reviewed trust domain. Untrusted-capable runners
 require one, and a domain cannot mix untrusted and workload-bearing runners.
 The receipt records the selected domain, host identity and the other same-attempt
 jobs with the same declared host. A host cannot mix untrusted and workload-bearing
-runners.
+runners. Admission also reserves declared placements durably and rejects an
+active cross-attempt untrusted/workload overlap on one host.
 
 ## Evidence
 

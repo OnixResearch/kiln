@@ -30,8 +30,16 @@ defaults to the runner label, which is unique.
 
 Each Firecracker receipt records the other jobs in the same attempt whose runner
 declares the same host identity. Jobs execute sequentially, so this is a
-declared-placement set, not live concurrent observation. Cross-attempt tracking
-still needs a durable placement ledger.
+declared-placement set, not live concurrent observation.
+
+### Durable placement ledger
+
+Admission writes one row per job into `hosted_microvm_placement` under an
+immediate transaction. Before writing, it deletes rows whose attempt is no longer
+active and rejects any active row on the same declared host with the opposite
+trust class. The ledger therefore covers concurrent attempts in one database.
+It does not observe host state outside Kiln, core/cache partitioning or covert
+channels, and it cannot prove an operator's host label is truthful.
 
 ## Risks
 
