@@ -12,7 +12,7 @@
     },
     {
       "command": "cargo test -p kiln-web-service --test engine queued_cancel_reason_is_bounded_and_recorded",
-      "result": "1 passed; queued cancellation records superseded and rejects an unknown reason without mutation"
+      "result": "1 passed; queued cancellation records superseded, superseded_by and superseded_revision and rejects an unknown reason without mutation"
     },
     {
       "command": "cargo test -p kiln-web-service --test engine new_trigger_supersedes_active_and_queued_runs",

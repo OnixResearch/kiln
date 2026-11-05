@@ -1191,7 +1191,7 @@ impl Engine {
                 "supersede-{}",
                 blake3::hash(format!("{id}\0{new_run}").as_bytes()).to_hex()
             );
-            let body = serde_json::json!({"request_id": request_id, "action": "cancel", "reason": "superseded"});
+            let body = serde_json::json!({"request_id": request_id, "action": "cancel", "reason": "superseded", "superseded_by": new_run, "superseded_revision": new_revision.native_id.as_str()});
             let Ok(body) = serde_json::to_vec(&body) else {
                 continue;
             };

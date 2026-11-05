@@ -520,6 +520,12 @@ impl Engine {
             action: String,
             #[serde(default)]
             reason: Option<String>,
+            /// Newer run that caused an automatic supersede, if any.
+            #[serde(default)]
+            superseded_by: Option<String>,
+            /// Exact newer revision that caused the supersede.
+            #[serde(default)]
+            superseded_revision: Option<String>,
         }
         let req: Cancel = match serde_json::from_slice(body) {
             Ok(v) => v,
@@ -547,6 +553,8 @@ impl Engine {
         }
         run.complete(Outcome::Cancelled, None)?;
         run.error_code = req.reason.clone();
+        run.superseded_by = req.superseded_by.clone();
+        run.superseded_revision = req.superseded_revision.clone();
         run.phase = "terminal".into();
         run.completed_at_ms = Some(host_time_ms()?);
         self.reserve_request(

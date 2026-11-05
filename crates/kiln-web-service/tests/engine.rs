@@ -530,6 +530,11 @@ fn controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result
     let response = call(&mut engine, "POST", &path, request.clone(), Role::Operator);
     assert_eq!(response.status, 200);
     assert_eq!(field(&value(&response), "outcome"), "Cancelled");
+    assert_eq!(field(&value(&response), "superseded_by"), "newer-run");
+    assert_eq!(
+        field(&value(&response), "superseded_revision"),
+        "newer-revision"
+    );
     assert_eq!(
         call(&mut engine, "POST", &path, request, Role::Operator).body,
         response.body
@@ -567,7 +572,7 @@ fn queued_cancel_reason_is_bounded_and_recorded() {
         &mut engine,
         "POST",
         &path,
-        json!({"request_id":"queue-cancel","action":"cancel","reason":"superseded"}),
+        json!({"request_id":"queue-cancel","action":"cancel","reason":"superseded","superseded_by":"newer-run","superseded_revision":"newer-revision"}),
         Role::Operator,
     );
     assert_eq!(response.status, 200);
