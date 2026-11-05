@@ -9,8 +9,9 @@ cold-boot argv.
 ## Evidence
 
 - `cargo test -p kiln-microvm backend`: 3 passed.
-- Hosted library tests: 68 passed, including capability-driven admission,
-  explicit network refusal and snapshot refusal.
+- Hosted library tests: 69 passed, including capability-driven admission,
+  explicit network refusal, snapshot refusal and Cloud Hypervisor runner
+  construction.
 - MicroVM library tests: 36 passed, including snapshot identity v2 and Cloud
   Hypervisor pause/snapshot/restore plans.
 - Hosted documentation now states that Cloud Hypervisor phase 1 is plan-only

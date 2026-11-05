@@ -110,7 +110,7 @@ pub fn snapshot_load(state: &str, memory: &str) -> Value {
 pub struct SnapshotInputs<'a> {
     pub vmm_kind: &'a str,
     pub vmm_version: &'a str,
-    pub firecracker_blake3: &'a str,
+    pub vmm_blake3: &'a str,
     pub kernel_blake3: &'a str,
     pub initrd_blake3: &'a str,
     pub vcpus: u8,
@@ -243,7 +243,7 @@ mod tests {
         let base = SnapshotInputs {
             vmm_kind: "firecracker",
             vmm_version: "1.15.0",
-            firecracker_blake3: "a",
+            vmm_blake3: "a",
             kernel_blake3: "b",
             initrd_blake3: "c",
             vcpus: 1,
@@ -257,7 +257,7 @@ mod tests {
         assert_eq!(id, snapshot_identity(&base));
         for changed in [
             SnapshotInputs {
-                firecracker_blake3: "x",
+                vmm_blake3: "x",
                 ..base
             },
             SnapshotInputs {

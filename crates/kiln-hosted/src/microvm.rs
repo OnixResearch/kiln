@@ -24,7 +24,7 @@ use bounded_exec::{Completion, ExecutionOutput, Input, RunError};
 use fs2::FileExt;
 use kiln_microvm::admission::MachinePolicy;
 use kiln_microvm::archive::{self, EntryKind, SourceEntry};
-use kiln_microvm::backend::VmmBackend;
+use kiln_microvm::backend::{ColdBootPaths, VmmBackend, cloud_hypervisor_cold_boot};
 use kiln_microvm::confinement::{
     ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
 };
@@ -144,7 +144,8 @@ pub(crate) fn read_host_facts() -> HostFacts {
 }
 
 pub(crate) struct Runner<'a> {
-    pub(crate) firecracker: &'a Executable,
+    pub(crate) vmm: &'a Executable,
+    pub(crate) kind: &'static str,
     pub(crate) kernel: &'a Image,
     pub(crate) initrd: &'a Image,
     pub(crate) policy: MachinePolicy<'a>,
@@ -174,7 +175,8 @@ impl<'a> Runner<'a> {
             return None;
         };
         Some(Self {
-            firecracker,
+            vmm: firecracker,
+            kind: "firecracker",
             kernel,
             initrd,
             policy: machine_policy(backend)?,
@@ -182,6 +184,33 @@ impl<'a> Runner<'a> {
             debug_hold: debug_hold.as_ref(),
             trust_domain: trust_domain.as_deref(),
             host_identity: host_identity.as_deref(),
+            cpu_affinity: cpu_affinity.as_deref(),
+            version: version.as_deref(),
+        })
+    }
+
+    pub(crate) fn from_cloud_hypervisor(backend: &'a Backend) -> Option<Self> {
+        let Backend::CloudHypervisor {
+            cloud_hypervisor,
+            kernel,
+            initrd,
+            cpu_affinity,
+            version,
+            ..
+        } = backend
+        else {
+            return None;
+        };
+        Some(Self {
+            vmm: cloud_hypervisor,
+            kind: "cloud-hypervisor",
+            kernel,
+            initrd,
+            policy: machine_policy(backend)?,
+            warm_pool: None,
+            debug_hold: None,
+            trust_domain: None,
+            host_identity: None,
             cpu_affinity: cpu_affinity.as_deref(),
             version: version.as_deref(),
         })
@@ -204,6 +233,21 @@ pub(crate) fn machine_policy(backend: &Backend) -> Option<MachinePolicy<'_>> {
             boot_timeout_ms: *boot_timeout_ms,
             source_image_mib: *source_image_mib,
             warm_slots: warm_pool.as_ref().map(|pool| pool.slots),
+            guest_shell,
+        }),
+        Backend::CloudHypervisor {
+            guest_shell,
+            vcpus,
+            memory_mib,
+            boot_timeout_ms,
+            source_image_mib,
+            ..
+        } => Some(MachinePolicy {
+            vcpus: *vcpus,
+            memory_mib: *memory_mib,
+            boot_timeout_ms: *boot_timeout_ms,
+            source_image_mib: *source_image_mib,
+            warm_slots: None,
             guest_shell,
         }),
         _ => None,
@@ -782,7 +826,7 @@ fn snapshot_identity(runner: &Runner<'_>, slot: &Slot) -> Result<String, String>
     Ok(plan::snapshot_identity(&plan::SnapshotInputs {
         vmm_kind: "firecracker",
         vmm_version: runner.version.unwrap_or("unknown"),
-        firecracker_blake3: &runner.firecracker.blake3,
+        vmm_blake3: &runner.vmm.blake3,
         kernel_blake3: &runner.kernel.blake3,
         initrd_blake3: &runner.initrd.blake3,
         vcpus: runner.policy.vcpus,
@@ -814,7 +858,7 @@ fn invalidate(slot: &Slot) {
 struct Paths {
     kernel: PathBuf,
     initrd: PathBuf,
-    firecracker: PathBuf,
+    vmm: PathBuf,
 }
 
 fn vm_config(
@@ -905,7 +949,7 @@ fn build_snapshot(
             job.timeout_ms,
             runner.cpu_affinity.as_deref(),
             vec![
-                text(&paths.firecracker)?.into(),
+                text(&paths.vmm)?.into(),
                 "--api-sock".into(),
                 text(&api_socket)?.into(),
                 "--config-file".into(),
@@ -1274,9 +1318,9 @@ pub(crate) fn run_job(
     };
     // r[impl kiln.hosted.microvm.claims]
     let mut vm = json!({
-        "backend": kiln_microvm::backend::Firecracker.kind(),
+        "backend": runner.kind,
         "backend_version": runner.version,
-        "vmm_blake3": runner.firecracker.blake3,
+        "vmm_blake3": runner.vmm.blake3,
         "capabilities": kiln_microvm::backend::Firecracker.capabilities(),
         "vcpus": runner.policy.vcpus,
         "memory_mib": runner.policy.memory_mib,
@@ -1320,7 +1364,7 @@ pub(crate) fn run_job(
         let outcome = (|| -> Result<(), String> {
             let verify_started = Instant::now();
             let paths = Paths {
-                firecracker: runner.firecracker.verify()?,
+                vmm: runner.vmm.verify()?,
                 kernel: runner.kernel.verify()?,
                 initrd: runner.initrd.verify()?,
             };
@@ -1388,8 +1432,23 @@ pub(crate) fn run_job(
             observe("source_archive_bytes", json!(archive_bytes));
             let listener_path = PathBuf::from(plan::host_listener_path(text(&vsock)?));
             remove_stale(&[&vsock, &listener_path, &api_socket])?;
-            let mut arguments = vec![text(&paths.firecracker)?.to_owned()];
-            if let Some(held) = &slot {
+            let mut arguments = if runner.kind == "cloud-hypervisor" {
+                cloud_hypervisor_cold_boot(
+                    text(&paths.vmm)?,
+                    &ColdBootPaths {
+                        kernel: text(&paths.kernel)?,
+                        initrd: text(&paths.initrd)?,
+                        source_image: text(&image)?,
+                        vsock: text(&vsock)?,
+                    },
+                    &runner.policy,
+                )
+            } else {
+                vec![text(&paths.vmm)?.to_owned()]
+            };
+            if runner.kind == "cloud-hypervisor" {
+                // Phase 1 is cold boot only; no API socket is exposed.
+            } else if let Some(held) = &slot {
                 fs::rename(&image, held.path("source.img"))
                     .map_err(|_| "warm pool source image install failed")?;
                 arguments.extend(["--api-sock".into(), text(&api_socket)?.into()]);
@@ -1402,7 +1461,9 @@ pub(crate) fn run_job(
                     text(&config_path)?.into(),
                 ]);
             }
-            arguments.extend(["--level".into(), "Error".into()]);
+            if runner.kind != "cloud-hypervisor" {
+                arguments.extend(["--level".into(), "Error".into()]);
+            }
             let listener =
                 UnixListener::bind(&listener_path).map_err(|_| "guest listener bind failed")?;
             let stop = AtomicBool::new(false);
@@ -1436,8 +1497,8 @@ pub(crate) fn run_job(
                     let confinement = observe_confinement(
                         config,
                         job.unit,
-                        &paths.firecracker,
-                        &runner.firecracker.blake3,
+                        &paths.vmm,
+                        &runner.vmm.blake3,
                         Duration::from_millis(runner.policy.boot_timeout_ms.min(2_000)),
                     );
                     session.confinement = Some(confinement_value(&confinement));

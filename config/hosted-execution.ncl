@@ -56,6 +56,7 @@ let Backend = {
   guest_shell | Absolute | optional,
   acceleration | std.contract.from_predicate (fun value => std.array.elem value ["tcg", "kvm"]) | optional,
   firecracker | Immutable | optional,
+  cloud_hypervisor | Immutable | optional,
   initrd | Immutable | optional,
   vcpus | Positive 8 | optional,
   memory_mib | Positive 16384 | optional,

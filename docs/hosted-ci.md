@@ -608,17 +608,17 @@ diagnostics there) and backend observations.
 
 ### Cloud Hypervisor (phase 1, plan only)
 
-Cloud Hypervisor is **not executable** in this tree yet. The pure core has a
-capability declaration, a cold-boot argv plan, pause/snapshot requests and a
-restore argv plan. No hosted runner accepts `kind = "cloud-hypervisor"`.
+Cloud Hypervisor cold boot is wired through the hosted shell. Warm-pool
+restore is not wired yet. No host run or escape-suite result exists, so the
+backend remains unqualified.
 
 Intended phase-1 shape:
 
 - cold boot with `--kernel`, `--initramfs`, `--cmdline`, `--cpus`, `--memory`,
   a read-only `--disk` source image, `--vsock`, `--seccomp true` and no
   `--net` or `--api-socket`;
-- warm restore with `--restore source_url=file://…,resume=false`, then a
-  host-side resume only after confinement observation;
+- planned warm restore with `--restore source_url=file://…,resume=false`, then
+  a host-side resume only after confinement observation;
 - the same `<vsock>_10240` guest listener and `kiln.microvm.guest.v1` protocol.
 
 Claims if it ships: no guest network device, rootless `systemd-run --user`,

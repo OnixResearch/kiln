@@ -23,6 +23,8 @@ matching a closed runner enum in every consumer.
 - Document Cloud Hypervisor phase-1 claims and non-claims.
 - Build a virtio-PCI `microvm-guest-ch` image and move the guest manifest to
   `kiln.microvm.guest-image.v2` with a `vmm` entry.
+- Wire Cloud Hypervisor cold-boot execution into the hosted shell; warm restore
+  remains unwired.
 
 ## Impact
 

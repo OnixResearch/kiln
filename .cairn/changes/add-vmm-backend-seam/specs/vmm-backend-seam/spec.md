@@ -25,7 +25,10 @@ and MUST list the absent escape-suite, confinement, latency, CET and
 device-model evidence. The guest image manifest MUST be
 `kiln.microvm.guest-image.v2` with a `vmm` entry containing kind, version and
 binary identity; the Cloud Hypervisor guest MUST load `virtio_pci` instead of
-`virtio_mmio`.
+`virtio_mmio`. A `kind = "cloud-hypervisor"` runner MUST be admitted only on
+its declared arch, with no network request, no cache policy and no warm pool;
+its cold-boot launch MUST use the pure Cloud Hypervisor argv and the same guest
+protocol. Warm restore MUST remain refused until it is wired and observed.
 
 #### Scenario: No guest network
 

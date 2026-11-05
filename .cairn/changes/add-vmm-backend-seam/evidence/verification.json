@@ -3,7 +3,7 @@
   "date": "2026-11-05",
   "commands": [
     {"command":"cargo test -p kiln-microvm backend --offline","result":"3 passed"},
-    {"command":"cargo test -p kiln-hosted --lib --offline","result":"68 passed"},
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"69 passed"},
     {"command":"cargo test -p kiln-microvm --lib --offline","result":"36 passed"},
     {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
     {"command":"nix build .#microvm-guest-ch --no-link --option builders ''","result":"built; guest-image v2 with cloud-hypervisor vmm entry"},
@@ -13,7 +13,7 @@
   "acceptance": {
     "trait": "pure VmmBackend with capabilities, boot args, listener and identity inputs",
     "firecracker": "reference implementation",
-    "cloud_hypervisor": "phase-1 pure cold-boot argv with no network or API socket",
+    "cloud_hypervisor": "cold-boot execution wired; warm restore and host escape-suite evidence remain open",
     "receipt": "Firecracker backend kind, version, binary BLAKE3 and capabilities come from reviewed declarations"
   },
   "non_claims": [

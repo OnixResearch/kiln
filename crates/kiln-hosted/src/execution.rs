@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 use zeroize::Zeroize;
 
 use kiln_microvm::backend::{
-    Capabilities, ConfinementKinds, Firecracker, NetworkCapability, VmmBackend,
+    Capabilities, CloudHypervisor, ConfinementKinds, Firecracker, NetworkCapability, VmmBackend,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -105,6 +105,25 @@ pub enum Backend {
         version: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         network: Option<String>,
+    },
+    /// One Cloud Hypervisor microVM per job. Cold boot only in phase 1; the
+    /// same guest agent, read-only source drive and vsock protocol apply.
+    CloudHypervisor {
+        cloud_hypervisor: Executable,
+        kernel: Image,
+        initrd: Image,
+        guest_shell: String,
+        vcpus: u8,
+        memory_mib: u32,
+        boot_timeout_ms: u64,
+        source_image_mib: u32,
+        qualification_identity: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        network: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        version: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cpu_affinity: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -439,6 +458,17 @@ impl Config {
                     }
                     qualification_reference(qualification_identity)?;
                 }
+                Backend::CloudHypervisor {
+                    cloud_hypervisor,
+                    kernel,
+                    initrd,
+                    ..
+                } => {
+                    admit_cloud_hypervisor(self, label, backend)?;
+                    cloud_hypervisor.verify()?;
+                    kernel.verify()?;
+                    initrd.verify()?;
+                }
                 Backend::Firecracker {
                     firecracker,
                     kernel,
@@ -479,13 +509,15 @@ fn backend_declared_network(backend: &Backend) -> Option<&str> {
     match backend {
         Backend::Namespaces { network, .. }
         | Backend::Qemu { network, .. }
-        | Backend::Firecracker { network, .. } => network.as_deref(),
+        | Backend::Firecracker { network, .. }
+        | Backend::CloudHypervisor { network, .. } => network.as_deref(),
     }
 }
 
 fn backend_capabilities(backend: &Backend) -> Capabilities {
     match backend {
         Backend::Firecracker { .. } => Firecracker.capabilities(),
+        Backend::CloudHypervisor { .. } => CloudHypervisor.capabilities(),
         Backend::Qemu { .. } | Backend::Namespaces { .. } => Capabilities {
             network: NetworkCapability::NoDevice,
             snapshot: false,
@@ -504,6 +536,59 @@ fn backend_capabilities(backend: &Backend) -> Capabilities {
 fn admit_snapshot(capabilities: &Capabilities, requested: bool) -> Result<(), String> {
     if requested && !capabilities.snapshot {
         return Err("warm pool requires a snapshot-capable backend".into());
+    }
+    Ok(())
+}
+
+fn admit_cloud_hypervisor(config: &Config, label: &str, backend: &Backend) -> Result<(), String> {
+    let Backend::CloudHypervisor {
+        kernel,
+        initrd,
+        qualification_identity,
+        version,
+        cpu_affinity,
+        ..
+    } = backend
+    else {
+        return Err("not a Cloud Hypervisor runner".into());
+    };
+    let capabilities = backend_capabilities(backend);
+    if !capabilities.admits_arch(std::env::consts::ARCH) {
+        return Err("Cloud Hypervisor runner arch is not in its reviewed capability set".into());
+    }
+    if backend_declared_network(backend).is_some_and(|network| network != "none") {
+        return Err("backend requests a guest network device".into());
+    }
+    if version.as_ref().is_some_and(|version| {
+        version.trim().is_empty() || version.len() > 128 || version.contains('\0')
+    }) {
+        return Err("invalid Cloud Hypervisor version".into());
+    }
+    if cpu_affinity
+        .as_ref()
+        .is_some_and(|affinity| !valid_cpu_affinity(affinity))
+    {
+        return Err("invalid Cloud Hypervisor CPU affinity".into());
+    }
+    kernel.verify()?;
+    initrd.verify()?;
+    qualification_reference(qualification_identity)?;
+    let policy = crate::microvm::machine_policy(backend).ok_or("not a Cloud Hypervisor runner")?;
+    kiln_microvm::admission::admit_machine(
+        &policy,
+        &kiln_microvm::admission::HostBounds {
+            unit_memory_bytes: config.memory_bytes,
+            unit_tasks: config.processes,
+            maximum_concurrent: config.maximum_concurrent,
+            maximum_timeout_ms: config.maximum_timeout_ms,
+        },
+    )?;
+    if config
+        .cache
+        .as_ref()
+        .is_some_and(|cache| cache.policies.iter().any(|p| p.runner == label))
+    {
+        return Err("cache policies cannot name a Cloud Hypervisor runner".into());
     }
     Ok(())
 }
@@ -1089,11 +1174,10 @@ pub fn run_pipeline(
         if let Err(error) = credential_result {
             state = "failed";
             steps.push(json!({"state":"not_dispatched","reason":error}));
-        } else if let Some(runner) = config
-            .runners
-            .get(&job.runner)
-            .and_then(crate::microvm::Runner::from_backend)
-        {
+        } else if let Some(runner) = config.runners.get(&job.runner).and_then(|backend| {
+            crate::microvm::Runner::from_backend(backend)
+                .or_else(|| crate::microvm::Runner::from_cloud_hypervisor(backend))
+        }) {
             let elapsed = u64::try_from(job_started.elapsed().as_millis()).unwrap_or(u64::MAX);
             let remaining = job.timeout_ms.saturating_sub(elapsed);
             if remaining == 0 {
@@ -2049,8 +2133,8 @@ fn run_step(
             service.extend(args.into_iter().map(OsString::from));
             Input::Null
         }
-        Backend::Firecracker { .. } => {
-            return Err("Firecracker runners execute whole jobs, not single steps".into());
+        Backend::Firecracker { .. } | Backend::CloudHypervisor { .. } => {
+            return Err("microVM runners execute whole jobs, not single steps".into());
         }
     };
     let started = Instant::now();
@@ -2896,5 +2980,35 @@ mod tests {
         };
         assert!(admit_snapshot(&unsupported, true).is_err());
         assert!(admit_snapshot(&unsupported, false).is_ok());
+    }
+    #[test]
+    fn cloud_hypervisor_runner_declares_phase_one_capabilities() {
+        let executable = Executable {
+            path: "/missing".into(),
+            blake3: "0".repeat(64),
+        };
+        let image = Image {
+            path: "/missing".into(),
+            blake3: "0".repeat(64),
+        };
+        let backend = Backend::CloudHypervisor {
+            cloud_hypervisor: executable,
+            kernel: image.clone(),
+            initrd: image,
+            guest_shell: "/bin/bash".into(),
+            vcpus: 1,
+            memory_mib: 256,
+            boot_timeout_ms: 10_000,
+            source_image_mib: 64,
+            qualification_identity: None,
+            network: None,
+            version: Some("53.0".into()),
+            cpu_affinity: None,
+        };
+        let capabilities = backend_capabilities(&backend);
+        assert_eq!(capabilities.network, NetworkCapability::NoDevice);
+        assert!(capabilities.snapshot);
+        assert!(capabilities.admits_arch("x86_64"));
+        assert!(crate::microvm::Runner::from_cloud_hypervisor(&backend).is_some());
     }
 }
