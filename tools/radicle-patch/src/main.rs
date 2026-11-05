@@ -88,11 +88,22 @@ fn read_patch(
         .get(&id)
         .map_err(|_| "Radicle patch reduction failed")?
         .ok_or("Radicle patch not found")?;
+    let revisions = patch
+        .revisions()
+        .map(|(id, revision)| {
+            serde_json::json!({
+                "id": id.to_string(),
+                "head": revision.head().to_string(),
+                "base": revision.base().to_string(),
+                "description": revision.description(),
+            })
+        })
+        .collect::<Vec<_>>();
     Ok(serde_json::json!({
         "patch_id": patch_id,
         "state": format!("{:?}", patch.state()),
         "author": patch.author().id().to_string(),
-        "revisions": patch.revisions().count(),
+        "revisions": revisions,
     }))
 }
 

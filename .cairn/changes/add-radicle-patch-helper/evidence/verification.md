@@ -6,7 +6,7 @@ Added a separate upstream patch-reducer helper and a bounded adapter invocation.
 
 ## Evidence
 
-- Helper `cargo check`: pass.
+- Helper `cargo check`: pass; read output includes exact revision ids, heads and bases.
 - Adapter patch-read/review tests: 3 passed.
 - `cairn validate`: zero issues.
 

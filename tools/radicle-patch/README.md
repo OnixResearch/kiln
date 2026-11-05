@@ -10,7 +10,7 @@ RADICLE_SIGNER_SEED=<64 hex chars> cargo run -- review STORAGE_ROOT REPOSITORY_I
 ```
 
 The `read` command prints one JSON object with the reduced patch state, author
-and revision count. The `review` command appends one review through the upstream
+and revision entries (`id`, `head`, `base`, `description`). The `review` command appends one review through the upstream
 authorization path and prints the review id. The signer seed is read from the
 child environment, never argv. Neither command grants Kiln review or release
 authority.
