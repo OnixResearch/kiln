@@ -4,7 +4,6 @@ let Accepted = std.array.at 0 Base.traceability_policy.profiles in
 # here until the change is accepted and archived. Add only active roots.
 let ActiveRoots = [
   ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views",
-  ".cairn/changes/adapt-nix-store-facts/specs/nix-store-facts",
 ] in
 let Active =
   Accepted

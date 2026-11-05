@@ -896,6 +896,7 @@ fn failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry() {
     );
 }
 
+// r[verify kiln.hosted.microvm.cache_drive]
 #[test]
 fn firecracker_cache_restores_after_publication() {
     let host = match prerequisites() {

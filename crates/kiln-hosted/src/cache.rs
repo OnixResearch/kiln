@@ -363,6 +363,7 @@ pub fn publish(
     record(config, policy, context.now_ms, original, &envelope, started)
 }
 
+// r[impl kiln.hosted.microvm.cache_drive]
 /// Publish outputs returned by a guest that ran over an immutable source
 /// snapshot. The key is still verified against the source context, but the
 /// output envelope is collected from the extracted return because guest writes
