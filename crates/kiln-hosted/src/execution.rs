@@ -48,6 +48,9 @@ pub enum Backend {
         mount: Executable,
         shell: Executable,
         runtime_roots: Vec<PathBuf>,
+        /// Optional reviewed guest-network request; only `none` is admissible.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        network: Option<String>,
     },
     Qemu {
         qemu: Executable,
@@ -57,6 +60,8 @@ pub enum Backend {
         guest_shell: String,
         acceleration: String,
         qualification_identity: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        network: Option<String>,
     },
     /// One Firecracker microVM per job: kernel and initramfs from the reviewed
     /// `microvm-guest` flake output, the source snapshot as a read-only
@@ -95,6 +100,8 @@ pub enum Backend {
         /// Reviewed CPU list for this runner's VMM, e.g. `0-3,8,10-11`.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cpu_affinity: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        network: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -284,6 +291,11 @@ impl Config {
                 .ok_or("CPU affinity requires a configured taskset")?
                 .verify()?;
         }
+        for backend in self.runners.values() {
+            if backend_declared_network(backend).is_some_and(|network| network != "none") {
+                return Err("backend requests a guest network device".into());
+            }
+        }
         if let Some(cache) = &self.cache {
             cache.validate(&self.work_root)?;
             if cache
@@ -380,6 +392,7 @@ impl Config {
                     mount,
                     shell,
                     runtime_roots,
+                    network: _,
                 } => {
                     unshare.verify()?;
                     python.verify()?;
@@ -406,6 +419,7 @@ impl Config {
                     guest_shell,
                     acceleration,
                     qualification_identity,
+                    network: _,
                 } => {
                     qemu.verify()?;
                     kernel.verify()?;
@@ -458,6 +472,14 @@ fn qualification_reference(identity: &Option<String>) -> Result<(), String> {
 // r[impl kiln.hosted.microvm.admission.scenario.bounds]
 /// Pure Firecracker runner admission against this execution policy. Image and
 /// pool filesystem checks follow in the shell.
+fn backend_declared_network(backend: &Backend) -> Option<&str> {
+    match backend {
+        Backend::Namespaces { network, .. }
+        | Backend::Qemu { network, .. }
+        | Backend::Firecracker { network, .. } => network.as_deref(),
+    }
+}
+
 fn backend_capabilities(backend: &Backend) -> Capabilities {
     match backend {
         Backend::Firecracker { .. } => Firecracker.capabilities(),
@@ -636,7 +658,9 @@ fn workspace(
 }
 // r[impl kiln.hosted.execution]
 fn admit_backend(backend: &Backend, trust: &str) -> Result<(), String> {
-    if backend_capabilities(backend).network != NetworkCapability::NoDevice {
+    if backend_capabilities(backend).network != NetworkCapability::NoDevice
+        || backend_declared_network(backend).is_some_and(|network| network != "none")
+    {
         return Err("backend requests a guest network device".into());
     }
     match (trust,backend) {
@@ -1913,6 +1937,7 @@ fn run_step(
             mount,
             shell,
             runtime_roots,
+            network: _,
         } => {
             let shell = shell.verify()?;
             let data = json!({"root":root.path(),"workspace":workspace,"mount":mount.verify()?,"runtime_roots":runtime_roots,"shell":shell,"run":step.run,"env":environment,"cwd":step.working_directory,"bash":matches!(step.shell,crate::pipelines::Shell::Bash)});
@@ -2282,6 +2307,7 @@ mod tests {
             mount: e.clone(),
             shell: e,
             runtime_roots: vec!["/nix/store".into()],
+            network: None,
         };
         assert!(admit_backend(&backend, "trusted").is_ok());
         assert!(
@@ -2564,6 +2590,7 @@ mod tests {
             mount: e.clone(),
             shell: e,
             runtime_roots: vec!["/nix/store".into()],
+            network: None,
         };
         assert!(admit_untrusted_runner(&namespaces, provenance).is_err());
         let mut forged = untrusted_request("approved-1");
@@ -2828,5 +2855,19 @@ mod tests {
         assert!(capabilities.snapshot);
         assert!(capabilities.per_job);
         assert!(capabilities.arch.contains(&"x86_64"));
+    }
+    #[test]
+    fn explicit_guest_network_requests_are_refused() {
+        let backend: Backend = serde_json::from_value(firecracker_backend(json!({
+            "network": "tap"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(backend_declared_network(&backend), Some("tap"));
+        assert!(admit_backend(&backend, "trusted").is_err());
+        let backend: Backend = serde_json::from_value(firecracker_backend(json!({
+            "network": "none"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(admit_backend(&backend, "trusted").is_ok());
     }
 }

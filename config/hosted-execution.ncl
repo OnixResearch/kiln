@@ -80,6 +80,7 @@ let Backend = {
   # Reviewed physical host; untrusted and workload-bearing runners must differ.
   host_identity | String | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
+  network | String | optional,
   cpu_affinity
     | std.contract.from_predicate (fun value =>
       std.is_string value

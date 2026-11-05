@@ -13,6 +13,8 @@ matching a closed runner enum in every consumer.
 - Use the Firecracker trait kind in the receipt.
 - Drive backend arch, snapshot and no-network admission from the capability
   declaration.
+- Add an explicit optional `network` request field and refuse anything other
+  than `none`.
 
 ## Impact
 

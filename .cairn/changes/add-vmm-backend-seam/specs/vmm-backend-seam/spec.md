@@ -10,7 +10,9 @@ and identity inputs. Every admissible backend MUST declare
 `NetworkCapability::NoDevice`; a backend that cannot declare it MUST be refused.
 The seam MUST NOT perform I/O or grant an isolation claim. Admission MUST read
 the backend capability declaration for arch, snapshot and guest-network
-decisions instead of matching a closed kind.
+decisions instead of matching a closed kind. A runner configuration MAY carry
+an explicit `network` request, but only `none` is admissible; any other value
+MUST be refused before an effect.
 
 #### Scenario: No guest network
 

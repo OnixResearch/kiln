@@ -3,7 +3,7 @@
   "date": "2026-11-05",
   "commands": [
     {"command":"cargo test -p kiln-microvm backend --offline","result":"3 passed"},
-    {"command":"cargo test -p kiln-hosted --lib --offline","result":"66 passed"},
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"67 passed"},
     {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
