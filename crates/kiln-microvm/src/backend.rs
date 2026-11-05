@@ -201,7 +201,7 @@ pub fn cloud_hypervisor_snapshot_requests(state: &str) -> Vec<ApiRequest> {
         ApiRequest {
             method: "PUT",
             path: "/api/v1/vm.pause",
-            body: json!({}),
+            body: Value::Null,
         },
         ApiRequest {
             method: "PUT",

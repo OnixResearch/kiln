@@ -24,7 +24,10 @@ use bounded_exec::{Completion, ExecutionOutput, Input, RunError};
 use fs2::FileExt;
 use kiln_microvm::admission::MachinePolicy;
 use kiln_microvm::archive::{self, EntryKind, SourceEntry};
-use kiln_microvm::backend::{ColdBootPaths, VmmBackend, cloud_hypervisor_cold_boot};
+use kiln_microvm::backend::{
+    ColdBootPaths, VmmBackend, cloud_hypervisor_cold_boot, cloud_hypervisor_restore,
+    cloud_hypervisor_snapshot_requests,
+};
 use kiln_microvm::confinement::{
     ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
 };
@@ -197,6 +200,7 @@ impl<'a> Runner<'a> {
             cloud_hypervisor,
             kernel,
             initrd,
+            warm_pool,
             cpu_affinity,
             version,
             ..
@@ -210,7 +214,7 @@ impl<'a> Runner<'a> {
             kernel,
             initrd,
             policy: machine_policy(backend)?,
-            warm_pool: None,
+            warm_pool: warm_pool.as_ref(),
             debug_hold: None,
             trust_domain: None,
             host_identity: None,
@@ -880,7 +884,7 @@ fn blake3_file(path: &Path) -> Result<String, String> {
 
 fn snapshot_identity(runner: &Runner<'_>, slot: &Slot) -> Result<String, String> {
     Ok(plan::snapshot_identity(&plan::SnapshotInputs {
-        vmm_kind: "firecracker",
+        vmm_kind: runner.kind,
         vmm_version: runner.version.unwrap_or("unknown"),
         vmm_blake3: &runner.vmm.blake3,
         kernel_blake3: &runner.kernel.blake3,
@@ -894,13 +898,16 @@ fn snapshot_identity(runner: &Runner<'_>, slot: &Slot) -> Result<String, String>
 }
 
 /// A slot snapshot is reusable only for the exact identity and state bytes.
-fn snapshot_reusable(slot: &Slot, identity: &str, memory_bytes: u64) -> bool {
+fn snapshot_reusable(slot: &Slot, identity: &str, kind: &str, memory_bytes: u64) -> bool {
     let Ok(raw) = fs::read(slot.path("manifest.json")) else {
         return false;
     };
     let Ok(manifest) = serde_json::from_slice::<SlotManifest>(&raw) else {
         return false;
     };
+    if kind == "cloud-hypervisor" {
+        return manifest.identity == identity && slot.path("state").is_dir();
+    }
     manifest.identity == identity
         && manifest.memory_bytes == memory_bytes
         && fs::metadata(slot.path("memory")).is_ok_and(|m| m.len() == memory_bytes)
@@ -967,6 +974,103 @@ fn tail(console: &str) -> String {
 // r[impl kiln.hosted.microvm.warm_pool]
 /// Cold boot into the slot paths with a blank source drive, wait for the
 /// agent, pause, take a full snapshot and destroy that VM.
+fn build_cloud_hypervisor_snapshot(
+    config: &Config,
+    runner: &Runner<'_>,
+    paths: &Paths,
+    slot: &Slot,
+    identity: &str,
+    job: &Job<'_>,
+    cancellation: &AtomicBool,
+) -> Result<(), String> {
+    invalidate(slot);
+    let _ = fs::remove_dir_all(slot.path("state"));
+    let vsock = slot.path("v.sock");
+    let listener_path = PathBuf::from(plan::host_listener_path(text(&vsock)?));
+    let api_socket = slot.path("api.sock");
+    remove_stale(&[&vsock, &listener_path, &api_socket])?;
+    let image = slot.path("source.img");
+    let blank = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(&image)
+        .map_err(|_| "warm pool source image create failed")?;
+    blank
+        .set_len(u64::from(runner.policy.source_image_mib) * MIB)
+        .map_err(|_| "warm pool source image size failed")?;
+    let listener = UnixListener::bind(&listener_path).map_err(|_| "guest listener bind failed")?;
+    let stop = AtomicBool::new(false);
+    std::thread::scope(|scope| {
+        let mut arguments = cloud_hypervisor_cold_boot(
+            text(&paths.vmm)?,
+            &ColdBootPaths {
+                kernel: text(&paths.kernel)?,
+                initrd: text(&paths.initrd)?,
+                source_image: text(&image)?,
+                vsock: text(&vsock)?,
+            },
+            &runner.policy,
+        );
+        arguments.extend([
+            "--api-socket".into(),
+            format!("path={}", text(&api_socket)?),
+        ]);
+        let vmm = spawn_vmm(
+            scope,
+            config,
+            job.unit,
+            job.timeout_ms,
+            runner.cpu_affinity.as_deref(),
+            arguments,
+            &stop,
+        )?;
+        let deadline = Instant::now() + Duration::from_millis(runner.policy.boot_timeout_ms);
+        let built = (|| {
+            let mut stream = accept_guest(listener, &listener_path, deadline, &vmm, cancellation)?;
+            write_host(
+                &mut stream,
+                HostMessage::Ping {
+                    nonce: identity.into(),
+                },
+            )?;
+            match read_guest(&mut stream, deadline, cancellation)? {
+                GuestMessage::Pong { nonce } if nonce == identity => {}
+                _ => return Err("guest did not answer the snapshot readiness probe".to_owned()),
+            }
+            drop(stream);
+            fs::create_dir_all(slot.path("state"))
+                .map_err(|_| "snapshot destination directory create failed".to_string())?;
+            for request in cloud_hypervisor_snapshot_requests(text(&slot.path("state"))?) {
+                api(
+                    &api_socket,
+                    request.method,
+                    request.path,
+                    &request.body,
+                    &vmm,
+                )?;
+            }
+            Ok(())
+        })();
+        let (cleaned, console) = destroy(config, job.unit, vmm, &stop);
+        if !cleaned {
+            return Err("snapshot VM teardown uncertain".to_owned());
+        }
+        built.map_err(|error| format!("{error}; console: {}", tail(&console)))
+    })?;
+    let manifest = SlotManifest {
+        identity: identity.into(),
+        state_blake3: String::new(),
+        memory_bytes: 0,
+    };
+    write_private(
+        &slot.path("manifest.json"),
+        &serde_json::to_vec(&manifest).map_err(|e| e.to_string())?,
+    )
+}
+
 fn build_snapshot(
     config: &Config,
     runner: &Runner<'_>,
@@ -976,6 +1080,17 @@ fn build_snapshot(
     job: &Job<'_>,
     cancellation: &AtomicBool,
 ) -> Result<(), String> {
+    if runner.kind == "cloud-hypervisor" {
+        return build_cloud_hypervisor_snapshot(
+            config,
+            runner,
+            paths,
+            slot,
+            identity,
+            job,
+            cancellation,
+        );
+    }
     invalidate(slot);
     let vsock = slot.path("v.sock");
     let listener_path = PathBuf::from(plan::host_listener_path(text(&vsock)?));
@@ -1450,7 +1565,12 @@ pub(crate) fn run_job(
             if let Some(held) = &slot {
                 observe("slot", json!(held.index));
                 let identity = snapshot_identity(runner, held)?;
-                if snapshot_reusable(held, &identity, u64::from(runner.policy.memory_mib) * MIB) {
+                if snapshot_reusable(
+                    held,
+                    &identity,
+                    runner.kind,
+                    u64::from(runner.policy.memory_mib) * MIB,
+                ) {
                     observe("snapshot", json!("reused"));
                 } else {
                     let build_started = Instant::now();
@@ -1492,16 +1612,26 @@ pub(crate) fn run_job(
             let listener_path = PathBuf::from(plan::host_listener_path(text(&vsock)?));
             remove_stale(&[&vsock, &listener_path, &api_socket])?;
             let mut arguments = if runner.kind == "cloud-hypervisor" {
-                cloud_hypervisor_cold_boot(
-                    text(&paths.vmm)?,
-                    &ColdBootPaths {
-                        kernel: text(&paths.kernel)?,
-                        initrd: text(&paths.initrd)?,
-                        source_image: text(&image)?,
-                        vsock: text(&vsock)?,
-                    },
-                    &runner.policy,
-                )
+                if let Some(held) = &slot {
+                    fs::rename(&image, held.path("source.img"))
+                        .map_err(|_| "warm pool source image install failed")?;
+                    cloud_hypervisor_restore(
+                        text(&paths.vmm)?,
+                        text(&held.path("state"))?,
+                        text(&api_socket)?,
+                    )
+                } else {
+                    cloud_hypervisor_cold_boot(
+                        text(&paths.vmm)?,
+                        &ColdBootPaths {
+                            kernel: text(&paths.kernel)?,
+                            initrd: text(&paths.initrd)?,
+                            source_image: text(&image)?,
+                            vsock: text(&vsock)?,
+                        },
+                        &runner.policy,
+                    )
+                }
             } else {
                 vec![text(&paths.vmm)?.to_owned()]
             };
@@ -1539,7 +1669,9 @@ pub(crate) fn run_job(
                 )?;
                 lifecycle.advance(Event::Spawned)?;
                 let served = (|| -> Result<UnixStream, String> {
-                    if let Some(held) = &slot {
+                    if let Some(held) = &slot
+                        && runner.kind != "cloud-hypervisor"
+                    {
                         api(
                             &api_socket,
                             "PUT",
@@ -1566,6 +1698,10 @@ pub(crate) fn run_job(
                     match &confinement {
                         Ok(_) => {
                             lifecycle.advance(Event::ConfinementObserved { ok: true })?;
+                            if runner.kind == "cloud-hypervisor" && slot.is_some() {
+                                api(&api_socket, "PUT", "/api/v1/vm.resume", &Value::Null, &vmm)?;
+                                session.restore_api_ms = Some(millis(spawned));
+                            }
                         }
                         Err(error) => {
                             session.failure = Some(error.clone());

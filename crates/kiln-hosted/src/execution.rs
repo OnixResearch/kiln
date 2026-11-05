@@ -124,6 +124,8 @@ pub enum Backend {
         source_image_mib: u32,
         qualification_identity: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        warm_pool: Option<crate::microvm::WarmPool>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         network: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         version: Option<String>,
@@ -568,6 +570,7 @@ fn admit_cloud_hypervisor(config: &Config, label: &str, backend: &Backend) -> Re
         kernel,
         initrd,
         qualification_identity,
+        warm_pool,
         version,
         cpu_affinity,
         ..
@@ -606,6 +609,9 @@ fn admit_cloud_hypervisor(config: &Config, label: &str, backend: &Backend) -> Re
             maximum_timeout_ms: config.maximum_timeout_ms,
         },
     )?;
+    if let Some(pool) = warm_pool {
+        crate::microvm::admit_pool_path(&pool.directory, &config.work_root)?;
+    }
     if config
         .cache
         .as_ref()
@@ -3024,6 +3030,7 @@ mod tests {
             boot_timeout_ms: 10_000,
             source_image_mib: 64,
             qualification_identity: None,
+            warm_pool: None,
             network: None,
             version: Some("53.0".into()),
             cpu_affinity: None,

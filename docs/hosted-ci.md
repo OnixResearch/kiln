@@ -612,7 +612,10 @@ Cloud Hypervisor cold boot is wired through the hosted shell. A host run on the
 reference host now matches the namespace/Firecracker canonical outcome, and the
 retained escape suite passes: `/sys/class/net` is only `lo`, `/sys/block` is
 only `vda`, namespace creation is denied and vsock egress is denied. Warm-pool
-restore and latency measurement are not wired yet.
+restore now passes on the same host, and the escape suite still passes. Cold
+ready time was about 1.0 s and restored ready time about 0.8 s in this
+single-host run. CET handling across a Cloud Hypervisor snapshot remains
+unverified and is recorded as a non-claim.
 
 Intended phase-1 shape:
 

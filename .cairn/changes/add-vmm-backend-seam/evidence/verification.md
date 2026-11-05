@@ -19,8 +19,8 @@ cold-boot argv.
   escape-suite host result.
 - Both guest images build locally: `microvm-guest` and `microvm-guest-ch`.
   Their manifests are `kiln.microvm.guest-image.v2` with a `vmm` entry.
-- Cloud Hypervisor host test: canonical outcome matched namespaces, and the
-  escape suite denied network, namespace and vsock egress.
+- Cloud Hypervisor host test: cold boot and warm restore matched namespaces,
+  and the escape suite denied network, namespace and vsock egress.
 - Workspace `--all-targets`: pass.
 - `cairn validate`: zero issues.
 

@@ -139,6 +139,12 @@ pub fn snapshot_identity(inputs: &SnapshotInputs<'_>) -> String {
 
 /// One HTTP/1.1 request on the Firecracker API socket.
 pub fn api_request(method: &str, path: &str, body: &Value) -> Vec<u8> {
+    if body.is_null() {
+        return format!(
+            "{method} {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        )
+        .into_bytes();
+    }
     let body = body.to_string();
     format!(
         "{method} {path} HTTP/1.1\r\nHost: localhost\r\nAccept: application/json\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",

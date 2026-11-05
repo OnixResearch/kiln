@@ -17,4 +17,4 @@
 - [x] [serial] Wire Cloud Hypervisor cold-boot execution and configuration admission. r[kiln.microvm.backend.seam]
 - [x] [serial] Generalize confinement process-name observation. r[kiln.microvm.backend.seam]
 - [x] [serial] Aggregate thread confinement and encode the CH control-thread policy. r[kiln.microvm.backend.seam]
-- [x] [serial] Run the CH cold-boot pipeline and escape suite on the host. r[kiln.microvm.backend.seam]
+- [x] [serial] Run the CH cold-boot pipeline, warm-pool restore and escape suite on the host. r[kiln.microvm.backend.seam]

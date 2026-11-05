@@ -364,7 +364,7 @@ fn firecracker(host: &Host, pool: Option<&Path>) -> Value {
     })
 }
 
-fn cloud_hypervisor(host: &Host) -> Value {
+fn cloud_hypervisor(host: &Host, pool: Option<&Path>) -> Value {
     let guest = host.guest_ch.as_ref().unwrap_or(&Value::Null);
     json!({
         "kind": "cloud-hypervisor", "cloud_hypervisor": at(guest, "/cloud-hypervisor"),
@@ -372,6 +372,7 @@ fn cloud_hypervisor(host: &Host) -> Value {
         "guest_shell": at(guest, "/guest_shell"), "vcpus": 1, "memory_mib": 256,
         "boot_timeout_ms": 20_000, "source_image_mib": 16,
         "qualification_identity": null,
+        "warm_pool": pool.map(|directory| json!({"directory": directory, "slots": 1})),
     })
 }
 
@@ -614,17 +615,35 @@ fn cloud_hypervisor_cold_boot_matches_the_pipeline() {
         return;
     }
     let pipeline = equivalence_pipeline();
-    let ch = Deployment::new(&host, cloud_hypervisor(&host), &pipeline);
+    let ch = Deployment::new(&host, cloud_hypervisor(&host, None), &pipeline);
     let receipt = ch.run("ch-cold-1");
     println!("KILN_MICROVM_RECEIPT ch-cold {receipt}");
     assert_equivalence_receipt("ch-cold", &receipt);
+    let pool_root = tempfile::Builder::new()
+        .prefix("kiln-ch-pool-")
+        .tempdir_in("/tmp")
+        .unwrap_or_else(|e| fail("pool", e));
+    let pool = private_directory(&pool_root.path().join("p"));
+    let warm = Deployment::new(&host, cloud_hypervisor(&host, Some(&pool)), &pipeline);
+    for attempt in ["ch-warm-1", "ch-warm-2"] {
+        let receipt = warm.run(attempt);
+        println!("KILN_MICROVM_RECEIPT {attempt} {receipt}");
+        assert_equivalence_receipt(attempt, &receipt);
+        for vm in vm_observations(&receipt) {
+            assert_eq!(at(&vm, "/backend"), "cloud-hypervisor");
+            if attempt == "ch-warm-2" {
+                assert_eq!(at(&vm, "/boot"), "restore");
+            }
+            assert_eq!(at(&vm, "/network"), "none");
+        }
+    }
 
     let boot_id = fs::read_to_string("/proc/sys/kernel/random/boot_id").unwrap_or_default();
     let hostname = fs::read_to_string("/proc/sys/kernel/hostname").unwrap_or_default();
     let escape_path = ch.directory.path().to_string_lossy().into_owned();
     let escape = Deployment::new(
         &host,
-        cloud_hypervisor(&host),
+        cloud_hypervisor(&host, None),
         &escape_pipeline(boot_id.trim(), hostname.trim(), &escape_path),
     );
     let receipt = escape.run("ch-escape-1");
