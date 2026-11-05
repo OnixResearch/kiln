@@ -7,8 +7,10 @@
 r[kiln.radicle.patch_read] Kiln MUST invoke the pinned upstream Radicle patch
 reducer through a separate helper process because its SQLite linkage conflicts
 with Kiln's. The adapter MUST bound helper output, reject non-zero exits and
-stderr noise, and parse only one JSON projection. The helper MUST perform no
-mutation.
+stderr noise, and parse only one JSON projection. The read helper MUST perform no mutation. A separate review command MAY append
+one review through the upstream authorization path; its signer seed MUST come
+from the child environment, never argv, and it MUST return only a bounded JSON
+review identity.
 
 #### Scenario: Valid patch
 

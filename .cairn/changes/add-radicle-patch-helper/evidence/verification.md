@@ -7,7 +7,7 @@ Added a separate upstream patch-reducer helper and a bounded adapter invocation.
 ## Evidence
 
 - Helper `cargo check`: pass.
-- Adapter patch-read tests: 2 passed.
+- Adapter patch-read/review tests: 3 passed.
 - `cairn validate`: zero issues.
 
 ## Non-claims

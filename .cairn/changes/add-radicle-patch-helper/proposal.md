@@ -9,7 +9,8 @@ SQLite. A separate process is the compatible boundary.
 - Add `tools/radicle-patch`, a separate workspace around `radicle` 0.25.1.
 - Add a bounded adapter invocation that runs the helper and parses one reduced
   patch JSON projection.
-- Keep the helper read-only; no mutation or Kiln authority.
+- Add a review-append command using the upstream authorization path and a
+  signer seed supplied only through the child environment.
 
 ## Impact
 

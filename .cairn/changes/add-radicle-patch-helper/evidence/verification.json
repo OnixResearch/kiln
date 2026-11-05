@@ -3,7 +3,7 @@
   "date": "2026-11-05",
   "commands": [
     {"command":"cargo check --manifest-path tools/radicle-patch/Cargo.toml","result":"pass"},
-    {"command":"cargo test -p kiln-adapter-radicle --lib patch_read --offline","result":"2 passed"},
+    {"command":"cargo test -p kiln-adapter-radicle --lib patch_read --offline","result":"3 passed"},
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
   "non_claims": [

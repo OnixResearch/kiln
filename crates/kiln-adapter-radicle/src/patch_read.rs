@@ -12,6 +12,55 @@ use serde_json::Value;
 const MAX_HELPER_BYTES: usize = 1_048_576;
 
 /// Invoke the reviewed helper and return one reduced patch projection.
+/// Append one review through the isolated upstream helper. The signer seed is
+/// passed only through the child environment.
+pub fn review_patch(
+    helper: &Path,
+    storage_root: &Path,
+    repository_id: &str,
+    patch_id: &str,
+    revision_id: &str,
+    verdict: &str,
+    summary: &str,
+    seed: &[u8; 32],
+) -> Result<Value, String> {
+    if repository_id.is_empty()
+        || repository_id.len() > 256
+        || patch_id.is_empty()
+        || patch_id.len() > 256
+        || revision_id.is_empty()
+        || revision_id.len() > 256
+        || !matches!(verdict, "accept" | "reject")
+        || summary.is_empty()
+        || summary.len() > 16_384
+    {
+        return Err("invalid Radicle review request".into());
+    }
+    let seed = seed
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let output = Command::new(helper)
+        .arg("review")
+        .arg(storage_root)
+        .arg(repository_id)
+        .arg(patch_id)
+        .arg(revision_id)
+        .arg(verdict)
+        .arg(summary)
+        .env("RADICLE_SIGNER_SEED", seed)
+        .output()
+        .map_err(|_| "Radicle patch helper unavailable")?;
+    if !output.status.success() {
+        return Err("Radicle patch helper rejected the review".into());
+    }
+    if output.stdout.len() > MAX_HELPER_BYTES || !output.stderr.is_empty() {
+        return Err("Radicle patch helper exceeded its output bound".into());
+    }
+    serde_json::from_slice(&output.stdout)
+        .map_err(|_| "Radicle patch helper returned invalid JSON".into())
+}
+
 pub fn read_patch(
     helper: &Path,
     storage_root: &Path,
@@ -71,6 +120,37 @@ mod tests {
         .unwrap_or_else(|error| unreachable!("{error}"));
         assert_eq!(value["state"], "open");
         assert_eq!(value["revisions"], 2);
+    }
+
+    #[test]
+    fn review_uses_child_environment_and_bounded_output() {
+        let directory =
+            helper("test -n \"$RADICLE_SIGNER_SEED\" && printf '{\"review_id\":\"r1\"}'");
+        let value = review_patch(
+            &directory.path().join("helper"),
+            Path::new("/store"),
+            "zRepo",
+            "abc",
+            "rev",
+            "accept",
+            "looks good",
+            &[7; 32],
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(value["review_id"], "r1");
+        assert!(
+            review_patch(
+                &directory.path().join("helper"),
+                Path::new("/store"),
+                "zRepo",
+                "abc",
+                "rev",
+                "maybe",
+                "looks good",
+                &[7; 32]
+            )
+            .is_err()
+        );
     }
 
     #[test]
