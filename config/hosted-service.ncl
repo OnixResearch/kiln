@@ -101,6 +101,16 @@ let Backend =
           # may execute approved untrusted pull-request runs, always without
           # secrets, workload token or cache. Omitted means it may not.
           untrusted_capable | Bool | optional,
+          # Non-empty operator acknowledgement for unsafe host preflight facts;
+          # recorded in the receipt and checked at untrusted dispatch.
+          host_preflight_override
+            | std.contract.from_predicate (fun value =>
+              std.is_string value
+              && std.string.length value > 0
+              && std.string.length value <= 1024
+              && !(std.string.is_match "\\x00" value)
+            )
+            | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,
         }
         label

@@ -27,6 +27,7 @@ use kiln_microvm::confinement::{
     ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
 };
 use kiln_microvm::debug_hold::{self as hold_policy, DebugHoldPolicy, Grants, HoldFacts};
+use kiln_microvm::host::{CveStatus, HostFacts};
 use kiln_microvm::lifecycle::{Event, Lifecycle, State};
 use kiln_microvm::plan::{self, VmPaths};
 use kiln_microvm::protocol::{
@@ -71,6 +72,75 @@ const POOL_SOCKET_SUFFIX_BYTES: usize = 22;
 const VMM_EXEC_MARGIN_MS: u64 = 5_000;
 
 /// A Firecracker runner's reviewed images and machine policy.
+const MAX_HOST_FACT_BYTES: usize = 4096;
+
+fn read_bounded_text(path: &str) -> Option<String> {
+    let bytes = fs::read(path).ok()?;
+    if bytes.len() > MAX_HOST_FACT_BYTES {
+        return None;
+    }
+    String::from_utf8(bytes)
+        .ok()
+        .map(|text| text.trim().to_owned())
+}
+
+fn parse_sysctl(path: &str) -> Option<bool> {
+    match read_bounded_text(path)?.as_str() {
+        "0" => Some(false),
+        "1" => Some(true),
+        _ => None,
+    }
+}
+
+fn host_package() -> String {
+    std::env::var("KILN_HOST_KERNEL_PACKAGE").unwrap_or_else(|_| {
+        read_bounded_text("/etc/os-release")
+            .and_then(|text| {
+                text.lines()
+                    .find_map(|line| line.strip_prefix("BUILD_ID="))
+                    .map(|value| value.trim_matches('"').to_owned())
+            })
+            .unwrap_or_default()
+    })
+}
+
+fn mptcp_listener_count() -> Option<u32> {
+    let text = read_bounded_text("/proc/net/mptcp")?;
+    u32::try_from(
+        text.lines()
+            .skip(1)
+            .filter(|line| !line.trim().is_empty())
+            .count(),
+    )
+    .ok()
+}
+
+/// Read the reviewed host facts from proc/sys and os-release. Missing kernel or
+/// SMT facts fail closed as `unknown` or active; KSM absence means not running.
+pub(crate) fn read_host_facts() -> HostFacts {
+    let release =
+        read_bounded_text("/proc/sys/kernel/osrelease").unwrap_or_else(|| "unknown".into());
+    let smt_active = read_bounded_text("/sys/devices/system/cpu/smt/active")
+        .map(|value| value == "1")
+        .unwrap_or(true);
+    let ksm_running = read_bounded_text("/sys/kernel/mm/ksm/run")
+        .map(|value| value == "1")
+        .unwrap_or(false);
+    let mptcp_enabled = parse_sysctl("/proc/sys/net/mptcp/enabled");
+    let tcp_migrate_req = parse_sysctl("/proc/sys/net/ipv4/tcp_migrate_req");
+    HostFacts::observed(
+        release,
+        host_package(),
+        &std::collections::BTreeMap::from([("".into(), CveStatus::Unknown)]),
+        smt_active,
+        ksm_running,
+        mptcp_enabled,
+        tcp_migrate_req,
+        mptcp_listener_count(),
+        Path::new("/sys/fs/resctrl/info").is_dir(),
+    )
+}
+
 pub(crate) struct Runner<'a> {
     pub(crate) firecracker: &'a Executable,
     pub(crate) kernel: &'a Image,
@@ -1152,6 +1222,8 @@ pub(crate) fn run_job(
     config: &Config,
     runner: &Runner<'_>,
     job: &Job<'_>,
+    host: &HostFacts,
+    host_preflight_override: Option<&str>,
     cancellation: &AtomicBool,
 ) -> JobOutcome {
     let started = Instant::now();
@@ -1176,6 +1248,7 @@ pub(crate) fn run_job(
         "network": "none",
         "jailer": false,
         "hostile_isolation_claim": false,
+        "host": host,
     });
     let mut cleaned = true;
     let mut journaled = false;
@@ -1185,6 +1258,9 @@ pub(crate) fn run_job(
             fields.insert(key.into(), value);
         }
     };
+    if let Some(reason) = host_preflight_override {
+        observe("host_preflight_override", json!(reason));
+    }
     if let Err(error) = journal(db, job, "starting", None) {
         session.failure = Some(error);
     } else {

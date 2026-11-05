@@ -77,6 +77,10 @@ pub enum Backend {
         /// cache). Absent means not untrusted-capable and keeps identity.
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         untrusted_capable: bool,
+        /// Explicit operator override for unsafe host preflight facts on an
+        /// untrusted-capable runner; recorded by the receipt.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_preflight_override: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -328,6 +332,7 @@ fn qualification_reference(identity: &Option<String>) -> Result<(), String> {
 fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<(), String> {
     let Backend::Firecracker {
         qualification_identity,
+        host_preflight_override,
         warm_pool,
         debug_hold,
         ..
@@ -338,6 +343,11 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
     // The VM plan's CPU template and the guest module set are reviewed on x86_64.
     if !cfg!(target_arch = "x86_64") {
         return Err("Firecracker runners are reviewed only on x86_64 hosts".into());
+    }
+    if host_preflight_override.as_ref().is_some_and(|reason| {
+        reason.trim().is_empty() || reason.len() > 1024 || reason.contains('\0')
+    }) {
+        return Err("invalid host preflight override".into());
     }
     let policy = crate::microvm::machine_policy(backend).ok_or("not a Firecracker runner")?;
     kiln_microvm::admission::admit_machine(
@@ -591,6 +601,7 @@ pub fn run_pipeline(
     let mut step_count = 0_usize;
     let mut operator_maximum = u64::MAX;
     let mut hold_reserve_ms = 0_u64;
+    let host_facts = crate::microvm::read_host_facts();
     for job in &plan.jobs {
         let backend = config
             .runners
@@ -598,6 +609,9 @@ pub fn run_pipeline(
             .ok_or_else(|| format!("runner '{}' has no reviewed backend mapping", job.runner))?;
         admit_backend(backend, &request.trust)?;
         admit_untrusted_runner(backend, request.untrusted.as_ref())?;
+        if request.untrusted.is_some() {
+            admit_untrusted_host(backend, &host_facts)?;
+        }
         if request.trust == "trusted"
             && !config
                 .trusted_projects
@@ -915,6 +929,17 @@ pub fn run_pipeline(
                         hold_grants(&config, &actor.organization, &request, &job.runner);
                     // Any delivered credential rules a hold out, whatever its source.
                     grants.secrets |= !secret_environment.is_empty();
+                    let host_preflight_override =
+                        config
+                            .runners
+                            .get(&job.runner)
+                            .and_then(|backend| match backend {
+                                Backend::Firecracker {
+                                    host_preflight_override,
+                                    ..
+                                } => host_preflight_override.as_deref(),
+                                _ => None,
+                            });
                     let outcome = crate::microvm::run_job(
                         db,
                         &config,
@@ -931,6 +956,8 @@ pub fn run_pipeline(
                             timeout_ms: remaining,
                             grants,
                         },
+                        &host_facts,
+                        host_preflight_override,
                         cancellation,
                     );
                     for (_, guest) in &mut guest_steps {
@@ -1196,6 +1223,21 @@ fn admit_untrusted_runner(
         _ => Err("untrusted run requires an untrusted-capable microVM runner".into()),
     }
 }
+fn admit_untrusted_host(
+    backend: &Backend,
+    host: &kiln_microvm::host::HostFacts,
+) -> Result<(), String> {
+    let Backend::Firecracker {
+        host_preflight_override,
+        ..
+    } = backend
+    else {
+        return Ok(());
+    };
+    host.admit_untrusted(host_preflight_override.as_deref())
+        .map_err(|reason| format!("untrusted host preflight refused: {reason}"))
+}
+
 /// Credentials and cache one job may receive.
 struct JobGrants<'a> {
     /// Workload policy delivering secrets and `KILN_WORKLOAD_TOKEN`.
@@ -2203,6 +2245,27 @@ mod tests {
         assert!(admit_untrusted_runner(&undeclared, provenance).is_err());
         // Trusted requests are unaffected by the declaration.
         assert!(admit_untrusted_runner(&undeclared, None).is_ok());
+        let safe = kiln_microvm::host::HostFacts::observed(
+            "6.18.56",
+            "",
+            &std::collections::BTreeMap::new(),
+            false,
+            false,
+            Some(true),
+            Some(false),
+            Some(0),
+            true,
+        );
+        assert!(admit_untrusted_host(&declared, &safe).is_ok());
+        let mut unsafe_host = safe.clone();
+        unsafe_host.smt_active = true;
+        assert!(admit_untrusted_host(&declared, &unsafe_host).is_err());
+        let overridden: Backend = serde_json::from_value(firecracker_backend(json!({
+            "untrusted_capable": true,
+            "host_preflight_override": "operator accepted test host"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(admit_untrusted_host(&overridden, &unsafe_host).is_ok());
         let e = Executable {
             path: "/missing".into(),
             blake3: "0".repeat(64),

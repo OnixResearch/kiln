@@ -559,6 +559,12 @@ fields and reviewed executable BLAKE3 identity; the lifecycle gate is
 that the reviewed binary has no vulnerability or that another host reports the
 same facts.
 
+The `vm.host` receipt records the observed host kernel release and package,
+CVE-2026-98432 status, SMT, KSM, MPTCP sysctls/listeners and resctrl mount
+state. An `untrusted_capable` runner refuses a vulnerable or unknown kernel,
+active SMT, running KSM, or residual MPTCP listeners unless the reviewed runner
+sets a non-empty `host_preflight_override`, which is retained in the receipt.
+
 It does **not** claim:
 - hostile multi-tenant or production qualification;
 - resistance to KVM or Firecracker vulnerabilities on the host;

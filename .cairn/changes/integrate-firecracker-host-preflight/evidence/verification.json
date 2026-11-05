@@ -1,0 +1,41 @@
+{
+  "schema": "kiln.firecracker-host-receipt.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-hosted --lib --offline",
+      "result": "62 passed; untrusted host refusal and override cases included"
+    },
+    {
+      "command": "cargo test -p kiln-microvm --lib --offline",
+      "result": "33 passed; pure host classification cases"
+    },
+    {
+      "command": "cargo check --workspace --all-targets --offline",
+      "result": "pass"
+    },
+    {
+      "command": "nickel typecheck config/hosted-service.ncl config/hosted-execution.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel format --check config/hosted-service.ncl config/hosted-execution.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "receipt": "Firecracker receipts include vm.host and a retained host_preflight_override when configured",
+    "refusal": "untrusted dispatch refuses unsafe host facts before credentials or job effects",
+    "override": "a non-empty reviewed override admits and is recorded separately from observed facts",
+    "configuration": "typed hosted profiles accept the optional override"
+  },
+  "non_claims": [
+    "host facts are observations, not a patched-host proof",
+    "trust-domain scheduling, core/cache partitioning and covert-channel measurement remain open",
+    "the override is operator authority, not evidence of isolation"
+  ]
+}

@@ -73,6 +73,8 @@ let Backend = {
       max_concurrent | Positive 16,
     }
     | optional,
+  # Non-empty operator acknowledgement for unsafe host preflight facts.
+  host_preflight_override | String | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
   qualification_identity | Dyn | optional,
