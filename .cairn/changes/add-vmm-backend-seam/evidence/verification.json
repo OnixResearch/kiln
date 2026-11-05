@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.vmm-backend-seam.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {"command":"cargo test -p kiln-microvm backend --offline","result":"3 passed"},
+    {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
+    {"command":"cairn validate --root .","result":"valid; 0 issues"}
+  ],
+  "acceptance": {
+    "trait": "pure VmmBackend with capabilities, boot args, listener and identity inputs",
+    "firecracker": "reference implementation",
+    "cloud_hypervisor": "phase-1 pure cold-boot argv with no network or API socket",
+    "receipt": "Firecracker backend kind comes from the trait"
+  },
+  "non_claims": [
+    "Cloud Hypervisor execution is not wired",
+    "admission is not yet driven by capabilities",
+    "no Cloud Hypervisor escape-suite or confinement evidence exists",
+    "the seam grants no isolation claim"
+  ]
+}

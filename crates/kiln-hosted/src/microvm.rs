@@ -24,6 +24,7 @@ use bounded_exec::{Completion, ExecutionOutput, Input, RunError};
 use fs2::FileExt;
 use kiln_microvm::admission::MachinePolicy;
 use kiln_microvm::archive::{self, EntryKind, SourceEntry};
+use kiln_microvm::backend::VmmBackend;
 use kiln_microvm::confinement::{
     ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
 };
@@ -1268,7 +1269,7 @@ pub(crate) fn run_job(
     };
     // r[impl kiln.hosted.microvm.claims]
     let mut vm = json!({
-        "backend": "firecracker",
+        "backend": kiln_microvm::backend::Firecracker.kind(),
         "vcpus": runner.policy.vcpus,
         "memory_mib": runner.policy.memory_mib,
         "network": "none",

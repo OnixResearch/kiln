@@ -9,6 +9,7 @@
 
 pub mod admission;
 pub mod archive;
+pub mod backend;
 pub mod confinement;
 pub mod debug_hold;
 pub mod host;
