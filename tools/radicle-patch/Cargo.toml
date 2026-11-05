@@ -1,0 +1,12 @@
+[package]
+name = "kiln-radicle-patch"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+radicle = "0.25.1"
+indexmap = { version = "2", features = ["std"] }
+serde_json = "1"
+
+[workspace]
