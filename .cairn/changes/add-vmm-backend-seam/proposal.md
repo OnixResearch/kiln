@@ -25,6 +25,8 @@ matching a closed runner enum in every consumer.
   `kiln.microvm.guest-image.v2` with a `vmm` entry.
 - Wire Cloud Hypervisor cold-boot execution into the hosted shell; warm restore
   remains unwired.
+- Generalize the confinement process-name check to the backend kind and Linux's
+  15-byte `comm` truncation.
 
 ## Impact
 

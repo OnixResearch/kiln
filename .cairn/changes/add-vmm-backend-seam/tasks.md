@@ -15,3 +15,4 @@
 - [x] [serial] Document phase-1 claims and non-claims. r[kiln.microvm.backend.seam]
 - [x] [serial] Build `microvm-guest-ch` with virtio-PCI and emit guest-image v2. r[kiln.microvm.backend.seam]
 - [x] [serial] Wire Cloud Hypervisor cold-boot execution and configuration admission. r[kiln.microvm.backend.seam]
+- [x] [serial] Generalize confinement process-name observation. r[kiln.microvm.backend.seam]

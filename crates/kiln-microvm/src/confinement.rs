@@ -16,6 +16,7 @@ pub const MAX_EXE_BYTES: usize = 4_096;
 /// Expected service-user facts and the reviewed VMM executable.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ExpectedProcess<'a> {
+    pub name: &'a str,
     pub uid: u32,
     pub gid: u32,
     pub exe: &'a str,
@@ -121,7 +122,8 @@ pub fn admit_status(
     let cap_eff = parse_cap_eff(fields.cap_eff.as_deref().ok_or_else(reject)?)?;
     let no_new_privs = parse_u8(fields.no_new_privs.as_deref().ok_or_else(reject)?)?;
     let seccomp = parse_u8(fields.seccomp.as_deref().ok_or_else(reject)?)?;
-    if name != "firecracker"
+    let expected_name = &expected.name[..expected.name.len().min(15)];
+    if name != expected_name
         || uid != expected.uid
         || gid != expected.gid
         || cap_eff != 0
@@ -153,6 +155,7 @@ mod tests {
 
     fn expected() -> ExpectedProcess<'static> {
         ExpectedProcess {
+            name: "firecracker",
             uid: 1000,
             gid: 1000,
             exe: EXE,
@@ -230,5 +233,22 @@ mod tests {
         let mut body = String::from_utf8(status()).unwrap_or_default();
         body.push_str("VmRSS:\t1024 kB\nThreads:\t3\n");
         assert!(admit_status(body.as_bytes(), EXE, expected()).is_ok());
+    }
+    #[test]
+    fn expected_process_name_is_linux_comm_truncated() {
+        let mut bytes = status();
+        let text = String::from_utf8(bytes.clone())
+            .unwrap_or_default()
+            .replace("Name:\tfirecracker", "Name:\tcloud-hyperviso");
+        bytes = text.into_bytes();
+        let exe =
+            "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-cloud-hypervisor/bin/cloud-hypervisor";
+        let expected = ExpectedProcess {
+            name: "cloud-hypervisor",
+            uid: 1000,
+            gid: 1000,
+            exe,
+        };
+        assert!(admit_status(&bytes, exe, expected).is_ok());
     }
 }

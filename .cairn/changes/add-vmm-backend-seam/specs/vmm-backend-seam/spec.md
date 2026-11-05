@@ -28,7 +28,9 @@ binary identity; the Cloud Hypervisor guest MUST load `virtio_pci` instead of
 `virtio_mmio`. A `kind = "cloud-hypervisor"` runner MUST be admitted only on
 its declared arch, with no network request, no cache policy and no warm pool;
 its cold-boot launch MUST use the pure Cloud Hypervisor argv and the same guest
-protocol. Warm restore MUST remain refused until it is wired and observed.
+protocol. Warm restore MUST remain refused until it is wired and observed. The
+`ConfinementObserved` gate MUST compare the expected backend process name,
+using Linux's 15-byte `comm` truncation, rather than a Firecracker literal.
 
 #### Scenario: No guest network
 

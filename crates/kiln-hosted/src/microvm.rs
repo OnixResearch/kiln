@@ -555,13 +555,14 @@ fn control_group(config: &Config, unit: &str) -> Result<String, String> {
 fn observe_confinement(
     config: &Config,
     unit: &str,
+    expected_name: &str,
     expected_exe: &Path,
     exe_blake3: &str,
     wait: Duration,
 ) -> Result<ConfinementObservation, String> {
     let deadline = Instant::now() + wait;
     loop {
-        match observe_confinement_once(config, unit, expected_exe, exe_blake3) {
+        match observe_confinement_once(config, unit, expected_name, expected_exe, exe_blake3) {
             Ok(observation) => return Ok(observation),
             Err(error) if Instant::now() >= deadline => return Err(error),
             Err(_) => std::thread::sleep(Duration::from_millis(10)),
@@ -572,6 +573,7 @@ fn observe_confinement(
 fn observe_confinement_once(
     config: &Config,
     unit: &str,
+    expected_name: &str,
     expected_exe: &Path,
     exe_blake3: &str,
 ) -> Result<ConfinementObservation, String> {
@@ -611,6 +613,7 @@ fn observe_confinement_once(
         &status,
         &exe,
         ExpectedProcess {
+            name: expected_name,
             uid,
             gid,
             exe: expected,
@@ -1497,6 +1500,7 @@ pub(crate) fn run_job(
                     let confinement = observe_confinement(
                         config,
                         job.unit,
+                        runner.kind,
                         &paths.vmm,
                         &runner.vmm.blake3,
                         Duration::from_millis(runner.policy.boot_timeout_ms.min(2_000)),
