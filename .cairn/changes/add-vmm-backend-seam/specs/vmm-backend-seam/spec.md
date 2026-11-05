@@ -14,7 +14,10 @@ decisions instead of matching a closed kind. A runner configuration MAY carry
 an explicit `network` request, but only `none` is admissible; any other value
 MUST be refused before an effect. A warm pool MUST be refused when the backend
 declares `snapshot = false`, and an unreviewed host architecture MUST be refused
-when it is not in `Capabilities::arch`.
+when it is not in `Capabilities::arch`. The receipt MUST record the VMM kind,
+reviewed version and binary BLAKE3. Warm snapshot identity MUST be
+`kiln.microvm.snapshot.v2` and MUST change when the VMM kind, version or binary
+changes, so a snapshot is never restored under another VMM identity.
 
 #### Scenario: No guest network
 

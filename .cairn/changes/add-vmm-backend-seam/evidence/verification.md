@@ -11,6 +11,7 @@ cold-boot argv.
 - `cargo test -p kiln-microvm backend`: 3 passed.
 - Hosted library tests: 68 passed, including capability-driven admission,
   explicit network refusal and snapshot refusal.
+- MicroVM library tests: 35 passed, including snapshot identity v2.
 - Workspace `--all-targets`: pass.
 - `cairn validate`: zero issues.
 

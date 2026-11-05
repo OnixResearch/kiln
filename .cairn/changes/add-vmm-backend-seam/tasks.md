@@ -10,3 +10,4 @@
 - [x] [serial] Drive arch, snapshot and no-network admission from capabilities. r[kiln.microvm.backend.seam]
 - [x] [serial] Refuse explicit non-`none` network requests. r[kiln.microvm.backend.seam]
 - [x] [serial] Test reviewed-arch and snapshot-capability refusal. r[kiln.microvm.backend.seam]
+- [x] [serial] Record VMM version/binary and bind snapshot identity v2. r[kiln.microvm.backend.seam]

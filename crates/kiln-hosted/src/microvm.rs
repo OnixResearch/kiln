@@ -153,6 +153,7 @@ pub(crate) struct Runner<'a> {
     pub(crate) trust_domain: Option<&'a str>,
     pub(crate) host_identity: Option<&'a str>,
     pub(crate) cpu_affinity: Option<&'a str>,
+    pub(crate) version: Option<&'a str>,
 }
 
 impl<'a> Runner<'a> {
@@ -166,6 +167,7 @@ impl<'a> Runner<'a> {
             trust_domain,
             host_identity,
             cpu_affinity,
+            version,
             ..
         } = backend
         else {
@@ -181,6 +183,7 @@ impl<'a> Runner<'a> {
             trust_domain: trust_domain.as_deref(),
             host_identity: host_identity.as_deref(),
             cpu_affinity: cpu_affinity.as_deref(),
+            version: version.as_deref(),
         })
     }
 }
@@ -777,6 +780,8 @@ fn blake3_file(path: &Path) -> Result<String, String> {
 
 fn snapshot_identity(runner: &Runner<'_>, slot: &Slot) -> Result<String, String> {
     Ok(plan::snapshot_identity(&plan::SnapshotInputs {
+        vmm_kind: "firecracker",
+        vmm_version: runner.version.unwrap_or("unknown"),
         firecracker_blake3: &runner.firecracker.blake3,
         kernel_blake3: &runner.kernel.blake3,
         initrd_blake3: &runner.initrd.blake3,
@@ -1270,6 +1275,8 @@ pub(crate) fn run_job(
     // r[impl kiln.hosted.microvm.claims]
     let mut vm = json!({
         "backend": kiln_microvm::backend::Firecracker.kind(),
+        "backend_version": runner.version,
+        "vmm_blake3": runner.firecracker.blake3,
         "vcpus": runner.policy.vcpus,
         "memory_mib": runner.policy.memory_mib,
         "network": "none",

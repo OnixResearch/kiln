@@ -81,6 +81,8 @@ let Backend = {
   host_identity | String | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
   network | String | optional,
+  # Reviewed VMM version; recorded in receipts and snapshot identity v2.
+  version | String | optional,
   cpu_affinity
     | std.contract.from_predicate (fun value =>
       std.is_string value

@@ -108,6 +108,8 @@ pub fn snapshot_load(state: &str, memory: &str) -> Value {
 /// Inputs that fully determine whether a warm snapshot is reusable.
 #[derive(Debug, Serialize)]
 pub struct SnapshotInputs<'a> {
+    pub vmm_kind: &'a str,
+    pub vmm_version: &'a str,
     pub firecracker_blake3: &'a str,
     pub kernel_blake3: &'a str,
     pub initrd_blake3: &'a str,
@@ -123,7 +125,7 @@ pub struct SnapshotInputs<'a> {
 /// shape, boot argument, protocol port or slot path yields a new identity.
 pub fn snapshot_identity(inputs: &SnapshotInputs<'_>) -> String {
     let document = json!({
-        "schema": "kiln.microvm.snapshot.v1",
+        "schema": "kiln.microvm.snapshot.v2",
         "inputs": inputs,
         "boot_args": BOOT_ARGS,
         "guest_cid": GUEST_CID,
@@ -239,6 +241,8 @@ mod tests {
     #[test]
     fn snapshot_identity_changes_with_every_bound_input() {
         let base = SnapshotInputs {
+            vmm_kind: "firecracker",
+            vmm_version: "1.15.0",
             firecracker_blake3: "a",
             kernel_blake3: "b",
             initrd_blake3: "c",

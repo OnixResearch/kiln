@@ -100,6 +100,9 @@ pub enum Backend {
         /// Reviewed CPU list for this runner's VMM, e.g. `0-3,8,10-11`.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cpu_affinity: Option<String>,
+        /// Reviewed VMM version; recorded in receipts and snapshot identity v2.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        version: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         network: Option<String>,
     },
@@ -511,11 +514,17 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
         host_preflight_override,
         warm_pool,
         debug_hold,
+        version,
         ..
     } = backend
     else {
         return Err("not a Firecracker runner".into());
     };
+    if version.as_ref().is_some_and(|version| {
+        version.trim().is_empty() || version.len() > 128 || version.contains('\0')
+    }) {
+        return Err("invalid Firecracker version".into());
+    }
     let capabilities = backend_capabilities(backend);
     if !capabilities.admits_arch(std::env::consts::ARCH) {
         return Err("Firecracker runner arch is not in its reviewed capability set".into());
