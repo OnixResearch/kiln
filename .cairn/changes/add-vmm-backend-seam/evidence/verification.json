@@ -4,7 +4,7 @@
   "commands": [
     {"command":"cargo test -p kiln-microvm backend --offline","result":"3 passed"},
     {"command":"cargo test -p kiln-hosted --lib --offline","result":"69 passed"},
-    {"command":"cargo test -p kiln-microvm --lib --offline","result":"37 passed"},
+    {"command":"cargo test -p kiln-microvm --lib --offline","result":"38 passed"},
     {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
     {"command":"nix build .#microvm-guest-ch --no-link --option builders ''","result":"built; guest-image v2 with cloud-hypervisor vmm entry"},
     {"command":"nix build .#microvm-guest --no-link --option builders ''","result":"built; guest-image v2 with firecracker vmm entry"},

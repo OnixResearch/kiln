@@ -27,6 +27,8 @@ matching a closed runner enum in every consumer.
   remains unwired.
 - Generalize the confinement process-name check to the backend kind and Linux's
   15-byte `comm` truncation.
+- Aggregate per-thread confinement facts and allow Cloud Hypervisor's unfiltered
+  control thread only when at least one worker thread is seccomp-filtered.
 
 ## Impact
 

@@ -562,11 +562,19 @@ fn observe_confinement(
     expected_name: &str,
     expected_exe: &Path,
     exe_blake3: &str,
+    allow_unfiltered_main: bool,
     wait: Duration,
 ) -> Result<ConfinementObservation, String> {
     let deadline = Instant::now() + wait;
     loop {
-        match observe_confinement_once(config, unit, expected_name, expected_exe, exe_blake3) {
+        match observe_confinement_once(
+            config,
+            unit,
+            expected_name,
+            expected_exe,
+            exe_blake3,
+            allow_unfiltered_main,
+        ) {
             Ok(observation) => return Ok(observation),
             Err(error) if Instant::now() >= deadline => return Err(error),
             Err(_) => std::thread::sleep(Duration::from_millis(10)),
@@ -580,6 +588,7 @@ fn observe_confinement_once(
     expected_name: &str,
     expected_exe: &Path,
     exe_blake3: &str,
+    allow_unfiltered_main: bool,
 ) -> Result<ConfinementObservation, String> {
     let group = control_group(config, unit)?;
     let cgroup = Path::new("/sys/fs/cgroup").join(group.trim_start_matches('/'));
@@ -613,17 +622,51 @@ fn observe_confinement_once(
     let identity = fs::metadata("/proc/self")
         .map_err(|_| "service process identity is unavailable".to_string())?;
     let (uid, gid) = (identity.uid(), identity.gid());
-    let facts = admit_status(
-        &status,
-        &exe,
-        ExpectedProcess {
-            name: expected_name,
-            uid,
-            gid,
-            exe: expected,
-        },
-    )
-    .map_err(str::to_owned)?;
+    let expected_process = ExpectedProcess {
+        name: expected_name,
+        uid,
+        gid,
+        exe: expected,
+        allow_unfiltered_main,
+    };
+    let mut facts = admit_status(&status, &exe, expected_process).map_err(str::to_owned)?;
+    let tasks = Path::new("/proc").join(pid.to_string()).join("task");
+    let mut workers = 0_usize;
+    for task in
+        fs::read_dir(&tasks).map_err(|_| "VMM thread evidence is unavailable".to_string())?
+    {
+        let task = task.map_err(|_| "VMM thread evidence is unavailable".to_string())?;
+        let tid = task
+            .file_name()
+            .to_str()
+            .and_then(|value| value.parse::<u32>().ok())
+            .ok_or_else(|| "VMM thread identity is malformed".to_string())?;
+        if tid == *pid {
+            continue;
+        }
+        workers += 1;
+        if workers > 128 {
+            return Err("VMM thread count exceeds its bound".into());
+        }
+        let status = read_bounded(
+            &tasks.join(tid.to_string()).join("status"),
+            MAX_STATUS_BYTES,
+        )?;
+        let worker = admit_status(
+            &status,
+            &exe,
+            ExpectedProcess {
+                allow_unfiltered_main: false,
+                ..expected_process
+            },
+        )
+        .map_err(str::to_owned)?;
+        facts.seccomp_filtered += worker.seccomp_filtered;
+    }
+    facts.threads += workers;
+    if facts.seccomp_filtered == 0 {
+        return Err("VMM has no seccomp-filtered thread".into());
+    }
     Ok(ConfinementObservation {
         pid: *pid,
         facts,
@@ -1510,6 +1553,7 @@ pub(crate) fn run_job(
                         runner.kind,
                         &paths.vmm,
                         &runner.vmm.blake3,
+                        runner.kind == "cloud-hypervisor",
                         Duration::from_millis(runner.policy.boot_timeout_ms.min(2_000)),
                     );
                     session.confinement = Some(confinement_value(&confinement));

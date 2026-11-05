@@ -12,8 +12,9 @@ cold-boot argv.
 - Hosted library tests: 69 passed, including capability-driven admission,
   explicit network refusal, snapshot refusal and Cloud Hypervisor runner
   construction.
-- MicroVM library tests: 37 passed, including snapshot identity v2, Cloud
-  Hypervisor pause/snapshot/restore plans and backend process-name truncation.
+- MicroVM library tests: 38 passed, including snapshot identity v2, Cloud
+  Hypervisor pause/snapshot/restore plans, process-name truncation and the
+  unfiltered-control-thread policy.
 - Hosted documentation now states that Cloud Hypervisor phase 1 is plan-only
   and lists its claims and non-claims.
 - Both guest images build locally: `microvm-guest` and `microvm-guest-ch`.

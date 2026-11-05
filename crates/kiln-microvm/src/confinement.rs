@@ -20,6 +20,9 @@ pub struct ExpectedProcess<'a> {
     pub uid: u32,
     pub gid: u32,
     pub exe: &'a str,
+    /// Cloud Hypervisor keeps its control thread unfiltered while filtering
+    /// worker threads. Firecracker requires every observed thread filtered.
+    pub allow_unfiltered_main: bool,
 }
 
 /// Admitted host-side process facts.
@@ -32,6 +35,8 @@ pub struct ConfinementFacts {
     pub no_new_privs: bool,
     pub seccomp: u8,
     pub exe: String,
+    pub threads: usize,
+    pub seccomp_filtered: usize,
 }
 
 #[derive(Default)]
@@ -128,7 +133,7 @@ pub fn admit_status(
         || gid != expected.gid
         || cap_eff != 0
         || no_new_privs != 1
-        || seccomp != 2
+        || (seccomp != 2 && !(expected.allow_unfiltered_main && seccomp == 0))
     {
         return Err(reject());
     }
@@ -140,6 +145,8 @@ pub fn admit_status(
         no_new_privs: true,
         seccomp,
         exe: exe.to_owned(),
+        threads: 1,
+        seccomp_filtered: usize::from(seccomp == 2),
     })
 }
 
@@ -159,6 +166,7 @@ mod tests {
             uid: 1000,
             gid: 1000,
             exe: EXE,
+            allow_unfiltered_main: false,
         }
     }
 
@@ -248,7 +256,31 @@ mod tests {
             uid: 1000,
             gid: 1000,
             exe,
+            allow_unfiltered_main: true,
         };
         assert!(admit_status(&bytes, exe, expected).is_ok());
+    }
+    #[test]
+    fn cloud_hypervisor_control_thread_may_be_unfiltered() {
+        let text = String::from_utf8(status())
+            .unwrap_or_default()
+            .replace("Seccomp:\t2", "Seccomp:\t0");
+        let bytes = text.into_bytes();
+        let exe =
+            "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-cloud-hypervisor/bin/cloud-hypervisor";
+        let expected = ExpectedProcess {
+            name: "firecracker",
+            uid: 1000,
+            gid: 1000,
+            exe: EXE,
+            allow_unfiltered_main: true,
+        };
+        assert!(admit_status(&bytes, EXE, expected).is_ok());
+        let strict = ExpectedProcess {
+            allow_unfiltered_main: false,
+            ..expected
+        };
+        assert!(admit_status(&bytes, EXE, strict).is_err());
+        let _ = exe;
     }
 }
