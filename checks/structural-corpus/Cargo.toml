@@ -1,0 +1,11 @@
+[package]
+name = "structural-corpus"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+kiln-highlight = { path = "../../crates/kiln-highlight" }
+serde_json = "1"
+
+[workspace]

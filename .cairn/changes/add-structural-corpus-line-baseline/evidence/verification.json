@@ -1,0 +1,38 @@
+{
+  "schema": "kiln.structural-corpus.verification.v1",
+  "date": "2026-11-05",
+  "corpus": {
+    "repository": "https://github.com/ivankovic/omnidiff",
+    "revision": "7d27fe8b27236a43c44b24e81da4c3fbb0cd8408"
+  },
+  "commands": [
+    {
+      "command": "cargo build --release --manifest-path checks/structural-corpus/Cargo.toml",
+      "result": "pass"
+    },
+    {
+      "command": "structural-corpus /tmp/omnidiff/src/test/data/diffs baseline.csv",
+      "result": "611 parsed fixtures, 145 zero-mismatch, 116 fallback; baseline: no regressions"
+    },
+    {
+      "command": "structural-corpus /tmp/omnidiff/src/test/data/diffs > /tmp/current.csv && cmp /tmp/current.csv baseline.csv",
+      "result": "byte-identical"
+    }
+  ],
+  "metrics": {
+    "fixtures": 727,
+    "parsed": 611,
+    "zero_mismatch": 145,
+    "zero_mismatch_rate": "23.7%",
+    "fallback": {
+      "parse_error": 99,
+      "too_large": 16,
+      "too_many_nodes": 1
+    }
+  },
+  "non_claims": [
+    "line agreement is not node-mapping fidelity",
+    "moves and latency are not scored",
+    "a passing baseline does not prove structural diff correctness or release readiness"
+  ]
+}
