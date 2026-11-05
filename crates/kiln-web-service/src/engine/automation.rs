@@ -1182,6 +1182,8 @@ impl Engine {
                 && let Some(run) = self.state.runs.get_mut(&id)
             {
                 run.error_code = Some("superseded".into());
+                run.superseded_by = Some(new_run.to_owned());
+                run.superseded_revision = Some(new_revision.native_id.as_str().to_owned());
             }
         }
         for id in queued {
@@ -1193,7 +1195,17 @@ impl Engine {
             let Ok(body) = serde_json::to_vec(&body) else {
                 continue;
             };
-            let _ = self.cancel_queued(&id, &body);
+            if let Some(run) = self.state.runs.get_mut(&id) {
+                run.superseded_by = Some(new_run.to_owned());
+                run.superseded_revision = Some(new_revision.native_id.as_str().to_owned());
+            }
+            let cancelled = self
+                .cancel_queued(&id, &body)
+                .is_ok_and(|response| response.status == 200);
+            if !cancelled && let Some(run) = self.state.runs.get_mut(&id) {
+                run.superseded_by = None;
+                run.superseded_revision = None;
+            }
         }
     }
 

@@ -14,7 +14,8 @@ untouched.
   dispatch.
 - A two-pull-request scenario on the same base leaves the first pull request's
   active run untouched.
-- A superseded run exposes `error_code = "superseded"`; the queued control rejects
+- A superseded run exposes `error_code = "superseded"`, `superseded_by` and the
+  newer exact revision; the queued control rejects
   an unknown reason without mutation.
 - A three-push automation scenario leaves one active run and two queued runs;
   the older active and queued runs become `Cancelled`, the newest remains

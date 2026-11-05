@@ -38,7 +38,7 @@
   "behavior": {
     "policy": "supersede_queued defaults false and is optional in the Nickel trigger contract",
     "match": "same trigger registration, project and source scope (push reference or pull-request number), different exact revision, nonterminal non-waiting runs",
-    "effect": "older queued runs use durable request replay; older active runs use one exact provider cancellation; failures are best-effort; superseded runs expose error_code superseded",
+    "effect": "older queued runs use durable request replay; older active runs use one exact provider cancellation; failures are best-effort; superseded runs expose error_code superseded, superseded_by and superseded_revision",
     "isolation": "awaiting-approval and terminal runs are untouched"
   },
   "non_claims": [

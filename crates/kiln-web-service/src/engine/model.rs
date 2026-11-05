@@ -157,6 +157,12 @@ pub struct RunRecord {
     pub phase: String,
     pub observation: Option<WorkflowObservation>,
     pub error_code: Option<String>,
+    /// Newer run that caused an automatic supersede, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_by: Option<String>,
+    /// Exact newer revision that caused the supersede.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_revision: Option<String>,
     pub artifacts: Vec<ArtifactView>,
     #[serde(default)]
     pub logs: Vec<LogChunk>,
@@ -215,6 +221,10 @@ pub struct RunView {
     pub nodes: Vec<NodeView>,
     pub controls: WorkflowControls,
     pub error_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_revision: Option<String>,
     pub log_bounds: LogBounds,
     pub ordinal: u64,
     pub parent_run_id: Option<String>,
@@ -399,6 +409,8 @@ impl RunRecord {
                 .collect(),
             controls: self.capabilities(),
             error_code: self.error_code.clone(),
+            superseded_by: self.superseded_by.clone(),
+            superseded_revision: self.superseded_revision.clone(),
             ordinal: self.ordinal,
             parent_run_id: self.parent_run_id.clone(),
             selected_nodes: self.selected_nodes.clone(),

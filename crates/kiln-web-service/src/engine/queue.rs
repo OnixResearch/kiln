@@ -433,6 +433,8 @@ impl Engine {
             phase: "queued".into(),
             observation: None,
             error_code: None,
+            superseded_by: None,
+            superseded_revision: None,
             artifacts: Vec::new(),
             logs: Vec::new(),
             created_at_ms: Some(host_time_ms()?),

@@ -61,9 +61,9 @@ r[kiln.web.supersede.active] Supersession MUST cancel older active runs through
 the exact admitted provider control path, using the run's admitted attempt,
 revision, sequence and execution. Provider refusal or stale control MUST be
 best-effort. Awaiting-approval and terminal runs MUST NOT be cancelled. A
-superseded run's view MUST expose `error_code = "superseded"`; queued control
-MUST accept only that named reason and MUST reject other reasons without
-mutation.
+superseded run's view MUST expose `error_code = "superseded"` and the newer
+run and exact revision that caused the supersede; queued control MUST accept
+only that named reason and MUST reject other reasons without mutation.
 
 #### Scenario: Active run is cancelled
 r[kiln.web.supersede.active.scenario.running]
