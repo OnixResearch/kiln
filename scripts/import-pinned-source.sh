@@ -11,8 +11,8 @@ name=$1
 source_root=$2
 case "$name" in
   lattice)
-    source_commit=70496e67c7fd4a8b05914161a8e09de2759bebc8
-    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
+    source_commit=85a38b6a4bceeae4bb2057cf157e21752100f1b5
+    archive_blake3=33e371665482fcbacdbd21d3e6a7a76f9140a086de77fd67c08038cf426ce0e0 ;;
   cairn)
     source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;

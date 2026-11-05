@@ -44,7 +44,7 @@ struct Producer {
 }
 
 fn producer() -> Producer {
-    serde_json::from_str(include_str!("../../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/producer-fixtures-v1.json")).unwrap_or_else(|_| unreachable!())
+    serde_json::from_str(include_str!("../../../fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/producer-fixtures-v1.json")).unwrap_or_else(|_| unreachable!())
 }
 
 #[derive(Deserialize)]
@@ -55,7 +55,7 @@ struct Recovery {
 }
 
 fn recovery() -> Recovery {
-    serde_json::from_str(include_str!("../../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/recovery-fixtures-v1.json")).unwrap_or_else(|_| unreachable!())
+    serde_json::from_str(include_str!("../../../fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/recovery-fixtures-v1.json")).unwrap_or_else(|_| unreachable!())
 }
 
 fn key(value: u8) -> SecretKey {

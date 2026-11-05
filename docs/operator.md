@@ -748,13 +748,7 @@ The job identity is BLAKE3 of the **original exported JSON bytes**, including
 whitespace and the trailing newline, not canonical JSON or a Nickel source hash.
 Re-exporting or changing even whitespace requires a newly reviewed identity.
 
-Use a pinned Lattice runtime implementing producer requirement
-`lattice.workflow_interchange.shell_success`: exchange shell commands must exit
-zero before the node can succeed, failed dependencies must prevent downstream
-effects, and skipped nodes must not carry execution receipts. Older runtimes
-that expose a nonzero shell exit as completed data are not CI-compatible even
-when their wire schema matches. This is a producer execution requirement;
-updating Kiln's contract import alone cannot repair an older running producer.
+Use Lattice handler revision `85a38b6a4bceeae4bb2057cf157e21752100f1b5`. It implements producer requirement `lattice.workflow_interchange.shell_success`: exchange shell commands must exit zero before the node can succeed, failed dependencies must prevent downstream effects, and skipped nodes must not carry execution receipts. It also records observed cancellation. Older runtimes, including contract import `70496e67` and Aspen evidence revision `c513d94d`, are not CI handlers even when their wire schema matches. This is a producer execution requirement; a schema-compatible older process is not repaired by Kiln's contract import.
 
 1. In the pinned Lattice application, import and review a saved shell workflow.
    Its mapped shell command must invoke the installed helper using the exact

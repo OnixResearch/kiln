@@ -17,7 +17,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-pijul` | Exact Pijul state observation and bounded local snapshot acquisition. |
-| `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
+| `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, cancel-only controls, logs, and reconciliation. Agent jobs use a separate cohort and are executed by Lattice. |
 | `kiln-adapter-iroh` | Authenticated, bounded native Lattice workflow transport through a controller-local Unix proxy and worker-local Lattice socket; no CI-state or execution authority. |
 | `kiln-adapter-aspen` | Exact Aspen/Molten runtime profile, identity, atomic durability, content, typed effects, ingress, and bounded Unix transport mapping. |
 | `kiln-aspen-extension` | Deterministic Kiln callback decisions and one-shot native callback executable bound to the host's exact runtime profile. |
@@ -93,6 +93,8 @@ own exact-revision intent and authority. Bounded polling retains the original
 submit reply, latest progress and distinct terminal decisions rather than
 eventually exhausting recovery. See the
 [adoption and proof procedure](operator.md#radicle-source-to-build-composition).
+
+Agent review runs are Lattice workflows. `kiln-core` admits the job, its budget ceiling, and a closed permission set, then lowers one `agent` node through the agent cohort. Lattice's agent runtime executes it. A successful observation is evidence of that run. It is not a review approval and it is not a Patchgate receipt. Advisory and binding vote policy stay in Kiln. See [agent orchestration](lattice-agent-orchestration.md).
 
 The Iroh bridge preserves the existing Lattice exchange contract, peer-pins the
 worker, enrolls controllers, and checks the exact native capability profile

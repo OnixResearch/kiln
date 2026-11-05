@@ -24,7 +24,7 @@ use super::*;
 
 const SOCKET_FRAME_BYTES: u32 = 1_048_576;
 const SOCKET_LOG_BYTES: u32 = 65_536;
-const SOCKET_CONNECTIONS: u32 = 7;
+const SOCKET_CONNECTIONS: u32 = 5;
 const RECOVERY_CONNECTIONS: u32 = 2;
 const SOCKET_DEADLINE_MILLISECONDS: u64 = 5_000;
 const MAXIMUM_CLIENT_RECORDS: usize = 8;
@@ -147,7 +147,7 @@ struct RecoveryFixtures {
 #[test]
 fn pinned_recovery_fixtures_pass_producer_admission() {
     let fixtures: RecoveryFixtures = serde_json::from_str(include_str!(
-        "../../../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/recovery-fixtures-v1.json"
+        "../../../../fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/recovery-fixtures-v1.json"
     ))
     .unwrap_or_else(|_| unreachable!());
     assert_eq!(
@@ -195,24 +195,26 @@ fn concrete_socket_client_covers_every_exchange_operation() {
         .observe(&workflow_plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert_eq!(running.state, WorkflowState::Running);
-    let paused = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: workflow_plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: running.sequence,
-            action: WorkflowControlAction::Pause,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(paused.state, WorkflowState::Paused);
-    let resumed = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: workflow_plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: paused.sequence,
-            action: WorkflowControlAction::Resume,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(resumed.state, WorkflowState::Running);
+    assert!(
+        adapter
+            .control(&WorkflowControlRequest {
+                effect_id: workflow_plan.effect_id.clone(),
+                execution: accepted.execution.clone(),
+                expected_sequence: running.sequence,
+                action: WorkflowControlAction::Pause,
+            })
+            .is_err()
+    );
+    assert!(
+        adapter
+            .control(&WorkflowControlRequest {
+                effect_id: workflow_plan.effect_id.clone(),
+                execution: accepted.execution.clone(),
+                expected_sequence: running.sequence,
+                action: WorkflowControlAction::Resume,
+            })
+            .is_err()
+    );
     let log = adapter
         .read_log(&WorkflowLogReadRequest {
             effect_id: workflow_plan.effect_id.clone(),

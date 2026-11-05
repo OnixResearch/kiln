@@ -8,7 +8,7 @@ The shell pins these inputs:
 
 - Radicle runtime: `radicle-0.24.0`
 - Radicle CI broker: `a688afde1f730ef60402a809d9cdadc55e8dd749`
-- Lattice contract, transport, handler, and source binding: `70496e67c7fd4a8b05914161a8e09de2759bebc8`
+- Lattice contract, transport, handler, and source binding: `85a38b6a4bceeae4bb2057cf157e21752100f1b5` (`AGPL-3.0-or-later`; handler includes `shell_success` and observed cancellation)
 - Lattice request schema: `lattice.workflow-request.v2`
 - Aspen native-host cohort: `22f8ded26ca1907c29948e08b53f35df23080733`
 

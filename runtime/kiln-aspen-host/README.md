@@ -18,7 +18,7 @@ The standalone Cargo lock binds these reviewed revisions:
 
 - Kiln protocol, adapters, and provider cohort: `69afc2697f4330005797256135ae81b2722a125c`;
 - Aspen effect materialization: `22f8ded26ca1907c29948e08b53f35df23080733`;
-- Lattice workflow contract: `70496e67c7fd4a8b05914161a8e09de2759bebc8`;
+- Lattice workflow contract in this lock: `70496e67c7fd4a8b05914161a8e09de2759bebc8`. Regenerating the lock onto handler `85a38b6a4bceeae4bb2057cf157e21752100f1b5` needs private Basalt `d913dc01e765c9b297df5fcc57dfa06aac39bc74`, which GitHub reports as repository not found, and also walks a malformed Aspen fixture manifest. The root workspace import is the handler pin. This host still links published Kiln `69afc269`.
 - Bounded Exec: `29dac88ecded94457572db3fdfaaaab95fa91525`; and
 - Durable File Publication: `8e05e74e24b45f752d77145c4455385daaf6d6ab`.
 

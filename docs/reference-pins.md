@@ -41,7 +41,7 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 
 | Import | Exact producer revision | Consumed scope | Source record |
 |---|---|---|---|
-| Lattice | `70496e67c7fd4a8b05914161a8e09de2759bebc8` | MIT workflow contract and Unix transport | [`vendor/lattice.source.json`](../vendor/lattice.source.json) |
+| Lattice | `85a38b6a4bceeae4bb2057cf157e21752100f1b5` | AGPL-3.0-or-later workflow contract and Unix transport; same commit is the CI and agent handler | [`vendor/lattice.source.json`](../vendor/lattice.source.json) |
 | Cairn | `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f` | `MIT OR Apache-2.0` gate contract and pinned producer fixtures | [`vendor/cairn.source.json`](../vendor/cairn.source.json) |
 | Valence | `220307a371e7bc4e3309447b09447d0fe6c4db5f` | MPL-2.0 `valence-core` | [`vendor/valence.source.json`](../vendor/valence.source.json) |
 | Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
@@ -280,7 +280,9 @@ must be available to the operator. No sibling checkout or fallback is selected.
 The host manifest and lock bind Kiln adapters to
 `69afc2697f4330005797256135ae81b2722a125c`, Aspen/Molten to
 `22f8ded26ca1907c29948e08b53f35df23080733`, Lattice contract/transport to
-`70496e67c7fd4a8b05914161a8e09de2759bebc8`, and Durable File Publication to
+`70496e67c7fd4a8b05914161a8e09de2759bebc8` (the lock could not be moved to
+`85a38b6a4bceeae4bb2057cf157e21752100f1b5` without private Basalt
+`d913dc01e765c9b297df5fcc57dfa06aac39bc74`), and Durable File Publication to
 `8e05e74e24b45f752d77145c4455385daaf6d6ab`. Both runtimes retain Bounded Exec
 `29dac88ecded94457572db3fdfaaaab95fa91525` and the provider retains that same
 Durable File Publication pin. These independent cohorts are not replaced by root

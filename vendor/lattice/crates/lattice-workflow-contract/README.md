@@ -37,3 +37,13 @@ Nickel owns the human-reviewed structural contract at `contracts/kiln-workflow-c
 The contract contains no command, credential, environment, path, provider payload, clock, transport, persistence, or execution authority.
 
 Admission does not prove workflow correctness, host confinement, external effect success, credential freshness, or release readiness.
+
+## License
+
+New owned contract and transport source, including their schemas and fixtures,
+uses AGPL-3.0-or-later; each package carries the full license in `LICENSE`.
+Copyright (c) 2026 OnixResearch (contract) and Onix Research (transport).
+`LICENSE-MIT-HISTORICAL` retains the original attributed MIT grants only for
+previously licensed content. Those grants cannot be revoked, including for
+byte-identical content still present. They do not grant MIT for new contributions.
+This preparation does not refresh Kiln's immutable imported MIT snapshot.

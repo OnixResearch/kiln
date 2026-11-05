@@ -2,7 +2,7 @@
 name = "lattice-workflow-contract"
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
+license = "AGPL-3.0-or-later"
 rust-version = "1.88"
 description = "Versioned no-std workflow request and observation contract for Lattice consumers"
 publish = false

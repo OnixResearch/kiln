@@ -1,18 +1,18 @@
 {
   "source_repository": "ssh://git@github.com/OnixResearch/lattice.git",
-  "source_commit": "70496e67c7fd4a8b05914161a8e09de2759bebc8",
+  "source_commit": "85a38b6a4bceeae4bb2057cf157e21752100f1b5",
   "full_archive_format": "git archive --format=tar <source_commit>",
-  "full_archive_blake3": "f82d880fcc9ceb2de385e34d3929e40f15f51a011eafe2dc3550760a3f248102",
+  "full_archive_blake3": "5356d67c04fb6b5c4c895253ecac57096545c26f063ee1311d27f5c1832192a4",
   "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
   "archive_paths": [
     "crates/lattice-workflow-contract"
   ],
-  "archive_blake3": "65c2190700bf8a5e6760116267935b151082be97ed2b0a2b62036e4917c0392d",
+  "archive_blake3": "33e371665482fcbacdbd21d3e6a7a76f9140a086de77fd67c08038cf426ce0e0",
   "importer": "scripts/import-pinned-source.sh",
   "package_licenses": {
-    "lattice-workflow-contract": "MIT",
-    "lattice-workflow-transport": "MIT"
+    "lattice-workflow-contract": "AGPL-3.0-or-later",
+    "lattice-workflow-transport": "AGPL-3.0-or-later"
   },
   "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
-  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln. The operator accepted AGPL-3.0-or-later for this import; LICENSE-MIT-HISTORICAL does not license the new bytes."
 }
