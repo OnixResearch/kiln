@@ -15,9 +15,16 @@ A domain may not contain both untrusted-capable and workload-bearing runners.
 
 ### Receipt
 
-The Firecracker `vm` object records the domain next to the observed host facts.
-This makes the static placement decision inspectable. It does not prove the
-operator configured physically separate hosts.
+The Firecracker `vm` object records the domain and host identity next to the
+observed host facts. This makes the static placement decision inspectable. It
+does not prove the operator configured physically separate hosts.
+
+### Host identity
+
+`host_identity` is a reviewed physical-host label. Untrusted-capable runners
+require one. A host may not contain both untrusted-capable and workload-bearing
+runners, even when their trust domains differ. Missing workload-runner identity
+defaults to the runner label, which is unique.
 
 ## Risks
 

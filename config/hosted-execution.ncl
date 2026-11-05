@@ -77,6 +77,8 @@ let Backend = {
   host_preflight_override | String | optional,
   # Reviewed placement pool; untrusted and workload-bearing runners must differ.
   trust_domain | String | optional,
+  # Reviewed physical host; untrusted and workload-bearing runners must differ.
+  host_identity | String | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
   qualification_identity | Dyn | optional,

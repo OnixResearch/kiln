@@ -121,6 +121,16 @@ let Backend =
               && !(std.string.is_match "\\x00" value)
             )
             | optional,
+          # Reviewed physical-host identity. Untrusted runners require one and
+          # cannot share it with a workload-bearing runner.
+          host_identity
+            | std.contract.from_predicate (fun value =>
+              std.is_string value
+              && std.string.length value > 0
+              && std.string.length value <= 128
+              && !(std.string.is_match "\\x00" value)
+            )
+            | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,
         }
         label

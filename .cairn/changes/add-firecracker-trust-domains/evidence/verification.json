@@ -4,7 +4,7 @@
   "commands": [
     {
       "command": "cargo test -p kiln-hosted --lib --offline",
-      "result": "63 passed; shared/separated/missing trust-domain cases included"
+      "result": "63 passed; shared/separated/missing domain and shared-host cases included"
     },
     {
       "command": "cargo check --workspace --all-targets --offline",
@@ -22,11 +22,12 @@
   "acceptance": {
     "domain requirement": "untrusted-capable runners require a non-empty reviewed domain",
     "separation": "a domain containing both untrusted and workload-bearing runners is rejected",
-    "receipt": "the Firecracker vm object records the selected trust domain",
+    "receipt": "the Firecracker vm object records the selected trust domain and host identity",
+    "host separation": "a host containing both untrusted and workload-bearing runners is rejected; untrusted runners require a host identity",
     "configuration": "typed hosted profiles expose the optional domain"
   },
   "non_claims": [
-    "static domains do not prove physical host or LLC separation",
+    "static domains and host labels do not prove live physical co-residency, host or LLC separation",
     "cross-attempt co-residency sets, core pinning, CAT/MBA and covert-channel measurement remain open",
     "the domain label grants no hostile-isolation claim"
   ]

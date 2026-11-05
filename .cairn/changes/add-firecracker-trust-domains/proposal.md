@@ -10,7 +10,10 @@ had no reviewed placement-pool identity and accepted any runner label.
 - Require a non-empty domain for every untrusted-capable runner.
 - Reject any domain containing both untrusted-capable and workload-bearing
   runners.
-- Record the trust domain in the Firecracker `vm` receipt.
+- Add reviewed `host_identity` to Firecracker runners.
+- Require a host identity for every untrusted-capable runner and reject a host
+  shared by untrusted-capable and workload-bearing runners.
+- Record the trust domain and host identity in the Firecracker `vm` receipt.
 - Add typed Nickel fields and hosted documentation.
 
 ## Impact

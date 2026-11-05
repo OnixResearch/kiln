@@ -149,6 +149,7 @@ pub(crate) struct Runner<'a> {
     pub(crate) warm_pool: Option<&'a WarmPool>,
     pub(crate) debug_hold: Option<&'a DebugHoldPolicy>,
     pub(crate) trust_domain: Option<&'a str>,
+    pub(crate) host_identity: Option<&'a str>,
 }
 
 impl<'a> Runner<'a> {
@@ -160,6 +161,7 @@ impl<'a> Runner<'a> {
             warm_pool,
             debug_hold,
             trust_domain,
+            host_identity,
             ..
         } = backend
         else {
@@ -173,6 +175,7 @@ impl<'a> Runner<'a> {
             warm_pool: warm_pool.as_ref(),
             debug_hold: debug_hold.as_ref(),
             trust_domain: trust_domain.as_deref(),
+            host_identity: host_identity.as_deref(),
         })
     }
 }
@@ -1266,6 +1269,9 @@ pub(crate) fn run_job(
     }
     if let Some(domain) = runner.trust_domain {
         observe("trust_domain", json!(domain));
+    }
+    if let Some(host) = runner.host_identity {
+        observe("host_identity", json!(host));
     }
     if let Err(error) = journal(db, job, "starting", None) {
         session.failure = Some(error);

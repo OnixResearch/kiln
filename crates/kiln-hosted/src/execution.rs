@@ -85,6 +85,9 @@ pub enum Backend {
         /// one placement pool; untrusted and workload-bearing pools must differ.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         trust_domain: Option<String>,
+        /// Reviewed physical-host identity used for static co-residency checks.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        host_identity: Option<String>,
     },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -148,9 +151,12 @@ fn validate_trust_domains(
 ) -> Result<(), String> {
     let mut domains: std::collections::BTreeMap<&str, (bool, bool)> =
         std::collections::BTreeMap::new();
+    let mut hosts: std::collections::BTreeMap<&str, (bool, bool)> =
+        std::collections::BTreeMap::new();
     for (label, backend) in runners {
         if let Backend::Firecracker {
             trust_domain,
+            host_identity,
             untrusted_capable,
             ..
         } = backend
@@ -162,6 +168,13 @@ fn validate_trust_domains(
             {
                 return Err("untrusted-capable Firecracker runner needs a trust domain".into());
             }
+            if *untrusted_capable
+                && host_identity.as_ref().is_none_or(|host| {
+                    host.trim().is_empty() || host.len() > 128 || host.contains('\0')
+                })
+            {
+                return Err("untrusted-capable Firecracker runner needs a host identity".into());
+            }
             let domain = trust_domain.as_deref().unwrap_or(label.as_str());
             if domain.trim().is_empty() || domain.len() > 128 || domain.contains('\0') {
                 return Err("invalid Firecracker trust domain".into());
@@ -170,6 +183,13 @@ fn validate_trust_domains(
             let entry = domains.entry(domain).or_default();
             entry.0 |= *untrusted_capable;
             entry.1 |= workload;
+            let host = host_identity.as_deref().unwrap_or(label.as_str());
+            if host.trim().is_empty() || host.len() > 128 || host.contains('\0') {
+                return Err("invalid Firecracker host identity".into());
+            }
+            let host_entry = hosts.entry(host).or_default();
+            host_entry.0 |= *untrusted_capable;
+            host_entry.1 |= workload;
         }
     }
     if domains
@@ -177,6 +197,12 @@ fn validate_trust_domains(
         .any(|(untrusted, workload)| *untrusted && *workload)
     {
         return Err("untrusted and workload-bearing runners cannot share a trust domain".into());
+    }
+    if hosts
+        .values()
+        .any(|(untrusted, workload)| *untrusted && *workload)
+    {
+        return Err("untrusted and workload-bearing runners cannot share a host".into());
     }
     Ok(())
 }
@@ -2082,6 +2108,7 @@ mod tests {
             "initrd": executable(), "guest_shell": "/bin/bash", "vcpus": 1, "memory_mib": 256,
             "boot_timeout_ms": 10_000, "source_image_mib": 64, "warm_pool": null,
             "qualification_identity": null, "trust_domain": "trusted",
+            "host_identity": "host-trusted",
         });
         if let (Some(fields), Some(extra)) = (backend.as_object_mut(), extra.as_object()) {
             fields.extend(extra.clone());
@@ -2472,11 +2499,13 @@ mod tests {
     fn untrusted_and_workload_runners_cannot_share_a_trust_domain() {
         let untrusted: Backend = serde_json::from_value(firecracker_backend(json!({
             "untrusted_capable": true,
-            "trust_domain": "shared"
+            "trust_domain": "shared",
+            "host_identity": "host-shared"
         })))
         .unwrap_or_else(|error| unreachable!("{error}"));
         let trusted: Backend = serde_json::from_value(firecracker_backend(json!({
-            "trust_domain": "shared"
+            "trust_domain": "shared",
+            "host_identity": "host-shared"
         })))
         .unwrap_or_else(|error| unreachable!("{error}"));
         let runners = std::collections::BTreeMap::from([
@@ -2495,14 +2524,26 @@ mod tests {
         separated.insert(
             "trusted".into(),
             serde_json::from_value(firecracker_backend(json!({
-                "trust_domain": "trusted"
+                "trust_domain": "trusted",
+                "host_identity": "host-trusted"
             })))
             .unwrap_or_else(|error| unreachable!("{error}")),
         );
         assert!(validate_trust_domains(&separated, &workload).is_ok());
+        let mut same_host = separated.clone();
+        same_host.insert(
+            "trusted".into(),
+            serde_json::from_value(firecracker_backend(json!({
+                "trust_domain": "trusted",
+                "host_identity": "host-shared"
+            })))
+            .unwrap_or_else(|error| unreachable!("{error}")),
+        );
+        assert!(validate_trust_domains(&same_host, &workload).is_err());
         let missing: Backend = serde_json::from_value(firecracker_backend(json!({
             "untrusted_capable": true,
-            "trust_domain": null
+            "trust_domain": null,
+            "host_identity": "host-u"
         })))
         .unwrap_or_else(|error| unreachable!("{error}"));
         assert!(

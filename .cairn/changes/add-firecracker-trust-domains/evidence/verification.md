@@ -4,7 +4,8 @@
 
 Firecracker runners now have a reviewed trust domain. Untrusted-capable runners
 require one, and a domain cannot mix untrusted and workload-bearing runners.
-The receipt records the selected domain.
+The receipt records the selected domain and host identity. A host cannot mix
+untrusted and workload-bearing runners.
 
 ## Evidence
 
@@ -15,6 +16,7 @@ The receipt records the selected domain.
 
 ## Non-claims
 
-Static domains do not prove physical host or LLC separation. Cross-attempt
+Static domains and host labels do not prove live physical co-residency, host or
+LLC separation. Cross-attempt
 co-residency sets, core pinning, CAT/MBA and covert-channel measurement remain
 open. The domain label grants no hostile-isolation claim.
