@@ -15,5 +15,5 @@ without exposing a writable host share or inventing guest publication.
 
 - **Files**: Firecracker plan, hosted execution, guest agent, docs.
 - **Testing**: plan drive test and hosted unit tests.
-- **Authority**: restore only; publication, object tier and cache measurement
-  remain open.
+- **Authority**: restore and post-success guest-output publication; object tier
+  and cache measurement remain open.

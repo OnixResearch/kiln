@@ -2,18 +2,21 @@
   "schema": "kiln.firecracker-cache-drive.verification.v1",
   "date": "2026-11-05",
   "commands": [
-    {"command":"cargo test -p kiln-microvm --lib cache_image --offline","result":"1 passed"},
-    {"command":"cargo test -p kiln-hosted --lib --offline","result":"71 passed"},
-    {"command":"KILN_MICROVM_GUEST=... KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm firecracker_cache_restores -- --ignored --nocapture","result":"ignored: guest image rebuild blocked by the Nix store GC lock"},
+    {"command":"cargo check -p kiln-hosted --offline","result":"ok"},
+    {"command":"cargo test -p kiln-microvm --lib --offline","result":"40 passed"},
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"73 passed"},
+    {"command":"cargo test -p kiln-web-service --lib --offline","result":"168 passed; 1 ignored"},
+    {"command":"cargo test -p kiln-hosted --test journey --offline","result":"9 passed"},
+    {"command":"KILN_MICROVM_GUEST=... KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm firecracker_cache_restores_after_publication --offline -- --ignored --nocapture","result":"skipped: KILN_MICROVM_GUEST unset; a locally repacked initrd was rejected because adding it to the Nix store waited on the big GC lock"},
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
   "acceptance": {
     "plan": "optional second read-only cache drive",
     "guest": "extracts /dev/vdb over /work after source",
-    "publication": "disabled for Firecracker"
+    "publication": "guest returns declared outputs; host verifies the source key, extracts the bounded ustar, and publishes after job success and confirmed cleanup"
   },
   "non_claims": [
-    "no guest publication or object-storage tier",
+    "no object-storage cache tier",
     "host cache publication test is ignored until the guest image is rebuilt",
     "no cache latency measurement"
   ]

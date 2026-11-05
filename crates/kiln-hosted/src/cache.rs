@@ -7,10 +7,11 @@ use std::sync::Mutex;
 use std::time::Instant;
 
 use kiln_web_service::cache::{
-    CacheKey, CacheObservation, CacheProfile, CacheProject, CacheStore, WorkerCacheProfile,
+    CacheEnvelope, CacheKey, CacheObservation, CacheProfile, CacheProject, CacheStore,
+    WorkerCacheProfile,
 };
 use kiln_web_service::worker::cache::{
-    collect_local, local_key, require_absent_outputs, restore_local,
+    collect_local, collect_outputs, local_key, require_absent_outputs, restore_local,
 };
 use serde::{Deserialize, Serialize};
 
@@ -316,6 +317,24 @@ pub fn restore_image(
     ))
 }
 
+fn record(
+    config: &HostedCacheConfig,
+    policy: &WorkerCacheProfile,
+    now_ms: u64,
+    original: &CacheKey,
+    envelope: &CacheEnvelope,
+    started: Instant,
+) -> Result<CacheObservation, String> {
+    let bytes = envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)?;
+    let published = store(config, |store| store.publish(envelope, now_ms / 1000))?;
+    Ok(CacheObservation {
+        key: original.identity()?,
+        outcome: if published { "published" } else { "retained" }.into(),
+        transferred_bytes: u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
+        duration_ms: elapsed(started),
+    })
+}
+
 /// Call only after externally observed job success and confirmed owned cleanup.
 /// Inputs are rehashed before publication: a job that changes its source cannot
 /// publish derived outputs under a stale source identity.
@@ -330,16 +349,26 @@ pub fn publish(
         return Err("cache source changed during job".into());
     }
     let envelope = collect_local(context.workspace, original, policy)?;
-    let bytes = envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)?;
-    let published = store(config, |store| {
-        store.publish(&envelope, context.now_ms / 1000)
-    })?;
-    Ok(CacheObservation {
-        key: original.identity()?,
-        outcome: if published { "published" } else { "retained" }.into(),
-        transferred_bytes: u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
-        duration_ms: elapsed(started),
-    })
+    record(config, policy, context.now_ms, original, &envelope, started)
+}
+
+/// Publish outputs returned by a guest that ran over an immutable source
+/// snapshot. The key is still verified against the source context, but the
+/// output envelope is collected from the extracted return because guest writes
+/// never reach the host source workspace.
+pub fn publish_extracted(
+    config: &HostedCacheConfig,
+    source: &Context<'_>,
+    output_root: &Path,
+    original: &CacheKey,
+) -> Result<CacheObservation, String> {
+    let started = Instant::now();
+    let (current, policy) = key(config, source)?;
+    if current != *original {
+        return Err("cache source changed during job".into());
+    }
+    let envelope = collect_outputs(output_root, original, policy)?;
+    record(config, policy, source.now_ms, original, &envelope, started)
 }
 
 #[cfg(test)]
@@ -402,6 +431,26 @@ mod tests {
             now_ms: 1_000,
         }
     }
+    fn guest_tar(path: &str, body: &[u8]) -> Vec<u8> {
+        use kiln_microvm::archive::{BLOCK_BYTES, EntryKind, SourceEntry, header};
+        let entry = SourceEntry {
+            path: path.into(),
+            kind: EntryKind::File {
+                size: u64::try_from(body.len())
+                    .unwrap_or_else(|error| unreachable!("fixture size: {error:?}")),
+                executable: false,
+            },
+        };
+        let mut tar = header(&entry)
+            .unwrap_or_else(|error| unreachable!("fixture header: {error:?}"))
+            .to_vec();
+        tar.extend_from_slice(body);
+        let padding = body.len().div_ceil(BLOCK_BYTES as usize) * BLOCK_BYTES as usize
+            - body.len();
+        tar.extend_from_slice(&vec![0_u8; padding]);
+        tar.extend_from_slice(&[0_u8; 1024]);
+        tar
+    }
     #[test]
     fn successful_output_is_reused_but_other_tenants_inputs_and_configs_do_not_hit() {
         let root = private_root();
@@ -453,6 +502,72 @@ mod tests {
             b"compiled-product"
         );
         assert_eq!(ok(std::fs::read(second.join("input"))), b"source-v1");
+    }
+    #[test]
+    fn guest_outputs_publish_under_the_source_key_and_restore() {
+        let root = private_root();
+        let source = private_root();
+        let cache = settings(root.path());
+        ok(cache.validate(source.path()));
+        ok(std::fs::write(source.path().join("input"), b"source-v1"));
+        let (key, miss) = ok(restore(&cache, &context(source.path(), "org", "config-v1")));
+        assert_eq!(miss.outcome, "miss");
+        // A Firecracker guest returns only declared outputs; the source inputs
+        // stay in the immutable snapshot and never appear in the returned tar.
+        let returned = private_root();
+        let tar = guest_tar("build-cache/output", b"compiled-product");
+        ok(kiln_microvm::archive::extract_files(
+            &tar,
+            returned.path(),
+            16,
+            4096,
+        ));
+        // The namespace path rehashes source inputs and must not be used for a
+        // guest return, which contains only declared outputs.
+        assert!(publish(&cache, &context(returned.path(), "org", "config-v1"), &key).is_err());
+        assert_eq!(
+            ok(publish_extracted(
+                &cache,
+                &context(source.path(), "org", "config-v1"),
+                returned.path(),
+                &key,
+            ))
+            .outcome,
+            "published"
+        );
+        let consumer = private_root();
+        ok(std::fs::write(consumer.path().join("input"), b"source-v1"));
+        let (_, hit) = ok(restore(&cache, &context(consumer.path(), "org", "config-v1")));
+        assert_eq!(hit.outcome, "hit");
+        assert_eq!(
+            ok(std::fs::read(consumer.path().join("build-cache/output"))),
+            b"compiled-product"
+        );
+    }
+    #[test]
+    fn guest_publication_rejects_a_source_changed_after_restore() {
+        let root = private_root();
+        let source = private_root();
+        let cache = settings(root.path());
+        ok(cache.validate(source.path()));
+        ok(std::fs::write(source.path().join("input"), b"source-v1"));
+        let (key, _) = ok(restore(&cache, &context(source.path(), "org", "config-v1")));
+        let returned = private_root();
+        ok(std::fs::create_dir(returned.path().join("build-cache")));
+        ok(std::fs::write(
+            returned.path().join("build-cache/output"),
+            b"compiled-product",
+        ));
+        ok(std::fs::write(source.path().join("input"), b"source-v2"));
+        assert!(
+            publish_extracted(
+                &cache,
+                &context(source.path(), "org", "config-v1"),
+                returned.path(),
+                &key,
+            )
+            .is_err()
+        );
     }
     #[test]
     fn corruption_symlinks_and_source_overlap_are_rejected() {

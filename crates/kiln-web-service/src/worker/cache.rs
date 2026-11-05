@@ -70,16 +70,11 @@ pub fn local_key(
     Ok(key)
 }
 
-/// Collect only declared bounded regular files through anchored descriptors.
-pub fn collect_local(
+fn collect_declared(
     root: &Path,
     key: &CacheKey,
     config: &WorkerCacheProfile,
 ) -> Result<CacheEnvelope, String> {
-    config.admit()?;
-    if local_key(&key.project_id, &key.node_id, config, root)? != *key {
-        return Err("cache source or policy changed before publication".into());
-    }
     let mut files = Vec::new();
     let mut total = 0usize;
     let mut visited = 0usize;
@@ -93,6 +88,43 @@ pub fn collect_local(
     };
     entry.verify(config.maximum_entry_bytes, config.maximum_files)?;
     CacheEnvelope::new(entry)
+}
+
+/// Collect only declared bounded regular files through anchored descriptors.
+pub fn collect_local(
+    root: &Path,
+    key: &CacheKey,
+    config: &WorkerCacheProfile,
+) -> Result<CacheEnvelope, String> {
+    config.admit()?;
+    if local_key(&key.project_id, &key.node_id, config, root)? != *key {
+        return Err("cache source or policy changed before publication".into());
+    }
+    collect_declared(root, key, config)
+}
+
+/// Collect declared outputs for a key whose source binding was already
+/// verified. Source inputs are not re-read, so callers MUST only use this when
+/// the key was bound before the job and the source cannot change underneath it
+/// (for example an immutable guest snapshot). The policy must still match the
+/// exact key.
+pub fn collect_outputs(
+    root: &Path,
+    key: &CacheKey,
+    config: &WorkerCacheProfile,
+) -> Result<CacheEnvelope, String> {
+    config.admit()?;
+    key.admit()?;
+    if key.producer != config.producer
+        || key.toolchain != config.toolchain
+        || key.platform != config.platform
+        || key.paths != config.paths
+        || key.inputs.len() != config.inputs.len()
+        || !config.inputs.iter().all(|input| key.inputs.contains_key(input))
+    {
+        return Err("cache policy changed before publication".into());
+    }
+    collect_declared(root, key, config)
 }
 
 /// Fully verify source, policy and envelope before descriptor-relative writes.

@@ -1476,7 +1476,6 @@ pub fn run_pipeline(
                 u64::try_from(cache.maximum_entry_bytes).unwrap_or(u64::MAX),
             )?;
             let publish_context = crate::cache::Context {
-                workspace: workspace.path(),
                 now_ms: now_ms
                     .checked_add(
                         u64::try_from(started.elapsed().as_millis())
@@ -1485,7 +1484,8 @@ pub fn run_pipeline(
                     .ok_or("clock overflow")?,
                 ..cache_context
             };
-            let published = crate::cache::publish(cache, &publish_context, key);
+            let published =
+                crate::cache::publish_extracted(cache, &publish_context, workspace.path(), key);
             let duration = u64::try_from(cache_started.elapsed().as_millis()).unwrap_or(u64::MAX);
             cache_ms = Some(
                 cache_ms
