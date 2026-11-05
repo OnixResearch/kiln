@@ -11,6 +11,7 @@ use kiln_highlight::{
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 fn language(path: &Path) -> Option<Language> {
     let name = path.file_name()?.to_str()?;
@@ -93,6 +94,14 @@ fn reason_name(reason: StructuralFallback) -> &'static str {
     }
 }
 
+fn percentile(sorted: &[u64], percentile: usize) -> u64 {
+    if sorted.is_empty() {
+        return 0;
+    }
+    let index = (sorted.len() - 1) * percentile / 100;
+    sorted[index]
+}
+
 fn mismatch(left: &BTreeSet<u32>, right: &BTreeSet<u32>) -> usize {
     left.symmetric_difference(right).count()
 }
@@ -157,6 +166,7 @@ fn main() -> Result<(), String> {
             };
             let old = fs::read(&before).map_err(|error| error.to_string())?;
             let new = fs::read(&after).map_err(|error| error.to_string())?;
+            let started = Instant::now();
             let outcome = structural_diff(
                 Some(language),
                 Some(&old),
@@ -164,6 +174,7 @@ fn main() -> Result<(), String> {
                 &StructuralBounds::DEFAULT,
                 &|| false,
             );
+            let elapsed_us = u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX);
             let (old_touched, new_touched, fallback) = structural_touched(&outcome);
             let expected_old = touched_ranges(&mapping, "before");
             let expected_new = touched_ranges(&mapping, "after");
@@ -176,6 +187,7 @@ fn main() -> Result<(), String> {
                 mismatch(&new_touched, &expected_new),
                 expected_old.len(),
                 expected_new.len(),
+                elapsed_us,
             ));
         }
     }
@@ -205,6 +217,23 @@ fn main() -> Result<(), String> {
         clean,
         rows.len() - parsed
     );
+    let mut by_language: std::collections::BTreeMap<&str, Vec<u64>> =
+        std::collections::BTreeMap::new();
+    for row in &rows {
+        if row.3.is_none() {
+            by_language.entry(row.2).or_default().push(row.8);
+        }
+    }
+    for (language, mut times) in by_language {
+        times.sort_unstable();
+        eprintln!(
+            "{language}: parsed={} p50={}us p90={}us p99={}us",
+            times.len(),
+            percentile(&times, 50),
+            percentile(&times, 90),
+            percentile(&times, 99)
+        );
+    }
     if let Some(path) = baseline {
         let text = fs::read_to_string(&path).map_err(|error| format!("{path}: {error}"))?;
         let mut expected = std::collections::BTreeMap::new();

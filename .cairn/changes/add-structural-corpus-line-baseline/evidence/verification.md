@@ -11,6 +11,8 @@ repository.
 - 611 parsed structurally.
 - 145 parsed fixtures have zero mismatched old/new lines (23.7%).
 - 116 fall back: 99 parse errors, 16 too large, 1 too many nodes.
+- Parsed-fixture p99 is 43 ms (bash); the slowest p50 is 1.05 ms (rust).
+  Timing is printed to stderr and is not part of the baseline gate.
 - Re-running against `baseline.csv` reports no regressions and byte-identical
   output.
 

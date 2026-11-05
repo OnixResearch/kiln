@@ -9,7 +9,9 @@ that reads OmniDiff's pinned fixture corpus, projects the `Full` text mappings
 and Kiln's structural novel rows to per-line touched labels, and writes one CSV
 row per parsed fixture. The harness MUST accept a baseline and fail when a
 fixture starts falling back or either old/new mismatch count grows. The corpus
-MUST be fetched by pinned revision, not vendored.
+MUST be fetched by pinned revision, not vendored. The harness MUST report
+per-language p50/p90/p99 latency on stderr; latency MUST NOT be part of the
+committed baseline or its gate.
 
 #### Scenario: Baseline regression
 

@@ -36,11 +36,13 @@ At the pinned corpus revision:
 - 611 parsed structurally; 116 fall back (99 parse errors, 16 too large, 1 too
   many nodes).
 - 145 of 611 parsed fixtures (23.7%) have zero mismatched old/new lines.
+- Parsed-fixture p99 latency is 43 ms (bash); the slowest p50 is 1.05 ms
+  (rust). Timing is printed to stderr, not written to the baseline CSV.
 
 ## Boundaries
 
 - Line agreement is projected from OmniDiff's `Full` text mappings and Kiln's
   novel-token rows. It is not node-mapping fidelity.
-- Moves and latency are not scored here.
+- Moves are not scored. Timing is reported but not gated.
 - A passing baseline does not prove structural diff correctness, grammar memory
   safety, review readiness or release eligibility.
