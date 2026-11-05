@@ -7,3 +7,4 @@
 
 - [x] [serial] Test no-network capabilities, shared listener paths and CH argv. r[kiln.microvm.backend.seam]
 - [x] [serial] Record the Firecracker backend kind from the trait. r[kiln.microvm.backend.seam]
+- [x] [serial] Drive arch, snapshot and no-network admission from capabilities. r[kiln.microvm.backend.seam]

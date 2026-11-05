@@ -8,7 +8,9 @@ r[kiln.microvm.backend.seam] `kiln-microvm` MUST expose a pure `VmmBackend`
 trait returning backend kind, capabilities, boot arguments, vsock listener path
 and identity inputs. Every admissible backend MUST declare
 `NetworkCapability::NoDevice`; a backend that cannot declare it MUST be refused.
-The seam MUST NOT perform I/O or grant an isolation claim.
+The seam MUST NOT perform I/O or grant an isolation claim. Admission MUST read
+the backend capability declaration for arch, snapshot and guest-network
+decisions instead of matching a closed kind.
 
 #### Scenario: No guest network
 

@@ -11,6 +11,8 @@ matching a closed runner enum in every consumer.
 - Add the exact Cloud Hypervisor cold-boot argv with no `--net` and no API
   socket.
 - Use the Firecracker trait kind in the receipt.
+- Drive backend arch, snapshot and no-network admission from the capability
+  declaration.
 
 ## Impact
 

@@ -19,6 +19,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use zeroize::Zeroize;
 
+use kiln_microvm::backend::{
+    Capabilities, ConfinementKinds, Firecracker, NetworkCapability, VmmBackend,
+};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Image {
@@ -454,6 +458,24 @@ fn qualification_reference(identity: &Option<String>) -> Result<(), String> {
 // r[impl kiln.hosted.microvm.admission.scenario.bounds]
 /// Pure Firecracker runner admission against this execution policy. Image and
 /// pool filesystem checks follow in the shell.
+fn backend_capabilities(backend: &Backend) -> Capabilities {
+    match backend {
+        Backend::Firecracker { .. } => Firecracker.capabilities(),
+        Backend::Qemu { .. } | Backend::Namespaces { .. } => Capabilities {
+            network: NetworkCapability::NoDevice,
+            snapshot: false,
+            arch: &["x86_64", "aarch64"],
+            confinement: ConfinementKinds {
+                seccomp: false,
+                landlock: false,
+                no_new_privs: false,
+                cap_eff: false,
+            },
+            per_job: false,
+        },
+    }
+}
+
 fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<(), String> {
     let Backend::Firecracker {
         qualification_identity,
@@ -465,9 +487,9 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
     else {
         return Err("not a Firecracker runner".into());
     };
-    // The VM plan's CPU template and the guest module set are reviewed on x86_64.
-    if !cfg!(target_arch = "x86_64") {
-        return Err("Firecracker runners are reviewed only on x86_64 hosts".into());
+    let capabilities = backend_capabilities(backend);
+    if !capabilities.arch.contains(&std::env::consts::ARCH) {
+        return Err("Firecracker runner arch is not in its reviewed capability set".into());
     }
     if host_preflight_override.as_ref().is_some_and(|reason| {
         reason.trim().is_empty() || reason.len() > 1024 || reason.contains('\0')
@@ -486,6 +508,9 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
     )?;
     qualification_reference(qualification_identity)?;
     if let Some(pool) = warm_pool {
+        if !capabilities.snapshot {
+            return Err("warm pool requires a snapshot-capable backend".into());
+        }
         crate::microvm::admit_pool_path(&pool.directory, &config.work_root)?;
     }
     // r[impl kiln.hosted.microvm.debug_hold.policy]
@@ -611,6 +636,9 @@ fn workspace(
 }
 // r[impl kiln.hosted.execution]
 fn admit_backend(backend: &Backend, trust: &str) -> Result<(), String> {
+    if backend_capabilities(backend).network != NetworkCapability::NoDevice {
+        return Err("backend requests a guest network device".into());
+    }
     match (trust,backend) {
         ("trusted",_)=>Ok(()),
         ("hostile",Backend::Qemu{qualification_identity:Some(_),..}|Backend::Firecracker{qualification_identity:Some(_),..})=>Ok(()),
@@ -2790,5 +2818,15 @@ mod tests {
         assert!(!valid_cpu_affinity("4096"));
         assert!(!valid_cpu_affinity("a"));
         assert!(!valid_cpu_affinity("0,,1"));
+    }
+    #[test]
+    fn backend_capabilities_drive_admission_declarations() {
+        let backend: Backend = serde_json::from_value(firecracker_backend(json!({})))
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let capabilities = backend_capabilities(&backend);
+        assert_eq!(capabilities.network, NetworkCapability::NoDevice);
+        assert!(capabilities.snapshot);
+        assert!(capabilities.per_job);
+        assert!(capabilities.arch.contains(&"x86_64"));
     }
 }
