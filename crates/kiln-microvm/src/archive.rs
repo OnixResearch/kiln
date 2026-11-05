@@ -174,11 +174,19 @@ pub fn extract_files(
         };
         let name = text(0, 100)?;
         let prefix = text(345, 500)?;
-        let path = if prefix.is_empty() {
+        let kind = header[156];
+        let mut path = if prefix.is_empty() {
             name.to_owned()
         } else {
             format!("{prefix}/{name}")
         };
+        // ustar directory entries carry a trailing slash; the directory itself
+        // is the admitted path.
+        if kind == b'5'
+            && let Some(stripped) = path.strip_suffix('/')
+        {
+            path = stripped.to_owned();
+        }
         if path.is_empty()
             || path.starts_with('/')
             || path.contains('\\')
@@ -191,7 +199,6 @@ pub fn extract_files(
         let size_text = text(124, 136)?;
         let size = u64::from_str_radix(size_text.trim_matches(['\0', ' ']), 8)
             .map_err(|_| "cache archive size malformed".to_string())?;
-        let kind = header[156];
         let header_bytes = BLOCK_BYTES as usize;
         let body_start = offset + header_bytes;
         let body_end = body_start
@@ -367,8 +374,14 @@ mod tests {
                 executable: false,
             },
         };
+        let directory_entry = SourceEntry {
+            path: "target/".into(),
+            kind: EntryKind::Directory,
+        };
         let header_bytes = header(&entry).unwrap_or_else(|error| unreachable!("{error}"));
+        let dir_header = header(&directory_entry).unwrap_or_else(|error| unreachable!("{error}"));
         let mut bytes = Vec::new();
+        bytes.extend_from_slice(&dir_header);
         bytes.extend_from_slice(&header_bytes);
         bytes.extend_from_slice(b"data");
         bytes.extend_from_slice(&vec![0_u8; 508]);
@@ -379,6 +392,17 @@ mod tests {
                 .unwrap_or_else(|error| unreachable!("{error}")),
             b"data"
         );
+        for path in ["../escape/", "target//", "/absolute/"] {
+            let rejected = SourceEntry {
+                path: path.into(),
+                kind: EntryKind::Directory,
+            };
+            let mut archive = header(&rejected)
+                .unwrap_or_else(|error| unreachable!("{error}"))
+                .to_vec();
+            archive.extend_from_slice(&[0_u8; 1024]);
+            assert!(extract_files(&archive, &directory, 4, 1024).is_err());
+        }
 
         let traversal = SourceEntry {
             path: "../escape".into(),

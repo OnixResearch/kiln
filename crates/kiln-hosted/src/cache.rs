@@ -76,6 +76,9 @@ impl HostedCacheConfig {
         {
             return Err("hosted cache bounds exceeded".into());
         }
+        if self.maximum_tar_bytes() > kiln_microvm::protocol::MAX_FRAME_BYTES / 2 {
+            return Err("cache tar bound exceeds the guest protocol frame".into());
+        }
         let mut scopes = BTreeSet::new();
         for policy in &self.policies {
             if !crate::identifier(&policy.organization)
@@ -104,6 +107,14 @@ impl HostedCacheConfig {
             }
         }
         self.profile()?.preflight()
+    }
+    /// Guest tar bound: declared content bytes plus one ustar header/padding
+    /// range per entry and the two-block trailer. The guest checks the encoded
+    /// tar before returning it, and the host still enforces content bounds.
+    pub fn maximum_tar_bytes(&self) -> usize {
+        self.maximum_entry_bytes
+            .saturating_add(self.maximum_files.saturating_mul(1024))
+            .saturating_add(1024)
     }
     pub fn policy(&self, context: &Context<'_>) -> Option<&Policy> {
         self.policies.iter().find(|p| {
@@ -445,8 +456,7 @@ mod tests {
             .unwrap_or_else(|error| unreachable!("fixture header: {error:?}"))
             .to_vec();
         tar.extend_from_slice(body);
-        let padding = body.len().div_ceil(BLOCK_BYTES as usize) * BLOCK_BYTES as usize
-            - body.len();
+        let padding = body.len().div_ceil(BLOCK_BYTES as usize) * BLOCK_BYTES as usize - body.len();
         tar.extend_from_slice(&vec![0_u8; padding]);
         tar.extend_from_slice(&[0_u8; 1024]);
         tar
@@ -537,7 +547,10 @@ mod tests {
         );
         let consumer = private_root();
         ok(std::fs::write(consumer.path().join("input"), b"source-v1"));
-        let (_, hit) = ok(restore(&cache, &context(consumer.path(), "org", "config-v1")));
+        let (_, hit) = ok(restore(
+            &cache,
+            &context(consumer.path(), "org", "config-v1"),
+        ));
         assert_eq!(hit.outcome, "hit");
         assert_eq!(
             ok(std::fs::read(consumer.path().join("build-cache/output"))),
@@ -568,6 +581,15 @@ mod tests {
             )
             .is_err()
         );
+    }
+    #[test]
+    fn cache_tar_bound_must_fit_the_guest_frame() {
+        let root = private_root();
+        let work = private_root();
+        let mut cache = settings(root.path());
+        cache.maximum_entry_bytes = 1_048_576;
+        cache.maximum_files = 4096;
+        assert!(cache.validate(work.path()).is_err());
     }
     #[test]
     fn corruption_symlinks_and_source_overlap_are_rejected() {

@@ -18,8 +18,9 @@ occur after failure or uncertain teardown.
 - WHEN the VM configuration is built
 - THEN it has a second read-only `cache` drive.
 
-#### Scenario: No publication
+#### Scenario: Publish guest outputs and restore them
 
-- GIVEN a successful Firecracker job with a cache restore
-- WHEN the job finishes
-- THEN no cache entry is published from the host workspace.
+- GIVEN a Firecracker runner with a cache policy and an initial miss
+- WHEN a successful job returns its declared outputs and cleanup is confirmed
+- THEN the host publishes those guest outputs, not the host source workspace
+- AND a subsequent job with the same source key restores a cache hit.

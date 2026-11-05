@@ -4,10 +4,11 @@
   "commands": [
     {"command":"cargo check -p kiln-hosted --offline","result":"ok"},
     {"command":"cargo test -p kiln-microvm --lib --offline","result":"40 passed"},
-    {"command":"cargo test -p kiln-hosted --lib --offline","result":"73 passed"},
+    {"command":"cargo test --locked --offline -p kiln-hosted --lib","result":"74 passed"},
     {"command":"cargo test -p kiln-web-service --lib --offline","result":"168 passed; 1 ignored"},
     {"command":"cargo test -p kiln-hosted --test journey --offline","result":"9 passed"},
-    {"command":"KILN_MICROVM_GUEST=... KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm firecracker_cache_restores_after_publication --offline -- --ignored --nocapture","result":"skipped: KILN_MICROVM_GUEST unset; a locally repacked initrd was rejected because adding it to the Nix store waited on the big GC lock"},
+    {"command":"nix build --no-link --print-out-paths path:.#microvm-guest --builders '' --option build-hook ''","result":"/nix/store/9ylnhv606d4q5kd5zl8qz5r0l33a8qss-kiln-microvm-guest"},
+    {"command":"KILN_MICROVM_GUEST=/nix/store/9ylnhv606d4q5kd5zl8qz5r0l33a8qss-kiln-microvm-guest KILN_MICROVM_REQUIRED=1 cargo test --locked --offline -p kiln-hosted --test microvm firecracker_cache_restores_after_publication -- --nocapture","result":"1 passed; first run published 7 bytes, second run restored a 7-byte hit and retained the entry; both confirmed cleanup"},
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
   "acceptance": {
@@ -17,7 +18,7 @@
   },
   "non_claims": [
     "no object-storage cache tier",
-    "host cache publication test is ignored until the guest image is rebuilt",
-    "no cache latency measurement"
+    "no performance or hostile-isolation qualification",
+    "no lifecycle archive approval"
   ]
 }

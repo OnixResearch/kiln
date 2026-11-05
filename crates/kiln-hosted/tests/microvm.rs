@@ -897,7 +897,6 @@ fn failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry() {
 }
 
 #[test]
-#[ignore = "requires a rebuilt guest image with the cache publish protocol"]
 fn firecracker_cache_restores_after_publication() {
     let host = match prerequisites() {
         Ok(host) => host,
@@ -930,8 +929,15 @@ fn firecracker_cache_restores_after_publication() {
     println!("KILN_MICROVM_RECEIPT cache-1 {first}");
     assert_eq!(at(&first, "/state"), "succeeded", "{first:#}");
     assert_eq!(at(job(&first, "build"), "/steps/0/stdout"), "created\n");
+    assert_eq!(
+        at(job(&first, "build"), "/cache/publish/outcome"),
+        "published"
+    );
+    assert_eq!(at(&first, "/cleaned"), true);
     let second = deployment.run("cache-2");
     println!("KILN_MICROVM_RECEIPT cache-2 {second}");
     assert_eq!(at(&second, "/state"), "succeeded", "{second:#}");
     assert_eq!(at(job(&second, "build"), "/steps/0/stdout"), "cached\n");
+    assert_eq!(at(job(&second, "build"), "/cache/restore/outcome"), "hit");
+    assert_eq!(at(&second, "/cleaned"), true);
 }

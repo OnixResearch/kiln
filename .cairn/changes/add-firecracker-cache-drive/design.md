@@ -21,5 +21,5 @@ declared outputs. Guest writes never reach the host source workspace.
 
 - The cache entry must fit the configured source-image capacity.
 - No object-storage tier or cache latency measurement.
-- The host-level guest return path is covered by a KVM test that stays ignored
-  until the guest image is rebuilt.
+- The host-level guest return path is exercised by the KVM cache publication
+  journey; its result remains scoped to the recorded guest image and host.

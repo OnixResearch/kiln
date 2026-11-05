@@ -1284,6 +1284,15 @@ fn drive_guest(
                                 return Err("guest cache tar encoding rejected".into());
                             }
                         }
+                        GuestMessage::Done {
+                            nonce,
+                            admission_error,
+                        } if nonce == job.job => {
+                            return Err(format!(
+                                "guest cache rejected: {}",
+                                admission_error.unwrap_or_else(|| "no reason".into())
+                            ));
+                        }
                         _ => return Err("unexpected guest cache message".into()),
                     }
                 }

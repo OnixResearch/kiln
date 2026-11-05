@@ -1143,7 +1143,7 @@ pub fn run_pipeline(
         let cache_max_bytes = config
             .cache
             .as_ref()
-            .map_or(0, |cache| cache.maximum_entry_bytes);
+            .map_or(0, |cache| cache.maximum_tar_bytes());
         let mut cache_ms = None;
         let mut cache_outcome = "disabled_unconfigured";
         let mut cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});

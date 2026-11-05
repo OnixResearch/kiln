@@ -483,13 +483,13 @@ Actual runner choices are:
     Omitted keeps the configuration identity and refuses such runs.
 
   There is no network or jailer field. A cache policy naming a Firecracker
-  runner enables restore only: the host materializes the cache entry as a
-  read-only second drive (`/dev/vdb`) and the guest extracts it over `/work`.
-  After a successful job the host requests the declared output roots over the
-  existing vsock session, validates and extracts the bounded ustar, and
-  publishes the entry. No writable host share is exposed. The host test is
-  currently ignored until the guest image is rebuilt with this protocol. The optional
-  object-storage tier is not implemented.
+  runner enables restore through a read-only second drive (`/dev/vdb`), which
+  the guest extracts over `/work`. After a successful job the host requests the
+  declared output roots over the existing vsock session, validates and extracts
+  the bounded ustar, and publishes after confirmed cleanup. The transfer bound
+  includes ustar headers, padding and trailer separately from cached content;
+  admitted bounds must fit the guest protocol frame. No writable host share is
+  exposed. The optional object-storage tier is not implemented.
 
   The backend is admitted only on x86_64 hosts. Build the guest with
   `nix build path:.#microvm-guest` (x86_64-linux only). It contains the pinned
