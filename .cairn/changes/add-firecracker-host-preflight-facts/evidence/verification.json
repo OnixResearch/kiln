@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.microvm-host-facts.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-microvm --lib --offline",
+      "result": "33 passed; host classification, refusal and MPTCP-listener cases included"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-microvm",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "classification": "fixed, vulnerable, vendor-backported and unparseable releases are distinct",
+    "refusal": "vulnerable/unknown CVE, active SMT, running KSM and residual MPTCP listeners refuse untrusted admission",
+    "override": "a non-empty operator override admits and is caller-recorded",
+    "facts": "kernel release/package, CVE, SMT, KSM, MPTCP, listener and resctrl observations are retained"
+  },
+  "non_claims": [
+    "no host files were read and no receipt was wired in this change",
+    "vendor backport entries are reviewed claims, not kernel testing",
+    "scheduler trust-domain placement, core partitioning and covert-channel measurement are not implemented"
+  ]
+}

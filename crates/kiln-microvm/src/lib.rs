@@ -11,6 +11,7 @@ pub mod admission;
 pub mod archive;
 pub mod confinement;
 pub mod debug_hold;
+pub mod host;
 pub mod lifecycle;
 pub mod plan;
 pub mod protocol;
