@@ -38,7 +38,7 @@ let Immutable = {
 }
 in
 let Backend = {
-  kind | std.contract.from_predicate (fun value => std.array.elem value ["namespaces", "qemu", "firecracker"]),
+  kind | std.contract.from_predicate (fun value => std.array.elem value ["namespaces", "qemu", "firecracker", "cloud-hypervisor"]),
   # namespaces: every namespace-specific field is required by Rust admission;
   # qemu: qemu/kernel/initramfs/guest_shell/acceleration are required there;
   # firecracker: firecracker/kernel/initrd/guest_shell/vcpus/memory_mib/

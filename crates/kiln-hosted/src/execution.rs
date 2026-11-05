@@ -112,6 +112,7 @@ pub enum Backend {
     },
     /// One Cloud Hypervisor microVM per job. Cold boot only in phase 1; the
     /// same guest agent, read-only source drive and vsock protocol apply.
+    #[serde(rename = "cloud-hypervisor")]
     CloudHypervisor {
         cloud_hypervisor: Executable,
         kernel: Image,

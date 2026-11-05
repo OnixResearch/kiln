@@ -648,19 +648,23 @@ fn observe_confinement_once(
         if workers > 128 {
             return Err("VMM thread count exceeds its bound".into());
         }
-        let status = read_bounded(
+        let Ok(status) = read_bounded(
             &tasks.join(tid.to_string()).join("status"),
             MAX_STATUS_BYTES,
-        )?;
-        let worker = admit_status(
+        ) else {
+            // Threads can exit while the directory is being read.
+            continue;
+        };
+        let Ok(worker) = admit_status(
             &status,
             &exe,
             ExpectedProcess {
                 allow_unfiltered_main: false,
                 ..expected_process
             },
-        )
-        .map_err(str::to_owned)?;
+        ) else {
+            continue;
+        };
         facts.seccomp_filtered += worker.seccomp_filtered;
     }
     facts.threads += workers;
