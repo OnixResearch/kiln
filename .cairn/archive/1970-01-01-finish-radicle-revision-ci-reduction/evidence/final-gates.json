@@ -1,0 +1,294 @@
+{
+  "schema": "kiln.issue-closeout.lifecycle-gates.v1",
+  "change": "finish-radicle-revision-ci-reduction",
+  "structural_gates_only": true,
+  "behavioral_or_release_readiness_claim": false,
+  "gates": [
+    {
+      "acceptance_ids": [],
+      "change": "finish-radicle-revision-ci-reduction",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "baa37f76aa612d60934266d7fa64e7b19fa918731cc27f38805ead0dc7e7594b",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "7f8b20bb84c8a02799524a594aae654bb00e9ff11dc1bf23ec03281bd2f86974",
+      "receipt_hash": "a401edc8e5073b4bd54d89c42e07eb0bb929ea45f6a049258adbb01619e1d6de",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "proposal",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    {
+      "acceptance_ids": [],
+      "change": "finish-radicle-revision-ci-reduction",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "3d31ddadd3fc0dbe142b7348a04228f8608c6e01786ea52598951130483f04f8",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "7f8b20bb84c8a02799524a594aae654bb00e9ff11dc1bf23ec03281bd2f86974",
+      "receipt_hash": "b1882b904127978d43d7c0cca4a431fe9f00d25075143a1d50180fbc7aa194fc",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "design",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 2,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/specs/radicle-mutation/spec.md",
+          "requirement_blocks": 3,
+          "scenario_blocks": 5,
+          "substantive_lines": 19,
+          "substantive_requirement_blocks": 3,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/specs/radicle-revision-ci/spec.md",
+          "requirement_blocks": 2,
+          "scenario_blocks": 2,
+          "substantive_lines": 8,
+          "substantive_requirement_blocks": 2,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    {
+      "acceptance_ids": [],
+      "change": "finish-radicle-revision-ci-reduction",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "a1121f1194b44edd1d37fcec679ce996198c5405c2d197d3188fdaf49b37aeb8",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": {
+        "declarations_present": false,
+        "probes": []
+      },
+      "profile_identity_hash": "7f8b20bb84c8a02799524a594aae654bb00e9ff11dc1bf23ec03281bd2f86974",
+      "receipt_hash": "0d2f631e18784f2e72152a6546e6e459d6e1543208e5602b7dba6e3c84d0c699",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "tasks",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 2,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/specs/radicle-mutation/spec.md",
+          "requirement_blocks": 3,
+          "scenario_blocks": 5,
+          "substantive_lines": 19,
+          "substantive_requirement_blocks": 3,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/specs/radicle-revision-ci/spec.md",
+          "requirement_blocks": 2,
+          "scenario_blocks": 2,
+          "substantive_lines": 8,
+          "substantive_requirement_blocks": 2,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 3,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 3,
+          "task_done": 3,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": {
+        "active": false,
+        "edges": [],
+        "issues": [],
+        "nodes": [],
+        "order": [],
+        "ready_tasks": [],
+        "valid": true
+      },
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  ]
+}

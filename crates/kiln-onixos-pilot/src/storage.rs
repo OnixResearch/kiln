@@ -151,3 +151,33 @@ impl JournalLock {
         sync_parent(&self.path)
     }
 }
+
+impl Drop for JournalLock {
+    fn drop(&mut self) {
+        // A concurrently forked child may retain the open file description until
+        // exec. End ownership here rather than relying on its final close.
+        let _ = fs2::FileExt::unlock(&self._file);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn journal_guard_releases_ownership_while_inherited_description_remains_open() {
+        let directory = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+        let path = directory.path().join("journal.json");
+        let guard = JournalLock::acquire(&path).unwrap_or_else(|error| unreachable!("{error}"));
+        let inherited = guard
+            ._file
+            .try_clone()
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(JournalLock::acquire(&path).is_err());
+        drop(guard);
+        let next = JournalLock::acquire(&path).unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(JournalLock::acquire(&path).is_err());
+        drop(next);
+        drop(inherited);
+    }
+}

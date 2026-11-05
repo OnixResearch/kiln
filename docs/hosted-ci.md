@@ -568,26 +568,76 @@ fields and reviewed executable BLAKE3 identity; the lifecycle gate is
 that the reviewed binary has no vulnerability or that another host reports the
 same facts.
 
-The `vm.host` receipt records the observed host kernel release and package,
-CVE-2026-98432 status, SMT, KSM, MPTCP sysctls/listeners and resctrl mount
-state. An `untrusted_capable` runner refuses a vulnerable or unknown kernel,
-active SMT, running KSM, or residual MPTCP listeners unless the reviewed runner
-sets a non-empty `host_preflight_override`, which is retained in the receipt.
-Firecracker runners also carry a reviewed `trust_domain`. An untrusted-capable
-runner requires a domain, and a domain cannot contain both untrusted-capable and
-workload-bearing runners. The receipt records the domain; this is a static
-runner-pool separation, not a proof of physical host or LLC isolation.
-Untrusted runners also require a reviewed `host_identity`; a host cannot contain
-both untrusted-capable and workload-bearing runners. The receipt records it.
-This is a static host-assignment check, not live cross-attempt observation. Each
-receipt records the other same-attempt jobs with the same declared host. A
-durable placement ledger rejects an active cross-attempt overlap between
-untrusted and workload-bearing jobs on one declared host before finance or
-process effects. It does not observe host state outside Kiln or prove the host
-label is truthful. A Firecracker runner may also name a reviewed `cpu_affinity`
-list (for example `0-3,8`); Kiln starts the VMM through the configured `taskset`
-and records the list in `vm.cpu_affinity`. This pins the VMM process, not guest
-vCPUs or cache partitions. A reviewed `version` is recorded as
+The `vm.host` receipt records bounded host kernel release/package, the
+issue-policy `cve_2026_98432` status, SMT control/active state, KSM run state,
+kernel cmdline, CPU vulnerability entries, MPTCP sysctls/listener count, resctrl
+mount state and L3 CAT/MBA capability files. Kernel/network fields are also
+available directly on `vm`. Missing observations are `null`, empty maps or
+explicit `unknown`, never inferred safe. Kernel package provenance is the
+booted NixOS kernel store path, or an explicitly `operator-declared:`
+`KILN_HOST_KERNEL_PACKAGE`; unsupported package discovery is `unknown` (not an
+OS BUILD_ID masquerading as a kernel package). `ss -M -l -n -p -H` is bounded;
+missing tooling, command failure or truncation yields unknown listener count.
+
+The CVE name, advisory descriptions and upstream fixed-series thresholds are
+**issue #28's supplied operator policy**, not an independently verified security
+advisory. The checked-in table is in `kiln-microvm/src/host.rs`; only enumerated
+release series are admitted. Exact reviewed vendor backport package entries can
+override the upstream decision in the pure classifier, but **no vendor package
+is currently asserted patched by the production shell**. Unknown/vulnerable
+kernel status unconditionally refuses every dispatch on an `untrusted_capable`
+runner. Only active SMT/running KSM may be admitted with a non-empty reviewed
+`host_preflight_override`; `vm.host_admission` retains the reason and observed
+refusal, in addition to the host facts. Other runners retain facts and continue.
+MPTCP/tcp_migrate_req observations are partial exposure facts, not a fix. In
+particular disabled MPTCP with nonzero or unknown listeners is not evidence of
+reduced exposure; patching and rebooting remain the issue-required remedy.
+
+Reference-host observation, **2026-11-05**: booted kernel **6.18.50**, package
+`/nix/store/9xdswfnj5dv4al2cd51f3nlvsh78s5vv-linux-6.18.50/bzImage`,
+`cve_2026_98432=vulnerable` **by the issue-supplied table**, SMT active, KSM off.
+This host is therefore not admitted for untrusted-capable execution. The guest
+kernel's separately pinned fixed-series gate does not patch the host.
+
+Firecracker runners carry reviewed `trust_domain` and `host_identity` labels;
+untrusted-capable runners require both. Static validation forbids combining
+untrusted-capable and workload-bearing runners in one declared pool/host. At
+runtime this executor launches locally: its durable reservation ledger uses the
+**observed machine identity**, so different labels cannot evade whole-host
+exclusion across attempts, retries or organizations. Untrusted provenance and
+any job with a workload policy (even one with no delivered credential) conflict
+on that host before financial/process effects. Unknown attempts keep their
+reservation until reconciliation. Distinct physical host services must have
+separately provisioned pools; separate labels on one local service are not
+physical isolation. This ledger does not govern unrelated services/databases or
+unmanaged host processes.
+This machine ID is an internal local-executor bucket, not physical-hardware
+attestation, and is not emitted in customer VM receipts. Independent service
+databases, containers and OS instances require operator placement governance;
+different machine IDs never prove different physical machines.
+
+`vm.co_residency` retains actual overlapping managed microVM job identities
+(organization, attempt, job), symmetrically across attempts, from observation
+of a live confined VMM through owned cleanup. Sequential planned jobs are not
+reported as simultaneous peers; completed peer records remain available.
+Candidate peer PIDs are independently checked against recorded Linux process
+start-time and non-dead state, so a stopped VMM awaiting final journaling or
+`placement::finish` is not reported as an observed simultaneous peer.
+Boot-only activity before live-process observation and unmanaged processes are
+outside this evidence boundary. Admission reservations deliberately cover the
+larger whole-attempt interval, independently of these observations.
+
+Optional `cpu_affinity` (for example `0-3,8`) starts the VMM via reviewed
+`taskset`; vCPU threads inherit its CPU mask. Whole-host trust exclusion remains
+in force irrespective of affinity. Optional `cache_partition` names an
+**existing operator-created resctrl CAT group**, not merely a label: before
+guest job dispatch Kiln requires L3 schemata, assigns all observed VMM/vCPU
+threads to the group's `tasks`, verifies membership and retains group, schemata
+and thread IDs in `vm.cache_assignment`. Missing mount/permissions/CAT or failed
+assignment refuses guest dispatch. Operators own exclusive masks and writable
+delegation; Kiln does not manufacture or prove disjoint CAT masks. MBA only
+throttles and does not fully partition DRAM bandwidth. Neither setting closes
+all timing channels. A reviewed `version` is recorded as
 `vm.backend_version`; the `vm.capabilities` block records the declared network,
 snapshot, arch, confinement and per-job scope. Snapshot identity is now
 `kiln.microvm.snapshot.v2` and binds the VMM kind, version and binary BLAKE3,
@@ -596,7 +646,10 @@ so an old warm snapshot is rebuilt rather than reused across a VMM change.
 It does **not** claim:
 - hostile multi-tenant or production qualification;
 - resistance to KVM or Firecracker vulnerabilities on the host;
-- protection from CPU side channels between tenants on shared cores;
+- protection from cache-eviction, CPU-contention or DRAM-bandwidth covert
+  channels between co-resident microVMs, including pinned separate cores;
+- complete DRAM bandwidth partitioning, or an inference that CAT/MBA or
+  SMT/KSM disablement eliminates timing channels;
 - the separation the jailer would add. The jailer is not used: there is no
   chroot, no dedicated uid or network namespace per VM, and the unit's cgroup
   replaces a per-VM jailer cgroup. The VMM runs as the service user.
@@ -611,6 +664,81 @@ receipt carries `canonical_outcome`: the BLAKE3 identity of the pipeline,
 per-job states and per-step name, state, exit code and stdout. It excludes
 timing, cleanup, signals, stderr (the namespace launcher writes `systemd-run`
 diagnostics there) and backend observations.
+
+### Opt-in cooperative timing-channel measurements
+
+`scripts/microvm-channels.py` builds a minimal static guest initramfs from
+`tools/microvm-channel-probe.c`, runs two diskless/networkless Firecracker
+guests, retains serial/raw receiver observations and decodes held-out symbols.
+Sender-one symbols perform dependent cache-line chasing (cache eviction),
+integer computation (CPU contention), or streaming memory reads/writes (DRAM
+bandwidth); zero symbols sleep. The receiver counts corresponding work in the
+middle 60% of fixed wall-clock slots. Only the sender receives random held-out
+bits; receiver requests contain a symbol count, not the bits. Thirty-two
+alternating training symbols select the median threshold and polarity; held-out
+symbols determine bit error. Reported raw bitrate is the **offered symbol rate**,
+not a reliable exfiltration capacity claim. High error is not channel-absence
+proof. This cooperative suite is opt-in qualification evidence, never a CI gate.
+
+Build with a static C toolchain, then run an explicit operator placement JSON:
+
+```console
+nix shell nixpkgs#pkgsStatic.stdenv.cc --command python3 scripts/microvm-channels.py build --cc x86_64-unknown-linux-musl-cc --output /tmp/channel-probe
+python3 scripts/microvm-channels.py run --config /operator/placements.json --output /operator/observations.json --symbols 64 --symbol-ms 100
+```
+
+The JSON keys are `same_host`, `pinned_cores`, `separate_pools`, each containing
+`sender`/`receiver` endpoints. Each endpoint supplies `command` (argv for the
+worker), absolute `firecracker`, `kernel`, `initrd` paths, optional explicit
+`cpus` integer list and a distinct `pool` label for separate pools. Example:
+
+```json
+{"command":["python3","/opt/kiln/scripts/microvm-channels.py","worker"],"firecracker":"/operator/firecracker","kernel":"/operator/vmlinux","initrd":"/tmp/channel-probe/probe-initrd.gz","cpus":[0],"pool":"llc-a"}
+```
+
+For a remote endpoint use `command:["ssh","pool-b","python3",
+"/opt/kiln/scripts/microvm-channels.py","worker"]`; paths are interpreted on
+that worker. Provision the same probe image and synchronized wall clocks before
+running. The worker records a report-keyed OS-instance pseudonym and observed
+core/LLC topology; raw machine IDs are not published. Pinned cores reject SMT
+siblings. Separate pools require distinct declared pool names; within one
+observed OS instance they also require disjoint observed LLC domains with
+explicit CPU pinning and report
+`distinct_llc_same_observed_os_instance_measurement_only`. Unequal OS-instance
+pseudonyms report only
+`distinct_observed_os_instances_physical_placement_unverified`: containers or
+separate OS instances can still share physical hardware. This is not admitted
+production untrusted/workload placement under Kiln's stronger whole-host rule.
+Omitted placements are retained as unavailable, never fabricated. A real
+cross-physical-host qualification needs independent operator/hardware evidence,
+not just a second OS-instance ID. Worker/VMM timeouts derive from admitted
+lead-time and symbol duration; timeout and cancellation own process-group cleanup.
+
+The [2026-11-05 raw reference observations](../.cairn/archive/1970-01-01-complete-host-trust-placement/evidence/reference-channel-observations.json)
+retain all nine real guest runs, binary/source BLAKE3 identities and serial
+evidence. All used 20 raw symbols/s and 32 held-out bits per run:
+
+| Placement | Cache bit error | CPU bit error | DRAM bit error |
+| --- | ---: | ---: | ---: |
+| Same host, scheduler placement | 0.40625 | 0.53125 | 0.125 |
+| Pinned separate cores 0/1, same LLC | 0.53125 | 0.40625 | 0.46875 |
+| Explicit pools llc-a/llc-b, pinned 0/8, distinct LLCs on same host | 0.5625 | 0.53125 | 0.4375 |
+
+CPU0's LLC is `0-7,16-23`; CPU8's is `8-15,24-31`. The last row is genuine
+distinct-LLC pool measurement, **not distinct-host evidence**; shared DRAM and
+other host resources remain. These short samples are observations, not a
+statistical detection conclusion. Host SMT was on, KSM off, and no host setting
+was changed. The older trusted measurement guest used kernel 6.18.42, not the
+new fixed-series guest pin. CAT/MBA programming was not qualified here: a mounted
+resctrl filesystem, supported CAT hardware and a writable operator-created
+exclusive CAT group are the exact external prerequisites. Every receipt and
+report retains `hostile_isolation_claim:false`.
+
+The historical nine rows were privacy-redacted after review: raw worker machine
+IDs were replaced with per-evidence `REDACTED` OS-instance labels preserving only
+equality. Raw samples, serial, rates and historical cohort hashes are unchanged;
+the redaction and corrected non-hardware classifications are explicit metadata.
+
 
 ### Cloud Hypervisor (phase 1, plan only)
 
@@ -791,6 +919,16 @@ Use source-relative input files and separate relative output roots; for example
 `inputs = ["Cargo.lock"]`, `paths = ["build-cache"]`. Input/output overlap,
 traversal and symlink/hardlink/special-file transfers are denied. Worker entry/
 file limits must fit the host policy.
+Firecracker policies additionally fit the hex-encoded cache frame **including
+JSON and worst-case escaped nonce overhead**; namespace-only cache policies
+are not restricted by this vsock limit. Firecracker admits at most 64 output
+roots with at most 100 bytes per root. The guest return supports plain ustar
+regular files/directories only. BusyBox GNU long-name records and PAX extended
+headers are rejected explicitly (even when a path passes the generic
+1024-byte `safe_path` rule); they do not silently truncate or select another
+path. Such a return records `publish_error` and leaves successful job results
+and existing cache entries unchanged. Keep returned relative paths short,
+including directory separators and directory trailing slashes.
 
 Start each attempt from freshly acquired source with every configured output
 root absent: restoration refuses to overwrite an existing root. Keys bind the
@@ -811,6 +949,81 @@ resolution and is not by itself hit evidence. Cache state is expendable,
 excluded from finance/replay authority and not included in the recovery bundle.
 No remote cache service, cross-tenant sharing permission or performance claim is
 established by enabling this local bounded cache.
+
+r[kiln.hosted.microvm.cache_integrity]
+
+For any guest behaviour, at every point where the service, Firecracker unit,
+or machine stops, existing cache entries must remain byte-identical to their
+recorded BLAKE3, and a new entry must be absent or complete and verified: no
+partial entry is visible under a key. This is a tested integrity requirement,
+**not a proof**, power-loss qualification, confidentiality guarantee or hostile
+isolation claim; receipts retain `hostile_isolation_claim: false`. Filesystem
+atomic-rename/fsync semantics remain a deployment prerequisite.
+
+The exclusive store owner writes under `kiln-cache-v1/staging`, outside the
+64-hex key namespace, verifies the staged envelope and per-file bounds/BLAKE3,
+fsyncs the staged file, uses one atomic `RENAME_NOREPLACE` into the key namespace,
+then fsyncs both directories. It never updates an existing entry in place,
+including when a second guest return conflicts with the first. Opening the
+marked store under its owner lock removes orphan staging files; recovery never
+promotes them. Corrupt entries are preserved but not restored or mounted;
+`cache.restore.outcome = "corrupt_miss"` records a measured cold build without
+changing the job result. The web cache endpoint preserves that same typed outcome
+in its `{entry,outcome}` response, and workers retain it in step telemetry.
+If accumulated retained data exceeds the bounded inventory scan, restore returns
+`disabled_inventory_bound` rather than mounting an entry or failing the job.
+Neither outcome authorizes publication: the host/worker skips publication for
+that attempt, preserving the existing corrupt bytes without repair or deletion.
+Other policy, source, transfer, ingress and publication errors remain strict;
+this is not blanket suppression of cache security failures. Hosted receipts mark
+the skipped publish as `skipped_restore_disabled` with null duration.
+Verified hits and publications carry `entry_blake3` and `source_tier = "local"`;
+misses carry a null entry hash. Remote object storage is not implemented, so no
+remote latency/p99 or speedup is asserted.
+If a remote tier is added, hash verification must precede use and its latency
+distribution must be reported separately from local hits.
+
+The guest sends bounded output bytes while it is alive, but host persistence
+starts only after successful execution and recorded `Destroyed { journaled:
+true }`. A `destroy_uncertain` or failed journal attempt returns no publishable
+bytes. Warm snapshots contain an empty read-only cache device, never tenant
+cache bytes. After snapshot load, the host checks the Firecracker PATCH API
+response while binding a verified job image to `/drives/cache`; only then does
+it send Run. The empty template remains unchanged, including across cache
+misses and different source keys. Firecracker/kernel/initrd identities are
+bound by the exact execution configuration in the key.
+
+Regression commands (run in the reviewed development environment):
+
+```console
+cargo test --locked -p kiln-web-service cache::tests::
+cargo test --locked -p kiln-hosted cache::tests::
+cargo test --locked -p kiln-web-service worker::cache::tests::
+cargo test --locked -p kiln-web-service telemetry::tests::
+cargo test --locked -p kiln-web-service --test engine cache::
+cargo test --locked -p kiln-microvm archive::tests::
+cargo test --locked -p kiln-microvm protocol::tests::
+cargo test --locked -p kiln-hosted microvm::tests::unconfirmed_or_unrecorded_destruction_cannot_publish_guest_bytes
+KILN_MICROVM_REQUIRED=1 KILN_MICROVM_GUEST=/nix/store/REBUILT-kiln-microvm-guest \
+  cargo test --locked -p kiln-hosted --features cache-fault-tests --test microvm firecracker_ -- --nocapture
+KILN_MICROVM_REQUIRED=1 KILN_MICROVM_GUEST=/nix/store/REBUILT-kiln-microvm-guest \
+  cargo test --locked -p kiln-hosted --test microvm namespace_corrupt_and_saturated_cache_preserve_successful_cold_jobs -- --nocapture
+```
+
+Use the actual output of `nix build --no-link --print-out-paths path:.#microvm-guest`
+for `KILN_MICROVM_GUEST`, not the illustrative path above. The store fault
+fixture starts real child publisher processes and sends SIGKILL at partial
+receiving, verifying, before rename and after rename, then reopens the store
+and checks old bytes, complete-or-absent new keys and orphan deletion. The
+opt-in compile-time `cache-fault-tests` harness synchronizes a real systemd
+Firecracker unit SIGKILL at the guest return boundary, positively observes the
+callback/kill, and checks that already completed steps remain successful with
+no cache publication. No production environment or configuration fault switch
+exists. Persistent publish phases have **no live
+Firecracker unit to kill**, because recorded destruction is a prerequisite.
+The KVM journeys cover cold/warm restore, guest writes and later unchanged
+restore, corruption cold builds and different-key warm-slot reuse. These
+commands describe the verification procedure, not a claimed passing result.
 
 ## 7. Bounded fleet and timing observations
 
@@ -983,6 +1196,166 @@ preserve pinned profile/keys/external stores, and prevent original/restored
 services from both dispatching. Do not edit unknown reservations/replay rows or
 drop current authorization to make a restore appear healthy. Reconcile external
 effects and retained obligations before allowing new work.
+
+## Unikernel tests: static PIE, no shell and no network
+
+`kind: "unikernel-test"` is a separate trusted-only job class for **one prebuilt
+static x86_64 little-endian Linux ELF64 PIE**. The ELF must be `ET_DYN`, have no
+`PT_INTERP` and no `DT_NEEDED`; a dynamically linked PIE is not static. Default
+Go `ET_EXEC` binaries are not supported by the selected loader. Jobs requiring a
+shell or general Linux ABI keep the Linux microVM backend.
+
+```json
+{"kind":"unikernel-test","runner":"unikernel-reviewed",
+ "unikernel":{"binary":{"path":"bin/tests","blake3":"<64 lowercase hex>"},
+              "argv":["pass"],
+              "fixtures":[{"path":"fixtures/input.json","blake3":"<64 lowercase hex>"}]}}
+```
+
+Paths are relative to the acquired exact source snapshot; regular-file identities
+are verified before image construction, and symlinks/traversal are refused. The
+binary becomes `/test`; fixtures retain their declared paths. There are no shell
+`steps`. Multiple steps, a shell step, executable replacement, subprocess harness
+or network fields are refused, rather than converted to a shell command. The
+reviewed argv is fixed: no expansion, environment, matrix, reusable template,
+whitespace/quoting or kernel-parameter token injection. No cache transfer,
+credentials, warm pool, failed-job debug hold or guest writable output collection
+is available for this backend. The native image is an immutable deterministic
+newc initrd, not a disk collecting files after execution.
+Fixtures are installed with read-only file permissions. The local Unikraft patch
+restores persisted RAMFS permissions when recreating vnodes; upstream lookup's
+unconditional all-permissions mode otherwise made a reopened fixture writable.
+CPIO extraction uses temporary owner-write permissions before its final chmod.
+The maintained Rust `fixture` case reads declared bytes, rejects a write-open,
+then reads the unchanged bytes in both the raw and hosted native rails.
+The native parser requires an explicit `KILN_ARGV_END` fence after the reviewed
+arguments and discards VMM-added suffix tokens; customer use of that marker is
+refused. Real fixture programs assert exact argv, so an appended VMM argument
+cannot silently change the binary's invocation.
+
+### Native backend and upstream identities
+
+The bounded source/native-tool spike compared
+[Nanos](https://github.com/nanovms/nanos/tree/ab823eb4bbcaf0874dc5e15568938bc02346d3d3)
+(Apache-2.0) and [OPS](https://github.com/nanovms/ops/tree/a52795e38ba33a006f0ba740fee0f18fec58fbbb)
+(MIT) against [Unikraft app-elfloader](https://github.com/unikraft/app-elfloader/tree/0cd7a2b2c4d5ece85647c0c9903b50426e849420).
+Nanos built with native tools, but its default PVH image stopped before application
+execution on Firecracker 1.16.1; the Linux-entry variant reached device probing
+without completion within the bounded ten-second boot. This is an observed cohort
+failure, not a claim that Nanos can never support Firecracker. OPS was researched
+as Nanos's recommended image tool, not used as a substitute guest.
+
+The selected working cohort is Unikraft core (BSD-3-Clause default, with per-file terms)
+[`a4c494e80141bd402961c7d96150dd218c79db37`](https://github.com/unikraft/unikraft/tree/a4c494e80141bd402961c7d96150dd218c79db37),
+ELF loader
+[`0cd7a2b2c4d5ece85647c0c9903b50426e849420`](https://github.com/unikraft/app-elfloader/tree/0cd7a2b2c4d5ece85647c0c9903b50426e849420),
+and libelf
+[`c03d4ceb22a2b9e9799238f9c277a14284d313ad`](https://github.com/unikraft/lib-libelf/tree/c03d4ceb22a2b9e9799238f9c277a14284d313ad).
+The lock retains exact upstream NAR identities; the native guest manifest also
+records deterministic source-archive BLAKE3, defconfig and Kiln lifecycle-patch
+identities. No OSv fallback was necessary after both real static language binaries
+executed under this cohort. Upstream's [ELF loader instructions](https://github.com/unikraft/app-elfloader/blob/0cd7a2b2c4d5ece85647c0c9903b50426e849420/README.md)
+and [process capability matrix](https://github.com/unikraft/unikraft/blob/a4c494e80141bd402961c7d96150dd218c79db37/lib/posix-process/README.md)
+describe the compatibility boundary; Linux binary compatibility is not universal.
+
+Rust fixtures use Rust 1.89's self-contained musl target and `-C
+relocation-model=pic`; the ordinary static glibc Rust spike failed TLS allocation.
+Go fixtures use `CGO_ENABLED=1 go build -buildmode=pie` with
+`-ldflags='-linkmode=external -extldflags=-static-pie'` and the pinned static libc.
+The flake fixes producer inputs and removes path/timestamp/build-ID variation.
+The native kernel has no lwIP network stack. Multiprocessing is disabled;
+elfloader's initial transfer is allowed, but subsequent guest `execve` is denied.
+The real probe also attempts `fork`, IPv4 socket/connect, and vsock socket/connect
+for CIDs 1 and 2: every attempt must fail. There is no NIC or vsock device in the
+Firecracker configuration. This declaration does **not** replace the hosted
+`ConfinementObserved` process/cgroup/seccomp gate before application dispatch.
+
+Native startup requires the reviewed rootless systemd preboot policy
+`kiln.native.preboot.v1`, authored in `config/unikernel-preboot-seccomp.ncl`.
+Its explicit default-deny syscall allowlist is the reviewed expansion of
+systemd 262's `@system-service`; unsupported syscalls return `EPERM`. The typed
+source and embedded list are checked for exact agreement, and the receipt binds
+both BLAKE3 identities. Before `InstanceStart`, Kiln verifies the unit's actual
+expanded `SystemCallFilter` and errno against that exact list, records the
+running user-manager version/features, and applies the **strict Firecracker**
+observer: main and worker threads require `Seccomp: 2`. The Cloud Hypervisor
+unfiltered-control-thread exception is never used for native Firecracker.
+The inherited preboot filter is substantive confinement while Firecracker later
+installs its own filters; it is not an allow-all filter used to manufacture a
+status value. Missing/changed policy or seccomp 0/1 prevents test dispatch.
+Refusal stops the owned transient unit before joining launcher capture workers;
+service stdout cannot outlive its owner and obscure the policy failure.
+The [real rootless preboot spike](../.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/observed-policy.json)
+retains the exact observed policy and manager cohort: without the preboot policy
+the main thread reported seccomp 0 and was refused; with the explicit policy,
+both threads reported seccomp 2 **before** application start and the actual
+native Rust test passed. An independent real `ptrace(PTRACE_TRACEME)` process
+under the same policy observed `-1/EPERM`, demonstrating enforced syscall
+denial rather than a diagnostic-only property. This policy is native-only;
+Linux microVM and Cloud Hypervisor unit properties are unchanged.
+
+### Exit evidence and repeat procedure
+
+The native kernel termination path emits one newline-terminated
+`KILN_RESULT:{"schema":"kiln.unikernel.result.v1","exit_code":N}` frame after
+process termination. Guest stdout/stderr share the bounded serial stream. A
+missing, incomplete, malformed, truncated or duplicate status fails; VMM exit
+zero alone never means test success. A guest that writes a counterfeit result
+creates ambiguity with the native terminal frame and fails. Receipts record
+`vm.backend: "firecracker"`, `guest_kind: "unikernel"`,
+`unikernel: {project, version, image_blake3}`, and the native kernel/binary
+identities; `hostile_isolation_claim` remains `false`.
+Framing is parsed over bytes: non-UTF-8 test output outside the JSON frame is
+permitted and displayed lossily, not mistaken for a failed status. Native capture
+uses the remaining pipeline output budget; truncation or oversized serialized
+evidence fails rather than succeeding after a saturating accounting update.
+The original job deadline includes image preparation, VMM startup, API calls and
+confinement observation; expiration prevents `InstanceStart` and never grants
+the prepared image a fresh job timeout.
+
+Build the actual native artifacts, then run the raw compatibility rail:
+
+```console
+nix build path:.#unikernel-guest -o result-unikernel-guest
+nix build path:.#unikernel-rust-image -o result-unikernel-rust
+nix build path:.#unikernel-go-image -o result-unikernel-go
+nix build path:.#unikernel-probe-image -o result-unikernel-probe
+python3 runtime/unikernel/smoke.py --guest result-unikernel-guest \
+  --rust-image result-unikernel-rust --go-image result-unikernel-go \
+  --probe-image result-unikernel-probe --output /tmp/kiln-unikernel-observations
+# Rebuild native outputs independently, not merely retrieve the existing result:
+nix build path:.#unikernel-guest path:.#unikernel-rust-image \
+  path:.#unikernel-go-image path:.#unikernel-probe-image --rebuild --no-link
+```
+
+Use a fresh `--output` directory. The script verifies identities, rebuilds each
+image twice from its declared binary, checks byte equality with the built image,
+boots the real VMM, checks Rust/Go success and intentional exit 7, and checks the
+real denial probe. The raw rail intentionally reports
+`hosted_confinement_observed: false`; it is not the hosted pipeline's observer
+proof. KVM access and the real reviewed Firecracker executable are required;
+missing tools are failures, never mock/skip qualification.
+
+The retained [single-host flake-built native compatibility receipt](../.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/receipt.json)
+and adjacent raw serial/config/VMM logs bind the actual Nix-built native kernel
+(`b1debc88207360a26e54fae3e39a071b98a28af7131503ba71f1bd4600d4d4c5`),
+Firecracker 1.16.1 (`4e4b972c0a8b73d7b598b178d5b40cb7b3989a0f692e82b8339ef58bad6e988c`)
+and exact input images. On that Linux 6.18.50 x86_64 host, cold process spawn to
+the selected application/probe marker was **129.400–134.884 ms** across six real
+boots: Rust/Go pass/fail, read-only fixture consumption and network/process denial.
+These are single-host observations, not an SLA, a cross-host benchmark or
+qualification of a later rebuilt kernel. Rust/Go fixtures assert exact argc/argv;
+native exit zero and intentional exit seven were observed. The canonical main
+initrd BLAKE3 identities are Rust `0da44b6cc66d135b21248f975c87eadacc99964197961a2ff631b3bd6db6670a`,
+Go `b444008c41ebdc427359c4065deb2c37bccfac2fde72b4bc5d73598f204579b8`
+and probe `71416ad7b3ebcbb51c6190e24d93123125efbaf26617f7d825c17151a41c5e55`.
+The image algorithm rebuilt each twice with matching bytes, and the integrated
+Nix build plus `--rebuild` independently reproduced the kernel and all three
+image outputs. These observations are distinct from the integrated
+[hosted confinement receipt](../.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/hosted-observer.json),
+which retains eight strict Seccomp 2 journeys. The paired fixture regression
+records the failing-before writable reopen and passing-after refusal; actual
+missing/changed preboot policies are separately refused before InstanceStart.
 
 ## Qualification and activation checklist
 

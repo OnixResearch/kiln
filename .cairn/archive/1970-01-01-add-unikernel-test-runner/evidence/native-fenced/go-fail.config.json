@@ -1,0 +1,1 @@
+{"boot-source": {"boot_args": "elfloader /test fail KILN_ARGV_END", "initrd_path": "/tmp/kiln-unikernel-proof-fenced/go/initrd.cpio", "kernel_image_path": "/tmp/kiln-unikernel-spike/app-elfloader-0cd7a2b2c4d5ece85647c0c9903b50426e849420/build/elfloader_fc-x86_64"}, "drives": [], "machine-config": {"mem_size_mib": 256, "vcpu_count": 1}}

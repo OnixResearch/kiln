@@ -1,0 +1,9 @@
+{
+  "actor": {
+    "id": "fixture-operator",
+    "label": "Disposable interactive CLI operator",
+    "authority": "operator"
+  },
+  "run": "radicle-patch-1019d2fe6958c08266b018b97542b84bf8afb37260935c351b6bf8a46bfb188a",
+  "source_commit": "9e37da95037480b52895e3eaa235754a4e226671"
+}

@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -7,6 +7,8 @@ use kiln_core::types::{Diagnostic, ExternalRef};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 use nonempty::NonEmpty;
 use onix_radicle_cob_git_store::{GitCobStore, GitCobStoreError};
+use radicle_cob::change::Storage as _;
+use radicle_cob::object::Storage as _;
 use radicle_cob::object::collaboration;
 use radicle_cob::{Contents, Create, ObjectId, TypeName, Update, Version};
 use radicle_crypto::PublicKey;
@@ -23,6 +25,16 @@ use crate::status::{ResolvedSigner, SignerResolver};
 
 const COMMIT_AUTHOR_NAME: &str = "Kiln Jobs";
 const COMMIT_AUTHOR_EMAIL: &str = "jobs@kiln.invalid";
+
+const MAX_HISTORY_ENTRIES: usize = 1024;
+const MAX_HISTORY_BYTES: usize = 16_777_216;
+const MAX_HISTORY_HEADS: usize = 128;
+const MAX_CHANGE_PARENTS: usize = 128;
+const MAX_CHANGE_COMMIT_BYTES: usize = 65_536;
+const MAX_CHANGE_TREE_BYTES: usize = 65_536;
+const MAX_CHANGE_BLOB_BYTES: usize = 1_048_576;
+const MAX_HISTORY_MEMBERS: usize = 4096;
+const MAX_CHANGE_TREE_DEPTH: usize = 16;
 
 // r[impl kiln.radicle.job.multi_writer]
 // r[impl kiln.radicle.job.replay]
@@ -87,6 +99,39 @@ impl RadicleJobShell {
     #[must_use]
     pub const fn profile(&self) -> &RadicleJobProfile {
         &self.profile
+    }
+
+    /// Bounded read-only multi-writer job projection; never resolves a signer.
+    pub fn read(&self, repository: &ExternalRef, object: &ExternalRef) -> PortResult<JobCob> {
+        if repository.provider_namespace.as_str() != "radicle"
+            || repository.native_kind.as_str() != "repository"
+            || object.provider_namespace.as_str() != "radicle"
+            || object.native_kind.as_str() != "cob"
+        {
+            return Err(PortFailure::Domain(Diagnostic::new(
+                "job_reference_invalid",
+                "radicle_job.reference",
+                "Job reads require a Radicle repository and COB reference",
+            )));
+        }
+        if !self.allowed_rids.contains(repository.native_id.as_str()) {
+            return Err(PortFailure::Domain(Diagnostic::new(
+                "job_repository_denied",
+                "radicle_job.repository",
+                "Repository is not admitted",
+            )));
+        }
+        let opened = open_repository(
+            &self.storage_root,
+            repository,
+            COMMIT_AUTHOR_NAME,
+            COMMIT_AUTHOR_EMAIL,
+        )?;
+        reduce(
+            &GitCobStore::new(opened.repository()),
+            JobCob::type_name_static(),
+            parse_object_id(object)?,
+        )
     }
 
     // r[impl kiln.radicle.job.authority]
@@ -414,16 +459,179 @@ fn reduce(
     type_name: &TypeName,
     object_id: ObjectId,
 ) -> PortResult<JobCob> {
-    collaboration::get::<JobCob, GitCobStore>(store, type_name, &object_id)
+    // `objects` loads entries, so inspect raw refs and ODB headers first.
+    let heads = raw_heads(store, type_name, &object_id)?;
+    let mut pending: Vec<_> = heads.values().copied().collect();
+    let mut parents = BTreeMap::new();
+    let mut bytes = 0usize;
+    let mut members = 0usize;
+    while let Some(id) = pending.pop() {
+        if parents.contains_key(&id) {
+            continue;
+        }
+        if parents.len() >= MAX_HISTORY_ENTRIES {
+            return Err(history_bound());
+        }
+        inspect_change(store.raw(), id, &mut bytes, &mut members)?;
+        let entry = store.load(id).map_err(|_| history_bound())?;
+        if !entry.valid_signatures() {
+            return Err(history_bound());
+        }
+        for content in entry.contents() {
+            serde_json::from_slice::<JobAction>(content).map_err(|_| history_bound())?;
+        }
+        pending.extend(entry.parents.iter().copied());
+        parents.insert(id, entry.parents);
+    }
+    // A union containing the root is insufficient: every advertised branch
+    // must independently descend from this exact object, even if signed.
+    for head in heads.values() {
+        let mut pending = vec![*head];
+        let mut visited = BTreeSet::new();
+        let mut connected = false;
+        while let Some(id) = pending.pop() {
+            if !visited.insert(id) {
+                continue;
+            }
+            if id == *object_id {
+                connected = true;
+                break;
+            }
+            pending.extend(parents.get(&id).ok_or_else(history_bound)?.iter().copied());
+        }
+        if !connected {
+            return Err(history_bound());
+        }
+    }
+    // Apply the shared store's manifest, signature and namespace/tip-author
+    // checks only after the entire advertised history is bounded.
+    store
+        .objects(type_name, &object_id)
+        .map_err(storage_failure)?;
+    let object = collaboration::get::<JobCob, GitCobStore>(store, type_name, &object_id)
         .map_err(retrieve_failure)?
-        .map(|object| object.object().clone())
         .ok_or_else(|| {
             PortFailure::Domain(Diagnostic::new(
                 "job_object_missing",
                 "job_plan.object_id",
                 "The job object has no reducible history",
             ))
-        })
+        })?;
+    // Compare the complete namespace/head map, not only our own ref. Native
+    // actor-permission rejection may legitimately prune typed actions.
+    if raw_heads(store, type_name, &object_id)? != heads {
+        return Err(history_bound());
+    }
+    Ok(object.object().clone())
+}
+
+fn raw_heads(
+    store: &GitCobStore<'_>,
+    type_name: &TypeName,
+    object_id: &ObjectId,
+) -> PortResult<BTreeMap<String, Oid>> {
+    let pattern = format!("refs/namespaces/*/refs/cobs/{type_name}/{object_id}");
+    let mut heads = BTreeMap::new();
+    for reference in store
+        .raw()
+        .references_glob(&pattern)
+        .map_err(|_| history_bound())?
+    {
+        let reference = reference.map_err(|_| history_bound())?;
+        if heads.len() >= MAX_HISTORY_HEADS {
+            return Err(history_bound());
+        }
+        let name = reference.name().map_err(|_| history_bound())?;
+        let namespace = name.split('/').nth(2).ok_or_else(history_bound)?;
+        let namespace = PublicKey::from_str(namespace).map_err(|_| history_bound())?;
+        if store
+            .ref_name(&namespace, type_name, object_id)
+            .map_err(storage_failure)?
+            != name
+        {
+            return Err(history_bound());
+        }
+        heads.insert(
+            name.to_string(),
+            reference.target().ok_or_else(history_bound)?.into(),
+        );
+    }
+    Ok(heads)
+}
+
+fn inspect_header(
+    odb: &git2::Odb<'_>,
+    id: git2::Oid,
+    kind: git2::ObjectType,
+    limit: usize,
+    bytes: &mut usize,
+) -> PortResult<()> {
+    let (size, actual_kind) = odb.read_header(id).map_err(|_| history_bound())?;
+    *bytes = bytes.checked_add(size).ok_or_else(history_bound)?;
+    if actual_kind != kind || size > limit || *bytes > MAX_HISTORY_BYTES {
+        return Err(history_bound());
+    }
+    Ok(())
+}
+
+fn inspect_change(
+    repo: &git2::Repository,
+    id: Oid,
+    bytes: &mut usize,
+    members: &mut usize,
+) -> PortResult<()> {
+    let odb = repo.odb().map_err(|_| history_bound())?;
+    inspect_header(
+        &odb,
+        id.into(),
+        git2::ObjectType::Commit,
+        MAX_CHANGE_COMMIT_BYTES,
+        bytes,
+    )?;
+    let commit = repo.find_commit(id.into()).map_err(|_| history_bound())?;
+    if commit.parent_count() > MAX_CHANGE_PARENTS {
+        return Err(history_bound());
+    }
+    let mut trees = vec![(commit.tree_id(), 0usize)];
+    while let Some((id, depth)) = trees.pop() {
+        if depth > MAX_CHANGE_TREE_DEPTH {
+            return Err(history_bound());
+        }
+        inspect_header(
+            &odb,
+            id,
+            git2::ObjectType::Tree,
+            MAX_CHANGE_TREE_BYTES,
+            bytes,
+        )?;
+        let tree = repo.find_tree(id).map_err(|_| history_bound())?;
+        *members = members.checked_add(tree.len()).ok_or_else(history_bound)?;
+        if *members > MAX_HISTORY_MEMBERS {
+            return Err(history_bound());
+        }
+        for member in tree.iter() {
+            match member.kind() {
+                Some(git2::ObjectType::Tree) => trees.push((member.id(), depth + 1)),
+                Some(git2::ObjectType::Blob) => inspect_header(
+                    &odb,
+                    member.id(),
+                    git2::ObjectType::Blob,
+                    MAX_CHANGE_BLOB_BYTES,
+                    bytes,
+                )?,
+                _ => return Err(history_bound()),
+            }
+        }
+    }
+    Ok(())
+}
+
+fn history_bound() -> PortFailure {
+    PortFailure::Domain(Diagnostic::new(
+        "job_history_bound_or_signature",
+        "radicle_job.history",
+        "Job history exceeds its finite bound, is unreadable or has an invalid change signature",
+    ))
 }
 
 fn our_head(

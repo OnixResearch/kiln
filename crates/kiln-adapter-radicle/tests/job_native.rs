@@ -135,7 +135,15 @@ fn repository(temporary: &tempfile::TempDir) -> cob_git2::Repository {
         .path()
         .join("storage")
         .join(FIXTURE_RID.trim_start_matches("rad:"));
-    cob_git2::Repository::open(&path).unwrap_or_else(|_| unreachable!())
+    let repo = cob_git2::Repository::open(&path).unwrap_or_else(|_| unreachable!());
+    let mut config = repo.config().unwrap_or_else(|_| unreachable!());
+    config
+        .set_str("user.name", "Disposable job fixture")
+        .unwrap_or_else(|_| unreachable!());
+    config
+        .set_str("user.email", "jobs@fixture.invalid")
+        .unwrap_or_else(|_| unreachable!());
+    repo
 }
 
 fn type_name() -> TypeName {
@@ -564,7 +572,7 @@ fn foreign_repository_and_signer_mismatch_fail_before_write() {
 #[test]
 fn malformed_history_fails_closed() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
-    let (_shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
     let repo = repository(&temporary);
     let signer = signer(SECONDARY_SEED);
     let namespace = PublicKey::from_str(signer.public_key()).unwrap_or_else(|_| unreachable!());
@@ -595,8 +603,8 @@ fn malformed_history_fails_closed() {
 
     assert!(collaboration::get::<JobCob, GitCobStore>(&store, &type_name(), &object_id).is_err());
 
-    // A malformed branch on a valid root is rejected by the reducer and pruned
-    // by the pinned change graph, matching heartwood's branch filtering.
+    // The native reducer may prune malformed actions. Shell admission must not
+    // let that turn an advertised malformed branch into a valid projection.
     let created = collaboration::create::<JobCob, GitCobStore>(
         &store,
         signer.signing_key(),
@@ -626,7 +634,7 @@ fn malformed_history_fails_closed() {
                 embeds: Vec::new(),
                 contents: NonEmpty::new(
                     serde_json::to_vec(&serde_json::json!({
-                        "Run": {"uuid": "not-a-uuid", "log": LOG_URL}
+                        "Run": {"uuid": "not-a-uuid", "log": LOG_URL, "opaque": true}
                     }))
                     .unwrap_or_else(|_| unreachable!()),
                 ),
@@ -640,8 +648,219 @@ fn malformed_history_fails_closed() {
         .unwrap_or_else(|_| unreachable!())
         .unwrap_or_else(|| unreachable!());
     assert!(object.object().runs().is_empty());
+    assert_eq!(
+        domain_code(port_error(shell.read(
+            &external("radicle", "repository", FIXTURE_RID),
+            &external("radicle", "cob", &valid_id.to_string()),
+        ))),
+        "job_history_bound_or_signature"
+    );
 }
 
+#[test]
+fn disconnected_signed_head_is_not_hidden_by_a_valid_root() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let repo = repository(&temporary);
+    let author = signer(SECONDARY_SEED);
+    let (object_id, _) = direct_foreign_job(&repo, &author, "55555555-5555-5555-5555-555555555555");
+    assert_eq!(
+        port_ok(shell.read(
+            &external("radicle", "repository", FIXTURE_RID),
+            &external("radicle", "cob", &object_id.to_string()),
+        ))
+        .oid(),
+        revision()
+    );
+    let detached_author = signer(TERTIARY_SEED);
+    let namespace =
+        PublicKey::from_str(detached_author.public_key()).unwrap_or_else(|_| unreachable!());
+    let store = GitCobStore::new(&repo);
+    let entry = store
+        .store(
+            None,
+            Vec::new(),
+            detached_author.signing_key(),
+            Template {
+                type_name: type_name(),
+                tips: Vec::new(),
+                message: "signed but disconnected".to_string(),
+                embeds: Vec::new(),
+                contents: contents(&JobAction::Request { oid: revision() }),
+            },
+        )
+        .unwrap_or_else(|_| unreachable!());
+    store
+        .update(&namespace, &type_name(), &object_id, &entry.id)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        domain_code(port_error(shell.read(
+            &external("radicle", "repository", FIXTURE_RID),
+            &external("radicle", "cob", &object_id.to_string()),
+        ))),
+        "job_history_bound_or_signature"
+    );
+}
+
+#[test]
+fn opaque_action_branch_is_rejected_before_native_pruning() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let repo = repository(&temporary);
+    let author = signer(SECONDARY_SEED);
+    let namespace = PublicKey::from_str(author.public_key()).unwrap_or_else(|_| unreachable!());
+    let (object_id, head) =
+        direct_foreign_job(&repo, &author, "66666666-6666-6666-6666-666666666666");
+    let store = GitCobStore::with_expected_ref(&repo, head);
+    let entry = store
+        .store(
+            None,
+            Vec::new(),
+            author.signing_key(),
+            Template {
+                type_name: type_name(),
+                tips: vec![head],
+                message: "unknown action".to_string(),
+                embeds: Vec::new(),
+                contents: NonEmpty::new(br#"{"UnreviewedAction":{"opaque":true}}"#.to_vec()),
+            },
+        )
+        .unwrap_or_else(|_| unreachable!());
+    store
+        .update(&namespace, &type_name(), &object_id, &entry.id)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        domain_code(port_error(shell.read(
+            &external("radicle", "repository", FIXTURE_RID),
+            &external("radicle", "cob", &object_id.to_string()),
+        ))),
+        "job_history_bound_or_signature"
+    );
+}
+
+#[test]
+fn oversized_commit_is_rejected_before_loading_its_missing_tree() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let repo = repository(&temporary);
+    let author = signer(SECONDARY_SEED);
+    let namespace = PublicKey::from_str(author.public_key()).unwrap_or_else(|_| unreachable!());
+    // A modest commit body crosses the named commit bound. Its nonexistent
+    // tree ensures this fixture cannot accidentally exercise native reduction.
+    let raw = format!(
+        "tree {}\nauthor Fixture <fixture@invalid> 0 +0000\ncommitter Fixture <fixture@invalid> 0 +0000\n\n{}",
+        "a".repeat(40),
+        "x".repeat(65_536),
+    );
+    let oid = repo
+        .odb()
+        .unwrap_or_else(|_| unreachable!())
+        .write(cob_git2::ObjectType::Commit, raw.as_bytes())
+        .unwrap_or_else(|_| unreachable!());
+    let object_id = ObjectId::from(Oid::from(oid));
+    let name = GitCobStore::new(&repo)
+        .ref_name(&namespace, &type_name(), &object_id)
+        .unwrap_or_else(|_| unreachable!());
+    repo.reference(&name, oid, false, "bounded hostile fixture")
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        domain_code(port_error(shell.read(
+            &external("radicle", "repository", FIXTURE_RID),
+            &external("radicle", "cob", &object_id.to_string()),
+        ))),
+        "job_history_bound_or_signature"
+    );
+}
+
+#[test]
+fn oversized_blob_is_rejected_without_a_large_fixture_allocation() {
+    use std::io::Write as _;
+
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let repo = repository(&temporary);
+    let odb = repo.odb().unwrap_or_else(|_| unreachable!());
+    let mut writer = odb
+        .writer(1_048_577, cob_git2::ObjectType::Blob)
+        .unwrap_or_else(|_| unreachable!());
+    for _ in 0..1024 {
+        writer
+            .write_all(&[b' '; 1024])
+            .unwrap_or_else(|_| unreachable!());
+    }
+    writer.write_all(b" ").unwrap_or_else(|_| unreachable!());
+    let blob = writer.finalize().unwrap_or_else(|_| unreachable!());
+    let mut builder = repo.treebuilder(None).unwrap_or_else(|_| unreachable!());
+    builder
+        .insert("0", blob, 0o100644)
+        .unwrap_or_else(|_| unreachable!());
+    let tree = builder.write().unwrap_or_else(|_| unreachable!());
+    let raw = format!(
+        "tree {tree}\nauthor Fixture <fixture@invalid> 0 +0000\ncommitter Fixture <fixture@invalid> 0 +0000\n\nbounded blob fixture\n"
+    );
+    let oid = odb
+        .write(cob_git2::ObjectType::Commit, raw.as_bytes())
+        .unwrap_or_else(|_| unreachable!());
+    let object_id = ObjectId::from(Oid::from(oid));
+    let author = signer(SECONDARY_SEED);
+    let namespace = PublicKey::from_str(author.public_key()).unwrap_or_else(|_| unreachable!());
+    let name = GitCobStore::new(&repo)
+        .ref_name(&namespace, &type_name(), &object_id)
+        .unwrap_or_else(|_| unreachable!());
+    repo.reference(&name, oid, false, "oversized blob fixture")
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        domain_code(port_error(shell.read(
+            &external("radicle", "repository", FIXTURE_RID),
+            &external("radicle", "cob", &object_id.to_string()),
+        ))),
+        "job_history_bound_or_signature"
+    );
+}
+
+#[test]
+fn typed_foreign_finish_retains_native_actor_permission_behavior() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let repo = repository(&temporary);
+    let author = signer(SECONDARY_SEED);
+    let uuid = "77777777-7777-7777-7777-777777777777";
+    let (object_id, head) = direct_foreign_job(&repo, &author, uuid);
+    let foreign = signer(TERTIARY_SEED);
+    let namespace = PublicKey::from_str(foreign.public_key()).unwrap_or_else(|_| unreachable!());
+    let store = GitCobStore::new(&repo);
+    let entry = store
+        .store(
+            None,
+            Vec::new(),
+            foreign.signing_key(),
+            Template {
+                type_name: type_name(),
+                tips: vec![head],
+                message: "another actor cannot finish this run".to_string(),
+                embeds: Vec::new(),
+                contents: contents(&JobAction::Finished {
+                    uuid: uuid.to_string(),
+                    reason: JobReason::Succeeded,
+                }),
+            },
+        )
+        .unwrap_or_else(|_| unreachable!());
+    store
+        .update(&namespace, &type_name(), &object_id, &entry.id)
+        .unwrap_or_else(|_| unreachable!());
+    let job = port_ok(shell.read(
+        &external("radicle", "repository", FIXTURE_RID),
+        &external("radicle", "cob", &object_id.to_string()),
+    ));
+    assert_eq!(
+        job.run(author.public_key(), uuid)
+            .unwrap_or_else(|| unreachable!())
+            .finished,
+        None
+    );
+    assert!(job.run(foreign.public_key(), uuid).is_none());
+}
 #[test]
 fn unknown_observation_round_trips() {
     let observation = JobUnknownObservation {
@@ -661,4 +880,37 @@ fn unknown_observation_round_trips() {
 fn job_type_name_is_tangled_job() {
     assert_eq!(JOB_TYPE_NAME, "xyz.radworks.job");
     assert_eq!(type_name().to_string(), JOB_TYPE_NAME);
+}
+
+#[test]
+fn verified_job_read_rejects_wrong_namespaces_and_kinds() {
+    let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
+    let plan = plan(JobState::Started);
+    let observation = written(port_ok(shell.publish(&plan, "read projection fixture")));
+    let read = port_ok(shell.read(&plan.repository, &observation.object_id));
+    assert_eq!(read.oid().to_string(), plan.revision.native_id.as_str());
+    assert!(
+        read.run(
+            observation.signer_identity.native_id.as_str(),
+            &observation.run_uuid
+        )
+        .is_some()
+    );
+    for repository in [
+        external("github", "repository", FIXTURE_RID),
+        external("radicle", "node", FIXTURE_RID),
+    ] {
+        assert!(shell.read(&repository, &observation.object_id).is_err());
+    }
+    for object in [
+        external("github", "cob", observation.object_id.native_id.as_str()),
+        external(
+            "radicle",
+            "revision",
+            observation.object_id.native_id.as_str(),
+        ),
+    ] {
+        assert!(shell.read(&plan.repository, &object).is_err());
+    }
 }

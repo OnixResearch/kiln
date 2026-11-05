@@ -17,6 +17,33 @@ use serde::{Deserialize, Serialize};
 
 static OWNER: Mutex<()> = Mutex::new(());
 
+#[cfg(feature = "cache-fault-tests")]
+std::thread_local! {
+    static RETURN_HOOK: std::cell::Cell<Option<fn(&str)>> = const { std::cell::Cell::new(None) };
+}
+
+/// Explicit fault-test harness only; not available in normal service builds.
+#[cfg(feature = "cache-fault-tests")]
+pub fn with_return_hook<T>(hook: fn(&str), operation: impl FnOnce() -> T) -> T {
+    struct Reset(Option<fn(&str)>);
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            RETURN_HOOK.with(|slot| slot.set(self.0));
+        }
+    }
+    let _reset = Reset(RETURN_HOOK.with(|slot| slot.replace(Some(hook))));
+    operation()
+}
+
+#[cfg(feature = "cache-fault-tests")]
+pub(crate) fn receiving(unit: &str) {
+    RETURN_HOOK.with(|slot| {
+        if let Some(hook) = slot.get() {
+            hook(unit);
+        }
+    });
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Policy {
@@ -76,9 +103,6 @@ impl HostedCacheConfig {
         {
             return Err("hosted cache bounds exceeded".into());
         }
-        if self.maximum_tar_bytes() > kiln_microvm::protocol::MAX_FRAME_BYTES / 2 {
-            return Err("cache tar bound exceeds the guest protocol frame".into());
-        }
         let mut scopes = BTreeSet::new();
         for policy in &self.policies {
             if !crate::identifier(&policy.organization)
@@ -108,13 +132,25 @@ impl HostedCacheConfig {
         }
         self.profile()?.preflight()
     }
-    /// Guest tar bound: declared content bytes plus one ustar header/padding
-    /// range per entry and the two-block trailer. The guest checks the encoded
-    /// tar before returning it, and the host still enforces content bounds.
-    pub fn maximum_tar_bytes(&self) -> usize {
-        self.maximum_entry_bytes
-            .saturating_add(self.maximum_files.saturating_mul(1024))
-            .saturating_add(1024)
+    /// Namespace-only policies do not use the vsock/ustar protocol.
+    pub fn validate_microvm(&self, runner: &str) -> Result<(), String> {
+        for policy in self
+            .policies
+            .iter()
+            .filter(|policy| policy.runner == runner)
+        {
+            if maximum_tar_bytes(&policy.worker) > kiln_microvm::protocol::MAX_CACHE_TAR_BYTES
+                || policy.worker.paths.len() > 64
+                || policy
+                    .worker
+                    .paths
+                    .iter()
+                    .any(|path| path.as_os_str().len() > 100)
+            {
+                return Err("Firecracker cache exceeds bounded ustar/vsock policy".into());
+            }
+        }
+        Ok(())
     }
     pub fn policy(&self, context: &Context<'_>) -> Option<&Policy> {
         self.policies.iter().find(|p| {
@@ -171,6 +207,13 @@ impl HostedCacheConfig {
         })
     }
 }
+/// Content plus one header/padding range per returned entry and tar trailer.
+pub fn maximum_tar_bytes(policy: &WorkerCacheProfile) -> usize {
+    policy
+        .maximum_entry_bytes
+        .saturating_add(policy.maximum_files.saturating_mul(1024))
+        .saturating_add(1024)
+}
 fn key<'a>(
     config: &'a HostedCacheConfig,
     context: &Context<'_>,
@@ -208,8 +251,9 @@ pub fn restore(
     let started = Instant::now();
     let (key, policy) = key(config, context)?;
     require_absent_outputs(context.workspace, policy)?;
-    let envelope = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
-    let (outcome, bytes) = if let Some(envelope) = envelope {
+    let restored = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
+    let entry_blake3 = restored.entry.as_ref().map(|entry| entry.blake3.clone());
+    let (outcome, bytes) = if let Some(envelope) = restored.entry {
         if envelope.entry.key != key {
             return Err("tenant/source/config cache key mismatch".into());
         }
@@ -220,13 +264,15 @@ pub fn restore(
             u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
         )
     } else {
-        ("miss", 0)
+        (restored.outcome.as_str(), 0)
     };
     let observation = CacheObservation {
         key: key.identity()?,
         outcome: outcome.into(),
         transferred_bytes: bytes,
         duration_ms: elapsed(started),
+        entry_blake3,
+        source_tier: "local".into(),
     };
     Ok((key, observation))
 }
@@ -246,15 +292,18 @@ pub fn restore_image(
 
     let started = Instant::now();
     let (key, policy) = key(config, context)?;
-    let envelope = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
-    let Some(envelope) = envelope else {
+    require_absent_outputs(context.workspace, policy)?;
+    let restored = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
+    let Some(envelope) = restored.entry else {
         return Ok((
             key.clone(),
             CacheObservation {
                 key: key.identity()?,
-                outcome: "miss".into(),
+                outcome: restored.outcome.as_str().into(),
                 transferred_bytes: 0,
                 duration_ms: elapsed(started),
+                entry_blake3: None,
+                source_tier: "local".into(),
             },
         ));
     };
@@ -262,6 +311,7 @@ pub fn restore_image(
         return Err("tenant/source/config cache key mismatch".into());
     }
     let bytes = envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)?;
+    let entry_blake3 = Some(envelope.blake3.clone());
     let mut entries = Vec::new();
     for file in envelope.entry.files {
         let body = base64::engine::general_purpose::STANDARD
@@ -294,7 +344,7 @@ pub fn restore_image(
     let mut total = 1024_u64;
     for (entry, body) in &entries {
         total = total
-            .checked_add(u64::from(kiln_microvm::archive::BLOCK_BYTES))
+            .checked_add(kiln_microvm::archive::BLOCK_BYTES)
             .and_then(|value| {
                 value.checked_add(
                     u64::try_from(body.len())
@@ -311,12 +361,20 @@ pub fn restore_image(
             .and_then(|()| file.write_all(body))
             .and_then(|()| {
                 let padding = body.len().div_ceil(512) * 512 - body.len();
-                file.write_all(&vec![0_u8; padding])
+                file.write_all(
+                    [0_u8; 512]
+                        .get(..padding)
+                        .ok_or_else(|| std::io::Error::other("cache padding invalid"))?,
+                )
             })
             .map_err(|_| "cache image write failed")?;
     }
     file.write_all(&[0_u8; 1024])
         .map_err(|_| "cache image trailer write failed")?;
+    // Preserve the empty snapshot device geometry. The tail is sparse zeroes,
+    // not an allocation or a read of unrelated cache contents.
+    file.set_len(capacity)
+        .map_err(|_| "cache image capacity failed")?;
     Ok((
         key.clone(),
         CacheObservation {
@@ -324,6 +382,8 @@ pub fn restore_image(
             outcome: "hit".into(),
             transferred_bytes: u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
             duration_ms: elapsed(started),
+            entry_blake3,
+            source_tier: "local".into(),
         },
     ))
 }
@@ -343,6 +403,8 @@ fn record(
         outcome: if published { "published" } else { "retained" }.into(),
         transferred_bytes: u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
         duration_ms: elapsed(started),
+        entry_blake3: Some(envelope.blake3.clone()),
+        source_tier: "local".into(),
     })
 }
 
@@ -590,7 +652,17 @@ mod tests {
         let mut cache = settings(root.path());
         cache.maximum_entry_bytes = 1_048_576;
         cache.maximum_files = 4096;
-        assert!(cache.validate(work.path()).is_err());
+        cache.maximum_total_bytes = 4 * 1_048_576;
+        assert!(cache.validate(work.path()).is_ok());
+        assert!(cache.validate_microvm("runner").is_ok());
+        let policy = &mut cache
+            .policies
+            .first_mut()
+            .unwrap_or_else(|| unreachable!("policy"))
+            .worker;
+        policy.maximum_entry_bytes = 1_048_576;
+        policy.maximum_files = 4096;
+        assert!(cache.validate_microvm("runner").is_err());
     }
     #[test]
     fn corruption_symlinks_and_source_overlap_are_rejected() {
@@ -621,7 +693,10 @@ mod tests {
             root.path().join("kiln-cache-v1").join(ok(key.identity())),
             b"corrupt",
         ));
-        assert!(restore(&cache, &context(work.path(), "org", "config")).is_err());
+        let (_, observation) = ok(restore(&cache, &context(work.path(), "org", "config")));
+        assert_eq!(observation.outcome, "corrupt_miss");
+        assert_eq!(observation.source_tier, "local");
+        assert_eq!(observation.entry_blake3, None);
         assert!(!work.path().join("build-cache").exists());
         let mut overlap = cache;
         let policy = overlap

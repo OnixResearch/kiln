@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "app-elfloader": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790957905,
+        "narHash": "sha256-r6LSG0zSteGy7yWGHnhNWl0WvFeghBpsyV/xgLOk4NE=",
+        "owner": "unikraft",
+        "repo": "app-elfloader",
+        "rev": "0cd7a2b2c4d5ece85647c0c9903b50426e849420",
+        "type": "github"
+      },
+      "original": {
+        "owner": "unikraft",
+        "repo": "app-elfloader",
+        "rev": "0cd7a2b2c4d5ece85647c0c9903b50426e849420",
+        "type": "github"
+      }
+    },
     "bombadil": {
       "inputs": {
         "crane": "crane",
@@ -93,6 +110,22 @@
         "type": "github"
       }
     },
+    "guest-nixpkgs": {
+      "locked": {
+        "lastModified": 1793726008,
+        "narHash": "sha256-jQp1wKvbwWdLBASTXkSi/VYmDJ5AbBi1WvcMt9HWJC8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "1d060086d60cb76a40cf37109f979d88a5bd6396",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "1d060086d60cb76a40cf37109f979d88a5bd6396",
+        "type": "github"
+      }
+    },
     "hegel": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -115,6 +148,23 @@
         "owner": "hegeldev",
         "ref": "v0.45.2",
         "repo": "hegel-rust",
+        "type": "github"
+      }
+    },
+    "lib-libelf": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769079607,
+        "narHash": "sha256-DhZp6hh0Arr0wEh2m8CqC+j96sw+m/PP8Mbv0J0LUME=",
+        "owner": "unikraft",
+        "repo": "lib-libelf",
+        "rev": "c03d4ceb22a2b9e9799238f9c277a14284d313ad",
+        "type": "github"
+      },
+      "original": {
+        "owner": "unikraft",
+        "repo": "lib-libelf",
+        "rev": "c03d4ceb22a2b9e9799238f9c277a14284d313ad",
         "type": "github"
       }
     },
@@ -188,10 +238,14 @@
     },
     "root": {
       "inputs": {
+        "app-elfloader": "app-elfloader",
         "bombadil": "bombadil",
+        "guest-nixpkgs": "guest-nixpkgs",
+        "lib-libelf": "lib-libelf",
         "nix-eval-jobs": "nix-eval-jobs",
         "nixpkgs": "nixpkgs_2",
-        "rust-overlay": "rust-overlay_2"
+        "rust-overlay": "rust-overlay_2",
+        "unikraft": "unikraft"
       }
     },
     "rust-overlay": {
@@ -268,6 +322,23 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "unikraft": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793809239,
+        "narHash": "sha256-TGzDx6m27gCSVj+AV2eMrAR0p2PNqS28HADYAv3NNCg=",
+        "owner": "unikraft",
+        "repo": "unikraft",
+        "rev": "a4c494e80141bd402961c7d96150dd218c79db37",
+        "type": "github"
+      },
+      "original": {
+        "owner": "unikraft",
+        "repo": "unikraft",
+        "rev": "a4c494e80141bd402961c7d96150dd218c79db37",
         "type": "github"
       }
     }

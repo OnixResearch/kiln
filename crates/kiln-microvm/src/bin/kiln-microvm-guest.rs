@@ -300,7 +300,12 @@ fn publish_cache(busybox: &str, paths: &[String], maximum_bytes: usize) -> Resul
     if !status.success() {
         return Err("cache tar failed".into());
     }
-    let bytes = std::fs::read(archive).map_err(|e| format!("cache tar read: {e}"))?;
+    let mut bytes = Vec::new();
+    std::fs::File::open(archive)
+        .map_err(|e| format!("cache tar open: {e}"))?
+        .take(maximum_bytes.saturating_add(1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("cache tar read: {e}"))?;
     let _ = std::fs::remove_file(archive);
     if bytes.len() > maximum_bytes {
         return Err("cache tar exceeds bound".into());

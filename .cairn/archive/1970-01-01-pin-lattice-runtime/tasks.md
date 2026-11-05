@@ -1,0 +1,3 @@
+- [x] [serial] Document exact external runtime and distinct MIT contract pins in operator, workflow and reference-pin guides. r[kiln.lattice.runtime_pin]
+- [x] [serial] Label the old Aspen runtime as historical evidence, not qualification of the selected CI handler. r[kiln.lattice.runtime_pin]
+- [x] [serial] Inspect the pinned upstream handler and retain source links and explicit deployment non-claims. r[kiln.lattice.runtime_pin]

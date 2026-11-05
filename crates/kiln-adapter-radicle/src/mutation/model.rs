@@ -41,7 +41,7 @@ const REQUIRED_NON_CLAIMS: [&str; 7] = [
     "patch review mutation does not create close archive or merge patches",
     "patch review mutation does not rewrite Git history",
     "local mutation does not prove peer convergence or remote visibility",
-    "single-writer admission does not prove actor trust",
+    "native reduction does not prove actor trust",
     "SecretSpec resolution does not grant ambient collaboration authority",
     "passing conformance does not establish release readiness",
 ];
@@ -89,6 +89,7 @@ pub struct RadicleMutationProfile {
     pub operations: BTreeMap<String, PatchReviewAction>,
     pub signer: SecretSpecDeclaration,
     pub executable: PinnedSecretSpecExecutable,
+    pub helper: PinnedSecretSpecExecutable,
     pub max_payload_bytes: usize,
     pub max_history_entries: usize,
     pub max_history_bytes: usize,
@@ -107,6 +108,7 @@ impl RadicleMutationProfile {
         operations: BTreeMap<String, PatchReviewAction>,
         signer: SecretSpecDeclaration,
         executable: PinnedSecretSpecExecutable,
+        helper: PinnedSecretSpecExecutable,
     ) -> Self {
         Self {
             id: CobProfileId::new(MUTATION_PROFILE_ID).unwrap_or_else(|_| unreachable!()),
@@ -117,6 +119,7 @@ impl RadicleMutationProfile {
             operations,
             signer,
             executable,
+            helper,
             max_payload_bytes: DEFAULT_MAX_PAYLOAD_BYTES,
             max_history_entries: DEFAULT_MAX_HISTORY_ENTRIES,
             max_history_bytes: DEFAULT_MAX_HISTORY_BYTES,
@@ -125,7 +128,7 @@ impl RadicleMutationProfile {
                 signer_ms: DEFAULT_SIGNER_DEADLINE_MS,
                 write_ms: DEFAULT_WRITE_DEADLINE_MS,
             },
-            single_writer: true,
+            single_writer: false,
             allow_patch_create: false,
             allow_patch_close: false,
             allow_patch_merge: false,
@@ -174,11 +177,6 @@ pub fn admit_mutation_profile(profile: &RadicleMutationProfile) -> CoreResult<()
     admit_mutation_profile_with_executable_policy(profile, true)
 }
 
-#[cfg(feature = "status-native-fixtures")]
-pub(crate) fn admit_mutation_fixture_profile(profile: &RadicleMutationProfile) -> CoreResult<()> {
-    admit_mutation_profile_with_executable_policy(profile, false)
-}
-
 fn admit_mutation_profile_with_executable_policy(
     profile: &RadicleMutationProfile,
     require_production_executable: bool,
@@ -207,7 +205,15 @@ fn admit_mutation_profile_with_executable_policy(
         || !deadline_admitted(deadlines.preflight_ms)
         || !deadline_admitted(deadlines.signer_ms)
         || !deadline_admitted(deadlines.write_ms)
-        || !profile.single_writer
+        || profile.single_writer
+        || !profile.helper.path.is_absolute()
+        || profile.helper.blake3.len() != BLAKE3_HEX_LENGTH
+        || !profile
+            .helper
+            .blake3
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        || profile.helper.version != "0.25.1"
         || profile.allow_patch_create
         || profile.allow_patch_close
         || profile.allow_patch_merge
@@ -267,7 +273,8 @@ pub fn admit_mutation_plan<'a>(
             .all(|character| {
                 character.is_ascii_alphanumeric() || character == '-' || character == '_'
             })
-        || plan.expected_heads.len() != 1
+        || plan.expected_heads.is_empty()
+        || plan.expected_heads.len() > ABSOLUTE_MAX_TARGETS
     {
         return Err(Diagnostic::new(
             "radicle_mutation_plan_identity",

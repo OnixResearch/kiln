@@ -3,6 +3,20 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Guest-only cohort: do not move the separately qualified build producers.
+    guest-nixpkgs.url = "github:NixOS/nixpkgs/1d060086d60cb76a40cf37109f979d88a5bd6396";
+    unikraft = {
+      url = "github:unikraft/unikraft/a4c494e80141bd402961c7d96150dd218c79db37";
+      flake = false;
+    };
+    app-elfloader = {
+      url = "github:unikraft/app-elfloader/0cd7a2b2c4d5ece85647c0c9903b50426e849420";
+      flake = false;
+    };
+    lib-libelf = {
+      url = "github:unikraft/lib-libelf/c03d4ceb22a2b9e9799238f9c277a14284d313ad";
+      flake = false;
+    };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -18,6 +32,10 @@
     {
       self,
       nixpkgs,
+      guest-nixpkgs,
+      unikraft,
+      app-elfloader,
+      lib-libelf,
       rust-overlay,
       nix-eval-jobs,
       bombadil,
@@ -44,6 +62,15 @@
       mantleBuildRevision =
         (builtins.fromJSON (builtins.readFile ./vendor/mantle.source.json)).source_commit;
       nixEvalJobsPackageFor = system: nix-eval-jobs.packages.${system}.nix-eval-jobs;
+      unikernelFor =
+        system:
+        import ./runtime/unikernel {
+          pkgs = import guest-nixpkgs {
+            inherit system;
+            overlays = [ rust-overlay.overlays.default ];
+          };
+          inherit unikraft app-elfloader lib-libelf;
+        };
       prepareKamaciteBuildSupport = ''
         mkdir -p "$NIX_BUILD_TOP/adapters/spacewasm-mvp/generated"
         cp \
@@ -190,6 +217,7 @@
             pkgs.cmake
             pkgs.pkg-config
           ];
+          nativeCheckInputs = [ pkgs.python3 ];
           buildInputs = [
             pkgs.zlib
             pkgs.openssl
@@ -229,13 +257,36 @@
       # r[impl kiln.hosted.microvm.escape]
       # r[impl kiln.hosted.microvm.escape.scenario.suite]
       microvmGuestFor =
-        system:
-        vmm:
+        system: vmm:
         let
-          pkgs = import nixpkgs { inherit system; };
+          pkgs = import guest-nixpkgs { inherit system; };
           vmmPackage = if vmm == "firecracker" then pkgs.firecracker else pkgs.cloud-hypervisor;
-          vmmBinary = "${vmmPackage}/bin/${if vmm == "firecracker" then "firecracker" else "cloud-hypervisor"}";
-          kernel = pkgs.linuxPackages.kernel;
+          vmmBinary = "${vmmPackage}/bin/${
+            if vmm == "firecracker" then "firecracker" else "cloud-hypervisor"
+          }";
+          # r[impl kiln.hosted.guest.kernel.fixed]
+          # Issue #28's fixed-series admission table, not independent CVE proof.
+          fixedKernelMinimums = {
+            "7.2" = "7.2.10";
+            "6.18" = "6.18.56";
+            "6.12" = "6.12.113";
+            "6.6" = "6.6.159";
+            "6.1" = "6.1.190";
+            "5.15" = "5.15.223";
+            "5.10" = "5.10.272";
+          };
+          guestKernel = pkgs.linuxPackages.kernel;
+          guestKernelSeries = pkgs.lib.versions.majorMinor guestKernel.version;
+          guestKernelFixed =
+            pkgs.lib.versionAtLeast guestKernel.version "7.3"
+            || (
+              builtins.hasAttr guestKernelSeries fixedKernelMinimums
+              && pkgs.lib.versionAtLeast guestKernel.version fixedKernelMinimums.${guestKernelSeries}
+            );
+          kernel =
+            assert pkgs.lib.assertMsg guestKernelFixed
+              "Kiln guest kernel ${guestKernel.version} is below the reviewed issue #28 fixed-series threshold";
+            guestKernel;
           agent = (packageFor system).overrideAttrs (_: {
             pname = "kiln-microvm-guest-agent";
             cargoBuildFlags = [
@@ -333,9 +384,11 @@
         pkgs.runCommand (if vmm == "firecracker" then "kiln-microvm-guest" else "kiln-microvm-guest-ch")
           {
             nativeBuildInputs = [ pkgs.b3sum ];
-            meta.description = if vmm == "firecracker"
-              then "Firecracker guest kernel, initramfs and pinned VMM for the hosted microVM backend"
-              else "Cloud Hypervisor guest kernel, initramfs and pinned VMM for the hosted microVM backend";
+            meta.description =
+              if vmm == "firecracker" then
+                "Firecracker guest kernel, initramfs and pinned VMM for the hosted microVM backend"
+              else
+                "Cloud Hypervisor guest kernel, initramfs and pinned VMM for the hosted microVM backend";
           }
           ''
             mkdir -p "$out"
@@ -536,6 +589,7 @@
         };
     in
     {
+      lib.unikernelImage = args: (unikernelFor "x86_64-linux").mkImage args;
       # r[impl kiln.web.deploy.install]
       onixModules.kiln-web-service = {
         file = ./deployment/onixos-module.ncl;
@@ -559,6 +613,10 @@
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           microvm-guest = microvmGuestFor system "firecracker";
           microvm-guest-ch = microvmGuestFor system "cloud-hypervisor";
+          unikernel-guest = (unikernelFor system).guest;
+          unikernel-rust-image = (unikernelFor system).rustImage;
+          unikernel-go-image = (unikernelFor system).goImage;
+          unikernel-probe-image = (unikernelFor system).probeImage;
         }
       );
 
@@ -647,6 +705,12 @@
           rustPlatform = pkgs.makeRustPlatform {
             cargo = toolchain;
             rustc = toolchain;
+          };
+          # Upstream Radicle 0.25.1's isolated helper cohort; keep core Rust 1.88 unchanged.
+          radiclePatchToolchain = pkgs.rust-bin.stable."1.97.1".minimal;
+          radiclePatchRustPlatform = pkgs.makeRustPlatform {
+            cargo = radiclePatchToolchain;
+            rustc = radiclePatchToolchain;
           };
           package = packageFor system;
           hostPackage = kilnAspenHostPackageFor system;
@@ -1254,6 +1318,9 @@
             ${copySource}
             nickel format --check \
               config/radicle-nix-provider.ncl \
+              config/radicle-workflow-shell.ncl \
+              config/fixtures/negative-radicle-workflow-shell-*.ncl \
+              config/unikernel-preboot-seccomp.ncl \
               config/fixtures/radicle-nix-provider-positive.ncl \
               config/fixtures/negative-radicle-nix-provider-zero-user.ncl \
               config/nix-build-profile.ncl \
@@ -1310,6 +1377,8 @@
               config/patchgate-review-job.ncl \
               config/fixtures/*patchgate-review*.ncl
             nickel export config/default.ncl >/dev/null
+            nickel export --format json config/unikernel-preboot-seccomp.ncl > native-preboot-policy.json
+            ${pkgs.python3}/bin/python3 -c 'import json,pathlib; policy=json.load(open("native-preboot-policy.json")); assert policy["policy"] == "kiln.native.preboot.v1" and policy["errno"] == 1; assert " ".join(policy["syscalls"])+"\n" == pathlib.Path("crates/kiln-hosted/src/unikernel-preboot-syscalls.txt").read_text()'
             nickel export config/hosting-profile.ncl >/dev/null
             nickel export config/cob-profiles.ncl >/dev/null
             nickel export config/git-source-profile.ncl >/dev/null
@@ -1398,7 +1467,7 @@
             nickel export config/fixtures/web-service-monorepo-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-untrusted-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-patchgate.ncl >/dev/null
-            for fixture in config/fixtures/negative-web-service-*.ncl; do
+            for fixture in config/fixtures/negative-web-service-*.ncl config/fixtures/web-service-pause-negative.ncl config/fixtures/web-service-resume-negative.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then
                 echo "negative web service fixture passed: $fixture" >&2
                 exit 1
@@ -1774,23 +1843,28 @@
               pkgs.runCommand "kiln-radicle-status-native-fixtures-unsupported" { } ''
                 touch "$out"
               '';
+          # r[impl kiln.radicle.mutation_conformance]
           radicle-mutation-native-fixtures =
             if system == "x86_64-linux" then
-              rustPlatform.buildRustPackage {
+              radiclePatchRustPlatform.buildRustPackage {
                 pname = "kiln-radicle-mutation-native-fixtures";
                 version = "0.1.0";
-                src = self;
+                src = ./tools/radicle-patch;
                 cargoLock = {
-                  lockFile = ./Cargo.lock;
+                  lockFile = ./tools/radicle-patch/Cargo.lock;
                 };
                 nativeBuildInputs = [
                   pkgs.cmake
+                  pkgs.git
                   pkgs.pkg-config
                 ];
-                buildInputs = [ pkgs.zlib ];
+                buildInputs = [
+                  pkgs.openssl
+                  pkgs.zlib
+                ];
                 buildPhase = ''
                   runHook preBuild
-                  cargo test -p kiln-adapter-radicle --features status-native-fixtures --test mutation_native --offline
+                  cargo test --locked --offline
                   runHook postBuild
                 '';
                 doCheck = false;

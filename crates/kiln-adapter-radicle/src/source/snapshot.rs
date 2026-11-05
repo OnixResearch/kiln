@@ -14,6 +14,7 @@ use kiln_provider_api::{PortFailure, PortResult};
 
 use super::error::{domain, git_failure, platform_bound_failure};
 use super::profile::RadicleSourceProfile;
+use kiln_radicle_source_contract::SnapshotLimits;
 
 const MODE_REGULAR: i32 = 0o100_644;
 const MODE_EXECUTABLE: i32 = 0o100_755;
@@ -39,7 +40,7 @@ struct SnapshotContents {
 }
 
 fn collect_tree(
-    profile: &RadicleSourceProfile,
+    limits: &SnapshotLimits,
     repository: &Repository,
     tree: &Tree<'_>,
     prefix: &str,
@@ -54,7 +55,7 @@ fn collect_tree(
                 "Snapshot entry count exceeds the supported range",
             )
         })?;
-        if entry_count >= profile.request.limits.max_entries {
+        if entry_count >= limits.max_entries {
             return Err(domain(
                 "radicle_source_entry_bound",
                 "radicle_source.snapshot",
@@ -80,7 +81,7 @@ fn collect_tree(
                 "Snapshot path exceeds the supported range",
             )
         })?;
-        if path_bytes > profile.request.limits.max_path_bytes {
+        if path_bytes > limits.max_path_bytes {
             return Err(domain(
                 "radicle_source_path_bound",
                 "radicle_source.snapshot",
@@ -107,9 +108,7 @@ fn collect_tree(
                 .len()
                 .checked_add(contents.directories.len())
                 .ok_or_else(platform_bound_failure)?;
-            if u64::try_from(members).map_err(|_| platform_bound_failure())?
-                >= profile.request.limits.max_entries
-            {
+            if u64::try_from(members).map_err(|_| platform_bound_failure())? >= limits.max_entries {
                 return Err(domain(
                     "radicle_source_entry_bound",
                     "radicle_source.snapshot",
@@ -134,7 +133,7 @@ fn collect_tree(
                     contents.directories.push(path.clone());
                 }
                 collect_tree(
-                    profile,
+                    limits,
                     repository,
                     &subtree,
                     &path,
@@ -151,7 +150,7 @@ fn collect_tree(
                         "Snapshot file size exceeds the supported range",
                     )
                 })?;
-                if size > profile.request.limits.max_file_bytes {
+                if size > limits.max_file_bytes {
                     return Err(domain(
                         "radicle_source_file_bound",
                         "radicle_source.snapshot",
@@ -165,7 +164,7 @@ fn collect_tree(
                         "Snapshot total byte count overflowed",
                     )
                 })?;
-                if contents.total_bytes > profile.request.limits.max_total_bytes {
+                if contents.total_bytes > limits.max_total_bytes {
                     return Err(domain(
                         "radicle_source_total_bound",
                         "radicle_source.snapshot",
@@ -214,30 +213,36 @@ pub(super) fn acquire_snapshot(
     revision: Oid,
     materializable: bool,
 ) -> PortResult<AcquiredSnapshot> {
+    acquire_with_limits(
+        &profile.request.limits,
+        repository,
+        revision,
+        materializable,
+    )
+}
+
+fn acquire_with_limits(
+    bounds: &SnapshotLimits,
+    repository: &Repository,
+    revision: Oid,
+    materializable: bool,
+) -> PortResult<AcquiredSnapshot> {
     let commit = repository.find_commit(revision).map_err(git_failure)?;
     let tree = commit.tree().map_err(git_failure)?;
     let mut contents = SnapshotContents::default();
-    collect_tree(
-        profile,
-        repository,
-        &tree,
-        "",
-        &mut contents,
-        materializable,
-    )?;
+    collect_tree(bounds, repository, &tree, "", &mut contents, materializable)?;
     let SnapshotContents {
         entries,
         total_bytes,
         directories,
     } = contents;
     let limits = GitSnapshotLimits {
-        max_entries: usize::try_from(profile.request.limits.max_entries)
+        max_entries: usize::try_from(bounds.max_entries).map_err(|_| platform_bound_failure())?,
+        max_path_bytes: usize::try_from(bounds.max_path_bytes)
             .map_err(|_| platform_bound_failure())?,
-        max_path_bytes: usize::try_from(profile.request.limits.max_path_bytes)
+        max_file_bytes: usize::try_from(bounds.max_file_bytes)
             .map_err(|_| platform_bound_failure())?,
-        max_file_bytes: usize::try_from(profile.request.limits.max_file_bytes)
-            .map_err(|_| platform_bound_failure())?,
-        max_total_bytes: usize::try_from(profile.request.limits.max_total_bytes)
+        max_total_bytes: usize::try_from(bounds.max_total_bytes)
             .map_err(|_| platform_bound_failure())?,
     };
     let manifest = build_git_snapshot_manifest(&entries, &limits).map_err(PortFailure::Domain)?;
@@ -342,4 +347,80 @@ pub(super) fn materialize_snapshot(
             .map_err(super::error::io_failure)?;
     }
     Ok(checkout)
+}
+
+/// Materialize an exact commit after the patch helper has authenticated its
+/// revision and signed-author reachability. This is not a branch-source receipt.
+pub fn materialize_patch_commit(
+    repository_path: &Path,
+    revision: &str,
+    bounds: &SnapshotLimits,
+    destination: &Path,
+) -> PortResult<String> {
+    let repository = Repository::open(repository_path).map_err(git_failure)?;
+    let revision = Oid::from_str(revision).map_err(git_failure)?;
+    let snapshot = acquire_with_limits(bounds, &repository, revision, true)?;
+    if destination.try_exists().map_err(super::error::io_failure)? {
+        verify_checkout(&snapshot, destination)?;
+    } else {
+        materialize_snapshot(&snapshot, destination)?.retain();
+    }
+    let identity = snapshot.canonical_tree_blake3.to_hex().to_string();
+    Ok(identity)
+}
+
+fn verify_checkout(snapshot: &AcquiredSnapshot, destination: &Path) -> PortResult<()> {
+    let mismatch = || {
+        domain(
+            "radicle_patch_checkout_mismatch",
+            "radicle_patch.checkout",
+            "Existing checkout differs from the exact committed snapshot",
+        )
+    };
+    let mut pending = vec![destination.to_path_buf()];
+    let mut members = 0usize;
+    let expected_members = snapshot.entries.len() + snapshot.directories.len();
+    while let Some(directory) = pending.pop() {
+        let metadata = fs::symlink_metadata(&directory).map_err(super::error::io_failure)?;
+        if !metadata.is_dir() || metadata.file_type().is_symlink() {
+            return Err(mismatch());
+        }
+        for entry in fs::read_dir(directory).map_err(super::error::io_failure)? {
+            let entry = entry.map_err(super::error::io_failure)?;
+            members += 1;
+            if members > expected_members {
+                return Err(mismatch());
+            }
+            let kind = entry.file_type().map_err(super::error::io_failure)?;
+            if kind.is_dir() {
+                pending.push(entry.path());
+            } else if !kind.is_file() {
+                return Err(mismatch());
+            }
+        }
+    }
+    if members != expected_members {
+        return Err(mismatch());
+    }
+    for directory in &snapshot.directories {
+        if !fs::symlink_metadata(destination.join(directory))
+            .map_err(super::error::io_failure)?
+            .is_dir()
+        {
+            return Err(mismatch());
+        }
+    }
+    for entry in &snapshot.entries {
+        let path = destination.join(&entry.path);
+        let metadata = fs::symlink_metadata(&path).map_err(super::error::io_failure)?;
+        if !metadata.is_file()
+            || metadata.len() != entry.bytes.len() as u64
+            || (metadata.permissions().mode() & 0o111 != 0)
+                != (entry.kind == GitEntryKind::Executable)
+            || fs::read(path).map_err(super::error::io_failure)? != entry.bytes
+        {
+            return Err(mismatch());
+        }
+    }
+    Ok(())
 }

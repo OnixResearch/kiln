@@ -1,0 +1,60 @@
+{
+  "schema": "kiln.unikernel.change-evidence.v1",
+  "issue": 33,
+  "native_backend": {
+    "project": "unikraft",
+    "core_revision": "a4c494e80141bd402961c7d96150dd218c79db37",
+    "elfloader_revision": "0cd7a2b2c4d5ece85647c0c9903b50426e849420",
+    "libelf_revision": "c03d4ceb22a2b9e9799238f9c277a14284d313ad",
+    "firecracker_version": "1.16.1",
+    "kernel_blake3": "b1debc88207360a26e54fae3e39a071b98a28af7131503ba71f1bd4600d4d4c5"
+  },
+  "native_runtime_evidence": "permission-native/receipt.json",
+  "native_runtime_observed": {
+    "rust_static_musl_pie_exit_codes": [0, 7],
+    "go_external_static_pie_exit_codes": [0, 7],
+    "exact_argv_assertions": true,
+    "ipv4_socket_and_connect_denied": true,
+    "vsock_cid_1_and_2_socket_and_connect_denied": true,
+    "fork_and_execve_denied": true,
+    "declared_fixture_read_succeeds_write_refused_and_bytes_unchanged": true,
+    "network_and_vsock_devices_configured": false,
+    "canonical_images_rebuilt_twice_byte_identical": true,
+    "single_host_cold_spawn_to_application_ms_range": [129.4, 134.884],
+    "hosted_confinement_observed_by_raw_rail": false
+  },
+  "integration_owner_observed": {
+    "nix_all_four_native_derivations_built": true,
+    "nix_rebuild_determinism_check": true,
+    "linux_guest_kernel_version": "6.18.60",
+    "source": "Main parent integration report",
+    "hosted_observer_receipts": "hosted-observer.json",
+    "hosted_observer_cases": ["rust-pass", "rust-fail", "rust-binary-output", "rust-output-overflow", "rust-readonly-fixture", "go-pass", "go-fail", "network-process-probe"],
+    "hosted_guest_exit_codes": [0, 7, 0, null, 0, 0, 7, 0],
+    "all_confinement_observed_and_cleaned": true,
+    "all_main_threads_seccomp": 2,
+    "preboot_policy": "kiln.native.preboot.v1",
+    "preboot_source_blake3": "c5211a9806e6b910cc85644f63d47c9b1ba884d2b2e68c6c5b05fefcfcbf70ab",
+    "actual_policy_mutations_refused_before_instance_start": ["empty-filter", "added-ptrace", "errno-enosys"],
+    "policy_refusal_receipts": "strict-preboot/integrated-refusals.json",
+    "prestart_teardown": "Owning transient unit stopped before joining capture workers; all three refusals cleaned without capture-worker teardown errors.",
+    "bounded_host_facts_retained": true,
+    "hosted_spawn_to_exit_ms": [394, 415, 468, 520, 443, 426, 439, 416],
+    "guest_artifact": "/nix/store/ay7y8ymkfyx8bynphvsmrxp6g1wnj459-kiln-unikraft-firecracker-a4c494e80141bd402961c7d96150dd218c79db37",
+    "immutable_upstream_sources_and_notices_retained": true,
+    "fixture_regression_before": "readonly-fixture-before.json",
+    "fixture_regression_after": "readonly-fixture-after.json",
+    "fixture_root_cause": "RAMFS recreated vnodes with UK_ALLPERMS instead of persisted permissions. The local source patch restores persisted modes; CPIO extraction uses temporary owner-write permissions before applying final archive modes."
+  },
+  "regression_evidence": {
+    "isolated_pure_native_module_tests_passed": 6,
+    "hosted_library": { "passed": 94, "ignored_operator_smoke": 1 },
+    "microvm_library_passed": 42,
+    "pipeline_admission_positive_and_independent_multistep_shell_exec_network_refusal_tests": "passed in the shared locked suites",
+    "serial_status_missing_duplicate_malformed_truncated_tests": "passed in the shared locked suites",
+    "affected_production_library_clippy": "passed with -D warnings for kiln-microvm, kiln-hosted, kiln-adapter-lattice, kiln-adapter-radicle, kiln-radicle-ci and kiln-onixos-pilot"
+  },
+  "integration_owner_remaining_verification": [],
+  "hostile_isolation_claim": false,
+  "publication_or_activation_authorized": false
+}

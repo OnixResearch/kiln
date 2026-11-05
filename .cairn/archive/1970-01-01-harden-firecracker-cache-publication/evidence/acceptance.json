@@ -1,0 +1,48 @@
+{
+  "issue": 36,
+  "verification_status": "Parent integration passed shared library/workspace suites, authenticated cache endpoint, real namespace corrupt/saturated cold-success journey, and final real cold/warm Firecracker cache journeys with actual unit-kill hooks.",
+  "gates": {"proposal": "PASS", "design": "PASS", "tasks": "PASS"},
+  "criteria": [
+    {"criterion": "Firecracker cache policy; key identities", "implementation": ["crates/kiln-hosted/src/execution.rs: configuration identity includes backend executable/kernel/initrd identities", "crates/kiln-hosted/src/cache.rs: key"], "regression": ["execution::tests::firecracker_runner_admission_is_bounded_by_unit_limits_cache_and_pool", "cache::tests::successful_output_is_reused_but_other_tenants_inputs_and_configs_do_not_hit", "KVM cold and warm cache journeys"]},
+    {"criterion": "Read-only drive and guest write immutability", "implementation": ["crates/kiln-microvm/src/plan.rs: vm_config", "crates/kiln-hosted/src/cache.rs: restore_image"], "regression": ["firecracker_cache_restores_after_publication", "firecracker_warm_cache_attaches_after_cache_free_snapshot"], "observed_property": "Each journey publishes cached bytes, changes the guest output on hits, restores original bytes on a later job, and verifies the retained envelope hash."},
+    {"criterion": "Successful job and recorded destroyed teardown only", "implementation": ["crates/kiln-hosted/src/microvm.rs: final cache_tar gate requires cleaned, journaled and Destroyed{journaled:true}", "crates/kiln-hosted/src/execution.rs: successful job and cleanup publication guard"], "regression": ["KVM cache journeys assert journal rows destroyed before retained cache checks", "cache-fault-tests feature synchronizes actual systemd unit SIGKILL at return boundary and asserts no publication"]},
+    {"criterion": "Corruption measured miss without mounting or changing job result", "implementation": ["crates/kiln-web-service/src/cache.rs: typed CacheRestore/RestoreOutcome returned by restore", "engine cache endpoint and worker admit_restore retain corrupt_miss/disabled_inventory_bound", "hosted and worker publication permission excludes degraded restores without suppressing actual publication/security errors"], "regression": ["corrupted_retained_content_and_symlinks_never_restore", "excessive_corrupt_inventory_disables_cache_without_mutating_retained_bytes", "degraded_restore_disables_publication_without_admitting_conflicting_or_unverified_entries", "authenticated cache endpoint journey", "namespace_corrupt_and_saturated_cache_preserve_successful_cold_jobs", "KVM journeys corrupt a retained entry and assert succeeded cold build plus corrupt_miss receipt"]},
+    {"criterion": "Receipts bind entry hash and source tier; separate remote latency", "implementation": ["CacheObservation.entry_blake3 and source_tier", "hosted restore/publication observations"], "regression": ["KVM journeys compare published/restored entry hashes and local source_tier"], "boundary": "Remote object storage is optional and not implemented; no remote p99 or speedup claims."},
+    {"criterion": "Warm snapshots cache-free; attachment after restore", "implementation": ["microvm.rs: build_snapshot uses empty read-only cache device with fixed geometry", "microvm.rs: snapshot load followed by checked PATCH /drives/cache before guest Run", "snapshot identity domain v2 excludes tenant cache contents"], "regression": ["firecracker_warm_cache_attaches_after_cache_free_snapshot exercises original-key hits, different-key miss with snapshot reuse, then original-key unchanged hit"]},
+    {"criterion": "Tracey interruption integrity property", "implementation": ["docs/hosted-ci.md: kiln.hosted.microvm.cache_integrity", ".cairn/changes/harden-firecracker-cache-publication/specs/cache-integrity/spec.md"], "boundary": "Tested integrity, not proof, hardware power-loss qualification, confidentiality or hostile isolation."},
+    {"criterion": "Verified synced atomic immutable publication", "implementation": ["CacheStore::publish_with_hook: private staging, bounds/BLAKE3 verification from disk, file fsync, renameat2 RENAME_NOREPLACE, directory fsync", "CacheStore::open: exclusive-owner orphan cleanup and directory sync"], "regression": ["sigkill_each_publish_phase_recovers_without_partial_keys", "cold_publish_warm_restore_is_immutable_and_survives_store_reopen"]},
+    {"criterion": "Actual SIGKILL fault phases and restart recovery", "regression": ["sigkill_each_publish_phase_recovers_without_partial_keys: real child publisher SIGKILL at half-received staging, verifying, before rename and after rename; reopens store and validates old bytes, absent-or-complete new keys, and no orphan stages", "KVM cache-fault-tests: actual unit SIGKILL at guest return-start before Publish"], "phase_semantics": "No live Firecracker unit exists during persistent publication phases: recorded destruction is a prerequisite. Unit-kill coverage is therefore at guest return; publisher-process SIGKILL covers persistent phases."},
+    {"criterion": "Hostile over-bound/hash-invalid/second-send fixtures", "regression": ["hostile_returns_cannot_replace_existing_entry", "archive extraction rejects checksum mismatch, over-bound payload, concatenated stream, missing trailer, traversal and special entries"]},
+    {"criterion": "No hostile isolation claim", "regression": ["KVM journeys assert hostile_isolation_claim false"]},
+    {"criterion": "Secret/workload/untrusted disabling", "implementation": ["execution.rs: existing credential and trust gates prohibit restore; guest cache_paths now requires admitted cache_key, so disabled runs do not request guest output publication"], "regression": ["existing credential/trust admission regressions", "KVM cache return hook is invoked only with admitted cache paths"]}
+  ],
+  "commands": [
+    "cargo test --locked -p kiln-web-service cache::tests::",
+    "cargo test --locked -p kiln-hosted cache::tests::",
+    "cargo test --locked -p kiln-microvm archive::tests::",
+    "cargo test --locked -p kiln-microvm protocol::tests::",
+    "cargo test --locked -p kiln-web-service worker::cache::tests::",
+    "cargo test --locked -p kiln-web-service telemetry::tests::",
+    "cargo test --locked -p kiln-web-service --test engine cache::",
+    "KILN_MICROVM_REQUIRED=1 KILN_MICROVM_GUEST=<rebuilt-guest-store-path> cargo test --locked -p kiln-hosted --test microvm namespace_corrupt_and_saturated_cache_preserve_successful_cold_jobs -- --nocapture",
+    "nix build --no-link --print-out-paths path:.#microvm-guest --builders '' --option build-hook ''",
+    "KILN_MICROVM_REQUIRED=1 KILN_MICROVM_GUEST=<rebuilt-guest-store-path> cargo test --locked -p kiln-hosted --features cache-fault-tests --test microvm firecracker_ -- --nocapture"
+  ],
+  "integration_owner_observed": {
+    "shared_workspace_and_native_feature_commands": "1580 passed across 162 summaries including repeated packages; five ignored. This is not 1580 distinct workspace tests.",
+    "web_service_library": { "passed": 176, "ignored": 1 },
+    "authenticated_cache_endpoint_journey": "passed",
+    "namespace_corrupt_and_saturated_cold_success": "passed with an explicit reviewed coreutils PATH",
+    "current_guest_kernel": "6.18.60",
+    "current_guest": "/nix/store/0af775d8i5vpmsxngb5h8a9lyn2hxad1-kiln-microvm-guest",
+    "final_firecracker_cache_journeys_passed": 2,
+    "final_firecracker_cache_fault_tests_feature": true,
+    "retained_runtime_receipts": "kvm-cache-observations.json",
+    "observed_runtime_boundary": "Cold and restored jobs succeeded and cleaned. Different-key restored job missed; original-key restore retained unchanged bytes. Guest changes could not overwrite immutable keys; conflicts were explicit in receipts.",
+    "qualification_ttl_seconds": 3600,
+    "ttl_boundary": "Qualification-only retention window; production policy unchanged. Expiry as cause of an earlier failed warm spike is inference, not an established cause.",
+    "hostile_isolation_claim": false,
+    "hardware_power_loss_qualification": false,
+    "remote_object_storage_or_latency_qualification": false
+  }
+}

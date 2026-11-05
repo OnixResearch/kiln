@@ -1,0 +1,2363 @@
+{
+  "schema": "kiln.local-implementation-receipt.v1",
+  "issues": [
+    18,
+    20,
+    28,
+    33,
+    36,
+    37,
+    38
+  ],
+  "scope": "Local implementation and bounded exercised verification; no deployment, publication, issue closure or release authorization.",
+  "maintenance_owner": "Kiln repository maintainers; provider adapters and hosted-runtime modules",
+  "implementation_evidence": {
+    "18_and_20": ".cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/verification.json",
+    "28": ".cairn/archive/1970-01-01-complete-host-trust-placement/evidence/verification.md",
+    "33": ".cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/verification.json",
+    "36": ".cairn/archive/1970-01-01-harden-firecracker-cache-publication/evidence/acceptance.json",
+    "37": ".cairn/archive/1970-01-01-pin-lattice-runtime/evidence/verification.md",
+    "38": ".cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/evidence/verification.md"
+  },
+  "repeatability": {
+    "nix_package_and_nickel": {
+      "command": "nix build path:.#checks.x86_64-linux.package path:.#checks.x86_64-linux.nickel --no-link -L --keep-going --builders '' --option build-hook ''",
+      "result": "passed",
+      "workspace_passed": 1457,
+      "workspace_ignored": 5,
+      "workspace_summaries": 151
+    },
+    "nix_native_and_github_fixtures": {
+      "command": "nix build path:.#checks.x86_64-linux.radicle-mutation-native-fixtures path:.#checks.x86_64-linux.github-protocol-fixtures --no-link -L --keep-going --builders '' --option build-hook ''",
+      "result": "passed",
+      "native_upstream_tests_passed": 2,
+      "github_tests_passed": 78,
+      "helper_compiler": "1.97.1",
+      "core_compiler": "1.88"
+    },
+    "native_images": {
+      "command": "nix build --rebuild --no-link path:.#unikernel-guest path:.#unikernel-rust-image path:.#unikernel-go-image path:.#unikernel-probe-image --builders '' --option build-hook ''",
+      "result": "all four outputs reproduced",
+      "kernel_blake3": "b1debc88207360a26e54fae3e39a071b98a28af7131503ba71f1bd4600d4d4c5",
+      "hosted_journeys": 8,
+      "strict_main_thread_seccomp": 2,
+      "actual_policy_mutations_refused_before_instance_start": 3,
+      "raw_native_cases": 6,
+      "readonly_fixture_failed_before_and_passed_after": true
+    },
+    "cache": {
+      "real_cold_and_warm_firecracker_journeys_passed": 2,
+      "cache_fault_tests_feature": true,
+      "guest_kernel": "6.18.60",
+      "evidence": ".cairn/archive/1970-01-01-harden-firecracker-cache-publication/evidence/kvm-cache-observations.json",
+      "publisher_sigkill_phases": 4,
+      "hardware_power_loss_qualification": false
+    },
+    "host_measurements": {
+      "real_reference_guest_runs": 9,
+      "script_regressions_passed": 6,
+      "scope": "One observed OS instance; distinct LLC pools are not distinct physical hosts."
+    },
+    "affected_production_clippy": {
+      "result": "passed with -D warnings",
+      "packages": [
+        "kiln-microvm",
+        "kiln-hosted",
+        "kiln-adapter-lattice",
+        "kiln-adapter-radicle",
+        "kiln-radicle-ci",
+        "kiln-onixos-pilot"
+      ]
+    }
+  },
+  "final_full_flake": {
+    "command": "nix flake check path:. -L --keep-going --builders '' --option build-hook ''",
+    "exit_code": 1,
+    "failed_checks": [
+      "radicle-broker-wire-octet-deny-all",
+      "octet",
+      "clippy"
+    ],
+    "causes": [
+      "Existing explicit_defaults findings at crates/kiln-radicle-broker-wire-octet/src/defelo.rs:37",
+      "Existing indexing/slicing findings in kiln-core change_review tests and kiln-microvm backend/plan tests"
+    ],
+    "web_service_deployment_vm": "test script completed; no failure reported for that check"
+  },
+  "verification_repairs": [
+    "Preserved actual RAMFS file permissions across vnode recreation; CPIO extraction uses temporary owner-write access before final archive chmod.",
+    "Stopped the owning native transient unit before launcher capture joins on prestart refusal.",
+    "Migrated GitHub protocol fixture callers to existing private admitted-config accessors.",
+    "Replaced the obsolete synthetic mutation_native Nix invocation with real pinned upstream helper fixtures under a separately pinned Rust 1.97.1 toolchain and declared Git input.",
+    "Declared Python as a root Nix test input for the revision-CI fixture transport.",
+    "Removed host-directory-dependent argument-copy assertions from execution-policy tests while retaining actual policy-admission checks; no production data-mount policy was weakened."
+  ],
+  "lifecycle": {
+    "validation": {
+      "valid": true,
+      "active_changes": 43,
+      "specs_validated": 151,
+      "issues": []
+    },
+    "reference_coverage": {
+      "requirements": 1356,
+      "referenced": 1356,
+      "missing": [],
+      "dangling": [
+        "kiln.dashboard.repositories.gitea_export",
+        "kiln.dashboard.repositories.gitea_export.scenario.admission",
+        "kiln.gitea.authentication",
+        "kiln.gitea.event_proof",
+        "kiln.gitea.event_proof.audit",
+        "kiln.gitea.event_proof.audit.scenario.names",
+        "kiln.gitea.event_proof.scenario.forgery",
+        "kiln.gitea.events",
+        "kiln.gitea.local_e2e",
+        "kiln.gitea.local_e2e.events",
+        "kiln.gitea.local_e2e.framing",
+        "kiln.gitea.local_e2e.nonclaims",
+        "kiln.gitea.local_e2e.outcomes",
+        "kiln.gitea.local_e2e.process",
+        "kiln.gitea.local_e2e.profile_drift",
+        "kiln.gitea.local_e2e.recovery",
+        "kiln.gitea.local_e2e.shell_bounds",
+        "kiln.gitea.local_e2e.status_recovery",
+        "kiln.gitea.nonclaims",
+        "kiln.gitea.profile",
+        "kiln.gitea.replay",
+        "kiln.gitea.secrets",
+        "kiln.gitea.shell",
+        "kiln.gitea.source",
+        "kiln.gitea.status",
+        "kiln.gitea.workflow",
+        "kiln.mantle.native_report.counts",
+        "kiln.mantle.native_report.counts.contradiction",
+        "kiln.mantle.native_report.counts.valid",
+        "kiln.mantle.native_report.facts.metrics",
+        "kiln.mantle.native_report.failures",
+        "kiln.mantle.native_report.failures.log",
+        "kiln.mantle.native_report.failures.vocabulary",
+        "kiln.mantle.native_report.paths.escape",
+        "kiln.mantle.native_report.paths.valid",
+        "kiln.mantle.native_report.store_binding",
+        "kiln.mantle.native_report.store_binding.drift",
+        "kiln.mantle.native_report.store_binding.match",
+        "kiln.mantle.native_report.surface",
+        "kiln.mantle.native_report.surface.complete",
+        "kiln.mantle.native_report.surface.drift",
+        "kiln.microvm.confinement.lifecycle",
+        "kiln.microvm.confinement.observation",
+        "kiln.radicle.canonical_tag",
+        "kiln.radicle.canonical_tag.scenario.revision",
+        "kiln.radicle.canonical_tag.scenario.tag",
+        "kiln.radicle.job",
+        "kiln.radicle.job.authority",
+        "kiln.radicle.job.bounds",
+        "kiln.radicle.job.console",
+        "kiln.radicle.job.identity",
+        "kiln.radicle.job.multi_writer",
+        "kiln.radicle.job.replay",
+        "kiln.radicle.job.scenario.extend",
+        "kiln.radicle.job.scenario.fresh",
+        "kiln.radicle.job.scenario.mismatch",
+        "kiln.radicle.job.scenario.replay",
+        "kiln.radicle_ci.tag",
+        "kiln.radicle_ci.tag.scenario.projection",
+        "kiln.review.agent.attestation",
+        "kiln.review.agent.console",
+        "kiln.review.agent.search",
+        "kiln.review.evidence.policy",
+        "kiln.review.evidence.project_ci",
+        "kiln.web.feeds.bounds",
+        "kiln.web.feeds.config",
+        "kiln.web.feeds.config.scenario.console",
+        "kiln.web.feeds.publish",
+        "kiln.web.feeds.publish.scenario.missing",
+        "kiln.web.feeds.publish.scenario.rendered",
+        "kiln.web.feeds.security",
+        "kiln.web.feeds.security.scenario.malformed",
+        "kiln.web.feeds.security.scenario.private",
+        "kiln.web.feeds.security.scenario.redirect",
+        "kiln.web.feeds.subscriptions",
+        "kiln.web.feeds.subscriptions.scenario.add",
+        "kiln.web.feeds.subscriptions.scenario.refresh",
+        "kiln.web.feeds.subscriptions.scenario.viewer",
+        "kiln.web.feeds.token",
+        "kiln.web.feeds.token.scenario.required",
+        "kiln.web.feeds.ui",
+        "kiln.web.supersede.active",
+        "kiln.work.monorepo.board",
+        "kiln.work.monorepo.board.scenario.empty",
+        "kiln.work.monorepo.board.scenario.lanes",
+        "kiln.work.monorepo.compat",
+        "kiln.work.monorepo.compat.scenario.invalid",
+        "kiln.work.monorepo.compat.scenario.old",
+        "kiln.work.monorepo.facts",
+        "kiln.work.monorepo.facts.scenario.resolved",
+        "kiln.work.monorepo.facts.scenario.unknown",
+        "kiln.work.monorepo.filter",
+        "kiln.work.monorepo.filter.scenario.project",
+        "kiln.work.monorepo.filter.scenario.repository",
+        "kiln.work.monorepo.grouping",
+        "kiln.work.monorepo.grouping.scenario.grouped",
+        "kiln.work.monorepo.planning",
+        "kiln.work.monorepo.planning.scenario.set"
+      ],
+      "valid": false,
+      "reference_coverage_is_not_behavioral_certification": true
+    },
+    "release_readiness": {
+      "cli_exit": 0,
+      "valid": false,
+      "onix_release_ready": false
+    },
+    "archive_receipts": [
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-radicle-patch-helper",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper"
+          }
+        ],
+        "blocked": false,
+        "change": "add-radicle-patch-helper",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "82ba83066d301ba3b68605a2e56fa1309f9be02e670a8e339429bb3a06d9ecbc",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "70a260c59fb03818fe363c8d261322fd80c94a237b3ce7cb29738ddefd1bd553",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/design.md"
+              },
+              {
+                "content_hash": "20bc8e55d1c76fbdeb9872cef04925dd4049078a2c7673c0c7ca021a72d4a39f",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "70ebdc4b040f04169f272d2be26947c3862ccdcdc0d21520f12f04fdc6bfa510",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/evidence/verification.json"
+              },
+              {
+                "content_hash": "1fb6d0182d5b55a2ed5711b9ff27aa46d31a1179fa1d206ad8a5eb1bc162e18b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/evidence/verification.md"
+              },
+              {
+                "content_hash": "54287960424e604dfef57fca076755879c70a2e41cba4a9e29e4fece504820c3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/metadata.json"
+              },
+              {
+                "content_hash": "223660f5c49d6dde5802ceba4b67e3d73fe4e15b9ad06c67fc7fae8ea1aaeab3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/proposal.md"
+              },
+              {
+                "content_hash": "2dc73e8965a939e2c6bff77c6995cd9ff82e053fa952173ab535eab36809ef28",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/specs/radicle-patch-read/spec.md"
+              },
+              {
+                "content_hash": "5013432840419f3b502f9aa2265fb2123cc5e8bdcd319fb6a18d7d08c5ea61c8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-radicle-patch-helper/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-radicle-patch-helper"
+              }
+            ],
+            "manifest_hash": "39acfda2713283431893fa32a4529a422eaa545d6cb1787c2fad1e03521bb96f"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "70a260c59fb03818fe363c8d261322fd80c94a237b3ce7cb29738ddefd1bd553",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/design.md"
+              },
+              {
+                "content_hash": "20bc8e55d1c76fbdeb9872cef04925dd4049078a2c7673c0c7ca021a72d4a39f",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "70ebdc4b040f04169f272d2be26947c3862ccdcdc0d21520f12f04fdc6bfa510",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/evidence/verification.json"
+              },
+              {
+                "content_hash": "1fb6d0182d5b55a2ed5711b9ff27aa46d31a1179fa1d206ad8a5eb1bc162e18b",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/evidence/verification.md"
+              },
+              {
+                "content_hash": "54287960424e604dfef57fca076755879c70a2e41cba4a9e29e4fece504820c3",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/metadata.json"
+              },
+              {
+                "content_hash": "223660f5c49d6dde5802ceba4b67e3d73fe4e15b9ad06c67fc7fae8ea1aaeab3",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/proposal.md"
+              },
+              {
+                "content_hash": "2dc73e8965a939e2c6bff77c6995cd9ff82e053fa952173ab535eab36809ef28",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/specs/radicle-patch-read/spec.md"
+              },
+              {
+                "content_hash": "5013432840419f3b502f9aa2265fb2123cc5e8bdcd319fb6a18d7d08c5ea61c8",
+                "exists": true,
+                "path": "./.cairn/changes/add-radicle-patch-helper/tasks.md"
+              }
+            ],
+            "manifest_hash": "560c2db1d95ff4a9e487fa038d9b7c96770930ae76da4372a73a4eb3d2e9b713"
+          },
+          "kind": "archive",
+          "manifest_hash": "41d124dad5990fd217ca6b6943181c46e5a53dca0ce24aec3d1c7a8d2ef765f3"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "6b4a38d2db1919ab52155b9d5974e996b6d4e2d3df09f3c5d28626b0c363e505",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "e4d1f5fa8ca7bc784279bdadb8d8eeb4c8ad1ba5b9f53f18186375da1ddd6690",
+        "reasons": [],
+        "receipt_hash": "d513d051a3788abd54507d1815fbb73013a52a4b5dea5bf4b3341ad2d9833db3",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: pin-lattice-runtime",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime"
+          }
+        ],
+        "blocked": false,
+        "change": "pin-lattice-runtime",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "7f212ed44df7626109687af44b24e942ef72ba905dafebb5710803c4f02a17f2",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "7d4980f913c955f40d2d3a6316d53cb347053b8bb82f23837cee76263290652b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/design.md"
+              },
+              {
+                "content_hash": "b7d856a7dca103e0a34102e020f024aba65f3ae5422a02eea3b550246040cfe2",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "4cc47c2d7d69cdbce3718248b13f944f20f6d3768730c50af46ae0bb79ded9be",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/metadata.json"
+              },
+              {
+                "content_hash": "b62537618822cf1ab6824a2b30b75ecc7523e34544fa9987b4311df39c52d7c0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/proposal.md"
+              },
+              {
+                "content_hash": "ed29e466f1d553d13961b3e7d3ce52a4d9c1245f7f9cfd58e13515d0788ab5af",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/specs/lattice-issue-closeout/spec.md"
+              },
+              {
+                "content_hash": "b55b1deea6e779205e48518e4be134d35776267c721d6a944210f147a3f01102",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-pin-lattice-runtime/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/pin-lattice-runtime"
+              }
+            ],
+            "manifest_hash": "503d2243cf5e460d920808ab0532427d2c3d7eec48847ec4076aedfc1577c913"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "7d4980f913c955f40d2d3a6316d53cb347053b8bb82f23837cee76263290652b",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/design.md"
+              },
+              {
+                "content_hash": "b7d856a7dca103e0a34102e020f024aba65f3ae5422a02eea3b550246040cfe2",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "4cc47c2d7d69cdbce3718248b13f944f20f6d3768730c50af46ae0bb79ded9be",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/metadata.json"
+              },
+              {
+                "content_hash": "b62537618822cf1ab6824a2b30b75ecc7523e34544fa9987b4311df39c52d7c0",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/proposal.md"
+              },
+              {
+                "content_hash": "ed29e466f1d553d13961b3e7d3ce52a4d9c1245f7f9cfd58e13515d0788ab5af",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/specs/lattice-issue-closeout/spec.md"
+              },
+              {
+                "content_hash": "b55b1deea6e779205e48518e4be134d35776267c721d6a944210f147a3f01102",
+                "exists": true,
+                "path": "./.cairn/changes/pin-lattice-runtime/tasks.md"
+              }
+            ],
+            "manifest_hash": "420711d5833e492a9f6110095969f6d486ec38cac2e0a91a96eef84d4cae707b"
+          },
+          "kind": "archive",
+          "manifest_hash": "dc5f4e12878029265747a4967a3e5de8da41636e7cf31e83008750ba8961cb07"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "0592016a7c0bb3753d38526cc1cb5bc6d1495b29187a0e79ba7c259e6519c399",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "9cab711342b0c1ed96481a9e49e747012669aeed1029468baacf4689e44ebb41",
+        "reasons": [],
+        "receipt_hash": "aed41786a1a76a059d2d4b43373ab0b1116702de017897e73abe77ec501e91c8",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: admit-cancel-only-lattice-cohort",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort"
+          }
+        ],
+        "blocked": false,
+        "change": "admit-cancel-only-lattice-cohort",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "22ca0e8c865e755398419d489a0306c7a6d48021ff7f31c6d65008f100b4e08b",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "238d9643d5f59501dc4348c91f0b6f6e9b46b4b9ec9e4adf39cb58d46f75ff27",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/design.md"
+              },
+              {
+                "content_hash": "075aa0fe5cde517ee16c5387a171e852a91fa11c0ee5177fd73ea256d51a03c1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "2969a0279d558ca480414561b9858adf3828967608a6533ddd25d15ff1c9a35a",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/metadata.json"
+              },
+              {
+                "content_hash": "5737d2f1fed24803cd655beda416b12bf1f5e0cd1f8f5582a64239e0ac71f621",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/proposal.md"
+              },
+              {
+                "content_hash": "ddef46c9ffad2792e9630c5e877137bbe34fec3db1b78bca797ab88b02e9711e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/specs/lattice-issue-closeout/spec.md"
+              },
+              {
+                "content_hash": "700f3f559016a7ae860a14f6c905f6a79b5cda5e82bed699f2de49e914ac2c04",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-admit-cancel-only-lattice-cohort/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort"
+              }
+            ],
+            "manifest_hash": "21f7d6dba09632a66a16e8f8169462ea65cf09bb39ce75d0d07a3a8dfb789394"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "238d9643d5f59501dc4348c91f0b6f6e9b46b4b9ec9e4adf39cb58d46f75ff27",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/design.md"
+              },
+              {
+                "content_hash": "075aa0fe5cde517ee16c5387a171e852a91fa11c0ee5177fd73ea256d51a03c1",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "2969a0279d558ca480414561b9858adf3828967608a6533ddd25d15ff1c9a35a",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/metadata.json"
+              },
+              {
+                "content_hash": "5737d2f1fed24803cd655beda416b12bf1f5e0cd1f8f5582a64239e0ac71f621",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/proposal.md"
+              },
+              {
+                "content_hash": "ddef46c9ffad2792e9630c5e877137bbe34fec3db1b78bca797ab88b02e9711e",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/specs/lattice-issue-closeout/spec.md"
+              },
+              {
+                "content_hash": "700f3f559016a7ae860a14f6c905f6a79b5cda5e82bed699f2de49e914ac2c04",
+                "exists": true,
+                "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/tasks.md"
+              }
+            ],
+            "manifest_hash": "7d8a700a72b6d421b7eb92dce762693809fa172b4fea18ab7a5dce01b80f87e4"
+          },
+          "kind": "archive",
+          "manifest_hash": "39320fa4a11d87293e59dd6745b487d826c250e5e681c69afb13fe97cc2404de"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "abb6c000dfb79bc15a6095949c2767445382e3e0dea6e59640b220d977ba3919",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "cc4d648a506f02f59c55ffbd48efbfe70177865fa9c62b79ffe1b72872d87ffa",
+        "reasons": [],
+        "receipt_hash": "6af257f65547fc4194cf4e51248f073f0fe511be816a947e0be51a1ec5fd32ff",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: complete-host-trust-placement",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement"
+          }
+        ],
+        "blocked": false,
+        "change": "complete-host-trust-placement",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "15eba8a124d74677ce6da0243a0d71a5e601600d2beecdd6d2eb736f11e77171",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "c0138fe14b0eda35f82a77381e8d45439e1eab99ab24283aa4bb7f54c7bcf162",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/design.md"
+              },
+              {
+                "content_hash": "6602a53037b699ebc13296e72eab36ec22246b068a61acbbf442e495b943d582",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "05e82e6f17196c072d2842e51ca40dc1a59341b38c05ca1539a0841d1c87620f",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/evidence/reference-channel-observations.json"
+              },
+              {
+                "content_hash": "21484afc203455d94481648f5ccec42ac9e33d69afa8b571a705e68a1d4187da",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/evidence/review-corrections-smoke.json"
+              },
+              {
+                "content_hash": "8a0b1f199e39074fe0b5cd50232d81d7385d17d2abd788f0b86bba57ba1754a8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/metadata.json"
+              },
+              {
+                "content_hash": "aebe638c56f4328559485a174ceca675c193219a8c0620958c79ba8fc22a0198",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/proposal.md"
+              },
+              {
+                "content_hash": "d78b685e8f25b3e4e6de5469868b3a8899072d42ed817e6112edd6139c440e97",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/specs/hosted-microvm-execution/spec.md"
+              },
+              {
+                "content_hash": "ecc5c1ccfdb977699a8edda13e2e171dedfb1bec253f003ea6f84b7d7e2916cc",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-host-trust-placement/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/complete-host-trust-placement"
+              }
+            ],
+            "manifest_hash": "9ff9c9b18142bce09a8a671da2d05d54e4520c4f6a9bb4e94f73c4c038ffbe5a"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "c0138fe14b0eda35f82a77381e8d45439e1eab99ab24283aa4bb7f54c7bcf162",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/design.md"
+              },
+              {
+                "content_hash": "6602a53037b699ebc13296e72eab36ec22246b068a61acbbf442e495b943d582",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "05e82e6f17196c072d2842e51ca40dc1a59341b38c05ca1539a0841d1c87620f",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/evidence/reference-channel-observations.json"
+              },
+              {
+                "content_hash": "21484afc203455d94481648f5ccec42ac9e33d69afa8b571a705e68a1d4187da",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/evidence/review-corrections-smoke.json"
+              },
+              {
+                "content_hash": "8a0b1f199e39074fe0b5cd50232d81d7385d17d2abd788f0b86bba57ba1754a8",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/metadata.json"
+              },
+              {
+                "content_hash": "aebe638c56f4328559485a174ceca675c193219a8c0620958c79ba8fc22a0198",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/proposal.md"
+              },
+              {
+                "content_hash": "d78b685e8f25b3e4e6de5469868b3a8899072d42ed817e6112edd6139c440e97",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/specs/hosted-microvm-execution/spec.md"
+              },
+              {
+                "content_hash": "ecc5c1ccfdb977699a8edda13e2e171dedfb1bec253f003ea6f84b7d7e2916cc",
+                "exists": true,
+                "path": "./.cairn/changes/complete-host-trust-placement/tasks.md"
+              }
+            ],
+            "manifest_hash": "728eafc0c47b403bcd852b4ad068cd4fdedf1b9def1aef292bc8dec34a61cd3b"
+          },
+          "kind": "archive",
+          "manifest_hash": "decc9afcc83a82b097bd42bd4f2b285f26c1280f2708e95dd8fbabe5d64e03b2"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "10d44761dd192b9a69df2daca0d4838579418446a2e76283847ba52957779e22",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "d7ced75d8717662ec68d2cca62fa3138285e7929ddf2ad59631d42236be586a9",
+        "reasons": [],
+        "receipt_hash": "36b9b4f023ebe2603e7c9f75477bb1614bab95fe0fc07918f8cea52499fdcafd",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: harden-firecracker-cache-publication",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication"
+          }
+        ],
+        "blocked": false,
+        "change": "harden-firecracker-cache-publication",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "c2472cb20186d3c118c7b99c84a56d6599e216a6aea4176e6bbc8dcc4676da40",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "23404fcb7083f2bebbb5eb9707b0b240b0c63da40f0ee079d31d75e768b1cd14",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/design.md"
+              },
+              {
+                "content_hash": "643edcaa79d168287ed1d39e7b16db5d7115723cafc1047566e2cab2fecfea81",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/evidence/acceptance.json"
+              },
+              {
+                "content_hash": "c51e8ac82d698ed6fc605ab2c0af1cff0b97ab801b07249b8f4e6f9f1ed29153",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "803b44aa63ff90d9e85ef3d0b6db0d6f595bbcb6557df3ebfd076b12049229c7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/evidence/kvm-cache-observations.json"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/metadata.json"
+              },
+              {
+                "content_hash": "6a7c7d09aae908e6cfe628fa10383841a3d7e98d78f86134a66e5544c106109d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/proposal.md"
+              },
+              {
+                "content_hash": "754accdc5c391b7b45438561e6ace00fb382fadbe923a21cb153a1d19567faa7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/specs/cache-integrity/spec.md"
+              },
+              {
+                "content_hash": "a96b3191d6dda85edfffeac2d2fe61cabb09d4146a92bcdf4f33c471f38f6357",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-harden-firecracker-cache-publication/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication"
+              }
+            ],
+            "manifest_hash": "c2bd0c04fefeba1d47d0a7118b9d46430ccff338cfd787c47c648b288c355b8a"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "23404fcb7083f2bebbb5eb9707b0b240b0c63da40f0ee079d31d75e768b1cd14",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/design.md"
+              },
+              {
+                "content_hash": "643edcaa79d168287ed1d39e7b16db5d7115723cafc1047566e2cab2fecfea81",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/evidence/acceptance.json"
+              },
+              {
+                "content_hash": "c51e8ac82d698ed6fc605ab2c0af1cff0b97ab801b07249b8f4e6f9f1ed29153",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "803b44aa63ff90d9e85ef3d0b6db0d6f595bbcb6557df3ebfd076b12049229c7",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/evidence/kvm-cache-observations.json"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/metadata.json"
+              },
+              {
+                "content_hash": "6a7c7d09aae908e6cfe628fa10383841a3d7e98d78f86134a66e5544c106109d",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/proposal.md"
+              },
+              {
+                "content_hash": "754accdc5c391b7b45438561e6ace00fb382fadbe923a21cb153a1d19567faa7",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/specs/cache-integrity/spec.md"
+              },
+              {
+                "content_hash": "a96b3191d6dda85edfffeac2d2fe61cabb09d4146a92bcdf4f33c471f38f6357",
+                "exists": true,
+                "path": "./.cairn/changes/harden-firecracker-cache-publication/tasks.md"
+              }
+            ],
+            "manifest_hash": "f2e79616d1c381b0655edfd338d16b95d88f513f4228f8951062055de603b980"
+          },
+          "kind": "archive",
+          "manifest_hash": "acb91926defaafae3e6b3f8b8e841c1720cac82aebccd62433567e39da06d47d"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "e5e36cd7ba2b0a5ea4354db6a8573675d84ad9ed35942f72d8727e821fed3e22",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "773ee63098e313772751e6abb1eb062f55d8b1e5b9e129de26c28bb7715da89a",
+        "reasons": [],
+        "receipt_hash": "764b35bc7ccdea393693d064d8755ab83717a917193036af03db010aaed9eba9",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-unikernel-test-runner",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner"
+          }
+        ],
+        "blocked": false,
+        "change": "add-unikernel-test-runner",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "b8d11d5dee9db66aeacbb838d91409998c7053cc313112f39930ee5a47226200",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "9a5d1d3cfbb67881edc9dd266cae3c4589fcf5ed7b039ddfec2d3a96e9d24fb7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/design.md"
+              },
+              {
+                "content_hash": "9faf7afb81952c83cc9400d0aadc156ad611ae1042e5b797b053207b5f1a3190",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "faf71b054c56df09719838d33131bfb0883676394fbf2115f73e1874dd18b86e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/hosted-observer.json"
+              },
+              {
+                "content_hash": "be2f6298e68261546d1cc10f521cdd6e5df8f019dc56e9ed59c24f76666c367b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/go-fail.config.json"
+              },
+              {
+                "content_hash": "787be4a0546277fc0916e4c724f1e50935fa5a9d7e4d61d8be78cefd47166c52",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "e790d38e1d113143de8937b522d7d16987ce18ea6d10e1f63ad7456ce88a0a6e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/go-pass.config.json"
+              },
+              {
+                "content_hash": "81847f80cdb5fa58c573c1727e219a613795972606e6358612abf9527cb98b22",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "0c1d9d61c02e06b8c45973097071c2e11cf461932dd7a0a56d6099289bdd3d86",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/probe-probe.config.json"
+              },
+              {
+                "content_hash": "a7fbb87f7e9a1b1a56b3c8553d24e2d0378b74faf08fd728248d93b79f016a89",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "d1158339dd242c21195136640ec97e2afd167c1ee2639bf8d2888f211cb17970",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/receipt.json"
+              },
+              {
+                "content_hash": "de2a4006054f24ba4236b407a8a991d371ea7cae9e62e8bcf9ffff5631379731",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/rust-fail.config.json"
+              },
+              {
+                "content_hash": "b73d9f386d4d932c52059dffb0dbeceda8c04abf5d95def57a07fc0769dea1cc",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "32d85bd64594fdb9e34f92f179c58f3110aabe140aad5ba19bbe4e7813de0df9",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/rust-pass.config.json"
+              },
+              {
+                "content_hash": "0d413445ebe4a36a19c46b1a1cd658b8ee203e616cb5b5555002afed8cf8d439",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-compatible/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "e824e6729e9bbe42600c37994cc0f33e5a91be2c5fe9ce2a0fb526a2730b9dc6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/go-fail.config.json"
+              },
+              {
+                "content_hash": "dbabf93d2ac18b65c81355a86696f3ea0a90faad214e94426241958a40ba17f0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "2c7833b12e792a6992bc5e39bd62069e6dca7155e5fad931ef72b5a020b3295d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/go-pass.config.json"
+              },
+              {
+                "content_hash": "13086e1bbee79aaad76452c0b75679de832173fae8d2d9335f05489cce6ebeb5",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "20826f1df156db3bad3c975b655fc8bea4dabe5a9d0433b0397cb28a63e4207c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/probe-probe.config.json"
+              },
+              {
+                "content_hash": "3b308fca0aecb17f500ce47a9709c880083bc6c05084ac558e78197469b7b57e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "f89e762bde00bb82fdedf0e1eb81500e7f12f6bd779176cfbd0bf5c3cefe77d3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/receipt.json"
+              },
+              {
+                "content_hash": "6b76174e8c82675619f56a43d7b56ba97a7c50a07b86e698e949b8ba748495dc",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/rust-fail.config.json"
+              },
+              {
+                "content_hash": "0dfe1e3446a8ba9b38b91c9a9014a5cfe6a8a2a7bcbf2dcf3aa01e07de4b5b1f",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "7b19c6002e9611e505c06cc70b69d324eed3a07f1334ea9862635e6b0ca1c30b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/rust-pass.config.json"
+              },
+              {
+                "content_hash": "193becc145bfa849db7ca9d168386e44a5c6aae3a101407603f14812875756bd",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-fenced/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "5588d26b1a3bc7ca96826220e6f3966e2b59068c54dac7807adf273e59824191",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/pins.json"
+              },
+              {
+                "content_hash": "0534dd4ec5ffe92a8b6f8967ca87f54c392cb9fb9175caa13bdb5893ab81f832",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/probe.json"
+              },
+              {
+                "content_hash": "cae8f015f1718c39a4b4fcfcb6ee3b603f1809e2205727c847b6bb4b765104bf",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/probe.log"
+              },
+              {
+                "content_hash": "ce0c45eabb9343ef05f463403bb774b35094250e0c79ee067d80e43e15a70bad",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/uk-go-fail.log"
+              },
+              {
+                "content_hash": "6ddca8194fcd07ba8e159f1d56887dae8834fae2256e3938622be7547b5e7671",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/uk-go-pass.json"
+              },
+              {
+                "content_hash": "00f0210633d696a45eae6fa8cef6c70f3ba59e498a613f34f4ddbbae29fd9466",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/uk-go-pass.log"
+              },
+              {
+                "content_hash": "1554eb05a5020a457905b39ef9c0507da885318239ccf0aec9e56956db0944e3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/uk-rust-fail.log"
+              },
+              {
+                "content_hash": "d7a67f2784bc21786bf7f5e7101bbae03886452d531c4c90aef728caf4ce5e39",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/uk-rust-pass.json"
+              },
+              {
+                "content_hash": "80ca467d63e39b0e2ee85bdb60b5848718e6ee035cd0fb31c13d9a624717fad4",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/uk-rust-pass.log"
+              },
+              {
+                "content_hash": "dcd22492c4df659f071d499381bfc928cd4efad69233bacbfc48079c2e1b17ab",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/native-spike/unikraft-pins.json"
+              },
+              {
+                "content_hash": "ad9de2cc928bc57a07912b40e73f1b8510a5323204c43d306c5760fac5f0bd04",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/go-fail.config.json"
+              },
+              {
+                "content_hash": "f4ebee45ad89f56b04261618b73ceeab1690d0244080245b815dad26c0f86008",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "1a96a34e57777385880e1750b097f2e2a36e2719cb3bfe69ac153dd1ebf0785b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/go-pass.config.json"
+              },
+              {
+                "content_hash": "8f7dc713652ea026a1906922ec2d4f71cffc495faa4bb5313d3ec7931729a6d8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "b9648ec9979a38e14b50dba1a0470b09d83ac3970727d0e3348160a6ed2afb02",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/probe-probe.config.json"
+              },
+              {
+                "content_hash": "2d89f43e17a2f71fb2deb7fb1b7882aab30dbc1c22753da503f0681225db1b6c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "7890668ba5228dfcb592e9fabeee19540ca34f738e3816a142a9aff1bcc2f398",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/receipt.json"
+              },
+              {
+                "content_hash": "d67097f59e29e185d8d4ccfa6903781618751a143b9ff4aeef552d8cf58b08c4",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/rust-fail.config.json"
+              },
+              {
+                "content_hash": "82914d6abde65f42cf7a9cc654e0a249933cdb306432d6f793ca8bc83ee55bda",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "8aadc4208c9cf4b187771f2ea58215d4c1cd331e87a8368730be4800b6ad0b2e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/rust-pass.config.json"
+              },
+              {
+                "content_hash": "b15a981ed1d1cd6630493e7ecd96e2ade41feacaae95f927a2aae00c3748a8e4",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/nix-native/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "4d0509092c76c1ef29a2c3aa9be2ac6859a7c1c4912859592c4a282fb29894b4",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/go-fail.config.json"
+              },
+              {
+                "content_hash": "f56bc0dd053d9899fdcad7954a7c84b1c25caf5d59647d778506df84923b5773",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "685eedf523c466ab488ebc6506c6846533881d8b3a4c9dfb6576851f778493c2",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/go-pass.config.json"
+              },
+              {
+                "content_hash": "d4a0aca61c198d6d2ecfe97afab7e7adee59084fa8aa8a5f9ef7adf131823842",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "a22e465ee7648bff2abe5b412374576354ad2e398ab17a9b41668870eda484b0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/probe-probe.config.json"
+              },
+              {
+                "content_hash": "97f83ef86042f8d7837fa295ea961d380c4a5c254f56858ed2c8972cf8769aa7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "d6a1b1c34ddc75940976d2a381f114b9e6040775b1737d762141471f84c71a07",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/readonly.txt"
+              },
+              {
+                "content_hash": "56e85b79883d701eb5b6ffb9a754f9cbc94e70344aecae75220312a303e946a0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/receipt.json"
+              },
+              {
+                "content_hash": "c5df6ca0b683031706300e9b29bfec2b2fab9403737989acba45e2887a316c5d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-fail.config.json"
+              },
+              {
+                "content_hash": "8ceb02184b481b936566955b81beae2e62458bc5f0fbe2ea0f6dd937f6925b33",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "9869a474cc7be3a4345894e98fb629977db9487ae924f2f796e0f8b80f52f57b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-fixture.config.json"
+              },
+              {
+                "content_hash": "dd7400d312f5652049fd444be4f1a7cc65a754210b0302b853cc4703209fc5f8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-fixture.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-fixture.vmm.log"
+              },
+              {
+                "content_hash": "b884e15daab7c3d9b7fa8f2e11fb807e206f6f7dd5f22e3ea09d0105d48608f2",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-pass.config.json"
+              },
+              {
+                "content_hash": "f3fa20c6bdbde0d569b74142fb6e8a4a1b37057ba73746c1861be4577a8a54ca",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/permission-native/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "87bfab3d95f8b098f76582ec509d1f43a3bb1a04bd22b9c5b9c99465e1dbb2b7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/readonly-fixture-after.json"
+              },
+              {
+                "content_hash": "5c506a4f6742860e3758e8fa12705e8edf26ff9f271626a9104bbcd8fe54882a",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/readonly-fixture-before.json"
+              },
+              {
+                "content_hash": "27918df7c87ab1d9b77532ae39b4e36a113f79d1921b48ec2f19bb8d9161c0d4",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/integrated-refusals.json"
+              },
+              {
+                "content_hash": "6e1977e6b3f0899ff6df9ff80cc7fdd536e33296c2dd75234d8daecd21250a5c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-false.status.json"
+              },
+              {
+                "content_hash": "c89b47e105dc3253f68202c0ba5f88379b8c03c0e1d552b4d313f2a4580ae972",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-true.serial.log"
+              },
+              {
+                "content_hash": "b19d83246c9a87be3af8d9cd88a86c3c4f04a3753eee035633523abf07c45e57",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-true.status.json"
+              },
+              {
+                "content_hash": "de6710ba919ee09cab9f5b216ce3e49e95e478210274778c8042a7d488a3db26",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-true.vmm.log"
+              },
+              {
+                "content_hash": "248491b8bf0fbb4ec59bd260c4f314262c051723e0d75c30bdd73c45a70f9ed6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/observed-policy.json"
+              },
+              {
+                "content_hash": "8a1348c74a205f4e931284a1bf72cb1b8fe3869241574fe51978b3d41b163fab",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/ptrace-denial.log"
+              },
+              {
+                "content_hash": "0919b29dfb80284e308ec445993d9f0b7ab856958482ece1d87ff34d3696daf1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/ptrace-pair.json"
+              },
+              {
+                "content_hash": "85eddca754e114d7a0a892099facd40134b83fb1133e2313626edad9e7858eec",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/strict-preboot/spike.py"
+              },
+              {
+                "content_hash": "a5d7a0d8a866160a03715cbb0cbb2af22dc5700e2a5e44a2050a10276b3e2502",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/evidence/verification.json"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/metadata.json"
+              },
+              {
+                "content_hash": "c4a5420dc1e562a1d7dd7cfe7fe8ad842879dd8b69e0a6233788f995cced2e70",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/proposal.md"
+              },
+              {
+                "content_hash": "13b0f9e450a690a9a28467c12b4046095b8b89af349a99ee57432ac455a163a0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/specs/unikernel-test/spec.md"
+              },
+              {
+                "content_hash": "ac3feec6ffc051adbb42fab8e61918cdb824dd98a486e744ad4b9be6d59f6ce6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-unikernel-test-runner/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-unikernel-test-runner"
+              }
+            ],
+            "manifest_hash": "c7087a8a7c01d61e5320f6571c836e1056159978a18100387dbcd427fc57687a"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "9a5d1d3cfbb67881edc9dd266cae3c4589fcf5ed7b039ddfec2d3a96e9d24fb7",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/design.md"
+              },
+              {
+                "content_hash": "9faf7afb81952c83cc9400d0aadc156ad611ae1042e5b797b053207b5f1a3190",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "faf71b054c56df09719838d33131bfb0883676394fbf2115f73e1874dd18b86e",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/hosted-observer.json"
+              },
+              {
+                "content_hash": "be2f6298e68261546d1cc10f521cdd6e5df8f019dc56e9ed59c24f76666c367b",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/go-fail.config.json"
+              },
+              {
+                "content_hash": "787be4a0546277fc0916e4c724f1e50935fa5a9d7e4d61d8be78cefd47166c52",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "e790d38e1d113143de8937b522d7d16987ce18ea6d10e1f63ad7456ce88a0a6e",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/go-pass.config.json"
+              },
+              {
+                "content_hash": "81847f80cdb5fa58c573c1727e219a613795972606e6358612abf9527cb98b22",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "0c1d9d61c02e06b8c45973097071c2e11cf461932dd7a0a56d6099289bdd3d86",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/probe-probe.config.json"
+              },
+              {
+                "content_hash": "a7fbb87f7e9a1b1a56b3c8553d24e2d0378b74faf08fd728248d93b79f016a89",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "d1158339dd242c21195136640ec97e2afd167c1ee2639bf8d2888f211cb17970",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/receipt.json"
+              },
+              {
+                "content_hash": "de2a4006054f24ba4236b407a8a991d371ea7cae9e62e8bcf9ffff5631379731",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/rust-fail.config.json"
+              },
+              {
+                "content_hash": "b73d9f386d4d932c52059dffb0dbeceda8c04abf5d95def57a07fc0769dea1cc",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "32d85bd64594fdb9e34f92f179c58f3110aabe140aad5ba19bbe4e7813de0df9",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/rust-pass.config.json"
+              },
+              {
+                "content_hash": "0d413445ebe4a36a19c46b1a1cd658b8ee203e616cb5b5555002afed8cf8d439",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-compatible/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "e824e6729e9bbe42600c37994cc0f33e5a91be2c5fe9ce2a0fb526a2730b9dc6",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/go-fail.config.json"
+              },
+              {
+                "content_hash": "dbabf93d2ac18b65c81355a86696f3ea0a90faad214e94426241958a40ba17f0",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "2c7833b12e792a6992bc5e39bd62069e6dca7155e5fad931ef72b5a020b3295d",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/go-pass.config.json"
+              },
+              {
+                "content_hash": "13086e1bbee79aaad76452c0b75679de832173fae8d2d9335f05489cce6ebeb5",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "20826f1df156db3bad3c975b655fc8bea4dabe5a9d0433b0397cb28a63e4207c",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/probe-probe.config.json"
+              },
+              {
+                "content_hash": "3b308fca0aecb17f500ce47a9709c880083bc6c05084ac558e78197469b7b57e",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "f89e762bde00bb82fdedf0e1eb81500e7f12f6bd779176cfbd0bf5c3cefe77d3",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/receipt.json"
+              },
+              {
+                "content_hash": "6b76174e8c82675619f56a43d7b56ba97a7c50a07b86e698e949b8ba748495dc",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/rust-fail.config.json"
+              },
+              {
+                "content_hash": "0dfe1e3446a8ba9b38b91c9a9014a5cfe6a8a2a7bcbf2dcf3aa01e07de4b5b1f",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "7b19c6002e9611e505c06cc70b69d324eed3a07f1334ea9862635e6b0ca1c30b",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/rust-pass.config.json"
+              },
+              {
+                "content_hash": "193becc145bfa849db7ca9d168386e44a5c6aae3a101407603f14812875756bd",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-fenced/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "5588d26b1a3bc7ca96826220e6f3966e2b59068c54dac7807adf273e59824191",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/pins.json"
+              },
+              {
+                "content_hash": "0534dd4ec5ffe92a8b6f8967ca87f54c392cb9fb9175caa13bdb5893ab81f832",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/probe.json"
+              },
+              {
+                "content_hash": "cae8f015f1718c39a4b4fcfcb6ee3b603f1809e2205727c847b6bb4b765104bf",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/probe.log"
+              },
+              {
+                "content_hash": "ce0c45eabb9343ef05f463403bb774b35094250e0c79ee067d80e43e15a70bad",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/uk-go-fail.log"
+              },
+              {
+                "content_hash": "6ddca8194fcd07ba8e159f1d56887dae8834fae2256e3938622be7547b5e7671",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/uk-go-pass.json"
+              },
+              {
+                "content_hash": "00f0210633d696a45eae6fa8cef6c70f3ba59e498a613f34f4ddbbae29fd9466",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/uk-go-pass.log"
+              },
+              {
+                "content_hash": "1554eb05a5020a457905b39ef9c0507da885318239ccf0aec9e56956db0944e3",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/uk-rust-fail.log"
+              },
+              {
+                "content_hash": "d7a67f2784bc21786bf7f5e7101bbae03886452d531c4c90aef728caf4ce5e39",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/uk-rust-pass.json"
+              },
+              {
+                "content_hash": "80ca467d63e39b0e2ee85bdb60b5848718e6ee035cd0fb31c13d9a624717fad4",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/uk-rust-pass.log"
+              },
+              {
+                "content_hash": "dcd22492c4df659f071d499381bfc928cd4efad69233bacbfc48079c2e1b17ab",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/native-spike/unikraft-pins.json"
+              },
+              {
+                "content_hash": "ad9de2cc928bc57a07912b40e73f1b8510a5323204c43d306c5760fac5f0bd04",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/go-fail.config.json"
+              },
+              {
+                "content_hash": "f4ebee45ad89f56b04261618b73ceeab1690d0244080245b815dad26c0f86008",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "1a96a34e57777385880e1750b097f2e2a36e2719cb3bfe69ac153dd1ebf0785b",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/go-pass.config.json"
+              },
+              {
+                "content_hash": "8f7dc713652ea026a1906922ec2d4f71cffc495faa4bb5313d3ec7931729a6d8",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "b9648ec9979a38e14b50dba1a0470b09d83ac3970727d0e3348160a6ed2afb02",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/probe-probe.config.json"
+              },
+              {
+                "content_hash": "2d89f43e17a2f71fb2deb7fb1b7882aab30dbc1c22753da503f0681225db1b6c",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "7890668ba5228dfcb592e9fabeee19540ca34f738e3816a142a9aff1bcc2f398",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/receipt.json"
+              },
+              {
+                "content_hash": "d67097f59e29e185d8d4ccfa6903781618751a143b9ff4aeef552d8cf58b08c4",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/rust-fail.config.json"
+              },
+              {
+                "content_hash": "82914d6abde65f42cf7a9cc654e0a249933cdb306432d6f793ca8bc83ee55bda",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "8aadc4208c9cf4b187771f2ea58215d4c1cd331e87a8368730be4800b6ad0b2e",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/rust-pass.config.json"
+              },
+              {
+                "content_hash": "b15a981ed1d1cd6630493e7ecd96e2ade41feacaae95f927a2aae00c3748a8e4",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/nix-native/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "4d0509092c76c1ef29a2c3aa9be2ac6859a7c1c4912859592c4a282fb29894b4",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/go-fail.config.json"
+              },
+              {
+                "content_hash": "f56bc0dd053d9899fdcad7954a7c84b1c25caf5d59647d778506df84923b5773",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/go-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/go-fail.vmm.log"
+              },
+              {
+                "content_hash": "685eedf523c466ab488ebc6506c6846533881d8b3a4c9dfb6576851f778493c2",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/go-pass.config.json"
+              },
+              {
+                "content_hash": "d4a0aca61c198d6d2ecfe97afab7e7adee59084fa8aa8a5f9ef7adf131823842",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/go-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/go-pass.vmm.log"
+              },
+              {
+                "content_hash": "a22e465ee7648bff2abe5b412374576354ad2e398ab17a9b41668870eda484b0",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/probe-probe.config.json"
+              },
+              {
+                "content_hash": "97f83ef86042f8d7837fa295ea961d380c4a5c254f56858ed2c8972cf8769aa7",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/probe-probe.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/probe-probe.vmm.log"
+              },
+              {
+                "content_hash": "d6a1b1c34ddc75940976d2a381f114b9e6040775b1737d762141471f84c71a07",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/readonly.txt"
+              },
+              {
+                "content_hash": "56e85b79883d701eb5b6ffb9a754f9cbc94e70344aecae75220312a303e946a0",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/receipt.json"
+              },
+              {
+                "content_hash": "c5df6ca0b683031706300e9b29bfec2b2fab9403737989acba45e2887a316c5d",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-fail.config.json"
+              },
+              {
+                "content_hash": "8ceb02184b481b936566955b81beae2e62458bc5f0fbe2ea0f6dd937f6925b33",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-fail.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-fail.vmm.log"
+              },
+              {
+                "content_hash": "9869a474cc7be3a4345894e98fb629977db9487ae924f2f796e0f8b80f52f57b",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-fixture.config.json"
+              },
+              {
+                "content_hash": "dd7400d312f5652049fd444be4f1a7cc65a754210b0302b853cc4703209fc5f8",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-fixture.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-fixture.vmm.log"
+              },
+              {
+                "content_hash": "b884e15daab7c3d9b7fa8f2e11fb807e206f6f7dd5f22e3ea09d0105d48608f2",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-pass.config.json"
+              },
+              {
+                "content_hash": "f3fa20c6bdbde0d569b74142fb6e8a4a1b37057ba73746c1861be4577a8a54ca",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-pass.serial.log"
+              },
+              {
+                "content_hash": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/permission-native/rust-pass.vmm.log"
+              },
+              {
+                "content_hash": "87bfab3d95f8b098f76582ec509d1f43a3bb1a04bd22b9c5b9c99465e1dbb2b7",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/readonly-fixture-after.json"
+              },
+              {
+                "content_hash": "5c506a4f6742860e3758e8fa12705e8edf26ff9f271626a9104bbcd8fe54882a",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/readonly-fixture-before.json"
+              },
+              {
+                "content_hash": "27918df7c87ab1d9b77532ae39b4e36a113f79d1921b48ec2f19bb8d9161c0d4",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/integrated-refusals.json"
+              },
+              {
+                "content_hash": "6e1977e6b3f0899ff6df9ff80cc7fdd536e33296c2dd75234d8daecd21250a5c",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-false.status.json"
+              },
+              {
+                "content_hash": "c89b47e105dc3253f68202c0ba5f88379b8c03c0e1d552b4d313f2a4580ae972",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-true.serial.log"
+              },
+              {
+                "content_hash": "b19d83246c9a87be3af8d9cd88a86c3c4f04a3753eee035633523abf07c45e57",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-true.status.json"
+              },
+              {
+                "content_hash": "de6710ba919ee09cab9f5b216ce3e49e95e478210274778c8042a7d488a3db26",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/kiln-native-preboot-true.vmm.log"
+              },
+              {
+                "content_hash": "248491b8bf0fbb4ec59bd260c4f314262c051723e0d75c30bdd73c45a70f9ed6",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/observed-policy.json"
+              },
+              {
+                "content_hash": "8a1348c74a205f4e931284a1bf72cb1b8fe3869241574fe51978b3d41b163fab",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/ptrace-denial.log"
+              },
+              {
+                "content_hash": "0919b29dfb80284e308ec445993d9f0b7ab856958482ece1d87ff34d3696daf1",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/ptrace-pair.json"
+              },
+              {
+                "content_hash": "85eddca754e114d7a0a892099facd40134b83fb1133e2313626edad9e7858eec",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/strict-preboot/spike.py"
+              },
+              {
+                "content_hash": "a5d7a0d8a866160a03715cbb0cbb2af22dc5700e2a5e44a2050a10276b3e2502",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/evidence/verification.json"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/metadata.json"
+              },
+              {
+                "content_hash": "c4a5420dc1e562a1d7dd7cfe7fe8ad842879dd8b69e0a6233788f995cced2e70",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/proposal.md"
+              },
+              {
+                "content_hash": "13b0f9e450a690a9a28467c12b4046095b8b89af349a99ee57432ac455a163a0",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/specs/unikernel-test/spec.md"
+              },
+              {
+                "content_hash": "ac3feec6ffc051adbb42fab8e61918cdb824dd98a486e744ad4b9be6d59f6ce6",
+                "exists": true,
+                "path": "./.cairn/changes/add-unikernel-test-runner/tasks.md"
+              }
+            ],
+            "manifest_hash": "c38b60baf5d2b56e3e74260c4d73e458bf278c7807d357333fda0adc5e3a0a8a"
+          },
+          "kind": "archive",
+          "manifest_hash": "0bf3e5a149eb77bf00390eb49099496bcacd29ebc8496074c413864d37204f88"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "bb1adbbfeaebf88e8298b0f953496858393f43e303bc95091ca4ce363891469d",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "3a4fee6a0be123b8ff663ee6b850993b91032e1994fdd0d639aa800ddd60f50e",
+        "reasons": [],
+        "receipt_hash": "9f71b0e94b1a7829603b2ab73f10aac3b0fb0a7915ab71766d27f960714284ac",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: finish-radicle-revision-ci-reduction",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction"
+          }
+        ],
+        "blocked": false,
+        "change": "finish-radicle-revision-ci-reduction",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "7b10c22130e426a244590384a5abf4c971d5a088d09563b6a9a3d134e8330038",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "4a7d68fa091edb3196d602b2f48c80cdc56350c54d2292263bbd6bbcab9a881a",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/design.md"
+              },
+              {
+                "content_hash": "5ce94f4a44c304b2868fe89996920224f9c24daad5b621cba95303f4f8487b9c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "07dcfacbabd7e688705f5fda55c5f15049fdb038f4cba659c7eddf3348dd79cb",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/approval-r1.json"
+              },
+              {
+                "content_hash": "ae3c2c5739a2d45a28a48b5823863d4c517875035ba40d3f4bd650f634421654",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/approval-r2.json"
+              },
+              {
+                "content_hash": "65c7d0f5da863b50097d4645c7cafe17bc67d9647165f2784a97c7da67c556ce",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/approved-r1.json"
+              },
+              {
+                "content_hash": "e36dae7dd34e94d802166dd59fd860754833373b0de62eb5f0828bdf31c3425d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/approved-r2.json"
+              },
+              {
+                "content_hash": "7e665b771401c4308018f4562cff247c6183841d64aefe30c1ddddf43711a724",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/authoritative-native-projection.json"
+              },
+              {
+                "content_hash": "1e18a0d51540db5c5fc2ae9bd78978c5e4ef4ba989adcf1ebdc11c87d0455ce0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/automation-approval.stderr.txt"
+              },
+              {
+                "content_hash": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-drive-r1.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-drive-r2.json"
+              },
+              {
+                "content_hash": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-replay-r1.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-replay-r2.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/duplicate-intake-r2.json"
+              },
+              {
+                "content_hash": "65c7d0f5da863b50097d4645c7cafe17bc67d9647165f2784a97c7da67c556ce",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/final-replay-r1.json"
+              },
+              {
+                "content_hash": "e36dae7dd34e94d802166dd59fd860754833373b0de62eb5f0828bdf31c3425d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/final-replay-r2.json"
+              },
+              {
+                "content_hash": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/intake-r1.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/intake-r2.json"
+              },
+              {
+                "content_hash": "901e9f9e8ae509a8f2244f9a334c5f9b1c2d09dafa7c6bcf00d2fd38388742e1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/profile.json"
+              },
+              {
+                "content_hash": "8610dafa5a62647df0071e361aa72d0fb1252c171930d4e73aef6398b5b05221",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/receipt.json"
+              },
+              {
+                "content_hash": "4a5415ab9a2f2956d866a69bf01f4d9c0416d69a81d134344c5d24e7bb9b21f3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/stale-approval.stderr.txt"
+              },
+              {
+                "content_hash": "0f1ecf6bb7b86322fcf12883963503c5024a81772cbbde9982b6fb805938a776",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/trigger-r1.json"
+              },
+              {
+                "content_hash": "77427af3e94960047e385f225722e77c27ac6c2d87e92e905541f06692f5fa29",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/issue18-cli/trigger-r2.json"
+              },
+              {
+                "content_hash": "ec3af5f3c3bb7b9eef425882fe6557b6ad6e019a01551f9d773797abaa7ad4f1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/evidence/verification.json"
+              },
+              {
+                "content_hash": "54287960424e604dfef57fca076755879c70a2e41cba4a9e29e4fece504820c3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/metadata.json"
+              },
+              {
+                "content_hash": "4699be13b12f606ed3669c1da8c823f7cc0a02d64dd60b5fd97f6d66ba924fee",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/proposal.md"
+              },
+              {
+                "content_hash": "98a649ddf998c681dc2b584b9f28463432652d88bfc96bc56406b54dc6890993",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/specs/radicle-mutation/spec.md"
+              },
+              {
+                "content_hash": "62e88f85734793c588ffd5d4ef835d053e17a7e2a44aa4b66fd3afb8cfc6f804",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/specs/radicle-revision-ci/spec.md"
+              },
+              {
+                "content_hash": "e0f1614c42addc26f0697efa6d21b61cb98f48d5fbd0901fda38dce099301f1d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-finish-radicle-revision-ci-reduction/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction"
+              }
+            ],
+            "manifest_hash": "b453e02a3369b6b204862c20023affa900dcb4837188c97d57ed396b109b288d"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "4a7d68fa091edb3196d602b2f48c80cdc56350c54d2292263bbd6bbcab9a881a",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/design.md"
+              },
+              {
+                "content_hash": "5ce94f4a44c304b2868fe89996920224f9c24daad5b621cba95303f4f8487b9c",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/final-gates.json"
+              },
+              {
+                "content_hash": "07dcfacbabd7e688705f5fda55c5f15049fdb038f4cba659c7eddf3348dd79cb",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/approval-r1.json"
+              },
+              {
+                "content_hash": "ae3c2c5739a2d45a28a48b5823863d4c517875035ba40d3f4bd650f634421654",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/approval-r2.json"
+              },
+              {
+                "content_hash": "65c7d0f5da863b50097d4645c7cafe17bc67d9647165f2784a97c7da67c556ce",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/approved-r1.json"
+              },
+              {
+                "content_hash": "e36dae7dd34e94d802166dd59fd860754833373b0de62eb5f0828bdf31c3425d",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/approved-r2.json"
+              },
+              {
+                "content_hash": "7e665b771401c4308018f4562cff247c6183841d64aefe30c1ddddf43711a724",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/authoritative-native-projection.json"
+              },
+              {
+                "content_hash": "1e18a0d51540db5c5fc2ae9bd78978c5e4ef4ba989adcf1ebdc11c87d0455ce0",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/automation-approval.stderr.txt"
+              },
+              {
+                "content_hash": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-drive-r1.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-drive-r2.json"
+              },
+              {
+                "content_hash": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-replay-r1.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/blocked-replay-r2.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/duplicate-intake-r2.json"
+              },
+              {
+                "content_hash": "65c7d0f5da863b50097d4645c7cafe17bc67d9647165f2784a97c7da67c556ce",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/final-replay-r1.json"
+              },
+              {
+                "content_hash": "e36dae7dd34e94d802166dd59fd860754833373b0de62eb5f0828bdf31c3425d",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/final-replay-r2.json"
+              },
+              {
+                "content_hash": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/intake-r1.json"
+              },
+              {
+                "content_hash": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/intake-r2.json"
+              },
+              {
+                "content_hash": "901e9f9e8ae509a8f2244f9a334c5f9b1c2d09dafa7c6bcf00d2fd38388742e1",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/profile.json"
+              },
+              {
+                "content_hash": "8610dafa5a62647df0071e361aa72d0fb1252c171930d4e73aef6398b5b05221",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/receipt.json"
+              },
+              {
+                "content_hash": "4a5415ab9a2f2956d866a69bf01f4d9c0416d69a81d134344c5d24e7bb9b21f3",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/stale-approval.stderr.txt"
+              },
+              {
+                "content_hash": "0f1ecf6bb7b86322fcf12883963503c5024a81772cbbde9982b6fb805938a776",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/trigger-r1.json"
+              },
+              {
+                "content_hash": "77427af3e94960047e385f225722e77c27ac6c2d87e92e905541f06692f5fa29",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/issue18-cli/trigger-r2.json"
+              },
+              {
+                "content_hash": "ec3af5f3c3bb7b9eef425882fe6557b6ad6e019a01551f9d773797abaa7ad4f1",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/evidence/verification.json"
+              },
+              {
+                "content_hash": "54287960424e604dfef57fca076755879c70a2e41cba4a9e29e4fece504820c3",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/metadata.json"
+              },
+              {
+                "content_hash": "4699be13b12f606ed3669c1da8c823f7cc0a02d64dd60b5fd97f6d66ba924fee",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/proposal.md"
+              },
+              {
+                "content_hash": "98a649ddf998c681dc2b584b9f28463432652d88bfc96bc56406b54dc6890993",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/specs/radicle-mutation/spec.md"
+              },
+              {
+                "content_hash": "62e88f85734793c588ffd5d4ef835d053e17a7e2a44aa4b66fd3afb8cfc6f804",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/specs/radicle-revision-ci/spec.md"
+              },
+              {
+                "content_hash": "e0f1614c42addc26f0697efa6d21b61cb98f48d5fbd0901fda38dce099301f1d",
+                "exists": true,
+                "path": "./.cairn/changes/finish-radicle-revision-ci-reduction/tasks.md"
+              }
+            ],
+            "manifest_hash": "7f7335b73c1b330e48fc405ffdfa57550d54ccb1263842803b384ad35217763b"
+          },
+          "kind": "archive",
+          "manifest_hash": "431d87fbf77dabf2be527c14bb21809acbe6f307e9701b36ce5e668deae60548"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "580ee52a76813955f8f6ce2af749328ce20bcf4d2d7db6b5d2959bea358f9f68",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "7f8b20bb84c8a02799524a594aae654bb00e9ff11dc1bf23ec03281bd2f86974",
+        "reasons": [],
+        "receipt_hash": "4ded07846a0c85f8b1932e576634e426956bf29ee35c3929baf2c63ed7116110",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    ]
+  },
+  "additional_gate_limit": "Whole-workspace cargo fmt remains blocked by the partial vendored Cairn workspace missing vendor/cairn/crates/cairn-core/Cargo.toml; targeted changed-source formatting was exercised. Vendored snapshots were not reconstructed or edited.",
+  "external_qualification_boundaries": [
+    "Host 6.18.50 is refused by the supplied issue-policy kernel table. Actual approved-untrusted execution requires a patched/rebooted admitted independently qualified host; no override was used.",
+    "CAT runtime assignment requires mounted resctrl, supported hardware and operator-created delegated exclusive groups; that host setup was unavailable.",
+    "No second independently provisioned physical host was available for cross-physical-host channel qualification.",
+    "The selected external Lattice runtime pin is documented independently of the untouched MIT import; no runtime deployment or historical-Aspen-to-current-handler qualification is claimed."
+  ],
+  "hostile_isolation_claim": false,
+  "release_or_remote_mutation_authorized": false
+}

@@ -1,0 +1,82 @@
+--- a/lib/ukboot/boot.c
++++ b/lib/ukboot/boot.c
+@@ -469,6 +469,10 @@
+ 
+ 	uk_pr_debug("Unikraft terminates with exit status %d (target: %d)\n",
+ 		    tctx.exit_code, tctx.target);
++	if (tctx.target == UK_PM_SHUTDOWN_OP_SYSHALT) {
++		printf("\nKILN_RESULT:{\"schema\":\"kiln.unikernel.result.v1\",\"exit_code\":%d}\n", tctx.exit_code);
++		fflush(stdout);
++	}
+ 	uk_pm_shutdown(tctx.target); /* does not return */
+ }
+ 
+--- a/lib/posix-process/execve.c
++++ b/lib/posix-process/execve.c
+@@ -93,6 +93,12 @@
+ 	void *stack_old;
+ 	void *stack_new;
+ 	int rc = 0;
++	/* Permit only elfloader's initial transfer into the declared ELF.
++	 * The application cannot replace itself or launch a subprocess. */
++	static int kiln_loaded;
++	if (kiln_loaded)
++		return -EPERM;
++	kiln_loaded = 1;
+ 
+ 	/* Linux deviates from POSIX by treating NULL pointers to
+ 	 * argv / envp equivalently to passing a list with a single
+--- a/lib/ukboot/early_init.c
++++ b/lib/ukboot/early_init.c
+@@ -58,6 +58,18 @@
+ 
+ 	boot_argc = uk_argnparse(cmdline, cmdline_len, boot_argv,
+ 				 CONFIG_LIBUKBOOT_MAXNBARGS);
++	/* Separate reviewed application argv from VMM-appended kernel tokens. */
++	int kiln_boundary = -1;
++	for (int i = 1; i < boot_argc; i++) {
++		if (!strcmp(boot_argv[i], "KILN_ARGV_END")) {
++			kiln_boundary = i;
++			break;
++		}
++	}
++	if (kiln_boundary < 2)
++		return -EINVAL;
++	boot_argc = kiln_boundary;
++	boot_argv[kiln_boundary] = NULL;
+ 
+ #if CONFIG_LIBUKLIBPARAM
+ 	/*
+--- a/lib/ramfs/ramfs_vnops.c
++++ b/lib/ramfs/ramfs_vnops.c
+@@ -263,7 +263,8 @@
+ 		return ENOMEM;
+ 	}
+ 	vp->v_data = np;
+-	vp->v_mode = UK_ALLPERMS;
++	/* Preserve archive permissions when a vnode is recreated after lookup. */
++	vp->v_mode = np->rn_mode & UK_ALLPERMS;
+ 	vp->v_type = np->rn_type;
+ 	vp->v_size = np->rn_size;
+ 
+--- a/lib/ukcpio/cpio.c
++++ b/lib/ukcpio/cpio.c
+@@ -194,7 +194,8 @@
+ 	uk_pr_info("Extracting %s (%zu bytes)\n", path, len);
+ 
+-	fd = uk_syscall_do_open(path, O_CREAT | O_WRONLY | O_EXCL, 0);
++	/* Extraction needs owner write access until the final archive chmod. */
++	fd = uk_syscall_do_open(path, O_CREAT | O_WRONLY | O_EXCL, S_IRUSR | S_IWUSR);
+ 	if (unlikely(fd == -EEXIST)) {
+ 		uk_pr_info("Path exists, trying removal\n");
+ 		err = try_remove(path);
+ 		if (unlikely(err))
+@@ -202,7 +203,7 @@
+ 			uk_pr_warn("%s: Path cleanup failed: %s (%d)\n",
+ 				   path, strerror(-err), -err);
+-		fd = uk_syscall_do_open(path, O_CREAT | O_WRONLY | O_TRUNC, 0);
++		fd = uk_syscall_do_open(path, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR);
+ 	}
+ 	if (unlikely(fd < 0)) {
+ 		uk_pr_err("%s: Failed to create file: %s (%d)\n",
+ 			  path, strerror(-fd), -fd);

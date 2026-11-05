@@ -12,6 +12,11 @@ pub const SCHEMA: &str = "kiln.microvm.guest.v1";
 pub const MAX_FRAME_BYTES: usize = 4 * 1_048_576;
 pub const MAX_STEPS: usize = 128;
 pub const ENTROPY_BYTES: usize = 32;
+pub const MAX_CACHE_NONCE_BYTES: usize = 1024;
+// JSON may encode each nonce byte as a six-byte escape. 128 bytes cover
+// schema, message tags, field names and punctuation independently of payload.
+const CACHE_ENVELOPE_BYTES: usize = 128 + 6 * MAX_CACHE_NONCE_BYTES;
+pub const MAX_CACHE_TAR_BYTES: usize = (MAX_FRAME_BYTES - CACHE_ENVELOPE_BYTES) / 2;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -169,12 +174,13 @@ pub fn decode_host(body: &[u8]) -> Result<HostFrame, String> {
         HostMessage::Publish {
             paths,
             maximum_bytes,
-            ..
+            nonce,
         } => {
             if paths.is_empty()
                 || paths.len() > 64
+                || nonce.len() > MAX_CACHE_NONCE_BYTES
                 || *maximum_bytes == 0
-                || *maximum_bytes > MAX_FRAME_BYTES / 2
+                || *maximum_bytes > MAX_CACHE_TAR_BYTES
                 || paths.iter().any(|path| {
                     path.is_empty()
                         || path.starts_with('/')
@@ -527,5 +533,33 @@ mod tests {
         });
         let encoded = encode(&report).unwrap_or_default();
         assert_eq!(decode_guest(body(&encoded)), Ok(report));
+    }
+    #[test]
+    fn cache_return_limit_reserves_worst_case_nonce_and_json_envelope() {
+        let nonce = "\0".repeat(MAX_CACHE_NONCE_BYTES);
+        let returned = guest_frame(GuestMessage::Cache {
+            nonce: nonce.clone(),
+            tar_hex: "00".repeat(MAX_CACHE_TAR_BYTES),
+        });
+        let encoded =
+            encode(&returned).unwrap_or_else(|error| unreachable!("bounded return: {error}"));
+        assert_eq!(decode_guest(body(&encoded)), Ok(returned));
+        for (maximum_bytes, nonce, accepted) in [
+            (MAX_CACHE_TAR_BYTES, nonce.clone(), true),
+            (MAX_CACHE_TAR_BYTES + 1, nonce.clone(), false),
+            (
+                MAX_CACHE_TAR_BYTES,
+                "n".repeat(MAX_CACHE_NONCE_BYTES + 1),
+                false,
+            ),
+        ] {
+            let request = host_frame(HostMessage::Publish {
+                nonce,
+                paths: vec!["target".into()],
+                maximum_bytes,
+            });
+            let encoded = encode(&request).unwrap_or_else(|error| unreachable!("request: {error}"));
+            assert_eq!(decode_host(body(&encoded)).is_ok(), accepted);
+        }
     }
 }

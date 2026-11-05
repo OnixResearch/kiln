@@ -1,0 +1,31 @@
+2026-11-05T20:58:11.612614696 [anonymous-instance:main] Running Firecracker v1.16.1
+2026-11-05T20:58:11.616602234 [anonymous-instance:main] Artificially kick devices
+2026-11-05T20:58:11.616630697 [anonymous-instance:fc_vcpu 0] Received a VcpuEvent::Resume message with immediate_exit enabled. immediate_exit was disabled before proceeding
+2026-11-05T20:58:11.616657698 [anonymous-instance:main] Successfully started microvm that was configured from one single json
+2026-11-05T20:58:11.617848614 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617861969 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617869884 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617877378 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617885023 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617892557 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617900121 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617907725 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617917153 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617926130 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617935527 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617944865 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617954202 [anonymous-instance:fc_vcpu 0] vcpu: IO write @ 0x70:0x1 failed: bus_error: MissingAddressRange
+2026-11-05T20:58:11.617963530 [anonymous-instance:fc_vcpu 0] vcpu: IO read @ 0x71:0x1 failed: bus_error: MissingAddressRange
+Powered by
+o.   .o       _ _               __ _
+Oo   Oo  ___ (_) | __ __  __ _ ' _) :_
+oO   oO ' _ `| | |/ /  _)' _` | |_|  _)
+oOo oOO| | | | |   (| | | (_) |  _) :_
+ OoOoO ._, ._:_:_,\_._,  .__,_:_, \___)
+                          Ijiraq 0.21.0
+static Go native test argv=["/test" "pass"]
+
+KILN_RESULT:{"schema":"kiln.unikernel.result.v1","exit_code":0}
+[2026-11-05T20:58:11.744505528 [anonymous-instance:main] Vmm is stopping.
+2026-11-05T20:58:11.744525726 [anonymous-instance:main] Killing vCPU threads
+2026-11-05T20:58:11.771182920 [anonymous-instance:main] Firecracker exiting successfully. exit_code=0

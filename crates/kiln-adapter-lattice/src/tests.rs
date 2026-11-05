@@ -32,7 +32,6 @@ const MAX_TOTAL_LOG_BYTES: usize = 16384;
 const MAX_REQUEST_BYTES: usize = 65536;
 const MAX_RESPONSE_BYTES: usize = 65536;
 const MAX_IN_FLIGHT: usize = 4;
-const FIRST_OBSERVATION_SEQUENCE: u64 = 1;
 const LOG_BYTES: &[u8] = b"log";
 
 #[derive(Debug, Default)]
@@ -233,8 +232,8 @@ fn plan() -> WorkflowEffectPlan {
         }],
         controls: WorkflowControls {
             cancel: true,
-            pause: true,
-            resume: true,
+            pause: false,
+            resume: false,
         },
         bounds: limits().workflow,
     }
@@ -355,7 +354,7 @@ fn profile_rejects_missing_operation_and_capability_drift() {
         .remove(&kiln_core::provider::Operation::Observe);
     assert!(admit_profile(&invalid).is_err());
     invalid = profile();
-    invalid.contract.controls.pause = false;
+    invalid.contract.controls.pause = true;
     assert!(admit_profile(&invalid).is_err());
 }
 
@@ -480,29 +479,11 @@ fn stale_execution_is_rejected_without_state_change() {
 }
 
 #[test]
-fn pause_and_log_operations_are_bounded() {
+fn log_operations_are_bounded() {
     let plan = plan();
     let mut adapter = LatticeAdapter::new(profile(), FixtureTransport::default())
         .unwrap_or_else(|_| unreachable!());
     let accepted = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
-    let paused = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: 0,
-            action: WorkflowControlAction::Pause,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(paused.state, WorkflowState::Paused);
-    let resumed = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: FIRST_OBSERVATION_SEQUENCE,
-            action: WorkflowControlAction::Resume,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(resumed.state, WorkflowState::Running);
     let chunk = adapter
         .read_log(&WorkflowLogReadRequest {
             effect_id: plan.effect_id.clone(),
@@ -517,24 +498,42 @@ fn pause_and_log_operations_are_bounded() {
     assert_eq!(chunk.reference.bytes, LOG_BYTES.len());
 }
 
+// r[verify kiln.lattice.cancel_only]
 #[test]
-fn unrequested_control_fails_before_transport() {
-    let mut plan = plan();
-    plan.controls.pause = false;
-    let mut adapter = LatticeAdapter::new(profile(), FixtureTransport::default())
-        .unwrap_or_else(|_| unreachable!());
-    let accepted = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
-    assert!(
-        adapter
-            .control(&WorkflowControlRequest {
-                effect_id: plan.effect_id,
-                execution: accepted.execution,
-                expected_sequence: 0,
-                action: WorkflowControlAction::Pause,
-            })
-            .is_err()
-    );
-    assert_eq!(adapter.transport().exchanges.len(), 1);
+fn unsupported_plan_controls_are_rejected_before_dispatch() {
+    for pause in [true, false] {
+        let mut requested = plan();
+        requested.controls.pause = pause;
+        requested.controls.resume = !pause;
+        let mut adapter = LatticeAdapter::new(profile(), FixtureTransport::default())
+            .unwrap_or_else(|_| unreachable!());
+        assert!(adapter.dispatch(&requested).is_err());
+        assert!(adapter.transport().exchanges.is_empty());
+    }
+}
+
+#[test]
+fn unsupported_controls_fail_before_transport() {
+    for action in [WorkflowControlAction::Pause, WorkflowControlAction::Resume] {
+        let plan = plan();
+        let mut adapter = LatticeAdapter::new(profile(), FixtureTransport::default())
+            .unwrap_or_else(|_| unreachable!());
+        let accepted = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+        assert!(
+            adapter
+                .control(&WorkflowControlRequest {
+                    effect_id: plan.effect_id,
+                    execution: accepted.execution,
+                    expected_sequence: 0,
+                    action,
+                })
+                .is_err()
+        );
+        assert_eq!(
+            adapter.transport().exchanges,
+            vec![WorkflowExchangeOperation::Dispatch]
+        );
+    }
 }
 
 // r[verify kiln.lattice.conformance.scenario.cancel]

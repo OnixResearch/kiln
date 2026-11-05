@@ -100,8 +100,9 @@ pub fn run_job(
                     config,
                     &source.checkout,
                 )?;
+                let permits_publication = observation.permits_publication();
                 cache_observations.push(observation);
-                Some(key)
+                permits_publication.then_some(key)
             } else {
                 None
             };

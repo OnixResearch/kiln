@@ -98,6 +98,10 @@ pub struct JobTemplate {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Job {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unikernel: Option<crate::unikernel::TestSpec>,
     #[serde(default)]
     pub template: Option<String>,
     #[serde(default)]
@@ -141,6 +145,10 @@ pub type CompiledStep = RunStep;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CompiledJob {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unikernel: Option<crate::unikernel::TestSpec>,
     pub id: String,
     pub source_job: String,
     pub needs: Vec<String>,
@@ -418,6 +426,44 @@ pub fn compile(pipeline: &Pipeline) -> Result<CompiledPipeline, String> {
     for (key, job) in &pipeline.jobs {
         let path = format!("$.jobs.{key}");
         name(key, &path)?;
+        // r[impl kiln.hosted.unikernel.test]
+        let unikernel = match (job.kind.as_deref(), job.unikernel.as_ref()) {
+            (None, None) => false,
+            (Some("unikernel-test"), Some(spec)) => {
+                if job.steps.len() > 1 {
+                    return Err(fail(
+                        &format!("{path}.steps"),
+                        "unikernel-test refuses multi-step jobs",
+                    ));
+                }
+                if !job.steps.is_empty() {
+                    return Err(fail(
+                        &format!("{path}.steps"),
+                        "unikernel-test refuses shell steps; declare one binary instead",
+                    ));
+                }
+                if job.template.is_some()
+                    || !pipeline.env.is_empty()
+                    || !job.env.is_empty()
+                    || !job.matrix.is_empty()
+                    || !job.parameters.is_empty()
+                {
+                    return Err(fail(
+                        &path,
+                        "unikernel-test requires fixed argv without templates, environment, matrix or parameters",
+                    ));
+                }
+                crate::unikernel::validate_spec(spec)
+                    .map_err(|reason| fail(&format!("{path}.unikernel"), &reason))?;
+                true
+            }
+            _ => {
+                return Err(fail(
+                    &path,
+                    "unikernel-test kind and binary specification must be declared together; unknown job kind refused",
+                ));
+            }
+        };
         strings(
             &job.parameters,
             MAX_PARAMETERS,
@@ -458,7 +504,7 @@ pub fn compile(pipeline: &Pipeline) -> Result<CompiledPipeline, String> {
             ));
         }
         let steps = template.map_or(&job.steps, |v| &v.steps);
-        if steps.is_empty() || steps.len() > MAX_STEPS_PER_JOB {
+        if (!unikernel && steps.is_empty()) || steps.len() > MAX_STEPS_PER_JOB {
             return Err(fail(&format!("{path}.steps"), "expected 1..64 steps"));
         }
         let runner = template
@@ -577,6 +623,8 @@ pub fn compile(pipeline: &Pipeline) -> Result<CompiledPipeline, String> {
             jobs.insert(
                 id.clone(),
                 CompiledJob {
+                    kind: job.kind.clone(),
+                    unikernel: job.unikernel.clone(),
                     id,
                     source_job: key.clone(),
                     needs: vec![],
@@ -896,6 +944,8 @@ pub fn migrate(yaml: &str) -> Result<Migration, String> {
         jobs.insert(
             id.clone(),
             Job {
+                kind: None,
+                unikernel: None,
                 template: None,
                 parameters: Strings::new(),
                 runner: Some(runner),
@@ -1591,5 +1641,68 @@ mod tests {
         assert_eq!(restart.get("status"), Some(&json!("missed")));
         assert!(some(restart.get("next_due_ms").and_then(Value::as_u64)) > next + 3 * 86_400_000);
         assert!(handle(&mut db, &actor, "schedule", json!({"project":"project","name":"nightly","schedule":"nightly","reference":"refs/heads/other","revision":"c".repeat(40)}), now).is_err());
+    }
+    fn unikernel_pipeline() -> Value {
+        json!({"schema":PIPELINE_SCHEMA,"name":"Native tests","triggers":["manual"],
+            "jobs":{"test":{"kind":"unikernel-test","runner":"unikernel-reviewed",
+                "unikernel":{"binary":{"path":"bin/tests","blake3":"a".repeat(64)},"argv":["pass"],"fixtures":[]}}}})
+    }
+
+    // r[verify kiln.hosted.unikernel.test]
+    #[test]
+    fn unikernel_job_preserves_exact_prebuilt_binary_and_argv() {
+        let source: Pipeline = ok(serde_json::from_value(unikernel_pipeline()));
+        let compiled = ok(compile(&source));
+        assert_eq!(compiled.jobs[0].kind.as_deref(), Some("unikernel-test"));
+        assert!(compiled.jobs[0].steps.is_empty());
+        assert_eq!(compiled.jobs[0].unikernel, source.jobs["test"].unikernel);
+    }
+
+    #[test]
+    fn unikernel_job_refuses_multiple_steps() {
+        let mut value = unikernel_pipeline();
+        value["jobs"]["test"]["steps"] = json!([
+            {"kind":"run","run":"echo one"}, {"kind":"run","run":"echo two"}]);
+        assert!(compile(&ok(serde_json::from_value(value))).is_err());
+    }
+
+    #[test]
+    fn unikernel_job_refuses_shell_step() {
+        let mut value = unikernel_pipeline();
+        value["jobs"]["test"]["steps"] = json!([{ "kind":"run","run":"/bin/sh -c true" }]);
+        assert!(compile(&ok(serde_json::from_value(value))).is_err());
+    }
+
+    #[test]
+    fn unikernel_job_refuses_exec_request() {
+        let mut value = unikernel_pipeline();
+        value["jobs"]["test"]["unikernel"]["exec"] = json!(["other"]);
+        assert!(serde_json::from_value::<Pipeline>(value).is_err());
+    }
+
+    #[test]
+    fn unikernel_job_refuses_network_request() {
+        let mut value = unikernel_pipeline();
+        value["jobs"]["test"]["unikernel"]["network"] = json!("internet");
+        assert!(serde_json::from_value::<Pipeline>(value).is_err());
+    }
+
+    #[test]
+    fn unikernel_job_requires_matching_kind_and_fixed_input_contract() {
+        let source = unikernel_pipeline();
+        for field in ["kind", "unikernel"] {
+            let mut value = source.clone();
+            some(value["jobs"]["test"].as_object_mut()).remove(field);
+            assert!(compile(&ok(serde_json::from_value(value))).is_err());
+        }
+        for field in ["env", "matrix", "parameters"] {
+            let mut value = source.clone();
+            value["jobs"]["test"][field] = if field == "matrix" {
+                json!({"version":["one"]})
+            } else {
+                json!({"VALUE":"one"})
+            };
+            assert!(compile(&ok(serde_json::from_value(value))).is_err());
+        }
     }
 }

@@ -1,0 +1,81 @@
+{
+  "guest": {
+    "firecracker": {
+      "blake3": "4e4b972c0a8b73d7b598b178d5b40cb7b3989a0f692e82b8339ef58bad6e988c",
+      "path": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker",
+      "version": "1.16.1"
+    },
+    "guest_kind": "unikernel",
+    "hostile_isolation_claim": false,
+    "kernel": {
+      "blake3": "081b4383aaf1d544b0b3a3fb77409feb2252e4b11e84417d2ef91cff091eb9b6",
+      "path": "/tmp/kiln-unikernel-spike/app-elfloader-0cd7a2b2c4d5ece85647c0c9903b50426e849420/build/elfloader_fc-x86_64"
+    },
+    "project": "unikraft",
+    "schema": "kiln.unikernel.guest.v1",
+    "version": "a4c494e80141bd402961c7d96150dd218c79db37"
+  },
+  "hosted_confinement_observed": false,
+  "hostile_isolation_claim": false,
+  "image_rebuilds": [
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "1226e0f733e435e2591f3a50a13bde027b6ff9527628f8351aa701739288ee10",
+      "name": "rust"
+    },
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "7d93ccaa58218b04e58ae3d53e5788a3b14750452910165f7a20464a949f2156",
+      "name": "go"
+    },
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "4c87011b4ab935fe85cac5d499bef907a957f7d3f94ed9da4f2d800b1e7dba89",
+      "name": "probe"
+    }
+  ],
+  "measurements": [
+    {
+      "cold_boot_to_application_ms": 131.263,
+      "exit_code": 0,
+      "name": "rust-pass",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 153.495,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 131.486,
+      "exit_code": 7,
+      "name": "rust-fail",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 155.984,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 133.721,
+      "exit_code": 0,
+      "name": "go-pass",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 160.23,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 131.02,
+      "exit_code": 7,
+      "name": "go-fail",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 151.316,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 131.531,
+      "exit_code": 0,
+      "name": "probe-probe",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 159.4,
+      "vsock_device_configured": false
+    }
+  ],
+  "schema": "kiln.unikernel.native-smoke.v1",
+  "single_host_measurement": true
+}

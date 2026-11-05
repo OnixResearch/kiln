@@ -2,16 +2,18 @@
 name = "kiln-radicle-patch"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.97"
 publish = false
 
 [dependencies]
-radicle = "0.25.1"
+radicle = "=0.25.1"
 indexmap = { version = "2", features = ["std"] }
 serde_json = "1"
 hex = "0.4"
+fs2 = "=0.4.3"
+tempfile = "3"
 
 [dev-dependencies]
-tempfile = "3"
-radicle = { version = "0.25.1", features = ["test"] }
+radicle = { version = "=0.25.1", features = ["test"] }
 
 [workspace]

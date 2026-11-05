@@ -18,8 +18,8 @@ pub enum CveStatus {
     Unknown,
 }
 
-/// Upstream fixed releases: (major, minor, patch) for the first fixed patch of
-/// each supported series. A later release in the same series is fixed.
+/// Issue #28's operator policy table, not an independently verified CVE advisory.
+/// No vendor backports are asserted without an exact reviewed package entry.
 const FIXED_RELEASES: &[(u64, u64, u64)] = &[
     (7, 3, 0),
     (7, 2, 10),
@@ -44,6 +44,16 @@ pub struct HostFacts {
     pub tcp_migrate_req: Option<bool>,
     pub mptcp_listeners: Option<u32>,
     pub resctrl_mounted: bool,
+    #[serde(default)]
+    pub smt_control: Option<String>,
+    #[serde(default)]
+    pub ksm_run: Option<String>,
+    #[serde(default)]
+    pub kernel_cmdline: Option<String>,
+    #[serde(default)]
+    pub vulnerabilities: BTreeMap<String, String>,
+    #[serde(default)]
+    pub resctrl_capabilities: BTreeMap<String, String>,
 }
 
 impl HostFacts {
@@ -74,11 +84,16 @@ impl HostFacts {
             tcp_migrate_req,
             mptcp_listeners,
             resctrl_mounted,
+            smt_control: None,
+            ksm_run: None,
+            kernel_cmdline: None,
+            vulnerabilities: BTreeMap::new(),
+            resctrl_capabilities: BTreeMap::new(),
         }
     }
 
-    /// `Some(reason)` means an `untrusted_capable` runner must refuse unless an
-    /// explicit operator override is recorded.
+    /// `Some(reason)` means an untrusted-capable runner must refuse.
+    /// Only SMT and KSM observations may receive an operator override.
     #[must_use]
     pub fn untrusted_refusal(&self) -> Option<String> {
         if self.cve_2026_98432 != CveStatus::Fixed {
@@ -98,15 +113,23 @@ impl HostFacts {
         if self.ksm_running {
             return Some("host KSM is running".into());
         }
-        if self.net_mptcp_enabled == Some(false) && self.mptcp_listeners.unwrap_or(0) > 0 {
-            return Some("MPTCP listeners remain after disabling the sysctl".into());
-        }
         None
+    }
+    /// Disabled MPTCP with no observed listeners reduces only MPTCP exposure;
+    /// it is neither a kernel fix nor a claim about ordinary TCP reachability.
+    #[must_use]
+    pub fn mptcp_exposure_reduced(&self) -> bool {
+        self.net_mptcp_enabled == Some(false) && self.mptcp_listeners == Some(0)
     }
 
     /// Admit an untrusted runner. A non-empty operator override is retained by
     /// the caller's receipt; this function only decides admission.
     pub fn admit_untrusted(&self, override_reason: Option<&str>) -> Result<(), String> {
+        if self.cve_2026_98432 != CveStatus::Fixed {
+            return Err(self
+                .untrusted_refusal()
+                .unwrap_or_else(|| "kernel status unknown".into()));
+        }
         match self.untrusted_refusal() {
             None => Ok(()),
             Some(_) if override_reason.is_some_and(|reason| !reason.trim().is_empty()) => Ok(()),
@@ -130,9 +153,7 @@ pub fn classify_kernel(
     let Some((major, minor, patch)) = parse_release(release) else {
         return CveStatus::Unknown;
     };
-    if (major, minor, patch) >= (7, 3, 0) {
-        return CveStatus::Fixed;
-    }
+    // Only enumerated release series are admitted; future series require review.
     for &(series_major, series_minor, fixed_patch) in FIXED_RELEASES {
         if (major, minor) == (series_major, series_minor) {
             return if patch >= fixed_patch {
@@ -153,9 +174,38 @@ fn parse_release(release: &str) -> Option<(u64, u64, u64)> {
     Some((major, minor, patch))
 }
 
+/// CAT assignment uses only this canonical mountpoint, not arbitrary resctrl
+/// mounts elsewhere in the host namespace.
+#[must_use]
+pub fn resctrl_at_expected_mountpoint(mounts: &str) -> bool {
+    mounts.lines().any(|line| {
+        let mut fields = line.split_whitespace();
+        fields.next().is_some()
+            && fields.next() == Some("/sys/fs/resctrl")
+            && fields.next() == Some("resctrl")
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cat_requires_the_assignment_mountpoint_and_filesystem_type() {
+        assert!(resctrl_at_expected_mountpoint(
+            "resctrl /sys/fs/resctrl resctrl rw 0 0\n"
+        ));
+        assert!(!resctrl_at_expected_mountpoint(
+            "resctrl /operator/other resctrl rw 0 0\n"
+        ));
+        assert!(!resctrl_at_expected_mountpoint(
+            "tmpfs /sys/fs/resctrl tmpfs rw 0 0\n"
+        ));
+        assert!(!resctrl_at_expected_mountpoint(
+            "resctrl /sys/fs/resctrl-other resctrl rw 0 0\n"
+        ));
+        assert!(!resctrl_at_expected_mountpoint("resctrl\n"));
+    }
 
     fn backports() -> BTreeMap<String, CveStatus> {
         BTreeMap::from([("6.18.42-1vendor1".into(), CveStatus::Fixed)])
@@ -208,6 +258,9 @@ mod tests {
         fixed.ksm_running = false;
         fixed.cve_2026_98432 = CveStatus::Vulnerable;
         assert!(fixed.admit_untrusted(None).is_err());
+        assert!(fixed.admit_untrusted(Some("SMT exception")).is_err());
+        fixed.cve_2026_98432 = CveStatus::Unknown;
+        assert!(fixed.admit_untrusted(Some("SMT exception")).is_err());
     }
 
     #[test]
@@ -215,8 +268,10 @@ mod tests {
         let mut facts = facts("6.18.56", "");
         facts.net_mptcp_enabled = Some(false);
         facts.mptcp_listeners = Some(1);
-        assert!(facts.untrusted_refusal().is_some());
+        assert!(!facts.mptcp_exposure_reduced());
         facts.mptcp_listeners = Some(0);
-        assert!(facts.untrusted_refusal().is_none());
+        assert!(facts.mptcp_exposure_reduced());
+        facts.mptcp_listeners = None;
+        assert!(!facts.mptcp_exposure_reduced());
     }
 }

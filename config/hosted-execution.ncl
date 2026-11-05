@@ -38,7 +38,7 @@ let Immutable = {
 }
 in
 let Backend = {
-  kind | std.contract.from_predicate (fun value => std.array.elem value ["namespaces", "qemu", "firecracker", "cloud-hypervisor"]),
+  kind | std.contract.from_predicate (fun value => std.array.elem value ["namespaces", "qemu", "firecracker", "cloud-hypervisor", "unikernel-test"]),
   # namespaces: every namespace-specific field is required by Rust admission;
   # qemu: qemu/kernel/initramfs/guest_shell/acceleration are required there;
   # firecracker: firecracker/kernel/initrd/guest_shell/vcpus/memory_mib/
@@ -57,6 +57,8 @@ let Backend = {
   acceleration | std.contract.from_predicate (fun value => std.array.elem value ["tcg", "kvm"]) | optional,
   firecracker | Immutable | optional,
   cloud_hypervisor | Immutable | optional,
+  # Trusted cold-only Unikraft test runner; kernel and Firecracker are immutable.
+  project | String | optional,
   initrd | Immutable | optional,
   vcpus | Positive 8 | optional,
   memory_mib | Positive 16384 | optional,
@@ -74,13 +76,13 @@ let Backend = {
       max_concurrent | Positive 16,
     }
     | optional,
-  # Non-empty operator acknowledgement for unsafe host preflight facts.
+  # Recorded SMT/KSM-only exception; never overrides unfixed/unknown kernel status.
   host_preflight_override | String | optional,
   # Reviewed placement pool; untrusted and workload-bearing runners must differ.
   trust_domain | String | optional,
   # Reviewed physical host; untrusted and workload-bearing runners must differ.
   host_identity | String | optional,
-  # Reviewed cache-partition label; not a resctrl or LLC-isolation proof.
+  # Existing operator-created resctrl CAT group; assignment is checked before dispatch.
   cache_partition | String | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
   network | String | optional,

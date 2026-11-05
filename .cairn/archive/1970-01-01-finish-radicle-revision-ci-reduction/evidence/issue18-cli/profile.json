@@ -1,0 +1,93 @@
+{
+  "schema": "kiln.radicle-ci.patch-profile.v1",
+  "repository_id": "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj",
+  "storage_root": "/tmp/.tmpiquSL3/storage",
+  "helper": {
+    "path": "/tmp/kiln-radicle-issues-helper-target/debug/kiln-radicle-patch",
+    "blake3": "5cf3bf3eedbde420883d9fb28c042dd1e582ba7a7356adf084015f1ffa5031d6"
+  },
+  "state_root": "/tmp/kiln-issue18-cli.qJQqCN/state",
+  "snapshot_limits": {
+    "max_identity_bytes": 1048576,
+    "max_reference_bytes": 4096,
+    "max_entries": 1024,
+    "max_path_bytes": 4096,
+    "max_file_bytes": 1048576,
+    "max_total_bytes": 16777216
+  },
+  "trusted_authors": [],
+  "approvers": [
+    "fixture-operator"
+  ],
+  "hosted": {
+    "executable": {
+      "path": "/tmp/kiln-issue18-cli.qJQqCN/must-not-run",
+      "blake3": "0b66db410cef81ab818dd06633474c0e236e566b9683fa07815634caaeedc795"
+    },
+    "client_profile": "/tmp/kiln-issue18-cli.qJQqCN/client.json",
+    "client_profile_identity": "36a22384e66a709702bc26bd4871fb52ee98e2db241fa4ea239154246a18a8e0",
+    "organization": "fixture",
+    "project": "fixture",
+    "pipeline_id": "fixture-not-dispatched",
+    "price_id": "fixture-not-dispatched",
+    "class": "fixture-not-dispatched",
+    "workspace_root": "/tmp/kiln-issue18-cli.qJQqCN/work"
+  },
+  "job_profile": {
+    "id": "radicle-job-v1",
+    "platform": "x86_64-linux",
+    "radicle_cohort": "radicle-cob-0.21.1-crypto-0.19.0-oid-0.2.2-ref-format-0.2.0-git2-0.21.0",
+    "radicle_cob_version": "0.21.1",
+    "radicle_cob_source_revision": "crates.io:sha256:8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e",
+    "radicle_crypto_version": "0.19.0",
+    "radicle_crypto_source_revision": "crates.io:sha256:76de6172f3ccae0f489578f4a5da45bc77ff8855ace6352b002d94c0e0783bb5",
+    "radicle_oid_version": "0.2.2",
+    "radicle_oid_source_revision": "crates.io:sha256:7a0b9a4cbe2b75f8d95a4c887836b909542da704673e708d3b85186a4664400c",
+    "radicle_ref_format_version": "0.2.0",
+    "radicle_ref_format_source_revision": "crates.io:sha256:8cd8067caf7de3c75f2736c24da52081b5fa9f9f2aa6357b8ad8d67ba5411ec6",
+    "git2_version": "0.21.0",
+    "git2_source_revision": "crates.io:sha256:ddddbf932745a6be37109b6112d3ee09696106f848449069d3a57bba937ab82e",
+    "secretspec_version": "0.19.0",
+    "secretspec_source_revision": "crates.io:sha256:827137f2e4d608acb1331aaffc91b16e457903d41964939fb8e716c3be557827",
+    "secretspec_nixpkgs_revision": "b7c2ada94fe99c15b0dbcf4d11fd7850b957a436",
+    "secretspec_license": "Apache-2.0",
+    "radicle_license": "MIT OR Apache-2.0",
+    "allowed_rids": [
+      "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj"
+    ],
+    "allowed_object_type": "xyz.radworks.job",
+    "signer_identity": {
+      "provider_namespace": "radicle",
+      "native_kind": "node",
+      "native_id": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+      "contract_version": 1
+    },
+    "signer": {
+      "project_root": "/tmp/kiln-issue18-cli.qJQqCN",
+      "project": "fixture",
+      "profile": "fixture",
+      "secret_key": "fixture-not-used",
+      "provider": "fixture-tripwire"
+    },
+    "executable": {
+      "path": "/tmp/kiln-issue18-cli.qJQqCN/must-not-run",
+      "blake3": "0b66db410cef81ab818dd06633474c0e236e566b9683fa07815634caaeedc795",
+      "version": "0.19.0"
+    },
+    "max_payload_bytes": 65536,
+    "max_objects_scanned": 256,
+    "allow_network_peers": false,
+    "allow_merge_authority": false,
+    "allow_canonical_state_mutation": false,
+    "non_claims": [
+      "job writes do not complete Kiln attempts or mutate canonical state",
+      "job writes do not prove peer convergence or remote visibility",
+      "job writes do not prove source trust or actor authority",
+      "SecretSpec resolution does not grant merge authority",
+      "the signer identity does not prove operator intent beyond one admitted plan",
+      "equal job objects do not prove equal run outcomes elsewhere",
+      "passing conformance does not prove node availability"
+    ]
+  },
+  "log_url_prefix": "https://ci.example.invalid/run/"
+}

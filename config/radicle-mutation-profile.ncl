@@ -24,7 +24,7 @@ let NonClaims = [
   "patch review mutation does not create close archive or merge patches",
   "patch review mutation does not rewrite Git history",
   "local mutation does not prove peer convergence or remote visibility",
-  "single-writer admission does not prove actor trust",
+  "native reduction does not prove actor trust",
   "SecretSpec resolution does not grant ambient collaboration authority",
   "passing conformance does not establish release readiness",
 ] in
@@ -61,6 +61,7 @@ let Profile = {
   targets | std.contract.from_predicate (fun value => std.is_array value && std.array.length value > 0),
   operations | std.contract.from_predicate (fun value => std.is_array value && std.array.length value > 0),
   signer | Signer,
+  helper | { path | AbsolutePath, blake3 | Blake3, version | Exact "0.25.1" },
   limits | {
     max_payload_bytes | Positive,
     max_history_entries | Positive,
@@ -71,7 +72,7 @@ let Profile = {
     signer_ms | Positive,
     write_ms | Positive,
   },
-  single_writer | Exact true,
+  single_writer | Exact false,
   allow_patch_create | Exact false,
   allow_patch_close | Exact false,
   allow_patch_merge | Exact false,
@@ -118,6 +119,7 @@ let WriteDeadlineMs = 15000 in
       executable_path = "/nix/store/a9hlwn1m4p0pi17yif3aa3ak2d0majz5-secretspec-0.19.0/bin/secretspec",
       executable_blake3 = "c15ea6408e2ff98fd976507a2ae5bec3cb99ef5580ce7342ba92eb465d9b28a6",
     },
+    helper = { path = "/var/lib/kiln/tools/kiln-radicle-patch", blake3 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", version = "0.25.1" },
     limits = {
       max_payload_bytes = MaxPayloadBytes,
       max_history_entries = MaxHistoryEntries,
@@ -128,7 +130,7 @@ let WriteDeadlineMs = 15000 in
       signer_ms = SignerDeadlineMs,
       write_ms = WriteDeadlineMs,
     },
-    single_writer = true,
+    single_writer = false,
     allow_patch_create = false,
     allow_patch_close = false,
     allow_patch_merge = false,

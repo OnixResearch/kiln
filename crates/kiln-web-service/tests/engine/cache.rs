@@ -1,6 +1,7 @@
 use super::*;
 use kiln_web_service::cache::{
-    CacheEntry, CacheEnvelope, CacheFile, CacheKey, CacheProfile, CacheProject,
+    CacheEntry, CacheEnvelope, CacheFile, CacheKey, CacheProfile, CacheProject, CacheRestore,
+    RestoreOutcome,
 };
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
@@ -72,6 +73,7 @@ fn authenticated_exact_worker_cache_is_cold_then_warm_and_rejects_stale_or_faile
     let cold = call(&mut engine, "POST", &restore, body.clone(), Role::Worker);
     assert_eq!(cold.status, 200);
     assert!(field(&value(&cold), "entry").is_null());
+    assert_eq!(field(&value(&cold), "outcome"), "miss");
     let bytes = b"real shared cached data";
     let entry = checked(CacheEnvelope::new(CacheEntry {
         key: cache_key(),
@@ -102,6 +104,37 @@ fn authenticated_exact_worker_cache_is_cold_then_warm_and_rejects_stale_or_faile
         field(field(&value(&warm), "entry"), "blake3"),
         &json!(entry.blake3)
     );
+    assert_eq!(field(&value(&warm), "outcome"), "hit");
+    let retained = root
+        .path()
+        .join("shared-cache/kiln-cache-v1")
+        .join(checked(cache_key().identity()));
+    checked(std::fs::write(&retained, b"corrupt"));
+    let rejected = call(&mut engine, "POST", &restore, body.clone(), Role::Worker);
+    assert_eq!(rejected.status, 200);
+    let degraded: CacheRestore = checked(serde_json::from_value(value(&rejected)));
+    assert_eq!(degraded.outcome, RestoreOutcome::CorruptMiss);
+    assert!(degraded.entry.is_none());
+    // An explicit publish remains strict. A conforming worker does not publish
+    // after the degraded restore, so it never rewrites this retained key.
+    assert_eq!(
+        call(&mut engine, "POST", &publish, upload.clone(), Role::Worker).status,
+        409
+    );
+    assert_eq!(checked(std::fs::read(&retained)), b"corrupt");
+    for index in 0_u64..32 {
+        checked(std::fs::write(
+            root.path()
+                .join("shared-cache/kiln-cache-v1")
+                .join(blake3::hash(&index.to_be_bytes()).to_hex().as_str()),
+            b"corrupt",
+        ));
+    }
+    let saturated = call(&mut engine, "POST", &restore, body.clone(), Role::Worker);
+    assert_eq!(saturated.status, 200);
+    let disabled: CacheRestore = checked(serde_json::from_value(value(&saturated)));
+    assert_eq!(disabled.outcome, RestoreOutcome::DisabledInventoryBound);
+    assert!(disabled.entry.is_none());
     let mut stale = body.clone();
     set(&mut stale, "source_revision", json!("wrong"));
     assert_eq!(

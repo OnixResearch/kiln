@@ -748,8 +748,12 @@ The job identity is BLAKE3 of the **original exported JSON bytes**, including
 whitespace and the trailing newline, not canonical JSON or a Nickel source hash.
 Re-exporting or changing even whitespace requires a newly reviewed identity.
 
-Use a pinned Lattice runtime implementing producer requirement
-`lattice.workflow_interchange.shell_success`: exchange shell commands must exit
+<!-- r[impl kiln.lattice.runtime_pin] -->
+Use Lattice runtime `85a38b6a4bceeae4bb2057cf157e21752100f1b5`, separately
+from Kiln's MIT contract/transport import `70496e67c7fd4a8b05914161a8e09de2759bebc8`.
+It includes `shell_success` (`6339864d3c4e5de72ba4f0899b11b5d5b76704b6`) and
+observed cancellation (`813076d7e42d0ddfb65042bee615bc5f12a2b4d3`). Producer requirement
+`lattice.workflow_interchange.shell_success` requires that exchange shell commands exit
 zero before the node can succeed, failed dependencies must prevent downstream
 effects, and skipped nodes must not carry execution receipts. Older runtimes
 that expose a nonzero shell exit as completed data are not CI-compatible even

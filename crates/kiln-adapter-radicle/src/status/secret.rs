@@ -10,6 +10,7 @@ use kiln_core::types::{CoreResult, Diagnostic};
 pub struct ResolvedSigner {
     signing_key: SigningKey,
     public: String,
+    seed: zeroize::Zeroizing<[u8; SEED_BYTES]>,
 }
 
 pub const SEED_BYTES: usize = 32;
@@ -42,12 +43,17 @@ impl ResolvedSigner {
         Ok(Self {
             public,
             signing_key,
+            seed: zeroize::Zeroizing::new(seed),
         })
     }
 
     #[must_use]
     pub const fn signing_key(&self) -> &SigningKey {
         &self.signing_key
+    }
+
+    pub(crate) fn helper_seed(&self) -> &[u8; SEED_BYTES] {
+        &self.seed
     }
 
     #[must_use]

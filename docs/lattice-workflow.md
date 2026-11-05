@@ -80,15 +80,23 @@ A recovered exact acceptance enters normal observation. Not-found or another dis
 
 Reconciliation uses the stored request and accepted execution. A stale execution, earlier sequence, or conflicting duplicate sequence fails without replacing active state.
 
-Cancel, pause, and resume bind the current execution and sequence. Unsupported controls fail before transport.
+The maintained handler cohort admits cancellation only (`cancel = true`,
+`pause = false`, `resume = false`). Controls bind the current execution and
+sequence. Pause/resume plans and requests fail before transport. The generic
+`Paused` observation mapping remains pending for a future separately admitted
+producer cohort; it does not advertise pause support for this handler.
 
 CI routes require the producer's `lattice.workflow_interchange.shell_success`
 semantics: zero shell exit for successful completion, failed nodes for nonzero
 or missing successful status, and skipped dependent effects without execution
-receipts. The imported contract is not the runtime implementation. Operators
-must select a Lattice runtime implementing that requirement; Kiln does not infer
-command success from output text or reinterpret an older producer's false
-successful observation.
+receipts. Select external CI runtime `85a38b6a4bceeae4bb2057cf157e21752100f1b5`,
+which includes `shell_success` from `6339864d3c4e5de72ba4f0899b11b5d5b76704b6`
+and observed cancellation from `813076d7e42d0ddfb65042bee615bc5f12a2b4d3`.
+The MIT contract/transport import `70496e67c7fd4a8b05914161a8e09de2759bebc8`
+is not the runtime implementation; its schema compatibility does not qualify
+its old handler for CI. No AGPL contract import is authorized by this runtime
+selection. Kiln does not infer success from output text or reinterpret an older
+producer's false successful observation.
 
 ## Logs
 

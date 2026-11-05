@@ -40,12 +40,6 @@ pub struct SourceContext {
 pub struct ProjectWorkerProfile {
     pub schema: String,
     pub source: RadicleSourceSelection,
-    /// Reviewed path to the isolated upstream patch reducer helper.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub patch_helper: Option<PathBuf>,
-    /// Radicle storage root used by the patch helper.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub patch_storage_root: Option<PathBuf>,
     pub state_root: PathBuf,
     pub discovery_profile: NixEvalProfile,
     pub discovery_plan: DiscoveryEffectPlan,
@@ -141,15 +135,6 @@ impl ProjectWorkerProfile {
         if self.schema != PROJECT_PROFILE_SCHEMA || !absolute_normal(&self.state_root) {
             return Err("invalid project profile schema or private state root".into());
         }
-        match (&self.patch_helper, &self.patch_storage_root) {
-            (None, None) => {}
-            (Some(helper), Some(root))
-                if helper.is_absolute() && root.is_absolute() && absolute_normal(helper) =>
-            {
-                let _ = root;
-            }
-            _ => return Err("patch helper and storage root must be configured together".into()),
-        }
         let (name, _) = source_alias(&self.source.signed_reference)?;
         Alias::new(name).map_err(text)?;
         admit_plan(&self.discovery_profile, &self.discovery_plan).map_err(text)?;
@@ -164,25 +149,6 @@ impl ProjectWorkerProfile {
             return Err("project discovery/build template identities differ".into());
         }
         Ok(())
-    }
-
-    /// Read one reduced patch through the isolated upstream helper.
-    pub fn read_patch(&self, patch_id: &str) -> Result<serde_json::Value> {
-        let helper = self
-            .patch_helper
-            .as_deref()
-            .ok_or("patch helper is not configured")?;
-        let root = self
-            .patch_storage_root
-            .as_deref()
-            .ok_or("patch storage root is not configured")?;
-        kiln_adapter_radicle::patch_read::read_patch(
-            helper,
-            root,
-            &self.source.repository_id,
-            patch_id,
-        )
-        .map_err(text)
     }
 
     pub fn trigger(&self, source: &SourceContext) -> Result<TriggerRequest> {
@@ -649,8 +615,6 @@ pub(crate) mod tests {
         let profile = ProjectWorkerProfile {
             schema: PROJECT_PROFILE_SCHEMA.into(),
             source: source_policy,
-            patch_helper: None,
-            patch_storage_root: None,
             state_root: "/tmp/krc".into(),
             discovery_profile: eval,
             discovery_plan: plan,
@@ -1106,32 +1070,5 @@ pub(crate) mod tests {
         let mut mixed = profile;
         mixed.discovery_plan.evaluator_cohort = None;
         assert!(mixed.admit().is_err());
-    }
-    #[test]
-    fn patch_helper_configuration_is_paired_and_invoked() {
-        let (mut profile, _, _) = fixture();
-        assert!(profile.admit().is_ok());
-        profile.patch_helper = Some("/tmp/kiln-patch-helper".into());
-        assert!(profile.admit().is_err());
-        profile.patch_storage_root = Some("/tmp".into());
-        assert!(profile.admit().is_ok());
-
-        let directory = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
-        let helper = directory.path().join("helper");
-        std::fs::write(
-            &helper,
-            "#!/bin/sh\nprintf '{\"state\":\"open\"}'
-",
-        )
-        .unwrap_or_else(|error| unreachable!("{error}"));
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&helper, std::fs::Permissions::from_mode(0o700))
-            .unwrap_or_else(|error| unreachable!("{error}"));
-        profile.patch_helper = Some(helper);
-        profile.patch_storage_root = Some(directory.path().into());
-        let value = profile
-            .read_patch("abc")
-            .unwrap_or_else(|error| unreachable!("{error}"));
-        assert_eq!(value["state"], "open");
     }
 }

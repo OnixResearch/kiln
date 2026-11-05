@@ -1,0 +1,266 @@
+{
+  "schema": "kiln.issue-closeout.lifecycle-gates.v1",
+  "change": "admit-cancel-only-lattice-cohort",
+  "structural_gates_only": true,
+  "behavioral_or_release_readiness_claim": false,
+  "gates": [
+    {
+      "acceptance_ids": [],
+      "change": "admit-cancel-only-lattice-cohort",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "3d9274761aa6807af8dd5537c9479253f5f49ecdff42b7269cbd0492f592bc01",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "cc4d648a506f02f59c55ffbd48efbfe70177865fa9c62b79ffe1b72872d87ffa",
+      "receipt_hash": "c0de0bce6d7bcc7bb9d0a4d538dbec8ed78416bd69860d945f8e077f8ca432c3",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "proposal",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    {
+      "acceptance_ids": [],
+      "change": "admit-cancel-only-lattice-cohort",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "d4849ef198431694499fa45a1c5aeeddb0064ba058721f1d931d7513ce8f5ad9",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "cc4d648a506f02f59c55ffbd48efbfe70177865fa9c62b79ffe1b72872d87ffa",
+      "receipt_hash": "4527ef8ed4a1b832cf8e2944467f23d47bbf1a86cd844f6d7dcca72965f262ba",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "design",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/specs/lattice-issue-closeout/spec.md",
+          "requirement_blocks": 1,
+          "scenario_blocks": 2,
+          "substantive_lines": 7,
+          "substantive_requirement_blocks": 1,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    {
+      "acceptance_ids": [],
+      "change": "admit-cancel-only-lattice-cohort",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "c0d96d2d57713534bf68b782e5753d7286896f32145384cb0437ef0b5e5390fb",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": {
+        "declarations_present": false,
+        "probes": []
+      },
+      "profile_identity_hash": "cc4d648a506f02f59c55ffbd48efbfe70177865fa9c62b79ffe1b72872d87ffa",
+      "receipt_hash": "8be9b328630c37c86a7cd5891998febd21ab2e48b1083174e43490c0e65bc9ea",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "tasks",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/specs/lattice-issue-closeout/spec.md",
+          "requirement_blocks": 1,
+          "scenario_blocks": 2,
+          "substantive_lines": 7,
+          "substantive_requirement_blocks": 1,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 3,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/admit-cancel-only-lattice-cohort/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 3,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 3,
+          "task_done": 3,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": {
+        "active": false,
+        "edges": [],
+        "issues": [],
+        "nodes": [],
+        "order": [],
+        "ready_tasks": [],
+        "valid": true
+      },
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  ]
+}

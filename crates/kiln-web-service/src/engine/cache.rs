@@ -96,7 +96,11 @@ impl Engine {
                     return error(400, "cache_restore_invalid");
                 }
                 match store.restore(&request.key, now) {
-                    Ok(entry) => json_response(200, json!({"entry":entry})),
+                    Ok(restored) => json_response(
+                        200,
+                        serde_json::to_value(restored)
+                            .map_err(|_| "cache restore response encoding failed")?,
+                    ),
                     Err(_) => error(409, "cache_restore_integrity_or_policy"),
                 }
             }

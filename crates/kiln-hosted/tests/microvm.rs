@@ -292,7 +292,7 @@ fn cache_pipeline() -> Value {
         "schema": "kiln.hosted.pipeline.v1", "name": "Cache", "triggers": ["manual"],
         "jobs": {
             "build": {"runner": "linux", "timeout_ms": 60_000, "steps": [
-                {"kind": "run", "name": "cache", "run": "if [ -f target/value ]; then cat target/value; else mkdir -p target; printf 'cached\n' > target/value; printf 'created\n'; fi"}
+                {"kind": "run", "name": "cache", "run": "if [ -f target/value ]; then cat target/value; printf 'guest changed\\n' > target/value; else mkdir -p target; printf 'cached\\n' > target/value; printf 'created\\n'; fi"}
             ]}
         }
     })
@@ -418,6 +418,41 @@ fn assert_equivalence_receipt(label: &str, receipt: &Value) {
         at(build, "/microvm/backend").as_str(),
         Some("firecracker" | "cloud-hypervisor")
     ) {
+        let vm = at(build, "/microvm");
+        for field in [
+            "host_kernel_release",
+            "host_kernel_package",
+            "cve_2026_98432",
+            "net_mptcp_enabled",
+            "tcp_migrate_req",
+            "mptcp_listeners",
+            "smt_control",
+            "smt_active",
+            "ksm_running",
+            "kernel_cmdline",
+            "vulnerabilities",
+            "resctrl_mounted",
+            "resctrl_capabilities",
+            "co_residency",
+            "host_admission",
+        ] {
+            assert!(
+                vm.get(field).is_some(),
+                "missing host receipt field {field}: {vm:#}"
+            );
+        }
+        assert!(
+            vm.get("physical_host_identity").is_none(),
+            "host machine identity must remain internal"
+        );
+        assert_eq!(
+            at(&vm, "/host_kernel_release"),
+            std::fs::read_to_string("/proc/sys/kernel/osrelease")
+                .unwrap_or_default()
+                .trim()
+        );
+        // This plan executes its jobs serially: planned later jobs are not peers.
+        assert_eq!(at(&vm, "/co_residency"), json!([]));
         assert_eq!(
             at(build, "/microvm/confinement/ok"),
             true,
@@ -899,6 +934,15 @@ fn failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry() {
 // r[verify kiln.hosted.microvm.cache_drive]
 #[test]
 fn firecracker_cache_restores_after_publication() {
+    cache_journey(false);
+}
+
+#[test]
+fn firecracker_warm_cache_attaches_after_cache_free_snapshot() {
+    cache_journey(true);
+}
+
+fn cache_journey(warm: bool) {
     let host = match prerequisites() {
         Ok(host) => host,
         Err(reason) => {
@@ -910,11 +954,202 @@ fn firecracker_cache_restores_after_publication() {
             return;
         }
     };
-    let mut deployment = Deployment::new(&host, firecracker(&host, None), &cache_pipeline());
+    let pool_root = tempfile::tempdir().unwrap_or_else(|e| fail("pool root", e));
+    let pool = private_directory(&pool_root.path().join("p"));
+    let mut deployment = Deployment::new(
+        &host,
+        firecracker(&host, warm.then_some(pool.as_path())),
+        &cache_pipeline(),
+    );
+    let cache_root = enable_cache(&mut deployment);
+    let first = deployment.run("cache-1");
+    println!("KILN_MICROVM_RECEIPT cache-1 {first}");
+    assert_eq!(at(&first, "/state"), "succeeded", "{first:#}");
+    assert_eq!(at(job(&first, "build"), "/steps/0/stdout"), "created\n");
+    assert_eq!(
+        at(job(&first, "build"), "/cache/publish/outcome"),
+        "published"
+    );
+    assert_eq!(at(&first, "/cleaned"), true);
+    let hash = at(job(&first, "build"), "/cache/publish/entry_blake3");
+    assert!(hash.as_str().is_some_and(|value| value.len() == 64));
+    assert_eq!(
+        at(job(&first, "build"), "/cache/publish/source_tier"),
+        "local"
+    );
+    assert!(
+        deployment
+            .vm_rows()
+            .iter()
+            .all(|(_, state)| state == "destroyed"),
+        "publication requires destroyed journal"
+    );
+    assert_eq!(
+        at(job(&first, "build"), "/microvm/hostile_isolation_claim"),
+        false
+    );
+    let second = deployment.run("cache-2");
+    println!("KILN_MICROVM_RECEIPT cache-2 {second}");
+    assert_eq!(at(&second, "/state"), "succeeded", "{second:#}");
+    assert_eq!(at(job(&second, "build"), "/steps/0/stdout"), "cached\n");
+    assert_eq!(at(job(&second, "build"), "/cache/restore/outcome"), "hit");
+    assert_eq!(at(&second, "/cleaned"), true);
+    assert_eq!(
+        at(job(&second, "build"), "/cache/restore/entry_blake3"),
+        hash
+    );
+    let third = deployment.run("cache-3");
+    assert_eq!(at(&third, "/state"), "succeeded", "{third:#}");
+    assert_eq!(at(job(&third, "build"), "/steps/0/stdout"), "cached\n");
+    assert_eq!(
+        at(job(&third, "build"), "/cache/restore/entry_blake3"),
+        hash
+    );
+    assert_eq!(
+        at(job(&third, "build"), "/cache/restore/source_tier"),
+        "local"
+    );
+    if warm {
+        assert_eq!(at(job(&third, "build"), "/microvm/boot"), "restore");
+        let source = deployment
+            .directory
+            .path()
+            .join("work")
+            .join(ORG)
+            .join(PROJECT)
+            .join(WORKSPACE)
+            .join("README");
+        let original_source = fs::read(&source).unwrap_or_else(|e| fail("source read", e));
+        fs::write(&source, b"different cache input\n").unwrap_or_else(|e| fail("different key", e));
+        let different = deployment.run("cache-different-key");
+        println!("KILN_MICROVM_RECEIPT cache-different-key {different}");
+        assert_eq!(at(&different, "/state"), "succeeded", "{different:#}");
+        assert_eq!(
+            at(job(&different, "build"), "/cache/restore/outcome"),
+            "miss"
+        );
+        assert_ne!(
+            at(job(&different, "build"), "/cache/restore/key"),
+            at(job(&first, "build"), "/cache/publish/key")
+        );
+        assert_eq!(at(job(&different, "build"), "/steps/0/stdout"), "created\n");
+        assert_eq!(at(job(&different, "build"), "/microvm/snapshot"), "reused");
+        fs::write(&source, original_source).unwrap_or_else(|e| fail("restore input", e));
+        let original_again = deployment.run("cache-original-key");
+        println!("KILN_MICROVM_RECEIPT cache-original-key {original_again}");
+        assert_eq!(
+            at(&original_again, "/state"),
+            "succeeded",
+            "{original_again:#}"
+        );
+        assert_eq!(
+            at(job(&original_again, "build"), "/cache/restore/key"),
+            at(job(&first, "build"), "/cache/publish/key"),
+            "{original_again:#}"
+        );
+        assert_eq!(
+            at(job(&original_again, "build"), "/cache/restore/outcome"),
+            "hit",
+            "{original_again:#}"
+        );
+        assert_eq!(
+            at(job(&original_again, "build"), "/steps/0/stdout"),
+            "cached\n"
+        );
+        assert_eq!(
+            at(job(&original_again, "build"), "/cache/restore/entry_blake3"),
+            hash
+        );
+        assert_eq!(
+            at(job(&original_again, "build"), "/microvm/snapshot"),
+            "reused"
+        );
+    }
+    let key = at(job(&first, "build"), "/cache/publish/key");
+    let key = key.as_str().unwrap_or_else(|| unreachable!("cache key"));
+    let retained = cache_root.join("kiln-cache-v1").join(key);
+    let bytes = fs::read(&retained).unwrap_or_else(|e| fail("retained cache", e));
+    let envelope: kiln_web_service::cache::CacheEnvelope =
+        serde_json::from_slice(&bytes).unwrap_or_else(|e| fail("retained envelope", e));
+    assert_eq!(envelope.blake3, hash.as_str().unwrap_or_default());
+    #[cfg(feature = "cache-fault-tests")]
+    {
+        std::thread_local! {
+            static KILL_OBSERVED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+        }
+        fn kill_returning_unit(unit: &str) {
+            let status = std::process::Command::new("systemctl")
+                .args(["--user", "kill", "--kill-whom=all", "--signal=KILL", unit])
+                .status()
+                .unwrap_or_else(|e| fail("SIGKILL Firecracker unit", e));
+            assert!(status.success(), "unit SIGKILL: {status}");
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+            loop {
+                let output = std::process::Command::new("systemctl")
+                    .args(["--user", "show", "--property=ActiveState", "--value", unit])
+                    .output()
+                    .unwrap_or_else(|e| fail("unit kill observation", e));
+                if !String::from_utf8_lossy(&output.stdout).trim().eq("active") {
+                    break;
+                }
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "killed unit remains active"
+                );
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            KILL_OBSERVED.with(|observed| observed.set(true));
+        }
+        let before = fs::read(&retained).unwrap_or_else(|e| fail("retained before kill", e));
+        KILL_OBSERVED.with(|observed| observed.set(false));
+        let interrupted = kiln_hosted::cache::with_return_hook(kill_returning_unit, || {
+            deployment.run("cache-unit-killed")
+        });
+        assert!(
+            KILL_OBSERVED.with(std::cell::Cell::get),
+            "exact unit kill callback must run"
+        );
+        assert_eq!(at(&interrupted, "/state"), "succeeded", "{interrupted:#}");
+        assert_eq!(at(job(&interrupted, "build"), "/steps/0/exit_code"), 0);
+        assert_eq!(
+            at(job(&interrupted, "build"), "/steps/0/stdout"),
+            "cached\n"
+        );
+        assert_eq!(
+            at(job(&interrupted, "build"), "/cache/publish"),
+            Value::Null
+        );
+        assert_eq!(
+            fs::read(&retained).unwrap_or_else(|e| fail("retained after kill", e)),
+            before
+        );
+    }
+    fs::write(&retained, b"corrupt").unwrap_or_else(|e| fail("corrupt fixture", e));
+    assert_eq!(
+        envelope
+            .verify(1024, 4)
+            .unwrap_or_else(|e| fail("retained integrity", e)),
+        7
+    );
+    let fourth = deployment.run("cache-corrupt");
+    assert_eq!(at(&fourth, "/state"), "succeeded", "{fourth:#}");
+    assert_eq!(at(job(&fourth, "build"), "/steps/0/stdout"), "created\n");
+    assert_eq!(
+        at(job(&fourth, "build"), "/cache/restore/outcome"),
+        "corrupt_miss"
+    );
+}
+
+// A journey executes several independently bounded 60-second jobs alongside
+// other KVM qualification tests. Its first immutable entry must outlive that
+// sequence; cache hits intentionally do not refresh publication timestamps.
+const QUALIFICATION_CACHE_RETENTION_SECONDS: u64 = 60 * 60;
+
+fn enable_cache(deployment: &mut Deployment) -> PathBuf {
     let cache_root = private_directory(&deployment.directory.path().join("cache"));
     let cache = json!({
         "directory": cache_root, "maximum_entry_bytes": 1024, "maximum_total_bytes": 4096,
-        "maximum_entries": 4, "maximum_age_seconds": 60, "maximum_files": 4,
+        "maximum_entries": 4, "maximum_age_seconds": QUALIFICATION_CACHE_RETENTION_SECONDS, "maximum_files": 4,
         "policies": [{"organization": ORG, "project": PROJECT, "runner": "linux", "worker": {
             "producer": "hosted", "toolchain": "t", "platform": "linux", "inputs": ["README"],
             "paths": ["target"], "maximum_entry_bytes": 1024, "maximum_files": 4}}],
@@ -926,19 +1161,87 @@ fn firecracker_cache_restores_after_publication() {
         .unwrap_or_else(|| unreachable!("execution profile"))
         .cache =
         Some(serde_json::from_value(cache).unwrap_or_else(|error| unreachable!("{error}")));
-    let first = deployment.run("cache-1");
-    println!("KILN_MICROVM_RECEIPT cache-1 {first}");
+    cache_root
+}
+
+#[test]
+fn namespace_corrupt_and_saturated_cache_preserve_successful_cold_jobs() {
+    let host = match prerequisites() {
+        Ok(host) => host,
+        Err(reason) => {
+            assert!(
+                std::env::var_os("KILN_MICROVM_REQUIRED").is_none(),
+                "host required: {reason}"
+            );
+            eprintln!("SKIP namespace cache host test: {reason}");
+            return;
+        }
+    };
+    let backend = json!({"kind": "namespaces", "unshare": at(&host.tools, "/unshare"),
+        "python": at(&host.tools, "/python"), "mount": at(&host.tools, "/mount"),
+        "shell": at(&host.tools, "/bash"), "runtime_roots": ["/nix/store"]});
+    let mut pipeline = cache_pipeline();
+    let tool_bin = Path::new(host.tools["env"]["path"].as_str().unwrap_or_default())
+        .parent()
+        .unwrap_or_else(|| unreachable!("coreutils executable parent"));
+    pipeline["jobs"]["build"]["env"] = json!({"PATH": tool_bin});
+    let mut deployment = Deployment::new(&host, backend, &pipeline);
+    let cache_root = enable_cache(&mut deployment);
+    let first = deployment.run("namespace-cache-first");
     assert_eq!(at(&first, "/state"), "succeeded", "{first:#}");
-    assert_eq!(at(job(&first, "build"), "/steps/0/stdout"), "created\n");
-    assert_eq!(
-        at(job(&first, "build"), "/cache/publish/outcome"),
-        "published"
+    let key = at(job(&first, "build"), "/cache/publish/key");
+    let retained = cache_root.join("kiln-cache-v1").join(
+        key.as_str()
+            .unwrap_or_else(|| unreachable!("published key")),
     );
-    assert_eq!(at(&first, "/cleaned"), true);
-    let second = deployment.run("cache-2");
-    println!("KILN_MICROVM_RECEIPT cache-2 {second}");
-    assert_eq!(at(&second, "/state"), "succeeded", "{second:#}");
-    assert_eq!(at(job(&second, "build"), "/steps/0/stdout"), "cached\n");
-    assert_eq!(at(job(&second, "build"), "/cache/restore/outcome"), "hit");
-    assert_eq!(at(&second, "/cleaned"), true);
+    fs::write(&retained, b"corrupt").unwrap_or_else(|e| fail("corrupt namespace entry", e));
+    let output = deployment
+        .directory
+        .path()
+        .join("work")
+        .join(ORG)
+        .join(PROJECT)
+        .join(WORKSPACE)
+        .join("target");
+    fs::remove_dir_all(&output).unwrap_or_else(|e| fail("fresh namespace acquisition", e));
+    let cold = deployment.run("namespace-cache-corrupt");
+    assert_eq!(at(&cold, "/state"), "succeeded", "{cold:#}");
+    assert_eq!(at(job(&cold, "build"), "/steps/0/stdout"), "created\n");
+    assert_eq!(
+        at(job(&cold, "build"), "/cache/restore/outcome"),
+        "corrupt_miss"
+    );
+    assert_eq!(
+        at(job(&cold, "build"), "/cache/publish/outcome"),
+        "skipped_restore_disabled"
+    );
+    assert_eq!(
+        fs::read(&retained).unwrap_or_else(|e| fail("retained corrupt entry", e)),
+        b"corrupt"
+    );
+    fs::remove_dir_all(&output).unwrap_or_else(|e| fail("fresh namespace acquisition", e));
+    for index in 0_u64..32 {
+        fs::write(
+            cache_root
+                .join("kiln-cache-v1")
+                .join(blake3::hash(&index.to_be_bytes()).to_hex().as_str()),
+            b"corrupt",
+        )
+        .unwrap_or_else(|e| fail("corrupt inventory", e));
+    }
+    let disabled = deployment.run("namespace-cache-saturated");
+    assert_eq!(at(&disabled, "/state"), "succeeded", "{disabled:#}");
+    assert_eq!(at(job(&disabled, "build"), "/steps/0/stdout"), "created\n");
+    assert_eq!(
+        at(job(&disabled, "build"), "/cache/restore/outcome"),
+        "disabled_inventory_bound"
+    );
+    assert_eq!(
+        at(job(&disabled, "build"), "/cache/publish/outcome"),
+        "skipped_restore_disabled"
+    );
+    assert_eq!(
+        fs::read(&retained).unwrap_or_else(|e| fail("retained corrupt entry", e)),
+        b"corrupt"
+    );
 }

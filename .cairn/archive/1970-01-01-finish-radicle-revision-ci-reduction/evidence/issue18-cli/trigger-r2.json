@@ -1,0 +1,29 @@
+{
+  "repository": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "repository",
+    "native_id": "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj"
+  },
+  "actor": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "actor",
+    "native_id": "broker"
+  },
+  "before": null,
+  "after": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "revision",
+    "native_id": "9e37da95037480b52895e3eaa235754a4e226671"
+  },
+  "branch": null,
+  "patch": {
+    "contract_version": 1,
+    "provider_namespace": "radicle",
+    "native_kind": "patch",
+    "native_id": "6380dab577652734b5678d5fda9ff4b8b9be0c87"
+  },
+  "event": "patch"
+}

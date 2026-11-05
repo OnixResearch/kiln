@@ -42,6 +42,17 @@ impl Image {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Backend {
+    #[serde(rename = "unikernel-test")]
+    Unikernel {
+        firecracker: Executable,
+        kernel: Image,
+        project: String,
+        version: String,
+        vcpus: u8,
+        memory_mib: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        network: Option<String>,
+    },
     Namespaces {
         unshare: Executable,
         python: Executable,
@@ -97,8 +108,8 @@ pub enum Backend {
         /// Reviewed physical-host identity used for static co-residency checks.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         host_identity: Option<String>,
-        /// Reviewed cache-partition label. This is a placement declaration; it
-        /// does not program resctrl or prove LLC separation.
+        /// Existing operator-created resctrl CAT group. Every VMM/vCPU thread
+        /// is assigned before guest job dispatch; MBA is not full partitioning.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cache_partition: Option<String>,
         /// Reviewed CPU list for this runner's VMM, e.g. `0-3,8,10-11`.
@@ -275,8 +286,7 @@ fn validate_trust_domains(
             host_entry.0 |= *untrusted_capable;
             host_entry.1 |= workload;
             if let Some(partition) = cache_partition {
-                if partition.trim().is_empty() || partition.len() > 128 || partition.contains('\0')
-                {
+                if !crate::identifier(partition) || partition.len() > 128 {
                     return Err("invalid cache partition label".into());
                 }
                 let partition_entry = partitions.entry(partition).or_default();
@@ -351,6 +361,11 @@ impl Config {
                 .any(|p| !self.runners.contains_key(&p.runner))
             {
                 return Err("cache references an unreviewed runner".into());
+            }
+            for (label, backend) in &self.runners {
+                if matches!(backend, Backend::Firecracker { .. }) {
+                    cache.validate_microvm(label)?;
+                }
             }
         }
         if !clean(&self.manager_runtime_directory)
@@ -433,6 +448,28 @@ impl Config {
                 return Err("invalid runner label".into());
             }
             match backend {
+                Backend::Unikernel {
+                    firecracker,
+                    kernel,
+                    project,
+                    version,
+                    vcpus,
+                    memory_mib,
+                    network,
+                } => {
+                    if project != "unikraft"
+                        || version.is_empty()
+                        || version.len() > 128
+                        || *vcpus != 1
+                        || *memory_mib < 32
+                        || u64::from(*memory_mib) * 1_048_576 > self.memory_bytes
+                        || network.as_deref().is_some_and(|n| n != "none")
+                    {
+                        return Err("invalid trusted cold unikernel backend".into());
+                    }
+                    firecracker.verify()?;
+                    kernel.verify()?;
+                }
                 Backend::Namespaces {
                     unshare,
                     python,
@@ -535,13 +572,14 @@ fn backend_declared_network(backend: &Backend) -> Option<&str> {
         Backend::Namespaces { network, .. }
         | Backend::Qemu { network, .. }
         | Backend::Firecracker { network, .. }
+        | Backend::Unikernel { network, .. }
         | Backend::CloudHypervisor { network, .. } => network.as_deref(),
     }
 }
 
 fn backend_capabilities(backend: &Backend) -> Capabilities {
     match backend {
-        Backend::Firecracker { .. } => Firecracker.capabilities(),
+        Backend::Firecracker { .. } | Backend::Unikernel { .. } => Firecracker.capabilities(),
         Backend::CloudHypervisor { .. } => CloudHypervisor.capabilities(),
         Backend::Qemu { .. } | Backend::Namespaces { .. } => Capabilities {
             network: NetworkCapability::NoDevice,
@@ -704,6 +742,7 @@ pub fn init(db: &Connection) -> Result<(), String> {
       CREATE TABLE IF NOT EXISTS hosted_microvm_job(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,lifecycle TEXT NOT NULL,result TEXT,PRIMARY KEY(org,attempt,job));
       CREATE TABLE IF NOT EXISTS hosted_microvm_placement(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,host TEXT NOT NULL,trust_domain TEXT NOT NULL,class TEXT NOT NULL CHECK(class IN('untrusted','workload','trusted')),started_ms INTEGER NOT NULL,PRIMARY KEY(org,attempt,job));
       CREATE INDEX IF NOT EXISTS hosted_microvm_placement_host ON hosted_microvm_placement(host);") .map_err(|e|e.to_string())?;
+    crate::placement::init(db)?;
     crate::debug_hold::init(db)
 }
 /// Trusted startup only. Existing in-flight/unknown effects pin their configuration.
@@ -928,8 +967,34 @@ pub fn run_pipeline(
             .get(&job.runner)
             .ok_or_else(|| format!("runner '{}' has no reviewed backend mapping", job.runner))?;
         admit_backend(backend, &request.trust)?;
+        if matches!(backend, Backend::Unikernel { .. }) != job.unikernel.is_some() {
+            return Err("unikernel test requires its dedicated backend and TestSpec".into());
+        }
+        if let Some(spec) = &job.unikernel {
+            crate::unikernel::validate_spec(spec)?;
+            if request.trust != "trusted"
+                || !job.steps.is_empty()
+                || config.cache.is_some()
+                || config.workload.iter().any(|p| {
+                    p.organization == actor.organization
+                        && p.runner == job.runner
+                        && p.project == request.project
+                })
+            {
+                return Err(
+                    "unikernel tests are trusted, shell-free, cache-free and credential-free only"
+                        .into(),
+                );
+            }
+        }
         admit_untrusted_runner(backend, request.untrusted.as_ref())?;
-        if request.untrusted.is_some() {
+        if matches!(
+            backend,
+            Backend::Firecracker {
+                untrusted_capable: true,
+                ..
+            }
+        ) {
             admit_untrusted_host(backend, &host_facts)?;
         }
         admit_cache_partition(backend, &host_facts)?;
@@ -954,7 +1019,7 @@ pub fn run_pipeline(
         operator_maximum = operator_maximum.min(price.max_units);
         if job.timeout_ms == 0
             || job.timeout_ms > config.maximum_timeout_ms
-            || job.steps.is_empty()
+            || (job.steps.is_empty() && job.unikernel.is_none())
             || job.steps.len() > 128
         {
             return Err("job resource/deadline policy denied".into());
@@ -1029,10 +1094,12 @@ pub fn run_pipeline(
     .map_err(|e| e.to_string())?;
     reserve_placements(
         &tx,
-        &actor.organization,
-        &request.attempt_id,
+        PlacementScope {
+            organization: &actor.organization,
+            attempt: &request.attempt_id,
+            project: &request.project,
+        },
         &plan,
-        &request.project,
         &config,
         untrusted_run(&request),
         now_ms,
@@ -1143,7 +1210,8 @@ pub fn run_pipeline(
         let cache_max_bytes = config
             .cache
             .as_ref()
-            .map_or(0, |cache| cache.maximum_tar_bytes());
+            .and_then(|cache| cache.policy(&cache_context))
+            .map_or(0, |policy| crate::cache::maximum_tar_bytes(&policy.worker));
         let mut cache_ms = None;
         let mut cache_outcome = "disabled_unconfigured";
         let mut cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});
@@ -1182,13 +1250,21 @@ pub fn run_pipeline(
                 };
                 match restored {
                     Ok((key, observation)) => {
+                        let permits_publication = observation.permits_publication();
                         cache_outcome = if observation.outcome == "hit" {
                             "hit"
                         } else {
                             "miss"
                         };
                         cache_observation = json!({"restore":observation});
-                        cache_key = Some(key);
+                        if permits_publication {
+                            cache_key = Some(key);
+                        } else {
+                            cache_observation.as_object_mut().ok_or("cache receipt is not an object")?.insert("publish".into(), json!({
+                                "outcome": "skipped_restore_disabled", "key": key.identity()?,
+                                "entry_blake3": null, "source_tier": "local", "duration_ms": null,
+                            }));
+                        }
                         if cache_outcome == "hit" {
                             cache_image = cache_image_candidate;
                         }
@@ -1268,6 +1344,41 @@ pub fn run_pipeline(
         if let Err(error) = credential_result {
             state = "failed";
             steps.push(json!({"state":"not_dispatched","reason":error}));
+        } else if let Some(spec) = &job.unikernel {
+            let backend = config
+                .runners
+                .get(&job.runner)
+                .ok_or("unikernel backend missing")?;
+            let deadline = job_started + std::time::Duration::from_millis(job.timeout_ms);
+            match crate::unikernel::run_job(
+                &config,
+                backend,
+                crate::unikernel::Job {
+                    workspace: &work,
+                    spec,
+                    unit: &unit,
+                    deadline,
+                    output_budget,
+                    cancellation,
+                    placement: Some((db, &actor.organization, &request.attempt_id, &job.id)),
+                },
+            ) {
+                Ok((observation, vm)) => {
+                    absorb(
+                        Ok(observation),
+                        &mut state,
+                        &mut cleanup,
+                        &mut output_budget,
+                        &redactions,
+                        &mut steps,
+                    );
+                    microvm = Some(vm);
+                }
+                Err(error) => {
+                    state = "failed";
+                    steps.push(json!({"name":"test","state":"failed","reason":error}));
+                }
+            }
         } else if let Some(runner) = config.runners.get(&job.runner).and_then(|backend| {
             crate::microvm::Runner::from_backend(backend)
                 .or_else(|| crate::microvm::Runner::from_cloud_hypervisor(backend))
@@ -1323,28 +1434,6 @@ pub fn run_pipeline(
                                 } => host_preflight_override.as_deref(),
                                 _ => None,
                             });
-                    let host_of = |runner: &str| -> String {
-                        config
-                            .runners
-                            .get(runner)
-                            .and_then(|backend| match backend {
-                                Backend::Firecracker { host_identity, .. } => {
-                                    host_identity.as_deref()
-                                }
-                                _ => None,
-                            })
-                            .unwrap_or(runner)
-                            .to_string()
-                    };
-                    let current_host = host_of(&job.runner);
-                    let attempt_co_residency = plan
-                        .jobs
-                        .iter()
-                        .filter(|other| {
-                            other.id != job.id && host_of(&other.runner) == current_host
-                        })
-                        .map(|other| (request.attempt_id.clone(), other.id.clone()))
-                        .collect::<Vec<_>>();
                     let outcome = crate::microvm::run_job(
                         db,
                         &config,
@@ -1360,10 +1449,9 @@ pub fn run_pipeline(
                             unit: &unit,
                             timeout_ms: remaining,
                             cache_image: cache_image.as_deref(),
-                            cache_paths: cache_paths.as_deref(),
+                            cache_paths: cache_key.as_ref().and(cache_paths.as_deref()),
                             cache_max_bytes,
                             grants,
-                            attempt_co_residency: &attempt_co_residency,
                         },
                         &host_facts,
                         host_preflight_override,
@@ -1468,13 +1556,6 @@ pub fn run_pipeline(
             && let (Some(cache), Some(key), Some(tar)) = (&config.cache, &cache_key, cache_tar)
         {
             let cache_started = Instant::now();
-            let workspace = tempfile::tempdir().map_err(|e| e.to_string())?;
-            kiln_microvm::archive::extract_files(
-                &tar,
-                workspace.path(),
-                cache.maximum_files,
-                u64::try_from(cache.maximum_entry_bytes).unwrap_or(u64::MAX),
-            )?;
             let publish_context = crate::cache::Context {
                 now_ms: now_ms
                     .checked_add(
@@ -1484,8 +1565,16 @@ pub fn run_pipeline(
                     .ok_or("clock overflow")?,
                 ..cache_context
             };
-            let published =
-                crate::cache::publish_extracted(cache, &publish_context, workspace.path(), key);
+            let published = (|| {
+                let workspace = tempfile::tempdir().map_err(|e| e.to_string())?;
+                kiln_microvm::archive::extract_files(
+                    &tar,
+                    workspace.path(),
+                    cache.maximum_files,
+                    u64::try_from(cache.maximum_entry_bytes).unwrap_or(u64::MAX),
+                )?;
+                crate::cache::publish_extracted(cache, &publish_context, workspace.path(), key)
+            })();
             let duration = u64::try_from(cache_started.elapsed().as_millis()).unwrap_or(u64::MAX);
             cache_ms = Some(
                 cache_ms
@@ -1745,21 +1834,17 @@ fn placement_facts(
     job: &crate::pipelines::CompiledJob,
     untrusted: bool,
 ) -> (String, String, &'static str) {
-    let (host, domain) = config
+    // All backends in this executor launch locally. Reviewed pool/host labels
+    // cannot turn two local processes into physically separate machines.
+    let host = crate::microvm::physical_host_identity();
+    let domain = config
         .runners
         .get(&job.runner)
         .and_then(|backend| match backend {
-            Backend::Firecracker {
-                host_identity,
-                trust_domain,
-                ..
-            } => Some((
-                host_identity.clone().unwrap_or_else(|| job.runner.clone()),
-                trust_domain.clone().unwrap_or_else(|| job.runner.clone()),
-            )),
+            Backend::Firecracker { trust_domain, .. } => trust_domain.clone(),
             _ => None,
         })
-        .unwrap_or_else(|| (job.runner.clone(), job.runner.clone()));
+        .unwrap_or_else(|| job.runner.clone());
     let class = if untrusted {
         "untrusted"
     } else if config.workload.iter().any(|policy| {
@@ -1774,20 +1859,29 @@ fn placement_facts(
     (host, domain, class)
 }
 
+struct PlacementScope<'a> {
+    organization: &'a str,
+    attempt: &'a str,
+    project: &'a str,
+}
+
 /// Reserve this attempt's declared host placements before any financial or
 /// process effect. A stale row is ignored unless its attempt is active.
 fn reserve_placements(
     db: &Connection,
-    organization: &str,
-    attempt: &str,
+    scope: PlacementScope<'_>,
     plan: &crate::pipelines::CompiledPipeline,
-    project: &str,
     config: &Config,
     untrusted: bool,
     now_ms: u64,
 ) -> Result<(), String> {
+    let PlacementScope {
+        organization,
+        attempt,
+        project,
+    } = scope;
     db.execute(
-        "DELETE FROM hosted_microvm_placement WHERE attempt NOT IN (SELECT attempt FROM hosted_execution WHERE state IN ('reserved','running','unknown'))",
+        "DELETE FROM hosted_microvm_placement WHERE NOT EXISTS(SELECT 1 FROM hosted_execution e WHERE e.org=hosted_microvm_placement.org AND e.attempt=hosted_microvm_placement.attempt AND e.state IN ('reserved','running','unknown'))",
         [],
     )
     .map_err(|e| e.to_string())?;
@@ -2107,13 +2201,35 @@ pub(crate) fn systemctl(
     config: &Config,
     args: &[&str],
 ) -> Result<bounded_exec::ExecutionOutput, String> {
+    systemctl_until(
+        config,
+        args,
+        Instant::now() + std::time::Duration::from_millis(5000),
+    )
+}
+
+pub(crate) fn systemctl_until(
+    config: &Config,
+    args: &[&str],
+    deadline: Instant,
+) -> Result<bounded_exec::ExecutionOutput, String> {
+    let executable = config.systemctl.verify()?;
+    let timeout_ms = u64::try_from(
+        deadline
+            .saturating_duration_since(Instant::now())
+            .as_millis(),
+    )
+    .unwrap_or(u64::MAX);
+    if timeout_ms == 0 {
+        return Err("systemctl deadline exhausted".into());
+    }
     bounded_exec::run(manager_request(
         config,
-        config.systemctl.verify()?,
+        executable,
         std::iter::once(OsString::from("--user"))
             .chain(args.iter().map(OsString::from))
             .collect(),
-        5000,
+        timeout_ms,
         16384,
         Input::Null,
     )?)
@@ -2274,7 +2390,9 @@ fn run_step(
             service.extend(args.into_iter().map(OsString::from));
             Input::Null
         }
-        Backend::Firecracker { .. } | Backend::CloudHypervisor { .. } => {
+        Backend::Firecracker { .. }
+        | Backend::CloudHypervisor { .. }
+        | Backend::Unikernel { .. } => {
             return Err("microVM runners execute whole jobs, not single steps".into());
         }
     };
@@ -3052,8 +3170,8 @@ mod tests {
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
         db.execute(
-            "INSERT INTO hosted_microvm_placement VALUES('acme','prior','job','host-trusted','trusted','workload',1)",
-            [],
+            "INSERT INTO hosted_microvm_placement VALUES('acme','prior','job',?1,'trusted','workload',1)",
+            params![crate::microvm::physical_host_identity()],
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
         let plan = crate::pipelines::CompiledPipeline {
@@ -3063,6 +3181,8 @@ mod tests {
             triggers: Vec::new(),
             schedules: std::collections::BTreeMap::new(),
             jobs: vec![crate::pipelines::CompiledJob {
+                kind: None,
+                unikernel: None,
                 id: "job".into(),
                 source_job: "job".into(),
                 needs: Vec::new(),
@@ -3072,7 +3192,61 @@ mod tests {
                 timeout_ms: 1000,
             }],
         };
-        assert!(reserve_placements(&db, "acme", "next", &plan, "app", &config, true, 2).is_err());
+        assert!(
+            reserve_placements(
+                &db,
+                PlacementScope {
+                    organization: "acme",
+                    attempt: "next",
+                    project: "app"
+                },
+                &plan,
+                &config,
+                true,
+                2
+            )
+            .is_err()
+        );
+        db.execute(
+            "UPDATE hosted_execution SET state='unknown' WHERE org='acme' AND attempt='prior'",
+            [],
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(
+            reserve_placements(
+                &db,
+                PlacementScope {
+                    organization: "other-org",
+                    attempt: "next",
+                    project: "app"
+                },
+                &plan,
+                &config,
+                true,
+                3
+            )
+            .is_err()
+        );
+        db.execute(
+            "UPDATE hosted_execution SET state='succeeded' WHERE org='acme' AND attempt='prior'",
+            [],
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(
+            reserve_placements(
+                &db,
+                PlacementScope {
+                    organization: "other-org",
+                    attempt: "next",
+                    project: "app"
+                },
+                &plan,
+                &config,
+                true,
+                4
+            )
+            .is_ok()
+        );
     }
     #[test]
     fn cpu_affinity_is_bounded_and_duplicate_free() {
@@ -3186,5 +3360,27 @@ mod tests {
         assert!(cache_partition_admitted(None, false));
         assert!(cache_partition_admitted(Some("l3-a"), true));
         assert!(!cache_partition_admitted(Some("l3-a"), false));
+    }
+    #[test]
+    fn unikernel_admits_only_no_network_trusted_execution() {
+        let backend = |network| Backend::Unikernel {
+            firecracker: Executable {
+                path: "/nix/store/example/firecracker".into(),
+                blake3: "0".repeat(64),
+            },
+            kernel: Image {
+                path: "/nix/store/example/unikraft".into(),
+                blake3: "1".repeat(64),
+            },
+            project: "unikraft".into(),
+            version: "a4c494e80141bd402961c7d96150dd218c79db37".into(),
+            vcpus: 1,
+            memory_mib: 128,
+            network,
+        };
+        assert!(admit_backend(&backend(None), "trusted").is_ok());
+        assert!(admit_backend(&backend(Some("none".into())), "trusted").is_ok());
+        assert!(admit_backend(&backend(Some("tap".into())), "trusted").is_err());
+        assert!(admit_backend(&backend(None), "hostile").is_err());
     }
 }

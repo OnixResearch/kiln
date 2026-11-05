@@ -65,6 +65,20 @@ let Backend =
         }
         label
         value
+    else if value.kind == "unikernel-test" then
+      std.contract.check
+        {
+          kind | std.contract.from_predicate (fun v => v == "unikernel-test"),
+          firecracker | Executable,
+          kernel | Executable,
+          project | std.contract.from_predicate (fun v => v == "unikraft"),
+          version | String,
+          vcpus | c.BoundedInteger 1 1,
+          memory_mib | c.BoundedInteger 32 16384,
+          network | std.contract.from_predicate (fun v => v == "none") | optional,
+        }
+        label
+        value
     else if value.kind == "firecracker" then
       # One microVM per job from the `microvm-guest` flake output (see its
       # manifest.json for exact paths and BLAKE3). Rust admission checks memory
@@ -101,8 +115,8 @@ let Backend =
           # may execute approved untrusted pull-request runs, always without
           # secrets, workload token or cache. Omitted means it may not.
           untrusted_capable | Bool | optional,
-          # Non-empty operator acknowledgement for unsafe host preflight facts;
-          # recorded in the receipt and checked at untrusted dispatch.
+          # SMT/KSM-only operator exception. Unfixed/unknown kernel status
+          # cannot be overridden. The reason is retained in the receipt.
           host_preflight_override
             | std.contract.from_predicate (fun value =>
               std.is_string value
@@ -131,12 +145,29 @@ let Backend =
               && !(std.string.is_match "\\x00" value)
             )
             | optional,
+          # Existing operator-created resctrl CAT group; Rust verifies assignment.
+          cache_partition
+            | std.contract.from_predicate (fun value =>
+              std.is_string value
+              && std.string.length value <= 128
+              && std.string.is_match "^[A-Za-z0-9][A-Za-z0-9_-]*$" value
+            )
+            | optional,
+          # Pin VMM and inherited vCPU threads; physical host exclusion still applies.
+          cpu_affinity
+            | std.contract.from_predicate (fun value =>
+              std.is_string value
+              && std.string.length value > 0
+              && std.string.length value <= 256
+              && std.string.is_match "^[0-9,-]+$" value
+            )
+            | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,
         }
         label
         value
     else
-      'Error { message = "Backend kind must be namespaces, qemu or firecracker" }
+      'Error { message = "Backend kind must be namespaces, qemu, firecracker, cloud-hypervisor or unikernel-test" }
   )
 in
 let CacheRelative =

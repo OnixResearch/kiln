@@ -50,6 +50,11 @@ fn profile() -> RadicleMutationProfile {
             blake3: PINNED_SECRETSPEC_EXECUTABLE_BLAKE3.to_string(),
             version: PINNED_SECRETSPEC_VERSION.to_string(),
         },
+        PinnedSecretSpecExecutable {
+            path: PathBuf::from("/reviewed/kiln-radicle-patch"),
+            blake3: "a".repeat(64),
+            version: "0.25.1".into(),
+        },
     )
 }
 

@@ -1,0 +1,3 @@
+- [x] [serial] Implement bounded native reduction and head-bound review append. r[kiln.radicle.multiwriter]
+- [x] [serial] Implement exact patch revision admission, approval and durable deduplication. r[kiln.radicle.revision_ci]
+- [x] [serial] Add paired behavior fixtures and document invocation/evidence boundaries. r[kiln.radicle.multiwriter] r[kiln.radicle.revision_ci]

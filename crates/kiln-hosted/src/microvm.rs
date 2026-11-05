@@ -32,7 +32,7 @@ use kiln_microvm::confinement::{
     ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
 };
 use kiln_microvm::debug_hold::{self as hold_policy, DebugHoldPolicy, Grants, HoldFacts};
-use kiln_microvm::host::{CveStatus, HostFacts};
+use kiln_microvm::host::HostFacts;
 use kiln_microvm::lifecycle::{Event, Lifecycle, State};
 use kiln_microvm::plan::{self, VmPaths};
 use kiln_microvm::protocol::{
@@ -46,7 +46,7 @@ use serde_json::{Value, json};
 
 use crate::execution::{
     Backend, Config, Image, ProcessFacts, StepObservation, cleanup_unit,
-    infrastructure_failure_state, manager_request, step_observation, systemctl, unit_command,
+    infrastructure_failure_state, manager_request, step_observation, unit_command,
 };
 use crate::fleet::Executable;
 
@@ -80,7 +80,12 @@ const VMM_EXEC_MARGIN_MS: u64 = 5_000;
 const MAX_HOST_FACT_BYTES: usize = 4096;
 
 fn read_bounded_text(path: &str) -> Option<String> {
-    let bytes = fs::read(path).ok()?;
+    let mut bytes = Vec::new();
+    File::open(path)
+        .ok()?
+        .take((MAX_HOST_FACT_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)
+        .ok()?;
     if bytes.len() > MAX_HOST_FACT_BYTES {
         return None;
     }
@@ -98,52 +103,156 @@ fn parse_sysctl(path: &str) -> Option<bool> {
 }
 
 fn host_package() -> String {
-    std::env::var("KILN_HOST_KERNEL_PACKAGE").unwrap_or_else(|_| {
-        read_bounded_text("/etc/os-release")
-            .and_then(|text| {
-                text.lines()
-                    .find_map(|line| line.strip_prefix("BUILD_ID="))
-                    .map(|value| value.trim_matches('"').to_owned())
-            })
-            .unwrap_or_default()
-    })
+    if let Ok(package) = std::env::var("KILN_HOST_KERNEL_PACKAGE") {
+        return format!("operator-declared:{package}");
+    }
+    // NixOS's booted kernel store path is an exact package identity. An OS
+    // BUILD_ID identifies the distribution, not its booted kernel package.
+    fs::canonicalize("/run/booted-system/kernel")
+        .ok()
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "unknown".into())
 }
 
 fn mptcp_listener_count() -> Option<u32> {
-    let text = read_bounded_text("/proc/net/mptcp")?;
-    u32::try_from(
-        text.lines()
-            .skip(1)
-            .filter(|line| !line.trim().is_empty())
-            .count(),
-    )
-    .ok()
+    use bounded_exec::{
+        CommandSpec, EnvironmentMode, ExecutionLimits, OutcomePolicy, RunRequest, TerminationScope,
+    };
+    let program = std::env::split_paths(&std::env::var_os("PATH")?)
+        .map(|directory| directory.join("ss"))
+        .find(|candidate| candidate.is_file())?;
+    let output = bounded_exec::run(RunRequest {
+        command: CommandSpec {
+            program,
+            args: ["-M", "-l", "-n", "-p", "-H"]
+                .into_iter()
+                .map(OsString::from)
+                .collect(),
+            current_dir: PathBuf::from("/"),
+            environment_mode: EnvironmentMode::Clear,
+            environment: Vec::new(),
+            input: Input::Null,
+        },
+        limits: ExecutionLimits {
+            timeout_ms: 1000,
+            stdin_max_bytes: MAX_HOST_FACT_BYTES,
+            stdout_max_bytes: MAX_HOST_FACT_BYTES,
+            stderr_max_bytes: MAX_HOST_FACT_BYTES,
+            poll_interval_ms: 10,
+            teardown_timeout_ms: 500,
+        },
+        termination_scope: TerminationScope::ProcessGroup,
+        outcome_policy: OutcomePolicy::new(vec![0], true, true).ok()?,
+    })
+    .ok()?;
+    if output.completion != Completion::Exited
+        || output.exit_code != Some(0)
+        || output.stdout.truncated
+    {
+        return None;
+    }
+    let text = std::str::from_utf8(&output.stdout.bytes).ok()?;
+    u32::try_from(text.lines().filter(|line| !line.trim().is_empty()).count()).ok()
 }
 
-/// Read the reviewed host facts from proc/sys and os-release. Missing kernel or
-/// SMT facts fail closed as `unknown` or active; KSM absence means not running.
+/// Confidential local-executor OS-instance bucket, independent of runner labels.
+/// This is not hardware attestation and must never enter customer receipts.
+pub(crate) fn physical_host_identity() -> String {
+    read_bounded_text("/etc/machine-id").unwrap_or_else(|| "local-host-unknown".into())
+}
+
+fn security_files(directory: &str) -> std::collections::BTreeMap<String, String> {
+    let mut facts = std::collections::BTreeMap::new();
+    if let Ok(entries) = fs::read_dir(directory) {
+        for entry in entries.flatten().take(128) {
+            if let Some(text) = entry.path().to_str().and_then(read_bounded_text) {
+                facts.insert(entry.file_name().to_string_lossy().into_owned(), text);
+            }
+        }
+    }
+    facts
+}
+
+/// Assign every VMM/vCPU thread to an operator-created CAT group before
+/// guest job dispatch. Future threads inherit their parent's group.
+fn assign_cache_partition(pid: u32, partition: &str) -> Result<Value, String> {
+    if !crate::identifier(partition) {
+        return Err("cache partition must be a single resctrl group name".into());
+    }
+    let group = Path::new("/sys/fs/resctrl").join(partition);
+    let schemata = read_bounded(&group.join("schemata"), MAX_HOST_FACT_BYTES)?;
+    let schemata = std::str::from_utf8(&schemata).map_err(|_| "CAT schemata is not UTF-8")?;
+    if !schemata
+        .lines()
+        .any(|line| line.starts_with("L3:") || line.starts_with("L3CODE:"))
+    {
+        return Err("cache partition has no L3 CAT assignment".into());
+    }
+    let mut threads = Vec::new();
+    for entry in fs::read_dir(format!("/proc/{pid}/task")).map_err(|_| "VMM threads unavailable")? {
+        let entry = entry.map_err(|_| "VMM thread unreadable")?;
+        let tid: u32 = entry
+            .file_name()
+            .to_string_lossy()
+            .parse()
+            .map_err(|_| "VMM thread ID invalid")?;
+        fs::write(group.join("tasks"), tid.to_string())
+            .map_err(|_| "resctrl thread assignment refused")?;
+        threads.push(tid);
+    }
+    threads.sort_unstable();
+    let assigned = read_bounded(&group.join("tasks"), 65536)?;
+    let assigned = std::str::from_utf8(&assigned).map_err(|_| "resctrl tasks invalid")?;
+    let assigned = assigned
+        .lines()
+        .map(|line| line.trim().parse::<u32>())
+        .collect::<Result<std::collections::BTreeSet<_>, _>>()
+        .map_err(|_| "resctrl thread ID invalid")?;
+    if threads.iter().any(|tid| !assigned.contains(tid)) {
+        return Err("resctrl thread assignment not retained".into());
+    }
+    Ok(
+        json!({"group": partition, "schemata": schemata, "threads": threads, "bandwidth_partitioned": false}),
+    )
+}
+
+/// Read bounded kernel, package, security and network exposure observations.
+/// Missing kernel/SMT facts fail closed; absent KSM support is not running.
 pub(crate) fn read_host_facts() -> HostFacts {
     let release =
         read_bounded_text("/proc/sys/kernel/osrelease").unwrap_or_else(|| "unknown".into());
-    let smt_active = read_bounded_text("/sys/devices/system/cpu/smt/active")
-        .map(|value| value == "1")
-        .unwrap_or(true);
+    let smt_active = parse_sysctl("/sys/devices/system/cpu/smt/active").unwrap_or(true);
     let ksm_running = read_bounded_text("/sys/kernel/mm/ksm/run")
-        .map(|value| value == "1")
-        .unwrap_or(false);
+        .map(|value| value != "0")
+        .unwrap_or_else(|| Path::new("/sys/kernel/mm/ksm/run").exists());
     let mptcp_enabled = parse_sysctl("/proc/sys/net/mptcp/enabled");
     let tcp_migrate_req = parse_sysctl("/proc/sys/net/ipv4/tcp_migrate_req");
-    HostFacts::observed(
+    let mut facts = HostFacts::observed(
         release,
         host_package(),
-        &std::collections::BTreeMap::from([("".into(), CveStatus::Unknown)]),
+        &std::collections::BTreeMap::new(),
         smt_active,
         ksm_running,
         mptcp_enabled,
         tcp_migrate_req,
         mptcp_listener_count(),
-        Path::new("/sys/fs/resctrl/info").is_dir(),
-    )
+        read_bounded(Path::new("/proc/mounts"), 65536)
+            .ok()
+            .and_then(|bytes| String::from_utf8(bytes).ok())
+            .is_some_and(|mounts| kiln_microvm::host::resctrl_at_expected_mountpoint(&mounts)),
+    );
+    facts.smt_control = read_bounded_text("/sys/devices/system/cpu/smt/control");
+    facts.ksm_run = read_bounded_text("/sys/kernel/mm/ksm/run");
+    facts.kernel_cmdline = read_bounded_text("/proc/cmdline");
+    facts.vulnerabilities = security_files("/sys/devices/system/cpu/vulnerabilities");
+    for resource in ["L3", "L3CODE", "L3DATA", "MB"] {
+        for (name, value) in security_files(&format!("/sys/fs/resctrl/info/{resource}")) {
+            facts
+                .resctrl_capabilities
+                .insert(format!("{resource}/{name}"), value);
+        }
+    }
+    facts
 }
 
 pub(crate) struct Runner<'a> {
@@ -322,8 +431,6 @@ pub(crate) struct Job<'a> {
     pub(crate) cache_max_bytes: usize,
     /// Credential and trust facts that rule out a debug hold.
     pub(crate) grants: Grants,
-    /// Other jobs in this attempt sharing the declared host identity.
-    pub(crate) attempt_co_residency: &'a [(String, String)],
 }
 
 pub(crate) struct JobOutcome {
@@ -332,7 +439,7 @@ pub(crate) struct JobOutcome {
     pub(crate) cache_tar: Option<Vec<u8>>,
 }
 
-type Vmm<'scope> = ScopedJoinHandle<'scope, Result<ExecutionOutput, RunError>>;
+pub(crate) type Vmm<'scope> = ScopedJoinHandle<'scope, Result<ExecutionOutput, RunError>>;
 
 fn millis(since: Instant) -> u64 {
     u64::try_from(since.elapsed().as_millis()).unwrap_or(u64::MAX)
@@ -470,16 +577,36 @@ pub(crate) fn source_image(workspace: &Path, image: &Path, capacity: u64) -> Res
     Ok(total)
 }
 
-fn spawn_vmm<'scope>(
+pub(crate) struct VmmBudget {
+    pub timeout_ms: u64,
+    pub capture_bytes: usize,
+    pub timeout_margin_ms: u64,
+    pub preboot_syscalls: Option<&'static str>,
+}
+
+pub(crate) fn spawn_vmm<'scope>(
     scope: &'scope Scope<'scope, '_>,
     config: &'scope Config,
     unit: &str,
-    timeout_ms: u64,
+    budget: VmmBudget,
     affinity: Option<&str>,
     arguments: Vec<String>,
     stop: &'scope AtomicBool,
 ) -> Result<Vmm<'scope>, String> {
+    let VmmBudget {
+        timeout_ms,
+        capture_bytes,
+        timeout_margin_ms,
+        preboot_syscalls,
+    } = budget;
     let mut service = unit_command(config, unit, timeout_ms, true)?;
+    if let Some(syscalls) = preboot_syscalls {
+        service.insert(
+            0,
+            format!("--property=SystemCallFilter={}", syscalls.trim()).into(),
+        );
+        service.insert(0, "--property=SystemCallErrorNumber=EPERM".into());
+    }
     if let Some(affinity) = affinity {
         let taskset = config
             .taskset
@@ -497,20 +624,20 @@ fn spawn_vmm<'scope>(
         config,
         config.systemd_run.verify()?,
         service,
-        timeout_ms.saturating_add(VMM_EXEC_MARGIN_MS),
-        CONSOLE_BYTES,
+        timeout_ms.saturating_add(timeout_margin_ms),
+        capture_bytes,
         Input::Null,
     )?;
     Ok(scope.spawn(move || bounded_exec::run_with_cancellation(request, stop)))
 }
 
-struct ConfinementObservation {
-    pid: u32,
+pub(crate) struct ConfinementObservation {
+    pub(crate) pid: u32,
     facts: ConfinementFacts,
     exe_blake3: String,
 }
 
-fn confinement_value(result: &Result<ConfinementObservation, String>) -> Value {
+pub(crate) fn confinement_value(result: &Result<ConfinementObservation, String>) -> Value {
     match result {
         Ok(observed) => json!({
             "ok": true,
@@ -540,8 +667,12 @@ fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>, String> {
     Ok(bytes)
 }
 
-fn control_group(config: &Config, unit: &str) -> Result<String, String> {
-    let output = systemctl(config, &["show", unit, "--property=ControlGroup"])?;
+fn control_group(config: &Config, unit: &str, deadline: Instant) -> Result<String, String> {
+    let output = crate::execution::systemctl_until(
+        config,
+        &["show", unit, "--property=ControlGroup"],
+        deadline,
+    )?;
     if output.completion != Completion::Exited || output.stdout.truncated {
         return Err("attempt cgroup is unavailable".into());
     }
@@ -564,7 +695,7 @@ fn control_group(config: &Config, unit: &str) -> Result<String, String> {
     Ok(group.to_owned())
 }
 
-fn observe_confinement(
+pub(crate) fn observe_confinement(
     config: &Config,
     unit: &str,
     expected_name: &str,
@@ -582,10 +713,13 @@ fn observe_confinement(
             expected_exe,
             exe_blake3,
             allow_unfiltered_main,
+            deadline,
         ) {
             Ok(observation) => return Ok(observation),
             Err(error) if Instant::now() >= deadline => return Err(error),
-            Err(_) => std::thread::sleep(Duration::from_millis(10)),
+            Err(_) => std::thread::sleep(
+                Duration::from_millis(10).min(deadline.saturating_duration_since(Instant::now())),
+            ),
         }
     }
 }
@@ -597,8 +731,9 @@ fn observe_confinement_once(
     expected_exe: &Path,
     exe_blake3: &str,
     allow_unfiltered_main: bool,
+    deadline: Instant,
 ) -> Result<ConfinementObservation, String> {
-    let group = control_group(config, unit)?;
+    let group = control_group(config, unit, deadline)?;
     let cgroup = Path::new("/sys/fs/cgroup").join(group.trim_start_matches('/'));
     let processes = read_bounded(&cgroup.join("cgroup.procs"), 4096)?;
     let processes = std::str::from_utf8(&processes)
@@ -770,18 +905,56 @@ fn write_host(stream: &mut UnixStream, message: HostMessage) -> Result<(), Strin
 }
 
 /// One request on the Firecracker API socket, waiting for the socket to appear.
-fn api(socket: &Path, method: &str, path: &str, body: &Value, vmm: &Vmm<'_>) -> Result<(), String> {
-    let deadline = Instant::now() + API_TIMEOUT;
+pub(crate) fn api(
+    socket: &Path,
+    method: &str,
+    path: &str,
+    body: &Value,
+    vmm: &Vmm<'_>,
+) -> Result<(), String> {
+    api_until(
+        socket,
+        method,
+        path,
+        body,
+        vmm,
+        Instant::now() + API_TIMEOUT,
+    )
+}
+
+pub(crate) fn api_until(
+    socket: &Path,
+    method: &str,
+    path: &str,
+    body: &Value,
+    vmm: &Vmm<'_>,
+    deadline: Instant,
+) -> Result<(), String> {
+    let remaining = || {
+        deadline
+            .checked_duration_since(Instant::now())
+            .filter(|left| !left.is_zero())
+            .ok_or_else(|| "Firecracker API deadline exhausted".to_owned())
+    };
     let mut stream = loop {
+        remaining()?;
         match UnixStream::connect(socket) {
             Ok(stream) => break stream,
-            Err(_) if Instant::now() < deadline && !vmm.is_finished() => std::thread::sleep(POLL),
+            Err(_) if Instant::now() < deadline && !vmm.is_finished() => {
+                std::thread::sleep(POLL.min(remaining()?))
+            }
             Err(_) => return Err("Firecracker API socket unavailable".into()),
         }
     };
     stream
-        .set_read_timeout(Some(API_TIMEOUT))
-        .and_then(|()| stream.set_write_timeout(Some(API_TIMEOUT)))
+        .set_read_timeout(Some(remaining()?))
+        .and_then(|()| {
+            stream.set_write_timeout(Some(
+                deadline
+                    .saturating_duration_since(Instant::now())
+                    .max(Duration::from_nanos(1)),
+            ))
+        })
         .and_then(|()| stream.write_all(&plan::api_request(method, path, body)))
         .map_err(|_| "Firecracker API write failed")?;
     let mut response = Vec::new();
@@ -790,6 +963,9 @@ fn api(socket: &Path, method: &str, path: &str, body: &Value, vmm: &Vmm<'_>) -> 
         if plan::api_response_length(&response).is_some_and(|length| response.len() >= length) {
             break;
         }
+        stream
+            .set_read_timeout(Some(remaining()?))
+            .map_err(|_| "Firecracker API read deadline failed")?;
         let count = stream
             .read(&mut buffer)
             .map_err(|_| "Firecracker API read failed")?;
@@ -887,7 +1063,7 @@ fn blake3_file(path: &Path) -> Result<String, String> {
 }
 
 fn snapshot_identity(runner: &Runner<'_>, slot: &Slot) -> Result<String, String> {
-    Ok(plan::snapshot_identity(&plan::SnapshotInputs {
+    let base = plan::snapshot_identity(&plan::SnapshotInputs {
         vmm_kind: runner.kind,
         vmm_version: runner.version.unwrap_or("unknown"),
         vmm_blake3: &runner.vmm.blake3,
@@ -898,7 +1074,8 @@ fn snapshot_identity(runner: &Runner<'_>, slot: &Slot) -> Result<String, String>
         source_image_mib: runner.policy.source_image_mib,
         slot: slot.index,
         slot_directory: text(&slot.directory)?,
-    }))
+    });
+    crate::identity(&("kiln.hosted.snapshot.cache-free-drive.v2", base))
 }
 
 /// A slot snapshot is reusable only for the exact identity and state bytes.
@@ -1028,8 +1205,13 @@ fn build_cloud_hypervisor_snapshot(
             scope,
             config,
             job.unit,
-            job.timeout_ms,
-            runner.cpu_affinity.as_deref(),
+            VmmBudget {
+                timeout_ms: job.timeout_ms,
+                capture_bytes: CONSOLE_BYTES,
+                timeout_margin_ms: VMM_EXEC_MARGIN_MS,
+                preboot_syscalls: None,
+            },
+            runner.cpu_affinity,
             arguments,
             &stop,
         )?;
@@ -1114,10 +1296,20 @@ fn build_snapshot(
     blank
         .set_len(u64::from(runner.policy.source_image_mib) * MIB)
         .map_err(|_| "warm pool source image size failed")?;
+    // The snapshot contains only an empty read-only device. No tenant cache
+    // bytes enter snapshot memory or its identity.
+    let blank_cache = slot.path("cache-empty.img");
+    write_private(&blank_cache, &[0_u8; 1024])?;
+    OpenOptions::new()
+        .write(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(&blank_cache)
+        .and_then(|file| file.set_len(u64::from(runner.policy.source_image_mib) * MIB))
+        .map_err(|_| "warm pool cache image size failed")?;
     let config_path = slot.path("vm.json");
     write_private(
         &config_path,
-        &vm_config(paths, &image, None, &vsock, runner)?,
+        &vm_config(paths, &image, Some(&blank_cache), &vsock, runner)?,
     )?;
     let listener = UnixListener::bind(&listener_path).map_err(|_| "guest listener bind failed")?;
     let stop = AtomicBool::new(false);
@@ -1126,8 +1318,13 @@ fn build_snapshot(
             scope,
             config,
             job.unit,
-            job.timeout_ms,
-            runner.cpu_affinity.as_deref(),
+            VmmBudget {
+                timeout_ms: job.timeout_ms,
+                capture_bytes: CONSOLE_BYTES,
+                timeout_margin_ms: VMM_EXEC_MARGIN_MS,
+                preboot_syscalls: None,
+            },
+            runner.cpu_affinity,
             vec![
                 text(&paths.vmm)?.into(),
                 "--api-sock".into(),
@@ -1269,6 +1466,8 @@ fn drive_guest(
                 session.admission_error = admission_error;
                 session.session_ms = Some(millis(started));
                 if admitted && let Some(paths) = job.cache_paths {
+                    #[cfg(feature = "cache-fault-tests")]
+                    crate::cache::receiving(job.unit);
                     write_host(
                         &mut stream,
                         HostMessage::Publish {
@@ -1279,6 +1478,9 @@ fn drive_guest(
                     )?;
                     match read_guest(&mut stream, job_deadline, cancellation)? {
                         GuestMessage::Cache { nonce, tar_hex } if nonce == job.job => {
+                            if tar_hex.len() > job.cache_max_bytes.saturating_mul(2) {
+                                return Err("guest cache return exceeds bound".into());
+                            }
                             session.cache_tar = protocol::hex_bytes(&tar_hex);
                             if session.cache_tar.is_none() {
                                 return Err("guest cache tar encoding rejected".into());
@@ -1539,6 +1741,11 @@ pub(crate) fn run_job(
         "hostile_isolation_claim": false,
         "host": host,
     });
+    if let (Some(fields), Ok(Value::Object(host_fields))) =
+        (vm.as_object_mut(), serde_json::to_value(host))
+    {
+        fields.extend(host_fields);
+    }
     let mut cleaned = true;
     let mut journaled = false;
     let mut console = String::new();
@@ -1547,6 +1754,20 @@ pub(crate) fn run_job(
             fields.insert(key.into(), value);
         }
     };
+    let untrusted_capable = matches!(
+        config.runners.get(job.runner),
+        Some(Backend::Firecracker {
+            untrusted_capable: true,
+            ..
+        })
+    );
+    let observed_refusal = host.untrusted_refusal();
+    let override_applied =
+        untrusted_capable && observed_refusal.is_some() && host_preflight_override.is_some();
+    observe(
+        "host_admission",
+        json!({"decision": "admitted", "untrusted_capable": untrusted_capable, "kernel_policy_source": "issue_28_fixed_release_table", "override_reason": host_preflight_override, "override_applied": override_applied, "observed_refusal": observed_refusal, "mptcp_exposure_reduced_partial": host.mptcp_exposure_reduced(), "hostile_isolation_claim": false}),
+    );
     if let Some(reason) = host_preflight_override {
         observe("host_preflight_override", json!(reason));
     }
@@ -1562,15 +1783,6 @@ pub(crate) fn run_job(
     if let Some(partition) = runner.cache_partition {
         observe("cache_partition", json!(partition));
     }
-    observe(
-        "attempt_co_residency",
-        json!(
-            job.attempt_co_residency
-                .iter()
-                .map(|(attempt, job)| json!({"attempt": attempt, "job": job}))
-                .collect::<Vec<_>>()
-        ),
-    );
     if let Err(error) = journal(db, job, "starting", None) {
         session.failure = Some(error);
     } else {
@@ -1704,8 +1916,13 @@ pub(crate) fn run_job(
                     scope,
                     config,
                     job.unit,
-                    unit_timeout_ms,
-                    runner.cpu_affinity.as_deref(),
+                    VmmBudget {
+                        timeout_ms: unit_timeout_ms,
+                        capture_bytes: CONSOLE_BYTES,
+                        timeout_margin_ms: VMM_EXEC_MARGIN_MS,
+                        preboot_syscalls: None,
+                    },
+                    runner.cpu_affinity,
                     arguments,
                     &stop,
                 )?;
@@ -1725,6 +1942,19 @@ pub(crate) fn run_job(
                             &vmm,
                         )
                         .inspect_err(|_| invalidate(held))?;
+                        if let Some(cache) = job.cache_image {
+                            api(
+                                &api_socket,
+                                "PATCH",
+                                "/drives/cache",
+                                &json!({
+                                    "drive_id": plan::CACHE_DRIVE,
+                                    "path_on_host": text(cache)?,
+                                }),
+                                &vmm,
+                            )
+                            .inspect_err(|_| invalidate(held))?;
+                        }
                         session.restore_api_ms = Some(millis(spawned));
                     }
                     let confinement = observe_confinement(
@@ -1738,7 +1968,20 @@ pub(crate) fn run_job(
                     );
                     session.confinement = Some(confinement_value(&confinement));
                     match &confinement {
-                        Ok(_) => {
+                        Ok(observation) => {
+                            crate::placement::begin(
+                                db,
+                                job.organization,
+                                job.attempt,
+                                job.job,
+                                observation.pid,
+                            )?;
+                            if let Some(partition) = runner.cache_partition {
+                                observe(
+                                    "cache_assignment",
+                                    assign_cache_partition(observation.pid, partition)?,
+                                );
+                            }
                             lifecycle.advance(Event::ConfinementObserved { ok: true })?;
                             if runner.kind == "cloud-hypervisor" && slot.is_some() {
                                 api(&api_socket, "PUT", "/api/v1/vm.resume", &Value::Null, &vmm)?;
@@ -1841,6 +2084,12 @@ pub(crate) fn run_job(
             journaled = false;
         }
     }
+    match crate::placement::finish(db, job.organization, job.attempt, job.job, cleaned) {
+        Ok(peers) => observe("co_residency", peers),
+        Err(error) => {
+            session.failure.get_or_insert(error);
+        }
+    }
     if let Some(confinement) = session.confinement.take() {
         observe("confinement", confinement);
     }
@@ -1863,7 +2112,20 @@ pub(crate) fn run_job(
     JobOutcome {
         steps: observations(job, &session, cleaned, cancellation),
         vm,
-        cache_tar: session.cache_tar,
+        cache_tar: publishable_cache(session.cache_tar, cleaned, journaled, lifecycle.state),
+    }
+}
+
+fn publishable_cache(
+    bytes: Option<Vec<u8>>,
+    cleaned: bool,
+    journaled: bool,
+    state: State,
+) -> Option<Vec<u8>> {
+    if cleaned && journaled && matches!(state, State::Destroyed { journaled: true }) {
+        bytes
+    } else {
+        None
     }
 }
 
@@ -1937,6 +2199,32 @@ pub(crate) fn observations_for_reports(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // r[verify kiln.hosted.microvm.cache_integrity]
+    #[test]
+    fn unconfirmed_or_unrecorded_destruction_cannot_publish_guest_bytes() {
+        assert_eq!(
+            publishable_cache(
+                Some(vec![7]),
+                true,
+                true,
+                State::Destroyed { journaled: true }
+            ),
+            Some(vec![7])
+        );
+        for (cleaned, journaled, state) in [
+            (false, true, State::Abandoned { journaled: true }),
+            (false, true, State::Destroyed { journaled: true }),
+            (true, false, State::Destroyed { journaled: true }),
+            (true, true, State::Destroyed { journaled: false }),
+            (true, true, State::Journaled),
+        ] {
+            assert_eq!(
+                publishable_cache(Some(vec![7]), cleaned, journaled, state),
+                None
+            );
+        }
+    }
 
     // r[verify kiln.hosted.microvm.warm_pool]
     #[test]

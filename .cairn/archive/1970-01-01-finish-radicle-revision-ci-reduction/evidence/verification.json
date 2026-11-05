@@ -1,0 +1,75 @@
+{
+  "schema": "kiln.radicle-revision-ci-reduction.verification.v1",
+  "date": "2026-11-05",
+  "issues": [18, 20],
+  "actual_issue18_cli": {
+    "receipt": "issue18-cli/receipt.json",
+    "result": "pass: two real native signed revisions; actual CLI intake, blocked drive, approval and byte-identical blocked replay/duplicate intake",
+    "retained_artifacts": 19,
+    "cli_blake3": "311fd6489d06935eb9a24f1f3f670a48e7740639222bd985aa733c075324daec",
+    "hosted_or_signer_invoked": false,
+    "actual_untrusted_vm_execution": "not claimed; patched/rebooted admitted independently qualified host remains required"
+  },
+  "upstream": {"radicle": "0.25.1", "radicle_cob": "0.21.1", "compiler": "rustc 1.97.1 (8bab26f4f 2026-07-14)", "root_workspace_compiler_unchanged": "1.88"},
+  "native_helper": {
+    "command": "nix develop path:. --builders '' --option build-hook '' --command env TMPDIR=/tmp CARGO_TARGET_DIR=/tmp/kiln-radicle-issues-helper-target KILN_RETAIN_RADICLE_FIXTURE=1 RUSTC=/home/brittonr/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc /home/brittonr/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --locked --offline --manifest-path tools/radicle-patch/Cargo.toml -- --nocapture",
+    "result": "2 passed; 0 failed; no warnings",
+    "cli_smoke_executable_blake3": "5cf3bf3eedbde420883d9fb28c042dd1e582ba7a7356adf084015f1ffa5031d6",
+    "lock_blake3": "1e90cc2e87849a382f670653d63dd825bc84bbdf793db86f6c413a7013fdc873",
+    "source_blake3_at_native_cli_smoke": {
+      "main.rs": "02a0adf76f2da02796dfd25f919c99a161745faf10686179c68d1717f07e8273",
+      "history.rs": "75a5693c107f72faa195c18527a1600f9e90372a81463b9d8651462fe169aca6",
+      "review.rs": "f7bda7235f19ae527c730af89028cae738422b40a81e807d67e1bd6c79887944",
+      "multiwriter_tests.rs": "9a70a12964319de7d5c8bdbdd1903ef105db7cacce69c54a4c0e75121775ddd3"
+    },
+    "final_test_command": "CARGO_TARGET_DIR=/tmp/kiln-radicle-issues-helper-target cargo test --locked --offline --manifest-path tools/radicle-patch/Cargo.toml using the selected Rust 1.97.1 compiler",
+    "final_test_result": "2 passed; 0 failed; no warnings",
+    "final_tested_source_blake3": {
+      "main.rs": "45ccea07b5dd120404963e3461cc55df59afba0ebe9c0f1847849cc6a61702a0",
+      "history.rs": "bf8cad9aaa66c48eebaedc0698c81ddeabc3ba8ab5a3669c0d4ee591cc59afa0",
+      "review.rs": "64ed975e4f658076257ae0612d9b9b266a8f5878e035c40a21474ad5005ae6be",
+      "multiwriter_tests.rs": "81ccd77b1528d967378966ca1ae4827999f1366722b20a5d3db3f0ec0844b2a8"
+    },
+    "behaviors": ["two concurrent delegate reviews equal native state", "explicit crefs allow-list merge denial", "own review includes both prior tips", "external same-signer winner survives stale publication CAS", "cooperating writer lock refuses overlap", "signed-ref mapping and namespace tip-author checks", "disconnected signed and opaque action heads refused", "post-state head movement refused", "unsigned change refused", "two-head native issue reduces all three comments"]
+  },
+  "actual_cli_smoke": {
+    "result": "pass",
+    "repository": "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj",
+    "patch": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+    "issue": "ceb6672ac5a07c2cf4ab8143e61f1fc1a6e22876",
+    "issue_heads": 2,
+    "issue_lifecycle": "open",
+    "prior_reviews": 3,
+    "readback_reviews": 4,
+    "new_review": "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e",
+    "signed_author_reachability": true,
+    "stale_preview_exit": 1,
+    "stale_preview_wrote": false,
+    "keys": "disposable fixture seeds only; no real signer/remote operations"
+  },
+  "issue18_acceptance": {
+    "1": "patch_tests::revisions_are_separately_journaled_reapproved_and_duplicate_events_never_redispatch retains two revision journals and separately materializes real exact Git snapshots with each base/oid; terminal_patch_results_publish_real_disposable_jobs_for_each_exact_oid signs and reads exact-oid job COBs",
+    "2": "same fixture proves blocked-before-approval, automation denial, distinct new-revision blocking/reapproval; stale approval and unsigned-author reachability negatives included",
+    "3": "default push trigger/journal route unchanged; maintained deployed_push_maps_and_emits_exact_protocol_lines asserts exact broker bytes, and canonical journal replay/status fixture retained; no broader unmeasured historical-journal byte claim",
+    "4": "same fixture checks repeated PatchUpdated-style intake keeps original run and drives execution.get, never another execution.run"
+  },
+  "issue20_acceptance": {
+    "1": "real native concurrent delegate review fixture compares full native Patch JSON",
+    "2": "signed root-connected outsider merge outside explicit crefs allow list is ignored by pinned reducer",
+    "3": "real native append over two concurrent heads retains both as parents and reads all prior/new reviews",
+    "4": "actual CLI old-head review exits 1 without ref changes; native stale-head and same-signer expected-old publication CAS fixtures refuse writes"
+  },
+  "integration": {
+    "owner": "Main",
+    "reported_caller_result": "Shared locked workspace and native-feature commands passed: 1580 pass occurrences across 162 summaries including repeated packages, five ignored. Default revision CI had 17 library plus one binary test; native-fixtures had 18 library plus one binary test.",
+    "commands": ["cargo test --locked --offline -p kiln-radicle-ci --features native-fixtures", "cargo test --locked --offline -p kiln-adapter-radicle --all-features"],
+    "job_history_hardening": "Native job suite 16 passed; native source nine passed; native status 16 passed. Raw ODB bounds, every advertised head root-connected, opaque-action refusal and complete before/after head-map checks exercised."
+  },
+  "prerequisites_and_non_claims": [
+    "Observed Rust 1.88 upstream radicle 0.25.1 compile failed E0382 at cob/identity.rs506; isolated helper selects tested Rust1.97.1 without patching upstream",
+    "Separate helper lock adds fs2 0.4.3; Cargo reconciled target-only wasm/js dependency versions for the selected Rust1.97 cohort; root lock is parent-owned",
+    "Actual approved untrusted Firecracker run requires patched+rebooted, admitted, independently qualified untrusted-capable host; current vulnerable development kernel must not be overridden",
+    "Fixture authenticated transport is not real VM execution or production qualification",
+    "No remote initialization, publication, synchronization, signer/delegate mutation, paid provisioning or commit was performed"
+  ]
+}

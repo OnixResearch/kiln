@@ -180,6 +180,13 @@ The fixture covers activation, accepted and rejected triggers, effect routing, c
 `LocalAspenService` remains a model. It is not used as hosted evidence.
 
 The standalone host integration runs the real Aspen service and bounded extension process. Its focused fixture uses a closed terminal Lattice handler. Separate cross-process evidence also runs the real Lattice application service at runtime revision `c513d94d89e901ffa56ae67f375f973e55958e42`, which preserves the reviewed `70496e67...` exchange contract.
+That `c513d94d...` runtime is historical interoperability evidence, not the
+current CI handler. CI execution selects Lattice runtime
+`85a38b6a4bceeae4bb2057cf157e21752100f1b5` for `shell_success` and observed
+cancellation, independently of the retained MIT `70496e67...` contract import.
+Neither this documentation nor the old Aspen receipt qualifies a deployment of
+the newer handler; that requires fresh exact-executable evidence.
+
 
 ## Rollout gates
 

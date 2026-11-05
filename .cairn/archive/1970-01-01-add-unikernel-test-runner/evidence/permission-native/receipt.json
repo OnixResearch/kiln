@@ -1,0 +1,118 @@
+{
+  "guest": {
+    "firecracker": {
+      "blake3": "4e4b972c0a8b73d7b598b178d5b40cb7b3989a0f692e82b8339ef58bad6e988c",
+      "path": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker",
+      "version": "1.16.1"
+    },
+    "guest_kind": "unikernel",
+    "hostile_isolation_claim": false,
+    "kernel": {
+      "blake3": "b1debc88207360a26e54fae3e39a071b98a28af7131503ba71f1bd4600d4d4c5",
+      "path": "/nix/store/ay7y8ymkfyx8bynphvsmrxp6g1wnj459-kiln-unikraft-firecracker-a4c494e80141bd402961c7d96150dd218c79db37/kernel"
+    },
+    "project": "unikraft",
+    "schema": "kiln.unikernel.guest.v1",
+    "sources": {
+      "archive_blake3": {
+        "app": "c5fa650242286d4a8c3735b810b3433c05a07c408d874b14bdf39bb823a7b8c7",
+        "core": "de5eb9e2e4c367202e1dbe1dd2a736f0f8abb2e110422c53950ca2b89c18f11d",
+        "libelf": "5a31cbb6bf5b9fa8baa878f9267028d4ad7872e15e68224183ae9bb6c75ea61a"
+      },
+      "defconfig_blake3": "2584acd0f08b4d2589103ac5117bc236a894f466ada700035b4fa9e5d28d8522",
+      "lifecycle_patch_blake3": "9ad5783fb3fbcd41b1202e615b452410bfa0a6427db5bffd6c1087d1a6dffb68",
+      "schema": "kiln.unikernel.sources.v1",
+      "sources": [
+        {
+          "nar_hash": "sha256-TGzDx6m27gCSVj+AV2eMrAR0p2PNqS28HADYAv3NNCg=",
+          "revision": "a4c494e80141bd402961c7d96150dd218c79db37"
+        },
+        {
+          "nar_hash": "sha256-r6LSG0zSteGy7yWGHnhNWl0WvFeghBpsyV/xgLOk4NE=",
+          "revision": "0cd7a2b2c4d5ece85647c0c9903b50426e849420"
+        },
+        {
+          "nar_hash": "sha256-DhZp6hh0Arr0wEh2m8CqC+j96sw+m/PP8Mbv0J0LUME=",
+          "revision": "c03d4ceb22a2b9e9799238f9c277a14284d313ad"
+        }
+      ]
+    },
+    "version": "a4c494e80141bd402961c7d96150dd218c79db37"
+  },
+  "hosted_confinement_observed": false,
+  "hostile_isolation_claim": false,
+  "image_rebuilds": [
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "0da44b6cc66d135b21248f975c87eadacc99964197961a2ff631b3bd6db6670a",
+      "name": "rust"
+    },
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "d0f0446a8cc9e853e0c1cc025905e36620dd681703cad870fc589e8c9067d84a",
+      "name": "rust-fixture"
+    },
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "b444008c41ebdc427359c4065deb2c37bccfac2fde72b4bc5d73598f204579b8",
+      "name": "go"
+    },
+    {
+      "identical_rebuilds": 2,
+      "image_blake3": "71416ad7b3ebcbb51c6190e24d93123125efbaf26617f7d825c17151a41c5e55",
+      "name": "probe"
+    }
+  ],
+  "measurements": [
+    {
+      "cold_boot_to_application_ms": 130.893,
+      "exit_code": 0,
+      "name": "rust-pass",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 152.348,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 129.4,
+      "exit_code": 7,
+      "name": "rust-fail",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 149.913,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 133.196,
+      "exit_code": 0,
+      "name": "rust-fixture",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 155.959,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 131.621,
+      "exit_code": 0,
+      "name": "go-pass",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 159.972,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 134.884,
+      "exit_code": 7,
+      "name": "go-fail",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 157.931,
+      "vsock_device_configured": false
+    },
+    {
+      "cold_boot_to_application_ms": 131.912,
+      "exit_code": 0,
+      "name": "probe-probe",
+      "network_device_configured": false,
+      "spawn_to_exit_ms": 152.995,
+      "vsock_device_configured": false
+    }
+  ],
+  "schema": "kiln.unikernel.native-smoke.v1",
+  "single_host_measurement": true
+}

@@ -16,7 +16,8 @@ use serde_json::{Value, json};
 use super::client::{RunBinding, ServiceClient};
 use super::profile::WorkerProfile;
 use crate::cache::{
-    CacheEntry, CacheEnvelope, CacheFile, CacheKey, CacheObservation, WorkerCacheProfile, safe_path,
+    CacheEntry, CacheEnvelope, CacheFile, CacheKey, CacheObservation, CacheRestore, RestoreOutcome,
+    WorkerCacheProfile, safe_path,
 };
 
 fn elapsed(started: Instant) -> u64 {
@@ -120,7 +121,10 @@ pub fn collect_outputs(
         || key.platform != config.platform
         || key.paths != config.paths
         || key.inputs.len() != config.inputs.len()
-        || !config.inputs.iter().all(|input| key.inputs.contains_key(input))
+        || !config
+            .inputs
+            .iter()
+            .all(|input| key.inputs.contains_key(input))
     {
         return Err("cache policy changed before publication".into());
     }
@@ -261,29 +265,45 @@ pub(super) fn restore(
         &request(binding, &key, None, false),
         config,
     )?;
-    #[derive(serde::Deserialize)]
-    #[serde(deny_unknown_fields)]
-    struct Response {
-        entry: Option<CacheEnvelope>,
-    }
-    let response: Response =
+    let response: CacheRestore =
         serde_json::from_value(response).map_err(|_| "cache restore response invalid")?;
-    let outcome = if let Some(envelope) = response.entry {
-        if envelope.entry.key != key {
+    let observation = admit_restore(
+        response,
+        checkout,
+        &key,
+        config,
+        transferred_bytes,
+        elapsed(started),
+    )?;
+    Ok((key, observation))
+}
+
+fn admit_restore(
+    response: CacheRestore,
+    checkout: &Path,
+    key: &CacheKey,
+    config: &WorkerCacheProfile,
+    transferred_bytes: u64,
+    duration_ms: u64,
+) -> Result<CacheObservation, String> {
+    if (response.outcome == RestoreOutcome::Hit) != response.entry.is_some() {
+        return Err("cache restore status/entry conflict".into());
+    }
+    let entry_blake3 = response.entry.as_ref().map(|entry| entry.blake3.clone());
+    if let Some(envelope) = response.entry {
+        if envelope.entry.key != *key {
             return Err("cache restored key conflict".into());
         }
         restore_local(checkout, &envelope, config)?;
-        "hit"
-    } else {
-        "miss"
-    };
-    let observation = CacheObservation {
+    }
+    Ok(CacheObservation {
         key: key.identity()?,
-        outcome: outcome.into(),
+        outcome: response.outcome.as_str().into(),
         transferred_bytes,
-        duration_ms: elapsed(started),
-    };
-    Ok((key, observation))
+        duration_ms,
+        entry_blake3,
+        source_tier: "local".into(),
+    })
 }
 
 /// Caller may only invoke after child success and admitted log/report/artifact
@@ -321,6 +341,8 @@ pub(super) fn publish(
         outcome: "published".into(),
         transferred_bytes,
         duration_ms: elapsed(started),
+        entry_blake3: Some(envelope.blake3.clone()),
+        source_tier: "local".into(),
     })
 }
 
@@ -523,6 +545,119 @@ fn restore_entry(root: &Path, entry: &CacheEntry) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn degraded_restore_disables_publication_without_admitting_conflicting_or_unverified_entries() {
+        let root = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+        std::fs::write(root.path().join("input"), b"input")
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let envelope = CacheEnvelope::new(entry(vec![file("cache-output/object", b"verified")]))
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let key = envelope.entry.key.clone();
+        for outcome in [
+            RestoreOutcome::Miss,
+            RestoreOutcome::CorruptMiss,
+            RestoreOutcome::DisabledInventoryBound,
+        ] {
+            let observation = admit_restore(
+                CacheRestore {
+                    entry: None,
+                    outcome,
+                },
+                root.path(),
+                &key,
+                &config(),
+                13,
+                1,
+            )
+            .unwrap_or_else(|error| unreachable!("{error}"));
+            assert_eq!(observation.outcome, outcome.as_str());
+            assert_eq!(
+                observation.permits_publication(),
+                outcome == RestoreOutcome::Miss
+            );
+            assert!(!root.path().join("cache-output").exists());
+            assert!(
+                admit_restore(
+                    CacheRestore {
+                        entry: Some(envelope.clone()),
+                        outcome
+                    },
+                    root.path(),
+                    &key,
+                    &config(),
+                    13,
+                    1
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            admit_restore(
+                CacheRestore {
+                    entry: None,
+                    outcome: RestoreOutcome::Hit
+                },
+                root.path(),
+                &key,
+                &config(),
+                13,
+                1
+            )
+            .is_err()
+        );
+        let mut wrong_key = envelope.clone();
+        wrong_key.entry.key.node_id = "another-job".into();
+        assert!(
+            admit_restore(
+                CacheRestore {
+                    entry: Some(wrong_key),
+                    outcome: RestoreOutcome::Hit
+                },
+                root.path(),
+                &key,
+                &config(),
+                13,
+                1
+            )
+            .is_err()
+        );
+        let mut corrupt = envelope.clone();
+        corrupt.blake3 = "0".repeat(64);
+        assert!(
+            admit_restore(
+                CacheRestore {
+                    entry: Some(corrupt),
+                    outcome: RestoreOutcome::Hit
+                },
+                root.path(),
+                &key,
+                &config(),
+                13,
+                1
+            )
+            .is_err()
+        );
+        assert!(!root.path().join("cache-output").exists());
+        let observation = admit_restore(
+            CacheRestore {
+                entry: Some(envelope.clone()),
+                outcome: RestoreOutcome::Hit,
+            },
+            root.path(),
+            &key,
+            &config(),
+            13,
+            1,
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(observation.permits_publication());
+        assert_eq!(observation.entry_blake3, Some(envelope.blake3));
+        assert_eq!(
+            std::fs::read(root.path().join("cache-output/object"))
+                .unwrap_or_else(|error| unreachable!("{error}")),
+            b"verified"
+        );
+    }
     #[test]
     fn fresh_output_inspection_rejects_symlink_ancestors_even_when_leaf_is_absent() {
         let root =

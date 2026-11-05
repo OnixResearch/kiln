@@ -6,6 +6,10 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+# Compile-time-only host fault harness; no configuration/environment switch.
+cache-fault-tests = []
+
 [dependencies]
 base64.workspace = true
 blake3.workspace = true

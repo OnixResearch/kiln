@@ -1,0 +1,1 @@
+{"schema":"kiln.unikernel.preboot-denial-pair.v1","baseline":{"unit":"kiln-native-unfiltered-ptrace-baseline","no_new_privileges":true,"preboot_seccomp":false,"ptrace_traceme_result":0,"errno":0},"filtered":{"policy":"kiln.native.preboot.v1","no_new_privileges":true,"ptrace_traceme_result":-1,"errno":1,"evidence":"ptrace-denial.log"},"hostile_isolation_claim":false}

@@ -54,7 +54,10 @@ pub fn validate_step(step: &StepTelemetry) -> Result<(), String> {
                 .key
                 .bytes()
                 .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
-            || !matches!(fact.outcome.as_str(), "miss" | "hit" | "published")
+            || !matches!(
+                fact.outcome.as_str(),
+                "miss" | "hit" | "corrupt_miss" | "disabled_inventory_bound" | "published"
+            )
             || fact.duration_ms > MAX_STEP_DURATION_MS
         {
             return Err("cache observation rejected".into());
@@ -119,9 +122,35 @@ mod tests {
             outcome: "published".into(),
             transferred_bytes: 42,
             duration_ms: 1,
+            entry_blake3: Some("b".repeat(64)),
+            source_tier: "local".into(),
         });
         assert!(validate_step(&step).is_err());
         step.exit_code = 0;
         assert!(validate_step(&step).is_ok());
+    }
+    #[test]
+    fn degraded_cache_misses_are_admitted_without_authorizing_publication() {
+        for outcome in ["corrupt_miss", "disabled_inventory_bound"] {
+            let mut step = measured();
+            step.cache.push(crate::cache::CacheObservation {
+                key: "a".repeat(64),
+                outcome: outcome.into(),
+                transferred_bytes: 0,
+                duration_ms: 1,
+                entry_blake3: None,
+                source_tier: "local".into(),
+            });
+            assert!(validate_step(&step).is_ok());
+            step.cache.push(crate::cache::CacheObservation {
+                key: "a".repeat(64),
+                outcome: "published".into(),
+                transferred_bytes: 5,
+                duration_ms: 1,
+                entry_blake3: Some("b".repeat(64)),
+                source_tier: "local".into(),
+            });
+            assert!(validate_step(&step).is_err());
+        }
     }
 }

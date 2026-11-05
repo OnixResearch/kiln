@@ -1,0 +1,146 @@
+{
+  "schema": "kiln.radicle-issue18.actual-cli-smoke.v1",
+  "date": "2026-11-05",
+  "result": "pass",
+  "authority": "disposable local fixture only",
+  "cli": {
+    "path": "/home/brittonr/.cargo-target/debug/kiln-radicle-ci",
+    "blake3": "311fd6489d06935eb9a24f1f3f670a48e7740639222bd985aa733c075324daec",
+    "features": [
+      "native-fixtures"
+    ],
+    "compiler": "Rust1.88 parent-built executable"
+  },
+  "helper": {
+    "path": "/tmp/kiln-radicle-issues-helper-target/debug/kiln-radicle-patch",
+    "blake3": "5cf3bf3eedbde420883d9fb28c042dd1e582ba7a7356adf084015f1ffa5031d6",
+    "compiler": "Rust1.97.1",
+    "radicle": "0.25.1"
+  },
+  "source": {
+    "working_copy_at_measurement": "13422c2d688162255161af150d4b96aac679d77e",
+    "cargo_lock_blake3": "1a2b5013f33ae7895291084b696b941109f29a03b383fff0dd5d9a04ad9d670f",
+    "patch_rs_blake3": "c334470104cb52180fe0eeae869e40c6d7d8fc47a8695f6351fd6e7587958638",
+    "main_rs_blake3": "0a310dc55068efa618519f9904e566aa2bf181582bc1c9c3c6a6b6764ce23531",
+    "fixture_mutator_source_blake3": "640c1f49b74ca9cb25c9f3f6ae2372f823e63f02d62648418e089773be93ee4d",
+    "fixture_mutator_manifest_blake3": "ca39200503031db10aaf1b9d3dc0e94128da23589189279b9ba361c13411393e",
+    "fixture_mutator_binary_blake3": "7e86c35d09b2d560f94cf9f0eaecbb815fa3e132bf000044d0742532d8318f8d"
+  },
+  "inputs": {
+    "profile_blake3": "901e9f9e8ae509a8f2244f9a334c5f9b1c2d09dafa7c6bcf00d2fd38388742e1",
+    "trusted_authors": [],
+    "operator": "fixture-operator",
+    "repository": "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj",
+    "patch": "6380dab577652734b5678d5fda9ff4b8b9be0c87"
+  },
+  "revisions": [
+    {
+      "run_id": "radicle-patch-518ea54f9441e535bf220416f75ab52ce1f2f68c1ad898320d2a456e3414ebd3",
+      "repository": "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj",
+      "patch": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+      "revision": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+      "base": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+      "oid": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+      "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+    },
+    {
+      "run_id": "radicle-patch-1019d2fe6958c08266b018b97542b84bf8afb37260935c351b6bf8a46bfb188a",
+      "repository": "rad:z25hCSao6gbmBtM9pBHnZqbD4S6Yj",
+      "patch": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+      "revision": "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd",
+      "base": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+      "oid": "9e37da95037480b52895e3eaa235754a4e226671",
+      "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+    }
+  ],
+  "observations": {
+    "revision1_blocked_before_approval": true,
+    "automation_approval_exit": 1,
+    "revision1_exact_approval_ready": true,
+    "new_native_revision_blocked_again": true,
+    "old_approval_for_new_run_exit": 1,
+    "revision2_exact_approval_ready": true,
+    "two_separate_journals": true,
+    "revision1_blocked_replay_byte_identical": true,
+    "revision2_duplicate_intake_and_replay_byte_identical": true,
+    "old_revision_keeps_old_approval": true,
+    "hosted_or_signer_tripwire_invoked": false,
+    "workspaces_created": 0
+  },
+  "commands": [
+    "/home/brittonr/.cargo-target/debug/kiln-radicle-ci --native-fixtures patch-intake /tmp/kiln-issue18-cli.qJQqCN/profile.json /tmp/kiln-issue18-cli.qJQqCN/trigger1.json",
+    "/home/brittonr/.cargo-target/debug/kiln-radicle-ci --native-fixtures patch-drive /tmp/kiln-issue18-cli.qJQqCN/profile.json RUN_ID",
+    "/home/brittonr/.cargo-target/debug/kiln-radicle-ci --native-fixtures patch-replay /tmp/kiln-issue18-cli.qJQqCN/profile.json RUN_ID",
+    "/home/brittonr/.cargo-target/debug/kiln-radicle-ci --native-fixtures patch-approve /tmp/kiln-issue18-cli.qJQqCN/profile.json /tmp/kiln-issue18-cli.qJQqCN/approval1.json",
+    "isolated temporary radicle0.25.1 fixture writer appends revision2 using disposable retained-fixture Alice; no remote operation",
+    "/home/brittonr/.cargo-target/debug/kiln-radicle-ci --native-fixtures patch-intake /tmp/kiln-issue18-cli.qJQqCN/profile.json /tmp/kiln-issue18-cli.qJQqCN/trigger2.json",
+    "/home/brittonr/.cargo-target/debug/kiln-radicle-ci --native-fixtures patch-approve /tmp/kiln-issue18-cli.qJQqCN/profile.json /tmp/kiln-issue18-cli.qJQqCN/approval2.json"
+  ],
+  "claim_boundary": [
+    "Actual controller CLI and actual pinned native patch helper were exercised, not a test harness replacement.",
+    "No execution.run, authenticated transport exchange, VM dispatch, SecretSpec invocation or job publication was exercised by this smoke.",
+    "The hosted and signer executable declarations intentionally point to a private fail-closed tripwire, not a working backend; absence of its marker proves neither port was called.",
+    "Both revisions are real native signed patch COB revisions with distinct Git oids and verified author signed-ref reachability.",
+    "Actual approved-untrusted Firecracker execution remains externally blocked until patched/rebooted admitted independently qualified host; no host-policy bypass attempted.",
+    "A first fixture-input attempt omitted ExternalRef.contract_version and was correctly rejected at JSON admission before any journal; corrected version1 inputs are retained."
+  ],
+  "artifacts": {
+    "intake-r1.json": {
+      "blake3": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47"
+    },
+    "blocked-drive-r1.json": {
+      "blake3": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47"
+    },
+    "blocked-replay-r1.json": {
+      "blake3": "326817a87d044020d48121c4b2db2957168d307de6b193f82b1db943b8309d47"
+    },
+    "approved-r1.json": {
+      "blake3": "65c7d0f5da863b50097d4645c7cafe17bc67d9647165f2784a97c7da67c556ce"
+    },
+    "intake-r2.json": {
+      "blake3": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe"
+    },
+    "blocked-drive-r2.json": {
+      "blake3": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe"
+    },
+    "blocked-replay-r2.json": {
+      "blake3": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe"
+    },
+    "duplicate-intake-r2.json": {
+      "blake3": "3e8203d4b7c80bbf3b23dd017a791b9a7ede347536aa1d46a5d9dcbe2e0dc5fe"
+    },
+    "approved-r2.json": {
+      "blake3": "e36dae7dd34e94d802166dd59fd860754833373b0de62eb5f0828bdf31c3425d"
+    },
+    "final-replay-r1.json": {
+      "blake3": "65c7d0f5da863b50097d4645c7cafe17bc67d9647165f2784a97c7da67c556ce"
+    },
+    "final-replay-r2.json": {
+      "blake3": "e36dae7dd34e94d802166dd59fd860754833373b0de62eb5f0828bdf31c3425d"
+    },
+    "automation-approval.stderr.txt": {
+      "blake3": "1e18a0d51540db5c5fc2ae9bd78978c5e4ef4ba989adcf1ebdc11c87d0455ce0"
+    },
+    "stale-approval.stderr.txt": {
+      "blake3": "4a5415ab9a2f2956d866a69bf01f4d9c0416d69a81d134344c5d24e7bb9b21f3"
+    },
+    "profile.json": {
+      "blake3": "901e9f9e8ae509a8f2244f9a334c5f9b1c2d09dafa7c6bcf00d2fd38388742e1"
+    },
+    "trigger-r1.json": {
+      "blake3": "0f1ecf6bb7b86322fcf12883963503c5024a81772cbbde9982b6fb805938a776"
+    },
+    "trigger-r2.json": {
+      "blake3": "77427af3e94960047e385f225722e77c27ac6c2d87e92e905541f06692f5fa29"
+    },
+    "approval-r1.json": {
+      "blake3": "07dcfacbabd7e688705f5fda55c5f15049fdb038f4cba659c7eddf3348dd79cb"
+    },
+    "approval-r2.json": {
+      "blake3": "ae3c2c5739a2d45a28a48b5823863d4c517875035ba40d3f4bd650f634421654"
+    },
+    "authoritative-native-projection.json": {
+      "blake3": "7e665b771401c4308018f4562cff247c6183841d64aefe30c1ddddf43711a724"
+    }
+  }
+}

@@ -1,0 +1,3 @@
+- [x] [serial] Implement exact documented and admitted cohort boundaries. r[kiln.lattice.cancel_only]
+- [x] [serial] Migrate current consumers and paired positive/negative fixtures. r[kiln.lattice.cancel_only]
+- [x] [serial] Exercise the boundary and record scoped verification evidence. r[kiln.lattice.cancel_only]

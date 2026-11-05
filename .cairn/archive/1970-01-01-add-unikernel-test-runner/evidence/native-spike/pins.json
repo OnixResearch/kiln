@@ -1,0 +1,5 @@
+{
+  "nanovms/nanos": "ab823eb4bbcaf0874dc5e15568938bc02346d3d3",
+  "nanovms/ops": "a52795e38ba33a006f0ba740fee0f18fec58fbbb",
+  "unikraft/app-elfloader": "0cd7a2b2c4d5ece85647c0c9903b50426e849420"
+}

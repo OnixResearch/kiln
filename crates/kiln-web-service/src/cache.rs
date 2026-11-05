@@ -65,6 +65,43 @@ pub struct CacheObservation {
     pub outcome: String,
     pub transferred_bytes: u64,
     pub duration_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entry_blake3: Option<String>,
+    #[serde(default = "local_tier")]
+    pub source_tier: String,
+}
+fn local_tier() -> String {
+    "local".into()
+}
+impl CacheObservation {
+    pub fn permits_publication(&self) -> bool {
+        matches!(self.outcome.as_str(), "hit" | "miss")
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RestoreOutcome {
+    Hit,
+    Miss,
+    CorruptMiss,
+    DisabledInventoryBound,
+}
+impl RestoreOutcome {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Hit => "hit",
+            Self::Miss => "miss",
+            Self::CorruptMiss => "corrupt_miss",
+            Self::DisabledInventoryBound => "disabled_inventory_bound",
+        }
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CacheRestore {
+    pub entry: Option<CacheEnvelope>,
+    pub outcome: RestoreOutcome,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -355,6 +392,30 @@ pub struct CacheStore {
     _lock: OwnerLock,
     directory_handle: File,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PublishPhase {
+    Receiving,
+    Verifying,
+    BeforeRename,
+    AfterRename,
+}
+enum PruneError {
+    InventoryBound,
+    Storage(String),
+}
+impl From<&str> for PruneError {
+    fn from(message: &str) -> Self {
+        Self::Storage(message.into())
+    }
+}
+impl PruneError {
+    fn message(self) -> String {
+        match self {
+            Self::InventoryBound => "cache inventory bound exceeded".into(),
+            Self::Storage(message) => message,
+        }
+    }
+}
 impl CacheStore {
     pub fn open(profile: CacheProfile) -> Result<Self, String> {
         use fs2::FileExt;
@@ -443,6 +504,55 @@ impl CacheStore {
         }
         lock.try_lock_exclusive()
             .map_err(|_| "cache directory already owned")?;
+        let staging = directory.join("staging");
+        match nix::sys::stat::mkdirat(
+            &directory_handle,
+            Path::new("staging"),
+            nix::sys::stat::Mode::from_bits_truncate(0o700),
+        ) {
+            Ok(()) | Err(nix::errno::Errno::EEXIST) => (),
+            Err(_) => return Err("cache staging creation failed".into()),
+        }
+        // The /proc/self/fd anchor intentionally contains a symlink. Do not
+        // pass it through the absolute no-symlink traversal guard; open the
+        // child relative to our already validated directory descriptor.
+        let staging_handle = File::from(
+            nix::fcntl::openat(
+                &directory_handle,
+                Path::new("staging"),
+                nix::fcntl::OFlag::O_RDONLY
+                    | nix::fcntl::OFlag::O_DIRECTORY
+                    | nix::fcntl::OFlag::O_NOFOLLOW
+                    | nix::fcntl::OFlag::O_CLOEXEC,
+                nix::sys::stat::Mode::empty(),
+            )
+            .map_err(|_| "cache staging directory denied")?,
+        );
+        let metadata = staging_handle
+            .metadata()
+            .map_err(|_| "cache staging metadata unavailable")?;
+        if !metadata.is_dir()
+            || metadata.uid() != nix::unistd::geteuid().as_raw()
+            || metadata.mode() & 0o077 != 0
+        {
+            return Err("cache staging directory must be private and owned".into());
+        }
+        // Only this marked directory is ours to recover, under exclusive lock.
+        for entry in fs::read_dir(&staging).map_err(|_| "cache staging inventory failed")? {
+            let entry = entry.map_err(|_| "cache staging inventory failed")?;
+            fs::remove_file(entry.path()).map_err(|_| "cache orphan removal failed")?;
+        }
+        staging_handle
+            .sync_all()
+            .map_err(|_| "cache staging recovery sync failed")?;
+        directory_handle
+            .sync_all()
+            .map_err(|_| "cache initialization sync failed")?;
+        if created {
+            File::open(&profile.directory)
+                .and_then(|file| file.sync_all())
+                .map_err(|_| "cache root sync failed")?;
+        }
         Ok(Self {
             profile,
             directory,
@@ -499,23 +609,52 @@ impl CacheStore {
         }
         Ok(envelope)
     }
-    pub fn restore(
-        &mut self,
-        key: &CacheKey,
-        now_seconds: u64,
-    ) -> Result<Option<CacheEnvelope>, String> {
+    pub fn restore(&mut self, key: &CacheKey, now_seconds: u64) -> Result<CacheRestore, String> {
         if !self.profile.admits_key(key) {
             return Err("cache key policy denied".into());
         }
-        self.prune(now_seconds, 0, false)?;
-        let id = key.identity()?;
-        match fs::symlink_metadata(self.directory.join(&id)) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(_) => Err("cache entry unavailable".into()),
-            Ok(_) => self.read(&id).map(Some),
+        match self.prune(now_seconds, 0, false) {
+            Ok(()) => (),
+            Err(PruneError::InventoryBound) => {
+                return Ok(CacheRestore {
+                    entry: None,
+                    outcome: RestoreOutcome::DisabledInventoryBound,
+                });
+            }
+            Err(error) => return Err(error.message()),
         }
+        let id = key.identity()?;
+        let result = match fs::symlink_metadata(self.directory.join(&id)) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => CacheRestore {
+                entry: None,
+                outcome: RestoreOutcome::Miss,
+            },
+            Ok(_) => match self.read(&id) {
+                Ok(entry) => CacheRestore {
+                    entry: Some(entry),
+                    outcome: RestoreOutcome::Hit,
+                },
+                Err(_) => CacheRestore {
+                    entry: None,
+                    outcome: RestoreOutcome::CorruptMiss,
+                },
+            },
+            Err(_) => CacheRestore {
+                entry: None,
+                outcome: RestoreOutcome::CorruptMiss,
+            },
+        };
+        Ok(result)
     }
     pub fn publish(&mut self, envelope: &CacheEnvelope, now_seconds: u64) -> Result<bool, String> {
+        self.publish_with_hook(envelope, now_seconds, |_| {})
+    }
+    pub fn publish_with_hook(
+        &mut self,
+        envelope: &CacheEnvelope,
+        now_seconds: u64,
+        mut phase: impl FnMut(PublishPhase),
+    ) -> Result<bool, String> {
         if !self.profile.admits_key(&envelope.entry.key) {
             return Err("cache key policy denied".into());
         }
@@ -535,25 +674,50 @@ impl CacheStore {
         {
             return Err("cache retained byte bound".into());
         }
-        self.prune(now_seconds, bytes.len() as u64, true)?;
-        let mut temporary = tempfile::NamedTempFile::new_in(&self.directory)
+        self.prune(now_seconds, bytes.len() as u64, true)
+            .map_err(PruneError::message)?;
+        let mut temporary = tempfile::NamedTempFile::new_in(self.directory.join("staging"))
             .map_err(|_| "cache staging unavailable")?;
+        let split = bytes.len() / 2;
         temporary
-            .write_all(&bytes)
+            .write_all(bytes.get(..split).ok_or("cache staging split failed")?)
             .map_err(|_| "cache staging write failed")?;
+        phase(PublishPhase::Receiving);
+        temporary
+            .write_all(bytes.get(split..).ok_or("cache staging split failed")?)
+            .map_err(|_| "cache staging write failed")?;
+        phase(PublishPhase::Verifying);
+        let staged: CacheEnvelope = serde_json::from_slice(
+            &fs::read(temporary.path()).map_err(|_| "cache staging read failed")?,
+        )
+        .map_err(|_| "cache staging malformed")?;
+        staged.verify(self.profile.maximum_entry_bytes, self.profile.maximum_files)?;
+        if staged.blake3 != envelope.blake3 {
+            return Err("cache staging changed".into());
+        }
         temporary
             .as_file()
             .sync_all()
             .map_err(|_| "cache staging sync failed")?;
-        temporary
-            .persist_noclobber(self.directory.join(&id))
-            .map_err(|_| "cache atomic publication conflict")?;
+        phase(PublishPhase::BeforeRename);
+        nix::fcntl::renameat2(
+            nix::fcntl::AT_FDCWD,
+            temporary.path(),
+            &self.directory_handle,
+            Path::new(&id),
+            nix::fcntl::RenameFlags::RENAME_NOREPLACE,
+        )
+        .map_err(|_| "cache atomic publication conflict")?;
+        phase(PublishPhase::AfterRename);
         self.directory_handle
             .sync_all()
             .map_err(|_| "cache directory sync failed")?;
+        File::open(self.directory.join("staging"))
+            .and_then(|file| file.sync_all())
+            .map_err(|_| "cache staging rename sync failed")?;
         Ok(true)
     }
-    fn prune(&mut self, now: u64, incoming: u64, adding: bool) -> Result<(), String> {
+    fn prune(&mut self, now: u64, incoming: u64, adding: bool) -> Result<(), PruneError> {
         let mut entries = Vec::new();
         let mut total = 0u64;
         let scan_bound = self.profile.maximum_entries.saturating_add(16);
@@ -562,24 +726,28 @@ impl CacheStore {
             .enumerate()
         {
             if index > scan_bound {
-                return Err("cache inventory bound exceeded".into());
+                return Err(PruneError::InventoryBound);
             }
             let entry = entry.map_err(|_| "cache inventory unavailable")?;
             let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
                 return Err("cache unknown retained name".into());
             };
-            if matches!(name.as_str(), "owner.lock" | "owner.marker") {
+            if matches!(name.as_str(), "owner.lock" | "owner.marker" | "staging") {
                 continue;
             }
             // Unknown historical data is never pruned.
             if !hex(&name) {
                 return Err("cache unknown retained data".into());
             }
-            self.read(&name)?;
             let metadata =
                 fs::symlink_metadata(entry.path()).map_err(|_| "cache metadata unavailable")?;
             if !metadata.is_file() || metadata.nlink() != 1 {
-                return Err("cache unsafe retained file".into());
+                continue;
+            }
+            // Corrupt entries are measured misses, never repair targets or
+            // eviction authority for unrelated retained files.
+            if self.read(&name).is_err() {
+                continue;
             }
             let modified = metadata
                 .modified()

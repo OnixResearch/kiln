@@ -1,0 +1,5 @@
+{
+  "unikraft/unikraft": "a4c494e80141bd402961c7d96150dd218c79db37",
+  "unikraft/lib-lwip": "ec55ae17618feeb57c8c10109bcf5c42723e8e95",
+  "unikraft/lib-libelf": "c03d4ceb22a2b9e9799238f9c277a14284d313ad"
+}

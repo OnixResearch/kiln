@@ -24,7 +24,7 @@ use super::*;
 
 const SOCKET_FRAME_BYTES: u32 = 1_048_576;
 const SOCKET_LOG_BYTES: u32 = 65_536;
-const SOCKET_CONNECTIONS: u32 = 7;
+const SOCKET_CONNECTIONS: u32 = 5;
 const RECOVERY_CONNECTIONS: u32 = 2;
 const SOCKET_DEADLINE_MILLISECONDS: u64 = 5_000;
 const MAXIMUM_CLIENT_RECORDS: usize = 8;
@@ -174,7 +174,7 @@ fn pinned_recovery_fixtures_pass_producer_admission() {
 // r[verify kiln.lattice.transport_conformance]
 // r[verify kiln.lattice.transport_conformance.scenario.fixture-only]
 #[test]
-fn concrete_socket_client_covers_every_exchange_operation() {
+fn concrete_socket_client_covers_admitted_exchange_operations() {
     let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let socket_path = directory.path().join("lattice.sock");
     let listener = UnixListener::bind(&socket_path).unwrap_or_else(|_| unreachable!());
@@ -195,24 +195,18 @@ fn concrete_socket_client_covers_every_exchange_operation() {
         .observe(&workflow_plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert_eq!(running.state, WorkflowState::Running);
-    let paused = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: workflow_plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: running.sequence,
-            action: WorkflowControlAction::Pause,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(paused.state, WorkflowState::Paused);
-    let resumed = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: workflow_plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: paused.sequence,
-            action: WorkflowControlAction::Resume,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(resumed.state, WorkflowState::Running);
+    for action in [WorkflowControlAction::Pause, WorkflowControlAction::Resume] {
+        assert!(
+            adapter
+                .control(&WorkflowControlRequest {
+                    effect_id: workflow_plan.effect_id.clone(),
+                    execution: accepted.execution.clone(),
+                    expected_sequence: running.sequence,
+                    action,
+                })
+                .is_err()
+        );
+    }
     let log = adapter
         .read_log(&WorkflowLogReadRequest {
             effect_id: workflow_plan.effect_id.clone(),

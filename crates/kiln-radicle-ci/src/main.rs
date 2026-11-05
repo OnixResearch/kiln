@@ -23,6 +23,11 @@ const USAGE: &str = "kiln-radicle-ci commands:
   replay PROFILE_JSON SOURCE_JSON
   bindings PROFILE_JSON SOURCE_JSON
   profile-identity PROFILE_JSON
+  patch PROFILE_JSON                    # explicit patch-only broker profile
+  patch-intake PROFILE_JSON TRIGGER_JSON # reserve exact revision, no dispatch
+  patch-approve PROFILE_JSON APPROVAL_JSON
+  patch-drive PROFILE_JSON RUN_ID       # submit once or recover original attempt
+  patch-replay PROFILE_JSON RUN_ID
   status-reconcile STATUS_PROFILE_JSON STORAGE_ROOT STATUS_PLAN_JSON
   serve PROFILE_JSON SOURCE_JSON HTTP_JSON
   ucan-init HTTP_TEMPLATE_JSON PROFILE_JSON SOURCE_JSON PRIVATE_DIRECTORY
@@ -47,6 +52,23 @@ fn service(path: &str, fixture: bool) -> Result<CiService> {
         return Err("native fixture authority is not compiled into this binary".into());
     }
     CiService::new(profile)
+}
+fn patch_profile(path: &str, fixture: bool) -> Result<kiln_radicle_ci::patch::PatchProfile> {
+    let profile: kiln_radicle_ci::patch::PatchProfile =
+        load_json(Path::new(path), MAX_CONFIG_BYTES)?;
+    #[cfg(feature = "native-fixtures")]
+    let profile = {
+        let mut profile = profile;
+        if fixture {
+            profile.enable_native_fixtures();
+        }
+        profile
+    };
+    #[cfg(not(feature = "native-fixtures"))]
+    if fixture {
+        return Err("native fixture authority is not compiled into this binary".into());
+    }
+    Ok(profile)
 }
 fn source(path: &str) -> Result<SourceContext> {
     load_json(Path::new(path), MAX_CONFIG_BYTES)
@@ -149,6 +171,59 @@ fn run() -> Result<()> {
     };
     let arguments = arguments.iter().map(String::as_str).collect::<Vec<_>>();
     match arguments.as_slice() {
+        ["patch", path] => {
+            let profile = patch_profile(path, fixture)?;
+            let mut input = String::new();
+            std::io::stdin()
+                .take((MAX_DEFELO_REQUEST_BYTES + 1) as u64)
+                .read_to_string(&mut input)
+                .map_err(text)?;
+            let trigger =
+                map_defelo_request(&parse_defelo_request(&input).map_err(text)?).map_err(text)?;
+            let journal = profile.intake(&trigger)?;
+            emit(&DefeloResponse::Triggered {
+                run_id: DefeloRunId {
+                    id: &journal.run_id,
+                },
+                info_url: None,
+            })?;
+            let journal = profile.drive(&journal.run_id)?;
+            if !matches!(
+                journal.job,
+                Some(kiln_adapter_radicle::job::JobDispatch::Written(_))
+            ) {
+                return Err("patch run remains blocked, running or uncertain; approve/reconcile its original run id".into());
+            }
+            let result = match journal.state {
+                kiln_radicle_ci::patch::PatchState::Succeeded => DefeloResult::Success,
+                kiln_radicle_ci::patch::PatchState::Failed => DefeloResult::Failure,
+                _ => return Err("patch result remains nonterminal".into()),
+            };
+            emit(&DefeloResponse::Finished { result })
+        }
+        ["patch-intake", path, trigger] => {
+            let profile = patch_profile(path, fixture)?;
+            emit(&profile.intake(&load_json(Path::new(trigger), MAX_CONFIG_BYTES)?)?)
+        }
+        ["patch-approve", path, approval] => {
+            let profile = patch_profile(path, fixture)?;
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(text)?
+                .as_millis();
+            emit(&profile.approve(
+                &load_json(Path::new(approval), MAX_CONFIG_BYTES)?,
+                u64::try_from(now).map_err(text)?,
+            )?)
+        }
+        ["patch-drive", path, run] => {
+            let profile = patch_profile(path, fixture)?;
+            emit(&profile.drive(run)?)
+        }
+        ["patch-replay", path, run] => {
+            let profile = patch_profile(path, fixture)?;
+            emit(&profile.load(run)?)
+        }
         ["--profile", profile] => broker(&service(profile, fixture)?),
         ["start", profile, trigger] => emit(
             &service(profile, fixture)?.accept(load_json(Path::new(trigger), MAX_CONFIG_BYTES)?)?,

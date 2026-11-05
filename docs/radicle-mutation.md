@@ -1,87 +1,93 @@
-# Single-writer Radicle patch review mutation
+# Native Radicle COB reduction and own reviews
 
-Kiln can append one declared `review` action to one declared `xyz.radicle.patch` object.
+Kiln appends only its explicitly declared `review` action to a declared
+`xyz.radicle.patch`. The adapter now uses the isolated
+`tools/radicle-patch` upstream reducer and writer, not a second permissive
+in-process patch interpreter. Core crates do not link the Radicle provider.
 
-This shell uses the SQLite-free cohort from `docs/radicle-status.md`. The full Radicle runtime does not enter the product dependency graph.
+The helper pins `radicle = 0.25.1` (crate SHA-256
+`fc23b44b518df749486358fef29c4375daa47299eeec32b3659781c1bfd207e4`).
+Build it with the separately selected Rust 1.97 cohort described in its README;
+the root workspace remains on its own toolchain. Configure its absolute path,
+BLAKE3 and version in `RadicleMutationProfile.helper`. The Nickel profile's
+all-`a` digest is synthetic configuration evidence, never an executable pin.
 
-Its Git COB storage is the same verified, repository-owned v0.2.0 shared source imported for CI status publication; the immutable commit, digest, and guarded update procedure are recorded in `docs/radicle-status.md`. The shared library supplies signed-ref admission, bounded discovery, and exact-reference CAS, not permission to sign, review, or mutate a patch. Kiln retains all patch-specific admission and reconciliation decisions.
+## Native read and authorization
 
-The patch action schema comes from Radicle `0.25.1`. Its crate SHA-256 is `fc23b44b518df749486358fef29c4375daa47299eeec32b3659781c1bfd207e4`.
+`read` loads all patch namespace heads, admits a bounded reachable change DAG,
+checks every change signature, then calls upstream `Patches::get`. The projection
+contains the exact head set and native state, including revisions (id, base,
+head, author), reviews, merges and lifecycle. `read-issue` does the same through
+upstream `Issues::get`. `RadicleJobShell::read` uses the existing pinned
+`xyz.radworks.job` action reducer after bounded signature admission. Job runs
+remain owned by their signed actor: another actor cannot finish them.
 
-## Authority flow
+Every native issue/patch namespace head must match its owner's verified signed refs and its tip's
+signed author. Every visited branch must connect to the declared object root.
+Opaque or unknown action encodings fail admission; recognized unauthorized
+actions retain upstream's permission semantics. Complete authenticated heads are
+compared again after reduction so state and preview cannot come from different
+head snapshots. Job admission checks ODB commit/tree/blob headers before the
+shared store can allocate action payloads.
 
-The application calls the existing `CollaborationMutationPort` flow:
+Upstream identity documents and authorization decide which patch/issue actions
+have meaning. In particular, non-delegate merges without a matching crefs allow
+rule do not acquire meaning. A projection grants no Kiln review, CI, merge or
+release authority. The optional raw web COB browser remains raw observation;
+these verified reads do not silently upgrade its claims.
+
+## Authority and current head-set binding
+
+The existing `CollaborationMutationPort` flow remains:
 
 ```text
-observe -> fresh-plan admission -> resolve signer -> preview -> dispatch
+observe -> exact freshness/plan admission -> resolve own signer -> preview -> dispatch
 ```
 
-The transport repeats the head check immediately before the write. The Git reference update also compares the exact old target atomically.
+The profile allowlists RID, patch object, typed revision-bound review action and
+payload identity. The signer must equal the planned actor. Foreign authors and
+concurrent heads are normal, not grounds for granting or denying authority.
+Preview and dispatch compare the complete observed head set, and the helper
+compares that set again at the actual signature boundary. Native reduction and
+append run in a bounded mutable-ref snapshot sharing only the Git object DB.
+Publication then uses conventional Git reference locks and expected-old CAS over
+the signer's complete observed namespace before updating its COB and signed-ref
+tips. A same-signer external writer cannot be force-overwritten; a cooperating
+helper lock is only an additional optimization, not the correctness boundary.
+Other namespace histories remain independent. There is no remote publication.
 
-The profile declares each allowed RID, patch type, object ID, and review payload. A plan outside any declaration fails before repository access.
+A head-set move requires a new preview. Kiln cannot create, close, archive,
+merge or revise patches through this port. There is no raw-writer fallback.
 
-The resolved SecretSpec signer must equal the planned actor. The current patch head must also have that signer as its author.
+## Idempotency, uncertainty and bounds
 
-The shell never uses ambient Radicle or Git identity. It supplies fixed Git display metadata through an ephemeral configuration.
+A matching own review of the exact revision, verdict and summary reconciles
+without signing. An existing different own review fails closed rather than
+pretending to replace upstream state. A child failure after possible write is
+`Unknown`; reconciliation reads native state without acquiring a signer.
 
-## Supported action
+History defaults are 1,024 changes and 16,777,216 action bytes. The helper admits
+at most 256 heads/parents, bounds its output to one MiB at the adapter, and runs
+in Bounded Exec with a cleared environment, a 15-second process-group deadline
+and bounded stdout/stderr. Operator history bounds are passed before reduction.
+SecretSpec remains separately pinned; captured signer output and the retained
+helper seed are zeroized, and the seed enters only the child environment, never
+argv, configuration, observations or logs.
 
-The only supported action is this Radicle patch shape:
+## Local behavioral proof
 
-```json
-{
-  "type": "review",
-  "revision": "<40-hex-entry-id>",
-  "summary": "<bounded-text>",
-  "verdict": "accept"
-}
+Run the isolated helper fixture (no remote operation and disposable keys only):
+
+```console
+cargo +stable test --locked --offline --manifest-path tools/radicle-patch/Cargo.toml -- --nocapture
 ```
 
-`verdict` can be `accept` or `reject`. Kiln requires a non-empty summary and a revision that exists in the bounded patch history.
-
-The profile binds the exact serialized action to its BLAKE3 identity. The plan carries that identity, not unreviewed payload bytes.
-
-The shell cannot create, close, archive, merge, or revise patches. It cannot rewrite Git history.
-
-## Single-writer checks
-
-The target must have exactly one head. The plan must name that exact head.
-
-Before signing, the shell reloads a bounded history from local storage. It rejects multiple heads, moved heads, foreign authors, inconsistent identity resources, and malformed actions.
-
-The write uses the same identity resource as the existing patch. It appends one signed change and updates only the declared namespace reference.
-
-## Idempotency and recovery
-
-The change summary records the Kiln operation identity and payload identity. Action JSON stays compatible with the pinned Radicle schema.
-
-A repeated operation with equal payload facts returns the current observation without a second write. A reused operation identity with different payload facts fails closed.
-
-A reference-update failure stays `Unknown`. A write that passes its deadline after possible acceptance also stays `Unknown`.
-
-Reconciliation scans the bounded history for the exact operation marker and payload. It never signs or writes.
-
-## Bounds
-
-The default limits are:
-
-- payload: 16,384 bytes;
-- history: 1,024 entries;
-- history bytes: 16,777,216 bytes;
-- preflight: 5,000 milliseconds;
-- signer resolution: 15,000 milliseconds; and
-- write: 15,000 milliseconds.
-
-The profile can reduce these values. Zero values and values above the absolute adapter bounds fail admission.
-
-## SecretSpec setup
-
-The signer declaration uses the same pinned SecretSpec executable as status publication. Configure a 64-character hexadecimal Ed25519 seed under the declared secret name.
-
-Do not put the seed in Nickel, action JSON, command arguments, logs, observations, or receipts. The resolver zeroizes captured output after key construction.
-
-## Evidence boundary
-
-Six native patch-review fixtures cover authorized review, repeat dispatch, moved and authenticated foreign heads, missing signer, reference failure, timeout, and reconciliation. The foreign fixture uses a secondary signer in its own valid namespace, so strict shared signed-author checks remain enforced before the Kiln single-writer review policy rejects the action.
-
-These checks prove bounded local patch-review mutation under one profile. They do not prove peer convergence, remote visibility, actor trust, patch correctness, or merge correctness.
+The `concurrent_delegate_reviews_native_projection_append_and_stale_refusal`
+fixture creates a real native repository/identity, adds a second delegate,
+constructs concurrent reviews, compares the helper's native state with
+heartwood, verifies a two-parent own review append, ignores an unauthorized
+merge, and refuses an old preview. It replaces the former synthetic
+single-writer fixture with an invalid RID and empty identity document. The
+adapter's caller suites are run by integrated verification, not claimed by
+this document. Local evidence never proves peer convergence, remote visibility,
+source trust, patch correctness or release readiness.

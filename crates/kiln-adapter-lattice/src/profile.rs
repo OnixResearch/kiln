@@ -15,6 +15,7 @@ use lattice_workflow_contract::{
 use serde::{Deserialize, Serialize};
 
 pub const PINNED_LATTICE_SOURCE: &str = "ssh://git@github.com/OnixResearch/lattice.git";
+/// Reviewed MIT contract/transport import, not the external CI handler revision.
 pub const PINNED_LATTICE_REVISION: &str = "70496e67c7fd4a8b05914161a8e09de2759bebc8";
 pub const PINNED_LATTICE_CONTRACT_LICENSE: &str = "MIT";
 pub const PINNED_LATTICE_CONTRACT_SCHEMA: &str = "lattice.workflow-request.v2";
@@ -41,6 +42,7 @@ pub struct LatticeProfile {
 }
 
 impl LatticeProfile {
+    // r[impl kiln.lattice.cancel_only]
     pub fn pinned(profile_id: ProviderProfileId, limits: LatticeAdapterLimits) -> PortResult<Self> {
         let contract = LatticeCapabilityProfile {
             schema: PROFILE_SCHEMA.to_string(),
@@ -51,8 +53,8 @@ impl LatticeProfile {
             adapter_kinds: vec![label("local")?, label("remote")?],
             controls: ControlCapabilities {
                 cancel: true,
-                pause: true,
-                resume: true,
+                pause: false,
+                resume: false,
             },
             limits: ContractLimits {
                 maximum_nodes: to_u32(limits.workflow.max_nodes, "lattice.maximum_nodes")?,
@@ -155,8 +157,8 @@ pub fn admit_profile(profile: &LatticeProfile) -> PortResult<()> {
         || profile.contract.controls
             != (ControlCapabilities {
                 cancel: true,
-                pause: true,
-                resume: true,
+                pause: false,
+                resume: false,
             })
         || profile.contract.limits != expected_contract_limits
     {
@@ -188,8 +190,6 @@ fn required_operations() -> BTreeSet<Operation> {
         Operation::Dispatch,
         Operation::Observe,
         Operation::Cancel,
-        Operation::Pause,
-        Operation::Resume,
         Operation::Reconcile,
         Operation::ReadLogs,
     ])

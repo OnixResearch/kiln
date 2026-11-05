@@ -1,0 +1,7 @@
+ptrace_result -1 errno 1
+Running as unit: kiln-native-explicit-denial.service
+          Finished with result: success
+Main processes terminated with: code=exited, status=0/SUCCESS
+               Service runtime: 80ms
+             CPU time consumed: 61ms
+                   Memory peak: 5.3M (swap: 0B)

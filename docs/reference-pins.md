@@ -49,6 +49,12 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Mantle | `d75158b00b080535f2ffea12430665ca3d57ea82` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
 | UCAN | `d46816f19606b518307ba21ab33e8b93b6ebf646` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
 
+The external Lattice CI handler is separately pinned to
+`85a38b6a4bceeae4bb2057cf157e21752100f1b5` for `shell_success` and observed
+cancellation. This runtime selection is not a source import and does not change
+the MIT contract/transport pin above. Historical Aspen runtime observations at
+`c513d94d89e901ffa56ae67f375f973e55958e42` do not qualify this handler.
+
 The separate browser workspace additionally consumes Subwayrat `rat-table` at
 `2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901`, recorded in
 [`vendor/subwayrat.source.json`](../vendor/subwayrat.source.json). Its selected

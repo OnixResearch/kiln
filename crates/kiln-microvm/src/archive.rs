@@ -157,24 +157,57 @@ pub fn extract_files(
     let mut entries = 0_usize;
     let mut total = 0_u64;
     while offset + BLOCK_BYTES as usize <= bytes.len() {
-        let header = &bytes[offset..offset + BLOCK_BYTES as usize];
+        let header = bytes
+            .get(offset..offset + BLOCK_BYTES as usize)
+            .ok_or("cache archive header is truncated")?;
         if header.iter().all(|byte| *byte == 0) {
+            let trailer = bytes
+                .get(offset..)
+                .ok_or("cache archive trailer is truncated")?;
+            if trailer.len() < 1024
+                || trailer.len() % 512 != 0
+                || trailer.iter().any(|byte| *byte != 0)
+            {
+                return Err("cache archive trailer or trailing data rejected".into());
+            }
             return Ok(entries);
         }
         if entries >= maximum_entries {
             return Err("cache archive entry bound exceeded".into());
         }
         let text = |start: usize, end: usize| -> Result<&str, String> {
-            let field = &header[start..end];
+            let field = header
+                .get(start..end)
+                .ok_or("cache archive field is truncated")?;
             let end = field
                 .iter()
                 .position(|byte| *byte == 0)
                 .unwrap_or(field.len());
-            std::str::from_utf8(&field[..end]).map_err(|_| "cache archive path is not UTF-8".into())
+            std::str::from_utf8(field.get(..end).ok_or("cache archive field is truncated")?)
+                .map_err(|_| "cache archive path is not UTF-8".into())
         };
+        let checksum = u64::from_str_radix(text(148, 156)?.trim_matches(['\0', ' ']), 8)
+            .map_err(|_| "cache archive checksum malformed")?;
+        let actual: u64 = header
+            .iter()
+            .enumerate()
+            .map(|(index, byte)| {
+                if (148..156).contains(&index) {
+                    u64::from(b' ')
+                } else {
+                    u64::from(*byte)
+                }
+            })
+            .sum();
+        if checksum != actual {
+            return Err("cache archive checksum rejected".into());
+        }
         let name = text(0, 100)?;
         let prefix = text(345, 500)?;
-        let kind = header[156];
+        let kind = *header.get(156).ok_or("cache archive type is truncated")?;
+        if matches!(kind, b'L' | b'K' | b'x' | b'g') {
+            return Err("cache GNU/PAX extended path records are unsupported".into());
+        }
         let mut path = if prefix.is_empty() {
             name.to_owned()
         } else {
@@ -199,24 +232,30 @@ pub fn extract_files(
         let size_text = text(124, 136)?;
         let size = u64::from_str_radix(size_text.trim_matches(['\0', ' ']), 8)
             .map_err(|_| "cache archive size malformed".to_string())?;
+        if kind == b'5' && size != 0 {
+            return Err("cache directory has a body".into());
+        }
         let header_bytes = BLOCK_BYTES as usize;
         let body_start = offset + header_bytes;
         let body_end = body_start
             .checked_add(usize::try_from(size).map_err(|_| "cache archive size overflow")?)
             .ok_or("cache archive size overflow")?;
-        if body_end > bytes.len() {
-            return Err("cache archive is truncated".into());
-        }
+        let body = bytes
+            .get(body_start..body_end)
+            .ok_or("cache archive is truncated")?;
         total = total
             .checked_add(size)
             .ok_or("cache archive byte overflow")?;
         if total > maximum_bytes {
             return Err("cache archive byte bound exceeded".into());
         }
-        let components: Vec<&str> = path.split('/').collect();
+        let mut components = path.split('/').peekable();
         let mut current = root.clone();
-        for component in &components[..components.len() - 1] {
+        while let Some(component) = components.next() {
             current.push(component);
+            if components.peek().is_none() {
+                break;
+            }
             match std::fs::symlink_metadata(&current) {
                 Ok(meta) if meta.file_type().is_symlink() => {
                     return Err("cache archive path traverses a symlink".into());
@@ -230,7 +269,6 @@ pub fn extract_files(
                 Err(_) => return Err("cache archive directory unavailable".into()),
             }
         }
-        current.push(components[components.len() - 1]);
         match kind {
             b'5' => match std::fs::symlink_metadata(&current) {
                 Ok(meta) if meta.is_dir() => {}
@@ -252,7 +290,7 @@ pub fn extract_files(
                     .custom_flags(libc::O_NOFOLLOW)
                     .open(&current)
                     .map_err(|_| "cache archive file create failed".to_string())?;
-                file.write_all(&bytes[body_start..body_end])
+                file.write_all(body)
                     .map_err(|_| "cache archive file write failed".to_string())?;
                 file.set_permissions(std::fs::Permissions::from_mode(0o600))
                     .map_err(|_| "cache archive file mode failed".to_string())?;
@@ -386,6 +424,30 @@ mod tests {
         bytes.extend_from_slice(b"data");
         bytes.extend_from_slice(&vec![0_u8; 508]);
         bytes.extend_from_slice(&[0_u8; 1024]);
+        let mut checksum_mismatch = bytes.clone();
+        *checksum_mismatch
+            .first_mut()
+            .unwrap_or_else(|| unreachable!("header byte")) ^= 1;
+        assert!(extract_files(&checksum_mismatch, &directory, 4, 1024).is_err());
+        assert!(extract_files(&bytes, &directory, 4, 3).is_err());
+        let mut duplicate_stream = vec![0_u8; 1024];
+        duplicate_stream.extend_from_slice(&bytes);
+        assert!(extract_files(&duplicate_stream, &directory, 4, 1024).is_err());
+        assert!(extract_files(&[0_u8; 512], &directory, 4, 1024).is_err());
+        for kind in [b'L', b'K', b'x', b'g'] {
+            let mut block = header_bytes;
+            *block
+                .get_mut(156)
+                .unwrap_or_else(|| unreachable!("type field")) = kind;
+            put(&mut block, 148, &[b' '; 8]);
+            let checksum: u64 = block.iter().map(|byte| u64::from(*byte)).sum();
+            put(&mut block, 148, format!("{checksum:06o}\0 ").as_bytes());
+            let mut extended = block.to_vec();
+            extended.extend_from_slice(b"data");
+            extended.extend_from_slice(&[0_u8; 508]);
+            extended.extend_from_slice(&[0_u8; 1024]);
+            assert!(extract_files(&extended, &directory, 4, 1024).is_err());
+        }
         extract_files(&bytes, &directory, 4, 1024).unwrap_or_else(|error| unreachable!("{error}"));
         assert_eq!(
             std::fs::read(directory.join("target/out.txt"))

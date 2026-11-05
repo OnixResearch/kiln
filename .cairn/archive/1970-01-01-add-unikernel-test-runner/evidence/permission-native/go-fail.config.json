@@ -1,0 +1,1 @@
+{"boot-source": {"boot_args": "elfloader /test fail KILN_ARGV_END", "initrd_path": "/nix/store/g61aqgnr1601kp17h3b1a5gzcaaic4c2-kiln-unikernel-go-image/initrd.cpio", "kernel_image_path": "/nix/store/ay7y8ymkfyx8bynphvsmrxp6g1wnj459-kiln-unikraft-firecracker-a4c494e80141bd402961c7d96150dd218c79db37/kernel"}, "drives": [], "machine-config": {"mem_size_mib": 256, "vcpu_count": 1}}

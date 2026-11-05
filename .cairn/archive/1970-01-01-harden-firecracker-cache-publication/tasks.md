@@ -1,0 +1,4 @@
+- [x] [serial] Harden immutable store publication and orphan recovery. r[kiln.hosted.microvm.cache_integrity]
+- [x] [serial] Record corruption misses, entry hashes and local tier. r[kiln.hosted.microvm.cache_integrity]
+- [x] [serial] Add phase interruption and hostile publication regression fixtures. r[kiln.hosted.microvm.cache_integrity]
+- [x] [serial] Document property, acceptance mapping and parent verification commands. r[kiln.hosted.microvm.cache_integrity]

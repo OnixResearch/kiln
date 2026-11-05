@@ -3326,6 +3326,7 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "fs2",
+ "git2 0.21.0",
  "kiln-adapter-aspen",
  "kiln-adapter-http-observe",
  "kiln-adapter-nix",

@@ -648,7 +648,7 @@ impl Fixture {
 
         let admitted = admit_config(config.clone())
             .unwrap_or_else(|_| unreachable!("fixture GitHub profile is admitted"));
-        let transport = admitted.transport.clone();
+        let transport = admitted.transport().clone();
         let socket_path = config.workflow.socket_path.clone();
         let job = JobFixture {
             profile_path,
@@ -683,13 +683,13 @@ impl Fixture {
         let admitted = admit_config(self.config.clone())
             .unwrap_or_else(|_| unreachable!("fixture GitHub profile is re-admitted"));
         let transport = UnixWorkflowExchange::new(
-            admitted.config.workflow.socket_path.clone(),
-            admitted.transport.clone(),
-            admitted.lattice.contract.clone(),
-            admitted.config.maximum_run_records,
+            admitted.config().workflow.socket_path.clone(),
+            admitted.transport().clone(),
+            admitted.lattice().contract.clone(),
+            admitted.config().maximum_run_records,
         )
         .unwrap_or_else(|_| unreachable!("fixture Lattice transport is admitted"));
-        let workflow = LatticeAdapter::new(admitted.lattice.clone(), transport)
+        let workflow = LatticeAdapter::new(admitted.lattice().clone(), transport)
             .unwrap_or_else(|_| unreachable!("fixture Lattice adapter is admitted"));
         let store =
             open_store(&admitted).unwrap_or_else(|_| unreachable!("fixture SQLite store opens"));
@@ -697,7 +697,7 @@ impl Fixture {
             workflow,
             self.status.clone(),
             store,
-            admitted.config.clone(),
+            admitted.config().clone(),
         );
         let secret = ResolvedSecret::from_bytes(WEBHOOK_SECRET.to_vec())
             .unwrap_or_else(|_| unreachable!("fixture webhook secret is admitted"));

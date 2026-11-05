@@ -1,0 +1,4 @@
+- [x] [serial] Add the isolated upstream patch-reducer helper. r[kiln.radicle.patch_read]
+- [x] [serial] Add bounded adapter invocation and tests. r[kiln.radicle.patch_read]
+- [x] [serial] Add upstream review append with child-environment signer seed. r[kiln.radicle.patch_read]
+- [x] [serial] Integrate pinned helper/storage fields with the explicit bounded patch CI profile. r[kiln.radicle.patch_read]

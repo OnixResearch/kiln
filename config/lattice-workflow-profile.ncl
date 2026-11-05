@@ -31,7 +31,7 @@ let RequiredNodes = std.contract.from_predicate (fun value => value == ["build",
 let RequiredEffects = std.contract.from_predicate (fun value => value == ["build", "test", "custom"]) in
 let RequiredAdapters = std.contract.from_predicate (fun value => value == ["local", "remote"]) in
 let RequiredControls = std.contract.from_predicate (fun value =>
-  value == { cancel = true, pause = true, resume = true }
+  value == { cancel = true, pause = false, resume = false }
 ) in
 let Profile = {
   source | ExactSource,
@@ -96,7 +96,7 @@ let TransportUserId = 1000 in
     node_kinds = ["build", "review", "test"],
     effect_classes = ["build", "test", "custom"],
     adapter_kinds = ["local", "remote"],
-    controls = { cancel = true, pause = true, resume = true },
+    controls = { cancel = true, pause = false, resume = false },
     observation_mode = "poll",
     socket_path = "/run/kiln/lattice.sock",
     allowed_user_ids = [TransportUserId],

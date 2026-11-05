@@ -1,0 +1,327 @@
+{
+  "patch_id": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+  "heads": [
+    "19bd6e1ced4efa12e170a7a2d77b72c10cc381fa",
+    "5f70aaba447dbf58a8a5a58575db333dd66efb7d",
+    "caf0b5d8603a6c3ce4485063406993c53526e750",
+    "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd",
+    "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e"
+  ],
+  "native": {
+    "title": "Concurrent fixture",
+    "author": {
+      "id": "did:key:z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+    },
+    "state": {
+      "status": "open"
+    },
+    "target": "delegates",
+    "labels": [],
+    "merges": {},
+    "revisions": {
+      "6380dab577652734b5678d5fda9ff4b8b9be0c87": {
+        "id": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "author": {
+          "id": "did:key:z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+        },
+        "description": [
+          {
+            "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+            "timestamp": 1793924198000,
+            "body": "fixture",
+            "embeds": []
+          }
+        ],
+        "base": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+        "oid": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+        "discussion": {
+          "comments": {},
+          "timeline": []
+        },
+        "reviews": {
+          "z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ": {
+            "id": "19bd6e1ced4efa12e170a7a2d77b72c10cc381fa",
+            "author": {
+              "id": "did:key:z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ"
+            },
+            "verdict": "reject",
+            "summary": [
+              {
+                "author": "z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ",
+                "timestamp": 1793924198000,
+                "body": "Bob review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924198000
+          },
+          "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX": {
+            "id": "77f7481f66422ef8f5255ff8517b17aa3a10fa36",
+            "author": {
+              "id": "did:key:z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+            },
+            "verdict": "accept",
+            "summary": [
+              {
+                "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+                "timestamp": 1793924198000,
+                "body": "Alice review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924198000
+          },
+          "z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF": {
+            "id": "caf0b5d8603a6c3ce4485063406993c53526e750",
+            "author": {
+              "id": "did:key:z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF"
+            },
+            "verdict": "accept",
+            "summary": [
+              {
+                "author": "z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF",
+                "timestamp": 1793924198000,
+                "body": "Kiln review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924198000
+          },
+          "z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP": {
+            "id": "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e",
+            "author": {
+              "id": "did:key:z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP"
+            },
+            "verdict": "accept",
+            "summary": [
+              {
+                "author": "z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP",
+                "timestamp": 1793924287000,
+                "body": "Disposable CAS CLI smoke review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924287000
+          }
+        },
+        "timestamp": 1793924198000,
+        "resolves": [],
+        "reactions": []
+      },
+      "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd": {
+        "id": "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd",
+        "author": {
+          "id": "did:key:z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+        },
+        "description": [
+          {
+            "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+            "timestamp": 1793924987000,
+            "body": "Disposable revision two",
+            "embeds": []
+          }
+        ],
+        "base": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+        "oid": "9e37da95037480b52895e3eaa235754a4e226671",
+        "discussion": {
+          "comments": {},
+          "timeline": []
+        },
+        "reviews": {},
+        "timestamp": 1793924987000,
+        "resolves": [],
+        "reactions": []
+      }
+    },
+    "assignees": [],
+    "timeline": [
+      "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+      "77f7481f66422ef8f5255ff8517b17aa3a10fa36",
+      "19bd6e1ced4efa12e170a7a2d77b72c10cc381fa",
+      "caf0b5d8603a6c3ce4485063406993c53526e750",
+      "5f70aaba447dbf58a8a5a58575db333dd66efb7d",
+      "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e",
+      "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd"
+    ],
+    "reviews": {
+      "19bd6e1ced4efa12e170a7a2d77b72c10cc381fa": [
+        "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ"
+      ],
+      "77f7481f66422ef8f5255ff8517b17aa3a10fa36": [
+        "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+      ],
+      "caf0b5d8603a6c3ce4485063406993c53526e750": [
+        "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF"
+      ],
+      "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e": [
+        "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP"
+      ]
+    }
+  },
+  "delegates": [
+    "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+    "z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ"
+  ],
+  "merges": [],
+  "state": "Open { conflicts: [] }",
+  "author": "did:key:z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+  "revisions": [
+    {
+      "id": "6380dab577652734b5678d5fda9ff4b8b9be0c87",
+      "head": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+      "base": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+      "description": "fixture",
+      "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+      "signed_source": {
+        "reference": "refs/cobs/xyz.radicle.patch/6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "tip": "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd"
+      },
+      "reviews": [
+        {
+          "id": "19bd6e1ced4efa12e170a7a2d77b72c10cc381fa",
+          "review": {
+            "id": "19bd6e1ced4efa12e170a7a2d77b72c10cc381fa",
+            "author": {
+              "id": "did:key:z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ"
+            },
+            "verdict": "reject",
+            "summary": [
+              {
+                "author": "z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ",
+                "timestamp": 1793924198000,
+                "body": "Bob review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924198000
+          },
+          "author": "z6MkfDSNRs2i9S6LZ5vd4RbpZ6754H7R3btDqRTeHhamqvuJ",
+          "verdict": "reject",
+          "summary": "Bob review"
+        },
+        {
+          "id": "77f7481f66422ef8f5255ff8517b17aa3a10fa36",
+          "review": {
+            "id": "77f7481f66422ef8f5255ff8517b17aa3a10fa36",
+            "author": {
+              "id": "did:key:z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX"
+            },
+            "verdict": "accept",
+            "summary": [
+              {
+                "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+                "timestamp": 1793924198000,
+                "body": "Alice review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924198000
+          },
+          "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+          "verdict": "accept",
+          "summary": "Alice review"
+        },
+        {
+          "id": "caf0b5d8603a6c3ce4485063406993c53526e750",
+          "review": {
+            "id": "caf0b5d8603a6c3ce4485063406993c53526e750",
+            "author": {
+              "id": "did:key:z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF"
+            },
+            "verdict": "accept",
+            "summary": [
+              {
+                "author": "z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF",
+                "timestamp": 1793924198000,
+                "body": "Kiln review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924198000
+          },
+          "author": "z6MkpFkurpyZgyna5SAfLpvdzp7W6cvdc1fn9YECrwv3AMbF",
+          "verdict": "accept",
+          "summary": "Kiln review"
+        },
+        {
+          "id": "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e",
+          "review": {
+            "id": "e3d0c42154718b5b47f7ef7c2dfd5e0629fceb3e",
+            "author": {
+              "id": "did:key:z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP"
+            },
+            "verdict": "accept",
+            "summary": [
+              {
+                "author": "z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP",
+                "timestamp": 1793924287000,
+                "body": "Disposable CAS CLI smoke review",
+                "embeds": []
+              }
+            ],
+            "comments": {
+              "comments": {},
+              "timeline": []
+            },
+            "labels": [],
+            "timestamp": 1793924287000
+          },
+          "author": "z6Mku7FYz1HuZo4Xu65omn1vL9EfyDqr7LD2d4oQ4hyHmGaP",
+          "verdict": "accept",
+          "summary": "Disposable CAS CLI smoke review"
+        }
+      ]
+    },
+    {
+      "id": "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd",
+      "head": "9e37da95037480b52895e3eaa235754a4e226671",
+      "base": "f2de534b5e81d7c6e2dcaf58c3dd91573c0a0354",
+      "description": "Disposable revision two",
+      "author": "z6MkmNL6xksdEJENGk9Z1qqGsY5njKQdjU1UhnUEUvWyQUVX",
+      "signed_source": {
+        "reference": "refs/cobs/xyz.radicle.patch/6380dab577652734b5678d5fda9ff4b8b9be0c87",
+        "tip": "d8badcb0aa3c95fe7c0b4f1159ff995895e082dd"
+      },
+      "reviews": []
+    }
+  ]
+}

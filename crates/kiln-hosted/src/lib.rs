@@ -12,9 +12,11 @@ pub mod fleet;
 pub mod microvm;
 pub mod operations;
 pub mod pipelines;
+mod placement;
 pub mod secrets;
 pub mod service;
 pub mod transport;
+pub mod unikernel;
 
 pub const SCHEMA: &str = "kiln.hosted.v1";
 pub const MAX_FRAME_BYTES: usize = 1_048_576;

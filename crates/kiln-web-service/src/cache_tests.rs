@@ -69,6 +69,7 @@ fn cold_publish_warm_restore_is_immutable_and_survives_store_reopen() {
         store
             .restore(&key(), now())
             .unwrap_or_else(|error| unreachable!("cold cache restore: {error}"))
+            .entry
             .is_none()
     );
     let entry = envelope(b"actual compiler cache bytes");
@@ -86,6 +87,7 @@ fn cold_publish_warm_restore_is_immutable_and_survives_store_reopen() {
         store
             .restore(&key(), now())
             .unwrap_or_else(|error| unreachable!("warm restore: {error}"))
+            .entry
             .unwrap_or_else(|| unreachable!("published entry"))
             .entry,
         entry.entry
@@ -103,6 +105,7 @@ fn cold_publish_warm_restore_is_immutable_and_survives_store_reopen() {
         second
             .restore(&key(), now())
             .unwrap_or_else(|error| unreachable!("reopened restore: {error}"))
+            .entry
             .unwrap_or_else(|| unreachable!("retained entry"))
             .blake3,
         entry.blake3
@@ -153,6 +156,7 @@ fn content_key_scope_path_and_bounds_are_admitted_before_storage() {
         store
             .restore(&key(), now())
             .unwrap_or_else(|error| unreachable!("cold restore: {error}"))
+            .entry
             .is_none()
     );
 }
@@ -174,7 +178,11 @@ fn corrupted_retained_content_and_symlinks_never_restore() {
     std::fs::write(&path, b"corrupt").unwrap_or_else(|error| {
         unreachable!("{}: {:?}", "cache fixture operation succeeds", error)
     });
-    assert!(store.restore(&key(), now()).is_err());
+    let restored = store
+        .restore(&key(), now())
+        .unwrap_or_else(|error| unreachable!("measured corrupt restore: {error}"));
+    assert!(restored.entry.is_none());
+    assert_eq!(restored.outcome, RestoreOutcome::CorruptMiss);
     std::fs::remove_file(&path).unwrap_or_else(|error| {
         unreachable!("{}: {:?}", "cache fixture operation succeeds", error)
     });
@@ -185,7 +193,11 @@ fn corrupted_retained_content_and_symlinks_never_restore() {
     std::os::unix::fs::symlink(&outside, &path).unwrap_or_else(|error| {
         unreachable!("{}: {:?}", "cache fixture operation succeeds", error)
     });
-    assert!(store.restore(&key(), now()).is_err());
+    let restored = store
+        .restore(&key(), now())
+        .unwrap_or_else(|error| unreachable!("measured symlink restore: {error}"));
+    assert!(restored.entry.is_none());
+    assert_eq!(restored.outcome, RestoreOutcome::CorruptMiss);
     assert_eq!(
         std::fs::read(outside).unwrap_or_else(|error| unreachable!("outside file: {error}")),
         b"private"
@@ -222,18 +234,21 @@ fn count_and_age_retention_only_remove_verified_cache_entries() {
         store
             .restore(&first.entry.key, now())
             .unwrap_or_else(|error| unreachable!("evicted lookup: {error}"))
+            .entry
             .is_none()
     );
     assert!(
         store
             .restore(&second.entry.key, now())
             .unwrap_or_else(|error| unreachable!("retained lookup: {error}"))
+            .entry
             .is_some()
     );
     assert!(
         store
             .restore(&second.entry.key, now() + 61)
             .unwrap_or_else(|error| unreachable!("expired lookup: {error}"))
+            .entry
             .is_none()
     );
     assert_eq!(
@@ -263,6 +278,31 @@ fn unknown_retained_data_and_nonprivate_directory_are_preserved_and_rejected() {
     );
     assert!(policy.preflight().is_err());
 }
+
+#[test]
+fn staging_rejects_symlinks_and_nonprivate_directories_without_touching_targets() {
+    let root = private_root();
+    let outside = private_root();
+    let policy = profile(root.path());
+    let store = CacheStore::open(policy.clone()).unwrap_or_else(|error| unreachable!("{error}"));
+    drop(store);
+    let staging = root.path().join("kiln-cache-v1/staging");
+    fs::remove_dir(&staging).unwrap_or_else(|error| unreachable!("{error}"));
+    let retained = outside.path().join("retained");
+    fs::write(&retained, b"not an orphan").unwrap_or_else(|error| unreachable!("{error}"));
+    std::os::unix::fs::symlink(outside.path(), &staging)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(CacheStore::open(policy.clone()).is_err());
+    assert_eq!(
+        fs::read(&retained).unwrap_or_else(|error| unreachable!("{error}")),
+        b"not an orphan"
+    );
+    fs::remove_file(&staging).unwrap_or_else(|error| unreachable!("{error}"));
+    fs::create_dir(&staging).unwrap_or_else(|error| unreachable!("{error}"));
+    fs::set_permissions(&staging, fs::Permissions::from_mode(0o755))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(CacheStore::open(policy).is_err());
+}
 #[test]
 fn input_producer_toolchain_platform_and_output_declarations_change_cache_identity() {
     let original = key();
@@ -290,5 +330,210 @@ fn input_producer_toolchain_platform_and_output_declarations_change_cache_identi
                 .unwrap_or_else(|error| unreachable!("changed key: {error}")),
             original_id
         );
+    }
+}
+
+// r[verify kiln.hosted.microvm.cache_integrity]
+#[test]
+fn hostile_returns_cannot_replace_existing_entry() {
+    let root = private_root();
+    let mut store = CacheStore::open(profile(root.path())).unwrap_or_else(|e| unreachable!("{e}"));
+    let original = envelope(b"immutable");
+    assert!(
+        store
+            .publish(&original, now())
+            .unwrap_or_else(|e| unreachable!("{e}"))
+    );
+    let path = store
+        .directory
+        .join(key().identity().unwrap_or_else(|e| unreachable!("{e}")));
+    let before = fs::read(&path).unwrap_or_else(|e| unreachable!("{e}"));
+    let mut mismatch = original.clone();
+    mismatch.blake3 = "0".repeat(64);
+    for hostile in [envelope(&vec![0; 4097]), mismatch, envelope(b"second send")] {
+        assert!(store.publish(&hostile, now()).is_err());
+        assert_eq!(
+            fs::read(&path).unwrap_or_else(|e| unreachable!("{e}")),
+            before
+        );
+    }
+}
+
+#[test]
+fn interrupted_publication_child() {
+    let Some(root) = std::env::var_os("KILN_CACHE_FAULT_ROOT") else {
+        return;
+    };
+    let phase = std::env::var("KILN_CACHE_FAULT_PHASE").unwrap_or_else(|e| unreachable!("{e}"));
+    let mut store =
+        CacheStore::open(profile(Path::new(&root))).unwrap_or_else(|e| unreachable!("{e}"));
+    let mut entry = envelope(b"new complete entry");
+    entry.entry.key.node_id = "second".into();
+    let entry = CacheEnvelope::new(entry.entry).unwrap_or_else(|e| unreachable!("{e}"));
+    store
+        .publish_with_hook(&entry, now(), |current| {
+            if format!("{current:?}") == phase {
+                fs::write(Path::new(&root).join("phase-ready"), b"ready")
+                    .unwrap_or_else(|e| unreachable!("{e}"));
+                loop {
+                    std::thread::park();
+                }
+            }
+        })
+        .unwrap_or_else(|e| unreachable!("{e}"));
+    unreachable!("requested phase was not reached");
+}
+
+#[test]
+fn sigkill_each_publish_phase_recovers_without_partial_keys() {
+    use std::os::unix::process::ExitStatusExt;
+    for phase in [
+        PublishPhase::Receiving,
+        PublishPhase::Verifying,
+        PublishPhase::BeforeRename,
+        PublishPhase::AfterRename,
+    ] {
+        let root = private_root();
+        let policy = profile(root.path());
+        let original = envelope(b"existing entry");
+        let mut store = CacheStore::open(policy.clone()).unwrap_or_else(|e| unreachable!("{e}"));
+        store
+            .publish(&original, now())
+            .unwrap_or_else(|e| unreachable!("{e}"));
+        let id = key().identity().unwrap_or_else(|e| unreachable!("{e}"));
+        let original_bytes =
+            fs::read(store.directory.join(&id)).unwrap_or_else(|e| unreachable!("{e}"));
+        drop(store);
+        let mut child = std::process::Command::new(
+            std::env::current_exe().unwrap_or_else(|e| unreachable!("{e}")),
+        )
+        .args([
+            "--exact",
+            "cache::tests::interrupted_publication_child",
+            "--nocapture",
+        ])
+        .env("KILN_CACHE_FAULT_ROOT", root.path())
+        .env("KILN_CACHE_FAULT_PHASE", format!("{phase:?}"))
+        .spawn()
+        .unwrap_or_else(|e| unreachable!("{e}"));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !root.path().join("phase-ready").exists() {
+            if let Some(status) = child.try_wait().unwrap_or_else(|e| unreachable!("{e}")) {
+                unreachable!("fault child exited before {phase:?}: {status}");
+            }
+            if std::time::Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                unreachable!("fault child did not reach {phase:?}");
+            }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        child.kill().unwrap_or_else(|e| unreachable!("{e}")); // Unix Child::kill sends SIGKILL.
+        assert_eq!(
+            child
+                .wait()
+                .unwrap_or_else(|e| unreachable!("{e}"))
+                .signal(),
+            Some(9)
+        );
+        let mut reopened = CacheStore::open(policy).unwrap_or_else(|e| unreachable!("{e}"));
+        assert_eq!(
+            fs::read(reopened.directory.join(&id)).unwrap_or_else(|e| unreachable!("{e}")),
+            original_bytes
+        );
+        let mut second = key();
+        second.node_id = "second".into();
+        let restored = reopened
+            .restore(&second, now())
+            .unwrap_or_else(|e| unreachable!("{e}"));
+        assert_eq!(restored.entry.is_some(), phase == PublishPhase::AfterRename);
+        if let Some(entry) = restored.entry {
+            assert_eq!(
+                entry
+                    .entry
+                    .files
+                    .first()
+                    .unwrap_or_else(|| unreachable!("one fixture file"))
+                    .body_base64,
+                base64::engine::general_purpose::STANDARD.encode(b"new complete entry")
+            );
+            assert_eq!(
+                entry
+                    .verify(4096, 8)
+                    .unwrap_or_else(|e| unreachable!("{e}")),
+                18
+            );
+        }
+        assert_eq!(
+            fs::read_dir(reopened.directory.join("staging"))
+                .unwrap_or_else(|e| unreachable!("{e}"))
+                .count(),
+            0
+        );
+    }
+}
+
+#[test]
+fn excessive_corrupt_inventory_disables_cache_without_mutating_retained_bytes() {
+    let root = private_root();
+    let mut policy = profile(root.path());
+    policy.maximum_entries = 1;
+    let mut store = CacheStore::open(policy).unwrap_or_else(|error| unreachable!("{error}"));
+    let cold = store
+        .restore(&key(), now())
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(cold.outcome, RestoreOutcome::Miss);
+    let original = envelope(b"retained verified entry");
+    store
+        .publish(&original, now())
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let path = store.directory.join(
+        key()
+            .identity()
+            .unwrap_or_else(|error| unreachable!("{error}")),
+    );
+    let before = fs::read(&path).unwrap_or_else(|error| unreachable!("{error}"));
+    let mut corrupt = Vec::new();
+    for index in 0_u64..32 {
+        let path = store
+            .directory
+            .join(blake3::hash(&index.to_be_bytes()).to_hex().as_str());
+        fs::write(&path, b"corrupt").unwrap_or_else(|error| unreachable!("{error}"));
+        corrupt.push(path);
+    }
+    let degraded = store
+        .restore(&key(), now())
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(degraded.outcome, RestoreOutcome::DisabledInventoryBound);
+    assert!(degraded.entry.is_none());
+    assert_eq!(
+        fs::read(path).unwrap_or_else(|error| unreachable!("{error}")),
+        before
+    );
+    for path in corrupt {
+        assert_eq!(
+            fs::read(path).unwrap_or_else(|error| unreachable!("{error}")),
+            b"corrupt"
+        );
+    }
+}
+
+#[test]
+fn publication_authority_excludes_only_degraded_restore_outcomes() {
+    for (outcome, allowed) in [
+        ("miss", true),
+        ("hit", true),
+        ("corrupt_miss", false),
+        ("disabled_inventory_bound", false),
+    ] {
+        let observation = CacheObservation {
+            key: "a".repeat(64),
+            outcome: outcome.into(),
+            transferred_bytes: 0,
+            duration_ms: 1,
+            entry_blake3: None,
+            source_tier: "local".into(),
+        };
+        assert_eq!(observation.permits_publication(), allowed);
     }
 }

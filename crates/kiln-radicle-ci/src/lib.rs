@@ -2,6 +2,7 @@
 
 mod coordinator;
 mod journal;
+pub mod patch;
 pub mod project;
 mod status;
 mod storage;
