@@ -1010,6 +1010,28 @@ pub fn run_pipeline(
                                 } => host_preflight_override.as_deref(),
                                 _ => None,
                             });
+                    let host_of = |runner: &str| -> String {
+                        config
+                            .runners
+                            .get(runner)
+                            .and_then(|backend| match backend {
+                                Backend::Firecracker { host_identity, .. } => {
+                                    host_identity.as_deref()
+                                }
+                                _ => None,
+                            })
+                            .unwrap_or(runner)
+                            .to_string()
+                    };
+                    let current_host = host_of(&job.runner);
+                    let attempt_co_residency = plan
+                        .jobs
+                        .iter()
+                        .filter(|other| {
+                            other.id != job.id && host_of(&other.runner) == current_host
+                        })
+                        .map(|other| (request.attempt_id.clone(), other.id.clone()))
+                        .collect::<Vec<_>>();
                     let outcome = crate::microvm::run_job(
                         db,
                         &config,
@@ -1025,6 +1047,7 @@ pub fn run_pipeline(
                             unit: &unit,
                             timeout_ms: remaining,
                             grants,
+                            attempt_co_residency: &attempt_co_residency,
                         },
                         &host_facts,
                         host_preflight_override,

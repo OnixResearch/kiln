@@ -26,6 +26,13 @@ require one. A host may not contain both untrusted-capable and workload-bearing
 runners, even when their trust domains differ. Missing workload-runner identity
 defaults to the runner label, which is unique.
 
+### Attempt co-residency evidence
+
+Each Firecracker receipt records the other jobs in the same attempt whose runner
+declares the same host identity. Jobs execute sequentially, so this is a
+declared-placement set, not live concurrent observation. Cross-attempt tracking
+still needs a durable placement ledger.
+
 ## Risks
 
 - Two domains can still map to the same physical host or LLC unless the operator

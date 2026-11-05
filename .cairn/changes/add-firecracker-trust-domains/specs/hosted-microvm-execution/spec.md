@@ -12,7 +12,20 @@ non-empty reviewed host identity. A host identity MUST NOT contain both
 untrusted-capable and workload-bearing runners. The selected domain and host
 identity MUST be recorded in the attempt receipt. This is static runner-pool and
 host-assignment separation and MUST NOT claim live cross-attempt observation,
-LLC, core or cache isolation.
+LLC, core or cache isolation. The receipt MUST also record the other jobs in the
+same attempt whose runner declares the same host identity.
+
+#### Scenario: Attempt co-residency is recorded
+
+- GIVEN two jobs in one attempt whose runners declare one host identity
+- WHEN a job receipt is produced
+- THEN it names the other job as attempt-local co-residency.
+
+#### Scenario: Cross-attempt overlap is not claimed
+
+- GIVEN another attempt using the same host identity
+- WHEN the current attempt receipt is produced
+- THEN it MUST NOT claim to have observed that other attempt.
 
 #### Scenario: Shared domain is rejected
 

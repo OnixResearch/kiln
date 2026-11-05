@@ -24,6 +24,7 @@
     "separation": "a domain containing both untrusted and workload-bearing runners is rejected",
     "receipt": "the Firecracker vm object records the selected trust domain and host identity",
     "host separation": "a host containing both untrusted and workload-bearing runners is rejected; untrusted runners require a host identity",
+    "co-residency": "each receipt records the other same-attempt jobs with the same declared host identity; cross-attempt overlap is not claimed",
     "configuration": "typed hosted profiles expose the optional domain"
   },
   "non_claims": [

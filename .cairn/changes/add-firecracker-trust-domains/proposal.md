@@ -14,6 +14,8 @@ had no reviewed placement-pool identity and accepted any runner label.
 - Require a host identity for every untrusted-capable runner and reject a host
   shared by untrusted-capable and workload-bearing runners.
 - Record the trust domain and host identity in the Firecracker `vm` receipt.
+- Record the attempt-local co-residency set: other jobs in the same attempt with
+  the same declared host identity.
 - Add typed Nickel fields and hosted documentation.
 
 ## Impact

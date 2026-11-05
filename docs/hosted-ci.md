@@ -570,7 +570,9 @@ workload-bearing runners. The receipt records the domain; this is a static
 runner-pool separation, not a proof of physical host or LLC isolation.
 Untrusted runners also require a reviewed `host_identity`; a host cannot contain
 both untrusted-capable and workload-bearing runners. The receipt records it.
-This is a static host-assignment check, not live cross-attempt observation.
+This is a static host-assignment check, not live cross-attempt observation. Each
+receipt records the other same-attempt jobs with the same declared host; it does
+not claim to observe other attempts.
 
 It does **not** claim:
 - hostile multi-tenant or production qualification;

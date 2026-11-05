@@ -259,6 +259,8 @@ pub(crate) struct Job<'a> {
     pub(crate) timeout_ms: u64,
     /// Credential and trust facts that rule out a debug hold.
     pub(crate) grants: Grants,
+    /// Other jobs in this attempt sharing the declared host identity.
+    pub(crate) attempt_co_residency: &'a [(String, String)],
 }
 
 pub(crate) struct JobOutcome {
@@ -1273,6 +1275,15 @@ pub(crate) fn run_job(
     if let Some(host) = runner.host_identity {
         observe("host_identity", json!(host));
     }
+    observe(
+        "attempt_co_residency",
+        json!(
+            job.attempt_co_residency
+                .iter()
+                .map(|(attempt, job)| json!({"attempt": attempt, "job": job}))
+                .collect::<Vec<_>>()
+        ),
+    );
     if let Err(error) = journal(db, job, "starting", None) {
         session.failure = Some(error);
     } else {
