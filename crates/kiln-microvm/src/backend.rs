@@ -6,6 +6,7 @@
 use crate::admission::MachinePolicy;
 use crate::{AGENT_PORT, BOOT_ARGS, GUEST_CID};
 use serde::Serialize;
+use serde_json::{Value, json};
 
 /// The only admissible guest-network capability.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -186,6 +187,42 @@ pub fn cloud_hypervisor_cold_boot(
     ]
 }
 
+/// One Cloud Hypervisor API request.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ApiRequest {
+    pub method: &'static str,
+    pub path: &'static str,
+    pub body: Value,
+}
+
+/// Pause and snapshot requests for a Cloud Hypervisor warm slot.
+pub fn cloud_hypervisor_snapshot_requests(state: &str) -> Vec<ApiRequest> {
+    vec![
+        ApiRequest {
+            method: "PUT",
+            path: "/api/v1/vm.pause",
+            body: json!({}),
+        },
+        ApiRequest {
+            method: "PUT",
+            path: "/api/v1/vm.snapshot",
+            body: json!({"destination_url": format!("file://{state}")}),
+        },
+    ]
+}
+
+/// Exact phase-1 Cloud Hypervisor restore argv. Restores paused; the caller
+/// resumes only after the confinement observation.
+pub fn cloud_hypervisor_restore(binary: &str, state: &str, api_socket: &str) -> Vec<String> {
+    vec![
+        binary.to_owned(),
+        "--restore".into(),
+        format!("source_url=file://{state},resume=false"),
+        "--api-socket".into(),
+        format!("path={api_socket}"),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,5 +264,16 @@ mod tests {
         assert!(!arguments.iter().any(|value| value == "--net"));
         assert!(!arguments.iter().any(|value| value == "--api-socket"));
         assert!(arguments.iter().any(|value| value == "path=/s,readonly=on"));
+    }
+
+    #[test]
+    fn cloud_hypervisor_snapshot_and_restore_plans_stay_network_free() {
+        let requests = cloud_hypervisor_snapshot_requests("/s");
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].path, "/api/v1/vm.pause");
+        assert_eq!(requests[1].body["destination_url"], "file:///s");
+        let arguments = cloud_hypervisor_restore("/ch", "/s", "/a.sock");
+        assert!(arguments.iter().any(|value| value == "--restore"));
+        assert!(!arguments.iter().any(|value| value == "--net"));
     }
 }

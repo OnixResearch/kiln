@@ -17,7 +17,10 @@ declares `snapshot = false`, and an unreviewed host architecture MUST be refused
 when it is not in `Capabilities::arch`. The receipt MUST record the VMM kind,
 reviewed version and binary BLAKE3. Warm snapshot identity MUST be
 `kiln.microvm.snapshot.v2` and MUST change when the VMM kind, version or binary
-changes, so a snapshot is never restored under another VMM identity.
+changes, so a snapshot is never restored under another VMM identity. The Cloud
+Hypervisor phase-1 plan MUST use one `vm.pause` followed by one `vm.snapshot`
+with a `destination_url`, and restore with `--restore
+source_url=file://...,resume=false`; it MUST NOT pass `--net`.
 
 #### Scenario: No guest network
 

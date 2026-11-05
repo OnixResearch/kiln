@@ -18,6 +18,8 @@ matching a closed runner enum in every consumer.
 - Expose capability helpers for reviewed arches and snapshot admission.
 - Add reviewed VMM version, receipt `backend_version`/`vmm_blake3`, declared
   capabilities and snapshot identity v2 binding kind/version/binary.
+- Add Cloud Hypervisor pause/snapshot requests and restore argv using the
+  pinned API schema.
 
 ## Impact
 
