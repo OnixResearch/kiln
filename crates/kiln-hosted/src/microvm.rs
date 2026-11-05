@@ -318,6 +318,8 @@ pub(crate) struct Job<'a> {
     pub(crate) unit: &'a str,
     pub(crate) timeout_ms: u64,
     pub(crate) cache_image: Option<&'a Path>,
+    pub(crate) cache_paths: Option<&'a [String]>,
+    pub(crate) cache_max_bytes: usize,
     /// Credential and trust facts that rule out a debug hold.
     pub(crate) grants: Grants,
     /// Other jobs in this attempt sharing the declared host identity.
@@ -327,6 +329,7 @@ pub(crate) struct Job<'a> {
 pub(crate) struct JobOutcome {
     pub(crate) steps: Vec<StepObservation>,
     pub(crate) vm: Value,
+    pub(crate) cache_tar: Option<Vec<u8>>,
 }
 
 type Vmm<'scope> = ScopedJoinHandle<'scope, Result<ExecutionOutput, RunError>>;
@@ -1196,6 +1199,7 @@ struct Session {
     debug_hold: Option<Value>,
     /// Observed host confinement, recorded before the guest session.
     confinement: Option<Value>,
+    cache_tar: Option<Vec<u8>>,
 }
 
 /// The not-yet-connected guest of a VM that is starting or restoring.
@@ -1261,8 +1265,28 @@ fn drive_guest(
                 admission_error,
             } if nonce == job.job => {
                 lifecycle.advance(Event::GuestDone)?;
+                let admitted = admission_error.is_none();
                 session.admission_error = admission_error;
                 session.session_ms = Some(millis(started));
+                if admitted && let Some(paths) = job.cache_paths {
+                    write_host(
+                        &mut stream,
+                        HostMessage::Publish {
+                            nonce: job.job.into(),
+                            paths: paths.to_vec(),
+                            maximum_bytes: job.cache_max_bytes,
+                        },
+                    )?;
+                    match read_guest(&mut stream, job_deadline, cancellation)? {
+                        GuestMessage::Cache { nonce, tar_hex } if nonce == job.job => {
+                            session.cache_tar = protocol::hex_bytes(&tar_hex);
+                            if session.cache_tar.is_none() {
+                                return Err("guest cache tar encoding rejected".into());
+                            }
+                        }
+                        _ => return Err("unexpected guest cache message".into()),
+                    }
+                }
                 return Ok(stream);
             }
             _ => return Err("unexpected guest message".into()),
@@ -1830,6 +1854,7 @@ pub(crate) fn run_job(
     JobOutcome {
         steps: observations(job, &session, cleaned, cancellation),
         vm,
+        cache_tar: session.cache_tar,
     }
 }
 

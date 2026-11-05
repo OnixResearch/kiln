@@ -219,6 +219,103 @@ pub fn restore(
     Ok((key, observation))
 }
 
+/// Materialize a hit as a read-only ustar image without writing the source
+/// workspace. The key is still bound to the original workspace inputs.
+pub fn restore_image(
+    config: &HostedCacheConfig,
+    context: &Context<'_>,
+    image: &Path,
+    capacity: u64,
+) -> Result<(CacheKey, CacheObservation), String> {
+    use base64::Engine as _;
+    use kiln_microvm::archive::{EntryKind, SourceEntry, header};
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+
+    let started = Instant::now();
+    let (key, policy) = key(config, context)?;
+    let envelope = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
+    let Some(envelope) = envelope else {
+        return Ok((
+            key.clone(),
+            CacheObservation {
+                key: key.identity()?,
+                outcome: "miss".into(),
+                transferred_bytes: 0,
+                duration_ms: elapsed(started),
+            },
+        ));
+    };
+    if envelope.entry.key != key {
+        return Err("tenant/source/config cache key mismatch".into());
+    }
+    let bytes = envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)?;
+    let mut entries = Vec::new();
+    for file in envelope.entry.files {
+        let body = base64::engine::general_purpose::STANDARD
+            .decode(file.body_base64.as_bytes())
+            .map_err(|_| "cache entry body encoding invalid")?;
+        let path = file
+            .path
+            .to_str()
+            .ok_or("cache entry path is not UTF-8")?
+            .to_owned();
+        entries.push((
+            SourceEntry {
+                path,
+                kind: EntryKind::File {
+                    size: u64::try_from(body.len()).map_err(|_| "cache entry size overflow")?,
+                    executable: false,
+                },
+            },
+            body,
+        ));
+    }
+    entries.sort_by(|left, right| left.0.path.cmp(&right.0.path));
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(image)
+        .map_err(|_| "cache image create failed")?;
+    let mut total = 1024_u64;
+    for (entry, body) in &entries {
+        total = total
+            .checked_add(u64::from(kiln_microvm::archive::BLOCK_BYTES))
+            .and_then(|value| {
+                value.checked_add(
+                    u64::try_from(body.len())
+                        .ok()?
+                        .div_ceil(kiln_microvm::archive::BLOCK_BYTES)
+                        * kiln_microvm::archive::BLOCK_BYTES,
+                )
+            })
+            .ok_or("cache image size overflow")?;
+        if total > capacity {
+            return Err("cache image exceeds source image capacity".into());
+        }
+        file.write_all(&header(entry)?)
+            .and_then(|()| file.write_all(body))
+            .and_then(|()| {
+                let padding = body.len().div_ceil(512) * 512 - body.len();
+                file.write_all(&vec![0_u8; padding])
+            })
+            .map_err(|_| "cache image write failed")?;
+    }
+    file.write_all(&[0_u8; 1024])
+        .map_err(|_| "cache image trailer write failed")?;
+    Ok((
+        key.clone(),
+        CacheObservation {
+            key: key.identity()?,
+            outcome: "hit".into(),
+            transferred_bytes: u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
+            duration_ms: elapsed(started),
+        },
+    ))
+}
+
 /// Call only after externally observed job success and confirmed owned cleanup.
 /// Inputs are rehashed before publication: a job that changes its source cannot
 /// publish derived outputs under a stale source identity.

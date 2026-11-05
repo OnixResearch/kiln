@@ -36,6 +36,12 @@ pub enum HostMessage {
         deadline_ms: u64,
         steps: Vec<GuestStep>,
     },
+    /// Request the declared cache output roots as one bounded tar.
+    Publish {
+        nonce: String,
+        paths: Vec<String>,
+        maximum_bytes: usize,
+    },
     /// One debug command for a held VM whose single run failed.
     Debug {
         nonce: String,
@@ -73,6 +79,11 @@ pub enum GuestMessage {
         nonce: String,
         /// Set when the source snapshot or request could not be admitted.
         admission_error: Option<String>,
+    },
+    /// A bounded tar of declared cache output roots, hex encoded.
+    Cache {
+        nonce: String,
+        tar_hex: String,
     },
     /// The report of one debug command.
     Debug {
@@ -153,6 +164,26 @@ pub fn decode_host(body: &[u8]) -> Result<HostFrame, String> {
                 || *deadline_ms > crate::debug_hold::DEBUG_COMMAND_TIMEOUT_MS
             {
                 return Err("microVM debug request rejected".into());
+            }
+        }
+        HostMessage::Publish {
+            paths,
+            maximum_bytes,
+            ..
+        } => {
+            if paths.is_empty()
+                || paths.len() > 64
+                || *maximum_bytes == 0
+                || *maximum_bytes > MAX_FRAME_BYTES / 2
+                || paths.iter().any(|path| {
+                    path.is_empty()
+                        || path.starts_with('/')
+                        || path
+                            .split('/')
+                            .any(|part| part.is_empty() || part == "." || part == "..")
+                })
+            {
+                return Err("microVM cache publish request rejected".into());
             }
         }
         HostMessage::Ping { .. } => {}

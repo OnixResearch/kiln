@@ -4,6 +4,7 @@
   "commands": [
     {"command":"cargo test -p kiln-microvm --lib cache_image --offline","result":"1 passed"},
     {"command":"cargo test -p kiln-hosted --lib --offline","result":"71 passed"},
+    {"command":"KILN_MICROVM_GUEST=... KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm firecracker_cache_restores -- --ignored --nocapture","result":"ignored: guest image rebuild blocked by the Nix store GC lock"},
     {"command":"cairn validate --root .","result":"valid; 0 issues"}
   ],
   "acceptance": {
@@ -13,7 +14,7 @@
   },
   "non_claims": [
     "no guest publication or object-storage tier",
-    "no host-level cache-drive integration test yet",
+    "host cache publication test is ignored until the guest image is rebuilt",
     "no cache latency measurement"
   ]
 }

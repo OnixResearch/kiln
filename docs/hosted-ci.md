@@ -485,8 +485,11 @@ Actual runner choices are:
   There is no network or jailer field. A cache policy naming a Firecracker
   runner enables restore only: the host materializes the cache entry as a
   read-only second drive (`/dev/vdb`) and the guest extracts it over `/work`.
-  Publication from the guest is not wired, so Firecracker cache policies never
-  write new entries.
+  After a successful job the host requests the declared output roots over the
+  existing vsock session, validates and extracts the bounded ustar, and
+  publishes the entry. No writable host share is exposed. The host test is
+  currently ignored until the guest image is rebuilt with this protocol. The optional
+  object-storage tier is not implemented.
 
   The backend is admitted only on x86_64 hosts. Build the guest with
   `nix build path:.#microvm-guest` (x86_64-linux only). It contains the pinned

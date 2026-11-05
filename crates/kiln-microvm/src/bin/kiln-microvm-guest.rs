@@ -199,6 +199,32 @@ fn session(
                     },
                 )?;
             }
+            HostMessage::Publish {
+                nonce,
+                paths,
+                maximum_bytes,
+            } => {
+                if !*ran {
+                    send(
+                        &mut stream,
+                        GuestMessage::Done {
+                            nonce,
+                            admission_error: Some("cache publish before run".into()),
+                        },
+                    )?;
+                    continue;
+                }
+                match publish_cache(busybox, &paths, maximum_bytes) {
+                    Ok(tar_hex) => send(&mut stream, GuestMessage::Cache { nonce, tar_hex })?,
+                    Err(error) => send(
+                        &mut stream,
+                        GuestMessage::Done {
+                            nonce,
+                            admission_error: Some(error),
+                        },
+                    )?,
+                }
+            }
             HostMessage::Debug {
                 nonce,
                 deadline_ms,
@@ -256,6 +282,30 @@ fn prepare(
     }
     let owner = format!("{GUEST_UID}:{GUEST_GID}");
     helper(busybox, &["chown", "-R", &owner, GUEST_WORKSPACE])
+}
+
+fn publish_cache(busybox: &str, paths: &[String], maximum_bytes: usize) -> Result<String, String> {
+    let archive = "/tmp/kiln-cache.tar";
+    let _ = std::fs::remove_file(archive);
+    let status = Command::new(busybox)
+        .args(["tar", "-cf", archive])
+        .args(paths)
+        .current_dir(GUEST_WORKSPACE)
+        .env_clear()
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map_err(|e| format!("cache tar: {e}"))?;
+    if !status.success() {
+        return Err("cache tar failed".into());
+    }
+    let bytes = std::fs::read(archive).map_err(|e| format!("cache tar read: {e}"))?;
+    let _ = std::fs::remove_file(archive);
+    if bytes.len() > maximum_bytes {
+        return Err("cache tar exceeds bound".into());
+    }
+    Ok(protocol::hex(&bytes))
 }
 
 fn helper(busybox: &str, arguments: &[&str]) -> Result<(), String> {

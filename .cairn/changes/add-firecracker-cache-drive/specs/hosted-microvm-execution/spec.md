@@ -7,8 +7,10 @@
 r[kiln.hosted.microvm.cache_drive] A Firecracker cache policy MUST materialize
 the restored cache entry as a read-only second virtio-blk drive and the guest
 MUST extract it over `/work` after the source drive. The drive MUST NOT be
-writable and MUST NOT be the source drive. Firecracker cache publication MUST
-remain disabled until a guest return protocol exists.
+writable and MUST NOT be the source drive. After a successful job and confirmed cleanup, the host MUST request the
+declared output roots, bound and validate the returned ustar, extract it
+without traversal, and publish through the cache store. Publication MUST NOT
+occur after failure or uncertain teardown.
 
 #### Scenario: Cache image is read-only
 

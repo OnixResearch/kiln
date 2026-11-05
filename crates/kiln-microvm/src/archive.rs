@@ -137,6 +137,131 @@ pub fn header(entry: &SourceEntry) -> Result<[u8; 512], String> {
     Ok(block)
 }
 
+/// Extract a bounded ustar archive of regular files and directories into
+/// `destination`. Absolute paths, `.`/`..`, symlinks and special files are
+/// rejected. The destination must already exist and must not contain symlink
+/// components on the written path.
+pub fn extract_files(
+    bytes: &[u8],
+    destination: &std::path::Path,
+    maximum_entries: usize,
+    maximum_bytes: u64,
+) -> Result<usize, String> {
+    use std::io::Write;
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+
+    let root = destination
+        .canonicalize()
+        .map_err(|_| "cache extraction root unavailable".to_string())?;
+    let mut offset = 0_usize;
+    let mut entries = 0_usize;
+    let mut total = 0_u64;
+    while offset + BLOCK_BYTES as usize <= bytes.len() {
+        let header = &bytes[offset..offset + BLOCK_BYTES as usize];
+        if header.iter().all(|byte| *byte == 0) {
+            return Ok(entries);
+        }
+        if entries >= maximum_entries {
+            return Err("cache archive entry bound exceeded".into());
+        }
+        let text = |start: usize, end: usize| -> Result<&str, String> {
+            let field = &header[start..end];
+            let end = field
+                .iter()
+                .position(|byte| *byte == 0)
+                .unwrap_or(field.len());
+            std::str::from_utf8(&field[..end]).map_err(|_| "cache archive path is not UTF-8".into())
+        };
+        let name = text(0, 100)?;
+        let prefix = text(345, 500)?;
+        let path = if prefix.is_empty() {
+            name.to_owned()
+        } else {
+            format!("{prefix}/{name}")
+        };
+        if path.is_empty()
+            || path.starts_with('/')
+            || path.contains('\\')
+            || path
+                .split('/')
+                .any(|part| part.is_empty() || part == "." || part == "..")
+        {
+            return Err("cache archive path rejected".into());
+        }
+        let size_text = text(124, 136)?;
+        let size = u64::from_str_radix(size_text.trim_matches(['\0', ' ']), 8)
+            .map_err(|_| "cache archive size malformed".to_string())?;
+        let kind = header[156];
+        let header_bytes = BLOCK_BYTES as usize;
+        let body_start = offset + header_bytes;
+        let body_end = body_start
+            .checked_add(usize::try_from(size).map_err(|_| "cache archive size overflow")?)
+            .ok_or("cache archive size overflow")?;
+        if body_end > bytes.len() {
+            return Err("cache archive is truncated".into());
+        }
+        total = total
+            .checked_add(size)
+            .ok_or("cache archive byte overflow")?;
+        if total > maximum_bytes {
+            return Err("cache archive byte bound exceeded".into());
+        }
+        let components: Vec<&str> = path.split('/').collect();
+        let mut current = root.clone();
+        for component in &components[..components.len() - 1] {
+            current.push(component);
+            match std::fs::symlink_metadata(&current) {
+                Ok(meta) if meta.file_type().is_symlink() => {
+                    return Err("cache archive path traverses a symlink".into());
+                }
+                Ok(meta) if meta.is_dir() => {}
+                Ok(_) => return Err("cache archive parent is not a directory".into()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    std::fs::create_dir(&current)
+                        .map_err(|_| "cache archive directory create failed".to_string())?;
+                }
+                Err(_) => return Err("cache archive directory unavailable".into()),
+            }
+        }
+        current.push(components[components.len() - 1]);
+        match kind {
+            b'5' => match std::fs::symlink_metadata(&current) {
+                Ok(meta) if meta.is_dir() => {}
+                Ok(_) => return Err("cache archive directory collision".into()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    std::fs::create_dir(&current)
+                        .map_err(|_| "cache archive directory create failed".to_string())?;
+                }
+                Err(_) => return Err("cache archive directory unavailable".into()),
+            },
+            b'0' => {
+                if std::fs::symlink_metadata(&current).is_ok() {
+                    return Err("cache archive file collision".into());
+                }
+                let mut file = std::fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .mode(0o600)
+                    .custom_flags(libc::O_NOFOLLOW)
+                    .open(&current)
+                    .map_err(|_| "cache archive file create failed".to_string())?;
+                file.write_all(&bytes[body_start..body_end])
+                    .map_err(|_| "cache archive file write failed".to_string())?;
+                file.set_permissions(std::fs::Permissions::from_mode(0o600))
+                    .map_err(|_| "cache archive file mode failed".to_string())?;
+            }
+            _ => return Err("cache archive entry type rejected".into()),
+        }
+        entries += 1;
+        let padded = usize::try_from(size.div_ceil(BLOCK_BYTES) * BLOCK_BYTES)
+            .map_err(|_| "cache archive padding overflow")?;
+        offset = body_start
+            .checked_add(padded)
+            .ok_or("cache archive offset overflow")?;
+    }
+    Err("cache archive trailer missing".into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -230,5 +355,39 @@ mod tests {
             .map(|i| file(&format!("f{i}"), 0))
             .collect();
         assert!(plan_archive(many, u64::MAX).is_err());
+    }
+    #[test]
+    fn extraction_writes_files_and_rejects_traversal() {
+        let directory = std::env::temp_dir().join(format!("kiln-extract-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap_or_else(|error| unreachable!("{error}"));
+        let entry = SourceEntry {
+            path: "target/out.txt".into(),
+            kind: EntryKind::File {
+                size: 4,
+                executable: false,
+            },
+        };
+        let header_bytes = header(&entry).unwrap_or_else(|error| unreachable!("{error}"));
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&header_bytes);
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&vec![0_u8; 508]);
+        bytes.extend_from_slice(&[0_u8; 1024]);
+        extract_files(&bytes, &directory, 4, 1024).unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!(
+            std::fs::read(directory.join("target/out.txt"))
+                .unwrap_or_else(|error| unreachable!("{error}")),
+            b"data"
+        );
+
+        let traversal = SourceEntry {
+            path: "../escape".into(),
+            kind: EntryKind::File {
+                size: 1,
+                executable: false,
+            },
+        };
+        assert!(plan_archive(vec![traversal], 1024).is_err());
+        let _ = std::fs::remove_dir_all(&directory);
     }
 }

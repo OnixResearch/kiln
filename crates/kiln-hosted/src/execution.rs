@@ -1105,10 +1105,6 @@ pub fn run_pipeline(
             config.runners.get(&job.runner),
             Some(Backend::Firecracker { .. })
         );
-        let cache_workspace = firecracker
-            .then(tempfile::tempdir)
-            .transpose()
-            .map_err(|e| e.to_string())?;
         let cache_image_dir = firecracker
             .then(tempfile::tempdir)
             .transpose()
@@ -1126,11 +1122,28 @@ pub fn run_pipeline(
             plan_identity: &plan.identity,
             job_identity: &job_identity,
             configuration_identity: &config_id,
-            workspace: cache_workspace.as_ref().map_or(&work, |d| d.path()),
+            workspace: &work,
             now_ms: cache_now_ms,
         };
         let mut cache_key = None;
         let mut cache_image = None;
+        let mut cache_tar = None;
+        let cache_paths = config
+            .cache
+            .as_ref()
+            .and_then(|cache| cache.policy(&cache_context))
+            .map(|policy| {
+                policy
+                    .worker
+                    .paths
+                    .iter()
+                    .filter_map(|path| path.to_str().map(str::to_owned))
+                    .collect::<Vec<_>>()
+            });
+        let cache_max_bytes = config
+            .cache
+            .as_ref()
+            .map_or(0, |cache| cache.maximum_entry_bytes);
         let mut cache_ms = None;
         let mut cache_outcome = "disabled_unconfigured";
         let mut cache_observation = json!({"outcome":cache_outcome,"duration_ms":null});
@@ -1145,7 +1158,29 @@ pub fn run_pipeline(
         } else if let Some(cache) = &config.cache {
             if cache.policy(&cache_context).is_some() {
                 let cache_started = Instant::now();
-                match crate::cache::restore(cache, &cache_context) {
+                let mut cache_image_candidate = None;
+                let restored = if firecracker {
+                    let policy = config
+                        .runners
+                        .get(&job.runner)
+                        .and_then(crate::microvm::machine_policy)
+                        .ok_or("cache runner has no machine policy")?;
+                    let directory = cache_image_dir
+                        .as_ref()
+                        .ok_or("cache image directory unavailable")?;
+                    let image = directory.path().join("cache.img");
+                    let result = crate::cache::restore_image(
+                        cache,
+                        &cache_context,
+                        &image,
+                        u64::from(policy.source_image_mib) * 1_048_576,
+                    );
+                    cache_image_candidate = Some(image);
+                    result
+                } else {
+                    crate::cache::restore(cache, &cache_context)
+                };
+                match restored {
                     Ok((key, observation)) => {
                         cache_outcome = if observation.outcome == "hit" {
                             "hit"
@@ -1154,22 +1189,8 @@ pub fn run_pipeline(
                         };
                         cache_observation = json!({"restore":observation});
                         cache_key = Some(key);
-                        if let (true, Some(workspace)) = (firecracker, cache_workspace.as_ref()) {
-                            let policy = config
-                                .runners
-                                .get(&job.runner)
-                                .and_then(crate::microvm::machine_policy)
-                                .ok_or("cache runner has no machine policy")?;
-                            let directory = cache_image_dir
-                                .as_ref()
-                                .ok_or("cache image directory unavailable")?;
-                            let image = directory.path().join("cache.img");
-                            crate::microvm::source_image(
-                                workspace.path(),
-                                &image,
-                                u64::from(policy.source_image_mib) * 1_048_576,
-                            )?;
-                            cache_image = Some(image);
+                        if cache_outcome == "hit" {
+                            cache_image = cache_image_candidate;
                         }
                     }
                     Err(error) => {
@@ -1339,6 +1360,8 @@ pub fn run_pipeline(
                             unit: &unit,
                             timeout_ms: remaining,
                             cache_image: cache_image.as_deref(),
+                            cache_paths: cache_paths.as_deref(),
+                            cache_max_bytes,
                             grants,
                             attempt_co_residency: &attempt_co_residency,
                         },
@@ -1351,6 +1374,7 @@ pub fn run_pipeline(
                             value.zeroize();
                         }
                     }
+                    cache_tar = outcome.cache_tar;
                     for observation in outcome.steps {
                         if !absorb(
                             Ok(observation),
@@ -1437,6 +1461,49 @@ pub fn run_pipeline(
         }
         for value in &mut redactions {
             value.zeroize();
+        }
+        if state == "succeeded"
+            && cleanup
+            && firecracker
+            && let (Some(cache), Some(key), Some(tar)) = (&config.cache, &cache_key, cache_tar)
+        {
+            let cache_started = Instant::now();
+            let workspace = tempfile::tempdir().map_err(|e| e.to_string())?;
+            kiln_microvm::archive::extract_files(
+                &tar,
+                workspace.path(),
+                cache.maximum_files,
+                u64::try_from(cache.maximum_entry_bytes).unwrap_or(u64::MAX),
+            )?;
+            let publish_context = crate::cache::Context {
+                workspace: workspace.path(),
+                now_ms: now_ms
+                    .checked_add(
+                        u64::try_from(started.elapsed().as_millis())
+                            .map_err(|_| "clock overflow")?,
+                    )
+                    .ok_or("clock overflow")?,
+                ..cache_context
+            };
+            let published = crate::cache::publish(cache, &publish_context, key);
+            let duration = u64::try_from(cache_started.elapsed().as_millis()).unwrap_or(u64::MAX);
+            cache_ms = Some(
+                cache_ms
+                    .unwrap_or(0)
+                    .checked_add(duration)
+                    .ok_or("cache duration overflow")?,
+            );
+            let fields = cache_observation
+                .as_object_mut()
+                .ok_or("cache observation is not an object")?;
+            match published {
+                Ok(observation) => {
+                    fields.insert("publish".into(), json!(observation));
+                }
+                Err(error) => {
+                    fields.insert("publish_error".into(), json!(error));
+                }
+            }
         }
         if state == "succeeded" && cleanup && !firecracker {
             if let (Some(cache), Some(key)) = (&config.cache, &cache_key) {

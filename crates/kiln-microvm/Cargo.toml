@@ -8,6 +8,7 @@ publish = false
 description = "Pure Firecracker microVM plan, lifecycle, guest protocol and source archive core, plus the guest agent"
 
 [dependencies]
+libc = "0.2"
 blake3.workspace = true
 serde.workspace = true
 serde_json.workspace = true

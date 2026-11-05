@@ -8,7 +8,8 @@ without exposing a writable host share or inventing guest publication.
 - Materialize a cache entry as a read-only ustar image.
 - Attach it as a second virtio-blk drive (`/dev/vdb`).
 - Extract it over `/work` in the guest before steps.
-- Keep publication disabled for Firecracker; no host workspace writes.
+- Add a bounded guest tar-return exchange and safe host extraction, then
+  publish the cache entry after confirmed job success and cleanup.
 
 ## Impact
 

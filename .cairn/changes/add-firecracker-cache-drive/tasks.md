@@ -1,3 +1,4 @@
 - [x] [serial] Add optional read-only cache drive to the Firecracker plan. r[kiln.hosted.microvm.cache_drive]
 - [x] [serial] Build the cache image and extract it in the guest. r[kiln.hosted.microvm.cache_drive]
-- [x] [serial] Keep Firecracker publication disabled. r[kiln.hosted.microvm.cache_drive]
+- [x] [serial] Add bounded guest tar return and safe host extraction. r[kiln.hosted.microvm.cache_drive]
+- [x] [serial] Publish only after confirmed job success and cleanup. r[kiln.hosted.microvm.cache_drive]

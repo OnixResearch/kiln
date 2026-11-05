@@ -287,6 +287,17 @@ impl Deployment {
     }
 }
 
+fn cache_pipeline() -> Value {
+    json!({
+        "schema": "kiln.hosted.pipeline.v1", "name": "Cache", "triggers": ["manual"],
+        "jobs": {
+            "build": {"runner": "linux", "timeout_ms": 60_000, "steps": [
+                {"kind": "run", "name": "cache", "run": "if [ -f target/value ]; then cat target/value; else mkdir -p target; printf 'cached\n' > target/value; printf 'created\n'; fi"}
+            ]}
+        }
+    })
+}
+
 fn equivalence_pipeline() -> Value {
     json!({
         "schema": "kiln.hosted.pipeline.v1", "name": "Equivalence", "triggers": ["manual"],
@@ -883,4 +894,44 @@ fn failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry() {
             "end_reason": at(&vm, "/debug_hold/end_reason"), "destroyed": at(&vm, "/destroyed"),
         })
     );
+}
+
+#[test]
+#[ignore = "requires a rebuilt guest image with the cache publish protocol"]
+fn firecracker_cache_restores_after_publication() {
+    let host = match prerequisites() {
+        Ok(host) => host,
+        Err(reason) => {
+            assert!(
+                std::env::var_os("KILN_MICROVM_REQUIRED").is_none(),
+                "microVM host test required but unavailable: {reason}"
+            );
+            eprintln!("SKIP Firecracker cache test: {reason}");
+            return;
+        }
+    };
+    let mut deployment = Deployment::new(&host, firecracker(&host, None), &cache_pipeline());
+    let cache_root = private_directory(&deployment.directory.path().join("cache"));
+    let cache = json!({
+        "directory": cache_root, "maximum_entry_bytes": 1024, "maximum_total_bytes": 4096,
+        "maximum_entries": 4, "maximum_age_seconds": 60, "maximum_files": 4,
+        "policies": [{"organization": ORG, "project": PROJECT, "runner": "linux", "worker": {
+            "producer": "hosted", "toolchain": "t", "platform": "linux", "inputs": ["README"],
+            "paths": ["target"], "maximum_entry_bytes": 1024, "maximum_files": 4}}],
+    });
+    deployment
+        .profile
+        .execution
+        .as_mut()
+        .unwrap_or_else(|| unreachable!("execution profile"))
+        .cache =
+        Some(serde_json::from_value(cache).unwrap_or_else(|error| unreachable!("{error}")));
+    let first = deployment.run("cache-1");
+    println!("KILN_MICROVM_RECEIPT cache-1 {first}");
+    assert_eq!(at(&first, "/state"), "succeeded", "{first:#}");
+    assert_eq!(at(job(&first, "build"), "/steps/0/stdout"), "created\n");
+    let second = deployment.run("cache-2");
+    println!("KILN_MICROVM_RECEIPT cache-2 {second}");
+    assert_eq!(at(&second, "/state"), "succeeded", "{second:#}");
+    assert_eq!(at(job(&second, "build"), "/steps/0/stdout"), "cached\n");
 }
