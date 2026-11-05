@@ -1,0 +1,28 @@
+{
+  "schema": "kiln.radicle-patch-trigger.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-radicle --lib --offline",
+      "result": "50 passed; patch ID mapping and missing-ID rejection included"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-adapter-radicle",
+      "result": "pass"
+    },
+    {
+      "command": "cairn validate --root .",
+      "result": "valid; 0 issues"
+    }
+  ],
+  "acceptance": {
+    "patch identity": "patch events preserve the exact patch native reference and first commit",
+    "missing identity": "patch events without an exact patch ID fail before effects",
+    "push compatibility": "existing broker push fixture mapping is unchanged"
+  },
+  "non_claims": [
+    "this does not implement patch source acquisition, author-signature trust, approval gating, or patch runs",
+    "the patch ID is producer-owned identity and does not grant CI or review authority",
+    "no provider or runtime effect was exercised by this adapter-only change"
+  ]
+}

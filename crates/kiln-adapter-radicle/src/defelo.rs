@@ -34,6 +34,8 @@ pub struct DefeloRepository {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DefeloPatch {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     pub commits: Vec<String>,
 }
 
@@ -90,6 +92,19 @@ fn resolve_revision(request: &DefeloRequest) -> Option<&str> {
 }
 
 pub fn map_defelo_request(request: &DefeloRequest) -> CoreResult<TriggerRequest> {
+    let patch = request
+        .patch
+        .as_ref()
+        .and_then(|patch| patch.id.as_deref())
+        .map(|id| ExternalRef::new("radicle", "patch", id))
+        .transpose()?;
+    if request.event_type == DefeloEvent::Patch && patch.is_none() {
+        return Err(Diagnostic::new(
+            "radicle_patch_identity",
+            "stdin.patch.id",
+            "patch event carries no exact patch identity",
+        ));
+    }
     let revision = resolve_revision(request).ok_or_else(|| {
         Diagnostic::new(
             "radicle_revision",
@@ -103,7 +118,7 @@ pub fn map_defelo_request(request: &DefeloRequest) -> CoreResult<TriggerRequest>
         before: None,
         after: ExternalRef::new("radicle", "revision", revision)?,
         branch: request.branch.as_deref().map(Alias::new).transpose()?,
-        patch: None,
+        patch,
         event: match request.event_type {
             DefeloEvent::Push => TriggerEventKind::Push,
             DefeloEvent::Patch => TriggerEventKind::Patch,

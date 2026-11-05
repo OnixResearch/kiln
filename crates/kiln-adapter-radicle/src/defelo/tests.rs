@@ -85,6 +85,34 @@ fn published_broker_fixture_maps_only_authoritative_trigger_facts() {
     assert_eq!(mapped, drifted_mapping);
 }
 
+#[test]
+fn patch_event_preserves_exact_patch_identity_and_revision() {
+    let patch = PUSH
+        .replace("\"event_type\":\"push\"", "\"event_type\":\"patch\"")
+        .replace(
+            "\"branch\":\"main\"",
+            "\"branch\":null,\"patch\":{\"id\":\"patch-1\",\"commits\":[\"470a437150187c2e85395fc7f55a9b3f836123fc\"]}",
+        );
+    let mapped = map_defelo_request(
+        &parse_defelo_request(&patch).unwrap_or_else(|_| unreachable!("patch fixture")),
+    )
+    .unwrap_or_else(|_| unreachable!("patch mapping"));
+    assert_eq!(mapped.event, TriggerEventKind::Patch);
+    assert_eq!(mapped.after.native_id.as_str(), PUBLISHED_COMMIT);
+    assert_eq!(
+        mapped.patch.as_ref().map(|patch| patch.native_id.as_str()),
+        Some("patch-1")
+    );
+    assert!(mapped.branch.is_none());
+    let missing_id = patch.replace("\"id\":\"patch-1\",", "");
+    assert!(
+        map_defelo_request(
+            &parse_defelo_request(&missing_id).unwrap_or_else(|_| unreachable!("patch fixture"))
+        )
+        .is_err()
+    );
+}
+
 // r[verify kiln.radicle.broker_031_wire.rejected]
 #[test]
 fn invalid_envelopes_and_unknown_outcome_fail_closed() {
