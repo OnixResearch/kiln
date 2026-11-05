@@ -9,3 +9,4 @@
 - [x] [serial] Record the Firecracker backend kind from the trait. r[kiln.microvm.backend.seam]
 - [x] [serial] Drive arch, snapshot and no-network admission from capabilities. r[kiln.microvm.backend.seam]
 - [x] [serial] Refuse explicit non-`none` network requests. r[kiln.microvm.backend.seam]
+- [x] [serial] Test reviewed-arch and snapshot-capability refusal. r[kiln.microvm.backend.seam]

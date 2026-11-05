@@ -15,6 +15,7 @@ matching a closed runner enum in every consumer.
   declaration.
 - Add an explicit optional `network` request field and refuse anything other
   than `none`.
+- Expose capability helpers for reviewed arches and snapshot admission.
 
 ## Impact
 

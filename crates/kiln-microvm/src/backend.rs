@@ -34,6 +34,13 @@ pub struct Capabilities {
     pub per_job: bool,
 }
 
+impl Capabilities {
+    /// Whether this backend is reviewed on the given host architecture.
+    pub fn admits_arch(&self, arch: &str) -> bool {
+        self.arch.contains(&arch)
+    }
+}
+
 /// Inputs that distinguish one VMM identity from another.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct IdentityInputs<'a> {
@@ -192,6 +199,8 @@ mod tests {
         }
         assert!(Firecracker.capabilities().snapshot);
         assert!(CloudHypervisor.capabilities().confinement.landlock);
+        assert!(Firecracker.capabilities().admits_arch("x86_64"));
+        assert!(!Firecracker.capabilities().admits_arch("riscv64"));
     }
 
     #[test]

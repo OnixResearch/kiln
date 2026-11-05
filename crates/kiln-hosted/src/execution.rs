@@ -498,6 +498,13 @@ fn backend_capabilities(backend: &Backend) -> Capabilities {
     }
 }
 
+fn admit_snapshot(capabilities: &Capabilities, requested: bool) -> Result<(), String> {
+    if requested && !capabilities.snapshot {
+        return Err("warm pool requires a snapshot-capable backend".into());
+    }
+    Ok(())
+}
+
 fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<(), String> {
     let Backend::Firecracker {
         qualification_identity,
@@ -510,7 +517,7 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
         return Err("not a Firecracker runner".into());
     };
     let capabilities = backend_capabilities(backend);
-    if !capabilities.arch.contains(&std::env::consts::ARCH) {
+    if !capabilities.admits_arch(std::env::consts::ARCH) {
         return Err("Firecracker runner arch is not in its reviewed capability set".into());
     }
     if host_preflight_override.as_ref().is_some_and(|reason| {
@@ -529,10 +536,8 @@ fn admit_firecracker(config: &Config, label: &str, backend: &Backend) -> Result<
         },
     )?;
     qualification_reference(qualification_identity)?;
+    admit_snapshot(&capabilities, warm_pool.is_some())?;
     if let Some(pool) = warm_pool {
-        if !capabilities.snapshot {
-            return Err("warm pool requires a snapshot-capable backend".into());
-        }
         crate::microvm::admit_pool_path(&pool.directory, &config.work_root)?;
     }
     // r[impl kiln.hosted.microvm.debug_hold.policy]
@@ -2869,5 +2874,18 @@ mod tests {
         })))
         .unwrap_or_else(|error| unreachable!("{error}"));
         assert!(admit_backend(&backend, "trusted").is_ok());
+    }
+    #[test]
+    fn snapshot_capability_refuses_warm_pools() {
+        let backend: Backend = serde_json::from_value(firecracker_backend(json!({})))
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let capabilities = backend_capabilities(&backend);
+        assert!(admit_snapshot(&capabilities, true).is_ok());
+        let unsupported = Capabilities {
+            snapshot: false,
+            ..capabilities
+        };
+        assert!(admit_snapshot(&unsupported, true).is_err());
+        assert!(admit_snapshot(&unsupported, false).is_ok());
     }
 }

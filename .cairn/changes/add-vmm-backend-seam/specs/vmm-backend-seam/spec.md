@@ -12,7 +12,9 @@ The seam MUST NOT perform I/O or grant an isolation claim. Admission MUST read
 the backend capability declaration for arch, snapshot and guest-network
 decisions instead of matching a closed kind. A runner configuration MAY carry
 an explicit `network` request, but only `none` is admissible; any other value
-MUST be refused before an effect.
+MUST be refused before an effect. A warm pool MUST be refused when the backend
+declares `snapshot = false`, and an unreviewed host architecture MUST be refused
+when it is not in `Capabilities::arch`.
 
 #### Scenario: No guest network
 
