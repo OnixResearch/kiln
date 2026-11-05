@@ -2,15 +2,17 @@
 
 `kiln-adapter-lattice` connects Kiln workflow effects to one pinned Lattice contract.
 
-## Pinned contract
+## Pinned contract and handler
 
 - Repository: `ssh://git@github.com/OnixResearch/lattice.git`
-- Revision: `70496e67c7fd4a8b05914161a8e09de2759bebc8`
+- Contract and handler revision: `85a38b6a4bceeae4bb2057cf157e21752100f1b5`
 - Crates: `lattice-workflow-contract` and `lattice-workflow-transport`
-- License: `MIT`
+- License: `AGPL-3.0-or-later` (operator decision; see the [boundary record](adr/lattice-runtime-and-agent-orchestration.md))
 - Request: `lattice.workflow-request.v2`
 - Observation: `lattice.workflow-observation.v1`
 - Graph: `lattice.workflow-graph.v1`
+
+The same commit is the CI handler. It contains `shell_success` (`6339864d`) and observed cancellation (`813076d7`). The previous import `70496e67` matches the older MIT schemas and is not a CI handler. Historical Aspen evidence at `c513d94d` is not a CI handler either.
 
 Cargo uses the committed immutable import at
 `vendor/lattice/crates/lattice-workflow-contract`, including its `transport`
@@ -19,7 +21,7 @@ an acquisition requirement. See [source acquisition](reference-pins.md#build-sou
 for the archive BLAKE3 pin and drift-refusing importer. No ambient sibling
 checkout or SSH credential is needed to build Kiln.
 
-The producer fixtures are under `fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/`.
+The producer fixtures are under `fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/`.
 
 The checked-in import also contains the original producer fixtures. Reproducing
 the import checks their exact bytes without running the producer. For an
@@ -35,7 +37,9 @@ scripts/sync-lattice-workflow-fixtures.rs "$LATTICE_SOURCE" --check
 
 Review `config/lattice-workflow-profile.ncl`. The composition root can construct `UnixWorkflowExchange` with the explicit socket path, peer IDs, deadlines, frame limits, and record bound.
 
-The profile fixes platform, graph schema, node kinds, effect classes, adapter kinds, controls, byte limits, concurrency, and non-claims. The pinned profile admits ordered `build`, `review`, and `test` node kinds with `Build`, `Test`, and `Custom` effect classes; a review node is observation-only and grants no acceptance authority.
+The CI profile fixes platform, graph schema, node kinds, effect classes, adapter kinds, controls, byte limits, concurrency, and non-claims. It admits ordered `build`, `review`, and `test` node kinds with `Build`, `Test`, and `Custom` effect classes; a review node is observation-only and grants no acceptance authority. Controls are cancel only. Pause and resume fail before transport because the Lattice handler rejects them.
+
+Agent review jobs use a separate cohort, `config/lattice-agent-profile.ncl`, with node kind `agent`, effect class `custom`, and adapter kind `agent`. See [agent orchestration](lattice-agent-orchestration.md).
 
 The `local` and `remote` adapter labels admit capabilities and bind the exact
 reviewed graph; a label does not select placement. Remote whole-workflow execution

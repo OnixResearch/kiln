@@ -1,6 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use kiln_codec::identity_from_bytes;
+use kiln_core::agent_orchestration::{
+    AgentBudget, AgentOrchestrationJob, LATTICE_AGENT_NODE_KIND, MAX_AGENT_DURATION_MILLIS,
+    MAX_AGENT_INVOCATIONS, MAX_AGENT_TOKENS, PERMISSION_EXECUTE, plan_lattice_agent_job,
+};
+use kiln_core::change_review::AgentVotes;
 use kiln_core::domain::Outcome;
 use kiln_core::types::{
     Alias, AttemptId, CandidateId, ContentId, EffectId, ExternalRef, PipelineRevisionId, PolicyId,
@@ -32,7 +37,6 @@ const MAX_TOTAL_LOG_BYTES: usize = 16384;
 const MAX_REQUEST_BYTES: usize = 65536;
 const MAX_RESPONSE_BYTES: usize = 65536;
 const MAX_IN_FLIGHT: usize = 4;
-const FIRST_OBSERVATION_SEQUENCE: u64 = 1;
 const LOG_BYTES: &[u8] = b"log";
 
 #[derive(Debug, Default)]
@@ -233,8 +237,8 @@ fn plan() -> WorkflowEffectPlan {
         }],
         controls: WorkflowControls {
             cancel: true,
-            pause: true,
-            resume: true,
+            pause: false,
+            resume: false,
         },
         bounds: limits().workflow,
     }
@@ -355,7 +359,7 @@ fn profile_rejects_missing_operation_and_capability_drift() {
         .remove(&kiln_core::provider::Operation::Observe);
     assert!(admit_profile(&invalid).is_err());
     invalid = profile();
-    invalid.contract.controls.pause = false;
+    invalid.contract.controls.pause = true;
     assert!(admit_profile(&invalid).is_err());
 }
 
@@ -480,29 +484,32 @@ fn stale_execution_is_rejected_without_state_change() {
 }
 
 #[test]
-fn pause_and_log_operations_are_bounded() {
+fn pause_and_resume_fail_before_transport_and_logs_stay_bounded() {
     let plan = plan();
     let mut adapter = LatticeAdapter::new(profile(), FixtureTransport::default())
         .unwrap_or_else(|_| unreachable!());
     let accepted = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
-    let paused = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: 0,
-            action: WorkflowControlAction::Pause,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(paused.state, WorkflowState::Paused);
-    let resumed = adapter
-        .control(&WorkflowControlRequest {
-            effect_id: plan.effect_id.clone(),
-            execution: accepted.execution.clone(),
-            expected_sequence: FIRST_OBSERVATION_SEQUENCE,
-            action: WorkflowControlAction::Resume,
-        })
-        .unwrap_or_else(|_| unreachable!());
-    assert_eq!(resumed.state, WorkflowState::Running);
+    assert!(
+        adapter
+            .control(&WorkflowControlRequest {
+                effect_id: plan.effect_id.clone(),
+                execution: accepted.execution.clone(),
+                expected_sequence: 0,
+                action: WorkflowControlAction::Pause,
+            })
+            .is_err()
+    );
+    assert!(
+        adapter
+            .control(&WorkflowControlRequest {
+                effect_id: plan.effect_id.clone(),
+                execution: accepted.execution.clone(),
+                expected_sequence: 0,
+                action: WorkflowControlAction::Resume,
+            })
+            .is_err()
+    );
+    assert_eq!(adapter.transport().exchanges.len(), 1);
     let chunk = adapter
         .read_log(&WorkflowLogReadRequest {
             effect_id: plan.effect_id.clone(),
@@ -576,7 +583,7 @@ struct RejectedProducerFixtures {
 #[test]
 fn pinned_producer_fixtures_pass_independent_consumer_admission() {
     let fixtures: ProducerFixtures = serde_json::from_str(include_str!(
-        "../../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/producer-fixtures-v1.json"
+        "../../../fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/producer-fixtures-v1.json"
     ))
     .unwrap_or_else(|_| unreachable!());
     assert_eq!(
@@ -632,6 +639,64 @@ fn unavailable_provider_fails_without_fallback() {
     let mut adapter = LatticeAdapter::new(profile(), transport).unwrap_or_else(|_| unreachable!());
     assert!(adapter.dispatch(&plan()).is_err());
     assert_eq!(adapter.transport().exchanges.len(), 0);
+}
+
+fn agent_job() -> AgentOrchestrationJob {
+    let mut permissions = BTreeSet::new();
+    permissions.insert(alias(PERMISSION_EXECUTE));
+    AgentOrchestrationJob {
+        effect_id: EffectId::new("agent-effect").unwrap_or_else(|_| unreachable!()),
+        attempt_id: AttemptId::new("agent-attempt").unwrap_or_else(|_| unreachable!()),
+        candidate_id: CandidateId::new("agent-candidate").unwrap_or_else(|_| unreachable!()),
+        pipeline_revision_id: PipelineRevisionId::new("agent-pipeline")
+            .unwrap_or_else(|_| unreachable!()),
+        workflow_policy_id: PolicyId::new("agent-policy").unwrap_or_else(|_| unreachable!()),
+        provider_profile: ProviderProfileId::new("lattice-agent-v1")
+            .unwrap_or_else(|_| unreachable!()),
+        idempotency_key: content('e'),
+        harness: alias("pi"),
+        model: None,
+        prompt_identity: content('f'),
+        votes: AgentVotes::Advisory,
+        budget: AgentBudget {
+            invocations: MAX_AGENT_INVOCATIONS,
+            tokens: MAX_AGENT_TOKENS,
+            duration_millis: MAX_AGENT_DURATION_MILLIS,
+        },
+        permissions,
+        bounds: limits().workflow,
+    }
+}
+
+#[test]
+fn agent_job_lowers_only_through_the_agent_cohort() {
+    let job = agent_job();
+    let plan = plan_lattice_agent_job(&job).unwrap_or_else(|_| unreachable!());
+    let agent = LatticeProfile::pinned_agent(
+        ProviderProfileId::new("lattice-agent-v1").unwrap_or_else(|_| unreachable!()),
+        limits(),
+    )
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(agent.cohort, LatticeCohort::Agent);
+    assert_eq!(agent.revision, PINNED_LATTICE_RUNTIME_REVISION);
+    assert_eq!(agent.license, PINNED_LATTICE_CONTRACT_LICENSE);
+    let request = lower_request(&agent, &plan).unwrap_or_else(|_| unreachable!());
+    let node = request
+        .graph
+        .nodes
+        .first()
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(node.kind.as_str(), LATTICE_AGENT_NODE_KIND);
+    assert!(!request.controls.pause);
+    assert!(!request.controls.resume);
+    assert!(lower_request(&profile(), &plan).is_err());
+    let mut widened = plan.clone();
+    widened.controls.pause = true;
+    let mut adapter =
+        LatticeAdapter::new(agent, FixtureTransport::default()).unwrap_or_else(|_| unreachable!());
+    assert!(adapter.dispatch(&widened).is_err());
+    assert_eq!(adapter.transport().exchanges.len(), 0);
+    assert!(adapter.dispatch(&plan).is_ok());
 }
 
 #[cfg(target_os = "linux")]

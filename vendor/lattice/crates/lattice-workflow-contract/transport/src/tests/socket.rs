@@ -164,10 +164,12 @@ fn unix_server_rejects_an_unlisted_peer_before_handler_invocation() {
         socket_path: &socket_path,
         profile: &profile,
     };
-    let result = UnixClient::new(endpoint).exchange(&dispatch_request());
+    // Rejection may close the socket before or after the request is written.
+    UnixClient::new(endpoint)
+        .exchange(&dispatch_request())
+        .expect_err("an unlisted peer cannot complete an exchange");
     let (report, calls) = server.join().expect("fixture server joins").expect("fixture server succeeds");
 
-    assert!(matches!(result, Err(ClientFailure::UnknownAfterWrite)));
     assert_eq!(report.rejected_peers, TEST_CONNECTIONS);
     assert_eq!(calls, 0);
 }

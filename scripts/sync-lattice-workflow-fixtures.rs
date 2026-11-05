@@ -9,7 +9,8 @@ const EXPECTED_CHECK_ARGUMENT_COUNT: usize = 3;
 const SOURCE_ARGUMENT_INDEX: usize = 1;
 const MODE_ARGUMENT_INDEX: usize = 2;
 const CHECK_MODE: &str = "--check";
-const EXPECTED_REVISION: &str = "70496e67c7fd4a8b05914161a8e09de2759bebc8";
+const EXPECTED_REVISION: &str = "85a38b6a4bceeae4bb2057cf157e21752100f1b5";
+const EXPECTED_LICENSE: &str = "AGPL-3.0-or-later";
 const SOURCE_URL: &str = "ssh://git@github.com/OnixResearch/lattice.git";
 const SOURCE_FIXTURE: &str = "crates/lattice-workflow-contract/fixtures/producer-fixtures-v1.json";
 const SOURCE_TRANSPORT_FIXTURE: &str =
@@ -20,7 +21,7 @@ const SOURCE_LICENSE: &str = "crates/lattice-workflow-contract/LICENSE";
 const SOURCE_MANIFEST: &str = "crates/lattice-workflow-contract/Cargo.toml";
 const SOURCE_TRANSPORT_MANIFEST: &str = "crates/lattice-workflow-contract/transport/Cargo.toml";
 const DESTINATION_DIRECTORY: &str =
-    "fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8";
+    "fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5";
 const DESTINATION_FIXTURE: &str = "producer-fixtures-v1.json";
 const DESTINATION_TRANSPORT_FIXTURE: &str = "transport-producer-fixtures-v1.json";
 const DESTINATION_RECOVERY_FIXTURE: &str = "recovery-fixtures-v1.json";
@@ -113,11 +114,11 @@ fn verify_source_contract(source_root: &Path) -> Result<(), String> {
         .map_err(|error| format!("read source manifest: {error}"))?;
     let transport_manifest = fs::read_to_string(source_root.join(SOURCE_TRANSPORT_MANIFEST))
         .map_err(|error| format!("read transport manifest: {error}"))?;
-    if !license.starts_with("MIT License")
+    if !license.contains("SPDX-License-Identifier: AGPL-3.0-or-later")
         || !manifest.contains("name = \"lattice-workflow-contract\"")
-        || !manifest.contains("license = \"MIT\"")
+        || !manifest.contains(&format!("license = \"{EXPECTED_LICENSE}\""))
         || !transport_manifest.contains("name = \"lattice-workflow-transport\"")
-        || !transport_manifest.contains("license = \"MIT\"")
+        || !transport_manifest.contains(&format!("license = \"{EXPECTED_LICENSE}\""))
     {
         return Err("source contract identity or license is not the reviewed cohort".to_string());
     }
@@ -159,7 +160,7 @@ fn metadata() -> String {
   repository = "{SOURCE_URL}",
   revision = "{EXPECTED_REVISION}",
   crate = "lattice-workflow-contract",
-  license = "MIT",
+  license = "{EXPECTED_LICENSE}",
   fixture = "producer-fixtures-v1.json",
   non_claims = [
     "fixture identity does not prove workflow execution",

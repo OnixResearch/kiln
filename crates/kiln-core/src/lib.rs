@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+pub mod agent_orchestration;
 pub mod build;
 pub mod change_review;
 pub mod cob;

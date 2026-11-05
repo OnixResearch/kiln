@@ -1,5 +1,5 @@
 # Synthetic loopback-only conformance settings, not deployment configuration.
-let native = import "../../fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/producer-fixtures-v1.json" in
+let native = import "../../fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/producer-fixtures-v1.json" in
 let FrameBytes = 65536 in
 let LogBytes = 16384 in
 let Connections = 4 in

@@ -14,9 +14,9 @@ let ExactSource = std.contract.from_predicate (fun value =>
   value == "ssh://git@github.com/OnixResearch/lattice.git"
 ) in
 let ExactRevision = std.contract.from_predicate (fun value =>
-  value == "70496e67c7fd4a8b05914161a8e09de2759bebc8"
+  value == "85a38b6a4bceeae4bb2057cf157e21752100f1b5"
 ) in
-let ExactLicense = std.contract.from_predicate (fun value => value == "MIT") in
+let ExactLicense = std.contract.from_predicate (fun value => value == "AGPL-3.0-or-later") in
 let RequestSchema = std.contract.from_predicate (fun value =>
   value == "lattice.workflow-request.v2"
 ) in
@@ -31,7 +31,7 @@ let RequiredNodes = std.contract.from_predicate (fun value => value == ["build",
 let RequiredEffects = std.contract.from_predicate (fun value => value == ["build", "test", "custom"]) in
 let RequiredAdapters = std.contract.from_predicate (fun value => value == ["local", "remote"]) in
 let RequiredControls = std.contract.from_predicate (fun value =>
-  value == { cancel = true, pause = true, resume = true }
+  value == { cancel = true, pause = false, resume = false }
 ) in
 let Profile = {
   source | ExactSource,
@@ -86,8 +86,8 @@ let TransportUserId = 1000 in
 
   profile | Profile = {
     source = "ssh://git@github.com/OnixResearch/lattice.git",
-    revision = "70496e67c7fd4a8b05914161a8e09de2759bebc8",
-    license = "MIT",
+    revision = "85a38b6a4bceeae4bb2057cf157e21752100f1b5",
+    license = "AGPL-3.0-or-later",
     request_schema = "lattice.workflow-request.v2",
     observation_schema = "lattice.workflow-observation.v1",
     graph_schema = "lattice.workflow-graph.v1",
@@ -96,7 +96,7 @@ let TransportUserId = 1000 in
     node_kinds = ["build", "review", "test"],
     effect_classes = ["build", "test", "custom"],
     adapter_kinds = ["local", "remote"],
-    controls = { cancel = true, pause = true, resume = true },
+    controls = { cancel = true, pause = false, resume = false },
     observation_mode = "poll",
     socket_path = "/run/kiln/lattice.sock",
     allowed_user_ids = [TransportUserId],

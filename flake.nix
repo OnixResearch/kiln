@@ -1503,7 +1503,9 @@
                 exit 1
               fi
             done
-            nickel export fixtures/lattice/workflow-contract/70496e67c7fd4a8b05914161a8e09de2759bebc8/source.ncl >/dev/null
+            nickel export fixtures/lattice/workflow-contract/85a38b6a4bceeae4bb2057cf157e21752100f1b5/source.ncl >/dev/null
+            nickel export config/lattice-agent-profile.ncl >/dev/null
+            nickel export config/fixtures/lattice-agent-positive.ncl >/dev/null
             nickel export fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
             nickel export fixtures/cairn/gate-machine/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/source.ncl >/dev/null
             nickel export fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/source.ncl >/dev/null
