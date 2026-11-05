@@ -97,6 +97,10 @@ pub enum Backend {
         /// Reviewed physical-host identity used for static co-residency checks.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         host_identity: Option<String>,
+        /// Reviewed cache-partition label. This is a placement declaration; it
+        /// does not program resctrl or prove LLC separation.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cache_partition: Option<String>,
         /// Reviewed CPU list for this runner's VMM, e.g. `0-3,8,10-11`.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         cpu_affinity: Option<String>,
@@ -221,10 +225,13 @@ fn validate_trust_domains(
         std::collections::BTreeMap::new();
     let mut hosts: std::collections::BTreeMap<&str, (bool, bool)> =
         std::collections::BTreeMap::new();
+    let mut partitions: std::collections::BTreeMap<&str, (bool, bool)> =
+        std::collections::BTreeMap::new();
     for (label, backend) in runners {
         if let Backend::Firecracker {
             trust_domain,
             host_identity,
+            cache_partition,
             cpu_affinity,
             untrusted_capable,
             ..
@@ -264,6 +271,15 @@ fn validate_trust_domains(
             let host_entry = hosts.entry(host).or_default();
             host_entry.0 |= *untrusted_capable;
             host_entry.1 |= workload;
+            if let Some(partition) = cache_partition {
+                if partition.trim().is_empty() || partition.len() > 128 || partition.contains('\0')
+                {
+                    return Err("invalid cache partition label".into());
+                }
+                let partition_entry = partitions.entry(partition).or_default();
+                partition_entry.0 |= *untrusted_capable;
+                partition_entry.1 |= workload;
+            }
         }
     }
     if domains
@@ -277,6 +293,12 @@ fn validate_trust_domains(
         .any(|(untrusted, workload)| *untrusted && *workload)
     {
         return Err("untrusted and workload-bearing runners cannot share a host".into());
+    }
+    if partitions
+        .values()
+        .any(|(untrusted, workload)| *untrusted && *workload)
+    {
+        return Err("untrusted and workload-bearing runners cannot share a cache partition".into());
     }
     Ok(())
 }
@@ -3010,5 +3032,33 @@ mod tests {
         assert!(capabilities.snapshot);
         assert!(capabilities.admits_arch("x86_64"));
         assert!(crate::microvm::Runner::from_cloud_hypervisor(&backend).is_some());
+    }
+    #[test]
+    fn untrusted_and_workload_runners_cannot_share_a_cache_partition() {
+        let untrusted: Backend = serde_json::from_value(firecracker_backend(json!({
+            "untrusted_capable": true,
+            "trust_domain": "untrusted",
+            "host_identity": "host-u",
+            "cache_partition": "shared"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let trusted: Backend = serde_json::from_value(firecracker_backend(json!({
+            "trust_domain": "trusted",
+            "host_identity": "host-t",
+            "cache_partition": "shared"
+        })))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+        let runners = std::collections::BTreeMap::from([
+            ("untrusted".to_string(), untrusted),
+            ("trusted".to_string(), trusted),
+        ]);
+        let workload = vec![WorkloadPolicy {
+            organization: "acme".into(),
+            project: "app".into(),
+            runner: "trusted".into(),
+            audience: None,
+            secrets: Vec::new(),
+        }];
+        assert!(validate_trust_domains(&runners, &workload).is_err());
     }
 }

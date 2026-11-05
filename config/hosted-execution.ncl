@@ -80,6 +80,8 @@ let Backend = {
   trust_domain | String | optional,
   # Reviewed physical host; untrusted and workload-bearing runners must differ.
   host_identity | String | optional,
+  # Reviewed cache-partition label; not a resctrl or LLC-isolation proof.
+  cache_partition | String | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
   network | String | optional,
   # Reviewed VMM version; recorded in receipts and snapshot identity v2.

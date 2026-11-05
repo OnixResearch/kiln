@@ -153,6 +153,7 @@ pub(crate) struct Runner<'a> {
     pub(crate) debug_hold: Option<&'a DebugHoldPolicy>,
     pub(crate) trust_domain: Option<&'a str>,
     pub(crate) host_identity: Option<&'a str>,
+    pub(crate) cache_partition: Option<&'a str>,
     pub(crate) cpu_affinity: Option<&'a str>,
     pub(crate) version: Option<&'a str>,
 }
@@ -167,6 +168,7 @@ impl<'a> Runner<'a> {
             debug_hold,
             trust_domain,
             host_identity,
+            cache_partition,
             cpu_affinity,
             version,
             ..
@@ -184,6 +186,7 @@ impl<'a> Runner<'a> {
             debug_hold: debug_hold.as_ref(),
             trust_domain: trust_domain.as_deref(),
             host_identity: host_identity.as_deref(),
+            cache_partition: cache_partition.as_deref(),
             cpu_affinity: cpu_affinity.as_deref(),
             version: version.as_deref(),
         })
@@ -211,6 +214,7 @@ impl<'a> Runner<'a> {
             debug_hold: None,
             trust_domain: None,
             host_identity: None,
+            cache_partition: None,
             cpu_affinity: cpu_affinity.as_deref(),
             version: version.as_deref(),
         })
@@ -1351,6 +1355,9 @@ pub(crate) fn run_job(
     }
     if let Some(affinity) = runner.cpu_affinity {
         observe("cpu_affinity", json!(affinity));
+    }
+    if let Some(partition) = runner.cache_partition {
+        observe("cache_partition", json!(partition));
     }
     observe(
         "attempt_co_residency",

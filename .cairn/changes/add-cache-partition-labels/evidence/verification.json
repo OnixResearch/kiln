@@ -1,0 +1,20 @@
+{
+  "schema": "kiln.cache-partition-labels.verification.v1",
+  "date": "2026-11-05",
+  "commands": [
+    {"command":"cargo test -p kiln-hosted --lib --offline","result":"70 passed"},
+    {"command":"cargo check --workspace --all-targets --offline","result":"pass"},
+    {"command":"nickel typecheck config/hosted-service.ncl config/hosted-execution.ncl","result":"pass"},
+    {"command":"cairn validate --root .","result":"valid; 0 issues"}
+  ],
+  "acceptance": {
+    "admission": "a cache-partition label cannot contain both untrusted and workload-bearing runners",
+    "receipt": "vm.cache_partition records the reviewed label"
+  },
+  "non_claims": [
+    "no resctrl or CAT/MBA programming",
+    "no LLC or cache-allocation proof",
+    "no covert-channel measurement",
+    "the label depends on truthful operator host configuration"
+  ]
+}
