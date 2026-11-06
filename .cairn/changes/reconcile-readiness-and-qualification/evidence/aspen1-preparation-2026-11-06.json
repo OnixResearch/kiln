@@ -1,0 +1,155 @@
+{
+  "schema": "kiln.qualification.aspen1-preparation.v1",
+  "date": "2026-11-06",
+  "operator_selection": {
+    "target": "aspen1",
+    "excluded": [
+      "aspen3",
+      "aspen3-1"
+    ],
+    "source": "User: do aspen1",
+    "scope": "Host selection and non-disruptive preparation; explicit maintenance outage decision still required for newly identified critical service impact."
+  },
+  "observations": {
+    "root_ssh": {
+      "target": "root@aspen1.local",
+      "strict_host_key_checking": true,
+      "batch_mode": true,
+      "observed_uid": 0,
+      "authority_source": "onix-core/inventory/core/machines.ncl deploy.targetHost and shared-users.nix propagation of wheel SSH keys to root",
+      "warning": "Certificate invalid: name is not a listed principal; connection succeeded with strict host-key checking still enabled. No verification bypass was used."
+    },
+    "booted_kernel": "/nix/store/j66ih4hz9b6k8fm6qhspnxancdfwsbda-linux-7.2.4/bzImage",
+    "installed_system": "/nix/store/a2pc274d02hszka433pm1z1fma97gygv-nixos-system-aspen1-26.11.20261020.5adc508",
+    "staged_kernel": "/nix/store/sby4x25d1wl7nn915c62jps8nr65sncj-linux-7.3/bzImage",
+    "kernel_policy": {
+      "booted": "vulnerable",
+      "staged_release": "fixed under the supplied checked-in upstream release policy, not booted qualification",
+      "source": "crates/kiln-microvm/src/host.rs::FIXED_RELEASES",
+      "upstream_requirement": "https://github.com/OnixResearch/kiln/issues/28#issuecomment-6605726922"
+    },
+    "cpu": {
+      "model": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+      "logical_cpus": "32",
+      "cores_per_socket": "16",
+      "threads_per_core": "2",
+      "allocation_feature_flags": [
+        "cat_l3",
+        "mba",
+        "rdt_a"
+      ],
+      "cpuid_tool_available": false,
+      "cat_status": "CPU advertises cat_l3, mba and rdt_a. An exclusive mounted/delegated CAT group and exact masks are not yet established; advertised support alone is not qualification."
+    },
+    "running_services": [
+      "accounts-daemon.service",
+      "alloy.service",
+      "avahi-daemon.service",
+      "buildbot-master.service",
+      "buildbot-worker.service",
+      "celld.service",
+      "cloudflared-tunnel-aspen1-services.service",
+      "dbus-broker.service",
+      "dhcpcd.service",
+      "display-manager.service",
+      "docker-diffusion-gemma-structured.service",
+      "docker-diffusion-gemma.service",
+      "docker.service",
+      "envoy.service",
+      "grafana.service",
+      "harmonia.service",
+      "herdr-iroh.service",
+      "homepage-dashboard.service",
+      "irqbalance.service",
+      "kache-rustfs.service",
+      "laya-laya-aspen1.service",
+      "loki.service",
+      "matrix-synapse.service",
+      "mesh-llm-mesh-llm-private-inference.service",
+      "music-assistant.service",
+      "NetworkManager.service",
+      "nginx.service",
+      "niks3.service",
+      "nix-daemon.service",
+      "nix-grpc-daemon.service",
+      "nscd.service",
+      "polkit.service",
+      "postgresql.service",
+      "prometheus-blackbox-exporter.service",
+      "prometheus-node-exporter.service",
+      "prometheus-systemd-exporter.service",
+      "prometheus.service",
+      "radicle-ci-node.service",
+      "radicle-httpd.service",
+      "radicle-node.service",
+      "redis-searx.service",
+      "renews-iroh.service",
+      "rustfs-niks3-cache.service",
+      "rustfs.service",
+      "scx.service",
+      "serial-getty@ttyS0.service",
+      "sshd.service",
+      "systemd-journald.service",
+      "systemd-logind.service",
+      "systemd-networkd.service",
+      "systemd-oomd.service",
+      "systemd-resolved.service",
+      "systemd-timesyncd.service",
+      "systemd-udevd.service",
+      "tailscaled.service",
+      "tailscalesd.service",
+      "user@0.service",
+      "user@78.service",
+      "uwsgi.service",
+      "vaultwarden.service",
+      "wpa_supplicant.service"
+    ]
+  },
+  "maintenance_impact": [
+    "Matrix Synapse and Vaultwarden user availability",
+    "PostgreSQL, RustFS/object storage and binary/build caches",
+    "Buildbot master/worker and remote build intake",
+    "DiffusionGemma, Laya and private Mesh-LLM inference",
+    "Other observed application services; inventory must be freshly captured and jobs drained before any stop."
+  ],
+  "bounded_plan": [
+    {
+      "step": "Authorize an aspen1-only maintenance interval and whole-host trust exclusion",
+      "state": "operator_decision_required"
+    },
+    {
+      "step": "Capture restoration state and drain CI/build/inference work before disrupting services",
+      "state": "not_started"
+    },
+    {
+      "step": "Verify the existing 7.3 boot entry and reboot only aspen1; avoid an unrelated fleet deployment or source/lock update",
+      "state": "not_started"
+    },
+    {
+      "step": "Re-establish access, verify actual booted package/release, reserve host, quiesce unrelated sensitive workloads and disable host SMT for the bounded experiment",
+      "state": "not_started"
+    },
+    {
+      "step": "Inspect approved resctrl/CAT capabilities; never invent support, masks or an SMT exception; request exact cache allocation if hardware supports it",
+      "state": "not_started"
+    },
+    {
+      "step": "Run actual approved-untrusted execution only after all maintained preflight and trust-exclusion checks pass; retain exact guest/host/placement receipts",
+      "state": "not_started"
+    },
+    {
+      "step": "Restore only prior services/settings changed by the experiment; retain recovery evidence",
+      "state": "not_started"
+    }
+  ],
+  "remaining": {
+    "maintenance_authority": "No disruptive host action has been performed or assumed approved from host selection alone.",
+    "distinct_physical_host": "No second host allocated or independently attested; aspen3 remains excluded.",
+    "cat": "No delegated exclusive CAT group exists; hardware support must be established."
+  },
+  "nonclaims": [
+    "Read-only preparation only. No service stopped, SMT setting changed, resctrl mounted, kernel deployed or host rebooted.",
+    "Existing staged 7.3 is an observed operator-installed state, not a deployment performed by this assistant.",
+    "No approved-untrusted execution or channel measurement succeeded; hostile_isolation_claim remains false."
+  ]
+}
