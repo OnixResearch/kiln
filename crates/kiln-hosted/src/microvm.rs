@@ -25,28 +25,28 @@ use fs2::FileExt;
 use kiln_microvm::admission::MachinePolicy;
 use kiln_microvm::archive::{self, EntryKind, SourceEntry};
 use kiln_microvm::backend::{
-    ColdBootPaths, VmmBackend, cloud_hypervisor_cold_boot, cloud_hypervisor_restore,
-    cloud_hypervisor_snapshot_requests,
+    cloud_hypervisor_cold_boot, cloud_hypervisor_restore, cloud_hypervisor_snapshot_requests,
+    ColdBootPaths, VmmBackend,
 };
 use kiln_microvm::confinement::{
-    ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES, admit_status,
+    admit_status, ConfinementFacts, ExpectedProcess, MAX_STATUS_BYTES,
 };
 use kiln_microvm::debug_hold::{self as hold_policy, DebugHoldPolicy, Grants, HoldFacts};
 use kiln_microvm::host::HostFacts;
 use kiln_microvm::lifecycle::{Event, Lifecycle, State};
 use kiln_microvm::plan::{self, VmPaths};
 use kiln_microvm::protocol::{
-    self, GuestMessage, GuestStep, HostMessage, StepReport, decode_guest, encode, frame_length,
-    host_frame,
+    self, decode_guest, encode, frame_length, host_frame, GuestMessage, GuestStep, HostMessage,
+    StepReport,
 };
-use kiln_microvm::{MIB, archive::BLOCK_BYTES};
-use rusqlite::{Connection, params};
+use kiln_microvm::{archive::BLOCK_BYTES, MIB};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use crate::execution::{
-    Backend, Config, Image, ProcessFacts, StepObservation, cleanup_unit,
-    infrastructure_failure_state, manager_request, step_observation, unit_command,
+    cleanup_unit, infrastructure_failure_state, manager_request, step_observation, unit_command,
+    Backend, Config, Image, ProcessFacts, StepObservation,
 };
 use crate::fleet::Executable;
 

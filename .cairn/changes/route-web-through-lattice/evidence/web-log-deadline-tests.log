@@ -1,0 +1,506 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.33s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_web_service-f36852664c005e07)
+
+running 189 tests
+test cache::tests::publication_authority_excludes_only_degraded_restore_outcomes ... ok
+test cache::tests::interrupted_publication_child ... ok
+test access::tests::whois_requires_exact_registered_user_and_untagged_node ... ok
+test cache::tests::input_producer_toolchain_platform_and_output_declarations_change_cache_identity ... ok
+test access::agent_tests::agent_declarations_are_bounded_and_collected ... ok
+test auth::tests::proxy_identity_requires_distinct_credential_and_explicit_binding ... ok
+test cache::tests::content_key_scope_path_and_bounds_are_admitted_before_storage ... ok
+test auth::tests::bearer_roles_cannot_be_substituted_or_partially_matched ... ok
+test auth::tests::feed_token_reloads_after_file_rotation ... ok
+test cache::tests::staging_rejects_symlinks_and_nonprivate_directories_without_touching_targets ... ok
+test cache::tests::unknown_retained_data_and_nonprivate_directory_are_preserved_and_rejected ... ok
+test cache::tests::count_and_age_retention_only_remove_verified_cache_entries ... ok
+test cache::tests::cold_publish_warm_restore_is_immutable_and_survives_store_reopen ... ok
+test code_review::hunks::tests::digest_ignores_line_numbers_and_context_but_not_content_or_path ... ok
+test access::tests::map_never_admits_wildcard_or_public_resolver ... ok
+test code_review::noise::tests::first_rule_in_profile_order_wins_and_no_rules_annotate_nothing ... ok
+test code_review::noise::tests::identity_tracks_every_rule_field ... ok
+test cache::tests::corrupted_retained_content_and_symlinks_never_restore ... ok
+test code_review::hunks::tests::rename_only_files_have_one_digest_and_binary_or_truncated_have_none ... ok
+test cache::tests::excessive_corrupt_inventory_disables_cache_without_mutating_retained_bytes ... ok
+test code_review::noise::tests::lockfile_and_vendored_files_are_annotated_and_source_is_not ... ok
+
+running 1 test
+test code_review::outcome_tests::outcomes_use_resolved_revision_and_anchor_overlap ... ok
+test code_review::noise::tests::invalid_or_unbounded_rules_are_rejected ... ok
+test code_review::jj_intake::tests::planner_creates_then_maps_by_change_id_and_flags_removed_members ... ok
+test code_review::speculation::tests::ci_verdict_fails_fast_and_requires_every_run ... ok
+test code_review::speculation::tests::chain_survives_in_order_landing_and_is_superseded_otherwise ... ok
+test code_review::jj_intake::tests::request_admission_requires_configuration_principal_and_exact_ids ... ok
+test code_review::speculation::tests::window_admits_bounded_positions_and_adapts_within_policy ... ok
+test code_review::speculation::tests::chain_identity_binds_entry_generation_root_and_predecessors ... ok
+test code_review::speculation::tests::late_completions_and_retired_chains_are_rejected ... ok
+test cache::tests::hostile_returns_cannot_replace_existing_entry ... ok
+test code_review::views::tests::narrowing_is_unavailable_without_exact_change_ids ... ok
+test code_review::views::tests::narrowing_picks_the_one_commit_of_the_change_on_each_side ... ok
+test code_review::queue::tests::speculative_records_round_trip_and_reject_unknown_window_fields ... ok
+test code_review::delivery::tests::bounds_fail_atomically_and_destination_changes_fail_closed ... ok
+test code_review::suggestions::tests::exact_fence_preserves_replacement_and_rejects_ambiguous_or_unclosed ... ok
+test developer::tests::review_authorship_flags_build_declarations_and_reject_misuse ... ok
+test code_review::delivery::tests::only_proven_presend_failure_retries_with_same_recipient_identity_and_bounded_attempts ... ok
+test engine::worker_status::tests::compatible_workers_share_a_target_but_cannot_share_worker_identity ... ok
+test engine::worker_status::tests::admitted_duplicate_does_not_renew_expiry_and_replay_cannot_resurrect ... ok
+test engine::worker_status::tests::lost_observations_allow_sequence_gaps_but_not_regression_or_changed_replay ... ok
+test engine::worker_status::tests::future_wrong_target_regressing_sequence_and_live_session_replacement_denied ... ok
+test code_review::queue::tests::serial_profiles_entries_and_journals_replay_byte_identically ... ok
+test code_review::delivery::tests::private_draft_never_routes_then_publication_routes_only_admitted_mentions ... ok
+test execution::tests::explicit_data_roots_extend_only_reviewed_families ... ok
+test engine::storage::tests::state_ownership_releases_before_inherited_description_closes ... ok
+test feeds::tests::due_intervals_are_bounded_and_monotonic ... ok
+test feeds::tests::failure_backoff_grows_and_caps ... ok
+test feeds::tests::due_selection_is_oldest_first_and_bounded ... ok
+test execution::tests::reviewed_runtime_authority_is_admitted_without_unrelated_host_paths ... ok
+test feeds::tests::atom_render_escapes_text_and_links ... ok
+test execution::tests::data_mount_admission_rejects_duplicate_and_sensitive_paths ... ok
+test code_review::jj_intake::tests::absent_jj_fields_keep_state_profile_and_requests_byte_identical ... ok
+test code_review::delivery::tests::owned_subscription_unsubscribe_dedup_and_read_are_independent ... ok
+test feeds::tests::opml_export_escapes_labels_and_urls ... ok
+test feeds::tests::fetch_refuses_private_destinations_without_the_explicit_exception ... ok
+test feeds::tests::parser_rejects_doctype_malformed_xml_and_unknown_roots ... ok
+test feeds::tests::parser_rejects_excessive_nesting ... ok
+test feeds::tests::opml_import_extracts_bounded_unique_outlines ... ok
+test feeds::tests::rss_and_atom_parse_with_bounded_text ... ok
+test feeds::tests::parser_sanitizes_links_and_retains_first_duplicate_id ... ok
+test feeds::tests::parser_accepts_entry_limit_and_rejects_entry_overflow ... ok
+test execution::tests::unrelated_mounts_and_unavailable_backend_fail_closed ... ok
+test feeds::tests::repository_atom_filters_orders_limits_and_escapes_runs ... ok
+test feeds::tests::timestamp_matches_known_utc_values ... ok
+test feeds::tests::rss_one_rdf_feeds_parse ... ok
+test feeds::tests::rss_publication_renders_channel_and_dates ... ok
+test feeds::tests::rendered_xml_strips_controls_that_xml_1_0_forbids ... ok
+test feeds::tests::url_admission_rejects_public_http_and_private_addresses ... ok
+test code_review::delivery::tests::restart_retains_identity_marks_lost_reservation_uncertain_and_rejects_stale_result ... ok
+test server::notify::tests::readiness_reaches_supervisor_and_missing_supervisor_fails_closed ... ok
+test server::tests::framing_accepts_one_bounded_json_request_and_rejects_ambiguous_bodies ... ok
+test server::tests::only_exact_registered_trigger_path_can_enter_signed_ingress ... ok
+test server::tests::review_collaboration_does_not_grant_ci_operator_or_cross_origin_access ... ok
+test server::notify::tests::readiness_supports_systemd_abstract_socket_names ... ok
+test server::tests::viewer_reads_but_never_mutates_and_writes_require_exact_origin ... ok
+test sources::tests::path_components_reject_traversal_and_absolute_forms ... ok
+
+running 1 test
+test schedule::tests::reservation_fires_skips_missed_windows_and_rejects_close_runs ... ok
+test telemetry::tests::measurements_deny_unbounded_duration_and_failed_cache_publication ... ok
+test telemetry::tests::degraded_cache_misses_are_admitted_without_authorizing_publication ... ok
+test telemetry::tests::measurements_keep_unknown_resources_and_clock_adjustments_explicit ... ok
+test schedule::tests::exact_expressions_and_names_compile_unchanged ... ok
+test sources::tests::rfc3339_conversion_rejects_non_utc_and_malformed_values ... ok
+test schedule::tests::malformed_expressions_and_time_zones_are_rejected ... ok
+test schedule::tests::new_york_transitions_fire_once_per_intended_occurrence ... ok
+test schedule::tests::hash_spreading_is_stable_and_follows_only_identity ... ok
+test work::board::tests::board_query_admits_known_bounded_parameters_only ... ok
+test work::board::tests::configured_columns_keep_order_and_mark_retired_statuses ... ok
+test work::board::tests::default_columns_are_ordered_and_mixed_team_columns_name_their_teams ... ok
+test work::board::tests::list_and_board_eligibility_follow_the_shared_fixture ... ok
+test work::board::tests::default_team_columns_are_bounded_and_overflow_is_reported ... ok
+test work::board::tests::planning_project_sets_match_any_member ... ok
+test work::board::tests::ci_filters_match_only_resolved_exact_projects_and_repositories ... ok
+test work::board::tests::projection_keeps_empty_columns_and_never_hides_unconfigured_statuses ... ok
+test work::board::tests::ci_lanes_assign_each_issue_once_and_keep_status_moves ... ok
+test work::ci::tests::facts_are_deterministic_and_only_resolve_exact_links ... ok
+test access::tests::localapi_resolver_preserves_large_user_ids_and_rejects_non_tailnet_peers ... ok
+test feeds::tests::fetch_enforces_the_body_bound ... ok
+test work::model::tests::command_identity_head_and_timestamp_admission_preserve_native_identity ... ok
+test work::model::tests::blocker_diamonds_are_not_cycles_but_a_back_edge_is_rejected ... ok
+test work::model::tests::ci_filter_values_are_shape_checked_without_profile_lookup ... ok
+test work::model::tests::every_entity_has_a_real_typed_create_and_invalid_payload_is_rejected ... ok
+test work::model::tests::history_reduction_is_deterministic_and_shell_controls_real_head ... ok
+test feeds::tests::bounded_fetch_reads_local_feed_and_follows_one_redirect ... ok
+test work::model::tests::full_field_edit_preserves_discussion_and_update_messages_support_authorship ... ok
+test work::model::tests::discussion_preserves_authorship_mentions_and_bounded_reaction_sets ... ok
+test feeds::tests::conditional_fetch_honours_not_modified_and_requires_a_validator ... ok
+test work::board::tests::status_boards_keep_status_lanes_and_omit_new_bytes ... ok
+test work::model::tests::inert_identity_links_accept_supported_kinds_without_granting_authority ... ok
+test work::model::tests::ci_grouping_and_lane_configuration_preserve_old_view_bytes ... ok
+test work::model::tests::board_configuration_is_bounded_and_new_columns_must_be_defined ... ok
+test work::model::tests::planning_project_sets_are_bounded_exact_and_validated ... ok
+test work::model::tests::planning_references_are_typed_and_scope_changes_cannot_break_consumers ... ok
+test work::model::tests::requests_retain_customer_source_and_require_real_snooze_and_duplicate_targets ... ok
+
+running 1 test
+test code_review::store::tests::completed_store_releases_lock_while_inherited_descriptor_remains_open ... ok
+test work::model::tests::saved_view_workflow_dependency_prevents_invalidating_a_custom_status_filter ... ok
+test work::model::tests::set_status_changes_only_an_issue_status_within_its_team_workflow ... ok
+test work::model::tests::private_ownership_cannot_be_erased_transferred_or_published_by_full_field_edit ... ok
+test work::model::tests::personal_references_cannot_cross_principal_privacy ... ok
+test work::model::tests::personal_state_is_owner_scoped_and_read_markers_bind_observed_heads ... ok
+test work::model::tests::parent_blocker_and_duplicate_graphs_accept_dags_and_reject_cycles ... ok
+test work::model::tests::views_written_before_board_configuration_read_and_reserialize_unchanged ... ok
+test work::model::tests::workflow_extensions_are_explicit_and_cannot_be_removed_while_used ... ok
+test work::model::tests::view_filters_layout_sort_and_grouping_are_validated_as_a_whole ... ok
+test worker::cache::tests::preflight_rejects_later_symlink_or_conflict_before_any_restore_write ... ok
+test worker::cache::tests::unsafe_publish_paths_links_and_total_size_are_rejected ... ok
+test worker::cache::tests::compatible_workers_share_keys_but_changed_input_bytes_do_not ... ok
+test work::model::tests::text_and_collection_boundaries_are_byte_bounded_and_unique ... ok
+test worker::cache::tests::fresh_output_inspection_rejects_symlink_ancestors_even_when_leaf_is_absent ... ok
+test work::model::tests::discussion_body_and_stream_limits_accept_the_boundary_and_reject_overflow ... ok
+test worker::cache::tests::degraded_restore_disables_publication_without_admitting_conflicting_or_unverified_entries ... ok
+test worker::cache::tests::two_independent_checkouts_exchange_verified_data_without_source_or_credential_copy ... ok
+test work::board::tests::projection_hides_private_records_applies_overrides_and_reports_bounds ... ok
+test worker::cache::tests::local_transfers_bind_current_source_and_verify_before_writes ... ok
+test work::model::tests::wire_rejects_unknown_fields_actions_and_invalid_numeric_ranges ... ok
+test engine::worker_status::tests::retained_liveness_respects_current_principal_and_shorter_ttl_after_restart ... ok
+test worker::files::tests::private_acl_grants_only_root_and_the_exact_service_identity ... ok
+test worker::heartbeat::tests::ttl_requires_multiple_heartbeat_intervals ... ok
+
+running 1 test
+test work::model::tests::personal_collections_and_reaction_actors_enforce_their_independent_bounds ... ok
+test worker::process::tests::explicit_unavailable_isolation_never_executes_command ... ok
+test worker::reports::tests::declared_reports_read_exact_regular_bytes_and_deny_missing_links_escapes_and_oversize ... ok
+test worker::streaming::tests::stream_child_entry ... ignored, exec adapter launched only by worker process tests
+test cache::tests::sigkill_each_publish_phase_recovers_without_partial_keys ... ok
+test developer::tests::review_submit_builds_change_id_intake_and_rejects_misuse ... ok
+test code_review::delivery::tests::configured_https_receiver_accepts_published_mention_and_subscription_after_durable_restart ... ok
+test worker::client::deadline_tests::admit_refuses_a_cancellation_requested_binding ... ok
+test worker::tests::live_log_budget_accounts_each_ingress_chunk_and_rejected_reservations_are_atomic ... ok
+test code_review::noise_advisory_tests::check_rejects_invalid_noise_rules_and_keeps_legacy_profiles_unchanged ... ok
+test worker::tests::exact_commit_runs_reviewed_command_and_produces_actual_artifact_not_mutable_worktree ... ok
+test worker::client::deadline_tests::execution_log_limits_reserve_both_streams_and_reject_before_upload ... ok
+test worker::tests::old_missing_and_malformed_profiles_are_rejected_before_source_effects ... ok
+test worker::tests::in_flight_cancellation_stops_owned_command_and_preserves_cancelled_exit ... ok
+test worker::client::deadline_tests::execution_log_https_consumer_fits_minimum_http_envelope_across_chunks ... ok
+test worker::tests::real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_and_bounds ... ok
+test code_review::authorship_tests::legacy_requests_and_journals_replay_as_undeclared ... ok
+test worker::client::deadline_tests::execution_log_capture_is_chunked_hashed_and_marks_only_final_chunk_truncated ... ok
+test worker::tests::source_attempt_execution_and_node_bindings_are_all_required ... ok
+test worker::tests::symlink_source_is_rejected_instead_of_following_outside_checkout ... ok
+test worker::client::deadline_tests::binding_lookup_admits_exact_source_within_budget_after_pending_dispatch ... ok
+test worker::tests::worker_credential_reads_owned_private_regular_file_only ... ok
+test worker::tests::independent_clone_executes_declared_source_without_relabeling_local_acquisition ... ok
+test worker::tests::worker_profile_denies_secret_environment_and_untrusted_artifact_declarations ... ok
+test worker::tests::wrong_source_context_and_snapshot_overflow_never_materialize ... ok
+test code_review::noise_advisory_tests::noise_fixture_annotates_lockfile_and_vendored_files_only ... ok
+test code_review::authorship_tests::invalid_authorship_is_rejected_before_effects ... ok
+test worker::tests::scoped_jobs_start_in_the_project_root_and_reject_missing_or_escaping_roots ... ok
+test worker::process::tests::child_cpu_and_memory_are_observed_for_success_and_failure ... ok
+test code_review::noise_advisory_tests::review_window_export_counts_advisory_and_legacy_documents_stay_clean ... ok
+test code_review::authorship_tests::declared_authorship_is_journaled_replayed_and_shown ... ok
+test worker::client::deadline_tests::execution_log_single_reference_preserves_nonempty_and_truncated_streams ... ok
+test code_review::noise_advisory_tests::read_principals_may_advise_but_never_vote_and_checklist_is_unchanged ... ok
+test code_review::authorship_tests::review_window_export_is_bounded_and_read_only ... ok
+test code_review::noise_advisory_tests::ownership_over_a_noise_path_still_blocks_submit_without_the_owner_vote ... ok
+test schedule::tests::minimum_interval_is_checked_across_the_horizon ... ok
+test worker::tests::child_environment_is_explicit_and_failure_deadline_and_cancellation_are_not_success ... ok
+test worker::tests::overflow_preserves_prefix_cursors_and_failed_ingress_never_retries_or_masks_exit ... ok
+test worker::client::deadline_tests::execution_lookup_rejects_ambiguous_stale_and_wrong_source_authority ... ok
+test worker::client::deadline_tests::independent_clone_rejects_wrong_callback_source_before_commands_or_uploads ... ok
+test worker::tests::output_is_ingressed_before_exit_and_each_retained_byte_is_uploaded_once ... ok
+test work::ci::tests::record_fact_map_and_hard_project_bound_report_truncation ... ok
+test code_review::jj_intake_tests::change_id_header_branch_maps_to_the_same_changes_without_jj ... ok
+test worker::client::deadline_tests::binding_lookup_does_not_start_request_after_poll_sleep_exhausts_budget ... ok
+test code_review::jj_intake_tests::rewritten_change_gives_one_change_with_three_revisions_and_predecessors ... ok
+test worker::tests::streaming_cancellation_and_deadline_terminate_owned_descendants ... ok
+test code_review::jj_intake_tests::divergent_conflicted_and_malformed_inputs_are_refused_before_any_effect ... ok
+test code_review::jj_intake_tests::four_change_stack_maps_by_change_id_across_edit_reorder_and_removal ... ok
+test worker::client::deadline_tests::binding_lookup_keeps_shorter_http_timeout_and_never_retries_failure ... ok
+test worker::client::deadline_tests::execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout ... ok
+test worker::client::deadline_tests::binding_lookup_budget_bounds_slow_valid_https_response ... ok
+
+test result: ok. 188 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.59s
+
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/debug/deps/kiln_web_service-aab4033c14c64403)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cobs.rs (/home/brittonr/.cargo-target/debug/deps/cobs-5208c688c4354c5d)
+
+running 11 tests
+test policy_rejects_ambiguous_identity_paths_unknown_fields_and_excess_repositories ... ok
+test unconfigured_empty_missing_and_unavailable_stores_are_distinct ... ok
+test kiln_published_job_history_is_visible ... ok
+test root_action_titles_are_searchable_without_reducing_later_edits ... ok
+test radicle_observation_types_render_with_author_and_ignore_unregistered_types ... ok
+test nested_root_titles_and_metadata_fallback_remain_bounded ... ok
+test authority_query_and_exact_selection_rejections_do_not_expose_paths_or_write ... ok
+test malformed_native_stores_are_explicit_not_false_empty_or_substituted_objects ... ok
+test six_types_preserve_exact_multitip_history_actions_and_leave_git_unchanged ... ok
+test paging_search_and_cursor_identity_follow_filters_and_observed_ref_tips ... ok
+test native_action_operation_and_tip_bounds_fail_closed_without_mutation ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/code_review.rs (/home/brittonr/.cargo-target/debug/deps/code_review-bafb269e188504df)
+
+running 27 tests
+test process_writer ... ok
+test merging_access_agent_metadata_is_deduplicated_and_conflict_checked ... ok
+test review_profile_agent_metadata_must_name_a_declared_agent_with_bounded_text ... ok
+test review_profile_admits_only_bounded_unique_agent_write_principals ... ok
+test service_rejects_ownership_links_to_unknown_projects ... ok
+test agent_thread_outcome_window_is_read_only_and_bounded ... ok
+test admission_is_effect_free_and_scopes_are_independent_from_ci_operator ... ok
+test detail_ci_runs_are_exact_source_sorted_bounded_and_not_browser_assertions ... ok
+
+running 1 test
+
+running 1 test
+test replay_payload_principal_and_safe_file_policy_fail_closed ... ok
+test review_detail_reports_binding_agent_votes ... ok
+test idempotency_and_private_query_namespaces_are_per_authenticated_principal ... ok
+test nested_policy_provider_anchor_dependency_and_query_schemas_are_closed ... ok
+test process_writer ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.02s
+
+test process_writer ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.02s
+
+test separate_processes_cannot_overwrite_the_same_expected_version ... ok
+test path_owner_auto_request_is_enforced_by_real_service_source_observations ... ok
+test reviewed_file_preferences_are_private_and_new_revision_invalidates_them ... ok
+test published_suggestion_creates_exact_revision_invalidates_approval_and_replays ... ok
+test historical_exact_diff_drafts_publish_atomically_and_stale_versions_conflict ... ok
+test blocking_threads_self_votes_and_missing_provider_capabilities_block_effects ... ok
+test monorepo_review_requires_current_scope_ci_for_each_affected_project ... ok
+test exact_ci_non_author_approval_policy_and_target_bind_submission ... ok
+test drafts_saved_views_and_notifications_survive_restart_without_cross_principal_disclosure ... ok
+test restart_reconciles_provider_applied_upload_from_reserved_journal_exactly_once ... ok
+test revert_registers_new_wip_review_without_reverting_submitted_target ... ok
+test review_detail_marks_agent_votes ... ok
+test stale_target_requires_new_revision_and_author_actions_never_bypass_review ... ok
+test declared_stack_submits_in_dependency_order_with_fresh_exact_target_candidates ... ok
+test review_diff_highlighting_is_opt_in_row_aligned_and_rejects_other_values ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/code_review_intake.rs (/home/brittonr/.cargo-target/debug/deps/code_review_intake-5dd4fd24e9dd2439)
+
+running 6 tests
+test configuration_cannot_admit_protected_or_duplicate_source_mappings ... ok
+test explicit_mapping_binds_owner_target_and_expected_current_commit ... ok
+test branch_picker_exposes_current_commits_only_to_admitted_owners ... ok
+test symbolic_noncommit_and_rolled_back_sources_are_not_new_revisions ... ok
+test source_ownership_staleness_and_closed_ref_admission_fail_without_upload ... ok
+test branch_submission_updates_stable_review_and_suppresses_durable_replays ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/code_review_interdiff.rs (/home/brittonr/.cargo-target/debug/deps/code_review_interdiff-096e2eb81b874ea7)
+
+running 6 tests
+test legacy_file_markers_in_stored_state_replay_byte_identically ... ok
+test narrowed_interdiff_shows_only_that_changes_delta ... ok
+test commit_ranges_inside_a_revision_are_exact_and_bounded_to_its_commits ... ok
+test interdiff_shows_only_the_authors_delta_and_falls_back_explicitly ... ok
+test upload_carries_forward_only_unchanged_hunks_and_reports_progress ... ok
+test structural_mode_shows_the_semantic_delta_with_line_mode_anchors ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/code_review_queue.rs (/home/brittonr/.cargo-target/debug/deps/code_review_queue-f69bc38b37a08548)
+
+running 9 tests
+test queue_admission_requires_ci_and_explicit_integration_capability ... ok
+test only_submitters_can_enqueue_and_owner_can_cancel_without_any_ci_dispatch ... ok
+test queue_tests_and_submits_exact_combined_commit_without_transferring_source_votes ... ok
+test uploading_a_new_revision_blocks_the_queued_approved_source_even_after_ci_success ... ok
+test monorepo_queue_failure_of_any_affected_project_blocks_submission ... ok
+test failed_candidate_ci_never_advances_target ... ok
+test restart_recovers_same_queue_candidate_and_run_without_dispatching_or_approving_again ... ok
+test monorepo_queue_tests_every_affected_project_at_its_current_scope ... ok
+test moved_target_invalidates_old_success_and_requires_a_new_exact_candidate_run ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/code_review_speculative_queue.rs (/home/brittonr/.cargo-target/debug/deps/code_review_speculative_queue-f6bffd89ee423868)
+
+running 7 tests
+test speculative_profiles_require_bounded_window_and_provider_capability ... ok
+test serial_queue_records_keep_exactly_the_previous_shape ... ok
+test advisory_approvals_never_admit_or_qualify_a_speculative_candidate ... ok
+test failing_middle_entry_ejects_only_itself_and_later_entry_rebuilds_with_fresh_ci ... ok
+test window_shrinks_after_ejection_cancels_queued_runs_and_grows_after_landing ... ok
+test restart_mid_window_keeps_candidates_and_runs_without_duplicate_dispatch ... ok
+test window_of_three_starts_every_candidate_ci_before_the_first_submit_and_lands_in_order ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/developer.rs (/home/brittonr/.cargo-target/debug/deps/developer-50e86f7f17b01271)
+
+running 3 tests
+test run_outcomes_preserve_failure_cancel_and_unknown_exit_semantics ... ok
+test developer_transport_rejects_credentials_in_origin_insecure_schemes_and_unbounded_waits ... ok
+test reviewed_client_identity_admits_only_exact_original_profile_bytes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/engine.rs (/home/brittonr/.cargo-target/debug/deps/engine-6a61a2926f31c6f2)
+
+running 92 tests
+test automation::notification_authority_rejects_url_confusion_and_unadmitted_networks ... ok
+test automation::tag_trigger_filter_namespaces_and_schedule_references_are_rejected ... ok
+test automation::branch_push_does_not_dispatch_a_tag_bound_trigger ... ok
+test automation::deleted_tag_push_never_dispatches ... ok
+test automation::signed_pull_request_and_stale_or_unregistered_sources_have_opposite_effects ... ok
+test automation::approval_needs_an_untrusted_capable_project_runner ... ok
+test automation::definitely_rejected_source_never_dispatches_after_enrollment_or_polling ... ok
+test automation::restart_never_resends_reserved_notification_and_rejects_stale_completion ... ok
+test automation::due_schedule_reserves_once_and_operator_configuration_cannot_add_authority ... ok
+test authoritative_running_recovery_restores_pending_and_allows_exact_cancellation ... ok
+test accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution ... ok
+test automation::pull_request_supersession_is_scoped_to_one_pull_request ... ok
+test controls_reject_stale_and_unsupported_before_mutation_and_replay_exact_result ... ok
+test automation::signed_tag_push_dispatches_a_tag_bound_run ... ok
+test feed_token_writer_creates_private_hex_and_refuses_overwrite ... ok
+test feeds_refresh_cadence_rejects_fast_intervals_and_accepts_manual_refresh ... ok
+test automation::signed_push_is_exact_once_across_restart_and_bad_signature_never_dispatches ... ok
+test artifacts_are_real_bounded_identity_checked_retained_bytes_and_worker_is_narrow ... ok
+test automation::ignored_trigger_source_cannot_reclassify_a_matching_manual_start ... ok
+test automation::trigger_supersession_does_not_cancel_a_manual_run ... ok
+test automation::same_id_schedule_arrival_does_not_supersede_trigger ... ok
+test failed_durable_reservation_prevents_provider_effects_and_further_authority ... ok
+test dashboard::failed_retry_executes_only_failed_downstream_graph_and_restore_rejects_tampering ... ok
+test automation::persisted_trigger_start_gap_with_mismatched_fingerprint_fails_closed ... ok
+test automation::new_trigger_supersedes_active_and_queued_runs_when_configured ... ok
+test execution_binding_projects_persisted_authority_after_restart_without_provider_effects ... ok
+test execution_binding_authorization_and_request_shape_fail_closed ... ok
+test allowlist_exact_source_and_request_replay_survive_restart ... ok
+test dashboard::viewer_denials_are_attributable_and_before_effects ... ok
+test dashboard::logs_search_across_chunk_boundary_and_download_exact_bytes_with_metadata ... ok
+test dashboard::historical_runs_restore_without_invented_timing_and_profile_serialization_is_unchanged ... ok
+test dashboard::durable_queue_dispatches_once_in_order_and_cancellation_has_no_provider_effect ... ok
+test missing_worker_capture_never_falls_back_to_provider_logs_after_restart ... ok
+test monorepo::scope_admission_names_project_and_field_and_old_profiles_load ... ok
+test monorepo::work_ci_facts_mirror_the_admitted_monorepo_without_dispatch ... ok
+test dashboard::missing_subset_provider_route_is_not_a_full_graph_fallback_or_success ... ok
+test private_state_ownership_and_unknown_profile_authority_fail_closed ... ok
+test cache::authenticated_exact_worker_cache_is_cold_then_warm_and_rejects_stale_or_failed_producers ... ok
+test profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds ... ok
+test automation::receiver_blocked_notification_does_not_block_worker_or_api_ingress ... ok
+test monorepo::changed_files_are_exact_with_renames_new_references_and_bounds ... ok
+test monorepo::unscoped_repository_state_keeps_the_previous_record_shape ... ok
+test queued_cancel_reason_is_bounded_and_recorded ... ok
+test captured_logs_round_trip_empty_chunks_byte_cursors_and_restart_without_native_reads ... ok
+test restart_discards_unadmitted_artifact_bytes_without_inventing_metadata ... ok
+test execution_binding_preserves_unknown_and_queued_runs_without_recovery_or_dispatch ... ok
+test missing_reply_after_durable_start_returns_original_resource_without_redispatch ... ok
+test native_log_cursor_gap_and_bounds_are_preserved ... ok
+test runtime::configured_notification_failure_prevents_running_service_claim ... ok
+test dashboard::overview_records_observed_timing_and_operations_warns_before_admission_exhaustion ... ok
+test dashboard::stable_search_cursor_excludes_new_runs_and_rejects_changed_filters ... ok
+test reports::review_node_retains_a_patchgate_receipt_as_run_bound_evidence ... ok
+test restart_removes_only_owned_unadmitted_log_files_and_recovers_publication_pairs ... ok
+test telemetry::malformed_and_unbounded_telemetry_never_become_measurements ... ok
+test reports::unavailable_reports_and_recorded_review_never_invent_test_results_or_gate_authority ... ok
+test runtime::preflight_accepts_readonly_credentials_without_binding_creating_or_reconciling ... ok
+test execution_binding_minimum_http_envelope_chunks_round_trip_and_fail_closed ... ok
+test automation::same_id_schedule_survives_trigger_after_restart ... ok
+test runtime::preflight_rejects_unsafe_secrets_tls_and_filesystem_inputs_without_state ... ok
+test dashboard::exact_and_latest_reruns_bind_new_candidates_to_selected_revisions ... ok
+test snapshots::snapshot_api_rejects_unauthorized_unsafe_and_mismatched_inputs ... ok
+test registry::project_extension_preserves_binding_on_corruption_and_transaction_failure ... ok
+test log_ingress_rejects_private_roles_stale_identity_conflicts_and_open_json ... ok
+test registry::project_extension_preserves_history_logs_replay_and_explicit_enrollment ... ok
+test log_chunk_count_total_bytes_and_chunk_bytes_are_actual_run_bounds ... ok
+test timed_out_dispatch_remains_unknown_and_control_disconnect_never_replays_mutation ... ok
+test workers::worker_role_queries_bodies_and_nonread_methods_fail_closed ... ok
+test workers::failed_storage_denies_inventory_without_reporting_usable_capacity ... ok
+test workers::shared_target_free_enrolled_slot_precedes_ambiguous_status ... ok
+test workers::successful_reads_neither_persist_nor_refresh_provider_observations ... ok
+test workers::inventory_groups_exact_bindings_with_stable_redacted_target_identity ... ok
+test registry::project_extension_rejects_live_owner_active_work_and_missing_state ... ok
+test triggers::path_filter_runs_on_unknown_files_and_records_exclusion_without_a_run ... ok
+test workers::ambiguous_attempts_hold_slots_without_fabricating_observations ... ok
+test telemetry::measured_steps_survive_recovery_and_reject_stale_binding_replay_and_gaps ... ok
+test automation::real_https_acceptance_and_disconnect_are_durable_and_never_blindly_retried ... ok
+test workers::enrollment_execution_queue_cancellation_and_completion_preserve_capacity_and_latest ... ok
+test automation::persisted_trigger_start_gap_is_superseded_without_late_replay_cancelling_newer ... ok
+test workers::legacy_missing_timestamps_remain_null_in_latest_execution ... ok
+test triggers::cron_restart_in_missed_window_never_catches_up_and_fire_binds_exact_revision ... ok
+test automation::fork_pull_request_waits_for_operator_approval_of_its_exact_commit ... ok
+test snapshots::dirty_candidates_download_and_exact_retry_preserve_provenance_and_survive_restart ... ok
+test registry::project_extension_rejects_existing_authority_changes_and_invalid_suffix_without_rebinding ... ok
+test reports::reports_preserve_raw_bytes_bind_exact_attempt_and_compare_real_test_coverage_history ... ok
+test monorepo::pull_requests_diff_from_the_merge_base_and_fall_back_without_a_base_branch ... ok
+test snapshots::durable_snapshot_tampering_rejects_restart_without_rewriting_retained_state ... ok
+test log_bytes_and_metadata_tampering_fail_on_read_and_recovery ... ok
+test telemetry::durable_replay_rejects_changed_measurements_and_stale_exact_bindings ... ok
+test monorepo::push_dispatches_only_affected_projects_and_records_skipped_ones ... ok
+test runtime::initialized_https_health_is_minimal_same_origin_and_survives_sigterm_restart ... ok
+test runtime::repository_feeds_and_external_subscription_round_trip ... ok
+test automation::single_effect_budget_cannot_starve_later_schedule_or_pending_notification ... ok
+
+test result: ok. 92 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.35s
+
+     Running tests/reports.rs (/home/brittonr/.cargo-target/debug/deps/reports-b21117fc72de4362)
+
+running 8 tests
+test cobertura_and_lcov_preserve_equivalent_real_line_and_branch_counts ... ok
+test junit_rejects_malformed_entities_ambiguous_cases_and_invalid_metrics ... ok
+test declaration_paths_reject_escapes_and_empty_reports_leave_old_step_serialization_unchanged ... ok
+test upload_checks_all_binding_dimensions_hash_and_absence_without_inventing_tests ... ok
+test coverage_rejects_false_totals_duplicate_lines_nonfinite_and_traversal ... ok
+test junit_preserves_real_outcomes_failure_text_skips_and_source_identity ... ok
+test native_gate_review_provenance_retain_verdicts_identities_nonclaims_without_acceptance ... ok
+test report_bounds_reject_bytes_depth_fields_and_case_count ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+
+     Running tests/reviews.rs (/home/brittonr/.cargo-target/debug/deps/reviews-4466e6d2ca3bd497)
+
+running 2 tests
+test retained_receipts_are_listed_with_exact_identities_and_decisions ... ok
+test unconfigured_and_unsafe_receipt_requests_stay_explicit ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/snapshot.rs (/home/brittonr/.cargo-target/debug/deps/snapshot-4a9a396510404d4e)
+
+running 2 tests
+test stale_link_ignored_duplicate_and_oversized_inputs_fail_closed ... ok
+test explicit_snapshot_reconstructs_identically_on_independent_backing_without_changing_user_git ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/sources.rs (/home/brittonr/.cargo-target/debug/deps/sources-88a3d1351fce3647)
+
+running 10 tests
+test source_policy_rejects_relative_paths_kind_drift_and_duplicates ... ok
+test pijul_source_reports_explicit_unavailability_instead_of_empty_success ... ok
+test unsupported_and_binary_source_files_report_explicit_skips ... ok
+test source_routes_reject_writes_workers_and_unconfigured_policies ... ok
+test source_diff_reports_exact_parent_changes_and_rejects_pijul_history ... ok
+test git_source_log_tree_and_file_preserve_exact_revision_content ... ok
+test jj_source_reads_a_colocated_or_backend_git_store_without_mutation ... ok
+test commit_lookup_reports_only_sources_that_contain_the_object ... ok
+test oversized_revision_changes_report_truncation_instead_of_failure ... ok
+test source_file_and_diff_highlighting_is_opt_in_and_additive ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.22s
+
+     Running tests/work.rs (/home/brittonr/.cargo-target/debug/deps/work-1f06060a640e9f35)
+
+running 15 tests
+test explicit_profile_and_owned_private_raw_seed_are_required ... ok
+test revoking_a_writer_preserves_signed_history_and_denies_new_commands ... ok
+test foreign_heads_unsigned_history_and_unavailable_store_fail_closed ... ok
+test competing_workspaces_never_overwrite_an_exact_head ... ok
+test monorepo_work_views_join_exact_runs_group_and_lane_the_board ... ok
+test native_bounds_and_message_authorship_reject_without_changing_accepted_state ... ok
+test native_signed_history_survives_restart_and_replay_returns_original_result ... ok
+test private_objects_hide_existence_and_work_authority_is_independently_admitted ... ok
+test same_millisecond_cross_object_dependencies_replay_in_signed_causal_order ... ok
+test all_work_kinds_use_distinct_native_types_and_editing_preserves_discussion ... ok
+test moving_a_card_writes_one_issue_status_operation_seen_by_every_view ... ok
+test stale_and_concurrent_moves_never_overwrite_a_newer_head ... ok
+test kanban_view_survives_restart_is_shared_and_shows_the_list_eligible_issues ... ok
+test private_views_stay_private_and_old_views_use_default_columns ... ok
+test board_configuration_and_moves_keep_existing_write_authority ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.70s
+
+     Running tests/worker.rs (/home/brittonr/.cargo-target/debug/deps/worker-94a47395a0a4a9d6)
+
+running 2 tests
+test original_profile_bytes_are_authority_not_equivalent_reserialized_json ... ok
+test pinned_profiles_reject_unknown_authority_fields_and_secret_forwarding ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

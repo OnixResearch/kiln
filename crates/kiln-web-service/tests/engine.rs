@@ -7,7 +7,7 @@ use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult, Workflow
 use kiln_web_service::engine::{ApiResponse, Engine, Role};
 use kiln_web_service::profile::ServiceProfile;
 use parking_lot::Mutex;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -16,6 +16,7 @@ struct Backend {
     plan: Option<WorkflowEffectPlan>,
     dispatches: usize,
     recoveries: usize,
+    observations: usize,
     controls: usize,
     sequence: u64,
     terminal: bool,
@@ -149,7 +150,8 @@ impl WorkflowPort for Port {
         Ok(observation(plan, &state))
     }
     fn observe(&mut self, _: &EffectId) -> PortResult<WorkflowObservation> {
-        let state = self.backend.lock();
+        let mut state = self.backend.lock();
+        state.observations += 1;
         Ok(observation(
             state
                 .plan
@@ -279,9 +281,8 @@ fn try_open(profile: ServiceProfile, backend: Arc<Mutex<Backend>>) -> Result<Eng
         .projects
         .first()
         .unwrap_or_else(|| unreachable!("fixture first element"))
-        .lattice(profile.bounds.max_runs)
-        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"))
-        .provider;
+        .execution_capabilities(profile.bounds.max_runs)
+        .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     let mut ports: BTreeMap<String, Box<dyn WorkflowPort + Send>> = BTreeMap::new();
     ports.insert(
         "fixture".into(),
@@ -333,6 +334,301 @@ fn start(engine: &mut Engine, key: &str) -> ApiResponse {
         json!({"project_id":"fixture","request_id":key}),
         Role::Operator,
     )
+}
+
+#[test]
+fn execution_binding_projects_persisted_authority_after_restart_without_provider_effects() {
+    let (_root, profile, revision) = fixture();
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    let run = value(&start(&mut engine, "binding"));
+    let id = checked(field(&run, "id").as_str().ok_or("run id"));
+    let path = format!("/api/runs/{id}/execution-binding");
+    let response = get(&mut engine, &path, Role::Worker);
+    assert_eq!(response.status, 200);
+    let projection = value(&response);
+    let binding: kiln_web_service::worker::ExecutionBinding =
+        checked(serde_json::from_slice(&response.body));
+    assert_eq!(Some(&binding.plan), backend.lock().plan.as_ref());
+    assert_eq!(binding.binding.run_id, id);
+    assert_eq!(binding.binding.project_id, "fixture");
+    assert_eq!(
+        binding.binding.source.exact_revision.native_id.as_str(),
+        revision
+    );
+    assert_eq!(binding.binding.untrusted, None);
+    assert_eq!(field(&projection, "execution"), field(&run, "execution"));
+    assert_eq!(field(&projection, "phase"), field(&run, "phase"));
+    assert_eq!(field(&projection, "outcome"), field(&run, "outcome"));
+    assert_eq!(field(&projection, "log_bounds"), field(&run, "log_bounds"));
+    drop(engine);
+
+    let mut engine = open(profile, backend.clone());
+    for role in [Role::Operator, Role::Worker] {
+        let response = get(&mut engine, &path, role);
+        assert_eq!(response.status, 200);
+        assert_eq!(value(&response), projection);
+    }
+    let state = backend.lock();
+    assert_eq!(
+        (
+            state.dispatches,
+            state.recoveries,
+            state.observations,
+            state.controls
+        ),
+        (1, 0, 0, 0)
+    );
+}
+
+#[test]
+fn execution_binding_minimum_http_envelope_chunks_round_trip_and_fail_closed() {
+    let (_root, mut profile, _) = fixture();
+    let request_limit = 4097;
+    profile.bounds.max_request_bytes = request_limit;
+    profile.bounds.max_artifact_bytes = 1;
+    checked(profile.projects.first_mut().ok_or("fixture project"))
+        .workflow
+        .bounds
+        .max_log_references = 2;
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend);
+    enroll(&mut engine);
+    let run = value(&start(&mut engine, "upload-boundary"));
+    let id = checked(field(&run, "id").as_str().ok_or("run id"));
+    let response = get(
+        &mut engine,
+        &format!("/api/runs/{id}/execution-binding"),
+        Role::Worker,
+    );
+    assert_eq!(response.status, 200);
+    let binding: kiln_web_service::worker::ExecutionBinding =
+        checked(serde_json::from_slice(&response.body));
+    let maximum = binding.log_bounds.maximum_chunk_bytes;
+    assert!(
+        maximum > 1,
+        "minimum admitted profile must retain useful chunk capacity"
+    );
+    let path = log_path(&run);
+    let oversized = log_upload(&run, "stdout", 0, &vec![b'x'; 4096], false);
+    assert!(checked(serde_json::to_vec(&oversized)).len() > request_limit);
+    assert_eq!(
+        call(&mut engine, "POST", &path, oversized, Role::Worker).status,
+        400
+    );
+    let mut malformed = log_upload(&run, "stdout", 0, b"x", false);
+    set(&mut malformed, "body_base64", json!("!"));
+    assert_eq!(
+        call(&mut engine, "POST", &path, malformed, Role::Worker).status,
+        400
+    );
+    let mut stale = log_upload(&run, "stdout", 0, b"x", false);
+    set(&mut stale, "attempt_id", json!("stale"));
+    assert_eq!(
+        call(&mut engine, "POST", &path, stale, Role::Worker).status,
+        409
+    );
+    let bytes = vec![b'x'; maximum + 1];
+    let mut cursor = 0;
+    for chunk in bytes.chunks(maximum) {
+        let truncated = cursor + chunk.len() == bytes.len();
+        let upload = log_upload(&run, "stdout", cursor as u64, chunk, truncated);
+        assert!(checked(serde_json::to_vec(&upload)).len() <= request_limit);
+        let response = call(&mut engine, "POST", &path, upload, Role::Worker);
+        assert_eq!(response.status, 201);
+        cursor += chunk.len();
+        assert_eq!(field(&value(&response), "next_cursor"), &json!(cursor));
+    }
+    let first = value(&read_capture(&mut engine, &path, "stdout", 0, maximum));
+    assert_eq!(field(&first, "text"), &json!("x".repeat(maximum)));
+    let last = value(&read_capture(
+        &mut engine,
+        &path,
+        "stdout",
+        maximum as u64,
+        1,
+    ));
+    assert_eq!(field(&last, "text"), "x");
+    assert_eq!(field(&last, "truncated"), true);
+    assert_eq!(
+        call(
+            &mut engine,
+            "POST",
+            &path,
+            log_upload(&run, "stderr", 0, b"y", false),
+            Role::Worker
+        )
+        .status,
+        409
+    );
+}
+
+#[test]
+fn execution_binding_preserves_unknown_and_queued_runs_without_recovery_or_dispatch() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend {
+        disconnect: true,
+        ..Backend::default()
+    }));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    let unknown = value(&start(&mut engine, "unknown-binding"));
+    let queued = value(&start(&mut engine, "queued-binding"));
+    drop(engine);
+    let mut engine = open(profile, backend.clone());
+    for (run, phase, outcome) in [
+        (&unknown, "unknown", "Unknown"),
+        (&queued, "queued", "Pending"),
+    ] {
+        let id = checked(field(run, "id").as_str().ok_or("run id"));
+        let response = get(
+            &mut engine,
+            &format!("/api/runs/{id}/execution-binding"),
+            Role::Worker,
+        );
+        assert_eq!(response.status, 200);
+        let projection = value(&response);
+        assert_eq!(field(&projection, "phase"), phase);
+        assert_eq!(field(&projection, "outcome"), outcome);
+        assert!(field(&projection, "execution").is_null());
+        assert_eq!(field(field(&projection, "binding"), "run_id"), id);
+        assert_eq!(field(&projection, "log_bounds"), field(run, "log_bounds"));
+    }
+    let state = backend.lock();
+    assert_eq!(
+        (
+            state.dispatches,
+            state.recoveries,
+            state.observations,
+            state.controls
+        ),
+        (1, 0, 0, 0)
+    );
+}
+
+#[test]
+fn execution_binding_authorization_and_request_shape_fail_closed() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend.clone());
+    enroll(&mut engine);
+    let run = value(&start(&mut engine, "binding-auth"));
+    let id = checked(field(&run, "id").as_str().ok_or("run id"));
+    let path = format!("/api/runs/{id}/execution-binding");
+    for path in [path.as_str(), "/api/runs/missing/execution-binding"] {
+        assert_eq!(get(&mut engine, path, Role::Viewer).status, 403);
+    }
+    for role in [Role::Worker, Role::Operator] {
+        assert_eq!(
+            get(&mut engine, "/api/runs/missing/execution-binding", role).status,
+            404
+        );
+        assert_eq!(
+            get(&mut engine, &format!("{path}?refresh=true"), role).status,
+            400
+        );
+        assert_eq!(call(&mut engine, "GET", &path, json!({}), role).status, 400);
+        assert_eq!(
+            call(&mut engine, "POST", &path, json!({}), role).status,
+            400
+        );
+    }
+    assert_eq!(
+        get(&mut engine, &format!("/api/runs/{id}"), Role::Worker).status,
+        403
+    );
+    let state = backend.lock();
+    assert_eq!(
+        (
+            state.dispatches,
+            state.recoveries,
+            state.observations,
+            state.controls
+        ),
+        (1, 0, 0, 0)
+    );
+}
+
+#[test]
+fn missing_worker_capture_never_falls_back_to_provider_logs_after_restart() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    let run = value(&start(&mut engine, "capture-only"));
+    let id = checked(field(&run, "id").as_str().ok_or("run id"));
+    drop(engine);
+    let mut engine = open(profile, backend.clone());
+    for stream in ["stdout", "stderr"] {
+        let response = get(
+            &mut engine,
+            &format!("/api/runs/{id}/logs?node_id=job&stream={stream}&cursor=0&max_bytes=8"),
+            Role::Viewer,
+        );
+        assert_eq!(response.status, 200);
+        let chunk = value(&response);
+        assert_eq!(field(&chunk, "source"), "worker-capture");
+        assert_eq!(field(&chunk, "text"), "");
+        assert_eq!(field(&chunk, "next_cursor"), 0);
+        assert_eq!(field(&chunk, "retained"), false);
+    }
+    let state = backend.lock();
+    assert_eq!(
+        (
+            state.dispatches,
+            state.recoveries,
+            state.observations,
+            state.controls
+        ),
+        (1, 0, 0, 0)
+    );
+}
+
+#[test]
+fn native_log_cursor_gap_and_bounds_are_preserved() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile, backend);
+    enroll(&mut engine);
+    let run = value(&start(&mut engine, "start"));
+    let path = format!(
+        "/api/runs/{}/logs",
+        field(&run, "id")
+            .as_str()
+            .unwrap_or_else(|| unreachable!("fixture string"))
+    );
+    let response = get(
+        &mut engine,
+        &format!("{path}?node_id=job&stream=diagnostic&cursor=0&max_bytes=3"),
+        Role::Operator,
+    );
+    assert_eq!(response.status, 200);
+    let chunk = value(&response);
+    assert_eq!(field(&chunk, "cursor"), 4);
+    assert_eq!(field(&chunk, "next_cursor"), 7);
+    assert_eq!(field(&chunk, "text"), "lin");
+    assert_eq!(field(&chunk, "gap"), true);
+    assert_eq!(field(&chunk, "retained"), true);
+    assert_eq!(field(&chunk, "source"), "native-provider");
+    assert_eq!(
+        get(
+            &mut engine,
+            &format!("{path}?node_id=job&stream=diagnostic&cursor=0&max_bytes=4097"),
+            Role::Operator
+        )
+        .status,
+        400
+    );
+    assert_eq!(
+        get(
+            &mut engine,
+            &format!("{path}?node_id=unknown&stream=diagnostic&cursor=0&max_bytes=3"),
+            Role::Operator
+        )
+        .status,
+        400
+    );
 }
 
 // r[verify kiln.web.enrollment.scenario.source] r[verify kiln.web.enrollment.scenario.denied]
@@ -492,6 +788,62 @@ fn accepted_disconnect_blocks_new_dispatch_and_recovers_original_execution() {
     );
     assert_eq!(backend.lock().dispatches, 2);
     assert_eq!(backend.lock().recoveries, 1);
+}
+
+// r[verify kiln.domain.attempts] r[verify kiln.web.controls.scenario.cancel]
+#[test]
+fn authoritative_running_recovery_restores_pending_and_allows_exact_cancellation() {
+    let (_root, profile, _) = fixture();
+    let backend = Arc::new(Mutex::new(Backend {
+        disconnect: true,
+        ..Backend::default()
+    }));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    let uncertain = value(&start(&mut engine, "uncertain-running"));
+    assert_eq!(field(&uncertain, "outcome"), "Unknown");
+    let id = field(&uncertain, "id")
+        .as_str()
+        .unwrap_or_else(|| unreachable!("fixture run"));
+    drop(engine);
+    {
+        let mut state = backend.lock();
+        state.disconnect = false;
+        state.sequence = 3;
+    }
+    let mut engine = open(profile, backend.clone());
+    poll(&mut engine);
+    let running = value(&get(
+        &mut engine,
+        &format!("/api/runs/{id}"),
+        Role::Operator,
+    ));
+    assert_eq!(field(&running, "outcome"), "Pending");
+    assert_eq!(field(&running, "phase"), "active");
+    let request = json!({"request_id":"cancel-recovered", "attempt_id":field(&running,"attempt_id"),
+        "expected_revision":field(&running,"revision"), "expected_sequence":field(&running,"sequence"),
+        "execution":field(&running,"execution"), "action":"cancel"});
+    let cancelled = call(
+        &mut engine,
+        "POST",
+        &format!("/api/runs/{id}/control"),
+        request,
+        Role::Operator,
+    );
+    assert_eq!(cancelled.status, 200);
+    assert_eq!(field(&value(&cancelled), "outcome"), "Cancelled");
+    let projection = get(
+        &mut engine,
+        &format!("/api/runs/{id}/execution-binding"),
+        Role::Worker,
+    );
+    assert_eq!(projection.status, 200);
+    assert_eq!(field(&value(&projection), "cancel_requested"), true);
+    let state = backend.lock();
+    assert_eq!(
+        (state.dispatches, state.recoveries, state.controls),
+        (1, 1, 1)
+    );
 }
 
 // r[verify kiln.web.controls.scenario.cancel] r[verify kiln.web.controls.scenario.denied]
@@ -676,53 +1028,6 @@ fn artifacts_are_real_bounded_identity_checked_retained_bytes_and_worker_is_narr
     std::os::unix::fs::symlink(root.path().join("repository/source.txt"), stored)
         .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     assert_eq!(get(&mut engine, &download, Role::Operator).status, 503);
-}
-
-// r[verify kiln.web.worker.scenario.logs]
-#[test]
-fn native_log_cursor_gap_and_bounds_are_preserved() {
-    let (_root, profile, _) = fixture();
-    let backend = Arc::new(Mutex::new(Backend::default()));
-    let mut engine = open(profile, backend);
-    enroll(&mut engine);
-    let run = value(&start(&mut engine, "start"));
-    let path = format!(
-        "/api/runs/{}/logs",
-        field(&run, "id")
-            .as_str()
-            .unwrap_or_else(|| unreachable!("fixture string"))
-    );
-    let response = get(
-        &mut engine,
-        &format!("{path}?node_id=job&stream=diagnostic&cursor=0&max_bytes=3"),
-        Role::Operator,
-    );
-    assert_eq!(response.status, 200);
-    let chunk = value(&response);
-    assert_eq!(field(&chunk, "cursor"), 4);
-    assert_eq!(field(&chunk, "next_cursor"), 7);
-    assert_eq!(field(&chunk, "text"), "lin");
-    assert_eq!(field(&chunk, "gap"), true);
-    assert_eq!(field(&chunk, "retained"), true);
-    assert_eq!(field(&chunk, "source"), "native-provider");
-    assert_eq!(
-        get(
-            &mut engine,
-            &format!("{path}?node_id=job&stream=diagnostic&cursor=0&max_bytes=4097"),
-            Role::Operator
-        )
-        .status,
-        400
-    );
-    assert_eq!(
-        get(
-            &mut engine,
-            &format!("{path}?node_id=unknown&stream=diagnostic&cursor=0&max_bytes=3"),
-            Role::Operator
-        )
-        .status,
-        400
-    );
 }
 
 // r[verify kiln.web.enrollment.scenario.denied] r[verify kiln.web.deploy.runtime.scenario.denied]
@@ -910,6 +1215,16 @@ fn profile_load_accepts_reviewed_nested_fields_and_rejects_unknown_native_bounds
     )
     .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     assert!(ServiceProfile::load(&path).is_ok());
+    for provider in ["hosted", "lattice"] {
+        let mut altered = admitted.clone();
+        let project = checked(altered.pointer_mut("/projects/0").ok_or("fixture project"));
+        set(project, "execution_provider", json!(provider));
+        checked(std::fs::write(&path, checked(serde_json::to_vec(&altered))));
+        assert!(
+            ServiceProfile::load(&path).is_err(),
+            "accepted obsolete execution_provider {provider}"
+        );
+    }
     for location in [
         "source_limits",
         "workflow-bounds",
@@ -972,10 +1287,8 @@ fn missing_reply_after_durable_start_returns_original_resource_without_redispatc
     database
         .execute(
             "UPDATE service_state SET state=?1 WHERE id=1",
-            rusqlite::params![
-                serde_json::to_vec(&state)
-                    .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"))
-            ],
+            rusqlite::params![serde_json::to_vec(&state)
+                .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"))],
         )
         .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     drop(database);
@@ -997,11 +1310,9 @@ fn failed_durable_reservation_prevents_provider_effects_and_further_authority() 
     database.execute_batch("CREATE TRIGGER reject_state BEFORE UPDATE ON service_state BEGIN SELECT RAISE(ABORT, 'isolated disk failure'); END;").unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     let request = serde_json::to_vec(&json!({"project_id":"fixture","request_id":"failed-start"}))
         .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"));
-    assert!(
-        engine
-            .api("POST", "/api/runs", &request, Role::Operator)
-            .is_err()
-    );
+    assert!(engine
+        .api("POST", "/api/runs", &request, Role::Operator)
+        .is_err());
     assert_eq!(start(&mut engine, "no-effects-after-failure").status, 503);
     assert!(engine.poll().is_err());
     assert_eq!(backend.lock().dispatches, 0);

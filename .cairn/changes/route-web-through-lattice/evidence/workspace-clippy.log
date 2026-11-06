@@ -1,0 +1,88 @@
+    Blocking waiting for file lock on package cache
+    Checking kiln-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-core)
+    Checking rusqlite v0.40.2
+    Checking aws-lc-sys v0.46.0
+    Checking lattice-workflow-contract v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/lattice/crates/lattice-workflow-contract)
+    Checking git2 v0.21.0
+    Checking verified-logic v0.2.0 (/home/brittonr/git/OnixResearch/kiln/vendor/ucan/vendor/verified-logic)
+   Compiling tree-sitter v0.26.13
+    Checking nix-derivation v0.6.1
+    Checking git2 v0.20.4
+    Checking kiln-microvm v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-microvm)
+    Checking artifact-auth-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/artifact/crates/artifact-auth-core)
+    Checking cairn-gate-contract v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/cairn/crates/cairn-gate-contract)
+   Compiling zstd-seekable v0.1.23
+    Checking nix-narinfo v0.4.0
+    Checking lattice-workflow-transport v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/lattice/crates/lattice-workflow-contract/transport)
+    Checking aws-lc-rs v1.18.2
+    Checking valence-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/valence/crates/valence-core)
+    Checking rustls-webpki v0.103.16
+   Compiling tree-sitter-nickel v0.5.0
+    Checking tree-sitter-highlight v0.26.13
+    Checking rustls v0.23.46
+    Checking kiln-highlight v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-highlight)
+    Checking radicle-oid v0.2.2
+    Checking radicle-cob v0.21.1
+    Checking radicle-core v0.4.1
+    Checking heartwood-canonical v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/heartwood-canonical)
+    Checking onix-radicle-cob-git-store v0.2.0 (/home/brittonr/git/OnixResearch/kiln/vendor/radicle-cob-git-store)
+    Checking kiln-provider-api v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-provider-api)
+    Checking kiln-codec v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-codec)
+    Checking kiln-observe-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-observe-core)
+    Checking kiln-build-graph v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-build-graph)
+    Checking kiln-nix-store v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-store)
+    Checking kiln-adapter-valence v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-valence)
+    Checking kiln-adapter-cdevents v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-cdevents)
+    Checking kiln-adapter-opentelemetry v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-opentelemetry)
+    Checking ucan v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/ucan)
+    Checking kiln-adapter-lattice v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-lattice)
+    Checking kiln-adapter-git v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git)
+    Checking kiln-adapter-aspen v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-aspen)
+    Checking kiln-adapter-jj v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-jj)
+    Checking kiln-adapter-webhook v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-webhook)
+    Checking kiln-adapter-cob v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-cob)
+    Checking kiln-adapter-nix-eval v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix-eval)
+    Checking kiln-adapter-nix v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix)
+    Checking kiln-standalone v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-standalone)
+    Checking kiln-adapter-sqlite v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-sqlite)
+    Checking kiln-adapter-remote v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-remote)
+    Checking kiln-adapter-patchgate v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-patchgate)
+    Checking kiln-adapter-cairn v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-cairn)
+    Checking kiln-adapter-mantle v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-mantle)
+    Checking kiln-dashboard v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-dashboard)
+    Checking ureq v2.12.1
+    Checking tokio-rustls v0.26.6
+    Checking kiln-adapter-http-observe v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-http-observe)
+    Checking rustls-platform-verifier v0.7.1
+    Checking iroh-quinn-proto v0.13.0
+    Checking rustls-platform-verifier v0.5.3
+    Checking kiln-nix-build v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-build)
+    Checking kiln-adapter-radicle v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-radicle)
+    Checking kiln-aspen-extension v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-aspen-extension)
+    Checking hyper-rustls v0.27.10
+    Checking hickory-proto v0.25.2
+    Checking tokio-websockets v0.12.3
+    Checking kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)
+    Checking kiln-adapter-gitea v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-gitea)
+    Checking kiln-adapter-celld v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-celld)
+    Checking kiln-adapter-tangled v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-tangled)
+    Checking kiln-cli v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-cli)
+    Checking reqwest v0.12.28
+    Checking reqwest v0.13.5
+    Checking kiln-onixos-pilot v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-onixos-pilot)
+    Checking kiln-conformance v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-conformance)
+    Checking pkarr v5.0.3
+    Checking iroh-quinn v0.14.0
+    Checking kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+    Checking kiln-radicle-ci v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-radicle-ci)
+    Checking libpijul v1.0.0-beta.11
+    Checking hickory-resolver v0.25.2
+    Checking kiln-onixos-worker v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-onixos-worker)
+    Checking iroh-relay v0.95.1
+    Checking iroh v0.95.1
+    Checking pijul-repository v1.0.0-beta.10
+    Checking kiln-adapter-pijul v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-pijul)
+    Checking kiln-hosted v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted)
+    Checking kiln-adapter-iroh v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-iroh)
+    Checking kiln-adapter-iroh-observe v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-iroh-observe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 50.43s

@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 use std::fs;
-use std::os::unix::fs::{PermissionsExt, symlink};
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::sync::atomic::AtomicBool;
 
 use git2::{Repository, Signature};
-use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
+use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
 use kiln_core::source::GitSnapshotLimits;
 use kiln_core::types::{ExternalRef, ProviderProfileId};
 
-use super::{Step, WorkerProfile, client, files, process, source};
+use super::{client, files, process, source, Step, WorkerProfile};
 
 fn fixture() -> (tempfile::TempDir, WorkerProfile, source::SourceContext) {
     let root =
@@ -509,14 +509,12 @@ fn real_artifacts_admit_regular_bytes_and_reject_escape_symlink_hardlink_fifo_an
     assert!(files::artifact(&prepared.checkout, std::path::Path::new("link"), 100).is_err());
     symlink(root.path(), prepared.checkout.join("directory-link"))
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "parent symlink", error));
-    assert!(
-        files::artifact(
-            &prepared.checkout,
-            std::path::Path::new("directory-link/anything"),
-            100
-        )
-        .is_err()
-    );
+    assert!(files::artifact(
+        &prepared.checkout,
+        std::path::Path::new("directory-link/anything"),
+        100
+    )
+    .is_err());
     fs::hard_link(&actual, prepared.checkout.join("hardlink"))
         .unwrap_or_else(|error| unreachable!("{}: {:?}", "hardlink", error));
     assert!(files::artifact(&prepared.checkout, std::path::Path::new("hardlink"), 100).is_err());

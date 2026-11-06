@@ -177,7 +177,7 @@ fn project_workers<'a>(
         targets: targets.len(),
         capacity: Capacity::default(),
     };
-    for ((provider_profile_id, socket_path, platform), mut facts) in targets {
+    for ((provider_profile_id, endpoint, platform), mut facts) in targets {
         facts.projects.sort_unstable_by_key(|p| p.id);
         let mut capacity = Capacity::default();
         for p in &facts.projects {
@@ -204,7 +204,7 @@ fn project_workers<'a>(
         workers.push(Worker {
             id: crate::profile::worker_target_identity(
                 provider_profile_id,
-                std::path::Path::new(socket_path),
+                std::path::Path::new(endpoint),
                 platform,
             )?
             .as_str()

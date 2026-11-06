@@ -1,0 +1,156 @@
+{
+  "schema": "kiln.web-hosted.source-cohort.v1",
+  "base_revision": "eb977986d9e73138e290a50ab44e4a4a04825804",
+  "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "blake3": "8ff8717fb80dd93fda42689403e120014d00d983a5aceb127d08ea877b29bbe4"
+    },
+    {
+      "path": "crates/kiln-hosted/Cargo.toml",
+      "blake3": "034e5ffd9fb7f4c9d8db6a73279b1a0fab78e0747c8a6f1156c4d149646223d6"
+    },
+    {
+      "path": "crates/kiln-core/src/domain.rs",
+      "blake3": "a2ce34bb8de1256fb3440d5380d55213981658379e9958018cfea70aa9bd9909"
+    },
+    {
+      "path": "crates/kiln-provider-api/src/lib.rs",
+      "blake3": "cfdf7a197d63cbb0aa672f8752c8c41e667c9bb11564f4023d4e40e62bcdba8c"
+    },
+    {
+      "path": "crates/kiln-hosted/src/lib.rs",
+      "blake3": "79088832f9b0aa6ff71c28130bc93ccd9e3dd636746d1190344224910c4ba956"
+    },
+    {
+      "path": "crates/kiln-hosted/src/service.rs",
+      "blake3": "a121a976e6ee73aa1f88556b314e68ca484e679c44966b17cdc76fc41ceef5aa"
+    },
+    {
+      "path": "crates/kiln-hosted/src/bin/kiln-web-hosted.rs",
+      "blake3": "39ba45d6dd96a2025877556a7776f9b8aa5e1fb1e64b421ee4b979cf753fd33a"
+    },
+    {
+      "path": "crates/kiln-hosted/src/web_execution.rs",
+      "blake3": "c0b3958e3af052bf80e18c348ed17c80a82ac8fe7140f9e322393f4d83ad9fd9"
+    },
+    {
+      "path": "crates/kiln-hosted/src/web_adapter.rs",
+      "blake3": "fe07f4a87f993cb88d7eee13b70f0332b3741a37f949b1e00187722d9d183c07"
+    },
+    {
+      "path": "crates/kiln-hosted/src/web_adapter_tests.rs",
+      "blake3": "04f9b19fda034f03e81a7d74b22967426122c75507ef0890f9b27ff60260c9b7"
+    },
+    {
+      "path": "crates/kiln-hosted/tests/journey.rs",
+      "blake3": "b6b6f56bf8c417f4d19452c9ab5d7ab48cd0bb1a95f7751369e1c2872e878bad"
+    },
+    {
+      "path": "crates/kiln-hosted/tests/microvm.rs",
+      "blake3": "cd61b50aea71246444c1a67c8ea6e9fcc692f1207ffd8c922235dc7b42904b9c"
+    },
+    {
+      "path": "crates/kiln-hosted/tests/web_execution_identity.rs",
+      "blake3": "df817437206f5a75193d5af4a623b264fa00077a082c7fa5582d412d4b50398f"
+    },
+    {
+      "path": "crates/kiln-web-service/src/engine.rs",
+      "blake3": "ff69b48d64ac2bb2897d5f15656b2aa27867d66397134c47d8b9288bc9461554"
+    },
+    {
+      "path": "crates/kiln-web-service/src/engine/api.rs",
+      "blake3": "0b4f2861cbea9c14b634839c523d3baade2ee1d600d86adb3bf1d8bbb707ba83"
+    },
+    {
+      "path": "crates/kiln-web-service/src/engine/model.rs",
+      "blake3": "3aee74e42eebc78fc0d52ef91d0b8a02c1aee0898b301348c89adfc5855b90b7"
+    },
+    {
+      "path": "crates/kiln-web-service/src/engine/queue.rs",
+      "blake3": "34383338227907ff60fd161427ba2f0be06c8a5f58591735f984cdba64a7ab4c"
+    },
+    {
+      "path": "crates/kiln-web-service/src/engine/worker_status.rs",
+      "blake3": "7584631a7587667d27e016789365ef868a6b8f3d26855cc37f0693f70350475a"
+    },
+    {
+      "path": "crates/kiln-web-service/src/engine/workers.rs",
+      "blake3": "c450f808991350694f9c66e21538aa28088ba0b2addde68b688d6835eb480092"
+    },
+    {
+      "path": "crates/kiln-web-service/src/profile.rs",
+      "blake3": "afdc84076a91eb3d2d13cab6a69f4a79f050b137c9e8391653be1e275333c167"
+    },
+    {
+      "path": "crates/kiln-web-service/src/server.rs",
+      "blake3": "22ef7ad31e65fda69eb8281bf389ab5805c74590087c3044984c92f6df2658ba"
+    },
+    {
+      "path": "crates/kiln-web-service/src/server/admission.rs",
+      "blake3": "bbcbabb8078fb687a5e104477c65e7402d447cb7a1866cc3440d18d500803f84"
+    },
+    {
+      "path": "crates/kiln-web-service/tests/engine.rs",
+      "blake3": "208c572d0a96588a569a32541ffcc8b9645275de8defa21b009e38da9879d8ba"
+    },
+    {
+      "path": "config/hosted-service.ncl",
+      "blake3": "5626f2a095eca3dd406e0e7f7e6a13068335818251adf9a2b0b9d4d5b5a097aa"
+    },
+    {
+      "path": "config/web-service.ncl",
+      "blake3": "a396843f9bff06e6b1f86d1f7b3252c93e901bac67bc44c758ff535a00b4ad57"
+    },
+    {
+      "path": "config/web-hosted-bridge.ncl",
+      "blake3": "2c6309f41a2dcc631af3bd50fc0dc00484607c8a0af161df3242450871f78a72"
+    },
+    {
+      "path": "config/fixtures/web-hosted-bridge-positive.ncl",
+      "blake3": "7b6cbe50b0fbf26d593125f80f75b768736e6f9507fc971a71bf51cee874db47"
+    },
+    {
+      "path": "config/fixtures/web-service-hosted-positive.ncl",
+      "blake3": "036d2417578c595c9e600be287a77f80dda8abab28462052e78ce186fe4faf0c"
+    },
+    {
+      "path": "config/fixtures/hosted-service-web-positive.ncl",
+      "blake3": "c2e3d7fb312037a0dee550eaae2146943b2221724f17ac3f0ec2c8e10018f4fd"
+    },
+    {
+      "path": "config/fixtures/negative-web-hosted-bridge-empty-projects.ncl",
+      "blake3": "8075d626d780a4db8f39f55372e7b9c977394ec6d84c927793bfa192bf7cf0e4"
+    },
+    {
+      "path": "config/fixtures/negative-web-hosted-bridge-empty-routes.ncl",
+      "blake3": "4e79a8f73c62575b2a7a256eff8c7d4bab2434d7a043e3c6a0668178b63d7627"
+    },
+    {
+      "path": "config/fixtures/negative-web-hosted-bridge-peer.ncl",
+      "blake3": "0d0264f48e1991b23f5e430397c0e73bcfab03f5a2c53a0442cedd9c84c6b207"
+    },
+    {
+      "path": "config/fixtures/negative-web-service-provider.ncl",
+      "blake3": "aaaa5faf3e3852016939c404e5fc8884045f148bd13cb3c36ff74962d1dc5273"
+    },
+    {
+      "path": "config/fixtures/negative-hosted-service-web-peer.ncl",
+      "blake3": "a55d65f2af959615baef0f2567c66ec224771ccfdad4ed46be9086af476f5eaa"
+    },
+    {
+      "path": "config/fixtures/negative-hosted-service-web-source-bound.ncl",
+      "blake3": "96da20a92c74ce8ee89ea261d6ea0a8cf653d6ec48adf17b8849efdc147a7740"
+    },
+    {
+      "path": "flake.nix",
+      "blake3": "6b12840bfc29b6f980c19e8253096b444a6b57ff23447b5781f0fc6fce9f7da8"
+    },
+    {
+      "path": "scripts/web-hosted-approval-smoke.py",
+      "blake3": "a19cf3914d8459fed3db48b7e8bd9bd61258f82e6a5993a30e3731cefe8c5524"
+    }
+  ],
+  "boundary": "Changed implementation, configuration, fixtures and actual smoke recipe relative to retained base; evidence/docs excluded to avoid recursive identities. Binary and guest identities are retained by the actual runtime receipt."
+}

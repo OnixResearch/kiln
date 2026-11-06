@@ -1,8 +1,8 @@
 use super::api::error;
-use super::model::{RequestKind, RunRecord, selected_plan, workflow_plan};
-use super::{ApiResponse, Engine, host_time_ms, identity};
+use super::model::{selected_plan, workflow_plan, RequestKind, RunRecord};
+use super::{host_time_ms, identity, ApiResponse, Engine};
 use crate::profile::ProjectProfile;
-use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
+use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
 use kiln_core::domain::{Command, Outcome, State};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::{Alias, ExternalRef, ProviderProfileId, RunId};
@@ -412,8 +412,7 @@ impl Engine {
             workflow_plan(project, &run_identity, &pipeline, Some(context))?,
             &selected,
         )?;
-        kiln_adapter_lattice::lower_request(&project.lattice(self.profile.bounds.max_runs)?, &plan)
-            .map_err(|_| "source-bound workflow rejected")?;
+        project.admit_execution_plan(&plan, self.profile.bounds.max_runs)?;
         let mut record = RunRecord {
             id: id.clone(),
             ordinal: self.state.version,

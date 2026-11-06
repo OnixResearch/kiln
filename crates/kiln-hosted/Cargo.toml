@@ -19,6 +19,7 @@ fs2.workspace = true
 hmac = "0.12.1"
 iroh = { version = "=0.95.1", default-features = false }
 kiln-adapter-github = { path = "../kiln-adapter-github" }
+kiln-adapter-git = { path = "../kiln-adapter-git" }
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-microvm = { path = "../kiln-microvm" }
@@ -30,6 +31,7 @@ serde.workspace = true
 rustix = { version = "=1.1.4", features = ["fs"] }
 serde_json.workspace = true
 sha2 = "0.10.9"
+signal-hook = "0.3.18"
 tempfile = "3.27.0"
 tokio = { version = "1.44.1", features = ["rt-multi-thread", "macros", "net", "io-util", "sync", "time", "signal"] }
 serde_yaml = "0.9"

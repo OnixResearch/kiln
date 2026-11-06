@@ -1,0 +1,75 @@
+{
+  "schema": "kiln.web-hosted-smoke-initial-failures.v1",
+  "initial_automation": {
+    "result": "failed_before_web_start",
+    "cause": "retired allow_fork_pull_requests=true; fixture corrected to deny implicit forks and require untrusted_pull_requests=approve",
+    "owned_children_stopped": true
+  },
+  "trusted_socket": {
+    "result": "real_terminal_domain_failure",
+    "reason": "guest listener bind failed",
+    "cleaned": true,
+    "diagnosis": "Smoke set TMPDIR beneath an overlong absolute root; changed fresh owned fixture to short outside-/tmp root, preserving PrivateTmp and original failure",
+    "reexecuted_original_binding": false
+  },
+  "corrected_fixture": {
+    "status": "passed_admission_vm_qualification_pending",
+    "source": "3a482a5c735cde90395ecab44561f28f5d9b7eab",
+    "trusted_outcome": "Success",
+    "actual_stdout": "real trusted guest source=approved-exact-source-v1\n",
+    "untrusted_vm_qualification": "pending"
+  },
+  "non_claims": [
+    "Successful controlled trusted guest execution is not approved-untrusted VM qualification.",
+    "Initial failures remain failures, not retried effects; corrected fixtures have independent identities and private state."
+  ],
+  "cancellation_fixture_scope": {
+    "result": "failed_before_web_start",
+    "cause": "Three project scopes were not in native sorted canonical order; fixture corrected with sorted(projects).",
+    "hosted_execution_rows": 0,
+    "original_request_retried": false
+  },
+  "live_cancellation_before_canonical_fix": {
+    "result": "actually_live_controlled_vmm_was_not_cancellable",
+    "cause": "[INFERENCE] The live runtime control refusal was consistent with canonical Unknown remaining after Running. An independent failed-before/passed-after regression established that exact source bug; the final actual live-cancellation proof passed after its fix.",
+    "teardown": {
+      "forced_owned_child_stop_reported": true,
+      "owned_vmm_final_state": [
+        "ActiveState=inactive",
+        "SubState=dead",
+        "MainPID=0"
+      ],
+      "no_running_vmm": true
+    },
+    "original_binding_reexecuted": false,
+    "final_new_fixture": {
+      "run_id": "web-run-bfb1adef385d9f4cdf4c4bd9600180d9b5d372e689a84f611745c4a8dd1bbe6f",
+      "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+      "node_id": "build[0]",
+      "live_vmm_observed": true,
+      "confinement_and_pid_lifetime_verified": true,
+      "https_cancel_accepted": true,
+      "outcome": "Cancelled",
+      "node_state": "Cancelled",
+      "cleaned": true,
+      "journal_lifecycle": "destroyed",
+      "no_running_owned_unit": true,
+      "exactly_one_execution_reservation_usage": true,
+      "replay_and_restart_unchanged": true,
+      "untrusted_vm_qualification": "pending"
+    }
+  },
+  "requirement_marker_normalization": {
+    "initial_coverage_requirements": 1488,
+    "initial_dangling": [
+      "kiln.web_hosted.adapter",
+      "kiln.web_hosted.admission",
+      "kiln.web_hosted.binding",
+      "kiln.web_hosted.qualification",
+      "kiln.web_hosted.replay"
+    ],
+    "cause": "Delta inline heading IDs were not recognized by accepted-source trace convention; normalized to standalone r[] markers and applied native reviewed MODIFIED replacement after initial synchronization.",
+    "final_requirements": 1493,
+    "final_referenced": 1493
+  }
+}

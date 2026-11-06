@@ -1,17 +1,17 @@
 use super::api::{error, json_response};
 use super::queue::StartRequest;
-use super::{ApiResponse, Engine, Role, identity};
+use super::{identity, ApiResponse, Engine, Role};
 use crate::automation::{
-    AutomationProfile, DeliveryRecord, HttpsRuntime, NotificationProfile, RegistrationState,
-    SourceRecord, external, now_ms, secret,
+    external, now_ms, secret, AutomationProfile, DeliveryRecord, HttpsRuntime, NotificationProfile,
+    RegistrationState, SourceRecord,
 };
-use kiln_adapter_github::events::{DeliveryHeaders, EventSelector, admit_event_with};
-use kiln_adapter_webhook::{WebhookAdapter, project_notification};
+use kiln_adapter_github::events::{admit_event_with, DeliveryHeaders, EventSelector};
+use kiln_adapter_webhook::{project_notification, WebhookAdapter};
 use kiln_core::domain::{NotificationIntent, Outcome};
 use kiln_core::types::{EffectId, RunId};
 use kiln_provider_api::{NotificationOutcome, NotificationPort, NotificationRequest};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 mod schedule;
 

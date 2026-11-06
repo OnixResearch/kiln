@@ -600,13 +600,11 @@ fn logs_search_across_chunk_boundary_and_download_exact_bytes_with_metadata() {
 #[test]
 fn historical_runs_restore_without_invented_timing_and_profile_serialization_is_unchanged() {
     let (_root, profile, _) = fixture();
-    assert!(
-        checked(serde_json::to_value(&profile))
-            .pointer("/projects/0")
-            .unwrap_or(&serde_json::Value::Null)
-            .get("admitted_references")
-            .is_none()
-    );
+    assert!(checked(serde_json::to_value(&profile))
+        .pointer("/projects/0")
+        .unwrap_or(&serde_json::Value::Null)
+        .get("admitted_references")
+        .is_none());
     let backend = Arc::new(Mutex::new(Backend::default()));
     let mut engine = open(profile.clone(), backend.clone());
     enroll(&mut engine);
@@ -689,33 +687,27 @@ fn overview_records_observed_timing_and_operations_warns_before_admission_exhaus
     let mut engine = open(profile, backend.clone());
     enroll(&mut engine);
     let first = value(&start(&mut engine, "timed"));
-    assert!(
-        first
-            .pointer("/created_at_ms")
-            .unwrap_or(&serde_json::Value::Null)
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        first
-            .pointer("/started_at_ms")
-            .unwrap_or(&serde_json::Value::Null)
-            .as_u64()
-            .is_some()
-    );
+    assert!(first
+        .pointer("/created_at_ms")
+        .unwrap_or(&serde_json::Value::Null)
+        .as_u64()
+        .is_some());
+    assert!(first
+        .pointer("/started_at_ms")
+        .unwrap_or(&serde_json::Value::Null)
+        .as_u64()
+        .is_some());
     assert_eq!(
         first
             .pointer("/completed_at_ms")
             .unwrap_or(&serde_json::Value::Null),
         &Value::Null
     );
-    assert!(
-        first
-            .pointer("/nodes/0/started_at_ms")
-            .unwrap_or(&serde_json::Value::Null)
-            .as_u64()
-            .is_some()
-    );
+    assert!(first
+        .pointer("/nodes/0/started_at_ms")
+        .unwrap_or(&serde_json::Value::Null)
+        .as_u64()
+        .is_some());
     finish(&mut engine, &backend);
     let completed = value(&get(
         &mut engine,
@@ -771,21 +763,19 @@ fn overview_records_observed_timing_and_operations_warns_before_admission_exhaus
             .unwrap_or(&serde_json::Value::Null),
         &"a".repeat(64)
     );
-    assert!(
-        checked(
-            operations
-                .pointer("/warnings")
-                .unwrap_or(&serde_json::Value::Null)
-                .as_array()
-                .ok_or("warnings")
-        )
-        .iter()
-        .any(
-            |w| w.pointer("/resource").unwrap_or(&serde_json::Value::Null) == "runs"
-                && w.pointer("/used").unwrap_or(&serde_json::Value::Null) == 2
-                && w.pointer("/maximum").unwrap_or(&serde_json::Value::Null) == 2
-        )
-    );
+    assert!(checked(
+        operations
+            .pointer("/warnings")
+            .unwrap_or(&serde_json::Value::Null)
+            .as_array()
+            .ok_or("warnings")
+    )
+    .iter()
+    .any(
+        |w| w.pointer("/resource").unwrap_or(&serde_json::Value::Null) == "runs"
+            && w.pointer("/used").unwrap_or(&serde_json::Value::Null) == 2
+            && w.pointer("/maximum").unwrap_or(&serde_json::Value::Null) == 2
+    ));
     assert_eq!(start(&mut engine, "over-limit").status, 409);
     assert_eq!(backend.lock().dispatches, 2);
     assert_eq!(

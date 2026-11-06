@@ -1,0 +1,4 @@
+{
+  "schema": "kiln.web-lattice-hosted.smoke-failure.v1",
+  "scope": "The tampered-node probe reserved a metadata row before local policy/source validation. No workload or financial effect; fixed by validating local admission before reservation."
+}

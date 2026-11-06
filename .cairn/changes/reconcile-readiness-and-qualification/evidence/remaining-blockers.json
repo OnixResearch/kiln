@@ -45,13 +45,13 @@
       "id": "combined-web-approval-handoff",
       "owner": "Interactive operator and Kiln Web/hosted-execution maintainers",
       "state": "blocked",
-      "evidence": "aspen1-2026-11-06/approved/verdict.json",
+      "evidence": "../../route-web-through-lattice/evidence/runtime-final.json",
       "prerequisites": [
-        "Exercise a real production Web run blocked on the exact admitted source commit and an authenticated interactive approval.",
-        "Exercise a supported exact-provenance Web-to-hosted handoff; hosted execution.run currently trusts caller-supplied provenance."
+        "Explicitly allocate an eligible host and preserve its kernel, whole-host trust, SMT/KSM and CAT gates; the workstation's Linux 6.18.50 refusal must not be waived.",
+        "Run exact-commit interactive approval through ordinary kiln-web-service, genuine native Lattice saved workflows and kiln-hosted lattice-job to actual approved-untrusted hosted execution; retain exact guest, outcome and teardown evidence. Caller-provenance execution.run and historical direct-route receipts do not satisfy this criterion."
       ],
-      "completed": "Aspen1 booted Linux 7.3.0; actual operator-authorized authenticated untrusted execution and invalid-provenance refusal passed under whole-host exclusion, SMT off, KSM off and exclusive CAT; temporary state and services were restored.",
-      "boundary": "Actual hosted execution is qualified only for the retained cohort; Web approval and hostile isolation were not established."
+      "completed": "The superseded direct composition is removed. The sole-Lattice route passed a real local exercise: ordinary kiln-web-service, genuine saved native workflows via workflow-exchange serve, the fixed lattice-job task, and authenticated hosted Firecracker execution. Hosted independently verified the configured Web authority and exact Git source; the ineligible 6.18.50 host was refused before execution or financial effects. Controlled trusted execution returned source-bound guest stdout. Live HTTPS cancellation of a running VMM reached Cancelled/cleaned with destroyed journal and no owned unit, and replay/restart preserved outcomes and counts. Cancellation intent is now durable worker-visible state observed by both the task and hosted, because the native runner may destroy a cancelled task without a signal.",
+      "boundary": "Approved-untrusted execution still requires an eligible allocated host; the workstation refusal is not VM qualification. Same-host trusted execution and cancellation are not production deployment, WAN/relay, distinct-physical-host or hostile-isolation proof. hostile_isolation_claim remains false."
     },
     {
       "id": "distinct-physical-host",
@@ -69,7 +69,9 @@
   ],
   "retained_active_changes": [
     "add-attested-agent-metadata",
-    "reconcile-readiness-and-qualification"
+    "reconcile-readiness-and-qualification",
+    "add-web-hosted-approval-bridge",
+    "route-web-through-lattice"
   ],
   "publication": {
     "new_push": false,

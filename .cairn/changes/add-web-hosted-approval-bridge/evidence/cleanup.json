@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.web-hosted.cleanup.v1",
+  "removed_owned_directories": [
+    "target/web-hosted-approval-private-20261106-a",
+    "target/web-hosted-approval-evidence-20261106-a",
+    "target/web-hosted-approval-private-20261106-b",
+    "target/web-hosted-approval-evidence-20261106-b",
+    "target/kwh-c",
+    "target/kwh-c-evidence",
+    "target/kwh-d",
+    "target/kwh-d-evidence",
+    "target/kwh-e",
+    "target/kwh-e-evidence",
+    "target/kwh-f",
+    "target/kwh-f-evidence"
+  ],
+  "private_keys_tokens_and_raw_databases_removed": true,
+  "all_removed": true,
+  "host_configuration_changed": false,
+  "failed_fixture_owned_vmm_final_state": [
+    "ActiveState=inactive",
+    "SubState=dead",
+    "MainPID=0"
+  ],
+  "final_runtime_teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 1,
+    "errors": [],
+    "private_scratch_retained": true
+  },
+  "runtime_summary_scope": "The runtime receipt reports scratch retained at that observation time; this later receipt proves its owned removal."
+}

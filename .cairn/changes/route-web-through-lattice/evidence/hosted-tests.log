@@ -1,0 +1,157 @@
+
+running 108 tests
+test execution::tests::cache_partition_labels_require_resctrl ... ok
+test execution::tests::cloud_hypervisor_runner_declares_phase_one_capabilities ... ok
+test execution::tests::namespaces_never_admit_hostile_jobs ... ok
+test execution::tests::cancellation_does_not_turn_uncertain_teardown_into_safe_completion ... ok
+test execution::tests::cpu_affinity_is_bounded_and_duplicate_free ... ok
+test execution::tests::namespace_and_microvm_observations_share_one_canonical_outcome ... ok
+test execution::tests::explicit_guest_network_requests_are_refused ... ok
+test execution::tests::financial_admission_rounds_up_and_enforces_operator_maximum ... ok
+test execution::tests::backend_capabilities_drive_admission_declarations ... ok
+test execution::tests::snapshot_capability_refuses_warm_pools ... ok
+test execution::tests::firecracker_admits_hostile_only_with_an_operator_qualification_reference ... ok
+test execution::tests::vmm_unit_sets_no_new_privileges ... ok
+test execution::tests::unikernel_admits_only_no_network_trusted_execution ... ok
+test cache::tests::cache_tar_bound_must_fit_the_guest_frame ... ok
+test cache::tests::guest_publication_rejects_a_source_changed_after_restore ... ok
+test fleet::tests::finite_capacity_and_immutable_driver_are_required ... ok
+test execution::tests::firecracker_runner_admission_is_bounded_by_unit_limits_cache_and_pool ... ok
+test execution::tests::untrusted_and_workload_runners_cannot_share_a_cache_partition ... ok
+test execution::tests::debug_hold_is_bounded_and_absent_keeps_the_configuration_identity ... ok
+test execution::tests::untrusted_attempts_and_retries_get_no_secrets_token_or_cache ... ok
+test execution::tests::untrusted_runs_need_a_declared_untrusted_capable_microvm_runner ... ok
+test execution::tests::untrusted_and_workload_runners_cannot_share_a_trust_domain ... ok
+test lattice_execution::tests::cancellation_before_registration_requires_retry_without_orphan_intent ... ok
+test lattice_execution::tests::cancellation_before_binding_reservation_stops_registered_admission ... ok
+test lattice_execution::tests::materialized_git_bytes_and_executable_mode_are_exact_and_not_writable ... ok
+test lattice_execution::tests::source_symlinks_cannot_alias_runtime_or_escape_staging ... ok
+test lattice_execution::tests::file_directory_alias_and_duplicate_materialization_fail_without_overwriting ... ok
+test lattice_execution::tests::web_revision_context_matches_git_commit_but_stale_approval_cannot_dispatch ... ok
+test lattice_job::tests::backend_receipts_require_exact_attempt_state_and_both_verification_facts ... ok
+test lattice_job::tests::failed_job_output_survives_skipped_dependencies_without_inventing_output ... ok
+test lattice_job::tests::pending_cancellation_requires_live_acknowledgement_and_is_not_terminal ... ok
+test lattice_execution::tests::authoritative_web_record_must_match_active_exact_native_execution ... ok
+test lattice_job::tests::cleanup_window_is_bounded_and_defaults_without_widening_identity ... ok
+test cache::tests::corruption_symlinks_and_source_overlap_are_rejected ... ok
+test microvm::tests::l3_cache_assignment_accepts_padded_kernel_rows_only_for_l3_resources ... ok
+test cache::tests::guest_outputs_publish_under_the_source_key_and_restore ... ok
+test microvm::tests::pool_paths_must_be_short_private_and_disjoint_from_source ... ok
+test microvm::tests::unconfirmed_or_unrecorded_destruction_cannot_publish_guest_bytes ... ok
+test finance::tests::financial_mutations_recheck_durable_role_before_replay_or_effect ... ok
+test accounts::tests::final_owner_expiry_and_bootstrap_pin ... ok
+test debug_hold::tests::concurrent_holds_are_bounded_per_runner_and_end_closes_queued_sessions ... ok
+test execution::tests::placement_ledger_rejects_cross_attempt_trust_overlap ... ok
+test cache::tests::successful_output_is_reused_but_other_tenants_inputs_and_configs_do_not_hit ... ok
+test pipelines::tests::cycle_overflow_missing_template_and_unknown_fields_fail ... ok
+test accounts::tests::memberships_survive_reopen_and_inviter_revision_changes ... ok
+test debug_hold::tests::expired_capabilities_are_refused ... ok
+test pipelines::tests::deterministic_templates_matrix_and_dependency_semantics ... ok
+test execution::tests::uncertain_states_retain_capacity_until_owned_reaping ... ok
+test accounts::tests::ownership_transfer_does_not_rebootstrap_revoked_peer ... ok
+test pipelines::tests::deadline_path_environment_and_expression_bounds_fail_closed ... ok
+test pipelines::tests::invalid_trigger_filters_and_schedules_fail_before_execution ... ok
+test accounts::tests::intended_peer_once_scope_and_revocation ... ok
+test pipelines::tests::unikernel_job_refuses_exec_request ... ok
+test pipelines::tests::migrate_maps_actions_filters_and_round_trips ... ok
+test pipelines::tests::migrated_shell_matrix_env_and_needs_are_usable ... ok
+test pipelines::tests::unfiltered_triggers_keep_plan_bytes_and_filtered_objects_round_trip ... ok
+test finance::tests::credits_and_prices_reject_conflicting_or_overflowing_inputs ... ok
+test pipelines::tests::unikernel_job_refuses_network_request ... ok
+test pipelines::tests::unikernel_job_refuses_shell_step ... ok
+test pipelines::tests::unikernel_job_requires_matching_kind_and_fixed_input_contract ... ok
+test microvm::tests::source_image_is_fixed_size_deterministic_and_never_follows_symlinks ... ok
+test pipelines::tests::unikernel_job_refuses_multiple_steps ... ok
+test pipelines::tests::unsupported_actions_features_fail_with_paths ... ok
+test fleet::tests::timing_is_tenant_scoped_and_bounded ... ok
+test debug_hold::tests::capacity_pressure_after_the_hold_started_ends_it ... ok
+test fleet::tests::legacy_cache_zero_is_migrated_to_explicit_unmeasured_timing ... ok
+test unikernel::tests::arguments_cannot_inject_elfloader_parameters ... ok
+test unikernel::tests::binary_output_does_not_change_framed_exit_status ... ok
+test unikernel::tests::elf_architecture_and_truncation_boundaries ... ok
+test unikernel::tests::fixture_paths_and_symlinks_fail_closed ... ok
+test unikernel::tests::image_contains_test_and_fixtures_and_verifies_content ... ok
+test placement::tests::records_only_running_peers_symmetrically_across_attempts ... ok
+test operations::tests::held_scope_revision_and_audit_are_durable_and_attributable ... ok
+test unikernel::tests::native_confinement_gate_smoke ... ignored, requires real KVM, pinned native kernel and user systemd; operator smoke only
+test unikernel::tests::native_preboot_filter_requires_exact_reviewed_allowlist ... ok
+test unikernel::tests::over_budget_output_cannot_report_success ... ok
+test unikernel::tests::serial_requires_exactly_one_complete_valid_result ... ok
+test unikernel::tests::preparation_consumes_the_original_job_deadline ... ok
+test unikernel::tests::static_pie_accepts_and_rejects_interpreter_and_needed ... ok
+test pipelines::tests::review_is_scoped_revision_bound_and_recomputed ... ok
+test secrets::tests::customer_rpc_has_no_mint_or_secret_access_and_current_project_scopes_hold ... ok
+test finance::tests::authority_exact_price_invoice_credit_and_dedup ... ok
+test placement::tests::stopped_vmm_before_finish_is_not_observed_as_a_peer ... ok
+test secrets::tests::reference_rotation_and_expiry_deny_old_and_expired_grants ... ok
+test operations::tests::traversal_symlinks_and_replaced_content_fail_closed ... ok
+test lattice_execution::tests::verified_crash_window_cannot_adopt_another_execution_request ... ok
+test lattice_execution::tests::recovery_versions_changed_receipts_without_writing_or_rerunning ... ok
+test secrets::tests::resolver_drift_and_private_key_fail_closed ... ok
+test operations::tests::retention_deletes_only_expired_owned_content_and_never_obligations ... ok
+test pipelines::tests::hosted_schedule_reviews_interval_and_reserves_without_catch_up ... ok
+test operations::tests::restore_rejects_corruption_manifest_tampering_and_wrong_service ... ok
+test finance::tests::finite_request_limits_stale_caps_and_current_project_scope ... ok
+test finance::tests::sandbox_outbox_and_signed_inbox_do_not_conflate_draft_and_payment ... ok
+test finance::tests::competing_connections_cannot_oversubscribe ... ok
+test secrets::tests::real_pinned_secret_delivery_obeys_scope_revision_and_single_delivery ... ok
+test pipelines::tests::hosted_selection_records_match_or_exclusions_and_unknown_files_run ... ok
+test finance::tests::exact_reservation_unknown_restart_and_cap ... ok
+test debug_hold::tests::capabilities_need_write_access_are_single_use_and_lapse_with_the_hold ... ok
+test secrets::tests::job_completion_revokes_tokens_capabilities_and_reentry ... ok
+test secrets::tests::jwt_is_interoperable_scoped_expiring_and_consume_once ... ok
+test connections::tests::backup_inventory_retains_retired_generations_and_rejects_native_identity_drift ... ok
+test operations::tests::whole_restore_preserves_authority_unknown_obligations_and_replay ... ok
+test connections::tests::revoked_relay_peer_and_cross_project_access_fail_before_native_admission ... ok
+test operations::tests::file_backed_backup_fences_writers_while_snapshotting_committed_state ... ok
+test operations::tests::bundle_restore_preserves_native_replay_and_refuses_existing_targets ... ok
+test connections::tests::profile_drift_deactivation_and_restart_fail_closed ... ok
+test connections::tests::disconnect_generations_preserve_replay_and_namespace ... ok
+test connections::tests::signed_ingress_replay_signature_repository_and_scope ... ok
+
+test result: ok. 107 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 9 tests
+test organization_owner_without_host_authority_cannot_create_whole_service_backup ... ok
+test rejected_enrollment_does_not_consume_effect_replay_capacity ... ok
+test issuer_metadata_reads_preserve_replay_capacity_and_current_authority ... ok
+test enrollment_receipt_failure_rolls_back_membership_and_invitation_consumption ... ok
+test reviewed_plan_and_exact_reservations_survive_restart_without_releasing_exposure ... ok
+test current_membership_and_project_authority_precede_retained_responses ... ok
+test incident_hold_denies_new_consumption_but_preserves_recovery_and_exact_retry ... ok
+test whole_service_restore_preserves_membership_unknown_obligations_and_request_replay ... ok
+test local_iroh_authenticates_peer_and_rejects_invalid_frames_without_dispatch ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.25s
+
+
+running 1 test
+test removed_lattice_policy_never_releases_retained_attempt_or_source_namespace ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 6 tests
+test failed_job_is_held_debugged_once_over_vsock_and_destroyed_on_expiry ... ok
+test firecracker_warm_cache_attaches_after_cache_free_snapshot ... ok
+test firecracker_cache_restores_after_publication ... ok
+test same_pipeline_matches_on_namespaces_and_firecracker_and_the_guest_denies_escape ... ok
+test namespace_corrupt_and_saturated_cache_preserve_successful_cold_jobs ... ok
+test cloud_hypervisor_cold_boot_matches_the_pipeline ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Blocking waiting for file lock on build directory
+   Compiling kiln-hosted v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 36.40s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_hosted-e8c0f02820b9192e)
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/debug/deps/kiln_hosted-78e5d6292d27ca3b)
+     Running tests/journey.rs (/home/brittonr/.cargo-target/debug/deps/journey-a845ba603cf2f45e)
+     Running tests/lattice_execution_identity.rs (/home/brittonr/.cargo-target/debug/deps/lattice_execution_identity-095becf17aa9e799)
+     Running tests/microvm.rs (/home/brittonr/.cargo-target/debug/deps/microvm-54854c04ef0231eb)

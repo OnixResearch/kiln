@@ -318,6 +318,40 @@ fun input =>
           | AtMost 128
           | default
           = [],
+        lattice_execution
+          | Array {
+            id | Identifier,
+            peer | Peer,
+            workflow_policy_id | Identifier,
+            node_id | Identifier,
+            operation_identity | c.Blake3,
+            web_service
+              | {
+                service_origin | Https,
+                tls_ca_path | c.AbsolutePath,
+                token_file | c.AbsolutePath,
+                http_timeout_ms | c.BoundedInteger 1 300000,
+                maximum_response_bytes | c.BoundedInteger 1 16777216,
+              },
+            organization | Identifier,
+            web_project | Identifier,
+            web_repository | c.NonEmpty,
+            repository_path | c.AbsolutePath,
+            source_limits
+              | {
+                max_entries | c.BoundedInteger 1 100000,
+                max_path_bytes | c.BoundedInteger 1 4096,
+                max_file_bytes | c.BoundedInteger 1 67108864,
+                max_total_bytes | c.BoundedInteger 1 268435456,
+              },
+            hosted_project | Identifier,
+            pipeline_id | c.Blake3,
+            price_id | c.Blake3,
+            class | Identifier,
+          }
+          | AtMost 128
+          | default
+          = [],
         operations | OptionalBuilder (import "hosted-operations.ncl") | default = null,
         secrets | OptionalBuilder (import "hosted-secrets.ncl") | default = null,
         execution | c.Nullable Execution | default = null,
@@ -338,3 +372,4 @@ fun input =>
     execution = settings.execution,
     fleet = settings.fleet,
   }
+  & (if std.array.length settings.lattice_execution == 0 then {} else { lattice_execution = settings.lattice_execution })

@@ -1,13 +1,13 @@
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
+use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::{ExternalRef, ProviderProfileId};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::{LogBounds, Node, RunBinding, ServiceClient, WorkerProfile};
 
@@ -86,6 +86,22 @@ fn fixture() -> (
 fn receiver(
     replies: Vec<(Duration, Value)>,
 ) -> (String, Arc<AtomicBool>, std::thread::JoinHandle<usize>) {
+    let (origin, stop, thread, _) = recording_receiver(replies);
+    (origin, stop, thread)
+}
+
+type RecordedRequests = Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
+
+fn recording_receiver(
+    replies: Vec<(Duration, Value)>,
+) -> (
+    String,
+    Arc<AtomicBool>,
+    std::thread::JoinHandle<usize>,
+    RecordedRequests,
+) {
+    let recorded = RecordedRequests::default();
+    let captured = recorded.clone();
     let _ = rustls::crypto::ring::default_provider().install_default();
     let certificates = checked(
         rustls_pemfile::certs(&mut std::io::Cursor::new(include_bytes!(
@@ -135,6 +151,9 @@ fn receiver(
             );
             let mut reader = BufReader::new(&mut stream);
             let mut line = String::new();
+            let mut request_line = String::new();
+            checked(reader.read_line(&mut request_line));
+            let mut length = 0;
             loop {
                 line.clear();
                 assert!(
@@ -144,7 +163,13 @@ fn receiver(
                 if line == "\r\n" {
                     break;
                 }
+                if let Some(value) = line.to_ascii_lowercase().strip_prefix("content-length:") {
+                    length = checked(value.trim().parse::<usize>());
+                }
             }
+            let mut request_body = vec![0; length];
+            checked(std::io::Read::read_exact(&mut reader, &mut request_body));
+            checked(captured.lock()).push((request_line, request_body));
             drop(reader);
             requests += 1;
             let bytes = checked(serde_json::to_vec(&body));
@@ -160,7 +185,7 @@ fn receiver(
         }
         requests
     });
-    (origin, stop, thread)
+    (origin, stop, thread, recorded)
 }
 
 // r[verify kiln.web.remote_workers.source]
@@ -337,5 +362,403 @@ fn binding_lookup_keeps_shorter_http_timeout_and_never_retries_failure() {
     assert!(
         elapsed < Duration::from_millis(900),
         "lookup overrode its 300ms HTTP timeout: {elapsed:?}"
+    );
+}
+
+fn execution_fixture(source: &SourceResolution, run: &RunBinding) -> super::ExecutionBinding {
+    let plan = checked(serde_json::from_value(json!({
+        "effect_id":"effect", "attempt_id":run.attempt_id, "candidate_id":"candidate",
+        "pipeline_revision_id":"pipeline", "workflow_policy_id":"policy",
+        "provider_profile":"lattice", "idempotency_key":"a".repeat(64), "platform":"linux",
+        "source":{"provider":"git", "repository":source.repository,
+            "revision":checked(ExternalRef::new("git", "revision", source.exact_revision.native_id.as_str()))},
+        "nodes":[{"id":"build","kind":"build","effect_class":"Build","adapter_kind":"lattice",
+            "operation_identity":"b".repeat(64)}], "edges":[],
+        "controls":{"cancel":true,"pause":false,"resume":false},
+        "bounds":{"max_nodes":1,"max_edges":1,"max_log_references":1,
+            "max_log_read_bytes":4096,"max_total_log_bytes":4096}
+    })));
+    super::ExecutionBinding {
+        plan,
+        binding: kiln_provider_api::WorkflowDispatchBinding {
+            run_id: run.id.clone(),
+            project_id: run.project_id.clone(),
+            source: source.clone(),
+            untrusted: None,
+        },
+        execution: Some(checked(serde_json::from_value(run.execution.clone()))),
+        phase: "active".into(),
+        outcome: kiln_core::domain::Outcome::Pending,
+        cancel_requested: false,
+        log_bounds: run.log_bounds.clone(),
+    }
+}
+
+#[test]
+fn admit_refuses_a_cancellation_requested_binding() {
+    let (_root, _profile, source, run) = fixture();
+    let mut bound = execution_fixture(&source, &run);
+    super::admit_execution_binding(&bound, "build").unwrap_or_else(|e| unreachable!("{e}"));
+    bound.cancel_requested = true;
+    assert!(super::admit_execution_binding(&bound, "build").is_err());
+}
+
+#[test]
+fn execution_lookup_rejects_ambiguous_stale_and_wrong_source_authority() {
+    for case in [
+        "valid",
+        "ambiguous",
+        "source",
+        "repository",
+        "node",
+        "execution",
+        "terminal",
+        "approval-source",
+    ] {
+        let (_root, mut profile, source, run) = fixture();
+        let context = crate::worker::SourceContext {
+            provider: "git".into(),
+            repository: profile.source_repository.clone(),
+            revision: source.exact_revision.native_id.as_str().into(),
+        };
+        let mut bound = execution_fixture(&source, &run);
+        match case {
+            "source" => {
+                bound
+                    .plan
+                    .source
+                    .as_mut()
+                    .unwrap_or_else(|| unreachable!())
+                    .revision = checked(ExternalRef::new("git", "revision", &"f".repeat(40)))
+            }
+            "repository" => {
+                bound
+                    .plan
+                    .source
+                    .as_mut()
+                    .unwrap_or_else(|| unreachable!())
+                    .repository = checked(ExternalRef::new("git", "repository", &"f".repeat(64)))
+            }
+            "execution" => {
+                bound.execution = Some(checked(ExternalRef::new("lattice", "execution", "other")))
+            }
+            "terminal" => bound.outcome = kiln_core::domain::Outcome::Success,
+            "approval-source" => {
+                bound.binding.source.exact_revision =
+                    checked(ExternalRef::new("git", "commit", &"f".repeat(40)))
+            }
+            _ => {}
+        }
+        let runs = if case == "ambiguous" {
+            json!([run, run])
+        } else {
+            json!([run])
+        };
+        let (origin, stop, server) = receiver(vec![
+            (Duration::ZERO, json!({"runs":runs})),
+            (Duration::ZERO, checked(serde_json::to_value(bound))),
+        ]);
+        profile.service_origin = origin;
+        let client = checked(ServiceClient::new(&profile));
+        let result = client.lookup_execution_binding(
+            &profile.project_id,
+            &context,
+            if case == "node" { "other" } else { "build" },
+            Duration::from_secs(2),
+        );
+        stop.store(true, Ordering::SeqCst);
+        assert_eq!(
+            checked(server.join()),
+            if case == "ambiguous" { 1 } else { 2 }
+        );
+        if case == "valid" {
+            assert_eq!(
+                checked(result)
+                    .unwrap_or_else(|| unreachable!())
+                    .binding
+                    .source,
+                source
+            );
+        } else {
+            assert!(result.is_err(), "admitted {case}");
+        }
+    }
+}
+
+#[test]
+fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout() {
+    for (first, second, budget, http_ms, succeeds, requests) in [
+        (0, 0, 1000, 2000, true, 2),
+        (500, 0, 100, 2000, false, 1),
+        (0, 500, 100, 2000, false, 2),
+        (80, 500, 150, 2000, false, 2),
+        (500, 0, 2000, 100, false, 1),
+        (0, 0, 0, 2000, false, 0),
+    ] {
+        let (_root, mut profile, source, run) = fixture();
+        let context = crate::worker::SourceContext {
+            provider: "git".into(),
+            repository: profile.source_repository.clone(),
+            revision: source.exact_revision.native_id.as_str().into(),
+        };
+        let bound = execution_fixture(&source, &run);
+        let (origin, stop, server) = receiver(vec![
+            (Duration::from_millis(first), json!({"runs":[run]})),
+            (
+                Duration::from_millis(second),
+                checked(serde_json::to_value(bound)),
+            ),
+        ]);
+        profile.service_origin = origin;
+        profile.http_timeout_ms = http_ms;
+        let client = checked(ServiceClient::new(&profile));
+        let started = Instant::now();
+        let result = client.lookup_execution_binding(
+            &profile.project_id,
+            &context,
+            "build",
+            Duration::from_millis(budget),
+        );
+        let elapsed = started.elapsed();
+        stop.store(true, Ordering::SeqCst);
+        assert_eq!(checked(server.join()), requests);
+        assert_eq!(result.is_ok(), succeeds);
+        if succeeds {
+            assert!(checked(result).is_some());
+        } else {
+            assert!(
+                elapsed < Duration::from_millis(400),
+                "lookup exceeded budget: {elapsed:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn execution_log_https_consumer_fits_minimum_http_envelope_across_chunks() {
+    use base64::Engine as _;
+    let (_root, mut profile, source, run) = fixture();
+    let mut bound = execution_fixture(&source, &run);
+    bound.log_bounds.maximum_chunk_bytes = checked(bound.maximum_upload_chunk_bytes(4097));
+    bound.log_bounds.maximum_chunks = 2;
+    bound.log_bounds.maximum_total_bytes = 8192;
+    let maximum = bound.log_bounds.maximum_chunk_bytes;
+    let bytes = vec![b'x'; maximum + 1];
+    let (origin, stop, server, requests) = recording_receiver(vec![
+        (Duration::ZERO, checked(serde_json::to_value(&bound))),
+        (Duration::ZERO, json!({"next_cursor":maximum})),
+        (Duration::ZERO, json!({"next_cursor":bytes.len()})),
+    ]);
+    profile.service_origin = origin;
+    let client = checked(ServiceClient::new(&profile));
+    checked(client.upload_execution_logs(&bound, "build", &bytes, b"", true, false));
+    // Reference exhaustion must reject before another binding lookup or upload.
+    assert!(client
+        .upload_execution_logs(
+            &bound,
+            "build",
+            &vec![b'x'; maximum * 2 + 1],
+            b"",
+            false,
+            false
+        )
+        .is_err());
+    stop.store(true, Ordering::SeqCst);
+    assert_eq!(checked(server.join()), 3);
+    let requests = checked(requests.lock());
+    let mut retained = Vec::new();
+    for (index, (_, body)) in requests.iter().skip(1).enumerate() {
+        assert!(
+            body.len() <= 4097,
+            "HTTPS upload exceeded HTTP request bound"
+        );
+        let chunk: Value = checked(serde_json::from_slice(body));
+        assert_eq!(
+            chunk.get("cursor"),
+            Some(&serde_json::json!(retained.len()))
+        );
+        assert_eq!(chunk.get("stream").and_then(Value::as_str), Some("stdout"));
+        assert_eq!(
+            chunk.get("truncated").and_then(Value::as_bool),
+            Some(index == 1)
+        );
+        retained.extend(checked(
+            base64::engine::general_purpose::STANDARD.decode(checked(
+                chunk
+                    .get("body_base64")
+                    .and_then(Value::as_str)
+                    .ok_or("base64 body"),
+            )),
+        ));
+    }
+    assert_eq!(retained, bytes);
+}
+
+#[test]
+fn execution_log_single_reference_preserves_nonempty_and_truncated_streams() {
+    for (stdout, stderr, out_truncated, err_truncated, expected_stream) in [
+        (
+            b"out".as_slice(),
+            b"".as_slice(),
+            false,
+            false,
+            Some("stdout"),
+        ),
+        (
+            b"".as_slice(),
+            b"err".as_slice(),
+            false,
+            false,
+            Some("stderr"),
+        ),
+        (b"".as_slice(), b"".as_slice(), false, false, None),
+        (b"".as_slice(), b"".as_slice(), true, false, Some("stdout")),
+    ] {
+        let (_root, mut profile, source, run) = fixture();
+        let mut bound = execution_fixture(&source, &run);
+        bound.log_bounds.maximum_chunks = 1;
+        let bytes = if expected_stream == Some("stderr") {
+            stderr
+        } else {
+            stdout
+        };
+        let mut replies = vec![(Duration::ZERO, checked(serde_json::to_value(&bound)))];
+        if expected_stream.is_some() {
+            replies.push((Duration::ZERO, json!({"next_cursor":bytes.len()})));
+        }
+        let (origin, stop, server, requests) = recording_receiver(replies);
+        profile.service_origin = origin;
+        checked(checked(ServiceClient::new(&profile)).upload_execution_logs(
+            &bound,
+            "build",
+            stdout,
+            stderr,
+            out_truncated,
+            err_truncated,
+        ));
+        stop.store(true, Ordering::SeqCst);
+        assert_eq!(
+            checked(server.join()),
+            1 + usize::from(expected_stream.is_some())
+        );
+        let requests = checked(requests.lock());
+        if let Some(stream) = expected_stream {
+            let (_, body) = checked(requests.get(1).ok_or("upload request"));
+            let chunk: Value = checked(serde_json::from_slice(body));
+            assert_eq!(chunk.get("stream").and_then(Value::as_str), Some(stream));
+            assert_eq!(
+                chunk.get("body_base64"),
+                Some(&serde_json::json!(base64::Engine::encode(
+                    &base64::engine::general_purpose::STANDARD,
+                    bytes
+                )))
+            );
+            assert_eq!(
+                chunk.get("truncated").and_then(Value::as_bool),
+                Some(out_truncated || err_truncated)
+            );
+        }
+        assert!(super::execution_log_chunks(&bound.log_bounds, b"a", b"b", false, false).is_err());
+        assert!(super::execution_log_chunks(&bound.log_bounds, b"", b"", true, true).is_err());
+    }
+}
+
+#[test]
+fn execution_log_capture_is_chunked_hashed_and_marks_only_final_chunk_truncated() {
+    use base64::Engine as _;
+    let (_root, mut profile, source, run) = fixture();
+    let mut bound = execution_fixture(&source, &run);
+    bound.log_bounds = LogBounds {
+        maximum_chunk_bytes: 3,
+        maximum_total_bytes: 8,
+        maximum_chunks: 3,
+    };
+    let (origin, stop, server, requests) = recording_receiver(vec![
+        (Duration::ZERO, checked(serde_json::to_value(&bound))),
+        (Duration::ZERO, json!({"next_cursor":3})),
+        (Duration::ZERO, json!({"next_cursor":5})),
+        (Duration::ZERO, json!({"next_cursor":2})),
+    ]);
+    profile.service_origin = origin;
+    let client = checked(ServiceClient::new(&profile));
+    checked(client.upload_execution_logs(&bound, "build", b"hello", b"no", true, false));
+    stop.store(true, Ordering::SeqCst);
+    assert_eq!(checked(server.join()), 4);
+    let requests = checked(requests.lock());
+    let chunks: Vec<Value> = requests
+        .iter()
+        .skip(1)
+        .map(|(line, body)| {
+            assert!(line.starts_with("POST /api/runs/deadline-run/logs "));
+            checked(serde_json::from_slice(body))
+        })
+        .collect();
+    for (chunk, (stream, cursor, bytes, truncated)) in chunks.iter().zip([
+        ("stdout", 0, b"hel".as_slice(), false),
+        ("stdout", 3, b"lo".as_slice(), true),
+        ("stderr", 0, b"no".as_slice(), false),
+    ]) {
+        assert_eq!(chunk.get("stream").and_then(Value::as_str), Some(stream));
+        assert_eq!(chunk.get("cursor").and_then(Value::as_u64), Some(cursor));
+        assert_eq!(
+            chunk.get("truncated").and_then(Value::as_bool),
+            Some(truncated)
+        );
+        assert_eq!(
+            checked(
+                base64::engine::general_purpose::STANDARD.decode(
+                    chunk
+                        .get("body_base64")
+                        .and_then(Value::as_str)
+                        .unwrap_or_else(|| unreachable!())
+                )
+            ),
+            bytes
+        );
+        assert_eq!(
+            chunk.get("blake3").and_then(Value::as_str),
+            Some(blake3::hash(bytes).to_hex().as_str())
+        );
+    }
+}
+
+#[test]
+fn execution_log_limits_reserve_both_streams_and_reject_before_upload() {
+    let bounds = LogBounds {
+        maximum_chunk_bytes: 3,
+        maximum_total_bytes: 8,
+        maximum_chunks: 3,
+    };
+    assert_eq!(
+        checked(super::execution_log_chunks(
+            &bounds, b"12345", b"67", false, false
+        )),
+        [2, 1]
+    );
+    assert!(super::execution_log_chunks(&bounds, b"1234567", b"89", false, false).is_err());
+    assert!(super::execution_log_chunks(&bounds, b"1234567", b"8", false, false).is_err());
+    assert_eq!(
+        checked(super::execution_log_chunks(&bounds, b"", b"", false, false)),
+        [0, 0]
+    );
+    let (_root, mut profile, source, run) = fixture();
+    let bound = execution_fixture(&source, &run);
+    let mut stale = bound.clone();
+    stale.execution = Some(checked(ExternalRef::new(
+        "lattice",
+        "execution",
+        "replacement",
+    )));
+    let (origin, stop, server) =
+        receiver(vec![(Duration::ZERO, checked(serde_json::to_value(stale)))]);
+    profile.service_origin = origin;
+    assert!(checked(ServiceClient::new(&profile))
+        .upload_execution_logs(&bound, "build", b"captured", b"", false, false)
+        .is_err());
+    stop.store(true, Ordering::SeqCst);
+    assert_eq!(
+        checked(server.join()),
+        1,
+        "stale execution received a log upload"
     );
 }

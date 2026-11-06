@@ -6,12 +6,12 @@ use std::path::{Component, Path, PathBuf};
 use kiln_adapter_github::profile::WorkflowConfig;
 use kiln_adapter_http_observe::TlsProfile;
 use kiln_adapter_lattice::{LatticeAdapterLimits, LatticeProfile};
-use kiln_core::monorepo::{AdmittedScope, MAX_PROJECTS_PER_REPOSITORY, ProjectScope, admit_scope};
+use kiln_core::monorepo::{admit_scope, AdmittedScope, ProjectScope, MAX_PROJECTS_PER_REPOSITORY};
 use kiln_core::source::GitSnapshotLimits;
 use kiln_core::types::ProviderProfileId;
 use lattice_workflow_transport::{
-    PeerPolicy, REQUIRED_NON_CLAIMS, TRANSPORT_PROFILE_SCHEMA, TransportProfile,
-    validate_transport_profile,
+    validate_transport_profile, PeerPolicy, TransportProfile, REQUIRED_NON_CLAIMS,
+    TRANSPORT_PROFILE_SCHEMA,
 };
 use serde::{Deserialize, Serialize};
 
@@ -232,10 +232,37 @@ impl ProjectProfile {
             crate::engine::model::workflow_plan(self, &id, &id, None)?,
             selected_nodes,
         )?;
-        let request = kiln_adapter_lattice::lower_request(&self.lattice(1)?, &plan)
+        self.request_projection(&plan, 1)
+    }
+    /// Capabilities of the reviewed Lattice execution profile.
+    pub fn execution_capabilities(
+        &self,
+        maximum_runs: usize,
+    ) -> Result<kiln_core::provider::CapabilityProfile, String> {
+        Ok(self.lattice(maximum_runs)?.provider)
+    }
+
+    pub(crate) fn admit_execution_plan(
+        &self,
+        plan: &kiln_core::workflow::WorkflowEffectPlan,
+        maximum_runs: usize,
+    ) -> Result<(), String> {
+        kiln_core::workflow::validate_workflow_plan(plan).map_err(|_| "workflow plan rejected")?;
+        kiln_adapter_lattice::lower_request(&self.lattice(maximum_runs)?, plan)
+            .map_err(|_| "workflow lowering rejected")?;
+        Ok(())
+    }
+
+    pub(crate) fn request_projection(
+        &self,
+        plan: &kiln_core::workflow::WorkflowEffectPlan,
+        maximum_runs: usize,
+    ) -> Result<serde_json::Value, String> {
+        let request = kiln_adapter_lattice::lower_request(&self.lattice(maximum_runs)?, plan)
             .map_err(|_| "workflow lowering rejected")?;
         serde_json::to_value(request).map_err(|_| "workflow request encoding failed".into())
     }
+
     pub fn lattice(&self, maximum_runs: usize) -> Result<LatticeProfile, String> {
         LatticeProfile::pinned(
             ProviderProfileId::new(self.workflow.provider_profile_id.clone())
@@ -412,8 +439,7 @@ impl ServiceProfile {
             project.transport()?;
             let identity = crate::engine::identity(&project.workflow)?;
             let plan = crate::engine::model::workflow_plan(project, &identity, &identity, None)?;
-            kiln_adapter_lattice::lower_request(&lattice, &plan)
-                .map_err(|_| "unsupported reviewed workflow")?;
+            project.admit_execution_plan(&plan, b.max_runs)?;
         }
         self.admit_repositories()?;
         Ok(())

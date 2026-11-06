@@ -9,6 +9,8 @@ pub mod debug_hold;
 pub mod execution;
 pub mod finance;
 pub mod fleet;
+pub mod lattice_execution;
+pub mod lattice_job;
 pub mod microvm;
 pub mod operations;
 pub mod pipelines;
@@ -47,6 +49,9 @@ pub fn identifier(value: &str) -> bool {
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
 }
 
+/// Compiled pipeline jobs are named `name[index]`, including the single
+/// unexpanded variant. Web plan node identities are the workflow consumer node
+/// labels, so they stay plain identifiers; hosted job receipts use the compiled id.
 pub fn identity(value: &impl Serialize) -> Result<String, String> {
     kiln_codec::encode_and_identify(value, MAX_FRAME_BYTES)
         .map(|(_, id)| id.as_str().to_owned())

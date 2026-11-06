@@ -13,8 +13,8 @@ use kiln_core::domain::Outcome;
 use kiln_core::gating::{GateEffectPlan, GateEvaluationObservation};
 use kiln_core::operations::{JournalRecord, OutboxRecord};
 use kiln_core::provider::{
-    CapabilityProfile, ProviderFailureClass, ProviderFailureDisposition, ProviderObservation,
-    ProviderRole, classify_provider_failure,
+    classify_provider_failure, CapabilityProfile, ProviderFailureClass, ProviderFailureDisposition,
+    ProviderObservation, ProviderRole,
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
 use kiln_core::review::{ReviewEffectPlan, ReviewEvaluationObservation};
@@ -77,6 +77,16 @@ pub trait WorkflowExchangePort {
         &mut self,
         request: WorkflowExchangeRequest,
     ) -> PortResult<WorkflowExchangeResponse>;
+}
+
+/// Persisted run context projected to workers for source and approval admission.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkflowDispatchBinding {
+    pub run_id: String,
+    pub project_id: String,
+    pub source: kiln_core::source::SourceResolution,
+    pub untrusted: Option<kiln_core::untrusted::UntrustedGate>,
 }
 
 pub trait WorkflowPort {

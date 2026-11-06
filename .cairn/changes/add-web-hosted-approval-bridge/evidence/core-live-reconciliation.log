@@ -1,0 +1,11 @@
+
+running 1 test
+test domain::tests::live_reconciliation_restores_pending_without_a_second_dispatch ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 187 filtered out; finished in 0.00s
+
+   Compiling constant_time_eq v0.4.2
+   Compiling blake3 v1.8.4
+   Compiling kiln-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.49s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_core-2cba58d7576f2d1f)

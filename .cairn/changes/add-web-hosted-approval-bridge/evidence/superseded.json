@@ -1,0 +1,12 @@
+{
+  "schema": "kiln.web-hosted.direct-route-supersession.v1",
+  "date": "2026-11-06",
+  "status": "superseded_topology",
+  "superseded_by": "../../route-web-through-lattice/",
+  "reason": "The operator required Web dispatch through genuine native Lattice rather than a direct Web-to-hosted workflow provider.",
+  "current_route": "ordinary kiln-web-service -> genuine native Lattice saved workflow -> kiln-hosted lattice-job -> authenticated hosted execution",
+  "removed_surfaces": ["kiln-web-hosted binary and Nix app", "Web execution_provider selector", "direct hosted workflow adapter and factory", "web-hosted-bridge configuration"],
+  "historical_receipts_unchanged": true,
+  "scope": "Earlier direct-route execution, stdout, cancellation and restart observations remain historical facts for their recorded binaries and topology. They do not qualify the replacement native Lattice route.",
+  "hostile_isolation_claim": false
+}

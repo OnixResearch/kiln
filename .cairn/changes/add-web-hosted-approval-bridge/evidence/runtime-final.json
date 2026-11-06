@@ -1,0 +1,188 @@
+{
+  "schema": "kiln.web-hosted-approval-smoke.v1",
+  "status": "passed_admission_vm_qualification_pending",
+  "checks": {
+    "blocked_and_unauthorized": {
+      "run_id": "web-run-4bf6f0b24330c820c18a085449ac3055d246e1096771d8c7c6f35d46bac83c75",
+      "phase": "awaiting_approval",
+      "no_hosted_binding": true,
+      "stale_commit_denied": true,
+      "viewer_denied": true,
+      "worker_denied": true,
+      "unknown_token_denied": true
+    },
+    "approved_handoff": {
+      "run_id": "web-run-4bf6f0b24330c820c18a085449ac3055d246e1096771d8c7c6f35d46bac83c75",
+      "hosted_binding": {
+        "identity": "7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+        "attempt": "web-7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+        "response": {
+          "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+        },
+        "web_approval_verified": true,
+        "source_verified": true,
+        "execution_identity": "de7bdfc45f839c7788fda624dcc3c9d76ea9ad170af40188bbb43601f166a738",
+        "sequence": 0
+      },
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      },
+      "web_phase": "unknown",
+      "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+    },
+    "approval_replay": {
+      "same_response": true,
+      "unchanged_ledger": true
+    },
+    "moved_source": {
+      "old_run": "web-run-74c5206730adc680b82f03ef247d23d460fdf17ae7bd04123c502da737eb6de4",
+      "new_run": "web-run-8aca01dde426f19d0cf20f982fb0c79a5830d10d3d5e18b40f9b2bd0ccc6b627",
+      "new_commit": "0b7390497b6bc98a09b7739be85d752ce3225fd8",
+      "superseded_denied": true,
+      "fresh_approval_required": true
+    },
+    "peer_and_binding_admission": {
+      "unenrolled_peer_denied": true,
+      "enrolled_unpinned_owner_denied": true,
+      "pinned_peer_replay_unchanged": true,
+      "changed_original_binding_denied": true
+    },
+    "tampered_gate": {
+      "refusal": "Web exact-commit approval rejected",
+      "retained_observation_same": true,
+      "web_approval_verified": false,
+      "source_verified": false
+    },
+    "tampered_plan": {
+      "refusal": "Web workflow operation differs from reviewed job",
+      "retained_observation_same": true,
+      "web_approval_verified": false,
+      "source_verified": false
+    },
+    "tampered_source": {
+      "refusal": "hosted Git canonical tree differs from Web binding",
+      "retained_observation_same": true,
+      "web_approval_verified": true,
+      "source_verified": false
+    },
+    "restart": {
+      "original_run_observed": true,
+      "approval_replay_preserved": true,
+      "no_reexecution": true,
+      "hosted_binding_count": 4,
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      }
+    },
+    "trusted_execution": {
+      "run_id": "web-run-bdedba65fd0ccb1db74f2a71c161d295a6d8cd4cb43a5ee5ddec5e47a87d57f7",
+      "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+      "outcome": "Success",
+      "node_states": {
+        "build[0]": "Completed"
+      },
+      "stdout": "real trusted guest source=approved-exact-source-v1\n",
+      "cleaned": true,
+      "hosted_execution_identity": "602ce11d7a13dd96a2df8a69d52f0433a64bcc7a19ec02206210e0f81db3cd07",
+      "sequence": 3,
+      "exactly_one_execution": true,
+      "request_replay_unchanged": true,
+      "restart_outcome_and_logs_preserved": true,
+      "untrusted_vm_qualification": "pending",
+      "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+    },
+    "trusted_live_cancellation": {
+      "run_id": "web-run-bfb1adef385d9f4cdf4c4bd9600180d9b5d372e689a84f611745c4a8dd1bbe6f",
+      "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+      "node_id": "build[0]",
+      "live_vmm_observed": true,
+      "confinement_and_pid_lifetime_verified": true,
+      "https_cancel_accepted": true,
+      "outcome": "Cancelled",
+      "node_state": "Cancelled",
+      "cleaned": true,
+      "journal_lifecycle": "destroyed",
+      "no_running_owned_unit": true,
+      "exactly_one_execution_reservation_usage": true,
+      "replay_and_restart_unchanged": true,
+      "untrusted_vm_qualification": "pending"
+    }
+  },
+  "vm_qualification": "pending",
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is admission evidence, not VM execution or replay qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance"
+  ],
+  "inputs": {
+    "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+    "hosted_peer": "01c973d4419ba9263fad138cb06ab811422dc33923604dc239c7c6bdc389c7a7",
+    "web_peer": "9f04dca60342bd4079a0fd1b6fe4909fb914001a8c89d25107a39a3c0c5d71b1",
+    "source_checkout_distinct": true,
+    "guest_manifest_blake3": "98c21b4b67a116fb5174aa06bc724e2199c0af4f1a67b859fb21203267b4145d",
+    "binaries": {
+      "hosted": "9161a5e6656d00f6d2caa348e1d8a8cca8ffad5539fe15ec320345ec582e4184",
+      "web": "645214a101ac2c9e3b58a2ce88f1279aff61a32e53323e42093a95349a5eb8be"
+    }
+  },
+  "observed_handoff": {
+    "run_id": "web-run-4bf6f0b24330c820c18a085449ac3055d246e1096771d8c7c6f35d46bac83c75",
+    "binding": {
+      "identity": "7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+      "attempt": "web-7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+      "response": {
+        "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+      },
+      "web_approval_verified": true,
+      "source_verified": true,
+      "execution_identity": "de7bdfc45f839c7788fda624dcc3c9d76ea9ad170af40188bbb43601f166a738",
+      "sequence": 0
+    },
+    "effects": {
+      "hosted_execution": 0,
+      "finance_reservations": 0,
+      "finance_usage": 0
+    }
+  },
+  "observed_trusted_run": {
+    "id": "web-run-bdedba65fd0ccb1db74f2a71c161d295a6d8cd4cb43a5ee5ddec5e47a87d57f7",
+    "source_revision": "1e4f857573b758745ab7187a7d02fee76c50af35",
+    "phase": "terminal",
+    "outcome": "Success",
+    "nodes": [
+      {
+        "id": "build[0]",
+        "state": "Completed",
+        "kind": "build",
+        "started_at_ms": null,
+        "completed_at_ms": 1794010190876,
+        "duration_ms": null
+      }
+    ],
+    "error_code": null,
+    "hosted_diagnostics": [
+      {
+        "state": "succeeded",
+        "cleaned": true
+      },
+      {
+        "state": "succeeded"
+      },
+      {
+        "state": "succeeded",
+        "cleaned": true
+      }
+    ]
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 1,
+    "errors": [],
+    "private_scratch_retained": true
+  }
+}

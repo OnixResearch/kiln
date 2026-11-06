@@ -1,7 +1,7 @@
 use super::model::DurableState;
 use crate::profile::{ServiceBounds, ServiceProfile};
 use fs2::FileExt;
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt};

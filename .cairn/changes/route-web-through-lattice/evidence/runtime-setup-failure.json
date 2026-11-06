@@ -1,0 +1,53 @@
+{
+  "schema": "kiln.web-lattice-hosted-smoke.v1",
+  "status": "failed",
+  "checks": {},
+  "vm_qualification": "pending",
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is not VM execution qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance",
+    "prior direct-route receipts are superseded history, not native Lattice evidence"
+  ],
+  "native_profiles": {
+    "fixture": {
+      "workflow_name": "native-hosted-fixture",
+      "workflow_revision": "b3:05dceefb9dc6719095e1597a9594a2497c0a749edc065e0d97f75fa3efef91ac",
+      "operation_identity": "b77e57a68d66b0c01714f7cb53912d0cbeeb8507831fe2811da12202f4494dad",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:d2e5fb21faf29b73c6b35c2d019f2941b82fc25fb3d919d249f29ecc818512af"
+    },
+    "trusted-fixture": {
+      "workflow_name": "native-hosted-trusted-fixture",
+      "workflow_revision": "b3:9f3d671193e642ea75d6e52cf7fcf949eaecf7c8d8e716fd03544de96d5af852",
+      "operation_identity": "423c958c1a05d7e9ef34963e995d23886a72ec87b829b5ea6c6e9e6eb50b0533",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:f6ea4f101e6732cd91dd3bfc4e1695e2d1a0b8653029569e31e08aaa08bec049"
+    },
+    "cancel-fixture": {
+      "workflow_name": "native-hosted-cancel-fixture",
+      "workflow_revision": "b3:8d3c73a445eea776d11a140a46fa5a45c17a68b7c6a6ba87e506fedfd77bfdf4",
+      "operation_identity": "91ff2299c2705c8bdc8c0eaf1000be2b89909c2732945276b2d9bcddb11e6f9a",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:71b891aa416f350e74d325551e3f3bd162e3c8bf5605a76cd1bbb8c9b27c0bc0"
+    }
+  },
+  "handler_profile_blake3": "dd741f4d95cd829cebc85f7e71597c8490751e05abc876f20f36ca7327c2056c",
+  "failure": {
+    "kind": "RuntimeError",
+    "message": "hosted server exited before readiness"
+  },
+  "secret_removal": {
+    "scope": "only smoke-created root bearer tokens, Iroh private keys and TLS private key; not a claim of sanitized retained scratch",
+    "removed": true,
+    "files_checked": 9
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 0,
+    "errors": [],
+    "private_scratch_retained": true
+  },
+  "scope": "Initial real native saved-workflow setup; hosted callback profile exceeded the admitted HTTPS response bound. Failed before Web dispatch or VM creation; not topology qualification."
+}

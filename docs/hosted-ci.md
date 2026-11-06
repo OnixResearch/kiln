@@ -824,8 +824,10 @@ every retry attempt that carries the same provenance, gets no workload policy:
 no secret environment and no `KILN_WORKLOAD_TOKEN`. Its cache is disabled with
 outcome `disabled_untrusted`, so no restore or publication receipt exists.
 There is no per-run override, and debug holds are never offered. Hosted GitHub
-connections admit only `untrusted_pull_requests = "deny"`, because this service
-records no approvals; the provenance comes from a control plane that did.
+connections admit only `untrusted_pull_requests = "deny"`. Generic
+`execution.run` checks caller-supplied provenance, not a Web approval. The
+[explicit Web bridge](#explicit-web-approval-to-hosted-execution) separately
+verifies the configured approval issuer and exact stored source/gate binding.
 
 **Debug hold.** With `debug_hold.enabled`, a job is held only when all of the
 following hold:
@@ -1036,6 +1038,106 @@ Firecracker unit to kill**, because recorded destruction is a prerequisite.
 The KVM journeys cover cold/warm restore, guest writes and later unchanged
 restore, corruption cold builds and different-key warm-slot reuse. These
 commands describe the verification procedure, not a claimed passing result.
+
+## Web approval through Lattice to hosted execution
+
+<!-- r[impl kiln.web_hosted.binding] r[impl kiln.web_hosted.admission] r[impl kiln.web_hosted.replay] r[impl kiln.web_hosted.adapter] -->
+
+The ordinary `kiln-web-service` dispatches through Lattice. A genuine saved
+workflow, served by `lattice workflow-exchange serve`, invokes the fixed
+`kiln-hosted lattice-job` task. Lattice owns the outer DAG and workflow/node
+lifecycle. One outer node delegates one reviewed hosted pipeline; its internal
+jobs are not represented as additional Lattice nodes. There is no Web execution
+provider selector or separate Web/hosted server. Existing default Web profiles
+retain their serialized identities. Earlier direct-route receipts under
+`add-web-hosted-approval-bridge/evidence/` are superseded historical evidence,
+not proof of this topology.
+
+Author the task with `config/hosted-lattice-job.ncl`. Its JSON pins the Web HTTPS
+origin, CA and worker-token file, dedicated private Iroh network/key, hosted
+`EndpointAddr`, organization, project/repository, node and backend policy. Pass
+the BLAKE3 of the **original JSON bytes**, not reserialized content:
+
+```sh
+nickel export --format json task.ncl > task.json
+b3sum task.json
+kiln-hosted lattice-job --profile /absolute/path/task.json --identity EXACT_BLAKE3
+```
+
+The last command belongs in the reviewed saved native shell workflow, not a
+parallel Web dispatcher. Pin its workflow revision, consumer graph and exact
+node operation in the native handler's `route_exact`/`shell_environment` route.
+Use a reviewed executable cohort and native process teardown grace above the
+task's admitted `cleanup_timeout_ms` (default ten seconds; the smoke configures
+forty-five seconds and sixty seconds of native grace). This needs
+a cancellation-capable native executor, not just vendored transport or a
+forwarding handler.
+
+The unchanged native request injects only `LATTICE_SOURCE_PROVIDER`,
+`LATTICE_SOURCE_REPOSITORY` and `LATTICE_SOURCE_REVISION`. Authenticated worker
+lookup and Worker/Operator-only read-only
+`GET /api/runs/{id}/execution-binding` recover the exact active persisted plan,
+run, source, approval and native execution. Lookup and backend observation have
+finite deadlines; native context gains no arbitrary approval payload.
+
+The task's Web client uses rustls. Configure `tls_ca_path` as the issuing CA and
+serve an end-entity server certificate (`basicConstraints CA:FALSE`,
+`extendedKeyUsage serverAuth`) whose SAN covers the configured origin host. A CA
+certificate served as the leaf is refused as `CaUsedAsEndEntity`.
+
+Hosted `lattice_execution` policies in `config/hosted-service.ncl` pin the task
+peer, Web project/repository, workflow policy, node/operation, enrolled Git
+repository/snapshot limits, hosted project, pipeline, price/class and fixed Web
+HTTPS authority. Hosted independently fetches that authoritative binding and
+independently verifies the exact Git commit and canonical snapshot before
+execution or financial effects. The task peer alone is **not** approval
+authority. HTTPS authenticates the configured Web authority, not a human click
+or an uncompromised Web process. Ordinary member `execution.run` provenance
+remains caller-supplied and gains no verified Web claim.
+
+`execution.lattice_run/get/cancel` bind the complete persisted request, native
+execution, node and configuration to one durable attempt per Web run/node.
+Changed replay conflicts. Recovery never reacquires, redispatches or recursively
+calls Web. The `lattice-*` attempt/workspace and `.lattice-source-*` staging
+namespaces remain reserved without a policy. Metadata reservation can precede
+the callback; reservation alone remains `Unknown`, not verified execution or an
+execution receipt. Original refusals are retained.
+
+SIGINT/SIGTERM preserves cancellation intent through initial admission, targets
+only the exact backend attempt and observes actual terminal cleanup. The
+authoritative worker projection also exposes durable `cancel_requested` intent,
+and hosted observes that persisted intent while its pipeline runs. This matters
+because the native runner may destroy a cancelled task without a signal: Web
+cancellation intent, not task liveness, is the authority that reaches the
+backend. A pending admission acknowledgement is not completed cancellation.
+Uncertain transport never resubmits a run; bounded get/cancel recover only the
+original attempt. Native Lattice owns the outer outcome. Actual bounded
+stdout/stderr use existing Web captured-log ingress with HTTP/base64-safe chunks
+and declared byte/reference budgets; these are retained backend outputs, not
+streaming partial guest output or synthetic node success.
+
+All project, finance, resource, runner, kernel, SMT/KSM and CAT gates remain.
+Approval is not a host-safety waiver. Source-verified kernel refusal is **not**
+approved-untrusted VM execution. `hostile_isolation_claim` remains false;
+eligible-host untrusted and distinct-physical-host qualification have separate
+prerequisites.
+
+With accessible KVM, the existing user manager and reviewed cohorts, use fresh
+short private scratch **outside `/tmp`** so its `TMPDIR` fits the Unix-socket
+bound and remains visible to the user manager:
+
+```sh
+python3 scripts/web-lattice-hosted-smoke.py --hosted /absolute/path/kiln-hosted --web /absolute/path/kiln-web-service --lattice /absolute/path/native-lattice --lattice-source /absolute/path/reviewed-native-source --guest /nix/store/REVIEWED-kiln-microvm-guest --root "$PWD/target/klh-proof" --evidence "$PWD/target/klh-evidence" --trusted-execution
+```
+
+The controlled **trusted** lane exercises real guest stdout, live HTTPS
+cancellation, replay/restart and teardown without qualifying untrusted execution.
+The untrusted lane requires the exact workstation kernel refusal, not a waived
+gate. Retain only whitelisted evidence outside scratch; remove owned credentials
+and raw databases after teardown. Kiln Web/hosted maintainers own approval,
+source admission, task integration and this repeatable recipe; Lattice owns
+native scheduling/lifecycle. Operators retain host, source and credential
+authority.
 
 ## 7. Bounded fleet and timing observations
 

@@ -1,0 +1,272 @@
+[
+  {
+    "stage": "proposal",
+    "exit": 0,
+    "receipt": {
+      "acceptance_ids": [],
+      "change": "add-web-hosted-approval-bridge",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "8a331edd6612f2de1f1d40ffa8464bd42faa8eebb3b5df897285173a7390ea6d",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "ee93923a0b0e0f8fc662884b66e86c58dea96a4bbd780a821d2fa396cf253fb9",
+      "receipt_hash": "ff9845d65bc483ee736d9b9a92087555b903675eeb598fc394896790332eacce",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "proposal",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  },
+  {
+    "stage": "design",
+    "exit": 0,
+    "receipt": {
+      "acceptance_ids": [],
+      "change": "add-web-hosted-approval-bridge",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "abc7edb86a7fa042b0bcaf377c68c4a7f58f7d5f361fb49e1896b2e23696e78f",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "ee93923a0b0e0f8fc662884b66e86c58dea96a4bbd780a821d2fa396cf253fb9",
+      "receipt_hash": "0d9fde0b3f924612dad81697922ff50c71c012d1e6ab1f3b1a6ef0f163ce604f",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "design",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/specs/web-hosted-approval/spec.md",
+          "requirement_blocks": 5,
+          "scenario_blocks": 5,
+          "substantive_lines": 20,
+          "substantive_requirement_blocks": 5,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  },
+  {
+    "stage": "tasks",
+    "exit": 0,
+    "receipt": {
+      "acceptance_ids": [],
+      "change": "add-web-hosted-approval-bridge",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "98e8c27ff2f79f61cffbb046b4c2947028f78ffc191392460686bca6fe635e02",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": {
+        "declarations_present": false,
+        "probes": []
+      },
+      "profile_identity_hash": "ee93923a0b0e0f8fc662884b66e86c58dea96a4bbd780a821d2fa396cf253fb9",
+      "receipt_hash": "f371828bcb310c9e6c31c4d719dc47b48c2f448411ca0ffe4af645e3a2f28d5d",
+      "review_receipt_hashes": [],
+      "spec_effect": "delta",
+      "stage": "tasks",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 4,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/specs/web-hosted-approval/spec.md",
+          "requirement_blocks": 5,
+          "scenario_blocks": 5,
+          "substantive_lines": 20,
+          "substantive_requirement_blocks": 5,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 5,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-web-hosted-approval-bridge/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 5,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 5,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 5
+        }
+      ],
+      "task_ordering": {
+        "active": false,
+        "edges": [],
+        "issues": [],
+        "nodes": [],
+        "order": [],
+        "ready_tasks": [],
+        "valid": true
+      },
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "spec-driven",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    }
+  }
+]

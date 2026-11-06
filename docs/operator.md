@@ -3813,9 +3813,20 @@ Actual authenticated hosted `execution.run` succeeded on exact source
 `cf6e793b0cf74714d37e6284671fb0701b863b8e`; the invalid `HEAD` provenance request
 was refused without reserving its negative attempt. This was operator-authorized
 **caller-supplied untrusted provenance**, not a production Web exact-commit
-approval or a verified Web-to-hosted approval handoff. That combined flow remains
-unqualified. The Linux sysfs resource names were space-padded; hosted CAT
-admission now accepts that native alignment without relaxing the L3 requirement.
+approval or a verified Web-to-hosted approval handoff. The subsequent direct
+bridge's [retained receipts](../.cairn/changes/add-web-hosted-approval-bridge/evidence/runtime-final.json)
+are now **superseded topology history**, not evidence of native Lattice routing.
+The supported [Web → Lattice → hosted route](hosted-ci.md#web-approval-through-lattice-to-hosted-execution)
+uses ordinary `kiln-web-service`, genuine saved native workflows and a
+fixed-profile `kiln-hosted lattice-job`. Hosted independently checks the pinned
+Web HTTPS authority and exact Git bytes; the task peer is not approval authority.
+The repeatable recipe is `scripts/web-lattice-hosted-smoke.py`. Controlled trusted
+guest execution remains separate from approved-untrusted VM qualification, which
+requires an eligible allocated host. The workstation's Linux 6.18.50 gate must
+not be waived, and earlier Aspen1 caller-provenance execution cannot be relabelled
+as Web approval or Lattice routing evidence.
+The Linux sysfs resource names were space-padded; hosted CAT admission now accepts
+that native alignment without relaxing the L3 requirement.
 
 The unchanged maintained channel worker ran cache, CPU and memory probes on
 observed cores 0 and 1 in the same LLC, using Firecracker 1.16.1 and guest kernel
@@ -3870,8 +3881,8 @@ no HTTPS deployment or host confinement property. Kiln web-service maintainers
 own the reusable typed construction, provenance selection and replay-order
 regressions; repeat the retained out-of-tree recipe against the candidate source.
 
-Final all-feature source verification observed 1,580 passing tests, five ignored
-tests and 52 filtered tests across 157 suites; strict all-target/all-feature
+The retained pre-maintenance source baseline observed 1,580 passing tests, five
+ignored tests and 52 filtered tests across 157 suites; strict all-target/all-feature
 Clippy passed. Targeted Rust formatting and frontend annotation syntax checks
 also passed. The separately required whole-workspace formatter remains blocked
 by the partial vendored Cairn snapshot's absent

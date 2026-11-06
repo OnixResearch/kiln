@@ -1,0 +1,224 @@
+{
+  "schema": "kiln.web-lattice-hosted.runtime-evidence.v1",
+  "status": "passed_native_trusted_and_untrusted_refusal",
+  "scope": "Ordinary kiln-web-service -> genuine native Lattice saved workflow (workflow-exchange serve) -> fixed kiln-hosted lattice-job -> authenticated hosted Firecracker execution. Untrusted exact-source approval refused at kernel preflight with zero execution or financial effects; controlled trusted guest succeeded with source-bound stdout; live HTTPS cancellation of a running VMM proved Cancelled/cleaned/destroyed; replay and restart preserved outcomes; all owned children and units stopped.",
+  "topology": {
+    "web": "kiln-web-service",
+    "orchestrator": "native Lattice workflow-exchange serve with saved workflow revisions",
+    "task": "kiln-hosted lattice-job --profile --identity",
+    "backend": "authenticated hosted execution"
+  },
+  "inputs": {
+    "source_commit": "46b63323235291e09c64dddf456ef626df301188",
+    "source_checkout_distinct": true,
+    "guest_manifest_blake3": "cce2b278755ffa1cc3d50976b6acff1c2011c2790a395bfdec37cbd095697a70",
+    "binaries": {
+      "hosted": "3056a454d8010aea9fbd3ce2bbb33473c9494f71a540c79fc7f1f1126af74cda",
+      "web": "d626229964fbd93366071b1f5ed61ce714114cb55acafd3e37aebb89bae46cb3",
+      "lattice": "818804fdc674a2c3a5435c8e2f259f121a7c3d1e84ed275774d4a9fe29e3ebab"
+    },
+    "native_source_revision": "813076d7e42d0ddfb65042bee615bc5f12a2b4d3",
+    "native_source_nar_hash": "sha256-hYxl2AuZozf8j20fHFD4aXw8+FK2gBkIV3q+EdwqoYY="
+  },
+  "native_profiles": {
+    "fixture": {
+      "workflow_name": "native-hosted-fixture",
+      "workflow_revision": "b3:0b12a0a0a8dfab633e372e3b0d9aa5d99de1119ff547b62fc5df1a9abb04a9b2",
+      "operation_identity": "758222aa806e81714c25802f09398b7a0cd28932f33904bd3eac2f79d68b3bb5",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:7ad6d5d54aad37beb116d844f9d023d63f962cbca9bbc3a171e4d557e897c82e"
+    },
+    "trusted-fixture": {
+      "workflow_name": "native-hosted-trusted-fixture",
+      "workflow_revision": "b3:6dda39d7a1f214da7cb68f47070d52a93de3565cf844b152bc686d39c16e8002",
+      "operation_identity": "ce3acd40b14338c1c5ac63d1e2443d07294c96ff1f4f086334def4d6419e104e",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:722c9a9806341e2b193b7fecc41a7e39debd83750c90e3f8c0f94dc6a7ce1d63"
+    },
+    "cancel-fixture": {
+      "workflow_name": "native-hosted-cancel-fixture",
+      "workflow_revision": "b3:5bd682fa8679457b47f87dd7831ba072cf804586f5a46ff458a0e5e7f7745a8b",
+      "operation_identity": "264ae62a9986669d45a719d65482362422e516f1da2ab880642aead05c73674d",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:f8274ab2307a8c632d21ced0926da5db3664bccff9c5195d7660def2afac9b31"
+    }
+  },
+  "handler_profile_blake3": "f1f85646ce09b088097f5341ea00f433add0682911a38cc8fa8ed20db7a3642c",
+  "native_process_limits": {
+    "stdin_max_bytes": 1048576,
+    "stdout_max_bytes": 1048576,
+    "stderr_max_bytes": 1048576,
+    "command_agent_timeout_secs": 180,
+    "poll_interval_millis": 10,
+    "teardown_grace_millis": 60000
+  },
+  "checks": {
+    "blocked_and_unauthorized": {
+      "run_id": "web-run-51c91db47867e01096b97aa51500ebc0a5e8d5a017a07e06999bdeb0d6dd4406",
+      "phase": "awaiting_approval",
+      "no_hosted_binding": true,
+      "stale_commit_denied": true,
+      "viewer_denied": true,
+      "worker_denied": true,
+      "unknown_token_denied": true
+    },
+    "approved_handoff": {
+      "run_id": "web-run-51c91db47867e01096b97aa51500ebc0a5e8d5a017a07e06999bdeb0d6dd4406",
+      "hosted_binding": {
+        "identity": "3eaecaffe3fc13befd3500cf03ada36efd9a7df30bdbb4d7dd8228031ebac349",
+        "attempt": "lattice-3eaecaffe3fc13befd3500cf03ada36efd9a7df30bdbb4d7dd8228031ebac349",
+        "response": {
+          "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+        },
+        "web_approval_verified": true,
+        "source_verified": true,
+        "execution_identity": "1ccaeb144eae7ab2fadbb6210ea81fd191344ffd4e63dbaaae09418b011fbbbc",
+        "sequence": 0
+      },
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      },
+      "web_phase": "active",
+      "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+    },
+    "approval_replay": {
+      "same_response": true,
+      "unchanged_ledger": true
+    },
+    "moved_source": {
+      "old_run": "web-run-a3518aa6d2ff1c346d77d9df7e352392a49d59ad1e99c611414c76cdb128a159",
+      "new_run": "web-run-9d6d7fafcacb9441cac14dba37ba0fda777e7abf09b75564b83b8ec89a3f101d",
+      "new_commit": "8c68bf25a9bfcc3d2b9a3c139479cda214743f0c",
+      "superseded_denied": true,
+      "fresh_approval_required": true
+    },
+    "tampered_gate": {
+      "refusal": "Web run binding conflicts with retained input",
+      "unchanged_ledger": true
+    },
+    "tampered_operation": {
+      "refusal": "Web run binding conflicts with retained input",
+      "unchanged_ledger": true
+    },
+    "tampered_node": {
+      "refusal": "Lattice workflow policy, node, operation or execution rejected",
+      "unchanged_ledger": true
+    },
+    "tampered_source": {
+      "refusal": "Web run binding conflicts with retained input",
+      "unchanged_ledger": true
+    },
+    "unregistered_control": {
+      "unknown_without_receipt": true,
+      "no_orphan_cancellation_intent": true,
+      "unchanged_ledger": true
+    },
+    "authoritative_callback": {
+      "waiting_moved_run_cannot_reuse_approved_payload": true,
+      "metadata_only_refusal_retained": true,
+      "no_execution_or_financial_effects": true
+    },
+    "peer_and_binding_admission": {
+      "unenrolled_peer_denied": true,
+      "enrolled_unpinned_owner_denied": true,
+      "pinned_peer_replay_unchanged": true
+    },
+    "restart": {
+      "original_run_observed": true,
+      "approval_replay_preserved": true,
+      "no_reexecution": true,
+      "hosted_binding_count": 2,
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      }
+    },
+    "trusted_execution": {
+      "run_id": "web-run-eb710089f78afd88d5636c5ed44284e85d276c2b0c9aa335b2e18c821ac6879c",
+      "source_commit": "46b63323235291e09c64dddf456ef626df301188",
+      "outcome": "Success",
+      "node_states": {
+        "build": "Completed"
+      },
+      "stdout": "real trusted guest source=approved-exact-source-v1\n",
+      "cleaned": true,
+      "hosted_execution_identity": "6247c2d38c5851c2a4818341aae434c3e48c744cfaf4edc844d91d857bcc5036",
+      "sequence": 3,
+      "exactly_one_execution": true,
+      "request_replay_unchanged": true,
+      "restart_outcome_and_logs_preserved": true,
+      "untrusted_vm_qualification": "pending",
+      "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+    },
+    "trusted_live_cancellation": {
+      "run_id": "web-run-aa983f3adfb096d1f82c1a2ebc7ffa47e3a250414605ccaf44c4c1972a23d3ce",
+      "source_commit": "46b63323235291e09c64dddf456ef626df301188",
+      "node_id": "build",
+      "hosted_job_id": "build[0]",
+      "live_vmm_observed": true,
+      "confinement_and_pid_lifetime_verified": true,
+      "https_cancel_accepted": true,
+      "outcome": "Cancelled",
+      "node_state": "Cancelled",
+      "cleaned": true,
+      "journal_lifecycle": "destroyed",
+      "no_running_owned_unit": true,
+      "exactly_one_execution_reservation_usage": true,
+      "replay_and_restart_unchanged": true,
+      "untrusted_vm_qualification": "pending"
+    }
+  },
+  "observed_trusted_run": {
+    "id": "web-run-eb710089f78afd88d5636c5ed44284e85d276c2b0c9aa335b2e18c821ac6879c",
+    "source_revision": "46b63323235291e09c64dddf456ef626df301188",
+    "phase": "terminal",
+    "outcome": "Success",
+    "nodes": [
+      {
+        "id": "build",
+        "state": "Completed",
+        "kind": "build",
+        "started_at_ms": null,
+        "completed_at_ms": 1794130127079,
+        "duration_ms": null
+      }
+    ],
+    "error_code": null,
+    "hosted_diagnostics": [
+      {
+        "state": "succeeded",
+        "cleaned": true
+      },
+      {
+        "state": "succeeded"
+      },
+      {
+        "state": "succeeded",
+        "cleaned": true
+      }
+    ]
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 2,
+    "errors": [],
+    "private_scratch_retained": true
+  },
+  "secret_removal": {
+    "removed": true,
+    "files_checked": 12,
+    "scope": "only smoke-created root bearer tokens, Iroh private keys and TLS private key; not a claim of sanitized retained scratch"
+  },
+  "vm_qualification": "pending_eligible_host",
+  "hostile_isolation_claim": false,
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is not VM execution qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance",
+    "prior direct-route receipts are superseded history, not native Lattice evidence"
+  ]
+}

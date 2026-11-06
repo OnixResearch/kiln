@@ -1,9 +1,9 @@
 use crate::profile::ProjectProfile;
-use kiln_core::domain::{Command, CommandEnvelope, Event, Outcome, State, decide, evolve};
+use kiln_core::domain::{decide, evolve, Command, CommandEnvelope, Event, Outcome, State};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::{
-    Alias, AttemptId, CONTRACT_VERSION_V1, CandidateId, CommandId, ContentId, EffectId,
-    ExternalRef, Limits, PipelineRevisionId, PolicyId, ProviderProfileId, RunId,
+    Alias, AttemptId, CandidateId, CommandId, ContentId, EffectId, ExternalRef, Limits,
+    PipelineRevisionId, PolicyId, ProviderProfileId, RunId, CONTRACT_VERSION_V1,
 };
 use kiln_core::workflow::{
     WorkflowControls, WorkflowEdge, WorkflowEffectPlan, WorkflowNode, WorkflowNodeState,
@@ -249,6 +249,15 @@ pub struct RunView {
     pub untrusted: Option<kiln_core::untrusted::UntrustedSummary>,
 }
 impl RunRecord {
+    pub(super) fn dispatch_binding(&self) -> kiln_provider_api::WorkflowDispatchBinding {
+        kiln_provider_api::WorkflowDispatchBinding {
+            run_id: self.id.clone(),
+            project_id: self.project_id.clone(),
+            source: self.source.clone(),
+            untrusted: self.untrusted.clone(),
+        }
+    }
+
     pub fn restore(&mut self) -> Result<(), String> {
         kiln_core::source::validate_resolution(&self.source)
             .map_err(|_| "stored source resolution rejected")?;

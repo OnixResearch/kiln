@@ -1,0 +1,21 @@
+{
+  "schema": "kiln.web-lattice-hosted.runtime-recipe.v1",
+  "command": "nix shell --builders \"\" --option build-hook \"\" --inputs-from . nixpkgs#nickel nixpkgs#openssl --command python3 scripts/web-lattice-hosted-smoke.py --hosted BIN --web BIN --lattice BIN --lattice-source SOURCE --guest GUEST --root SCRATCH --evidence EVIDENCE --trusted-execution",
+  "arguments": {
+    "hosted": "built kiln-hosted",
+    "web": "ordinary kiln-web-service",
+    "lattice": "native Lattice revision 813076d7e42d0ddfb65042bee615bc5f12a2b4d3",
+    "lattice_source": "immutable copy of the same revision (contracts/templates)",
+    "guest": "reviewed Firecracker guest output",
+    "trusted_execution": true
+  },
+  "host": "Linux 6.18.50 workstation with existing user manager and accessible /dev/kvm",
+  "exclusions": [
+    "private scratch paths",
+    "bearer tokens",
+    "Iroh private keys",
+    "TLS private keys",
+    "raw databases",
+    "peer identifiers"
+  ]
+}

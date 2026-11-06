@@ -1,0 +1,494 @@
+
+running 16 tests
+test tests::contracts::equal_digest_text_keeps_roles_and_namespaces_distinct ... ok
+test tests::completion::hosted_provider_completion_maps_exact_terminal_and_rejects_linkage_drift ... ok
+test tests::contracts::architecture_keeps_aspen_out_of_core_and_ambient_effects_out_of_callback ... ok
+test tests::contracts::independent_consumer_accepts_the_static_producer_fixture ... ok
+test tests::contracts::denied_and_stale_effects_never_produce_a_fabric_plan ... ok
+test tests::runtime::remote_disconnect_after_acceptance_remains_unknown ... ok
+test tests::contracts::runtime_composition_is_explicit_and_never_falls_back ... ok
+test tests::runtime::content_mapping_rejects_missing_corrupt_and_overbound_objects ... ok
+test tests::runtime::journal_and_outbox_commit_atomically_and_conflicts_change_nothing ... ok
+test tests::contracts::callback_frames_are_canonical_bounded_and_strict ... ok
+test tests::runtime::workflow_exchange_preserves_response_and_unknown_acceptance ... ok
+test tests::contracts::exact_profile_admits_and_drift_fails_without_fallback ... ok
+test tests::runtime::timeout_and_cancellation_do_not_commit ... ok
+test tests::unix::unix_server_codec_rejects_operation_shape_unknown_fields_and_bounds ... ok
+test tests::runtime::lost_commit_acknowledgement_reconciles_without_duplicate_mutation ... ok
+test tests::unix::unix_aspen_transport_accepts_exact_response_and_denies_missing_endpoint ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 14 tests
+test tests::core_and_provider_manifests_do_not_import_cairn_or_bounded_exec ... ok
+test tests::profile_rejects_revision_schema_and_limit_drift ... ok
+test tests::executable_substitution_fails_before_process_execution ... ok
+test tests::controlled_policy_error_preserves_diagnostic_class ... ok
+test tests::malformed_and_truncated_outputs_are_provider_errors ... ok
+test tests::tampered_native_receipt_identity_is_rejected ... ok
+test tests::restored_unknown_reconciles_without_process_redispatch ... ok
+test tests::independent_consumer_accepts_producer_fixture_and_rejects_substitution ... ok
+test tests::repeated_effect_rejects_candidate_and_policy_substitution ... ok
+test tests::timeout_cancellation_and_unknown_remain_distinct_without_rerun ... ok
+test tests::exact_machine_fixture_admits_pass_repeat_and_reconciliation ... ok
+test tests::exact_machine_fixture_preserves_blocked_findings ... ok
+test tests::bounded_runtime_preserves_timeout_and_cancellation ... ok
+test tests::bounded_runtime_hashes_exact_file_and_rejects_missing_executable ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.27s
+
+
+running 6 tests
+test tests::lossy_profile_is_rejected ... ok
+test tests::missing_correlation_rejects_without_canonical_action ... ok
+test tests::imported_success_is_observational_and_duplicates_are_explicit ... ok
+test tests::unknown_event_type_and_missing_fields_fail_closed ... ok
+test tests::independent_fixture_decodes_with_the_pinned_profile ... ok
+test tests::task_run_round_trip_preserves_declared_fields ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 54 tests
+test partition::tests::rejects_zero_partition_count ... ok
+test admission::tests::expired_lease_requires_reconcile ... ok
+test admission::tests::leases_move_unclaimed_to_leased ... ok
+test admission::tests::rejects_a_migration_exceeding_the_step_bound ... ok
+test admission::tests::rejects_a_migration_cycle ... ok
+test admission::tests::rejects_an_unknown_migration_edge ... ok
+test admission::tests::plans_a_known_migration ... ok
+test profile::tests::rejects_drifted_release ... ok
+test admission::tests::completed_lease_requires_no_action ... ok
+test admission::tests::ambiguous_provider_outcome_requires_reconciliation ... ok
+test profile::tests::rejects_undeclared_trust_domain ... ok
+test profile::tests::local_sqlite_only_cannot_admit_an_unobserved_runtime ... ok
+test profile::tests::rejects_unobserved_artifact_deployment_storage_and_ingress_changes ... ok
+test profile::tests::rejects_zero_bounds ... ok
+test profile::tests::rejects_hostile_tenants_on_the_alpha_cohort ... ok
+test profile::tests::rejects_output_gate_disabled ... ok
+test profile::tests::rejects_private_route_and_untrusted_origin_before_worker_dispatch ... ok
+test profile::tests::rejects_stale_cohort_observations_and_observed_disabled_storage ... ok
+test admission::tests::rejects_an_empty_append ... ok
+test protocol::tests::rejects_an_empty_nonce ... ok
+test protocol::tests::classifies_accepted_and_rejected_responses ... ok
+test profile::tests::rejects_storage_probe_disabled ... ok
+test worker::tests::cohort_admission_requires_output_gate_and_probe ... ok
+test protocol::tests::length_framing_rejects_equal_legacy_nonce_and_operation_bytes ... ok
+test protocol::tests::rejects_a_wrong_signature ... ok
+test protocol::tests::signs_and_verifies_an_envelope ... ok
+test partition::tests::maps_different_streams_within_the_partition_policy ... ok
+test admission::tests::rejects_a_stale_expected_revision ... ok
+test partition::tests::maps_a_partition_deterministically ... ok
+test client::tests::append_rejects_a_stale_request_before_dispatch ... ok
+test client::tests::append_rejects_a_second_partition_before_transport ... ok
+test admission::tests::checked_replay_rejects_corrupted_identity_before_evolution ... ok
+test worker::tests::worker_rejects_a_bad_signature ... ok
+test admission::tests::rejects_a_non_contiguous_append ... ok
+test client::tests::a_missing_authenticated_read_never_fabricates_an_empty_journal ... ok
+test client::tests::append_classifies_a_tls_failure ... ok
+test client::tests::append_classifies_a_key_mismatch ... ok
+test client::tests::append_classifies_a_disconnection ... ok
+test admission::tests::admits_one_batch_at_the_expected_revision ... ok
+test client::tests::append_classifies_a_timeout ... ok
+test admission::tests::classifies_repeats_and_conflicts ... ok
+test client::tests::append_classifies_an_unknown_outcome ... ok
+test client::tests::append_classifies_a_malformed_response ... ok
+test client::tests::append_commits_on_acceptance ... ok
+test admission::tests::rejects_a_duplicate_event_identity ... ok
+test client::tests::append_classifies_a_redirect ... ok
+test admission::tests::checked_replay_evolves_valid_history_without_provider_dispatch ... ok
+test worker::tests::worker_does_not_commit_past_a_rejection ... ok
+test worker::tests::worker_commits_outbox_and_event_together ... ok
+test worker::tests::worker_commits_one_append ... ok
+test worker::tests::worker_replays_equal_operation_without_mutation ... ok
+test worker::tests::cohort_restart_preserves_committed_facts ... ok
+test worker::tests::compatible_cohort_differential_is_identical ... ok
+test worker::tests::conflicting_payload_is_rejected_after_commit ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 1 test
+test actual_worker_controls ... ignored, requires the pinned loopback Celld HTTPS cohort runner
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test actual_worker_persists_event_outbox_and_reconciles_a_lost_append_response ... ignored, requires the loopback Celld cohort runner tests/celld-live-cohort.sh
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+test tests::registry_requires_all_cairn_profiles ... ok
+test tests::every_cairn_profile_has_a_read_only_adapter ... ok
+test tests::unknown_profile_has_no_implicit_adapter ... ok
+test tests::dispatch_orders_observation_signer_preview_and_effect ... ok
+test tests::stale_observation_and_missing_signer_block_effects ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 8 tests
+test tests::profile_rejects_network_and_format_drift ... ok
+test tests::pinned_profile_is_read_only ... ok
+test tests::adapter_exposes_no_network_or_mutation_surface ... ok
+test tests::missing_repository_and_unsupported_features_fail_closed ... ok
+test tests::moved_reference_is_rejected_before_identity_return ... ok
+test tests::missing_commit_object_fails_closed ... ok
+test tests::real_repository_resolves_and_acquires_repeatably ... ok
+test tests::detached_commit_annotated_tag_and_empty_tree_are_supported ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 17 tests
+test review_provider_refuses_duplicate_unbounded_and_oversized_configuration ... ok
+test review_provider_admission_rejects_parent_paths_and_symbolic_target_refs ... ok
+test review_whitespace_filter_retains_exact_blob_line_coordinates ... ok
+test review_provider_refuses_target_race_non_fast_forward_and_locked_target ... ok
+test review_provider_conflicting_author_operation_never_changes_target ... ok
+test review_provider_reconciles_crash_after_effect_without_duplicate_mutation ... ok
+test review_integration_refuses_conflicts_moved_targets_and_disabled_capabilities ... ok
+test review_provider_exact_submit_and_revision_registration_are_idempotent ... ok
+test review_suggestions_apply_atomically_and_recover_identical_commit ... ok
+test review_provider_refuses_malformed_escaped_and_disabled_requests_without_effects ... ok
+test review_provider_ordered_stack_preserves_exact_child_revision_and_ancestry_proof ... ok
+test review_provider_diff_has_exact_paths_coordinates_renames_binary_and_bounds ... ok
+test speculative_integration_refuses_unrelated_predecessor_moved_target_and_missing_capability ... ok
+test review_provider_author_actions_return_exact_revisions_without_target_mutation ... ok
+test review_suggestions_refuse_overlap_stale_content_paths_binary_and_bounds ... ok
+test speculative_integration_stacks_on_predecessor_and_fast_forwards_only_in_order ... ok
+test review_integration_combines_exact_source_target_then_submits_only_by_cas ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 3 tests
+test conflicted_rebase_missing_commit_and_disabled_compare_are_explicit ... ok
+test revision_commits_list_change_ids_oldest_first_and_flag_foreign_bases ... ok
+test rebased_revision_interdiff_shows_only_the_authors_delta_and_writes_nothing ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 55 tests
+test secret::tests::debug_discloses_neither_secret_material_nor_secret_length ... ok
+test secret::tests::secret_values_reject_header_injection_and_invalid_encoding ... ok
+test events::tests::repository_policy_respects_core_native_identity_boundary ... ok
+test events::tests::hmac_matches_rfc4231_vector_and_rejects_modified_bytes ... ok
+test events::tests::malformed_signature_forms_fail_closed ... ok
+test events::tests::repository_name_id_and_internal_name_consistency_are_required ... ok
+test events::tests::gitea_raw_signature_alias_is_accepted ... ok
+test events::tests::push_retains_native_facts_but_dispatches_exact_sha_and_canonical_repository ... ok
+test events::tests::delivery_and_incidental_payload_changes_do_not_change_semantic_candidate ... ok
+test events::tests::authentication_precedes_json_decode_and_failure_does_not_reveal_payload ... ok
+test events::tests::body_and_header_bounds_and_delivery_guid_are_enforced ... ok
+test events::tests::case_normalization_preserves_native_spelling_without_dedup_bypass ... ok
+test events::tests::pr_action_redelivery_deduplicates_but_distinct_prs_and_event_kinds_do_not ... ok
+test events::tests::pr_base_number_and_head_repository_consistency_are_enforced ... ok
+test events::tests::deleted_pushes_closed_prs_and_unselected_events_are_ignored ... ok
+test events::tests::gitea_synchronized_action_and_pull_request_sync_event_use_the_exact_head ... ok
+test events::tests::closed_and_merged_pull_requests_are_opt_in_with_distinct_candidates ... ok
+test events::tests::all_selected_pr_actions_use_head_not_base_or_merge_sha ... ok
+test status::tests::status_config_requires_a_normalized_https_api_base ... ok
+test events::tests::malformed_json_missing_fields_and_duplicate_critical_fields_are_rejected ... ok
+test events::tests::malformed_sha_and_reference_never_become_executable_candidates ... ok
+test status::tests::plan_identity_binds_every_semantic_field_and_full_run_marker ... ok
+test tests::export::malformed_profile_does_not_create_a_database ... ok
+test tests::unsupported_graph_controls_and_unbounded_acknowledgement_fail_before_resources ... ok
+test status::tests::client_debug_discloses_neither_token_material_nor_length ... ok
+test events::tests::forks_require_explicit_policy_and_retain_exact_source_facts ... ok
+test status::tests::real_http_publish_retains_exact_projection_and_uses_fixed_protocol ... ok
+test job::tests::rejects_wrong_source_and_profile_bytes_before_execution ... ok
+test status::tests::reconciliation_allows_lifecycle_history_but_rejects_conflicting_exact_markers ... ok
+test tests::durable_delivery_and_candidate_dedup_reject_conflict_and_stale_cas ... ok
+test tests::retention_and_changed_profile_never_erase_prior_replay_state ... ok
+test status::tests::denied_rate_limited_and_redirect_responses_never_follow_or_retry ... ok
+test tests::incomplete_connection_does_not_block_another_webhook ... ok
+test tests::export::export_rejects_source_aliases_and_sidecars_without_replacement ... ok
+test tests::interrupted_reservation_never_becomes_permission_to_dispatch ... ok
+test job::tests::missing_unsafe_and_oversized_tree_never_materialize ... ok
+test tests::export::export_never_resolves_credentials_or_contacts_workflow ... ok
+test tests::export::missing_and_stale_profiles_preserve_prior_output_and_database ... ok
+test tests::stale_observations_consume_durable_budget_and_never_publish_success ... ok
+test tests::accepted_dispatch_with_failed_recovery_stays_unknown_and_recovers_without_redispatch ... ok
+test tests::terminal_intent_does_not_hide_an_ambiguous_pending_status ... ok
+test tests::export::exported_success_failure_unresolved_and_pending_replay_exactly ... ok
+test job::tests::exact_checkout_content_and_real_exit_outcome ... ok
+test status::dns_tests::dns_protocol_admits_only_bounded_fixed_port_addresses_and_fixed_destination ... ok
+test tests::export::malformed_and_corrupt_stores_preserve_prior_report ... ok
+test tests::controlled_admission_state_rejects_at_bound_without_effect_then_admits_same_delivery ... ok
+test status::tests::provider_repository_case_normalization_preserves_exact_origin_endpoint_and_revision ... ok
+test secret::tests::declared_resolution_checks_arguments_and_clears_environment ... ok
+test job::tests::deadline_cancellation_and_output_overflow_are_not_success ... ok
+test tests::http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_headers ... ok
+test tests::export::snapshot_export_preserves_original_profile_and_protects_snapshot ... ok
+test secret::tests::drift_failures_and_malformed_output_are_redacted ... ok
+test status::dns_tests::stalled_resolver_subprocess_deadline_kills_and_reaps_its_process_group ... ok
+test status::tests::reconciliation_paginates_and_exhaustion_cannot_prove_absence_or_complete_match ... ok
+test status::tests::post_mismatches_malformed_lost_timeout_and_oversized_responses_are_unknown ... ok
+
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+test actual_helper_rejects_wrong_source_identity_missing_commit_and_transfer_bound ... ok
+test actual_helper_acquires_selected_commit_not_branch_tip_and_propagates_failure ... ok
+test outer_workflow_cancellation_sigkill_cleans_source_job_process_tree ... ok
+test actual_helper_cancellation_terminates_owned_command_descendants ... ok
+test outer_workflow_timeout_sigkill_cleans_source_job_process_tree ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.36s
+
+
+running 17 tests
+test passing_composition_executes_exact_source_and_publishes_success ... ok
+test duplicate_delivery_reuses_run_without_second_job ... ok
+test failing_command_publishes_domain_failure ... ok
+test restart_recovers_original_execution_without_redispatch ... ok
+test real_binary_rejects_invalid_signature_before_effects ... ok
+test real_binary_ignores_closed_pull_request ... ok
+test real_binary_denies_fork_pull_request ... ok
+test real_binary_rejects_malformed_webhook_framing ... ok
+test real_binary_failing_command_publishes_failure ... ok
+test real_binary_admits_same_repository_pull_request ... ok
+test real_binary_duplicate_delivery_reuses_run ... ok
+test real_binary_reconciles_ambiguous_status_without_repost ... ok
+test real_binary_publishes_through_fixture_status ... ok
+test real_binary_keeps_terminal_status_unknown_on_conflict ... ok
+test real_binary_expires_partial_requests_and_remains_available ... ok
+test real_binary_restart_recovers_without_redispatch ... ok
+test real_binary_rejects_changed_profile_against_existing_replay_state ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 53 tests
+test events::tests::repository_policy_respects_core_native_identity_boundary ... ok
+test events::tests::hmac_matches_rfc4231_vector_and_rejects_modified_bytes ... ok
+test events::tests::malformed_signature_forms_fail_closed ... ok
+test events::tests::repository_name_id_and_internal_name_consistency_are_required ... ok
+test events::tests::deleted_pushes_closed_prs_and_unselected_events_are_ignored ... ok
+test events::tests::pr_base_number_and_head_repository_consistency_are_enforced ... ok
+test secret::tests::debug_discloses_neither_secret_material_nor_secret_length ... ok
+test events::tests::malformed_sha_and_reference_never_become_executable_candidates ... ok
+test events::tests::body_and_header_bounds_and_delivery_guid_are_enforced ... ok
+test events::tests::case_normalization_preserves_native_spelling_without_dedup_bypass ... ok
+test events::tests::delivery_and_incidental_payload_changes_do_not_change_semantic_candidate ... ok
+test events::tests::pr_action_redelivery_deduplicates_but_distinct_prs_and_event_kinds_do_not ... ok
+test events::tests::push_retains_native_facts_but_dispatches_exact_sha_and_canonical_repository ... ok
+test events::tests::all_selected_pr_actions_use_head_not_base_or_merge_sha ... ok
+test secret::tests::secret_values_reject_header_injection_and_invalid_encoding ... ok
+test tests::custom_effect_class_maps_to_the_custom_workflow_class ... ok
+test events::tests::malformed_json_missing_fields_and_duplicate_critical_fields_are_rejected ... ok
+test events::tests::closed_and_merged_pull_requests_are_opt_in_with_distinct_candidates ... ok
+test tests::export::malformed_profile_does_not_create_a_database ... ok
+test status::tests::plan_identity_binds_every_semantic_field_and_full_run_marker ... ok
+test events::tests::authentication_precedes_json_decode_and_failure_does_not_reveal_payload ... ok
+test events::tests::forks_require_explicit_policy_and_retain_exact_source_facts ... ok
+test tests::unsupported_graph_controls_and_unbounded_acknowledgement_fail_before_resources ... ok
+test status::tests::client_debug_discloses_neither_token_material_nor_length ... ok
+test status::tests::real_http_publish_retains_exact_projection_and_uses_fixed_protocol ... ok
+test status::tests::reconciliation_allows_lifecycle_history_but_rejects_conflicting_exact_markers ... ok
+test job::tests::rejects_wrong_source_and_profile_bytes_before_execution ... ok
+test status::tests::denied_rate_limited_and_redirect_responses_never_follow_or_retry ... ok
+test tests::export::export_never_resolves_credentials_or_contacts_workflow ... ok
+test tests::durable_delivery_and_candidate_dedup_reject_conflict_and_stale_cas ... ok
+test tests::export::export_rejects_source_aliases_and_sidecars_without_replacement ... ok
+test job::tests::missing_unsafe_and_oversized_tree_never_materialize ... ok
+test tests::retention_and_changed_profile_never_erase_prior_replay_state ... ok
+test tests::interrupted_reservation_never_becomes_permission_to_dispatch ... ok
+test tests::export::missing_and_stale_profiles_preserve_prior_output_and_database ... ok
+test tests::accepted_dispatch_with_failed_recovery_stays_unknown_and_recovers_without_redispatch ... ok
+test job::tests::exact_checkout_content_and_real_exit_outcome ... ok
+test tests::stale_observations_consume_durable_budget_and_never_publish_success ... ok
+test status::dns_tests::dns_protocol_admits_only_bounded_fixed_port_addresses_and_fixed_destination ... ok
+test tests::controlled_admission_state_rejects_at_capacity_without_effect_then_admits_same_delivery ... ok
+test tests::terminal_intent_does_not_hide_an_ambiguous_pending_status ... ok
+test tests::incomplete_connection_does_not_block_another_webhook ... ok
+test tests::export::exported_success_failure_unresolved_and_pending_replay_exactly ... ok
+test tests::http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_headers ... ok
+test status::tests::provider_repository_case_normalization_preserves_exact_origin_endpoint_and_revision ... ok
+test job::tests::deadline_cancellation_and_output_overflow_are_not_success ... ok
+test tests::export::malformed_and_corrupt_stores_preserve_prior_report ... ok
+test secret::tests::declared_resolution_checks_arguments_and_clears_environment ... ok
+test status::dns_tests::stalled_resolver_subprocess_deadline_kills_and_reaps_its_process_group ... ok
+test secret::tests::drift_failures_and_malformed_output_are_redacted ... ok
+test status::tests::reconciliation_paginates_and_exhaustion_cannot_prove_absence_or_complete_match ... ok
+test status::tests::post_mismatches_malformed_lost_timeout_and_oversized_responses_are_unknown ... ok
+test tests::export::snapshot_export_preserves_original_profile_and_protects_snapshot ... ok
+
+test result: ok. 53 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 5 tests
+test actual_helper_rejects_wrong_source_identity_missing_commit_and_transfer_bound ... ok
+test actual_helper_acquires_selected_commit_not_branch_tip_and_propagates_failure ... ok
+test outer_workflow_cancellation_sigkill_cleans_source_job_process_tree ... ok
+test actual_helper_cancellation_terminates_owned_command_descendants ... ok
+test outer_workflow_timeout_sigkill_cleans_source_job_process_tree ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.34s
+
+
+running 17 tests
+test passing_composition_executes_exact_source_and_publishes_success ... ok
+test duplicate_delivery_reuses_run_without_second_job ... ok
+test failing_command_publishes_domain_failure ... ok
+test restart_recovers_original_execution_without_redispatch ... ok
+test real_binary_ignores_closed_pull_request ... ok
+test real_binary_rejects_invalid_signature_before_effects ... ok
+test real_binary_failing_command_publishes_failure ... FAILED
+test real_binary_rejects_malformed_webhook_framing ... ok
+test real_binary_denies_fork_pull_request ... ok
+test real_binary_duplicate_delivery_reuses_run ... ok
+test real_binary_publishes_through_fixture_status ... ok
+test real_binary_reconciles_ambiguous_status_without_repost ... ok
+test real_binary_admits_same_repository_pull_request ... ok
+test real_binary_keeps_terminal_status_unknown_on_conflict ... ok
+test real_binary_rejects_changed_profile_against_existing_replay_state ... ok
+test real_binary_restart_recovers_without_redispatch ... ok
+test real_binary_expires_partial_requests_and_remains_available ... ok
+
+failures:
+
+---- real_binary_failing_command_publishes_failure stdout ----
+
+thread 'real_binary_failing_command_publishes_failure' panicked at crates/kiln-adapter-github/tests/local_ci_e2e.rs:1056:28:
+internal error: entered unreachable code: fixture webhook response has a body
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    real_binary_failing_command_publishes_failure
+
+test result: FAILED. 16 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+
+   Compiling kiln-adapter-lattice v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-lattice)
+   Compiling kiln-adapter-jj v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-jj)
+   Compiling kiln-adapter-aspen v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-aspen)
+   Compiling kiln-adapter-webhook v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-webhook)
+   Compiling kiln-adapter-git v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git)
+   Compiling kiln-adapter-cob v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-cob)
+   Compiling kiln-adapter-nix-eval v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix-eval)
+   Compiling kiln-standalone v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-standalone)
+   Compiling kiln-adapter-sqlite v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-sqlite)
+   Compiling kiln-adapter-remote v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-remote)
+   Compiling kiln-adapter-nix v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-nix)
+   Compiling kiln-adapter-celld v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-celld)
+   Compiling kiln-adapter-patchgate v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-patchgate)
+   Compiling kiln-adapter-mantle v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-mantle)
+   Compiling kiln-nix-store v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-store)
+   Compiling kiln-adapter-tangled v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-tangled)
+   Compiling kiln-adapter-cairn v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-cairn)
+   Compiling kiln-adapter-opentelemetry v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-opentelemetry)
+   Compiling kiln-radicle-source-contract v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-radicle-source-contract)
+   Compiling kiln-adapter-valence v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-valence)
+   Compiling kiln-adapter-pijul v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-pijul)
+   Compiling kiln-dashboard v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-dashboard)
+   Compiling kiln-adapter-iroh v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-iroh)
+   Compiling kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)
+   Compiling kiln-nix-build v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-build)
+   Compiling kiln-adapter-gitea v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-gitea)
+   Compiling kiln-cli v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-cli)
+   Compiling kiln-adapter-radicle v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-radicle)
+   Compiling kiln-aspen-extension v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-aspen-extension)
+   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+   Compiling kiln-conformance v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-conformance)
+   Compiling kiln-onixos-pilot v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-onixos-pilot)
+   Compiling kiln-radicle-ci v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-radicle-ci)
+   Compiling kiln-onixos-worker v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-onixos-worker)
+   Compiling kiln-hosted v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 20s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_aspen-1956b20e8901ef09)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_cairn-58c45b7ef703f996)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_cdevents-35ef3854678bc2e4)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_celld-da11756be157db99)
+     Running tests/live_control.rs (/home/brittonr/.cargo-target/debug/deps/live_control-dc5268628d55bd2e)
+     Running tests/live_worker.rs (/home/brittonr/.cargo-target/debug/deps/live_worker-ac6c4f802dbac9fb)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_cob-6455475b26ada6d3)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_git-e1640a2001969673)
+     Running tests/change_review_conformance.rs (/home/brittonr/.cargo-target/debug/deps/change_review_conformance-f31e234891ad2e4a)
+     Running tests/change_review_interdiff.rs (/home/brittonr/.cargo-target/debug/deps/change_review_interdiff-a5663df59210f61b)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_gitea-8f188eddd4ebb806)
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_gitea-dd59def474da4f2d)
+     Running unittests src/bin/gitea-job.rs (/home/brittonr/.cargo-target/debug/deps/kiln_gitea_job-6adb130df3589929)
+     Running tests/job.rs (/home/brittonr/.cargo-target/debug/deps/job-c84dd2c1bbd75b48)
+     Running tests/local_ci_e2e.rs (/home/brittonr/.cargo-target/debug/deps/local_ci_e2e-986a2de3f2ea5a2a)
+Gitea webhook listener ready at 127.0.0.1:46439
+Gitea webhook listener ready at 127.0.0.1:41625
+Gitea webhook listener ready at 127.0.0.1:41571
+Gitea webhook listener ready at 127.0.0.1:34097
+Gitea webhook listener ready at 127.0.0.1:38243
+Gitea webhook listener ready at 127.0.0.1:40653
+Gitea webhook listener ready at 127.0.0.1:40687
+Gitea webhook listener ready at 127.0.0.1:42677
+Gitea intake: gitea_authentication
+Gitea intake: gitea_http_duplicate_header
+Gitea webhook listener ready at 127.0.0.1:45381
+Gitea webhook listener ready at 127.0.0.1:45275
+Gitea webhook listener ready at 127.0.0.1:37701
+Gitea webhook listener ready at 127.0.0.1:35861
+Gitea intake: gitea_http_body_bound
+Gitea intake: gitea_fork_denied
+Gitea webhook listener ready at 127.0.0.1:34043
+Gitea intake: gitea_http_method
+Gitea intake: gitea_http_deadline
+Gitea webhook listener ready at 127.0.0.1:38243
+gitea_store_profile_conflict: Gitea replay state belongs to a different schema or exact service profile
+     Running unittests examples/live_ci_inputs.rs (/home/brittonr/.cargo-target/debug/examples/live_ci_inputs-f103bcb904ab0332)
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_github-55cab5403f005cc6)
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_github-c6ccc8d867fbf9c2)
+     Running unittests src/bin/github-job.rs (/home/brittonr/.cargo-target/debug/deps/kiln_github_job-473a07b1c01658c7)
+     Running tests/job.rs (/home/brittonr/.cargo-target/debug/deps/job-7aa3d4e932a02b9c)
+     Running tests/local_ci_e2e.rs (/home/brittonr/.cargo-target/debug/deps/local_ci_e2e-34c0ff12fefbb0c2)
+GitHub webhook listener ready at 127.0.0.1:35199
+GitHub webhook listener ready at 127.0.0.1:43885
+GitHub webhook listener ready at 127.0.0.1:34853
+GitHub webhook listener ready at 127.0.0.1:33959
+GitHub webhook listener ready at 127.0.0.1:36619
+GitHub webhook listener ready at 127.0.0.1:37911
+GitHub webhook listener ready at 127.0.0.1:45919
+GitHub intake: github_http_duplicate_header
+GitHub webhook listener ready at 127.0.0.1:41885
+GitHub intake: github_http_body_bound
+GitHub webhook listener ready at 127.0.0.1:37937
+GitHub webhook listener ready at 127.0.0.1:42253
+GitHub intake: github_authentication
+github_store_commit: GitHub durable storage operation failed
+GitHub webhook listener ready at 127.0.0.1:38719
+GitHub webhook listener ready at 127.0.0.1:36479
+GitHub intake: github_http_method
+GitHub intake: github_fork_denied
+GitHub webhook listener ready at 127.0.0.1:35199
+github_store_profile_conflict: GitHub replay state belongs to a different schema or exact service profile
+GitHub intake: github_http_deadline
+error: test failed, to rerun pass `-p kiln-adapter-github --test local_ci_e2e`

@@ -1,4 +1,4 @@
-use crate::{EXCHANGE_TIMEOUT_MS, MAX_CONNECTIONS, MAX_FRAME_BYTES, Request};
+use crate::{Request, EXCHANGE_TIMEOUT_MS, MAX_CONNECTIONS, MAX_FRAME_BYTES};
 use base64::Engine;
 use iroh::{Endpoint, EndpointAddr};
 use serde::{Deserialize, Serialize};

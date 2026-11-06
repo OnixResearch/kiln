@@ -9,15 +9,15 @@ use std::time::Instant;
 
 use base64::Engine as _;
 use nix::fcntl::AtFlags;
-use nix::fcntl::{OFlag, openat};
-use nix::sys::stat::{Mode, SFlag, fstatat};
-use serde_json::{Value, json};
+use nix::fcntl::{openat, OFlag};
+use nix::sys::stat::{fstatat, Mode, SFlag};
+use serde_json::{json, Value};
 
 use super::client::{RunBinding, ServiceClient};
 use super::profile::WorkerProfile;
 use crate::cache::{
-    CacheEntry, CacheEnvelope, CacheFile, CacheKey, CacheObservation, CacheRestore, RestoreOutcome,
-    WorkerCacheProfile, safe_path,
+    safe_path, CacheEntry, CacheEnvelope, CacheFile, CacheKey, CacheObservation, CacheRestore,
+    RestoreOutcome, WorkerCacheProfile,
 };
 
 fn elapsed(started: Instant) -> u64 {
@@ -576,26 +576,10 @@ mod tests {
                 outcome == RestoreOutcome::Miss
             );
             assert!(!root.path().join("cache-output").exists());
-            assert!(
-                admit_restore(
-                    CacheRestore {
-                        entry: Some(envelope.clone()),
-                        outcome
-                    },
-                    root.path(),
-                    &key,
-                    &config(),
-                    13,
-                    1
-                )
-                .is_err()
-            );
-        }
-        assert!(
-            admit_restore(
+            assert!(admit_restore(
                 CacheRestore {
-                    entry: None,
-                    outcome: RestoreOutcome::Hit
+                    entry: Some(envelope.clone()),
+                    outcome
                 },
                 root.path(),
                 &key,
@@ -603,40 +587,48 @@ mod tests {
                 13,
                 1
             )
-            .is_err()
-        );
+            .is_err());
+        }
+        assert!(admit_restore(
+            CacheRestore {
+                entry: None,
+                outcome: RestoreOutcome::Hit
+            },
+            root.path(),
+            &key,
+            &config(),
+            13,
+            1
+        )
+        .is_err());
         let mut wrong_key = envelope.clone();
         wrong_key.entry.key.node_id = "another-job".into();
-        assert!(
-            admit_restore(
-                CacheRestore {
-                    entry: Some(wrong_key),
-                    outcome: RestoreOutcome::Hit
-                },
-                root.path(),
-                &key,
-                &config(),
-                13,
-                1
-            )
-            .is_err()
-        );
+        assert!(admit_restore(
+            CacheRestore {
+                entry: Some(wrong_key),
+                outcome: RestoreOutcome::Hit
+            },
+            root.path(),
+            &key,
+            &config(),
+            13,
+            1
+        )
+        .is_err());
         let mut corrupt = envelope.clone();
         corrupt.blake3 = "0".repeat(64);
-        assert!(
-            admit_restore(
-                CacheRestore {
-                    entry: Some(corrupt),
-                    outcome: RestoreOutcome::Hit
-                },
-                root.path(),
-                &key,
-                &config(),
-                13,
-                1
-            )
-            .is_err()
-        );
+        assert!(admit_restore(
+            CacheRestore {
+                entry: Some(corrupt),
+                outcome: RestoreOutcome::Hit
+            },
+            root.path(),
+            &key,
+            &config(),
+            13,
+            1
+        )
+        .is_err());
         assert!(!root.path().join("cache-output").exists());
         let observation = admit_restore(
             CacheRestore {
@@ -848,48 +840,42 @@ mod tests {
         let mut files = Vec::new();
         let mut bytes = 0;
         let mut visited = 0;
-        assert!(
-            collect(
-                root.path(),
-                Path::new("cache-output"),
-                &config(),
-                &mut files,
-                &mut bytes,
-                &mut visited
-            )
-            .is_err()
-        );
+        assert!(collect(
+            root.path(),
+            Path::new("cache-output"),
+            &config(),
+            &mut files,
+            &mut bytes,
+            &mut visited
+        )
+        .is_err());
         std::fs::remove_file(root.path().join("cache-output/link")).unwrap_or_else(|error| {
             unreachable!("{}: {:?}", "cache fixture operation succeeds", error)
         });
         std::fs::write(root.path().join("cache-output/.env"), b"credentials").unwrap_or_else(
             |error| unreachable!("{}: {:?}", "cache fixture operation succeeds", error),
         );
-        assert!(
-            collect(
-                root.path(),
-                Path::new("cache-output/.env"),
-                &config(),
-                &mut files,
-                &mut bytes,
-                &mut visited
-            )
-            .is_err()
-        );
+        assert!(collect(
+            root.path(),
+            Path::new("cache-output/.env"),
+            &config(),
+            &mut files,
+            &mut bytes,
+            &mut visited
+        )
+        .is_err());
         std::fs::write(root.path().join("cache-output/large"), vec![0u8; 1025]).unwrap_or_else(
             |error| unreachable!("{}: {:?}", "cache fixture operation succeeds", error),
         );
-        assert!(
-            collect(
-                root.path(),
-                Path::new("cache-output/large"),
-                &config(),
-                &mut files,
-                &mut bytes,
-                &mut visited
-            )
-            .is_err()
-        );
+        assert!(collect(
+            root.path(),
+            Path::new("cache-output/large"),
+            &config(),
+            &mut files,
+            &mut bytes,
+            &mut visited
+        )
+        .is_err());
     }
     #[test]
     fn preflight_rejects_later_symlink_or_conflict_before_any_restore_write() {

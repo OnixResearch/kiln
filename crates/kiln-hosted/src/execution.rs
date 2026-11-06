@@ -14,9 +14,9 @@ use bounded_exec::{
     CommandSpec, Completion, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest,
     TerminationScope,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use zeroize::Zeroize;
 
 use kiln_microvm::backend::{
@@ -2667,11 +2667,9 @@ mod tests {
             network: None,
         };
         assert!(admit_backend(&backend, "trusted").is_ok());
-        assert!(
-            admit_backend(&backend, "hostile")
-                .err()
-                .is_some_and(|error| error.contains("qualified VM"))
-        );
+        assert!(admit_backend(&backend, "hostile")
+            .err()
+            .is_some_and(|error| error.contains("qualified VM")));
         assert!(admit_backend(&backend, "unknown").is_err());
     }
     // r[verify kiln.hosted.execution.scenario.teardown]
@@ -2882,11 +2880,9 @@ mod tests {
         }];
         // Trusted jobs keep the reviewed workload grant (secrets, audience).
         let trusted = job_grants(&config, "acme", "app", "vm", false);
-        assert!(
-            trusted
-                .workload
-                .is_some_and(|p| p.audience.is_some() && !p.secrets.is_empty())
-        );
+        assert!(trusted
+            .workload
+            .is_some_and(|p| p.audience.is_some() && !p.secrets.is_empty()));
         assert!(trusted.cache);
         // The approved run and its retry attempt: no workload policy means the
         // credential step resolves no secret and mints no KILN_WORKLOAD_TOKEN,
@@ -3147,13 +3143,11 @@ mod tests {
             "host_identity": "host-u"
         })))
         .unwrap_or_else(|error| unreachable!("{error}"));
-        assert!(
-            validate_trust_domains(
-                &std::collections::BTreeMap::from([("untrusted".into(), missing)]),
-                &workload
-            )
-            .is_err()
-        );
+        assert!(validate_trust_domains(
+            &std::collections::BTreeMap::from([("untrusted".into(), missing)]),
+            &workload
+        )
+        .is_err());
     }
     #[test]
     fn placement_ledger_rejects_cross_attempt_trust_overlap() {
@@ -3192,61 +3186,55 @@ mod tests {
                 timeout_ms: 1000,
             }],
         };
-        assert!(
-            reserve_placements(
-                &db,
-                PlacementScope {
-                    organization: "acme",
-                    attempt: "next",
-                    project: "app"
-                },
-                &plan,
-                &config,
-                true,
-                2
-            )
-            .is_err()
-        );
+        assert!(reserve_placements(
+            &db,
+            PlacementScope {
+                organization: "acme",
+                attempt: "next",
+                project: "app"
+            },
+            &plan,
+            &config,
+            true,
+            2
+        )
+        .is_err());
         db.execute(
             "UPDATE hosted_execution SET state='unknown' WHERE org='acme' AND attempt='prior'",
             [],
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
-        assert!(
-            reserve_placements(
-                &db,
-                PlacementScope {
-                    organization: "other-org",
-                    attempt: "next",
-                    project: "app"
-                },
-                &plan,
-                &config,
-                true,
-                3
-            )
-            .is_err()
-        );
+        assert!(reserve_placements(
+            &db,
+            PlacementScope {
+                organization: "other-org",
+                attempt: "next",
+                project: "app"
+            },
+            &plan,
+            &config,
+            true,
+            3
+        )
+        .is_err());
         db.execute(
             "UPDATE hosted_execution SET state='succeeded' WHERE org='acme' AND attempt='prior'",
             [],
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
-        assert!(
-            reserve_placements(
-                &db,
-                PlacementScope {
-                    organization: "other-org",
-                    attempt: "next",
-                    project: "app"
-                },
-                &plan,
-                &config,
-                true,
-                4
-            )
-            .is_ok()
-        );
+        assert!(reserve_placements(
+            &db,
+            PlacementScope {
+                organization: "other-org",
+                attempt: "next",
+                project: "app"
+            },
+            &plan,
+            &config,
+            true,
+            4
+        )
+        .is_ok());
     }
     #[test]
     fn cpu_affinity_is_bounded_and_duplicate_free() {

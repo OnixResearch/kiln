@@ -4,9 +4,9 @@ use std::os::fd::OwnedFd;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path};
 
-use nix::fcntl::{OFlag, open, openat};
+use nix::fcntl::{open, openat, OFlag};
 use nix::sys::stat::Mode;
-use nix::sys::statvfs::{FsFlags, fstatvfs};
+use nix::sys::statvfs::{fstatvfs, FsFlags};
 use nix::unistd::geteuid;
 
 use super::profile::relative_file;

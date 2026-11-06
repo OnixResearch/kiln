@@ -1,6 +1,6 @@
 use super::*;
 use std::fs;
-use std::os::unix::fs::{PermissionsExt, symlink};
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -470,12 +470,11 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .send(),
     );
     assert_eq!(feed.status(), 200);
-    assert!(
-        feed.headers()
-            .get("content-type")
-            .and_then(|value| value.to_str().ok())
-            .is_some_and(|value| value.starts_with("application/atom+xml"))
-    );
+    assert!(feed
+        .headers()
+        .get("content-type")
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("application/atom+xml")));
     let etag = feed
         .headers()
         .get("etag")
@@ -579,12 +578,11 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .send(),
     );
     assert_eq!(rss.status(), 200);
-    assert!(
-        rss.headers()
-            .get("content-type")
-            .and_then(|value| value.to_str().ok())
-            .is_some_and(|value| value.starts_with("application/rss+xml"))
-    );
+    assert!(rss
+        .headers()
+        .get("content-type")
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("application/rss+xml")));
     assert!(checked(rss.text()).contains("<rss version=\"2.0\">"));
     assert_eq!(
         checked(
@@ -603,12 +601,11 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .send(),
     );
     assert_eq!(opml.status(), 200);
-    assert!(
-        opml.headers()
-            .get("content-type")
-            .and_then(|value| value.to_str().ok())
-            .is_some_and(|value| value.starts_with("text/x-opml"))
-    );
+    assert!(opml
+        .headers()
+        .get("content-type")
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("text/x-opml")));
     let opml = checked(opml.text());
     assert!(opml.contains("<opml version=\"2.0\">"));
     assert!(opml.contains("xmlUrl=\""));
@@ -713,12 +710,10 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     assert_eq!(failed_add.status(), 502);
     let failed_add: serde_json::Value = checked(failed_add.json());
-    assert!(
-        failed_add
-            .get("message")
-            .and_then(serde_json::Value::as_str)
-            .is_some_and(|message| !message.is_empty())
-    );
+    assert!(failed_add
+        .get("message")
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(|message| !message.is_empty()));
 
     let paused = checked(
         client
@@ -814,11 +809,9 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .and_then(|value| value.get(0))
         .unwrap_or_else(|| unreachable!("fixture viewer subscription"));
     assert!(viewer_subscription.get("url").is_none());
-    assert!(
-        viewer_feeds
-            .pointer("/publication/repositories/0/subscribe_url")
-            .is_none()
-    );
+    assert!(viewer_feeds
+        .pointer("/publication/repositories/0/subscribe_url")
+        .is_none());
     let viewer_write = checked(
         client
             .post(format!("{}/api/feeds", profile.origin))
@@ -863,11 +856,9 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .find(|row| row.get("id").and_then(serde_json::Value::as_str) != Some(id.as_str()))
         .unwrap_or_else(|| unreachable!("fixture imported subscription"));
     assert!(pending.get("fetched_at_ms").is_none());
-    assert!(
-        pending
-            .get("entries")
-            .is_none_or(|value| value.as_array().is_some_and(Vec::is_empty))
-    );
+    assert!(pending
+        .get("entries")
+        .is_none_or(|value| value.as_array().is_some_and(Vec::is_empty)));
     let viewer_import = checked(
         client
             .post(format!("{}/api/feeds/import", profile.origin))
@@ -898,11 +889,9 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .get("subscriptions")
         .and_then(|value| value.get(0))
         .unwrap_or_else(|| unreachable!("fixture subscription"));
-    assert!(
-        retained_first
-            .get("error")
-            .is_some_and(serde_json::Value::is_string)
-    );
+    assert!(retained_first
+        .get("error")
+        .is_some_and(serde_json::Value::is_string));
     assert_eq!(
         retained_first.get("failures"),
         Some(&serde_json::Value::from(1))

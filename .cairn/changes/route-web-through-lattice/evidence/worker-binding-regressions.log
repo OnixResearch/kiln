@@ -1,0 +1,22 @@
+
+running 3 tests
+test worker::client::deadline_tests::execution_log_limits_reserve_both_streams_and_reject_before_upload ... ok
+test worker::client::deadline_tests::execution_log_capture_is_chunked_hashed_and_marks_only_final_chunk_truncated ... ok
+test worker::client::deadline_tests::execution_lookup_rejects_ambiguous_stale_and_wrong_source_authority ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 178 filtered out; finished in 0.13s
+
+   Compiling kiln-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-core)
+   Compiling kiln-provider-api v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-provider-api)
+   Compiling kiln-codec v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-codec)
+   Compiling kiln-observe-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-observe-core)
+   Compiling kiln-build-graph v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-build-graph)
+   Compiling kiln-adapter-http-observe v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-http-observe)
+   Compiling kiln-adapter-git v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git)
+   Compiling kiln-adapter-lattice v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-lattice)
+   Compiling kiln-adapter-webhook v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-webhook)
+   Compiling kiln-adapter-jj v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-jj)
+   Compiling kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)
+   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 35.36s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_web_service-2841edf1ed1d9179)

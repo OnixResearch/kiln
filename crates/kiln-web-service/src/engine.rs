@@ -6,7 +6,7 @@ use kiln_core::types::ContentId;
 use kiln_provider_api::WorkflowPort;
 use serde::Serialize;
 
-use crate::profile::{MAX_PROFILE_BYTES, ServiceProfile};
+use crate::profile::{ServiceProfile, MAX_PROFILE_BYTES};
 mod admission;
 pub(crate) mod api;
 mod artifacts;
@@ -134,7 +134,7 @@ impl Engine {
             return Err("workflow port set differs from reviewed projects".into());
         }
         for project in &profile.projects {
-            let expected = project.lattice(profile.bounds.max_runs)?.provider;
+            let expected = project.execution_capabilities(profile.bounds.max_runs)?;
             if ports
                 .get(&project.id)
                 .is_none_or(|port| port.profile() != &expected)
@@ -247,7 +247,7 @@ impl Engine {
         id: &str,
         result: kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation>,
     ) -> Result<(), String> {
-        use kiln_core::workflow::{WorkflowState, admit_workflow_observation};
+        use kiln_core::workflow::{admit_workflow_observation, WorkflowState};
         match result {
             Err(failure) => {
                 use kiln_provider_api::PortFailure;
@@ -276,6 +276,9 @@ impl Engine {
                 }
                 if run.observation.as_ref() == Some(&observation)
                     && run.error_code.is_none()
+                    && outcome
+                        .as_ref()
+                        .is_ok_and(|outcome| run.outcome() == *outcome)
                     && matches!(run.phase.as_str(), "active" | "terminal" | "unknown")
                 {
                     return Ok(());
@@ -317,6 +320,18 @@ impl Engine {
                     run.mark_unknown()?;
                     run.phase = "unknown".into();
                 } else {
+                    if run.outcome() == kiln_core::domain::Outcome::Unknown
+                        && matches!(
+                            observation.state,
+                            WorkflowState::Running | WorkflowState::Paused
+                        )
+                    {
+                        run.apply(kiln_core::domain::Command::ReconcileAttempt {
+                            attempt_id: run.plan.attempt_id.clone(),
+                            outcome: kiln_core::domain::Outcome::Pending,
+                            external_reference: Some(observation.execution.clone()),
+                        })?;
+                    }
                     run.phase = "active".into();
                 }
                 run.observation = Some(observation);

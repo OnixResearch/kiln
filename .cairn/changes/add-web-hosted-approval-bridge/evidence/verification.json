@@ -1,0 +1,173 @@
+{
+  "schema": "kiln.web-hosted.verification.v1",
+  "date": "2026-11-06",
+  "status": "supported_local_bridge_verified_eligible_untrusted_host_pending",
+  "delivery": {
+    "immediate_outcome": "Explicit kiln-web-hosted HTTPS-to-authenticated-Iroh composition with independently acquired exact Git source, persisted Web approval binding, once-only recovery, real controlled trusted outcome/stdout and live cancellation.",
+    "durable_capability": "Provider-neutral durable dispatch binding plus policy-pinned hosted source/admission ledger and bounded nonblocking provider port; canonical exact live reconciliation restores cancellability without redispatch.",
+    "current_consumer": "kiln-web-service",
+    "maintenance_owner": "Kiln Web/hosted maintainers; host and issuer authority remains operator-owned",
+    "adoption": "Explicit execution_provider=hosted, typed Web bridge and hosted web_execution policy, then kiln-web-hosted check/serve. Existing Lattice remains default.",
+    "repeatability": "scripts/web-hosted-approval-smoke.py, source-cohort.json, runtime-final.json, native typed fixtures and retained exact commands/results."
+  },
+  "checks": {
+    "changed_contract_tests": {
+      "exit": 0,
+      "passed": 715,
+      "ignored": 2,
+      "suites": 29,
+      "command": "cargo test --locked -p kiln-core -p kiln-conformance -p kiln-provider-api -p kiln-web-service -p kiln-hosted --all-targets --all-features",
+      "log": "contract-tests.log",
+      "count_boundary": "Reported test result totals; two existing helper processes each filter their other engine tests."
+    },
+    "strict_workspace_clippy": {
+      "exit": 0,
+      "command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+      "log": "workspace-clippy.log"
+    },
+    "rustfmt": {
+      "exit": 0,
+      "scope": "All 21 touched Rust source/test files, --edition 2024 --config skip_children=true. Direct whole-workspace formatting remains the preexisting partial Cairn vendor-manifest blocker and was not rerun.",
+      "final_check_after_canonical_edits": true
+    },
+    "nickel": {
+      "exit": 0,
+      "command": "nix build --builders '' --option build-hook '' .#checks.x86_64-linux.nickel --no-link -L",
+      "derivation": "/nix/store/zgn9m7w0h69mg8hj7gimkkpf7pjpj6jx-kiln-nickel.drv",
+      "focused_contracts": {
+        "positive_accepted": 6,
+        "negative_refused": 6
+      },
+      "boundary": "Focused typed configuration derivation, not a full Nix flake/package/host qualification."
+    },
+    "native_lifecycle": {
+      "all_valid": true,
+      "gates": [
+        "proposal",
+        "design",
+        "tasks"
+      ],
+      "validate": true,
+      "trace": {
+        "requirements": 1493,
+        "referenced": 1493,
+        "missing": 0,
+        "dangling": 0
+      },
+      "receipt": "source-lifecycle-final.json",
+      "source_sync": "spec-sync-final.json",
+      "archived": false
+    },
+    "actual_runtime": {
+      "receipt": "runtime-final.json",
+      "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+      "binaries": {
+        "hosted": "9161a5e6656d00f6d2caa348e1d8a8cca8ffad5539fe15ec320345ec582e4184",
+        "web": "645214a101ac2c9e3b58a2ce88f1279aff61a32e53323e42093a95349a5eb8be"
+      },
+      "guest_manifest_blake3": "98c21b4b67a116fb5174aa06bc724e2199c0af4f1a67b859fb21203267b4145d",
+      "approved_untrusted_handoff": {
+        "run_id": "web-run-4bf6f0b24330c820c18a085449ac3055d246e1096771d8c7c6f35d46bac83c75",
+        "hosted_binding": {
+          "identity": "7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+          "attempt": "web-7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+          "response": {
+            "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+          },
+          "web_approval_verified": true,
+          "source_verified": true,
+          "execution_identity": "de7bdfc45f839c7788fda624dcc3c9d76ea9ad170af40188bbb43601f166a738",
+          "sequence": 0
+        },
+        "effects": {
+          "hosted_execution": 0,
+          "finance_reservations": 0,
+          "finance_usage": 0
+        },
+        "web_phase": "unknown",
+        "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+      },
+      "trusted_success": {
+        "run_id": "web-run-bdedba65fd0ccb1db74f2a71c161d295a6d8cd4cb43a5ee5ddec5e47a87d57f7",
+        "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+        "outcome": "Success",
+        "node_states": {
+          "build[0]": "Completed"
+        },
+        "stdout": "real trusted guest source=approved-exact-source-v1\n",
+        "cleaned": true,
+        "hosted_execution_identity": "602ce11d7a13dd96a2df8a69d52f0433a64bcc7a19ec02206210e0f81db3cd07",
+        "sequence": 3,
+        "exactly_one_execution": true,
+        "request_replay_unchanged": true,
+        "restart_outcome_and_logs_preserved": true,
+        "untrusted_vm_qualification": "pending",
+        "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+      },
+      "trusted_live_cancellation": {
+        "run_id": "web-run-bfb1adef385d9f4cdf4c4bd9600180d9b5d372e689a84f611745c4a8dd1bbe6f",
+        "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+        "node_id": "build[0]",
+        "live_vmm_observed": true,
+        "confinement_and_pid_lifetime_verified": true,
+        "https_cancel_accepted": true,
+        "outcome": "Cancelled",
+        "node_state": "Cancelled",
+        "cleaned": true,
+        "journal_lifecycle": "destroyed",
+        "no_running_owned_unit": true,
+        "exactly_one_execution_reservation_usage": true,
+        "replay_and_restart_unchanged": true,
+        "untrusted_vm_qualification": "pending"
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "owned_units_checked": 1,
+        "errors": [],
+        "private_scratch_retained": true
+      }
+    },
+    "regression": {
+      "failing_before": "running-recovery-before.log",
+      "passing_after": "running-recovery-after.log",
+      "pure_core": "core-live-reconciliation.log"
+    },
+    "bounded_static_review": {
+      "findings": 0,
+      "scope": "Reported log/identity-substitution blockers and subsequent canonical cancellation recovery fix; static review is not runtime evidence or acceptance authority."
+    }
+  },
+  "broader_workspace_run": {
+    "status": "not_green",
+    "failed_test": "kiln-adapter-github::local_ci_e2e::real_binary_failing_command_publishes_failure",
+    "observed_failure": "Expected an HTTP response body; the captured suite log also reported github_store_commit. Causal attribution was not established.",
+    "log": "workspace-tests.log",
+    "failure_not_retried": true,
+    "github_source_untouched": true,
+    "other_remainder": "workspace-tests-provisioned-remainder.log",
+    "native_pijul": {
+      "initial_prerequisite_missing": "KILN_PIJUL_EXE",
+      "resolved_cohort": "/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul",
+      "provisioned_remainder_exit": 0
+    },
+    "boundary": "Earlier broader run and provisioned remainder precede the final canonical live-recovery addition. Do not relabel them as an all-green final workspace test run."
+  },
+  "remaining_prerequisites": [
+    "Explicit eligible-host allocation and real approved-untrusted Web-to-hosted VM execution/teardown; local kernel6.18.50 refusal remains mandatory.",
+    "Distinct physical-host allocation and independent chassis evidence; aspen3 remains excluded."
+  ],
+  "non_claims": [
+    "hostile_isolation_claim:false",
+    "No production deployment, remote publication, provider payment transmission, new host maintenance or lifecycle archive/release acceptance.",
+    "A pinned Web peer vouches for its approval decision; hosted does not independently authenticate a human click or prove that issuer uncompromised.",
+    "Ordinary execution.run provenance remains caller-supplied and never inherits verified Web claims.",
+    "Loopback Iroh proof does not establish WAN/relay interoperability."
+  ],
+  "cleanup": {
+    "receipt": "cleanup.json",
+    "all_owned_scratch_removed": true,
+    "owned_directories_removed": 12,
+    "private_keys_tokens_and_raw_databases_removed": true,
+    "no_running_owned_vmm": true
+  }
+}

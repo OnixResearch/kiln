@@ -9,7 +9,7 @@ use fs2::FileExt;
 use serde::{Deserialize, Serialize};
 
 use super::client::ServiceClient;
-use super::profile::{WorkerProfile, component, hex};
+use super::profile::{component, hex, WorkerProfile};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

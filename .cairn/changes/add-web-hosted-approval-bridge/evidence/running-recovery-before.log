@@ -1,0 +1,29 @@
+
+running 1 test
+test authoritative_running_recovery_restores_pending_and_allows_exact_cancellation ... FAILED
+
+failures:
+
+---- authoritative_running_recovery_restores_pending_and_allows_exact_cancellation stdout ----
+
+thread 'authoritative_running_recovery_restores_pending_and_allows_exact_cancellation' panicked at crates/kiln-web-service/tests/engine.rs:607:5:
+assertion `left == right` failed
+  left: String("Unknown")
+ right: "Pending"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    authoritative_running_recovery_restores_pending_and_allows_exact_cancellation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 88 filtered out; finished in 0.03s
+
+   Compiling kiln-adapter-lattice v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-lattice)
+   Compiling kiln-adapter-jj v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-jj)
+   Compiling kiln-adapter-webhook v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-webhook)
+   Compiling kiln-adapter-git v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git)
+   Compiling kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)
+   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 26.45s
+     Running tests/engine.rs (/home/brittonr/.cargo-target/debug/deps/engine-ce8c71d6d9649a16)
+error: test failed, to rerun pass `-p kiln-web-service --test engine`

@@ -171,7 +171,7 @@ fn observe(mut command: Command, usage: Option<&Path>) -> i32 {
     };
     // There are no prior child processes in this freshly exec'd adapter. Unlike
     // RUSAGE_CHILDREN in a worker daemon, this is one step's exact child cohort.
-    use nix::sys::resource::{UsageWho, getrusage};
+    use nix::sys::resource::{getrusage, UsageWho};
     use nix::sys::time::TimeValLike;
     let Ok(resources) = getrusage(UsageWho::RUSAGE_CHILDREN) else {
         return 126;
@@ -232,7 +232,7 @@ fn measure_child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
 /// Resource limits belong to the command, not to the process which must retain
 /// its resource report. exec preserves the owned PID and Bounded Exec group.
 fn limit_child_main(mut arguments: impl Iterator<Item = OsString>) -> i32 {
-    use nix::sys::resource::{Resource, setrlimit};
+    use nix::sys::resource::{setrlimit, Resource};
     use std::os::unix::process::CommandExt;
     let Some(encoded) = arguments.next().and_then(|v| v.into_string().ok()) else {
         return 2;

@@ -1,7 +1,7 @@
 //! Shell for cron schedules: durable reservation of one due occurrence.
 
 use super::{digest, key};
-use crate::automation::{ScheduleProfile, SourceRecord, filters};
+use crate::automation::{filters, ScheduleProfile, SourceRecord};
 use crate::engine::Engine;
 use crate::schedule::Reservation;
 

@@ -17,6 +17,7 @@ mod source;
 mod streaming;
 mod telemetry;
 
+pub use client::{ExecutionBinding, LogBounds, ServiceClient, ServiceConnection};
 pub use heartbeat::cli_main as heartbeat_cli_main;
 pub use profile::{Step, WorkerProfile};
 pub use source::SourceContext;
@@ -27,8 +28,8 @@ pub fn stream_child_main(arguments: impl Iterator<Item = std::ffi::OsString>) ->
 }
 
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 // r[impl kiln.web.worker]
 pub fn load_profile(path: &Path, identity: &str) -> Result<WorkerProfile, String> {

@@ -2,7 +2,7 @@ use super::api::{error, json_response, query};
 use super::{ApiResponse, Engine, Role};
 use crate::profile::ProjectProfile;
 use crate::snapshot::{SnapshotManifest, SnapshotProvenance, SnapshotRecord};
-use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
+use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::ProviderProfileId;
 

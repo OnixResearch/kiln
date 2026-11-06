@@ -1,0 +1,159 @@
+{
+  "schema": "kiln.web-lattice-hosted.runtime-evidence.v1",
+  "status": "partial",
+  "scope": "Real HTTPS Web -> genuine native Lattice saved workflow -> fixed lattice-job -> authenticated hosted Firecracker execution. Untrusted lane refused the ineligible kernel with no execution or financial effects; controlled trusted guest succeeded. Cancellation failed at that attempt and is superseded by later evidence.",
+  "inputs": {
+    "source_commit": "a79eaaffe19c67d480e1da1a0f809b3531578f94",
+    "source_checkout_distinct": true,
+    "guest_manifest_blake3": "cce2b278755ffa1cc3d50976b6acff1c2011c2790a395bfdec37cbd095697a70",
+    "lattice_source": "native Lattice revision 813076d7e42d0ddfb65042bee615bc5f12a2b4d3",
+    "binaries": {
+      "hosted": "22286b138983e611ce731656423b321670ac9fe9d453016faba6be6d85837260",
+      "web": "8a9c08a85d5ae092bd7b0bba290518c275f9581b01d57c9be2b12e00a7f27978",
+      "lattice": "818804fdc674a2c3a5435c8e2f259f121a7c3d1e84ed275774d4a9fe29e3ebab"
+    }
+  },
+  "native_profiles": {
+    "fixture": {
+      "workflow_name": "native-hosted-fixture",
+      "workflow_revision": "b3:3968249fdad501bad34f18a7ff0eb43e3ff065e947f38285e26e3f722ab0dcee",
+      "operation_identity": "bcca270a79846bf4e6cd58f9d284b9c501ae6cdfbb0cce7febdc72fb6d8338f6",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:43da71db9582a62bd7176075bd3349f09fa68b19bf57f123374371c98f5f3555"
+    },
+    "trusted-fixture": {
+      "workflow_name": "native-hosted-trusted-fixture",
+      "workflow_revision": "b3:55d9f3a84f8699a683046b876f8b3c6e5364bbf5c7fec8e16f5e7208ef9a6889",
+      "operation_identity": "36fda74fdf6ebc668070abe07d0b311fbdcf232e9db85789f314fd161cefbfbe",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:937e803ec56916817827db6952993c7e80bd778b7b4dba8954b9ab67f4f75753"
+    },
+    "cancel-fixture": {
+      "workflow_name": "native-hosted-cancel-fixture",
+      "workflow_revision": "b3:3bec5e18aa72c137f51732b8bebf2a7457edea70efb8ba41c117c10a928d5885",
+      "operation_identity": "e7537ccbbffa6909d4a0ef7b2f28898d3b55520d1ee90a943d99d84c8e18d6d3",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:c82f21df592e3797aaa1d7d1ebab901a50f6e2adb06c0f4a5871cc5969d8038d"
+    }
+  },
+  "handler_profile_blake3": "5e4f8ea344babc8e580b66d83c2674a208252faca5b5c8901e553a90f391e5dc",
+  "native_process_limits": {
+    "stdin_max_bytes": 1048576,
+    "stdout_max_bytes": 1048576,
+    "stderr_max_bytes": 1048576,
+    "command_agent_timeout_secs": 180,
+    "poll_interval_millis": 10,
+    "teardown_grace_millis": 60000
+  },
+  "checks": {
+    "blocked_and_unauthorized": {
+      "run_id": "web-run-1d10c1d7b0f0aafe5d33af090797404babaaabe6c1092b20501c575f21f7b007",
+      "phase": "awaiting_approval",
+      "no_hosted_binding": true,
+      "stale_commit_denied": true,
+      "viewer_denied": true,
+      "worker_denied": true,
+      "unknown_token_denied": true
+    },
+    "approved_handoff": {
+      "run_id": "web-run-1d10c1d7b0f0aafe5d33af090797404babaaabe6c1092b20501c575f21f7b007",
+      "hosted_binding": {
+        "identity": "589e13869594874bb246b9019ef38e19a65d8fbb9fd360d11d97c7882a789690",
+        "attempt": "lattice-589e13869594874bb246b9019ef38e19a65d8fbb9fd360d11d97c7882a789690",
+        "response": {
+          "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+        },
+        "web_approval_verified": true,
+        "source_verified": true,
+        "execution_identity": "ba5a5369f8232b272abf9f1cc26960d4eed005563a86508d90d9dcde1ddf3cfa",
+        "sequence": 0
+      },
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      },
+      "web_phase": "active",
+      "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+    },
+    "approval_replay": {
+      "same_response": true,
+      "unchanged_ledger": true
+    },
+    "moved_source": {
+      "old_run": "web-run-8387b918418e7cd59b18f9131be506a11f88c79186455e58d20303662564f85d",
+      "new_run": "web-run-268a06f962025c10ecaec458ebefd5d5cd0bb817d70f92a58f69fa956a6071d5",
+      "new_commit": "50ceae4cdf6779ad81b19c04792d20d26c3119e6",
+      "superseded_denied": true,
+      "fresh_approval_required": true
+    },
+    "tampered_gate": {
+      "refusal": "Web run binding conflicts with retained input",
+      "unchanged_ledger": true
+    },
+    "tampered_operation": {
+      "refusal": "Web run binding conflicts with retained input",
+      "unchanged_ledger": true
+    },
+    "tampered_node": {
+      "refusal": "Lattice workflow policy, node, operation or execution rejected",
+      "unchanged_ledger": true
+    },
+    "tampered_source": {
+      "refusal": "Web run binding conflicts with retained input",
+      "unchanged_ledger": true
+    },
+    "unregistered_control": {
+      "unknown_without_receipt": true,
+      "no_orphan_cancellation_intent": true,
+      "unchanged_ledger": true
+    },
+    "authoritative_callback": {
+      "waiting_moved_run_cannot_reuse_approved_payload": true,
+      "metadata_only_refusal_retained": true,
+      "no_execution_or_financial_effects": true
+    },
+    "peer_and_binding_admission": {
+      "unenrolled_peer_denied": true,
+      "enrolled_unpinned_owner_denied": true,
+      "pinned_peer_replay_unchanged": true
+    },
+    "restart": {
+      "original_run_observed": true,
+      "approval_replay_preserved": true,
+      "no_reexecution": true,
+      "hosted_binding_count": 2,
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      }
+    },
+    "trusted_execution": {
+      "run_id": "web-run-2cf425a77aa63839a29a21dbff9d70c8c134e0fbace88f5c6d087f0d0ad2aea8",
+      "source_commit": "a79eaaffe19c67d480e1da1a0f809b3531578f94",
+      "outcome": "Success",
+      "node_states": {
+        "build": "Completed"
+      },
+      "stdout": "real trusted guest source=approved-exact-source-v1\n",
+      "cleaned": true,
+      "hosted_execution_identity": "93e1fe1ffb431857b03d187123f75366572ffb4c5229619e685b783209dfa4df",
+      "sequence": 3,
+      "exactly_one_execution": true,
+      "request_replay_unchanged": true,
+      "restart_outcome_and_logs_preserved": true,
+      "untrusted_vm_qualification": "pending",
+      "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+    }
+  },
+  "vm_qualification": "pending_eligible_host",
+  "hostile_isolation_claim": false,
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is not VM execution qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance",
+    "prior direct-route receipts are superseded history, not native Lattice evidence"
+  ]
+}

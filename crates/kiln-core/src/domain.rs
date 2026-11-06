@@ -4,9 +4,9 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
-    Alias, AttemptId, CONTRACT_VERSION_V1, CommandId, ContentId, CoreResult, Diagnostic, EffectId,
-    EvaluationId, ExternalRef, Limits, PipelineRevisionId, ProjectId, ProviderProfileId, RunId,
-    TaskId,
+    Alias, AttemptId, CommandId, ContentId, CoreResult, Diagnostic, EffectId, EvaluationId,
+    ExternalRef, Limits, PipelineRevisionId, ProjectId, ProviderProfileId, RunId, TaskId,
+    CONTRACT_VERSION_V1,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -253,6 +253,10 @@ pub struct Decision {
     pub diagnostics: Vec<Diagnostic>,
 }
 
+fn live_reference_matches(prior: Option<&ExternalRef>, observed: Option<&ExternalRef>) -> bool {
+    observed.is_some_and(|observed| prior.is_none_or(|prior| prior == observed))
+}
+
 pub fn decide(state: &State, envelope: &CommandEnvelope, limits: Limits) -> CoreResult<Decision> {
     if envelope.contract_version != CONTRACT_VERSION_V1 {
         return Err(Diagnostic::new(
@@ -384,11 +388,17 @@ fn decide_command(state: &State, envelope: &CommandEnvelope) -> CoreResult<Decis
                     "only an unknown attempt can be reconciled",
                 ));
             }
-            if *outcome == Outcome::Pending || *outcome == Outcome::Unknown {
+            if *outcome == Outcome::Unknown
+                || *outcome == Outcome::Pending
+                    && !live_reference_matches(
+                        attempt.external_reference.as_ref(),
+                        external_reference.as_ref(),
+                    )
+            {
                 return Err(Diagnostic::new(
                     "invalid_reconciliation",
                     "reconcile_attempt.outcome",
-                    "reconciliation must resolve the unknown outcome",
+                    "reconciliation requires a final outcome or an exact live execution reference",
                 ));
             }
             Ok(Decision {
@@ -603,6 +613,24 @@ pub fn evolve(state: &State, event: &Event) -> CoreResult<State> {
                     "history mutates a terminal attempt",
                 ));
             }
+            if matches!(
+                event,
+                Event::AttemptReconciled {
+                    outcome: Outcome::Pending,
+                    ..
+                }
+            ) && (attempt.outcome != Outcome::Unknown
+                || !live_reference_matches(
+                    attempt.external_reference.as_ref(),
+                    external_reference.as_ref(),
+                ))
+            {
+                return Err(Diagnostic::new(
+                    "invalid_history",
+                    "attempt_reconciled",
+                    "live reconciliation lacks the exact unknown execution reference",
+                ));
+            }
             attempt.outcome = *outcome;
             attempt.external_reference = external_reference.clone();
             if let Event::AttemptCompleted {
@@ -790,6 +818,85 @@ mod tests {
             contract_version: CONTRACT_VERSION_V1,
         };
         assert!(decide(&terminal, &late, Limits::default()).is_err());
+        Ok(())
+    }
+
+    // r[verify kiln.domain.attempts]
+    // r[verify kiln.domain.attempts.scenario.live_reconciliation]
+    #[test]
+    fn live_reconciliation_restores_pending_without_a_second_dispatch() -> CoreResult<()> {
+        let mut state = State::default();
+        for event in decide(&state, &start_command()?, Limits::default())?.events {
+            state = evolve(&state, &event)?;
+        }
+        let original = ExternalRef::new("fixture", "execution", "original")?;
+        let unknown = CommandEnvelope {
+            contract_version: CONTRACT_VERSION_V1,
+            command_id: CommandId::new("unknown")?,
+            expected_revision: state.revision,
+            command: Command::RecordUnknown {
+                attempt_id: AttemptId::new("attempt-1")?,
+                external_reference: Some(original.clone()),
+            },
+        };
+        for event in decide(&state, &unknown, Limits::default())?.events {
+            state = evolve(&state, &event)?;
+        }
+        for reference in [
+            None,
+            Some(ExternalRef::new("fixture", "execution", "other")?),
+        ] {
+            let invalid = CommandEnvelope {
+                contract_version: CONTRACT_VERSION_V1,
+                command_id: CommandId::new("reconcile")?,
+                expected_revision: state.revision,
+                command: Command::ReconcileAttempt {
+                    attempt_id: AttemptId::new("attempt-1")?,
+                    outcome: Outcome::Pending,
+                    external_reference: reference.clone(),
+                },
+            };
+            assert!(decide(&state, &invalid, Limits::default()).is_err());
+            assert!(evolve(
+                &state,
+                &Event::AttemptReconciled {
+                    command_id: CommandId::new("invalid-replay")?,
+                    attempt_id: AttemptId::new("attempt-1")?,
+                    outcome: Outcome::Pending,
+                    external_reference: reference
+                }
+            )
+            .is_err());
+        }
+        let reconcile = CommandEnvelope {
+            contract_version: CONTRACT_VERSION_V1,
+            command_id: CommandId::new("reconcile")?,
+            expected_revision: state.revision,
+            command: Command::ReconcileAttempt {
+                attempt_id: AttemptId::new("attempt-1")?,
+                outcome: Outcome::Pending,
+                external_reference: Some(original),
+            },
+        };
+        let admitted = decide(&state, &reconcile, Limits::default())?;
+        assert!(admitted.effects.is_empty());
+        for event in admitted.events {
+            state = evolve(&state, &event)?;
+        }
+        let cancel = CommandEnvelope {
+            contract_version: CONTRACT_VERSION_V1,
+            command_id: CommandId::new("cancel")?,
+            expected_revision: state.revision,
+            command: Command::Cancel {
+                attempt_id: AttemptId::new("attempt-1")?,
+                effect_id: EffectId::new("cancel-effect")?,
+            },
+        };
+        let cancelled = decide(&state, &cancel, Limits::default())?;
+        assert!(matches!(
+            cancelled.effects.as_slice(),
+            [Effect::Cancel { .. }]
+        ));
         Ok(())
     }
 

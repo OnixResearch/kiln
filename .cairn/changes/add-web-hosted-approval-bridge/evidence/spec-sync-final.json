@@ -1,0 +1,189 @@
+{
+  "exit": 0,
+  "receipt": {
+    "acceptance_ids": [],
+    "actions": [
+      {
+        "description": "merge delta spec into main specs: ./.cairn/changes/add-web-hosted-approval-bridge/specs/ci-domain/spec.md",
+        "kind": "sync_delta_spec",
+        "path": "./.cairn/changes/add-web-hosted-approval-bridge/specs/ci-domain/spec.md"
+      },
+      {
+        "description": "merge delta spec into main specs: ./.cairn/changes/add-web-hosted-approval-bridge/specs/web-hosted-approval/spec.md",
+        "kind": "sync_delta_spec",
+        "path": "./.cairn/changes/add-web-hosted-approval-bridge/specs/web-hosted-approval/spec.md"
+      }
+    ],
+    "blocked": false,
+    "change": "add-web-hosted-approval-bridge",
+    "cross_repo_dependencies": {
+      "blocked_count": 0,
+      "dependency_count": 0,
+      "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+      "non_claims": [
+        "dependency satisfaction proves presented receipt linkage only",
+        "dependency satisfaction does not prove upstream correctness or remote trust",
+        "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+      ],
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+      "rows": [],
+      "satisfied_count": 0,
+      "schema": "cairn.cross-repo-dependency-receipt.v1",
+      "valid": true,
+      "verdict": "PASS"
+    },
+    "cross_repo_evidence_issues": [],
+    "delta_specs": [
+      "./.cairn/changes/add-web-hosted-approval-bridge/specs/ci-domain/spec.md",
+      "./.cairn/changes/add-web-hosted-approval-bridge/specs/web-hosted-approval/spec.md"
+    ],
+    "dry_run": false,
+    "input_hash": "59bc4a5d9a333eac71644f15f276fdaeef3e4888a952608698cd381b6e982a4f",
+    "layout": "cairn",
+    "merge_preflight": {
+      "documents": [
+        {
+          "accepted_before_exists": true,
+          "accepted_before_hash": "dceb108a4d1b234ad7b2aa8d6b2f7be398fdd5664a8905be756a353ad037b361",
+          "blocked": false,
+          "changed": false,
+          "delta_hash": "dde3ee9a5ff65c2d58088a7e0f1ad04c92487ce84f291b3e2a6c0f3702714fe6",
+          "destination": ".cairn/specs/ci-domain/spec.md",
+          "diagnostics": [],
+          "expected_after_hash": "dceb108a4d1b234ad7b2aa8d6b2f7be398fdd5664a8905be756a353ad037b361",
+          "operations": [
+            {
+              "block_hash": "18c57a1a531509e9300fb7d4932647ffbece99bc70bad18b23beb73bb8e5f428",
+              "heading": "### Requirement: Distinct attempts and unknown outcomes",
+              "kind": "modified",
+              "requirement_id": "kiln.domain.attempts"
+            }
+          ],
+          "outcomes": [
+            {
+              "kind": "modified",
+              "requirement_id": "kiln.domain.attempts",
+              "state": "already_applied"
+            }
+          ],
+          "source": ".cairn/changes/add-web-hosted-approval-bridge/specs/ci-domain/spec.md"
+        },
+        {
+          "accepted_before_exists": true,
+          "accepted_before_hash": "1cde0da1cc7aed268a3debe0cdbf62446cd7a5dc154b75ea9afacf6ea9429053",
+          "blocked": false,
+          "changed": true,
+          "delta_hash": "e9fad74baa392bf64563d1b516dee1d3101d618edf4638efef26fb3661409433",
+          "destination": ".cairn/specs/web-hosted-approval/spec.md",
+          "diagnostics": [],
+          "expected_after_hash": "89af0203f64ed898d8419b9df526f4e0be0fd4e7f3f94630c5099df9e4a84da3",
+          "operations": [
+            {
+              "block_hash": "070784b91572bc0da6079364ec8706b01cee39777b070e38b28d06a046b9487c",
+              "heading": "### Requirement: Exact durable Web dispatch binding",
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.binding"
+            },
+            {
+              "block_hash": "5e9b930ee8161de70289d38f4482635a77063d2d2a3bac8916b707d185c62b71",
+              "heading": "### Requirement: Dedicated-issuer hosted source admission",
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.admission"
+            },
+            {
+              "block_hash": "709579cb41f5df6151e1ce9e8fd338a41eef603162b9a5a5260540f8c65d7149",
+              "heading": "### Requirement: Once-only Web attempt and read-only recovery",
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.replay"
+            },
+            {
+              "block_hash": "7123e93e497cb4cc6e2bd089a02f1ee14c0457305941b4db421df04bf3618fef",
+              "heading": "### Requirement: Explicit hosted workflow adapter",
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.adapter"
+            },
+            {
+              "block_hash": "b0a85e387b0a3726447cb223d6a27fda2f082deb492602b0c3e7cf07163f24a2",
+              "heading": "### Requirement: Scoped real qualification",
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.qualification"
+            }
+          ],
+          "outcomes": [
+            {
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.binding",
+              "state": "applied"
+            },
+            {
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.admission",
+              "state": "applied"
+            },
+            {
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.replay",
+              "state": "applied"
+            },
+            {
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.adapter",
+              "state": "applied"
+            },
+            {
+              "kind": "modified",
+              "requirement_id": "kiln.web_hosted.qualification",
+              "state": "applied"
+            }
+          ],
+          "source": ".cairn/changes/add-web-hosted-approval-bridge/specs/web-hosted-approval/spec.md"
+        }
+      ]
+    },
+    "mutated": true,
+    "mutation_manifest": {
+      "after": {
+        "entries": [
+          {
+            "content_hash": "89af0203f64ed898d8419b9df526f4e0be0fd4e7f3f94630c5099df9e4a84da3",
+            "exists": true,
+            "path": "./.cairn/specs/web-hosted-approval/spec.md"
+          }
+        ],
+        "manifest_hash": "4215b84baea807de795249530adf16366452abd035fc4d4dc1f629b48141f43b"
+      },
+      "before": {
+        "entries": [
+          {
+            "content_hash": "1cde0da1cc7aed268a3debe0cdbf62446cd7a5dc154b75ea9afacf6ea9429053",
+            "exists": true,
+            "path": "./.cairn/specs/web-hosted-approval/spec.md"
+          }
+        ],
+        "manifest_hash": "e2ab18bdf295077890c8e37c21549f4eef449e46a80458bbdf67caba265db652"
+      },
+      "kind": "sync",
+      "manifest_hash": "ac4e485243d0864620d6adefa3324dd71dca685684f58d8fc77a8871dede40d4"
+    },
+    "non_claims": [
+      "workflow state proves only the selected policy graph and observed structural artifact facts",
+      "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+      "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+      "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+    ],
+    "plan_hash": "f0fb783f9e2ac10f892a3df962200da20ea4eb216ad755c769ab9d3bb9f3d237",
+    "policy": "kiln-default",
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "profile_identity_hash": "c07c09b6c155cf209d17c9a1bb68295a2c7b0ea1a7e526e149058d4f77a61c29",
+    "reasons": [],
+    "receipt_hash": "c32a22444d2367d0e4a7bd4320f210d1d89d7d7174c18851dd95eb14367bf5c3",
+    "review_receipt_hashes": [],
+    "spec_effect": "delta",
+    "workflow_profile": "spec-driven",
+    "workflow_profile_compatibility_fallback": false,
+    "workflow_profile_source": "change_create",
+    "workflow_profile_version": 1
+  },
+  "stderr": ""
+}

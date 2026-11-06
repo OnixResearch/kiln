@@ -1404,6 +1404,21 @@
             nickel export config/fixtures/hosted-service-positive.ncl >/dev/null
             nickel export config/fixtures/hosted-service-untrusted-positive.ncl >/dev/null
             nickel export config/fixtures/hosted-client-positive.ncl >/dev/null
+            nickel typecheck config/hosted-lattice-job.ncl
+            nickel export config/fixtures/hosted-lattice-job-positive.ncl >/dev/null
+            nickel export config/fixtures/hosted-service-lattice-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-hosted-service-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative hosted service fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
+            for fixture in config/fixtures/negative-hosted-lattice-job-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative hosted Lattice job fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel typecheck config/web-service.ncl
             nickel typecheck config/web-worker.ncl
             nickel typecheck config/web-cache.ncl

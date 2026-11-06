@@ -1,0 +1,171 @@
+{
+  "schema": "kiln.web-hosted-approval-smoke.v1",
+  "status": "passed_admission_vm_qualification_pending",
+  "checks": {
+    "blocked_and_unauthorized": {
+      "run_id": "web-run-056307aac9b76d4b7d2e5c5a41ce446d7e07ac041d0fb5be68779018eb195820",
+      "phase": "awaiting_approval",
+      "no_hosted_binding": true,
+      "stale_commit_denied": true,
+      "viewer_denied": true,
+      "worker_denied": true,
+      "unknown_token_denied": true
+    },
+    "approved_handoff": {
+      "run_id": "web-run-056307aac9b76d4b7d2e5c5a41ce446d7e07ac041d0fb5be68779018eb195820",
+      "hosted_binding": {
+        "identity": "25bac283db7b3682365d16511ef114a94d8ca751e35d7303410b83ac8c9ebfc9",
+        "attempt": "web-25bac283db7b3682365d16511ef114a94d8ca751e35d7303410b83ac8c9ebfc9",
+        "response": {
+          "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+        },
+        "web_approval_verified": true,
+        "source_verified": true,
+        "execution_identity": "e166bfc5cde8501aee9dcae3604799027f5cbf50cbf7640afaf88f9d19784054",
+        "sequence": 0
+      },
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      },
+      "web_phase": "unknown",
+      "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+    },
+    "approval_replay": {
+      "same_response": true,
+      "unchanged_ledger": true
+    },
+    "moved_source": {
+      "old_run": "web-run-dc07806d15c67c2538b996fdd79fb9818ee7badffb4204b2adb495a01e924267",
+      "new_run": "web-run-72c49288d569c7223de4f8849c1ac5f21bb6274b1020987430a9b5d33f3100c7",
+      "new_commit": "0508adbb327f87257ea6e027b70c9d0613c5e426",
+      "superseded_denied": true,
+      "fresh_approval_required": true
+    },
+    "peer_and_binding_admission": {
+      "unenrolled_peer_denied": true,
+      "enrolled_unpinned_owner_denied": true,
+      "pinned_peer_replay_unchanged": true,
+      "changed_original_binding_denied": true
+    },
+    "tampered_gate": {
+      "refusal": "Web exact-commit approval rejected",
+      "retained_observation_same": true,
+      "web_approval_verified": false,
+      "source_verified": false
+    },
+    "tampered_plan": {
+      "refusal": "Web workflow operation differs from reviewed job",
+      "retained_observation_same": true,
+      "web_approval_verified": false,
+      "source_verified": false
+    },
+    "tampered_source": {
+      "refusal": "hosted Git canonical tree differs from Web binding",
+      "retained_observation_same": true,
+      "web_approval_verified": true,
+      "source_verified": false
+    },
+    "restart": {
+      "original_run_observed": true,
+      "approval_replay_preserved": true,
+      "no_reexecution": true,
+      "hosted_binding_count": 4,
+      "effects": {
+        "hosted_execution": 0,
+        "finance_reservations": 0,
+        "finance_usage": 0
+      }
+    },
+    "trusted_execution": {
+      "run_id": "web-run-c4f6be4c1c0491b54f69b1d66f7de8d9f4bece1e6297f9f9730242a554bc2fce",
+      "source_commit": "3a482a5c735cde90395ecab44561f28f5d9b7eab",
+      "outcome": "Success",
+      "node_states": {
+        "build[0]": "Completed"
+      },
+      "stdout": "real trusted guest source=approved-exact-source-v1\n",
+      "cleaned": true,
+      "hosted_execution_identity": "304f6409dbe8131248554c045683b2ce33310db2508976c48a8ccd33fdb1ce0f",
+      "sequence": 3,
+      "exactly_one_execution": true,
+      "request_replay_unchanged": true,
+      "restart_outcome_and_logs_preserved": true,
+      "untrusted_vm_qualification": "pending",
+      "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+    }
+  },
+  "vm_qualification": "pending",
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is admission evidence, not VM execution or replay qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance"
+  ],
+  "inputs": {
+    "source_commit": "3a482a5c735cde90395ecab44561f28f5d9b7eab",
+    "hosted_peer": "e5c2e587c9d9d83515cc288ab422e274c9fe48cf31aebcb89b59bc4f79a0e18d",
+    "web_peer": "d1b672e509ec4496653bf5fa841bb68eb1eb112ad4a218c11a86a70b04b5c518",
+    "source_checkout_distinct": true,
+    "guest_manifest_blake3": "98c21b4b67a116fb5174aa06bc724e2199c0af4f1a67b859fb21203267b4145d",
+    "binaries": {
+      "hosted": "d417b4b8dd1ba17269a8ba8d4da660cac92b911d6dc95f7674ded644952cac8b",
+      "web": "ceb8ba66778cb10a0be6990501c45946490c5976a25b039f9e2c61d6cd5aa8bc"
+    }
+  },
+  "observed_handoff": {
+    "run_id": "web-run-056307aac9b76d4b7d2e5c5a41ce446d7e07ac041d0fb5be68779018eb195820",
+    "binding": {
+      "identity": "25bac283db7b3682365d16511ef114a94d8ca751e35d7303410b83ac8c9ebfc9",
+      "attempt": "web-25bac283db7b3682365d16511ef114a94d8ca751e35d7303410b83ac8c9ebfc9",
+      "response": {
+        "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+      },
+      "web_approval_verified": true,
+      "source_verified": true,
+      "execution_identity": "e166bfc5cde8501aee9dcae3604799027f5cbf50cbf7640afaf88f9d19784054",
+      "sequence": 0
+    },
+    "effects": {
+      "hosted_execution": 0,
+      "finance_reservations": 0,
+      "finance_usage": 0
+    }
+  },
+  "observed_trusted_run": {
+    "id": "web-run-c4f6be4c1c0491b54f69b1d66f7de8d9f4bece1e6297f9f9730242a554bc2fce",
+    "source_revision": "3a482a5c735cde90395ecab44561f28f5d9b7eab",
+    "phase": "terminal",
+    "outcome": "Success",
+    "nodes": [
+      {
+        "id": "build[0]",
+        "state": "Completed",
+        "kind": "build",
+        "started_at_ms": null,
+        "completed_at_ms": 1794008262498,
+        "duration_ms": null
+      }
+    ],
+    "error_code": null,
+    "hosted_diagnostics": [
+      {
+        "state": "succeeded",
+        "cleaned": true
+      },
+      {
+        "state": "succeeded"
+      },
+      {
+        "state": "succeeded",
+        "cleaned": true
+      }
+    ]
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "errors": [],
+    "private_scratch_retained": true
+  }
+}

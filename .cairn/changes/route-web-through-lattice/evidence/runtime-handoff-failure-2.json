@@ -1,0 +1,85 @@
+{
+  "schema": "kiln.web-lattice-hosted-smoke.v1",
+  "status": "failed",
+  "checks": {
+    "blocked_and_unauthorized": {
+      "run_id": "web-run-b51ee1e9c203f83d5825f3a919cfca87580fdaa157302a20a223b896e823c8c0",
+      "phase": "awaiting_approval",
+      "no_hosted_binding": true,
+      "stale_commit_denied": true,
+      "viewer_denied": true,
+      "worker_denied": true,
+      "unknown_token_denied": true
+    }
+  },
+  "vm_qualification": "pending",
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is not VM execution qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance",
+    "prior direct-route receipts are superseded history, not native Lattice evidence"
+  ],
+  "hostile_isolation_claim": false,
+  "native_profiles": {
+    "fixture": {
+      "workflow_name": "native-hosted-fixture",
+      "workflow_revision": "b3:8a8507286967f92ddff1e1f306c0b52fdbcba6c6a1fb28ad976bd36cc435677d",
+      "operation_identity": "8bcf84125b616943047db44b03943a124789f92ea87ad6815cbd5647d6563cfd",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:647d02ce60c55f1b743bb78ebb4ff1cb479865458125dd064610a2552cfbe1d7"
+    },
+    "trusted-fixture": {
+      "workflow_name": "native-hosted-trusted-fixture",
+      "workflow_revision": "b3:a1974cda79d5c8eff2cc9be3605702c6584b099efe872a1fda589a5730fdb73f",
+      "operation_identity": "c3caae590787296227ca6ab5c3678b13c0778a410288d31692189b727bf33914",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:ac920c4f93314196a31f38b0d423bb7a4eee7663c138e4c95e85705fe9c62709"
+    },
+    "cancel-fixture": {
+      "workflow_name": "native-hosted-cancel-fixture",
+      "workflow_revision": "b3:a2a0114d0cfe52d4667d6b7c4cbf6fb855158aa73275a8a3a0f1ae6cc8c7dd15",
+      "operation_identity": "42cb95f1ffa8ec831561baf12986f12f82413f068dd056ad4a44fa0ccf0e4e63",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:b0b56c3837aecb9a20bdd958d32c1f506314612c5f3e280e4689d722cc7d4e9b"
+    }
+  },
+  "handler_profile_blake3": "fadb2634975532800246fab0f0045845ea28f9f6e75c7707ccd75be3f41d879c",
+  "native_process_limits": {
+    "stdin_max_bytes": 1048576,
+    "stdout_max_bytes": 1048576,
+    "stderr_max_bytes": 1048576,
+    "command_agent_timeout_secs": 180,
+    "poll_interval_millis": 10,
+    "teardown_grace_millis": 60000
+  },
+  "inputs": {
+    "source_commit": "f71908fed5b243dd0caf801b9201e1643003f9e7",
+    "hosted_peer": "11ad554085ee941719bb737c04b0f654dd1f5c12408ceb845b5e5a3c672349ea",
+    "lattice_peer": "f3c7a9f66347bd0be1b8e10269c0aaeb533a072d6ee97e86d9ce65b3dea2770c",
+    "source_checkout_distinct": true,
+    "guest_manifest_blake3": "9ced4e9100e547ed876d79d4b89ccc97b7656752f8ad455d129c96b823f60bd6",
+    "lattice_source": "/nix/store/i047qmh0qbfyziw6s52j4lzxgsnhx0lc-source",
+    "binaries": {
+      "hosted": "853ef988035666f629d30e7125bd842d7cf0a28a519ddc591132dbc755680408",
+      "web": "c5372c44dac259c07eb319897cff3efefba7bf08333758bf56f63947d7b356f1",
+      "lattice": "818804fdc674a2c3a5435c8e2f259f121a7c3d1e84ed275774d4a9fe29e3ebab"
+    }
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "message": "timed out: durable hosted handoff result"
+  },
+  "secret_removal": {
+    "scope": "only smoke-created root bearer tokens, Iroh private keys and TLS private key; not a claim of sanitized retained scratch",
+    "removed": true,
+    "files_checked": 9
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 0,
+    "errors": [],
+    "private_scratch_retained": true
+  },
+  "scope": "Fourth real setup attempt: the task targeted the compiled hosted job id while the Web plan node remains the consumer label, so exact binding lookup refused. No backend request admitted, no VM or financial effect."
+}

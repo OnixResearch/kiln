@@ -1,0 +1,462 @@
+{
+  "schema": "kiln.web-hosted.fixture-outcomes.v1",
+  "fixtures": [
+    {
+      "fixture": "web-hosted-approval-private-20261106-a",
+      "status": "failed",
+      "checks": {},
+      "failure": {
+        "kind": "RuntimeError",
+        "message": "command failed: nickel"
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "errors": [],
+        "private_scratch_retained": true
+      }
+    },
+    {
+      "fixture": "web-hosted-approval-private-20261106-b",
+      "status": "failed",
+      "checks": {
+        "blocked_and_unauthorized": {
+          "run_id": "web-run-836a866efb88cef923fb8a799031184fa256a3542782b9b389054027beae3229",
+          "phase": "awaiting_approval",
+          "no_hosted_binding": true,
+          "stale_commit_denied": true,
+          "viewer_denied": true,
+          "worker_denied": true,
+          "unknown_token_denied": true
+        },
+        "approved_handoff": {
+          "run_id": "web-run-836a866efb88cef923fb8a799031184fa256a3542782b9b389054027beae3229",
+          "hosted_binding": {
+            "identity": "f2ddcdd23694384fd004435f3725a6077fca194e931fce61489eca52f8167a28",
+            "attempt": "web-f2ddcdd23694384fd004435f3725a6077fca194e931fce61489eca52f8167a28",
+            "response": {
+              "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+            },
+            "web_approval_verified": true,
+            "source_verified": true,
+            "execution_identity": "f7bd3e9624e41881f3c03b8b12b4bed636afd1e652270919e07fb5bef7d3e1d7",
+            "sequence": 0
+          },
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          },
+          "web_phase": "unknown",
+          "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+        },
+        "approval_replay": {
+          "same_response": true,
+          "unchanged_ledger": true
+        },
+        "moved_source": {
+          "old_run": "web-run-e4df7fe26edafcba1090e206a13c24e6d5ba7159101c1df306fc9056504952e4",
+          "new_run": "web-run-e6aa60d6bf2861bfb3711c716fa554200b33e5a52cfd48a0d3ab035f5020758f",
+          "new_commit": "b6b21c610e2bd85c447179a93cd25cca0bf6a6f0",
+          "superseded_denied": true,
+          "fresh_approval_required": true
+        },
+        "peer_and_binding_admission": {
+          "unenrolled_peer_denied": true,
+          "enrolled_unpinned_owner_denied": true,
+          "pinned_peer_replay_unchanged": true,
+          "changed_original_binding_denied": true
+        },
+        "tampered_gate": {
+          "refusal": "Web exact-commit approval rejected",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_plan": {
+          "refusal": "Web workflow operation differs from reviewed job",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_source": {
+          "refusal": "hosted Git canonical tree differs from Web binding",
+          "retained_observation_same": true,
+          "web_approval_verified": true,
+          "source_verified": false
+        },
+        "restart": {
+          "original_run_observed": true,
+          "approval_replay_preserved": true,
+          "no_reexecution": true,
+          "hosted_binding_count": 4,
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          }
+        }
+      },
+      "failure": {
+        "kind": "RuntimeError",
+        "message": "controlled exact trusted source did not really succeed"
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "errors": [],
+        "private_scratch_retained": true
+      }
+    },
+    {
+      "fixture": "kwh-c",
+      "status": "passed_admission_vm_qualification_pending",
+      "checks": {
+        "blocked_and_unauthorized": {
+          "run_id": "web-run-056307aac9b76d4b7d2e5c5a41ce446d7e07ac041d0fb5be68779018eb195820",
+          "phase": "awaiting_approval",
+          "no_hosted_binding": true,
+          "stale_commit_denied": true,
+          "viewer_denied": true,
+          "worker_denied": true,
+          "unknown_token_denied": true
+        },
+        "approved_handoff": {
+          "run_id": "web-run-056307aac9b76d4b7d2e5c5a41ce446d7e07ac041d0fb5be68779018eb195820",
+          "hosted_binding": {
+            "identity": "25bac283db7b3682365d16511ef114a94d8ca751e35d7303410b83ac8c9ebfc9",
+            "attempt": "web-25bac283db7b3682365d16511ef114a94d8ca751e35d7303410b83ac8c9ebfc9",
+            "response": {
+              "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+            },
+            "web_approval_verified": true,
+            "source_verified": true,
+            "execution_identity": "e166bfc5cde8501aee9dcae3604799027f5cbf50cbf7640afaf88f9d19784054",
+            "sequence": 0
+          },
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          },
+          "web_phase": "unknown",
+          "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+        },
+        "approval_replay": {
+          "same_response": true,
+          "unchanged_ledger": true
+        },
+        "moved_source": {
+          "old_run": "web-run-dc07806d15c67c2538b996fdd79fb9818ee7badffb4204b2adb495a01e924267",
+          "new_run": "web-run-72c49288d569c7223de4f8849c1ac5f21bb6274b1020987430a9b5d33f3100c7",
+          "new_commit": "0508adbb327f87257ea6e027b70c9d0613c5e426",
+          "superseded_denied": true,
+          "fresh_approval_required": true
+        },
+        "peer_and_binding_admission": {
+          "unenrolled_peer_denied": true,
+          "enrolled_unpinned_owner_denied": true,
+          "pinned_peer_replay_unchanged": true,
+          "changed_original_binding_denied": true
+        },
+        "tampered_gate": {
+          "refusal": "Web exact-commit approval rejected",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_plan": {
+          "refusal": "Web workflow operation differs from reviewed job",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_source": {
+          "refusal": "hosted Git canonical tree differs from Web binding",
+          "retained_observation_same": true,
+          "web_approval_verified": true,
+          "source_verified": false
+        },
+        "restart": {
+          "original_run_observed": true,
+          "approval_replay_preserved": true,
+          "no_reexecution": true,
+          "hosted_binding_count": 4,
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          }
+        },
+        "trusted_execution": {
+          "run_id": "web-run-c4f6be4c1c0491b54f69b1d66f7de8d9f4bece1e6297f9f9730242a554bc2fce",
+          "source_commit": "3a482a5c735cde90395ecab44561f28f5d9b7eab",
+          "outcome": "Success",
+          "node_states": {
+            "build[0]": "Completed"
+          },
+          "stdout": "real trusted guest source=approved-exact-source-v1\n",
+          "cleaned": true,
+          "hosted_execution_identity": "304f6409dbe8131248554c045683b2ce33310db2508976c48a8ccd33fdb1ce0f",
+          "sequence": 3,
+          "exactly_one_execution": true,
+          "request_replay_unchanged": true,
+          "restart_outcome_and_logs_preserved": true,
+          "untrusted_vm_qualification": "pending",
+          "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+        }
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "errors": [],
+        "private_scratch_retained": true
+      }
+    },
+    {
+      "fixture": "kwh-d",
+      "status": "failed",
+      "checks": {},
+      "failure": {
+        "kind": "RuntimeError",
+        "message": "hosted RPC refused: accounts.invite"
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "owned_units_checked": 0,
+        "errors": [],
+        "private_scratch_retained": true
+      }
+    },
+    {
+      "fixture": "kwh-e",
+      "status": "failed",
+      "checks": {
+        "blocked_and_unauthorized": {
+          "run_id": "web-run-2453e1795d9f23016d2bf6239481b22f6e43c3589a184c504acc84b518ce8d54",
+          "phase": "awaiting_approval",
+          "no_hosted_binding": true,
+          "stale_commit_denied": true,
+          "viewer_denied": true,
+          "worker_denied": true,
+          "unknown_token_denied": true
+        },
+        "approved_handoff": {
+          "run_id": "web-run-2453e1795d9f23016d2bf6239481b22f6e43c3589a184c504acc84b518ce8d54",
+          "hosted_binding": {
+            "identity": "c481f481846005b54f7fb2fd63ed23ac1be8c4c3c2e68e747a92abbada01a521",
+            "attempt": "web-c481f481846005b54f7fb2fd63ed23ac1be8c4c3c2e68e747a92abbada01a521",
+            "response": {
+              "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+            },
+            "web_approval_verified": true,
+            "source_verified": true,
+            "execution_identity": "ba14b41a1c372d3ca0116d57294942aafbf16ffa7a3cc86c4a8b64ac32f5096b",
+            "sequence": 0
+          },
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          },
+          "web_phase": "unknown",
+          "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+        },
+        "approval_replay": {
+          "same_response": true,
+          "unchanged_ledger": true
+        },
+        "moved_source": {
+          "old_run": "web-run-3c67ce04a69e06e138352833bc02e93115b88ba12d213925589d5aa75d596150",
+          "new_run": "web-run-a92401b2e86097417201d52ac7012bd1b6458013c5963b3848f8c5528918285a",
+          "new_commit": "1a338eda4db0e8ca16d55fcbf228950cce0da3ee",
+          "superseded_denied": true,
+          "fresh_approval_required": true
+        },
+        "peer_and_binding_admission": {
+          "unenrolled_peer_denied": true,
+          "enrolled_unpinned_owner_denied": true,
+          "pinned_peer_replay_unchanged": true,
+          "changed_original_binding_denied": true
+        },
+        "tampered_gate": {
+          "refusal": "Web exact-commit approval rejected",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_plan": {
+          "refusal": "Web workflow operation differs from reviewed job",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_source": {
+          "refusal": "hosted Git canonical tree differs from Web binding",
+          "retained_observation_same": true,
+          "web_approval_verified": true,
+          "source_verified": false
+        },
+        "restart": {
+          "original_run_observed": true,
+          "approval_replay_preserved": true,
+          "no_reexecution": true,
+          "hosted_binding_count": 4,
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          }
+        },
+        "trusted_execution": {
+          "run_id": "web-run-ded56982a9bb3ced520b8fb6f2df1a9f3286f69b86ec3d1dffb1e43c2b343ad4",
+          "source_commit": "74a7560928b6769cf1425c68e18180863947cf20",
+          "outcome": "Success",
+          "node_states": {
+            "build[0]": "Completed"
+          },
+          "stdout": "real trusted guest source=approved-exact-source-v1\n",
+          "cleaned": true,
+          "hosted_execution_identity": "0aea6a9c23ae580b1a142bc9989989e9a85171b5338a314fd65c2d0e2be7548f",
+          "sequence": 3,
+          "exactly_one_execution": true,
+          "request_replay_unchanged": true,
+          "restart_outcome_and_logs_preserved": true,
+          "untrusted_vm_qualification": "pending",
+          "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+        }
+      },
+      "failure": {
+        "kind": "TeardownFailure",
+        "message": "owned teardown required force or failed"
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "owned_units_checked": 1,
+        "errors": [
+          "RuntimeError"
+        ],
+        "private_scratch_retained": true
+      }
+    },
+    {
+      "fixture": "kwh-f",
+      "status": "passed_admission_vm_qualification_pending",
+      "checks": {
+        "blocked_and_unauthorized": {
+          "run_id": "web-run-4bf6f0b24330c820c18a085449ac3055d246e1096771d8c7c6f35d46bac83c75",
+          "phase": "awaiting_approval",
+          "no_hosted_binding": true,
+          "stale_commit_denied": true,
+          "viewer_denied": true,
+          "worker_denied": true,
+          "unknown_token_denied": true
+        },
+        "approved_handoff": {
+          "run_id": "web-run-4bf6f0b24330c820c18a085449ac3055d246e1096771d8c7c6f35d46bac83c75",
+          "hosted_binding": {
+            "identity": "7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+            "attempt": "web-7b8ab4e34ceeca5c6a699a519f644b33757612ad879a972dcdc75b8cd04cd946",
+            "response": {
+              "Err": "untrusted host preflight refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)"
+            },
+            "web_approval_verified": true,
+            "source_verified": true,
+            "execution_identity": "de7bdfc45f839c7788fda624dcc3c9d76ea9ad170af40188bbb43601f166a738",
+            "sequence": 0
+          },
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          },
+          "web_phase": "unknown",
+          "source_verification_evidence": "durable hosted web_approval_verified and source_verified ledger facts"
+        },
+        "approval_replay": {
+          "same_response": true,
+          "unchanged_ledger": true
+        },
+        "moved_source": {
+          "old_run": "web-run-74c5206730adc680b82f03ef247d23d460fdf17ae7bd04123c502da737eb6de4",
+          "new_run": "web-run-8aca01dde426f19d0cf20f982fb0c79a5830d10d3d5e18b40f9b2bd0ccc6b627",
+          "new_commit": "0b7390497b6bc98a09b7739be85d752ce3225fd8",
+          "superseded_denied": true,
+          "fresh_approval_required": true
+        },
+        "peer_and_binding_admission": {
+          "unenrolled_peer_denied": true,
+          "enrolled_unpinned_owner_denied": true,
+          "pinned_peer_replay_unchanged": true,
+          "changed_original_binding_denied": true
+        },
+        "tampered_gate": {
+          "refusal": "Web exact-commit approval rejected",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_plan": {
+          "refusal": "Web workflow operation differs from reviewed job",
+          "retained_observation_same": true,
+          "web_approval_verified": false,
+          "source_verified": false
+        },
+        "tampered_source": {
+          "refusal": "hosted Git canonical tree differs from Web binding",
+          "retained_observation_same": true,
+          "web_approval_verified": true,
+          "source_verified": false
+        },
+        "restart": {
+          "original_run_observed": true,
+          "approval_replay_preserved": true,
+          "no_reexecution": true,
+          "hosted_binding_count": 4,
+          "effects": {
+            "hosted_execution": 0,
+            "finance_reservations": 0,
+            "finance_usage": 0
+          }
+        },
+        "trusted_execution": {
+          "run_id": "web-run-bdedba65fd0ccb1db74f2a71c161d295a6d8cd4cb43a5ee5ddec5e47a87d57f7",
+          "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+          "outcome": "Success",
+          "node_states": {
+            "build[0]": "Completed"
+          },
+          "stdout": "real trusted guest source=approved-exact-source-v1\n",
+          "cleaned": true,
+          "hosted_execution_identity": "602ce11d7a13dd96a2df8a69d52f0433a64bcc7a19ec02206210e0f81db3cd07",
+          "sequence": 3,
+          "exactly_one_execution": true,
+          "request_replay_unchanged": true,
+          "restart_outcome_and_logs_preserved": true,
+          "untrusted_vm_qualification": "pending",
+          "non_claim": "controlled trusted local execution is not untrusted VM qualification"
+        },
+        "trusted_live_cancellation": {
+          "run_id": "web-run-bfb1adef385d9f4cdf4c4bd9600180d9b5d372e689a84f611745c4a8dd1bbe6f",
+          "source_commit": "1e4f857573b758745ab7187a7d02fee76c50af35",
+          "node_id": "build[0]",
+          "live_vmm_observed": true,
+          "confinement_and_pid_lifetime_verified": true,
+          "https_cancel_accepted": true,
+          "outcome": "Cancelled",
+          "node_state": "Cancelled",
+          "cleaned": true,
+          "journal_lifecycle": "destroyed",
+          "no_running_owned_unit": true,
+          "exactly_one_execution_reservation_usage": true,
+          "replay_and_restart_unchanged": true,
+          "untrusted_vm_qualification": "pending"
+        }
+      },
+      "teardown": {
+        "all_owned_children_stopped": true,
+        "owned_units_checked": 1,
+        "errors": [],
+        "private_scratch_retained": true
+      }
+    }
+  ],
+  "non_claim": "Earlier failures are preserved as failures; final runtime-final.json is the complete successful scoped proof. No keys, bearer tokens, raw databases, raw host receipts or machine identifiers retained."
+}

@@ -1,12 +1,12 @@
 use super::model::{RequestKind, RequestRecord};
-use super::{ApiResponse, Engine, Role, identity};
+use super::{identity, ApiResponse, Engine, Role};
 use kiln_core::domain::Command;
 use kiln_core::types::{Alias, AttemptId, ExternalRef};
 use kiln_core::workflow::{
     WorkflowControlAction, WorkflowControlRequest, WorkflowLogReadRequest, WorkflowLogStream,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
 pub(crate) fn json_response(status: u16, value: impl Serialize) -> Result<ApiResponse, String> {
@@ -132,14 +132,7 @@ impl Engine {
             .iter()
             .find(|p| p.id == run.project_id)
             .ok_or("project missing")?;
-        serde_json::to_value(
-            kiln_adapter_lattice::lower_request(
-                &project.lattice(self.profile.bounds.max_runs)?,
-                &run.plan,
-            )
-            .map_err(|_| "native request rejected")?,
-        )
-        .map_err(|_| "native request encoding failed".into())
+        project.request_projection(&run.plan, self.profile.bounds.max_runs)
     }
     // r[impl kiln.web.lifecycle] r[impl kiln.web.lifecycle.scenario.replay]
     pub(super) fn request_replay(
@@ -283,6 +276,15 @@ impl Engine {
                 Some((id, resource, artifact))
             }
         });
+        let execution_binding = matches!(run_route, Some((_, Some("execution-binding"), None)));
+        if execution_binding {
+            if !matches!(role, Role::Worker | Role::Operator) {
+                return error(403, "execution_binding_scope");
+            }
+            if method != "GET" || !params.is_empty() {
+                return error(400, "request_invalid");
+            }
+        }
         let artifact_upload =
             method == "POST" && matches!(run_route, Some((_, Some("artifacts"), None)));
         let log_upload = method == "POST" && matches!(run_route, Some((_, Some("logs"), None)));
@@ -298,6 +300,7 @@ impl Engine {
         // r[impl kiln.web.authentication]
         if role == Role::Worker
             && !worker_lookup
+            && !execution_binding
             && !artifact_upload
             && !log_upload
             && !report_upload
@@ -409,6 +412,31 @@ impl Engine {
             };
             match (method, resource, artifact) {
                 ("GET", None, None) if params.is_empty() => return json_response(200, run.view()),
+                ("GET", Some("execution-binding"), None) if params.is_empty() => {
+                    let cancel_requested = run.events.iter().any(|event| {
+                        matches!(
+                            event,
+                            kiln_core::domain::Event::CancellationRequested { attempt_id, .. }
+                                if *attempt_id == run.plan.attempt_id
+                        )
+                    });
+                    let mut bound = crate::worker::ExecutionBinding {
+                        plan: run.plan.clone(),
+                        binding: run.dispatch_binding(),
+                        execution: run.observation.as_ref().map(|o| o.execution.clone()),
+                        phase: run.phase.clone(),
+                        outcome: run.outcome(),
+                        cancel_requested,
+                        log_bounds: crate::worker::LogBounds {
+                            maximum_chunk_bytes: run.plan.bounds.max_log_read_bytes,
+                            maximum_total_bytes: run.plan.bounds.max_total_log_bytes,
+                            maximum_chunks: run.plan.bounds.max_log_references,
+                        },
+                    };
+                    bound.log_bounds.maximum_chunk_bytes =
+                        bound.maximum_upload_chunk_bytes(self.profile.bounds.max_request_bytes)?;
+                    return json_response(200, bound);
+                }
                 ("POST", Some("rerun"), None) if params.is_empty() => return self.rerun(id, body),
                 ("POST", Some("approve"), None) if params.is_empty() => {
                     return self.approve_untrusted(id, body, principal);

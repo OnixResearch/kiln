@@ -1,0 +1,119 @@
+{
+  "schema": "kiln.web-lattice-hosted.source-gates.v1",
+  "scope": "Sole-Lattice source cutover and its actual local runtime proof; source checks are not release qualification",
+  "compiled_contracts": {
+    "exit": 0,
+    "packages": [
+      "kiln-adapter-lattice",
+      "kiln-provider-api",
+      "kiln-web-service",
+      "kiln-hosted"
+    ],
+    "all_targets": true,
+    "all_features": true,
+    "log": "contract-tests.log"
+  },
+  "follow_up_regressions": [
+    {
+      "scope": "admission reservation/cancellation race and pending acknowledgement contract",
+      "exit": 0,
+      "log": "admission-race-tests.log"
+    },
+    {
+      "scope": "Web HTTPS deadlines, encoded/empty-stream log boundaries, cancellation-intent admission",
+      "exit": 0,
+      "log": "web-log-deadline-tests.log"
+    },
+    {
+      "scope": "pending cancellation versus terminal receipt, cleanup window bounds, compiled plan-node identity",
+      "exit": 0,
+      "log": "task-cancellation-contract-tests.log"
+    },
+    {
+      "scope": "Web/hosted full scoped suites after cancellation-intent projection",
+      "exit": 0,
+      "log": "web-contract-tests.log"
+    }
+  ],
+  "workspace_clippy": {
+    "exit": 0,
+    "all_targets": true,
+    "all_features": true,
+    "warnings_denied": true,
+    "log": "workspace-clippy.log"
+  },
+  "binary_build": {
+    "exit": 0,
+    "log": "build-binaries.log"
+  },
+  "typed_configuration": {
+    "exit": 0,
+    "command": "nix build path:.#checks.x86_64-linux.nickel --no-write-lock-file --no-link --builders \"\" --option build-hook \"\" -L",
+    "derivation": "/nix/store/bbcfvb8pq4w4y4z06bgqsmy3kk9zfvj2-kiln-nickel.drv"
+  },
+  "targeted_formatter": {
+    "exit": 0,
+    "files": [
+      "crates/kiln-hosted/src/lattice_execution.rs",
+      "crates/kiln-hosted/src/lattice_job.rs",
+      "crates/kiln-hosted/src/lib.rs",
+      "crates/kiln-hosted/src/main.rs",
+      "crates/kiln-hosted/src/service.rs",
+      "crates/kiln-hosted/tests/journey.rs",
+      "crates/kiln-hosted/tests/lattice_execution_identity.rs",
+      "crates/kiln-hosted/tests/microvm.rs",
+      "crates/kiln-provider-api/src/lib.rs",
+      "crates/kiln-web-service/src/engine/api.rs",
+      "crates/kiln-web-service/src/engine/model.rs",
+      "crates/kiln-web-service/src/engine/queue.rs",
+      "crates/kiln-web-service/src/engine/workers.rs",
+      "crates/kiln-web-service/src/engine.rs",
+      "crates/kiln-web-service/src/profile.rs",
+      "crates/kiln-web-service/src/worker/client/deadline_tests.rs",
+      "crates/kiln-web-service/src/worker/client.rs",
+      "crates/kiln-web-service/src/worker.rs",
+      "crates/kiln-web-service/tests/engine.rs"
+    ],
+    "skip_children": true,
+    "whole_workspace_pass": false
+  },
+  "canonical_spec_sync": {
+    "exit": 0,
+    "blocked": false,
+    "mutated": true,
+    "log": "sync-applied.log"
+  },
+  "lifecycle_gates": {
+    "proposal": "valid",
+    "design": "valid",
+    "tasks": "valid",
+    "validate": "no issues across 34 changes"
+  },
+  "traceability": {
+    "exit": 0,
+    "valid": true,
+    "requirements": 1493,
+    "referenced": 1493,
+    "missing": 0,
+    "dangling": 0,
+    "log": "traceability.log"
+  },
+  "runtime": {
+    "status": "passed_native_trusted_and_untrusted_refusal",
+    "evidence": "runtime-final.json",
+    "binaries": {
+      "hosted": "3056a454d8010aea9fbd3ce2bbb33473c9494f71a540c79fc7f1f1126af74cda",
+      "web": "d626229964fbd93366071b1f5ed61ce714114cb55acafd3e37aebb89bae46cb3",
+      "lattice": "818804fdc674a2c3a5435c8e2f259f121a7c3d1e84ed275774d4a9fe29e3ebab"
+    },
+    "native_source_revision": "813076d7e42d0ddfb65042bee615bc5f12a2b4d3",
+    "source_commit": "46b63323235291e09c64dddf456ef626df301188",
+    "guest_manifest_blake3": "cce2b278755ffa1cc3d50976b6acff1c2011c2790a395bfdec37cbd095697a70",
+    "vm_qualification": "pending_eligible_host"
+  },
+  "non_claims": [
+    "No complete workspace test-pass claim: prior unrelated GitHub local_ci_e2e failures were not retried or attributed to this cutover.",
+    "The direct whole-workspace formatter remains blocked by the partial vendor/cairn snapshot; scoped formatting is not relabelled as its pass.",
+    "Approved-untrusted execution, distinct physical hosts, hostile isolation, publication and release acceptance are not inferred from these checks."
+  ]
+}

@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-const USAGE: &str = "usage: kiln-hosted keygen --key PATH\n       kiln-hosted check --profile SERVER.json\n       kiln-hosted serve --profile SERVER.json\n       kiln-hosted connect --profile CLIENT.json\n       kiln-hosted rpc --profile CLIENT.json --request REQUEST.json\n       kiln-hosted compile --input PIPELINE.json\n       kiln-hosted migrate --input WORKFLOW.yml\n       kiln-hosted backup --profile SERVER.json --id BACKUP_ID\n       kiln-hosted restore --profile SERVER.json --id BACKUP_ID --target NEW_ID --identity MANIFEST_BLAKE3";
+const USAGE: &str = "usage: kiln-hosted keygen --key PATH\n       kiln-hosted check --profile SERVER.json\n       kiln-hosted serve --profile SERVER.json\n       kiln-hosted connect --profile CLIENT.json\n       kiln-hosted rpc --profile CLIENT.json --request REQUEST.json\n       kiln-hosted lattice-job --profile JOB.json --identity PROFILE_BLAKE3\n       kiln-hosted compile --input PIPELINE.json\n       kiln-hosted migrate --input WORKFLOW.yml\n       kiln-hosted backup --profile SERVER.json --id BACKUP_ID\n       kiln-hosted restore --profile SERVER.json --id BACKUP_ID --target NEW_ID --identity MANIFEST_BLAKE3";
 
 fn options(args: impl Iterator<Item = String>) -> Result<BTreeMap<String, String>, String> {
     let mut args = args;
@@ -74,6 +74,19 @@ async fn run() -> Result<(), String> {
     }
     let mut fields = options(args)?;
     match command.as_str() {
+        "lattice-job" => {
+            let path = take(&mut fields, "--profile")?;
+            let identity = take(&mut fields, "--identity")?;
+            complete(&fields)?;
+            let code = tokio::task::spawn_blocking(move || {
+                kiln_hosted::lattice_job::cli_main(Path::new(&path), &identity)
+            })
+            .await
+            .map_err(|_| "Lattice hosted job task failed")??;
+            if code != 0 {
+                std::process::exit(code);
+            }
+        }
         "keygen" => {
             let path = take(&mut fields, "--key")?;
             complete(&fields)?;

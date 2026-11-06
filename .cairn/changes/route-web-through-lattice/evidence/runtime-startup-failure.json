@@ -1,0 +1,62 @@
+{
+  "schema": "kiln.web-lattice-hosted-smoke.v1",
+  "status": "failed",
+  "checks": {},
+  "vm_qualification": "pending",
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is not VM execution qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance",
+    "prior direct-route receipts are superseded history, not native Lattice evidence"
+  ],
+  "hostile_isolation_claim": false,
+  "native_profiles": {
+    "fixture": {
+      "workflow_name": "native-hosted-fixture",
+      "workflow_revision": "b3:370f0b1d7cb431aebdce0541aa79588e222ef182a2be2f2baa6fef1c017b3096",
+      "operation_identity": "8c1f7df7f2614bd81b8ba1275b2a239d2c44dbf39652af48b5d856e1d227b134",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:89d3c297196eb75bc902c3f7e424ff6e965edbaf1604893dcdc3063d5ca86f2e"
+    },
+    "trusted-fixture": {
+      "workflow_name": "native-hosted-trusted-fixture",
+      "workflow_revision": "b3:54622fb4ecd84026bddc9a57cb506ef9a09f579ab70418b5bc368d467c1f39c7",
+      "operation_identity": "55c55b3628f6991760808ce78d6e9b7a21d27a390ecf6b1e0894a54304230d2a",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:a9b9eed6565ffd0f15c3b072472189e3ae888b068362328e5b5a4930fe3cc38a"
+    },
+    "cancel-fixture": {
+      "workflow_name": "native-hosted-cancel-fixture",
+      "workflow_revision": "b3:9b5298349744753698634bf28a7804ab98c75c43d16c7c79d2a7197ede243e5b",
+      "operation_identity": "1dac119c00155b4a4e97f529697596eeeb2d07ec940ec2ae7715007941dc3caa",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:a2d5fe90ad411772ab03a7493735ce571a156bc06351f8f33819542a6fd78c88"
+    }
+  },
+  "handler_profile_blake3": "094bd6c41d51d069577ba5718516f77ad0c4fe9a7dca8a704f0dcaabd3f6d8c3",
+  "native_process_limits": {
+    "stdin_max_bytes": 1048576,
+    "stdout_max_bytes": 1048576,
+    "stderr_max_bytes": 1048576,
+    "command_agent_timeout_secs": 180,
+    "poll_interval_millis": 10,
+    "teardown_grace_millis": 60000
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "message": "genuine native Lattice exited"
+  },
+  "secret_removal": {
+    "scope": "only smoke-created root bearer tokens, Iroh private keys and TLS private key; not a claim of sanitized retained scratch",
+    "removed": true,
+    "files_checked": 9
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 0,
+    "errors": [],
+    "private_scratch_retained": true
+  },
+  "scope": "Second real setup attempt: native Lattice 0.18 Nickel evaluator panic evaluating the contract-applied imported handler JSON. No dispatch, execution or VM creation occurred; not topology qualification."
+}

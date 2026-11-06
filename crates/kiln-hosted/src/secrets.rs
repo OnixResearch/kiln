@@ -4,14 +4,14 @@ use std::io::Read;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use kiln_adapter_github::secret::{
-    ResolvedSecret, SecretReference, admit_secret_reference, resolve_secret,
+    admit_secret_reference, resolve_secret, ResolvedSecret, SecretReference,
 };
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use zeroize::Zeroizing;
 
 const MAX_ITEMS: usize = 128;
@@ -880,16 +880,14 @@ mod tests {
             .unwrap_or_else(|| unreachable!("fixture has an audience"));
         let token = exchange(&mut f.db, cap.as_str(), &audience, NOW)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
-        assert!(
-            finish_job(
-                &f.db,
-                "other-org",
-                "project",
-                &binding.job,
-                &binding.admission_identity
-            )
-            .is_err()
-        );
+        assert!(finish_job(
+            &f.db,
+            "other-org",
+            "project",
+            &binding.job,
+            &binding.admission_identity
+        )
+        .is_err());
         assert!(finish_job(&f.db, "org", "project", &binding.job, "wrong-admission").is_err());
         verify_token(&f.db, token.as_str(), &audience, NOW)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
@@ -1037,52 +1035,44 @@ mod tests {
             listed.pointer("/references/0/name").and_then(Value::as_str),
             Some("TOKEN")
         );
-        assert!(
-            handle(
-                &mut f.db,
-                &member,
-                "list",
-                json!({"project":"other-project"}),
-                NOW
-            )
-            .is_err()
-        );
+        assert!(handle(
+            &mut f.db,
+            &member,
+            "list",
+            json!({"project":"other-project"}),
+            NOW
+        )
+        .is_err());
         assert!(handle(&mut f.db, &member, "list", json!({}), NOW).is_err());
-        assert!(
-            handle(
-                &mut f.db,
-                &member,
-                "mint",
-                json!({"project":"project","job":"invented"}),
-                NOW
-            )
-            .is_err()
-        );
-        assert!(
-            handle(
-                &mut f.db,
-                &member,
-                "resolve",
-                json!({"project":"project","name":"TOKEN"}),
-                NOW
-            )
-            .is_err()
-        );
+        assert!(handle(
+            &mut f.db,
+            &member,
+            "mint",
+            json!({"project":"project","job":"invented"}),
+            NOW
+        )
+        .is_err());
+        assert!(handle(
+            &mut f.db,
+            &member,
+            "resolve",
+            json!({"project":"project","name":"TOKEN"}),
+            NOW
+        )
+        .is_err());
         assert!(handle(&mut f.db, &member, "register", json!({"project":"project","name":"NEW","resolver":"customer-provider","expected_revision":0,"expires_ms":NOW+1000}), NOW).is_err());
         f.db.execute(
             "UPDATE hosted_memberships SET active=0 WHERE organization='org' AND peer=?1",
             [peer],
         )
         .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
-        assert!(
-            handle(
-                &mut f.db,
-                &member,
-                "list",
-                json!({"project":"project"}),
-                NOW
-            )
-            .is_err()
-        );
+        assert!(handle(
+            &mut f.db,
+            &member,
+            "list",
+            json!({"project":"project"}),
+            NOW
+        )
+        .is_err());
     }
 }

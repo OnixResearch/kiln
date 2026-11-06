@@ -1,10 +1,10 @@
 //! Hosted operations: complete SQLite snapshots, scoped incident admission and owned content.
 use crate::Actor;
 use base64::Engine;
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{params, Connection, OpenFlags, OptionalExtension};
 use rustix::fs::{self, AtFlags, Mode, OFlags};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{
     collections::BTreeMap,
     fs::File,
@@ -1133,14 +1133,10 @@ mod tests {
         .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"));
         let recovered = Connection::open(path)
             .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"));
-        assert!(
-            is_held(&recovered, "a")
-                .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"))
-        );
-        assert!(
-            !is_held(&recovered, "b")
-                .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"))
-        );
+        assert!(is_held(&recovered, "a")
+            .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}")));
+        assert!(!is_held(&recovered, "b")
+            .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}")));
         assert_eq!(
             recovered
                 .query_row("SELECT owner FROM accounts WHERE org='a'", [], |r| r
@@ -1168,17 +1164,15 @@ mod tests {
                 .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}")),
             "run-1"
         );
-        assert!(
-            restore(
-                &p,
-                "snapshot",
-                "recovered",
-                &manifest
-                    .identity()
-                    .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"))
-            )
-            .is_err()
-        );
+        assert!(restore(
+            &p,
+            "snapshot",
+            "recovered",
+            &manifest
+                .identity()
+                .unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"))
+        )
+        .is_err());
         assert!(backup(&db, &p, "snapshot", 101).is_err());
     }
     #[test]
@@ -1322,16 +1316,14 @@ mod tests {
         let (_tmp, _p, mut db) = fixture();
         let a = actor("a", "admin");
         let b = actor("b", "admin");
-        assert!(
-            handle(
-                &mut db,
-                &actor("a", "viewer"),
-                "hold.set",
-                json!({"held":true,"reason":"incident","expected_revision":0}),
-                100
-            )
-            .is_err()
-        );
+        assert!(handle(
+            &mut db,
+            &actor("a", "viewer"),
+            "hold.set",
+            json!({"held":true,"reason":"incident","expected_revision":0}),
+            100
+        )
+        .is_err());
         handle(
             &mut db,
             &a,
@@ -1346,16 +1338,14 @@ mod tests {
         assert!(
             !is_held(&db, "b").unwrap_or_else(|error| unreachable!("fixture failure: {error:?}"))
         );
-        assert!(
-            handle(
-                &mut db,
-                &a,
-                "hold.set",
-                json!({"held":false,"reason":"clear","expected_revision":0}),
-                101
-            )
-            .is_err()
-        );
+        assert!(handle(
+            &mut db,
+            &a,
+            "hold.set",
+            json!({"held":false,"reason":"clear","expected_revision":0}),
+            101
+        )
+        .is_err());
         let audit = handle(
             &mut db,
             &a,

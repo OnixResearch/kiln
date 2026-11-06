@@ -9,9 +9,66 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::files;
-use super::profile::{WorkerProfile, hex};
+use super::profile::{hex, WorkerProfile};
 
 const MAX_CA_BYTES: usize = 1_048_576;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ServiceConnection {
+    pub service_origin: String,
+    pub tls_ca_path: std::path::PathBuf,
+    pub token_file: std::path::PathBuf,
+    pub http_timeout_ms: u64,
+    pub maximum_response_bytes: usize,
+}
+
+impl ServiceConnection {
+    pub fn admit(&self) -> Result<(), String> {
+        let url = reqwest::Url::parse(&self.service_origin).map_err(|_| "worker origin invalid")?;
+        if url.scheme() != "https"
+            || url.host_str().is_none()
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.path() != "/"
+            || url.query().is_some()
+            || url.fragment().is_some()
+            || self.service_origin.ends_with('/')
+            || [&self.tls_ca_path, &self.token_file].iter().any(|path| {
+                !path.is_absolute()
+                    || path.components().any(|part| {
+                        matches!(
+                            part,
+                            std::path::Component::ParentDir | std::path::Component::CurDir
+                        )
+                    })
+            })
+            || self.http_timeout_ms == 0
+            || self.http_timeout_ms > 86_400_000
+            || self.maximum_response_bytes == 0
+            || self.maximum_response_bytes > super::profile::MAX_PROFILE_BYTES
+        {
+            return Err("worker connection outside admitted bounds".into());
+        }
+        Ok(())
+    }
+}
+
+/// Read-only projection of the persisted Web execution authority.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExecutionBinding {
+    pub plan: kiln_core::workflow::WorkflowEffectPlan,
+    pub binding: kiln_provider_api::WorkflowDispatchBinding,
+    pub execution: Option<kiln_core::types::ExternalRef>,
+    pub phase: String,
+    pub outcome: kiln_core::domain::Outcome,
+    /// Durable interactive cancellation intent for this exact attempt. Intent is
+    /// not completed cancellation; the backend must still prove teardown.
+    #[serde(default)]
+    pub cancel_requested: bool,
+    pub log_bounds: LogBounds,
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RunBinding {
@@ -55,14 +112,14 @@ pub struct LogBounds {
 }
 
 #[derive(Default)]
-pub struct LogUploads<'node> {
+pub(super) struct LogUploads<'node> {
     cursors: BTreeMap<&'node str, [Option<u64>; 2]>,
     total_bytes: usize,
     chunks: usize,
 }
 
 impl LogUploads<'_> {
-    pub fn reserve(&mut self, bounds: &LogBounds, bytes: usize) -> Result<(), String> {
+    pub(super) fn reserve(&mut self, bounds: &LogBounds, bytes: usize) -> Result<(), String> {
         if bounds.maximum_chunk_bytes == 0 {
             return Err("worker log chunk bound invalid".into());
         }
@@ -99,6 +156,43 @@ struct LogChunk<'a> {
     truncated: bool,
 }
 
+impl ExecutionBinding {
+    pub(crate) fn maximum_upload_chunk_bytes(
+        &self,
+        maximum_request_bytes: usize,
+    ) -> Result<usize, String> {
+        let execution = serde_json::to_value(&self.execution)
+            .map_err(|_| "worker execution encoding failed")?;
+        let mut envelope = Vec::new();
+        let mut maximum_envelope_bytes = 0;
+        // Both stream names have the same wire length. Reserve the largest
+        // cursor and boolean encodings; base64 itself needs no JSON escaping.
+        let mut chunk = LogChunk {
+            attempt_id: self.plan.attempt_id.as_str(),
+            execution: &execution,
+            source_revision: self.binding.source.exact_revision.native_id.as_str(),
+            node_id: "",
+            stream: "stdout",
+            cursor: u64::MAX,
+            body_base64: String::new(),
+            blake3: blake3::hash(b"").to_hex().to_string(),
+            truncated: false,
+        };
+        for node in &self.plan.nodes {
+            envelope.clear();
+            chunk.node_id = node.id.as_str();
+            serde_json::to_writer(&mut envelope, &chunk)
+                .map_err(|_| "worker log envelope encoding failed")?;
+            maximum_envelope_bytes = maximum_envelope_bytes.max(envelope.len());
+        }
+        Ok(self
+            .plan
+            .bounds
+            .max_log_read_bytes
+            .min(maximum_request_bytes.saturating_sub(maximum_envelope_bytes) / 4 * 3))
+    }
+}
+
 #[derive(Deserialize)]
 struct Runs {
     runs: Vec<Value>,
@@ -109,10 +203,31 @@ pub struct ServiceClient {
     pub(super) origin: String,
     pub(super) authorization: reqwest::header::HeaderValue,
     pub(super) maximum_response_bytes: usize,
+    http_timeout: Duration,
+}
+impl std::fmt::Debug for ServiceClient {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ServiceClient")
+            .field("origin", &self.origin)
+            .field("maximum_response_bytes", &self.maximum_response_bytes)
+            .finish_non_exhaustive()
+    }
 }
 
 impl ServiceClient {
-    pub fn new(profile: &WorkerProfile) -> Result<Self, String> {
+    pub(super) fn new(profile: &WorkerProfile) -> Result<Self, String> {
+        Self::connect(&ServiceConnection {
+            service_origin: profile.service_origin.clone(),
+            tls_ca_path: profile.tls_ca_path.clone(),
+            token_file: profile.token_file.clone(),
+            http_timeout_ms: profile.http_timeout_ms,
+            maximum_response_bytes: profile.maximum_response_bytes,
+        })
+    }
+
+    pub fn connect(profile: &ServiceConnection) -> Result<Self, String> {
+        profile.admit()?;
         let ca = files::regular(&profile.tls_ca_path, MAX_CA_BYTES, false)?;
         let ca = reqwest::Certificate::from_pem(&ca).map_err(|_| "worker CA invalid")?;
         let token = files::regular(&profile.token_file, 64, true)?;
@@ -138,7 +253,195 @@ impl ServiceClient {
             origin: profile.service_origin.clone(),
             authorization,
             maximum_response_bytes: profile.maximum_response_bytes,
+            http_timeout: Duration::from_millis(profile.http_timeout_ms),
         })
+    }
+
+    pub fn execution_binding(&self, run_id: &str) -> Result<ExecutionBinding, String> {
+        if !super::profile::component(run_id) {
+            return Err("worker run identity invalid".into());
+        }
+        let response = self
+            .client
+            .get(format!(
+                "{}/api/runs/{run_id}/execution-binding",
+                self.origin
+            ))
+            .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+            .send()
+            .map_err(|error| transport_error(&error, "worker execution binding lookup"))?;
+        let bound: ExecutionBinding = serde_json::from_value(self.response(response)?)
+            .map_err(|_| "worker execution binding invalid")?;
+        if bound.binding.run_id != run_id {
+            return Err("worker execution binding identity mismatch".into());
+        }
+        Ok(bound)
+    }
+
+    pub fn lookup_execution_binding(
+        &self,
+        project_id: &str,
+        context: &super::source::SourceContext,
+        node_id: &str,
+        timeout: Duration,
+    ) -> Result<Option<ExecutionBinding>, String> {
+        let started = Instant::now();
+        if timeout.is_zero() {
+            return Err("worker execution lookup deadline expired".into());
+        }
+        if !super::profile::component(project_id)
+            || !super::profile::component(node_id)
+            || context.provider != "git"
+            || !hex(&context.repository, 32)
+            || !hex(&context.revision, 20)
+            || context.revision.bytes().all(|b| b == b'0')
+        {
+            return Err("worker source context invalid".into());
+        }
+        let response = self
+            .client
+            .get(format!("{}/api/runs", self.origin))
+            .query(&[
+                ("project_id", project_id),
+                ("source_revision", context.revision.as_str()),
+            ])
+            .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+            .timeout(timeout.min(self.http_timeout))
+            .send()
+            .map_err(|error| transport_error(&error, "worker run lookup"))?;
+        let runs: Runs = serde_json::from_value(self.response(response)?)
+            .map_err(|_| "worker run lookup invalid")?;
+        let remaining = timeout.saturating_sub(started.elapsed());
+        if remaining.is_zero() {
+            return Err("worker execution lookup deadline expired".into());
+        }
+        if runs.runs.len() > 1 {
+            return Err("worker run identity is ambiguous".into());
+        }
+        let Some(run) = runs.runs.first() else {
+            return Ok(None);
+        };
+        let id = run
+            .get("id")
+            .and_then(Value::as_str)
+            .ok_or("worker run identity missing")?;
+        if !super::profile::component(id) {
+            return Err("worker run identity invalid".into());
+        }
+        let response = self
+            .client
+            .get(format!("{}/api/runs/{id}/execution-binding", self.origin))
+            .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+            .timeout(remaining.min(self.http_timeout))
+            .send()
+            .map_err(|error| transport_error(&error, "worker execution binding lookup"))?;
+        let bound: ExecutionBinding = serde_json::from_value(self.response(response)?)
+            .map_err(|_| "worker execution binding invalid")?;
+        if started.elapsed() >= timeout {
+            return Err("worker execution lookup deadline expired".into());
+        }
+        if bound.binding.run_id != id {
+            return Err("worker execution binding identity mismatch".into());
+        }
+        if bound.execution.is_none() {
+            return Ok(None);
+        }
+        admit_execution_binding(&bound, node_id)?;
+        let source = bound
+            .plan
+            .source
+            .as_ref()
+            .ok_or("worker execution source missing")?;
+        if bound.binding.project_id != project_id
+            || source.provider.as_str() != context.provider
+            || source.repository.provider_namespace.as_str() != "git"
+            || source.repository.native_kind.as_str() != "repository"
+            || source.repository.native_id.as_str() != context.repository
+            || source.revision.native_id.as_str() != context.revision
+            || run.get("execution")
+                != Some(
+                    &serde_json::to_value(&bound.execution)
+                        .map_err(|_| "worker execution encoding failed")?,
+                )
+        {
+            return Err("worker active run source or execution binding mismatch".into());
+        }
+        Ok(Some(bound))
+    }
+
+    pub fn upload_execution_logs(
+        &self,
+        bound: &ExecutionBinding,
+        node_id: &str,
+        stdout: &[u8],
+        stderr: &[u8],
+        stdout_truncated: bool,
+        stderr_truncated: bool,
+    ) -> Result<(), String> {
+        admit_execution_binding(bound, node_id)?;
+        let chunks = execution_log_chunks(
+            &bound.log_bounds,
+            stdout,
+            stderr,
+            stdout_truncated,
+            stderr_truncated,
+        )?;
+        let current = self.execution_binding(&bound.binding.run_id)?;
+        if &current != bound {
+            return Err("worker attempt or execution became stale".into());
+        }
+        let execution = serde_json::to_value(&bound.execution)
+            .map_err(|_| "worker execution encoding failed")?;
+        for ((stream, bytes, truncated), count) in [
+            ("stdout", stdout, stdout_truncated),
+            ("stderr", stderr, stderr_truncated),
+        ]
+        .into_iter()
+        .zip(chunks)
+        {
+            for index in 0..count {
+                let start = index
+                    .checked_mul(bound.log_bounds.maximum_chunk_bytes)
+                    .ok_or("worker log cursor overflow")?;
+                let end = start
+                    .saturating_add(bound.log_bounds.maximum_chunk_bytes)
+                    .min(bytes.len());
+                let bytes = bytes.get(start..end).ok_or("worker log chunk invalid")?;
+                let cursor = u64::try_from(start).map_err(|_| "worker log cursor overflow")?;
+                let next_cursor = u64::try_from(end).map_err(|_| "worker log cursor overflow")?;
+                let request = LogChunk {
+                    attempt_id: bound.plan.attempt_id.as_str(),
+                    execution: &execution,
+                    source_revision: bound.binding.source.exact_revision.native_id.as_str(),
+                    node_id,
+                    stream,
+                    cursor,
+                    body_base64: base64::engine::general_purpose::STANDARD.encode(bytes),
+                    blake3: blake3::hash(bytes).to_hex().to_string(),
+                    truncated: truncated && index + 1 == count,
+                };
+                let response = self
+                    .client
+                    .post(format!(
+                        "{}/api/runs/{}/logs",
+                        self.origin, bound.binding.run_id
+                    ))
+                    .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
+                    .header(reqwest::header::ORIGIN, &self.origin)
+                    .json(&request)
+                    .send()
+                    .map_err(|_| "worker log upload failed")?;
+                if self
+                    .response(response)?
+                    .get("next_cursor")
+                    .and_then(Value::as_u64)
+                    != Some(next_cursor)
+                {
+                    return Err("worker log upload cursor mismatch".into());
+                }
+            }
+        }
+        Ok(())
     }
 
     pub(super) fn response(&self, response: reqwest::blocking::Response) -> Result<Value, String> {
@@ -162,7 +465,7 @@ impl ServiceClient {
         serde_json::from_slice(&bytes).map_err(|_| "worker service response invalid".into())
     }
 
-    pub fn lookup(
+    pub(super) fn lookup(
         &self,
         profile: &WorkerProfile,
         source: &SourceResolution,
@@ -190,7 +493,7 @@ impl ServiceClient {
             .header(reqwest::header::AUTHORIZATION, self.authorization.clone())
             .timeout(timeout)
             .send()
-            .map_err(|_| "worker run lookup failed")?;
+            .map_err(|error| transport_error(&error, "worker run lookup"))?;
         let runs: Runs = serde_json::from_value(self.response(response)?)
             .map_err(|_| "worker run lookup invalid")?;
         if runs.runs.len() > 1 {
@@ -210,7 +513,7 @@ impl ServiceClient {
         Ok(Some(run))
     }
 
-    pub fn await_binding(
+    pub(super) fn await_binding(
         &self,
         profile: &WorkerProfile,
         source: &SourceResolution,
@@ -248,7 +551,7 @@ impl ServiceClient {
         Err("worker active run was not admitted before deadline".into())
     }
 
-    pub fn upload(
+    pub(super) fn upload(
         &self,
         profile: &WorkerProfile,
         source: &SourceResolution,
@@ -283,7 +586,7 @@ impl ServiceClient {
         Ok(())
     }
 
-    pub fn upload_log_chunk<'node>(
+    pub(super) fn upload_log_chunk<'node>(
         &self,
         profile: &WorkerProfile,
         source: &SourceResolution,
@@ -350,6 +653,93 @@ impl ServiceClient {
         *cursor = Some(next_cursor);
         Ok(())
     }
+}
+
+fn transport_error(error: &reqwest::Error, operation: &'static str) -> String {
+    if error.is_timeout() {
+        format!("{operation} timed out")
+    } else if error.is_connect() {
+        format!("{operation} connect failed")
+    } else {
+        format!("{operation} failed")
+    }
+}
+
+fn admit_execution_binding(bound: &ExecutionBinding, node_id: &str) -> Result<(), String> {
+    kiln_core::workflow::validate_workflow_plan(&bound.plan)
+        .map_err(|_| "worker workflow plan invalid")?;
+    kiln_core::source::validate_resolution(&bound.binding.source)
+        .map_err(|_| "worker persisted source binding invalid")?;
+    let source = bound
+        .plan
+        .source
+        .as_ref()
+        .ok_or("worker execution source missing")?;
+    let execution = bound
+        .execution
+        .as_ref()
+        .ok_or("worker native execution missing")?;
+    execution
+        .validate()
+        .map_err(|_| "worker native execution invalid")?;
+    if bound.phase != "active"
+        || bound.cancel_requested
+        || bound.outcome != kiln_core::domain::Outcome::Pending
+        || execution.provider_namespace.as_str() != "lattice"
+        || !super::profile::component(&bound.binding.run_id)
+        || !super::profile::component(&bound.binding.project_id)
+        || source.revision.provider_namespace
+            != bound.binding.source.exact_revision.provider_namespace
+        || source.revision.native_id != bound.binding.source.exact_revision.native_id
+        || bound.binding.source.exact_revision.native_kind.as_str() != "commit"
+        || source.repository != bound.binding.source.repository
+        || !bound
+            .plan
+            .nodes
+            .iter()
+            .any(|node| node.id.as_str() == node_id)
+    {
+        return Err("worker active execution binding mismatch".into());
+    }
+    Ok(())
+}
+
+fn execution_log_chunks(
+    bounds: &LogBounds,
+    stdout: &[u8],
+    stderr: &[u8],
+    stdout_truncated: bool,
+    stderr_truncated: bool,
+) -> Result<[usize; 2], String> {
+    if bounds.maximum_chunk_bytes == 0
+        || bounds.maximum_total_bytes == 0
+        || bounds.maximum_chunks == 0
+        || bounds.maximum_chunk_bytes > bounds.maximum_total_bytes
+    {
+        return Err("worker log bounds invalid".into());
+    }
+    let total = stdout
+        .len()
+        .checked_add(stderr.len())
+        .ok_or("worker log byte total overflow")?;
+    // Empty streams need no reference unless they carry a truncation marker.
+    // An absent chunk is not a claim that a stream or execution completed.
+    let stdout_chunks = stdout
+        .len()
+        .div_ceil(bounds.maximum_chunk_bytes)
+        .max(usize::from(stdout_truncated));
+    let stderr_chunks = stderr
+        .len()
+        .div_ceil(bounds.maximum_chunk_bytes)
+        .max(usize::from(stderr_truncated));
+    if total > bounds.maximum_total_bytes
+        || stdout_chunks
+            .checked_add(stderr_chunks)
+            .is_none_or(|count| count > bounds.maximum_chunks)
+    {
+        return Err("worker captured logs exceed run bounds".into());
+    }
+    Ok([stdout_chunks, stderr_chunks])
 }
 
 // r[impl kiln.web.remote_workers.source]

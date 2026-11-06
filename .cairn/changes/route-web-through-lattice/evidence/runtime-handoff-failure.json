@@ -1,0 +1,85 @@
+{
+  "schema": "kiln.web-lattice-hosted-smoke.v1",
+  "status": "failed",
+  "checks": {
+    "blocked_and_unauthorized": {
+      "run_id": "web-run-c215df44d7e6232d1214b70582c42e7f77aaff86a54ce0f997ec3fb53c813aeb",
+      "phase": "awaiting_approval",
+      "no_hosted_binding": true,
+      "stale_commit_denied": true,
+      "viewer_denied": true,
+      "worker_denied": true,
+      "unknown_token_denied": true
+    }
+  },
+  "vm_qualification": "pending",
+  "non_claims": [
+    "not production deployment or hostile-isolation qualification",
+    "loopback Iroh does not prove WAN/relay interoperability",
+    "host refusal is not VM execution qualification",
+    "no host maintenance, security waiver, publication or lifecycle acceptance",
+    "prior direct-route receipts are superseded history, not native Lattice evidence"
+  ],
+  "hostile_isolation_claim": false,
+  "native_profiles": {
+    "fixture": {
+      "workflow_name": "native-hosted-fixture",
+      "workflow_revision": "b3:a0012ef6b0a762224a3b4ed2621d5107e76219b8281cf19f949c4e83c6d1068d",
+      "operation_identity": "22f9554a0e4e18f98275c6605dc214b86ffe53dea1f51cbc0887f5ceeb776cfe",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:b179c2341405a0401230458ac912d13e4b465d556dce3064d325feccb6870ee6"
+    },
+    "trusted-fixture": {
+      "workflow_name": "native-hosted-trusted-fixture",
+      "workflow_revision": "b3:922481c13d27533db5e4d2175cdf9aec1df08b21bac7bc900fe6e88a5400914c",
+      "operation_identity": "66e61a68c625e8d9afe2b023dcfecefc7b3e225ff30948cb319cd15913697b6f",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:fc174ad734ef0c0712089d7181a83b1db4527f5b361d6b9250aeb31571802e67"
+    },
+    "cancel-fixture": {
+      "workflow_name": "native-hosted-cancel-fixture",
+      "workflow_revision": "b3:c2b5b6e0f24128663a2a6ec4bbede8aee41f4ae2c80ecc49f0ea73ce262bb474",
+      "operation_identity": "8d0e28dfe471ffb60586394e2754702a1ee53b0c6b3112b913ce653ffd40d3a0",
+      "profile_identity": "b3:0fe408119e7b1a5154426750f763e7b4568711adfcb6375849c005a732ea97ee",
+      "graph_identity": "b3:7cdb968cc9a41f7c9ea8c7942929dfdb637d4b48de647254a1c24e0216bf18b9"
+    }
+  },
+  "handler_profile_blake3": "aebef8f34242abeaf74ee08b748a2f380ebca6517ebe216684cf62092627d710",
+  "native_process_limits": {
+    "stdin_max_bytes": 1048576,
+    "stdout_max_bytes": 1048576,
+    "stderr_max_bytes": 1048576,
+    "command_agent_timeout_secs": 180,
+    "poll_interval_millis": 10,
+    "teardown_grace_millis": 60000
+  },
+  "inputs": {
+    "source_commit": "b3b32910f758cd7fcbe62fd37eb67c9648e17128",
+    "hosted_peer": "2d9ffee1b17bf28b5bb2345e46d615cc8fd7d32e8f4718fc0a6f88ed306c256e",
+    "lattice_peer": "93a1c5b99de27b5966b4d98de2e60bad82fd1e5249bad9caf7c8a1f21037b03a",
+    "source_checkout_distinct": true,
+    "guest_manifest_blake3": "9ced4e9100e547ed876d79d4b89ccc97b7656752f8ad455d129c96b823f60bd6",
+    "lattice_source": "/nix/store/i047qmh0qbfyziw6s52j4lzxgsnhx0lc-source",
+    "binaries": {
+      "hosted": "ea544eb2f1a2cd294a20b6664024b343ffaa96fa4c85eb17f4282350a95fdc2c",
+      "web": "c5372c44dac259c07eb319897cff3efefba7bf08333758bf56f63947d7b356f1",
+      "lattice": "818804fdc674a2c3a5435c8e2f259f121a7c3d1e84ed275774d4a9fe29e3ebab"
+    }
+  },
+  "failure": {
+    "kind": "RuntimeError",
+    "message": "timed out: durable hosted handoff result"
+  },
+  "secret_removal": {
+    "scope": "only smoke-created root bearer tokens, Iroh private keys and TLS private key; not a claim of sanitized retained scratch",
+    "removed": true,
+    "files_checked": 9
+  },
+  "teardown": {
+    "all_owned_children_stopped": true,
+    "owned_units_checked": 0,
+    "errors": [],
+    "private_scratch_retained": true
+  },
+  "scope": "Third real setup attempt: native dispatch succeeded but the fixed task used the consumer node label instead of the compiled Web plan node id, so exact binding lookup failed and no backend request was admitted. No VM execution or financial effects; not topology qualification."
+}

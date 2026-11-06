@@ -1,19 +1,19 @@
 use crate::{Request, Response, SCHEMA};
 use fs2::FileExt;
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::{
-    Arc, Mutex, RwLock,
     atomic::{AtomicBool, Ordering},
+    Arc, Mutex, RwLock,
 };
 
 const MAX_REQUEST_RECORDS: i64 = 100_000;
 const SQLITE_BUSY_MS: u64 = 5_000;
-type CancellationRegistry = Arc<Mutex<BTreeMap<(String, String), Arc<AtomicBool>>>>;
+pub(crate) type CancellationRegistry = Arc<Mutex<BTreeMap<(String, String), Arc<AtomicBool>>>>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -48,6 +48,8 @@ pub struct Profile {
     pub secrets: Option<crate::secrets::Config>,
     #[serde(default)]
     pub execution: Option<crate::execution::Config>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lattice_execution: Vec<crate::lattice_execution::LatticeExecutionPolicy>,
     #[serde(default)]
     pub fleet: Option<crate::fleet::Config>,
 }
@@ -77,6 +79,16 @@ impl Profile {
         {
             return Err("operator peer policy rejected".into());
         }
+        if self.lattice_execution.len() > 128 {
+            return Err("Lattice execution policy bound exceeded".into());
+        }
+        let mut ids = std::collections::BTreeSet::new();
+        for policy in &self.lattice_execution {
+            policy.admit()?;
+            if !ids.insert(&policy.id) {
+                return Err("duplicate Lattice execution policy".into());
+            }
+        }
         self.network.admit()
     }
 }
@@ -85,8 +97,8 @@ pub struct Service {
     pub db: Connection,
     pub profile: Arc<Profile>,
     _lock: Arc<std::fs::File>,
-    cancellations: CancellationRegistry,
-    native_effects: Arc<RwLock<()>>,
+    pub(crate) cancellations: CancellationRegistry,
+    pub(crate) native_effects: Arc<RwLock<()>>,
 }
 impl std::fmt::Debug for Service {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -183,6 +195,7 @@ impl Service {
             }
         }
         accounts_init(&db)?;
+        crate::lattice_execution::init(&db)?;
         crate::accounts::bootstrap(
             &mut db,
             &profile.bootstrap_peer,
@@ -388,6 +401,46 @@ impl Service {
                     &["owner", "admin", "member", "viewer", "billing"],
                 )?;
             }
+        }
+        // This namespace stays reserved when policies are removed or rotated:
+        // a retained Web binding may still refer to its original attempt/source.
+        if request.action == "execution.run"
+            && (request
+                .input
+                .get("attempt_id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| id.starts_with("lattice-"))
+                || request
+                    .input
+                    .get("workspace")
+                    .and_then(Value::as_str)
+                    .is_some_and(|workspace| {
+                        Path::new(workspace).components().any(|c| {
+                            c.as_os_str().to_str().is_some_and(|s| {
+                                s.starts_with("lattice-") || s.starts_with(".lattice-source-")
+                            })
+                        })
+                    }))
+        {
+            return Err("Lattice attempt and source namespace reserved".into());
+        }
+        // Bound recovery is a current-authority read and never an RPC replay
+        // reservation. Approval issuer policy is refreshed even for old bindings.
+        if matches!(
+            request.action.as_str(),
+            "execution.lattice_run" | "execution.lattice_get" | "execution.lattice_cancel"
+        ) {
+            let actor = actor.as_ref().ok_or("Web execution requires membership")?;
+            let action = request
+                .action
+                .strip_prefix("execution.")
+                .ok_or("Web action rejected")?;
+            let result =
+                crate::lattice_execution::handle(self, actor, action, request.input.clone(), now);
+            if action != "lattice_get" {
+                self.db.execute("INSERT INTO hosted_audit(peer,organization,action,request_id,recorded_at_ms,success) VALUES(?1,?2,?3,?4,?5,?6)", params![peer,request.organization,request.action,request.request_id,crate::sqlite_integer(now)?,result.is_ok()]).map_err(|_| "Web execution audit write failed")?;
+            }
+            return result;
         }
         // Issuer metadata is a current authorized read, not an effect-replay entry.
         // Public metadata GETs must not consume permanent service-wide capacity.
