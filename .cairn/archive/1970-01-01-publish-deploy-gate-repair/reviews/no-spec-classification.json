@@ -1,0 +1,13 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "findings": [],
+  "reviewed_inputs": [
+    {"path":"proposal.md","hash":"2f641e5a3418f3f79ce78f42e764a9dee55c8f7ae455a31aac4837f90e5a935a"},
+    {"path":"design.md","hash":"9e4f1533419699e493449ab475e659619b99deac784448f14d6166763f16a6e2"},
+    {"path":"acceptance.md","hash":"7fd08629291e0f48d5e38f783a06441c215bc4f6a665f22e9036b23d91f129d3"},
+    {"path":"tasks.md","hash":"75a733c735e7f8f5312b92ddd660da5d808a82fa8379c6b494961a4c29e12a69"}
+  ],
+  "reviewer": {"id":"omp-publication-deployment-plan-review","source":"agentic"}
+}

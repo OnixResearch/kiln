@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Operator-authorized publication of an already verified immutable source and activation of its existing web-service package; no accepted product behavior, requirement meaning, governance, credential or isolation-policy changes. Runtime state changes are real and separately evidenced; no-spec does not mean effect-free.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

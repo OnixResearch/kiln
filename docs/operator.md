@@ -2617,6 +2617,8 @@ not mutate state, open listeners or dispatch work. `Type=notify` with
 `GET /healthz` is minimal and unauthenticated, with configured Host/origin
 admission. Readiness is not proof the external provider is reachable.
 
+The separately operator-managed desktop user service has its own [source-bound publication and redeployment receipt](../.cairn/archive/1970-01-01-publish-deploy-gate-repair/evidence/deployment.json). That cutover builds immutable source `946e2d29`, checks all unchanged installed profile arguments, preserves consistent private SQLite backups, and replaces only the web-service Nix-profile element. Its existing `Requires=`-linked proxy/auth units restart with the web service; Lattice remains running. Rollback restores the prior package without rewinding live SQLite or collaboration refs. This local user-service observation is not deployment of system Aspen units or hostile-workload qualification.
+
 State is owned by the dedicated identity, mode 0700, and is the only declared
 persistent writable path. Source access is read-only. The unit uses no-new-
 privileges, no capabilities, private devices/tmp, protected system/home/kernel,

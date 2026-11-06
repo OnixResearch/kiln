@@ -1,0 +1,159 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "observed_at": "2026-11-06T05:27:19.714Z",
+  "maintenance_owner": "Kiln maintainers; operator owns profiles, credentials and activation",
+  "authority": "Explicit user request: commit and push and deploy",
+  "source_commit": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+  "build": {
+    "command": "nix build 'git+file:///home/brittonr/git/OnixResearch/kiln?rev=946e2d29c6d3173b8f98a8a6d6e184d85db61af6#web-service' --no-link --print-out-paths --no-write-lock-file -L --builders '' --option build-hook ''",
+    "frozen_source": "/nix/store/5v7ylhpa7w3k30b0a9a5f45331gv87az-source",
+    "derivation": "/nix/store/0q96bj9f4260w45ghx6ni5jgmy31n8qj-kiln-web-service-0.1.0.drv",
+    "package": "/nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0",
+    "packaged_tests": "passed"
+  },
+  "deployment": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+    "local_origin": "https://localhost:9443",
+    "service": "kiln-web-service.service",
+    "running_executable": "/nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "de0ee357f971792e116227ffc14db7ed6ad3e1e38ea0f746dafc5e158b003b16",
+    "pid": 4160375,
+    "previous_package": "/nix/store/lg8vwxjqb04pxb1wi1xvr2j4bk0d8c36-kiln-web-service-0.1.0",
+    "previous_executable_blake3": "910f1724a6070b904736e8c5b7cba5ed668eed28cecb5c71edfdd68f291c10fd",
+    "private_backup": "/home/brittonr/.local/state/kiln/redeploy-20261106-946e2d29-TzLy06",
+    "preflight": "Candidate check with all eight unchanged installed profile arguments exited zero",
+    "activation": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service"
+    ],
+    "rollback": [
+      "nix profile remove kiln-web-service",
+      "nix profile add /nix/store/lg8vwxjqb04pxb1wi1xvr2j4bk0d8c36-kiln-web-service-0.1.0",
+      "systemctl --user restart kiln-web-service.service",
+      "Preserve live state; do not rewind SQLite or collaboration refs."
+    ],
+    "preservation": {
+      "protected_configuration_files": 117,
+      "contents_modes_owners_groups": "unchanged",
+      "unrelated_profile_elements": 5,
+      "unrelated_profile_elements_unchanged": true,
+      "consistent_sqlite_backups": 2,
+      "live_and_backup_sqlite_integrity": "ok",
+      "retained_primary_keys_preserved": true,
+      "projects_projection_unchanged": true,
+      "retained_runs_preserved": 19,
+      "lattice_pid_before_after": 1145552
+    },
+    "dependency_observations": [
+      {
+        "unit": "kiln-tailnet-proxy.service",
+        "before": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3005808"
+        },
+        "after": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "4160387"
+        }
+      },
+      {
+        "unit": "kiln-web-proxy-auth.service",
+        "before": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3005791"
+        },
+        "after": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "4160378"
+        }
+      },
+      {
+        "unit": "kiln-web-lattice.service",
+        "before": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "1145552"
+        },
+        "after": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "1145552"
+        }
+      }
+    ],
+    "note": "The proxy and proxy-auth units require the web service and restarted during its activation; both returned active/running. No separate restart command or configuration change was issued for them. Lattice PID stayed unchanged."
+  },
+  "verification": {
+    "local_health": {
+      "path": "/healthz",
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "tailnet_health": {
+      "path": "/healthz",
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "anonymous_api_status": 401,
+    "authorized_projects_status": 200,
+    "authorized_runs_status": 200,
+    "tls": {
+      "native_ca_and_hostname_verification": true,
+      "configured_minimum": "TLS1.3"
+    },
+    "browser": {
+      "origin": "https://britton-desktop.bison-tailor.ts.net:8443",
+      "authenticated": true,
+      "overview_retained_runs": 19,
+      "review_page_loaded": true,
+      "review_title": "Kiln · Code review",
+      "viewport_width": 1440,
+      "document_width": 1440,
+      "js_exceptions": [],
+      "navigation_request_aborts": 5,
+      "other_request_failures": [],
+      "screenshots": "Captured in the operator session, not committed because the live workspace includes private project metadata.",
+      "visual_limit": "DOM completion/geometry and screenshots were observed; no pixel-level design audit claimed.",
+      "closed": true,
+      "trust_boundary": "Browser-only certificate exception after separate native CA/hostname-validated HTTPS checks; native verification remained enabled."
+    }
+  },
+  "retained_attempts": [
+    {
+      "stage": "pre-activation native HTTPS baseline",
+      "result": "Leaf certificate alone did not verify the chain; corrected to the installed ca.pem, with verification enabled."
+    },
+    {
+      "stage": "pre-activation endpoint discovery",
+      "result": "GET /health returned 404; documented /healthz returned 200."
+    },
+    {
+      "stage": "pre-activation page bound",
+      "result": "limit=200 returned 400 page_bound; the documented maximum 100 succeeded."
+    },
+    {
+      "stage": "dependency observation",
+      "result": "Initial PID-stability assertion failed for proxy/auth; inspected existing Requires relationships and recorded their actual healthy restarts rather than claiming unchanged PIDs."
+    },
+    {
+      "stage": "browser automation",
+      "result": "A stale login-button handle timed out after network identity completed; authenticated DOM was verified. Explicit review href navigation completed successfully."
+    }
+  ],
+  "boundaries": {
+    "system_aspen_units_untouched": true,
+    "profiles_credentials_isolation_policy_unchanged": true,
+    "paid_provider_activation": false,
+    "hostile_isolation_claim": false,
+    "release_readiness": "Not established by this publication/deployment."
+  }
+}

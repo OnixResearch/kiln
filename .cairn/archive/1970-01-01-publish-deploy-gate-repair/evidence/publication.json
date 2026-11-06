@@ -1,0 +1,77 @@
+{
+  "schema": "kiln.operator-authorized.publication.v1",
+  "observed_at": "2026-11-06T05:25:42.682Z",
+  "authority": "Explicit user request: commit and push and deploy",
+  "maintenance_owner": "Kiln repository maintainers; operator owns signer and activation",
+  "source_commit": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+  "previous_main": "d80edf75a247ad8973dcd5c22759e7fea2cf9b02",
+  "canonical": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "branch": "main",
+    "push_command": "jj git push --remote rad --bookmark main",
+    "result": "fast-forward; synced with 3 seeds"
+  },
+  "projection": {
+    "remote": "github",
+    "url": "git@github.com:OnixResearch/kiln.git",
+    "branch": "main",
+    "push_command": "jj git push --remote github --bookmark main",
+    "result": "fast-forward"
+  },
+  "governance": {
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1,
+    "default_branch": "main",
+    "visibility": "public",
+    "unchanged": true,
+    "signed_refs_before": "9ba90b967a4b38d569df0cbbf121ebdc748f6c33",
+    "signed_refs_after": "3eaf1f2cb49d94cbfc2b1bf546272b05df02dabf",
+    "signed_refs_feature": "parent"
+  },
+  "source_archive": {
+    "format": "GNU tar USTAR; regular tracked members only",
+    "recipe": "LC_ALL=C sorted candidate jj file list; GNU tar --create --format=ustar --mtime=@0 --owner=0 --group=0 --numeric-owner --mode=u=rwX,go=rX --no-recursion --null --files-from paths.nul",
+    "blake3": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1",
+    "bytes": 195624960,
+    "members": 12505
+  },
+  "source_manifest": {
+    "path": "source-paths.json.gz",
+    "encoding": "gzip -n of compact JSON UTF-8 sorted path array plus final newline",
+    "uncompressed_blake3": "3dc441679adb345aac672600e8c16dcc07a60a04c1ef344565de96585be0c333",
+    "compressed_blake3": "9499a9ff4617fd8f6897d49c5b3dcfa29326a67af63ae6978f5253a319299a09"
+  },
+  "readbacks": [
+    {
+      "name": "native",
+      "commit": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+      "archive_blake3": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1",
+      "manifest_matches": true,
+      "anonymous": false,
+      "transport": "namespace-scoped Radicle native helper"
+    },
+    {
+      "name": "garden",
+      "commit": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+      "archive_blake3": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1",
+      "manifest_matches": true,
+      "anonymous": true,
+      "transport": "HTTPS, isolated HOME and no credentials"
+    },
+    {
+      "name": "github",
+      "commit": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+      "archive_blake3": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1",
+      "manifest_matches": true,
+      "anonymous": false,
+      "transport": "configured GitHub SSH projection"
+    }
+  ],
+  "non_claims": [
+    "No governance, visibility, threshold, delegate, announcement or binary release changes.",
+    "Source publication is not release readiness or host qualification.",
+    "Later evidence descendants do not change the frozen deployed implementation identity."
+  ]
+}

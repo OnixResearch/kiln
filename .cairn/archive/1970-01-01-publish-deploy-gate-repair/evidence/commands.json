@@ -1,0 +1,592 @@
+{
+  "commands": [
+    {
+      "label": "native_source_acquisition",
+      "args": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "rad::rad://z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:10:29.330Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native\"\nbookmark: cairn-adapter-portfolio@origin                              [new] untracked\nbookmark: cairn/add-git-source-adapter-20260820@origin                [new] untracked\nbookmark: cairn/add-lattice-workflow-adapter-20260820@origin          [new] untracked\nbookmark: cairn/add-mantle-build-adapter-20260821@origin              [new] untracked\nbookmark: cairn/add-nix-eval-jobs-provider-adapter-20260821@origin    [new] untracked\nbookmark: cairn/add-pijul-source-adapter-20260821@origin              [new] untracked\nbookmark: cairn/align-provider-port-ownership-20260820@origin         [new] untracked\nbookmark: cairn/close-duplicate-radicle-cob-20260820@origin           [new] untracked\nbookmark: cairn/migrate-native-lifecycle-20260810@origin              [new] untracked\nbookmark: cairn/mutate-radicle-cobs-single-writer-20260821@origin     [new] untracked\nbookmark: cairn/operationalize-radicle-provider-shell-20260821@origin [new] untracked\nbookmark: cairn/publish-radicle-ci-status-20260821@origin             [new] untracked\nbookmark: cairn/publish-radicle-source-contract-20260821@origin       [new] untracked\nbookmark: cairn/record-radicle-transport-blocker-20260820@origin      [new] untracked\nbookmark: cairn/split-radicle-provider-changes-20260821@origin        [new] untracked\nbookmark: candidate@origin                                            [new] untracked\nbookmark: change/add-aspen-host-bridge-20260827@origin                [new] untracked\nbookmark: change/admit-radicle-broker-031-wire-20260829@origin        [new] untracked\nbookmark: change/bind-aspen-extension-runtime-profile-20260828@origin [new] untracked\nbookmark: change/pace-aspen-lattice-observation-20260828@origin       [new] untracked\nbookmark: change/plan-aspen-runtime-backend-20260826@origin           [new] untracked\nbookmark: change/productionize-aspen-radicle-host-20260828@origin     [new] untracked\nbookmark: implement-kiln@origin                                       [new] untracked\nbookmark: kiln-observability-drain@origin                             [new] untracked\nbookmark: main@origin                                                 [new] tracked\nbookmark: publication-candidate-2026-10-15@origin                     [new] untracked\nbookmark: publication-evidence-2026-10-15@origin                      [new] untracked\nbookmark: publication-evidence-2026-10-18@origin                      [new] untracked\nbookmark: qualify-live-github-iroh-ci@origin                          [new] untracked\nbookmark: seaglass-kiln-executor@origin                               [new] untracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: roktvkrq 06f25d9f (empty) (no description set)\nParent commit (@-)      : yqzuypvq 946e2d29 main | Clear Clippy and Octet gates without changing broker wire behavior\nAdded 12505 files, modified 0 files, removed 0 files\n"
+    },
+    {
+      "label": "github_projection_acquisition",
+      "args": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "git@github.com:OnixResearch/kiln.git",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:10:29.331Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Fetching into new repo in \"/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github\"\nbookmark: add-local-ci-composition-e2e@origin            [new] untracked\nbookmark: cursor/lattice-agent-orchestration-8dcb@origin [new] untracked\nbookmark: kiln-live-ci-validation-20261018@origin        [new] untracked\nbookmark: kiln-live-ci-validation-20261019@origin        [new] untracked\nbookmark: main@origin                                    [new] tracked\nbookmark: publication-candidate-2026-10-15@origin        [new] untracked\nbookmark: publication-evidence-2026-10-15@origin         [new] untracked\nbookmark: qualify-live-github-iroh-ci@origin             [new] untracked\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: nrqoryvw ff874bb0 (empty) (no description set)\nParent commit (@-)      : yqzuypvq 946e2d29 main | Clear Clippy and Octet gates without changing broker wire behavior\nAdded 12505 files, modified 0 files, removed 0 files\n"
+    },
+    {
+      "label": "anonymous_garden_acquisition",
+      "args": [
+        "jj",
+        "--config",
+        "signing.behavior=\"drop\"",
+        "git",
+        "clone",
+        "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:10:29.330Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nFetching into new repo in \"/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden\"\ngit: warning: no common commits        \nbookmark: main@origin [new] tracked\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\nSetting the revset alias `trunk()` to `main@origin`.\nWorking copy  (@) now at: xyzuqsmu f93b0033 (empty) (no description set)\nParent commit (@-)      : yqzuypvq 946e2d29 main | Clear Clippy and Octet gates without changing broker wire behavior\nAdded 12505 files, modified 0 files, removed 0 files\nWarning: Name and email not configured. Until configured, your commits will be created with the empty identity, and can't be pushed to remotes.\nHint: To configure, run:\n  jj config set --user user.name \"Some One\"\n  jj config set --user user.email \"someone@example.com\"\n"
+    },
+    {
+      "label": "native_main_readback",
+      "args": [
+        "jj",
+        "log",
+        "-r",
+        "main",
+        "--no-graph",
+        "-T",
+        "commit_id ++ \"\\n\""
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native",
+      "started": "2026-11-06T05:10:41.950Z",
+      "exit_code": 0,
+      "stdout": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6\n",
+      "stderr": ""
+    },
+    {
+      "label": "garden_main_readback",
+      "args": [
+        "jj",
+        "log",
+        "-r",
+        "main",
+        "--no-graph",
+        "-T",
+        "commit_id ++ \"\\n\""
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden",
+      "started": "2026-11-06T05:10:41.951Z",
+      "exit_code": 0,
+      "stdout": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6\n",
+      "stderr": "Warning: Per-repo config not found. Generating an empty one.\nPer-repo config is stored in the same directory as your user config for security reasons.\nIf you work across multiple computers, you may want to keep your user config directory in sync.\n"
+    },
+    {
+      "label": "github_main_readback",
+      "args": [
+        "jj",
+        "log",
+        "-r",
+        "main",
+        "--no-graph",
+        "-T",
+        "commit_id ++ \"\\n\""
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github",
+      "started": "2026-11-06T05:10:41.951Z",
+      "exit_code": 0,
+      "stdout": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6\n",
+      "stderr": ""
+    },
+    {
+      "label": "candidate_tracked_paths",
+      "args": [
+        "jj",
+        "file",
+        "list",
+        "-r",
+        "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:11:33.544Z",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_omitted": {
+        "kind": "NUL-separated tracked source paths",
+        "retained_as": "source-paths.json.gz",
+        "uncompressed_manifest_blake3": "3dc441679adb345aac672600e8c16dcc07a60a04c1ef344565de96585be0c333",
+        "members": 12505
+      }
+    },
+    {
+      "label": "native_tracked_paths",
+      "args": [
+        "jj",
+        "file",
+        "list",
+        "-r",
+        "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native",
+      "started": "2026-11-06T05:11:33.599Z",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_omitted": {
+        "kind": "NUL-separated tracked source paths",
+        "retained_as": "source-paths.json.gz",
+        "uncompressed_manifest_blake3": "3dc441679adb345aac672600e8c16dcc07a60a04c1ef344565de96585be0c333",
+        "members": 12505
+      }
+    },
+    {
+      "label": "native_normalized_archive",
+      "args": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/source-paths.nul",
+        "--file",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native.tar"
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native",
+      "started": "2026-11-06T05:11:33.768Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "native_archive_hash",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/native.tar"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:11:34.287Z",
+      "exit_code": 0,
+      "stdout": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1\n",
+      "stderr": ""
+    },
+    {
+      "label": "garden_tracked_paths",
+      "args": [
+        "jj",
+        "file",
+        "list",
+        "-r",
+        "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden",
+      "started": "2026-11-06T05:11:34.307Z",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_omitted": {
+        "kind": "NUL-separated tracked source paths",
+        "retained_as": "source-paths.json.gz",
+        "uncompressed_manifest_blake3": "3dc441679adb345aac672600e8c16dcc07a60a04c1ef344565de96585be0c333",
+        "members": 12505
+      }
+    },
+    {
+      "label": "garden_normalized_archive",
+      "args": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/source-paths.nul",
+        "--file",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden.tar"
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden",
+      "started": "2026-11-06T05:11:34.471Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "garden_archive_hash",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/garden.tar"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:11:35.003Z",
+      "exit_code": 0,
+      "stdout": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1\n",
+      "stderr": ""
+    },
+    {
+      "label": "github_tracked_paths",
+      "args": [
+        "jj",
+        "file",
+        "list",
+        "-r",
+        "946e2d29c6d3173b8f98a8a6d6e184d85db61af6",
+        "-T",
+        "path ++ \"\\0\""
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github",
+      "started": "2026-11-06T05:11:35.020Z",
+      "exit_code": 0,
+      "stderr": "",
+      "stdout_omitted": {
+        "kind": "NUL-separated tracked source paths",
+        "retained_as": "source-paths.json.gz",
+        "uncompressed_manifest_blake3": "3dc441679adb345aac672600e8c16dcc07a60a04c1ef344565de96585be0c333",
+        "members": 12505
+      }
+    },
+    {
+      "label": "github_normalized_archive",
+      "args": [
+        "tar",
+        "--create",
+        "--format=ustar",
+        "--mtime=@0",
+        "--owner=0",
+        "--group=0",
+        "--numeric-owner",
+        "--mode=u=rwX,go=rX",
+        "--no-recursion",
+        "--null",
+        "--files-from",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/source-paths.nul",
+        "--file",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github.tar"
+      ],
+      "cwd": "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github",
+      "started": "2026-11-06T05:11:35.176Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "github_archive_hash",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/github.tar"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:11:36.013Z",
+      "exit_code": 0,
+      "stdout": "e4482bed599f01e7a5288b28814ee5bfbd4b79987b175d4f7d3f630ab82026a1\n",
+      "stderr": ""
+    },
+    {
+      "label": "source_path_manifest_hash",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/var/tmp/kiln-publish-deploy-946e2d29-ZUXd6Y/source-paths.json"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:11:36.033Z",
+      "exit_code": 0,
+      "stdout": "3dc441679adb345aac672600e8c16dcc07a60a04c1ef344565de96585be0c333\n",
+      "stderr": ""
+    },
+    {
+      "label": "candidate_installed_profile_preflight",
+      "args": [
+        "/nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0/bin/kiln-web-service",
+        "check",
+        "--profile",
+        "/home/brittonr/.config/kiln/web-service/service.json",
+        "--access",
+        "/home/brittonr/.config/kiln/web-service/access.json",
+        "--automation",
+        "/home/brittonr/.config/kiln/web-service/automation.json",
+        "--cobs",
+        "/home/brittonr/.config/kiln/web-service/cobs.json",
+        "--sources",
+        "/home/brittonr/.config/kiln/web-service/sources.json",
+        "--reviews",
+        "/home/brittonr/.config/kiln/web-service/reviews.json",
+        "--work",
+        "/home/brittonr/.config/kiln/web-service/work.json",
+        "--code-review",
+        "/home/brittonr/.config/kiln/web-service/code-review.json"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:13:59.293Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "consistent_sqlite_backups",
+      "args": [
+        "python3",
+        "-c",
+        "import json, sqlite3, pathlib, os, sys, urllib.parse\nroot=pathlib.Path(sys.argv[1]); paths=json.loads((root/'database-paths.json').read_text()); records=[]\nfor i, path in enumerate(paths):\n    source=sqlite3.connect('file:'+urllib.parse.quote(path,safe='/')+'?mode=ro',uri=True,timeout=30)\n    result=source.execute('PRAGMA integrity_check').fetchall()\n    if result != [('ok',)]: raise RuntimeError('source database integrity failed')\n    target=root/('database-'+str(i)+'.sqlite')\n    dest=sqlite3.connect(target); source.backup(dest)\n    if dest.execute('PRAGMA integrity_check').fetchall() != [('ok',)]: raise RuntimeError('backup database integrity failed')\n    dest.close(); os.chmod(target,0o600)\n    tables=[r[0] for r in source.execute(\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name\")]\n    ids={}\n    for name in ('projects','runs'):\n        if name not in tables: continue\n        columns=[r[1] for r in source.execute('PRAGMA table_info(\"'+name+'\")')]\n        if 'id' in columns: ids[name]=[r[0] for r in source.execute('SELECT id FROM \"'+name+'\" ORDER BY id')]\n    records.append({'path':path,'backup':str(target),'integrity':'ok','primary_keys':ids})\n    source.close()\n(root/'database-backups.json').write_text(json.dumps(records,indent=2)+'\\n');os.chmod(root/'database-backups.json',0o600)\nprint(json.dumps({'databases':len(records),'source_and_backup_integrity':'ok'}))\n",
+        "/home/brittonr/.local/state/kiln/redeploy-20261106-946e2d29-TzLy06"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:17:11.031Z",
+      "exit_code": 0,
+      "stdout": "{\"databases\": 2, \"source_and_backup_integrity\": \"ok\"}\n",
+      "stderr": ""
+    },
+    {
+      "label": "dependency_before_kiln-web-lattice.service",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-web-lattice.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.445Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=1145552\n",
+      "stderr": ""
+    },
+    {
+      "label": "dependency_before_kiln-tailnet-proxy.service",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-tailnet-proxy.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.438Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=3005808\n",
+      "stderr": ""
+    },
+    {
+      "label": "dependency_before_kiln-web-proxy-auth.service",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-web-proxy-auth.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.444Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=3005791\n",
+      "stderr": ""
+    },
+    {
+      "label": "previous_executable_blake3",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/nix/store/lg8vwxjqb04pxb1wi1xvr2j4bk0d8c36-kiln-web-service-0.1.0/bin/kiln-web-service"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.464Z",
+      "exit_code": 0,
+      "stdout": "910f1724a6070b904736e8c5b7cba5ed668eed28cecb5c71edfdd68f291c10fd\n",
+      "stderr": ""
+    },
+    {
+      "label": "candidate_executable_blake3",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0/bin/kiln-web-service"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.501Z",
+      "exit_code": 0,
+      "stdout": "de0ee357f971792e116227ffc14db7ed6ad3e1e38ea0f746dafc5e158b003b16\n",
+      "stderr": ""
+    },
+    {
+      "label": "remove_previous_web_profile_element",
+      "args": [
+        "nix",
+        "profile",
+        "remove",
+        "kiln-web-service"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.532Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "removing 'kiln-web-service'\nremoved 1 packages, kept 5 packages\n"
+    },
+    {
+      "label": "install_candidate_web_profile_element",
+      "args": [
+        "nix",
+        "profile",
+        "add",
+        "/nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.733Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "restart_web_service",
+      "args": [
+        "systemctl",
+        "--user",
+        "restart",
+        "kiln-web-service.service"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:02.846Z",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "service_after_activation",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-web-service.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState",
+        "--property=Result"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:03.040Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=4160375\nResult=success\n",
+      "stderr": ""
+    },
+    {
+      "label": "dependency_after_kiln-web-lattice.service",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-web-lattice.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:35.228Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=1145552\n",
+      "stderr": ""
+    },
+    {
+      "label": "dependency_after_kiln-web-proxy-auth.service",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-web-proxy-auth.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:35.202Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=4160378\n",
+      "stderr": ""
+    },
+    {
+      "label": "dependency_after_kiln-tailnet-proxy.service",
+      "args": [
+        "systemctl",
+        "--user",
+        "show",
+        "kiln-tailnet-proxy.service",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=SubState"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:18:35.200Z",
+      "exit_code": 0,
+      "stdout": "ActiveState=active\nSubState=running\nMainPID=4160387\n",
+      "stderr": ""
+    },
+    {
+      "label": "live_sqlite_integrity_and_retained_ids",
+      "args": [
+        "python3",
+        "-c",
+        "import json, sqlite3, pathlib, sys, urllib.parse\nroot=pathlib.Path(sys.argv[1]); records=json.loads((root/'database-backups.json').read_text()); checked=[]\nfor record in records:\n    source=sqlite3.connect('file:'+urllib.parse.quote(record['path'],safe='/')+'?mode=ro',uri=True,timeout=30)\n    if source.execute('PRAGMA integrity_check').fetchall() != [('ok',)]: raise RuntimeError('live database integrity failed')\n    for table, prior in record['primary_keys'].items():\n        current={r[0] for r in source.execute('SELECT id FROM \"'+table+'\"')}\n        if not set(prior).issubset(current): raise RuntimeError('retained identifiers missing')\n    checked.append({'path':record['path'],'integrity':'ok','retained_primary_keys_preserved':True});source.close()\n(root/'database-after.json').write_text(json.dumps(checked,indent=2)+'\\n')\nprint(json.dumps({'databases':len(checked),'integrity':'ok','retained_primary_keys_preserved':True}))\n",
+        "/home/brittonr/.local/state/kiln/redeploy-20261106-946e2d29-TzLy06"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:20:29.376Z",
+      "exit_code": 0,
+      "stdout": "{\"databases\": 2, \"integrity\": \"ok\", \"retained_primary_keys_preserved\": true}\n",
+      "stderr": ""
+    },
+    {
+      "label": "compressed_manifest_blake3",
+      "args": [
+        "b3sum",
+        "--no-names",
+        "/home/brittonr/git/OnixResearch/kiln/.cairn/changes/publish-deploy-gate-repair/evidence/source-paths.json.gz"
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:25:42.580Z",
+      "exit_code": 0,
+      "stdout": "9499a9ff4617fd8f6897d49c5b3dcfa29326a67af63ae6978f5253a319299a09\n",
+      "stderr": ""
+    },
+    {
+      "label": "previous_publication_main",
+      "args": [
+        "jj",
+        "log",
+        "-r",
+        "d80edf75",
+        "--no-graph",
+        "-T",
+        "commit_id ++ \"\\n\""
+      ],
+      "cwd": "/home/brittonr/git/OnixResearch/kiln",
+      "started": "2026-11-06T05:25:42.583Z",
+      "exit_code": 0,
+      "stdout": "d80edf75a247ad8973dcd5c22759e7fea2cf9b02\n",
+      "stderr": ""
+    }
+  ]
+}
