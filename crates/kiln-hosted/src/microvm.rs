@@ -637,6 +637,7 @@ pub(crate) struct ConfinementObservation {
     exe_blake3: String,
 }
 
+// r[impl kiln.microvm.confinement.receipt]
 pub(crate) fn confinement_value(result: &Result<ConfinementObservation, String>) -> Value {
     match result {
         Ok(observed) => json!({
@@ -724,6 +725,7 @@ pub(crate) fn observe_confinement(
     }
 }
 
+// r[impl kiln.microvm.confinement]
 fn observe_confinement_once(
     config: &Config,
     unit: &str,

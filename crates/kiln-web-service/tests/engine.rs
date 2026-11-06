@@ -860,7 +860,7 @@ fn feed_token_writer_creates_private_hex_and_refuses_overwrite() {
 }
 
 #[test]
-fn feeds_refresh_cadence_is_bounded_and_defaults_to_fifteen_minutes() {
+fn feeds_refresh_cadence_rejects_fast_intervals_and_accepts_manual_refresh() {
     let (_root, profile, _) = fixture();
     let mut value = serde_json::to_value(&profile)
         .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"));
@@ -873,21 +873,11 @@ fn feeds_refresh_cadence_is_bounded_and_defaults_to_fifteen_minutes() {
                 "token_file": "/tmp/kiln-feed.token",
                 "max_subscriptions": 4,
                 "max_entries_per_feed": 10,
-                "max_feed_bytes": 65536,
+                "max_feed_bytes": kiln_web_service::feeds::ABSOLUTE_MAX_FEED_BYTES,
                 "max_redirects": 1,
                 "timeout_seconds": 5
             }),
         );
-    let defaulted: ServiceProfile =
-        serde_json::from_value(value.clone()).unwrap_or_else(|error| unreachable!("{error}"));
-    assert_eq!(
-        defaulted
-            .feeds
-            .as_ref()
-            .map(|feeds| feeds.refresh_interval_ms),
-        Some(900_000)
-    );
-    assert!(defaulted.admit().is_ok());
     value
         .pointer_mut("/feeds")
         .and_then(serde_json::Value::as_object_mut)

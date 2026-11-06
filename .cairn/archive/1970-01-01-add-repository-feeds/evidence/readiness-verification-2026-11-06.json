@@ -1,0 +1,53 @@
+{
+  "schema": "kiln.readiness.package-verification.v1",
+  "date": "2026-11-06",
+  "source_manifest": "../../reconcile-readiness-and-qualification/evidence/source-manifest.json",
+  "checks": [
+    {
+      "label": "feeds-overflow-before",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-web-service",
+        "--lib",
+        "feeds::tests::parser_accepts_entry_limit_and_rejects_entry_overflow",
+        "--",
+        "--nocapture"
+      ],
+      "exit": 101,
+      "stdout": "\nrunning 1 test\ntest feeds::tests::parser_accepts_entry_limit_and_rejects_entry_overflow ... FAILED\n\nfailures:\n\nfailures:\n    feeds::tests::parser_accepts_entry_limit_and_rejects_entry_overflow\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 177 filtered out; finished in 0.00s\n\n",
+      "stderr": "   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.26s\n     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_web_service-2841edf1ed1d9179)\n\nthread 'feeds::tests::parser_accepts_entry_limit_and_rejects_entry_overflow' panicked at crates/kiln-web-service/src/feeds.rs:1147:13:\nrss must reject the whole feed instead of silently truncating entries\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\nerror: test failed, to rerun pass `-p kiln-web-service --lib`\n"
+    },
+    {
+      "label": "feeds-overflow-after",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-web-service",
+        "--lib",
+        "feeds::tests",
+        "--",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "stdout": "\nrunning 21 tests\ntest feeds::tests::due_intervals_are_bounded_and_monotonic ... ok\ntest feeds::tests::failure_backoff_grows_and_caps ... ok\ntest feeds::tests::opml_export_escapes_labels_and_urls ... ok\ntest feeds::tests::atom_render_escapes_text_and_links ... ok\ntest feeds::tests::timestamp_matches_known_utc_values ... ok\ntest feeds::tests::rss_publication_renders_channel_and_dates ... ok\ntest feeds::tests::parser_rejects_excessive_nesting ... ok\ntest feeds::tests::parser_rejects_doctype_malformed_xml_and_unknown_roots ... ok\ntest feeds::tests::due_selection_is_oldest_first_and_bounded ... ok\ntest feeds::tests::repository_atom_filters_orders_limits_and_escapes_runs ... ok\ntest feeds::tests::fetch_refuses_private_destinations_without_the_explicit_exception ... ok\ntest feeds::tests::url_admission_rejects_public_http_and_private_addresses ... ok\ntest feeds::tests::rss_one_rdf_feeds_parse ... ok\ntest feeds::tests::rss_and_atom_parse_with_bounded_text ... ok\ntest feeds::tests::parser_sanitizes_links_and_retains_first_duplicate_id ... ok\ntest feeds::tests::opml_import_extracts_bounded_unique_outlines ... ok\ntest feeds::tests::rendered_xml_strips_controls_that_xml_1_0_forbids ... ok\ntest feeds::tests::parser_accepts_entry_limit_and_rejects_entry_overflow ... ok\ntest feeds::tests::fetch_enforces_the_body_bound ... ok\ntest feeds::tests::conditional_fetch_honours_not_modified_and_requires_a_validator ... ok\ntest feeds::tests::bounded_fetch_reads_local_feed_and_follows_one_redirect ... ok\n\ntest result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 157 filtered out; finished in 0.01s\n\n",
+      "stderr": "   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.22s\n     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_web_service-2841edf1ed1d9179)\n"
+    },
+    {
+      "label": "api-smoke-run",
+      "args": [
+        "/tmp/kiln-readiness-api-smoke"
+      ],
+      "exit": 0,
+      "stdout": "compiled public feed API: 24 admission/overflow/deduplication decisions passed across RSS/RDF/Atom\nobserved-input host policy local: Vulnerable; refused: host kernel CVE-2026-98432 is vulnerable (release 6.18.50)\nobserved-input host policy aspen1: Vulnerable; refused: host kernel CVE-2026-98432 is vulnerable (release 7.2.4)\nobserved-input host policy aspen2-1: Vulnerable; refused: host kernel CVE-2026-98432 is vulnerable (release 7.2.4)\nobserved-input host policy aspen3-1: Fixed; refused: host SMT is active\nNo VM execution, CAT assignment or physical isolation is claimed by this API smoke.\n",
+      "stderr": ""
+    }
+  ],
+  "limits": [
+    "Local controlled inputs and fixture process/API observations only; no live forge publication or release authority.",
+    "No approved-untrusted VM execution, CAT assignment, hardware attestation or hostile-isolation claim."
+  ],
+  "pending": "Parent integrates final workspace/Nix/lifecycle receipts before archive."
+}

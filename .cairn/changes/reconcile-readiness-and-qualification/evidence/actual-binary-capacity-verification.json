@@ -1,0 +1,158 @@
+{
+  "schema": "kiln.readiness.actual-binary-capacity-verification.v1",
+  "date": "2026-11-06",
+  "recipe": "capacity-probe-recipe.json",
+  "base_revision": "b4078c09123470d28c05191bac7f6feb336a3151",
+  "hashes": [
+    {
+      "path": "crates/kiln-adapter-mantle/src/mapping.rs",
+      "blake3": "5aaff07b47cb16a169ff9dcf79966e778ff91a5d250ed7ab9a2b1a49d2883c78"
+    },
+    {
+      "path": "crates/kiln-adapter-mantle/src/tests.rs",
+      "blake3": "69d11b4d4155cb3623475fddb9178fe52c8a1dfb730247a158725bff0cea3edd"
+    },
+    {
+      "path": "crates/kiln-web-service/src/feeds.rs",
+      "blake3": "11fbd60e24dfeaa543c8779a18fcf8d4f14a08f0f852c0a54375183cd5bd68ca"
+    },
+    {
+      "path": "crates/kiln-adapter-nix/src/tests.rs",
+      "blake3": "5cabcb30ff06e4c05dd91a339000fb0a840b007057b7af6e855b1baa7625e545"
+    },
+    {
+      "path": "crates/kiln-adapter-github/src/server.rs",
+      "blake3": "aaf3ccf84459f98b1df3ce97c2cb4480ad7024230b87238b9b04d9127254b47b"
+    },
+    {
+      "path": "crates/kiln-adapter-github/src/tests.rs",
+      "blake3": "d723a37f0e17e41e288e7bb4a18744ad386c32b2b770a9383fe8b0186e4d19cc"
+    },
+    {
+      "path": "crates/kiln-adapter-github/tests/local_ci_e2e.rs",
+      "blake3": "ce5db53ca51e7a5ef5a6456ed40fa9ea7741fca068cfb8256b5c7412f3894b1f"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/events.rs",
+      "blake3": "5c92903a8be5149a503dee3b0e6c9f67a68ace0ac5e8b2c3e79e7d1c7c5bcf01"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/server.rs",
+      "blake3": "3d0fa3df2d2ec9ea488b9fb40a9be7a7a0b36ac29e56f4a1bfd4620451523dec"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/tests.rs",
+      "blake3": "e739f6fab85ad797d97adccae9acd283c4318895f205b86e81138fd6e1e23cd0"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs",
+      "blake3": "455d7cb32c71b0c13d54a6d802d785fa7af8676f821c02a7d34ef432b46851de"
+    },
+    {
+      "path": "crates/kiln-adapter-github/tests/omp_readiness_capacity_20261106.rs",
+      "blake3": "186ed4e376fd2946af2359609cd4d4e5d2bc4f380bc46ed457b45c39a2334524"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/tests/omp_readiness_capacity_20261106.rs",
+      "blake3": "420eb4b5326d03a2051991a530dc14bc526a84a8c24897c6c173c299dc5cac31"
+    },
+    {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-adapter-github",
+      "blake3": "865353b09eed9388e330ff631d6bf69c03d8f7092ab01c116d1fb1c0971bd164"
+    },
+    {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-github-job",
+      "blake3": "d0224c62455b2725bb27e0074ea696f3bc4aa3beaa9f930969ac382f6c326d99"
+    },
+    {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-adapter-gitea",
+      "blake3": "7b7433291dc1812606a39dc94d9e02d55b68775c6e263882cda6788e30c855c3"
+    },
+    {
+      "path": "/home/brittonr/.cargo-target/debug/kiln-gitea-job",
+      "blake3": "1435c5f9ccd94117c95aef4056be77c185cdc898cf91e20a36b869fa4e9b2502"
+    }
+  ],
+  "checks": [
+    {
+      "label": "http-controlled-capacity",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-github",
+        "-p",
+        "kiln-adapter-gitea",
+        "--lib",
+        "controlled_admission_state",
+        "--",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "stdout": "\nrunning 1 test\ntest tests::controlled_admission_state_rejects_at_bound_without_effect_then_admits_same_delivery ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 54 filtered out; finished in 0.06s\n\n\nrunning 1 test\ntest tests::controlled_admission_state_rejects_at_capacity_without_effect_then_admits_same_delivery ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.06s\n\n",
+      "stderr": "   Compiling kiln-adapter-gitea v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-gitea)\n   Compiling kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.47s\n     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_gitea-fcdd281e75558ed9)\nGitea webhook listener ready at 127.0.0.1:33303\n     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_github-749cdf266d7661eb)\nGitHub webhook listener ready at 127.0.0.1:36857\n"
+    },
+    {
+      "label": "actual-binary-capacity-github",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-github",
+        "--features",
+        "protocol-fixtures",
+        "--test",
+        "omp_readiness_capacity_20261106",
+        "omp_real_binary_capacity_observation",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "stdout": "\nrunning 1 test\nobserved github standalone binary: 2 actual partial connections at bound; capacity503/no job/status effect; both partial408; same delivery202/nonduplicate; exactly1 dispatch and job\ntest omp_real_binary_capacity_observation ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 5.63s\n\n",
+      "stderr": "   Compiling kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.21s\n     Running tests/omp_readiness_capacity_20261106.rs (/home/brittonr/.cargo-target/debug/deps/omp_readiness_capacity_20261106-c7abd2c898d474ef)\nGitHub webhook listener ready at 127.0.0.1:41047\nGitHub intake: github_http_deadline\nGitHub intake: github_http_deadline\n"
+    },
+    {
+      "label": "actual-binary-capacity-gitea",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-gitea",
+        "--features",
+        "protocol-fixtures",
+        "--test",
+        "omp_readiness_capacity_20261106",
+        "omp_real_binary_capacity_observation",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "stdout": "\nrunning 1 test\nobserved gitea standalone binary: 2 actual partial connections at bound; capacity503/no job/status effect; both partial408; same delivery202/nonduplicate; exactly1 dispatch and job\ntest omp_real_binary_capacity_observation ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 5.61s\n\n",
+      "stderr": "   Compiling kiln-adapter-gitea v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-gitea)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.09s\n     Running tests/omp_readiness_capacity_20261106.rs (/home/brittonr/.cargo-target/debug/deps/omp_readiness_capacity_20261106-22179a68c513c8db)\nGitea webhook listener ready at 127.0.0.1:41639\nGitea intake: gitea_http_deadline\nGitea intake: gitea_http_deadline\n"
+    }
+  ],
+  "observations": {
+    "actual_partial_connections": 2,
+    "configured_connection_bound": 2,
+    "partial_read_deadline_ms": 5000,
+    "capacity_http_status": 503,
+    "pre_timeout_job_dispatches": 0,
+    "pre_timeout_job_runs": 0,
+    "pre_timeout_status_posts": 0,
+    "actual_partial_timeout_statuses": [
+      408,
+      408
+    ],
+    "same_delivery_after_timeout": {
+      "status": 202,
+      "duplicate": false,
+      "outcome": "success",
+      "dispatches": 1,
+      "job_runs": 1,
+      "status_posts": 2
+    }
+  },
+  "boundary": "Actual current standalone binaries and real local partial TCP connections plus controlled state regressions; fixture Lattice/status peers only, not live forges, host confinement, approved-untrusted qualification, physical-host separation, release or hostile-isolation authority."
+}

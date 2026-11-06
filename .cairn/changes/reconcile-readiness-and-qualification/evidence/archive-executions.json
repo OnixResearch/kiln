@@ -1,0 +1,2591 @@
+{
+  "date": "2026-11-06",
+  "records": [
+    {
+      "change": "add-gitea-forgejo-ci",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-gitea-forgejo-ci",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-gitea-forgejo-ci"
+          }
+        ],
+        "blocked": false,
+        "change": "add-gitea-forgejo-ci",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "19713b1b726c539b5806074445a42282d1d5245366ee5cdcaaebdef4c40d3830",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "1f6c814bee6f13cf7371bbea36a311bed96197dca992e985ec8377b41cf166a3",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "f67a48bf75976e45c4e4792c411f7013d70bb55be696bedf43baf43bf541ee1e",
+        "reasons": [],
+        "receipt_hash": "3e85fd0e721042e8c8b1e7e4cf9f097d31682da0e6e13ec1db8ca8ce2d6e5232",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-gitea-forgejo-ci",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci"
+          }
+        ],
+        "blocked": false,
+        "change": "add-gitea-forgejo-ci",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "19713b1b726c539b5806074445a42282d1d5245366ee5cdcaaebdef4c40d3830",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "dae941d1e186c9e83f9e9276ca49b0c681cb5b5a97f26961514bb945b979c762",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/design.md"
+              },
+              {
+                "content_hash": "b634ff7a684c713fc2a79d767961be87ba4ecd2757466acfc60c3e22c1036a07",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "90959aeafd98d1fe93ac70b209e597e1ade6612557faea3ce7e7e3cc8422b8a8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/evidence/readiness-verification-2026-11-06.json"
+              },
+              {
+                "content_hash": "a74b11cd257ea36c0e9631f5c065ef52d4425c00434b94dca65858d3e8b9da8c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/evidence/verification.json"
+              },
+              {
+                "content_hash": "dddc457a9ea8118d8ef8f4ff650a2ae54031ad17d305acad8ae9efda81b94650",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/metadata.json"
+              },
+              {
+                "content_hash": "b038e5a5ef844dbe2d1ae7fc3dfb9c0e2fbe77764270187c06201460e9b482fc",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/proposal.md"
+              },
+              {
+                "content_hash": "da48dc50c3e6f4e8ee965f80afc772cee1e78b872c022b0806aa2d9735e46d15",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/specs/gitea-ci/spec.md"
+              },
+              {
+                "content_hash": "7490e055e52d6b37b82e4df85e4a120bbdd6b5e77b4257ffcc741c5ab08d6808",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-gitea-forgejo-ci/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci"
+              }
+            ],
+            "manifest_hash": "a2ff2aaf4dca99cd9d627bb6b5284aa753d9f4fa782c64840df1de7f3f4e6b4c"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "dae941d1e186c9e83f9e9276ca49b0c681cb5b5a97f26961514bb945b979c762",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/design.md"
+              },
+              {
+                "content_hash": "b634ff7a684c713fc2a79d767961be87ba4ecd2757466acfc60c3e22c1036a07",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "90959aeafd98d1fe93ac70b209e597e1ade6612557faea3ce7e7e3cc8422b8a8",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/evidence/readiness-verification-2026-11-06.json"
+              },
+              {
+                "content_hash": "a74b11cd257ea36c0e9631f5c065ef52d4425c00434b94dca65858d3e8b9da8c",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/evidence/verification.json"
+              },
+              {
+                "content_hash": "dddc457a9ea8118d8ef8f4ff650a2ae54031ad17d305acad8ae9efda81b94650",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/metadata.json"
+              },
+              {
+                "content_hash": "b038e5a5ef844dbe2d1ae7fc3dfb9c0e2fbe77764270187c06201460e9b482fc",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/proposal.md"
+              },
+              {
+                "content_hash": "da48dc50c3e6f4e8ee965f80afc772cee1e78b872c022b0806aa2d9735e46d15",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md"
+              },
+              {
+                "content_hash": "7490e055e52d6b37b82e4df85e4a120bbdd6b5e77b4257ffcc741c5ab08d6808",
+                "exists": true,
+                "path": "./.cairn/changes/add-gitea-forgejo-ci/tasks.md"
+              }
+            ],
+            "manifest_hash": "1025901d7d8579571e09dd4fcb50180ee69718bb908a2e1f9de062b6ceaed995"
+          },
+          "kind": "archive",
+          "manifest_hash": "aaabd43ae72dfcc9abfb6f15cf794f8abfc02dd732f53de9f1039f211d144924"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "3a250578c6ee409d03f8282fbda3f3ec9579772269719898dbc4541564e43d75",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "f67a48bf75976e45c4e4792c411f7013d70bb55be696bedf43baf43bf541ee1e",
+        "reasons": [],
+        "receipt_hash": "9a278a8af6223cf46f3d0e708d26c403d343b385bfd58ab7bf3ddf159aa9c7ee",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "complete-mantle-native-report",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: complete-mantle-native-report",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/complete-mantle-native-report"
+          }
+        ],
+        "blocked": false,
+        "change": "complete-mantle-native-report",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "f600a036b9117ac298e31be7f587273d398b8f4bb515fb7d2faa5579c9ae874e",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "2bed005fc1a42fe3d3d07c3762dd9213e3386356a9a0d393ad30f51f7090e21c",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "cc8219e64a37bcfaf49334dabc71c53e9706b75aa3f7d6eee86676db4f59aff8",
+        "reasons": [],
+        "receipt_hash": "ac6628026257c4787e35dd3c12aeae397c469f117e1d345d4d4875541196f259",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: complete-mantle-native-report",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report"
+          }
+        ],
+        "blocked": false,
+        "change": "complete-mantle-native-report",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "f600a036b9117ac298e31be7f587273d398b8f4bb515fb7d2faa5579c9ae874e",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "1e3e1e299583afce2a8c69448220ff8b5acf37b83d56191bfc821f0e87ff01a1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/design.md"
+              },
+              {
+                "content_hash": "0cf5b198b4cc9bf309eda0bce0aa0baa602c0cdb3bd220bde47740887e2af5eb",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "b4428e7e3966b4138dee89eefadc09cb1cb1271e91029a12ff83ad0ab3c190d3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/evidence/readiness-verification-2026-11-06.json"
+              },
+              {
+                "content_hash": "0f2d24a40152dd3eccf1b2801984ed4b1493bbcc9e120c37bf69601e9fa29803",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/evidence/verification.json"
+              },
+              {
+                "content_hash": "3df67d2471dd9e13eb0d9e6824c687510ce613bc0d526a0ae0b1e502c4426ee8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/metadata.json"
+              },
+              {
+                "content_hash": "a1f023ba8a9ac339a4597cc2b1dea339a3ac976af06211ee62f12ad279c34526",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/proposal.md"
+              },
+              {
+                "content_hash": "fdcdec4cf47354cd36da0548d90515b57f0014a18cc76e5517ff0bf7bae04499",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/specs/mantle-native-report/spec.md"
+              },
+              {
+                "content_hash": "2a4e88b49e29d0951004860dc0eafb8c8343d6452c8d42c888e664a0366f78c6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-complete-mantle-native-report/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/complete-mantle-native-report"
+              }
+            ],
+            "manifest_hash": "101ff63cc54f1bb6be72a0cf8396e6cf9e90d41eb1e5b502374a8ea30d06c3de"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "1e3e1e299583afce2a8c69448220ff8b5acf37b83d56191bfc821f0e87ff01a1",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/design.md"
+              },
+              {
+                "content_hash": "0cf5b198b4cc9bf309eda0bce0aa0baa602c0cdb3bd220bde47740887e2af5eb",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "b4428e7e3966b4138dee89eefadc09cb1cb1271e91029a12ff83ad0ab3c190d3",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/evidence/readiness-verification-2026-11-06.json"
+              },
+              {
+                "content_hash": "0f2d24a40152dd3eccf1b2801984ed4b1493bbcc9e120c37bf69601e9fa29803",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/evidence/verification.json"
+              },
+              {
+                "content_hash": "3df67d2471dd9e13eb0d9e6824c687510ce613bc0d526a0ae0b1e502c4426ee8",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/metadata.json"
+              },
+              {
+                "content_hash": "a1f023ba8a9ac339a4597cc2b1dea339a3ac976af06211ee62f12ad279c34526",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/proposal.md"
+              },
+              {
+                "content_hash": "fdcdec4cf47354cd36da0548d90515b57f0014a18cc76e5517ff0bf7bae04499",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md"
+              },
+              {
+                "content_hash": "2a4e88b49e29d0951004860dc0eafb8c8343d6452c8d42c888e664a0366f78c6",
+                "exists": true,
+                "path": "./.cairn/changes/complete-mantle-native-report/tasks.md"
+              }
+            ],
+            "manifest_hash": "4279ca54df9b216ee232d0ff1d0a12256dba82229b5761b36668a25da3b18ccd"
+          },
+          "kind": "archive",
+          "manifest_hash": "f08763210f756b47461cd99c1a89827b3e101915ce01d58f30b4f59a656102d0"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "7abbeff0b5ecc0105ca824d19adbed937fd167d5c4163e85ca0260d7554a7e7a",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "cc8219e64a37bcfaf49334dabc71c53e9706b75aa3f7d6eee86676db4f59aff8",
+        "reasons": [],
+        "receipt_hash": "49f508d4bdf0ee7a3e6bfbb6ff2731aa1db4c517ca327d8328a006c74a88dfc4",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "publish-radicle-job-cobs",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: publish-radicle-job-cobs",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/publish-radicle-job-cobs"
+          }
+        ],
+        "blocked": false,
+        "change": "publish-radicle-job-cobs",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "3d692e5405a363ef318666e85a3af51ec9c975008a67a7c2e21779ea3bb25cb4",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "7f97b9ba7a6be19ef179638d8c73e374ef0a8554ac909f3efc36f28c69f21f2e",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fbd3aca4b92b62721f76cc5de1c6ac1112ac421c777009eb4356e10adc857ac1",
+        "reasons": [],
+        "receipt_hash": "5149297135ae825142789fa19437788402232569b9d61ae722024a7175fe9560",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: publish-radicle-job-cobs",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs"
+          }
+        ],
+        "blocked": false,
+        "change": "publish-radicle-job-cobs",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "3d692e5405a363ef318666e85a3af51ec9c975008a67a7c2e21779ea3bb25cb4",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "1172f8363899f7dd7448ef0ab68da816cdaab9f3263683d34ddbef794c102f5c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/design.md"
+              },
+              {
+                "content_hash": "28d9af36b499573b2a5a0e5481476c01626c7c7825f66b899474c45e6462eab5",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/evidence/deployment.json"
+              },
+              {
+                "content_hash": "45090413837afa1719b8edbec6b966be8f663900fdc0548225c0b630fd4f4079",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "aa9e9dcb0339cdd90974e3fce33069cd653b9082be159f89900e3d5f54a0b7c6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/evidence/verification.json"
+              },
+              {
+                "content_hash": "4286d4a656d9ca5c85bcc7989b199045f9472f40e63e9fc2b8d9116de5da35a1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/metadata.json"
+              },
+              {
+                "content_hash": "7042d1ae113ec3bd9a0318828011ab0c733c6cd0126abee959a15d35371f1cc8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/proposal.md"
+              },
+              {
+                "content_hash": "ed001548a2ec42a0f250b35a61120e60b4d8a435b8b67c7e726d1c28487f4ad5",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md"
+              },
+              {
+                "content_hash": "304f347d056f0f3dbc9617ec23b682468a1a79f8fc289a08e80fcbcd4f4b23c7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-publish-radicle-job-cobs/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/publish-radicle-job-cobs"
+              }
+            ],
+            "manifest_hash": "cab1ec6e91e756ea4e381fa8744fd09a875631beada20c6267931d08f37afbed"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "1172f8363899f7dd7448ef0ab68da816cdaab9f3263683d34ddbef794c102f5c",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/design.md"
+              },
+              {
+                "content_hash": "28d9af36b499573b2a5a0e5481476c01626c7c7825f66b899474c45e6462eab5",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/evidence/deployment.json"
+              },
+              {
+                "content_hash": "45090413837afa1719b8edbec6b966be8f663900fdc0548225c0b630fd4f4079",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "aa9e9dcb0339cdd90974e3fce33069cd653b9082be159f89900e3d5f54a0b7c6",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/evidence/verification.json"
+              },
+              {
+                "content_hash": "4286d4a656d9ca5c85bcc7989b199045f9472f40e63e9fc2b8d9116de5da35a1",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/metadata.json"
+              },
+              {
+                "content_hash": "7042d1ae113ec3bd9a0318828011ab0c733c6cd0126abee959a15d35371f1cc8",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/proposal.md"
+              },
+              {
+                "content_hash": "ed001548a2ec42a0f250b35a61120e60b4d8a435b8b67c7e726d1c28487f4ad5",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md"
+              },
+              {
+                "content_hash": "304f347d056f0f3dbc9617ec23b682468a1a79f8fc289a08e80fcbcd4f4b23c7",
+                "exists": true,
+                "path": "./.cairn/changes/publish-radicle-job-cobs/tasks.md"
+              }
+            ],
+            "manifest_hash": "c238910f5090d149444218d6900796a97cf66fbed2c96b843714d5d7efe2b235"
+          },
+          "kind": "archive",
+          "manifest_hash": "2616765ed68552e0a5769a5c894a7eff471208b8a9edf30e8af75433971132d5"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "e703eb744b56365ac01549bce8f60a0e408804bde193ef2a433fac5547e9f819",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fbd3aca4b92b62721f76cc5de1c6ac1112ac421c777009eb4356e10adc857ac1",
+        "reasons": [],
+        "receipt_hash": "c3210420cc5d3defaca4b18253a362a1238635b40ad60ac175509b3ff0c1f9de",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "support-canonical-radicle-tags",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: support-canonical-radicle-tags",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/support-canonical-radicle-tags"
+          }
+        ],
+        "blocked": false,
+        "change": "support-canonical-radicle-tags",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "e38d8dce7d83d55b7e98e06d1670e27f6c2b6d71aeeaf9bc3fdf952bbcaed353",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "66f576337c8fa14cd5315baa5c26346c114aab6b3807852c15d06ce3c16796d0",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fa2d6ff654d6d3aac5d6d68f9c91ccdc1c2e0e3670f728642164a0996b8fd322",
+        "reasons": [],
+        "receipt_hash": "529a16e6f6e7a0df3df676e897c869ba52e44eb2b7bcba0823ef77ff5fb2cb33",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: support-canonical-radicle-tags",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags"
+          }
+        ],
+        "blocked": false,
+        "change": "support-canonical-radicle-tags",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "e38d8dce7d83d55b7e98e06d1670e27f6c2b6d71aeeaf9bc3fdf952bbcaed353",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "5c528f41ea41b745704e7169a04ccc1e8e234a177082dc03f1235a31f3fdcf5f",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/design.md"
+              },
+              {
+                "content_hash": "f36c5e18d1badbbe7e3c398726ba488d4d6718c4effc4a2c9a602e425eafd79d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "826390177fb4b5457f99d8bd0a8759762024247effe827ec7bea182fbb6c4ef3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/evidence/verification.json"
+              },
+              {
+                "content_hash": "681a96c7df191822398a969fab9541fb212250d198455b16c56322f50eb296a7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/metadata.json"
+              },
+              {
+                "content_hash": "ec80a281573dc28641ef90198f6ca789ea4c70311a2d5d3054b886364bb50838",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/proposal.md"
+              },
+              {
+                "content_hash": "4a38d31ef806c8db76decab0b4baea69711e2a892c4acb7b0dbdd9d5b432ca99",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/specs/radicle-canonical-tag/spec.md"
+              },
+              {
+                "content_hash": "f85230ac205143623674477daa369373411fae4adfec4caeb0b887d2f45d54ed",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-support-canonical-radicle-tags/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/support-canonical-radicle-tags"
+              }
+            ],
+            "manifest_hash": "af512712c953b09e425af0f084d6a615949841aac5c53231d0f19707bd8aca91"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "5c528f41ea41b745704e7169a04ccc1e8e234a177082dc03f1235a31f3fdcf5f",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/design.md"
+              },
+              {
+                "content_hash": "f36c5e18d1badbbe7e3c398726ba488d4d6718c4effc4a2c9a602e425eafd79d",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "826390177fb4b5457f99d8bd0a8759762024247effe827ec7bea182fbb6c4ef3",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/evidence/verification.json"
+              },
+              {
+                "content_hash": "681a96c7df191822398a969fab9541fb212250d198455b16c56322f50eb296a7",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/metadata.json"
+              },
+              {
+                "content_hash": "ec80a281573dc28641ef90198f6ca789ea4c70311a2d5d3054b886364bb50838",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/proposal.md"
+              },
+              {
+                "content_hash": "4a38d31ef806c8db76decab0b4baea69711e2a892c4acb7b0dbdd9d5b432ca99",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/specs/radicle-canonical-tag/spec.md"
+              },
+              {
+                "content_hash": "f85230ac205143623674477daa369373411fae4adfec4caeb0b887d2f45d54ed",
+                "exists": true,
+                "path": "./.cairn/changes/support-canonical-radicle-tags/tasks.md"
+              }
+            ],
+            "manifest_hash": "4040f25cb5754d20ea801a6164c6f453ce80e023f621a3ea7475aaa882b0ccdf"
+          },
+          "kind": "archive",
+          "manifest_hash": "7a84a07a7d79860c0b1832d549f16054c889c3c4a111741d7d0576605addb20f"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "77821268dfdff5571ea37389c6eaa06ea1e596ab3c62deb93d1ad511ea9d7bce",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fa2d6ff654d6d3aac5d6d68f9c91ccdc1c2e0e3670f728642164a0996b8fd322",
+        "reasons": [],
+        "receipt_hash": "5564ce0ab9544e0751d348a473fde3d5885ce8bdd8dc4334dff5bc0a366eb3e8",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "run-ci-on-radicle-tags",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: run-ci-on-radicle-tags",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/run-ci-on-radicle-tags"
+          }
+        ],
+        "blocked": false,
+        "change": "run-ci-on-radicle-tags",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "8fb521d88c0fd3dc77059cbde8b958a8fa87609eeb76df08c31886cae92f1921",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "705c07c029ba875d0112f85be7c30a20c20f597372559c9b3f2168cd1c1fd063",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "8d4de75c100cb65c3851b76b2d73db5fe4ec26d75fc1c2d5ab0a2c7ad9bcc4e0",
+        "reasons": [],
+        "receipt_hash": "f737312dbed0e303a9f051d372e91e3ca40953b051f62c1e4ef50218472b8661",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: run-ci-on-radicle-tags",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags"
+          }
+        ],
+        "blocked": false,
+        "change": "run-ci-on-radicle-tags",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "8fb521d88c0fd3dc77059cbde8b958a8fa87609eeb76df08c31886cae92f1921",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "e3f3f4e17da8f92d85ee2a8bd4f82c1f85dfb35126cc35849c4672bc3383a3d8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/design.md"
+              },
+              {
+                "content_hash": "ad660e5e7b45b6dfafcb4360ace755bf2f37c8764e18d3abfb2b40a33d2d2360",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "397322bf1ba7118f9bf6707c868138f8bb6266f2176be5c74a2e2f9d88d4139a",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/evidence/verification.json"
+              },
+              {
+                "content_hash": "499e25ab3f3a67898c2238556e2595cc490846b43a82b1d150573c7f24021ec4",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/metadata.json"
+              },
+              {
+                "content_hash": "3fa546fef71f6aed3208f38d5dac83faa36cf9a5fc1e479efa64d726659e82d6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/proposal.md"
+              },
+              {
+                "content_hash": "466f3bd269e95c355d279d68b91de804234f50afe1b6f914fc52eff0e1ead100",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/specs/radicle-ci-tag/spec.md"
+              },
+              {
+                "content_hash": "9126e33cb370deaf3989fe1be1a7716cc127c602e89688743c2009d14b88d340",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-run-ci-on-radicle-tags/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags"
+              }
+            ],
+            "manifest_hash": "b0dcebaa07339ad70ce42e2e8a6fc3ce506661da499142ca0bc2cb41c6b2d661"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "e3f3f4e17da8f92d85ee2a8bd4f82c1f85dfb35126cc35849c4672bc3383a3d8",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/design.md"
+              },
+              {
+                "content_hash": "ad660e5e7b45b6dfafcb4360ace755bf2f37c8764e18d3abfb2b40a33d2d2360",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "397322bf1ba7118f9bf6707c868138f8bb6266f2176be5c74a2e2f9d88d4139a",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/evidence/verification.json"
+              },
+              {
+                "content_hash": "499e25ab3f3a67898c2238556e2595cc490846b43a82b1d150573c7f24021ec4",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/metadata.json"
+              },
+              {
+                "content_hash": "3fa546fef71f6aed3208f38d5dac83faa36cf9a5fc1e479efa64d726659e82d6",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/proposal.md"
+              },
+              {
+                "content_hash": "466f3bd269e95c355d279d68b91de804234f50afe1b6f914fc52eff0e1ead100",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/specs/radicle-ci-tag/spec.md"
+              },
+              {
+                "content_hash": "9126e33cb370deaf3989fe1be1a7716cc127c602e89688743c2009d14b88d340",
+                "exists": true,
+                "path": "./.cairn/changes/run-ci-on-radicle-tags/tasks.md"
+              }
+            ],
+            "manifest_hash": "a1282e730977e9c03287040776214bb7bb02635f5c6ff2f57d07b16b9e1fb316"
+          },
+          "kind": "archive",
+          "manifest_hash": "8e7ef3456cf1696d0f7ec1b4357a7f5882ff5a099ebe58bde31f8edcd90db3d8"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "728fe262e0aad782238007949eccf231b482125b5e0849dd43c5caf88caac967",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "8d4de75c100cb65c3851b76b2d73db5fe4ec26d75fc1c2d5ab0a2c7ad9bcc4e0",
+        "reasons": [],
+        "receipt_hash": "f1d21ee4966ff523f6a1918a53e9d447fbe8eea85e7d9f38ef54c46425fd2452",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "add-repository-feeds",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-repository-feeds",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-repository-feeds"
+          }
+        ],
+        "blocked": false,
+        "change": "add-repository-feeds",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "75f9fb53562c5d5487d543f39f5d37f6fcf402d6553094ea5b871e6bc7131368",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "6419b57228a1fbe4a80b6ceb0238daa1953d2155e049606b2dd0e2de2c8b71a1",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "7d7a03561edb874bbaa6b2bbd664bc29ec318a6d23a4a520b62aeda493321cfe",
+        "reasons": [],
+        "receipt_hash": "8ddbb684ed81230b1ce22608a21f5a2e13a756334a86cf919325a9be32b6ea8e",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-repository-feeds",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-repository-feeds"
+          }
+        ],
+        "blocked": false,
+        "change": "add-repository-feeds",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "75f9fb53562c5d5487d543f39f5d37f6fcf402d6553094ea5b871e6bc7131368",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "5b94e964d5b7091a9b96daaafb6777b64a7f01bf2e480ac3b819626315380859",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/design.md"
+              },
+              {
+                "content_hash": "0c17f281f9770c7c757bd0ee8ee6264923621a9d3027a76441affcc6994d94f5",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "f878c725a3224c9852893a9ccf8b9a679aea6dc9802b094f99fd5a28a3d1646f",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/evidence/readiness-verification-2026-11-06.json"
+              },
+              {
+                "content_hash": "2d2378e531d3465f58f3bd20afbaaf5a5c42baeabeebcf3ee1d00c558181b486",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/evidence/verification.json"
+              },
+              {
+                "content_hash": "2d6e37a140a3305a885cd52e6080a47969b95a205ad5f3981679fa63a413fae1",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/metadata.json"
+              },
+              {
+                "content_hash": "0ac9b8045e9efc815d0e141a4e9ac86e3a9567c7a744cec5e46387b524dcc213",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/proposal.md"
+              },
+              {
+                "content_hash": "378f2dbea734da6e778c8669d38120b0fe2e6631da061789d09711cd310dade3",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/specs/repository-feeds/spec.md"
+              },
+              {
+                "content_hash": "8e052f694eebb6ee57bcacf5d7c8635429198a2b07584fc36a84925b43694f9b",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-repository-feeds/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-repository-feeds"
+              }
+            ],
+            "manifest_hash": "e2320ba062d297410d770e8aaaea90258b67c3557ef5316ca0c185372b60613c"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "5b94e964d5b7091a9b96daaafb6777b64a7f01bf2e480ac3b819626315380859",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/design.md"
+              },
+              {
+                "content_hash": "0c17f281f9770c7c757bd0ee8ee6264923621a9d3027a76441affcc6994d94f5",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "f878c725a3224c9852893a9ccf8b9a679aea6dc9802b094f99fd5a28a3d1646f",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/evidence/readiness-verification-2026-11-06.json"
+              },
+              {
+                "content_hash": "2d2378e531d3465f58f3bd20afbaaf5a5c42baeabeebcf3ee1d00c558181b486",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/evidence/verification.json"
+              },
+              {
+                "content_hash": "2d6e37a140a3305a885cd52e6080a47969b95a205ad5f3981679fa63a413fae1",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/metadata.json"
+              },
+              {
+                "content_hash": "0ac9b8045e9efc815d0e141a4e9ac86e3a9567c7a744cec5e46387b524dcc213",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/proposal.md"
+              },
+              {
+                "content_hash": "378f2dbea734da6e778c8669d38120b0fe2e6631da061789d09711cd310dade3",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md"
+              },
+              {
+                "content_hash": "8e052f694eebb6ee57bcacf5d7c8635429198a2b07584fc36a84925b43694f9b",
+                "exists": true,
+                "path": "./.cairn/changes/add-repository-feeds/tasks.md"
+              }
+            ],
+            "manifest_hash": "6cca02e02afb44a49252432c125c83a1eef5a3bc8ff8d69bf6ccb7f562091d4f"
+          },
+          "kind": "archive",
+          "manifest_hash": "dd8425f59c10b2944b0ad8fcc6cb60c1018e9a30af43fd5901717d8f11f9f98a"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "5819f756fb8fea8574a439799d28bd9fa3ff5a80c11407d8f18223381715d8ca",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "7d7a03561edb874bbaa6b2bbd664bc29ec318a6d23a4a520b62aeda493321cfe",
+        "reasons": [],
+        "receipt_hash": "a9bfc07106958c87ecf6dd42d7241e014cf1430539c0cdd66fde42a769a6e13c",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "add-monorepo-work-views",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-monorepo-work-views",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-monorepo-work-views"
+          }
+        ],
+        "blocked": false,
+        "change": "add-monorepo-work-views",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "9f302fd6d8ea9d9b490e93497450efb49781a9ef50bf23b19bc0e981a16eb4fa",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "ce6c32166c11f80fe708b0e7ca48b3012ad1b87f26d40ec0b1ef397cad080d97",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "56315e676a8dce26256fe735d049a9f7f6508f8c7876c7552cc80279c6ba2ce7",
+        "reasons": [],
+        "receipt_hash": "a8af81d201481ae90c4d3142a02388d232e7f1f4b02d41a44bc41cb77bef34a4",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-monorepo-work-views",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views"
+          }
+        ],
+        "blocked": false,
+        "change": "add-monorepo-work-views",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "9f302fd6d8ea9d9b490e93497450efb49781a9ef50bf23b19bc0e981a16eb4fa",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "f1c0c5846870a009d5ed006209481bf74aa14b0bf76a2b29d083fcef4e997c73",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/design.md"
+              },
+              {
+                "content_hash": "efd70a9831dfe59348918a1512f379fdc71906b75deb7be22a16b00419995a63",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "4e88116c31557d4e353b64ebee1a50cf3e14d628a58d848b49667fdffd44ec17",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/evidence/verification.json"
+              },
+              {
+                "content_hash": "578d1992f4175caea1a8a829023f5a449136c221047dc8a60f1791defd6460d6",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/metadata.json"
+              },
+              {
+                "content_hash": "db9a4070029ac26d9524fdadebda29813446ba80349a2052936eac62962d377e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/proposal.md"
+              },
+              {
+                "content_hash": "fca661c3ae3e073cbd4529998587867add16316cfc43ae5c326cca66f1bf37c0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/specs/work-monorepo-views/spec.md"
+              },
+              {
+                "content_hash": "41be9d276580856d0a4f1ba440aab706225ade57e3b0b95c3b7d9c8dd38c9d1f",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-monorepo-work-views/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-monorepo-work-views"
+              }
+            ],
+            "manifest_hash": "e4fc8f832c01fe756318c1b408ed5d09d15594dc544f23c8decfa8bd5fd01382"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "f1c0c5846870a009d5ed006209481bf74aa14b0bf76a2b29d083fcef4e997c73",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/design.md"
+              },
+              {
+                "content_hash": "efd70a9831dfe59348918a1512f379fdc71906b75deb7be22a16b00419995a63",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "4e88116c31557d4e353b64ebee1a50cf3e14d628a58d848b49667fdffd44ec17",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/evidence/verification.json"
+              },
+              {
+                "content_hash": "578d1992f4175caea1a8a829023f5a449136c221047dc8a60f1791defd6460d6",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/metadata.json"
+              },
+              {
+                "content_hash": "db9a4070029ac26d9524fdadebda29813446ba80349a2052936eac62962d377e",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/proposal.md"
+              },
+              {
+                "content_hash": "fca661c3ae3e073cbd4529998587867add16316cfc43ae5c326cca66f1bf37c0",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md"
+              },
+              {
+                "content_hash": "41be9d276580856d0a4f1ba440aab706225ade57e3b0b95c3b7d9c8dd38c9d1f",
+                "exists": true,
+                "path": "./.cairn/changes/add-monorepo-work-views/tasks.md"
+              }
+            ],
+            "manifest_hash": "35be38bfa90cc08e2eeffc9744e0f9d795844cccbd9870c822324a172b597f94"
+          },
+          "kind": "archive",
+          "manifest_hash": "f45a9d33bd83c8ed8fe76e3e7e49750b6c1d4ece56bfb209c34ce2d4415cebdd"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "a1b586757453bb2b7fafbf141cd6357bcc6baf2c0910aff8fed48a35c102a294",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "56315e676a8dce26256fe735d049a9f7f6508f8c7876c7552cc80279c6ba2ce7",
+        "reasons": [],
+        "receipt_hash": "b32b35bb8e78b6dcf15a18df2426bf50b984af6f6f6a96deb29e2c3d084ac4fe",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "supersede-trigger-runs",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: supersede-trigger-runs",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/supersede-trigger-runs"
+          }
+        ],
+        "blocked": false,
+        "change": "supersede-trigger-runs",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "05bbcda77d0cdececf2e76b060ffe8bf7552c17717d76291f39525621e0a754f",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "e3f5939512917ba3e963d57b0db2e17dd2e4b08ab62c13638266980e2e47f091",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "4fa8d7d821297f5bf9311066e6d501707aeb10446812b033f99a823d9fa6423a",
+        "reasons": [],
+        "receipt_hash": "870a371eaa421974759f4d22e832efe0cef9b7bf6e9372b39be864ec1abd694d",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: supersede-trigger-runs",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs"
+          }
+        ],
+        "blocked": false,
+        "change": "supersede-trigger-runs",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "05bbcda77d0cdececf2e76b060ffe8bf7552c17717d76291f39525621e0a754f",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "a43391447e48affa061acb5cf388af0cc4b6ebc3e5b7cdefb19f4a7d77ded2cd",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/design.md"
+              },
+              {
+                "content_hash": "9b68204d0bc5b65d1fe3cc66a7a2f71027b4484b10686965b0c46837a191f7d9",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/ordinary-origin-consumer.json"
+              },
+              {
+                "content_hash": "7ba9cf541ac61d31f8ed14abf2b1fa68beb5a6a6dac5963272f89e14df9930f2",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/origin-repair-plan-gates.json"
+              },
+              {
+                "content_hash": "6c78acfaa9f6be342e2aa8a7f7ee3f792c503d798ef32cd0c9118e20980904ea",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "09f0f03ef0c6c8be7c3cca77df1762e7ecff6b23bc4f1f36ffeb46847cbb6a8e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/readiness-reconciliation-2026-11-06.json"
+              },
+              {
+                "content_hash": "fe4545b6d1bfeb0f3a2583bce3716dc03107fc8a3ac5cb79332eed0c55d20e99",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/replay-repair-plan-gates.json"
+              },
+              {
+                "content_hash": "7559c66d76dd76c5527a0ffb6e9650365bbd06e2e95ce0c79100bd1a74d9f115",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/reservation-origin-plan-gates.json"
+              },
+              {
+                "content_hash": "9bfdc3b8d90e053c6fb149237bb2bfe579b41f419b72be145d00f674db066955",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/verification.json"
+              },
+              {
+                "content_hash": "8ced64c6f06fe5a4d2a87648fe1faf5535e8566e9e4490595ea3c539b09d1b8c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/metadata.json"
+              },
+              {
+                "content_hash": "18cbd0f4958c5216149385a933832f1f4988e3105fa044f23e289b5c6de54458",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/proposal.md"
+              },
+              {
+                "content_hash": "1d91b79b1eaa46cd4592c7ea00994ab0c98dea5e471929fc02c5de99ab5e3add",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/specs/supersede-trigger-runs/spec.md"
+              },
+              {
+                "content_hash": "c41927a41ee8343b31254612cee3dafea479430510cc584313c49a3d4ca60507",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-supersede-trigger-runs/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/supersede-trigger-runs"
+              }
+            ],
+            "manifest_hash": "6c4b9122d2732212ef9a94c22c5a2826fef7ba8959073029e245230a71d8033c"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "a43391447e48affa061acb5cf388af0cc4b6ebc3e5b7cdefb19f4a7d77ded2cd",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/design.md"
+              },
+              {
+                "content_hash": "9b68204d0bc5b65d1fe3cc66a7a2f71027b4484b10686965b0c46837a191f7d9",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/ordinary-origin-consumer.json"
+              },
+              {
+                "content_hash": "7ba9cf541ac61d31f8ed14abf2b1fa68beb5a6a6dac5963272f89e14df9930f2",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/origin-repair-plan-gates.json"
+              },
+              {
+                "content_hash": "6c78acfaa9f6be342e2aa8a7f7ee3f792c503d798ef32cd0c9118e20980904ea",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "09f0f03ef0c6c8be7c3cca77df1762e7ecff6b23bc4f1f36ffeb46847cbb6a8e",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/readiness-reconciliation-2026-11-06.json"
+              },
+              {
+                "content_hash": "fe4545b6d1bfeb0f3a2583bce3716dc03107fc8a3ac5cb79332eed0c55d20e99",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/replay-repair-plan-gates.json"
+              },
+              {
+                "content_hash": "7559c66d76dd76c5527a0ffb6e9650365bbd06e2e95ce0c79100bd1a74d9f115",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/reservation-origin-plan-gates.json"
+              },
+              {
+                "content_hash": "9bfdc3b8d90e053c6fb149237bb2bfe579b41f419b72be145d00f674db066955",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/verification.json"
+              },
+              {
+                "content_hash": "8ced64c6f06fe5a4d2a87648fe1faf5535e8566e9e4490595ea3c539b09d1b8c",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/metadata.json"
+              },
+              {
+                "content_hash": "18cbd0f4958c5216149385a933832f1f4988e3105fa044f23e289b5c6de54458",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/proposal.md"
+              },
+              {
+                "content_hash": "1d91b79b1eaa46cd4592c7ea00994ab0c98dea5e471929fc02c5de99ab5e3add",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md"
+              },
+              {
+                "content_hash": "c41927a41ee8343b31254612cee3dafea479430510cc584313c49a3d4ca60507",
+                "exists": true,
+                "path": "./.cairn/changes/supersede-trigger-runs/tasks.md"
+              }
+            ],
+            "manifest_hash": "0352e8ded342b440e05f2562ec49ef69081e3a9de66a813dcbbdcf8ef42ab869"
+          },
+          "kind": "archive",
+          "manifest_hash": "ed7537841f330fc270e2b1dc57dfce78ce2acf7427d167bfd0d1a1b92f1e0194"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "09294988f037560582592acb9c0b4a36883e696845c3b111d57f0288530f7e0d",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "4fa8d7d821297f5bf9311066e6d501707aeb10446812b033f99a823d9fa6423a",
+        "reasons": [],
+        "receipt_hash": "f012906ed399a8aa2c8b8186079dba0cc5b95fc4944e9109dc63cf70bcd01e63",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "add-attested-agent-submissions",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-attested-agent-submissions",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-attested-agent-submissions"
+          }
+        ],
+        "blocked": false,
+        "change": "add-attested-agent-submissions",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "b74074f526bb045423275b99aa5d0c1a30724149bab683df41aa3261187e4608",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "e407e33f84f1a80830ba99ef070017f831397328ee5194267660e1e248a02742",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "3b806debeeec7f6c5858ac5c4fab7cc0668ad35e9e2a972a5353a9cebbef6134",
+        "reasons": [],
+        "receipt_hash": "278ca22190fbce03918fa58969a1ca60a9ef628a3347cbd52f41a04c8bc01adc",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-attested-agent-submissions",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions"
+          }
+        ],
+        "blocked": false,
+        "change": "add-attested-agent-submissions",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "b74074f526bb045423275b99aa5d0c1a30724149bab683df41aa3261187e4608",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "cf34c80840962290660e3ff616dc21d7855b7bbbb8959e86e37492e4f84fc43d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/design.md"
+              },
+              {
+                "content_hash": "c18c9fbd4f11b995dc64eb78ae29a5d86a51bb81a9d210d832e80b77ce2e085a",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "96b22dc8cb9c30073b8250753a61f61d211022203230703ccf91de60a4301438",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/evidence/verification.json"
+              },
+              {
+                "content_hash": "d759d08f242bcb964877578de5d6ac7c9729e56c808dd4cfaf6e7912d70b3e93",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/metadata.json"
+              },
+              {
+                "content_hash": "d9ec4808dbe4b5d9ff9bacd78d2c085881f2d6ea4a0a451c149cf287f4dd7868",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/proposal.md"
+              },
+              {
+                "content_hash": "30bb050519d0e0ca9aaadb7729124e5c941fc271b8d01c40c9b22a4e9322a739",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/specs/attested-agent-submissions/spec.md"
+              },
+              {
+                "content_hash": "4788d41ff7064cf2c1b439872d4f6939f7c259f2d1f6523cf30ad7746450b211",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-attested-agent-submissions/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-attested-agent-submissions"
+              }
+            ],
+            "manifest_hash": "8633b6b7def27967eac0aed548c277f77b93bd46ac49147cc33267a5cd2b5f27"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "cf34c80840962290660e3ff616dc21d7855b7bbbb8959e86e37492e4f84fc43d",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/design.md"
+              },
+              {
+                "content_hash": "c18c9fbd4f11b995dc64eb78ae29a5d86a51bb81a9d210d832e80b77ce2e085a",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "96b22dc8cb9c30073b8250753a61f61d211022203230703ccf91de60a4301438",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/evidence/verification.json"
+              },
+              {
+                "content_hash": "d759d08f242bcb964877578de5d6ac7c9729e56c808dd4cfaf6e7912d70b3e93",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/metadata.json"
+              },
+              {
+                "content_hash": "d9ec4808dbe4b5d9ff9bacd78d2c085881f2d6ea4a0a451c149cf287f4dd7868",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/proposal.md"
+              },
+              {
+                "content_hash": "30bb050519d0e0ca9aaadb7729124e5c941fc271b8d01c40c9b22a4e9322a739",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/specs/attested-agent-submissions/spec.md"
+              },
+              {
+                "content_hash": "4788d41ff7064cf2c1b439872d4f6939f7c259f2d1f6523cf30ad7746450b211",
+                "exists": true,
+                "path": "./.cairn/changes/add-attested-agent-submissions/tasks.md"
+              }
+            ],
+            "manifest_hash": "381bae4c8b87ab0a697b825f24cc15c3c4e6acc6839720155e64e74c4eec69a1"
+          },
+          "kind": "archive",
+          "manifest_hash": "dd8ad21cd41be6b3bd09d21b06514653b0de4b980ef1c5aa5d9192d67890699f"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "97cac13117aeab93af7a20ff11c45b2c8f8a2f9419a17e83e3c82d9f708a594f",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "3b806debeeec7f6c5858ac5c4fab7cc0668ad35e9e2a972a5353a9cebbef6134",
+        "reasons": [],
+        "receipt_hash": "620e2bf25022b19a2a7afe95bf615ea9ce19d716c75b50576c3e69b4cd1b5664",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "add-ownership-evidence",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-ownership-evidence",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-ownership-evidence"
+          }
+        ],
+        "blocked": false,
+        "change": "add-ownership-evidence",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "43b494de4146873e963fe3a4919f64349b47e97e96ade18d47a58007dfba1209",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "baa2f7e03c3006691dae7eb97ef72ee1f78dd60c1287774897aed1369d1d988c",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "15984ee3608682d93af9b0a591790d7c6188be8542bbfd245cdcef19c73e49fa",
+        "reasons": [],
+        "receipt_hash": "55b8982c6409850a09ee25d13837318048387a2364722b8055792f53d12a229a",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-ownership-evidence",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-ownership-evidence"
+          }
+        ],
+        "blocked": false,
+        "change": "add-ownership-evidence",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "43b494de4146873e963fe3a4919f64349b47e97e96ade18d47a58007dfba1209",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "2ef8838df5586d6e7b8cf1fea445f25239f96b6e421a2091bdcad43bbfc64cb7",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/design.md"
+              },
+              {
+                "content_hash": "7709dc04a6576e4a5a89fafe672843f9247f8c016f5a512d450d44bfa961a03e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "aabbce8b5a17201d5d6a6a26d58e2ee9d5c0266ef7039605f6923d5958918348",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/evidence/verification.json"
+              },
+              {
+                "content_hash": "abc579f3b9f7c9acf9250c6fd4e7ed78a11a0b8868459bc8143e9636ec16a569",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/metadata.json"
+              },
+              {
+                "content_hash": "3c4d7687fdcc70ffe107e16f3cbdf6180ca3e2d4de705be12005126611b690b8",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/proposal.md"
+              },
+              {
+                "content_hash": "e05b45d1e557db5a9b124b4c2a2b0a62d7723c9b36e2e2d0e6d75a236c08b278",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/specs/ownership-evidence/spec.md"
+              },
+              {
+                "content_hash": "7afb2b5b31156107d02d1b13cf58e37c9fd83a65680ff4fb2fcae8fb3e78bfb0",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-ownership-evidence/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-ownership-evidence"
+              }
+            ],
+            "manifest_hash": "0805cb7bf0d6cb1b952cadf32df339a2fcee1d5f87ce2015c9c78bad6d149e1e"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "2ef8838df5586d6e7b8cf1fea445f25239f96b6e421a2091bdcad43bbfc64cb7",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/design.md"
+              },
+              {
+                "content_hash": "7709dc04a6576e4a5a89fafe672843f9247f8c016f5a512d450d44bfa961a03e",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "aabbce8b5a17201d5d6a6a26d58e2ee9d5c0266ef7039605f6923d5958918348",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/evidence/verification.json"
+              },
+              {
+                "content_hash": "abc579f3b9f7c9acf9250c6fd4e7ed78a11a0b8868459bc8143e9636ec16a569",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/metadata.json"
+              },
+              {
+                "content_hash": "3c4d7687fdcc70ffe107e16f3cbdf6180ca3e2d4de705be12005126611b690b8",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/proposal.md"
+              },
+              {
+                "content_hash": "e05b45d1e557db5a9b124b4c2a2b0a62d7723c9b36e2e2d0e6d75a236c08b278",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/specs/ownership-evidence/spec.md"
+              },
+              {
+                "content_hash": "7afb2b5b31156107d02d1b13cf58e37c9fd83a65680ff4fb2fcae8fb3e78bfb0",
+                "exists": true,
+                "path": "./.cairn/changes/add-ownership-evidence/tasks.md"
+              }
+            ],
+            "manifest_hash": "3464229aa9425f0f092f6967399a9eeaa2b215d43de202c799b156093ddf7f46"
+          },
+          "kind": "archive",
+          "manifest_hash": "4cd2976881a254f09a267b0ebaa8c0ae0cff3ded0afe69c24fa6d8295b54c2da"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "1b2f047ebda497d40753b8a779f98953ab7cc83c902ee0b7c2c925c46add0fc4",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "15984ee3608682d93af9b0a591790d7c6188be8542bbfd245cdcef19c73e49fa",
+        "reasons": [],
+        "receipt_hash": "40937cb54a3247fe932bfdcda146c0a6c3f284111f38dac7a7febadb95bf0052",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "add-firecracker-confinement-observation",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-firecracker-confinement-observation",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-firecracker-confinement-observation"
+          }
+        ],
+        "blocked": false,
+        "change": "add-firecracker-confinement-observation",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "b91ec830c75c857c953e6939d5cd19c420e8a50c0ac892b8c507a552540b4797",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "379d13d2eb2fd1ef67fe9ebdddae0d67176b28c632404d658352d0b53fa3c707",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "1c49dd4443dcc94d73314ccff8e53b54155ec7b1011eb82e149d3ff15654e26b",
+        "reasons": [],
+        "receipt_hash": "c10c58474018fa353b94fc42121c9ea64c2b3818587f7260a96ef116b68cdc71",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-firecracker-confinement-observation",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation"
+          }
+        ],
+        "blocked": false,
+        "change": "add-firecracker-confinement-observation",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "b91ec830c75c857c953e6939d5cd19c420e8a50c0ac892b8c507a552540b4797",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "edabf222758722e2b5a9f934377ecf8bab20bd07c9505d98c844d398654b4564",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/design.md"
+              },
+              {
+                "content_hash": "de2dfb2ca1d7eb59987d47a1a3a78abeea0ed5593063c2df3c04be6f27461c21",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "2bed3daffe409a48aeb4f1a923c83ec14394c64c30d97599a0c02e09b23b2b40",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/evidence/verification.json"
+              },
+              {
+                "content_hash": "9138d7f303cefdcd86d67243f1ad93bd0c644c006eefc09cd5f01f7f7dc15127",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/metadata.json"
+              },
+              {
+                "content_hash": "8206c60f04e9ede32d087df0fd71fa9ca2e342f923ca481090d34dd85854423e",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/proposal.md"
+              },
+              {
+                "content_hash": "10da20e24ecc6f5b1233e7323224efb5c8c1e0682f59c1530889fb31ced42540",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/specs/microvm-confinement/spec.md"
+              },
+              {
+                "content_hash": "8509337311ec9f46b2ceb222e934f3437887df707e5d51830d85bf195bc002bb",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-firecracker-confinement-observation/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation"
+              }
+            ],
+            "manifest_hash": "1fe14a62789bcd05b7e2856c952ae64f9799d0b7b2a43b49466fc510ad4c33ec"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "edabf222758722e2b5a9f934377ecf8bab20bd07c9505d98c844d398654b4564",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/design.md"
+              },
+              {
+                "content_hash": "de2dfb2ca1d7eb59987d47a1a3a78abeea0ed5593063c2df3c04be6f27461c21",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "2bed3daffe409a48aeb4f1a923c83ec14394c64c30d97599a0c02e09b23b2b40",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/evidence/verification.json"
+              },
+              {
+                "content_hash": "9138d7f303cefdcd86d67243f1ad93bd0c644c006eefc09cd5f01f7f7dc15127",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/metadata.json"
+              },
+              {
+                "content_hash": "8206c60f04e9ede32d087df0fd71fa9ca2e342f923ca481090d34dd85854423e",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/proposal.md"
+              },
+              {
+                "content_hash": "10da20e24ecc6f5b1233e7323224efb5c8c1e0682f59c1530889fb31ced42540",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/specs/microvm-confinement/spec.md"
+              },
+              {
+                "content_hash": "8509337311ec9f46b2ceb222e934f3437887df707e5d51830d85bf195bc002bb",
+                "exists": true,
+                "path": "./.cairn/changes/add-firecracker-confinement-observation/tasks.md"
+              }
+            ],
+            "manifest_hash": "f23b7ac032c89c1de2849acd7b1519c75936b30bfd98594801444ce98830c12f"
+          },
+          "kind": "archive",
+          "manifest_hash": "7a1a910d764de4b5a6357c5e5c05a705a4c4781d233b7c8f4e92b91ac909dfd4"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "947c1826557af32c5857f2ad6b9f26110afa39436cb20493d9ecb56f5add3806",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "1c49dd4443dcc94d73314ccff8e53b54155ec7b1011eb82e149d3ff15654e26b",
+        "reasons": [],
+        "receipt_hash": "a54b36151babadbea22a2a685f7c003198e53a7bacb3bbdbf1b5091297264dc2",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "change": "add-agent-review-search",
+      "preview": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-agent-review-search",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-agent-review-search"
+          }
+        ],
+        "blocked": false,
+        "change": "add-agent-review-search",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "1a77022b89506576f260114bfafd95fb84fecd8df7aeea6119b538451fb8281c",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "7a0d4611603dc7982a2bd0ab64f9bdd3f307afd0f64809e9731089480e6c95ab",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "830428c9ac1bc2774424a082d760cfec994ffce47acbe7df3b4251c263b37dbe",
+        "reasons": [],
+        "receipt_hash": "a3d3c03cd4b30a918cad32ea2ab0110751b6b2d7a7ae74c45aa2e1704eea9e92",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "exit": 0,
+      "execution": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-agent-review-search",
+            "kind": "archive_change",
+            "path": "./.cairn/archive/1970-01-01-add-agent-review-search"
+          }
+        ],
+        "blocked": false,
+        "change": "add-agent-review-search",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": false,
+        "input_hash": "1a77022b89506576f260114bfafd95fb84fecd8df7aeea6119b538451fb8281c",
+        "layout": "cairn",
+        "mutated": true,
+        "mutation_manifest": {
+          "after": {
+            "entries": [
+              {
+                "content_hash": "267774e47ceda465ef8960630465c24d349a3818453cadc13fb96a0ff47d9216",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/design.md"
+              },
+              {
+                "content_hash": "58839d5e2caed0752486618134f903ecefae72ee054b80f14455162d748a4373",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "d19b65af578e64be34b611089b11dfcac2f07fc46c22d753dc69eebac8b47115",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/evidence/verification.json"
+              },
+              {
+                "content_hash": "792eae3b797b2c8655e984f867645b7424c8f32a7fbfc0708e70f2dc1822aa56",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/metadata.json"
+              },
+              {
+                "content_hash": "f5aa219a159465f8a21c6ab676d994158ab49f2d74e49282af049325dd806361",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/proposal.md"
+              },
+              {
+                "content_hash": "5421b8742b3aeb1dce027e0447bcd1553beac785c72be0d4e060e499ad1cf16d",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/specs/agent-review-search/spec.md"
+              },
+              {
+                "content_hash": "62e0af02ccbb36eb35f86f7097788bed3da57ce8a5ee8055860e41f475d5446c",
+                "exists": true,
+                "path": "./.cairn/archive/1970-01-01-add-agent-review-search/tasks.md"
+              },
+              {
+                "content_hash": null,
+                "exists": false,
+                "path": "./.cairn/changes/add-agent-review-search"
+              }
+            ],
+            "manifest_hash": "f19c4d528d83550f0d674675337c260022cca9314f53f1ddcc751b850b28a7a1"
+          },
+          "before": {
+            "entries": [
+              {
+                "content_hash": "267774e47ceda465ef8960630465c24d349a3818453cadc13fb96a0ff47d9216",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/design.md"
+              },
+              {
+                "content_hash": "58839d5e2caed0752486618134f903ecefae72ee054b80f14455162d748a4373",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/evidence/readiness-acceptance-2026-11-06.json"
+              },
+              {
+                "content_hash": "d19b65af578e64be34b611089b11dfcac2f07fc46c22d753dc69eebac8b47115",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/evidence/verification.json"
+              },
+              {
+                "content_hash": "792eae3b797b2c8655e984f867645b7424c8f32a7fbfc0708e70f2dc1822aa56",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/evidence/verification.md"
+              },
+              {
+                "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/metadata.json"
+              },
+              {
+                "content_hash": "f5aa219a159465f8a21c6ab676d994158ab49f2d74e49282af049325dd806361",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/proposal.md"
+              },
+              {
+                "content_hash": "5421b8742b3aeb1dce027e0447bcd1553beac785c72be0d4e060e499ad1cf16d",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/specs/agent-review-search/spec.md"
+              },
+              {
+                "content_hash": "62e0af02ccbb36eb35f86f7097788bed3da57ce8a5ee8055860e41f475d5446c",
+                "exists": true,
+                "path": "./.cairn/changes/add-agent-review-search/tasks.md"
+              }
+            ],
+            "manifest_hash": "5dfb595a17dc28db0d4c1d40a058d138a9b28be87665c138f44b02f29c205a6c"
+          },
+          "kind": "archive",
+          "manifest_hash": "ad4ae4db4b32a61283e0040ef58f8fcbd305a446f1419986f55395c42a80387b"
+        },
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "73d683f7bbc1992f865a0f009375a5e8985024e46010675a2e6d0c06f0a31de3",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "830428c9ac1bc2774424a082d760cfec994ffce47acbe7df3b4251c263b37dbe",
+        "reasons": [],
+        "receipt_hash": "46834a1e7e301e27ae703752c8e7d989f6debfbbec9fb2644c36b6b17e1f9154",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    }
+  ]
+}

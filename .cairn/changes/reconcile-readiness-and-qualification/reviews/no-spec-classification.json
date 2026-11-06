@@ -1,0 +1,28 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "findings": [],
+  "reviewed_inputs": [
+    {
+      "path": "proposal.md",
+      "hash": "b14cd24a5aa008b9e584f38903f88c3432959f13423693745276aee723352f82"
+    },
+    {
+      "path": "design.md",
+      "hash": "255954157187af34427274c4bd13e1fc5e49bcf849544d259c1b6104cdc24603"
+    },
+    {
+      "path": "acceptance.md",
+      "hash": "8480aa3684e80dd54d1ecf95d232365ee4849fb18496136329d017331b3d7639"
+    },
+    {
+      "path": "tasks.md",
+      "hash": "8adb065c2a509490545de35dd5c1074b38e2958e784433f829052e4681b9e64e"
+    }
+  ],
+  "reviewer": {
+    "id": "omp-parent-readiness-classification-20261106",
+    "source": "agentic"
+  }
+}

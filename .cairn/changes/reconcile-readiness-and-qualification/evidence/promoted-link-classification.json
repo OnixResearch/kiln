@@ -1,0 +1,1880 @@
+{
+  "schema": "kiln.readiness.promoted-link-classification.v1",
+  "date": "2026-11-06",
+  "count": 45,
+  "distinct_identifiers": 45,
+  "groups": {
+    "buildInfrastructure": 8,
+    "reviewOwnership": 14,
+    "feeds": 13,
+    "supersede": 10
+  },
+  "boundary": "Link declarations are not correctness proofs. Original worker spans are historical pre-integration spans; exact marker IDs and named functions are stable locators. Preserve each stated verification insufficiency.",
+  "records": [
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.mantle.native_report.facts",
+      "meaning": "All native collections, cache admissions, transfer totals and scheduler facts project to deterministic bounded metrics while exact report bytes retain receipt identity.",
+      "contract": ".cairn/specs/mantle-native-report/spec.md:101-111",
+      "annotation": {
+        "kind": "impl",
+        "added": "crates/kiln-adapter-mantle/src/mapping.rs:209",
+        "target": "normalize_native_report"
+      },
+      "source": [
+        "crates/kiln-adapter-mantle/src/mapping.rs:226 (exact bytes hashed in REPORT_RECEIPT_DOMAIN)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:303-340 (checked admission/transfer totals)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:443-609 (fixed-order metrics, max_metrics refusal, receipt_identity)"
+      ],
+      "tests": [
+        "crates/kiln-adapter-mantle/src/tests.rs:554-624 complete_native_report_admits_every_native_collection",
+        "crates/kiln-adapter-mantle/src/tests.rs:936-955 native_substitution_facts_are_recorded"
+      ],
+      "retained_evidence": [],
+      "insufficiency": "Implementation annotation deliberately used; existing tests assert collection/transfer metrics but are not independent exhaustive proof of every scheduler fact or exact-byte receipt property. No native/hardware qualification inferred."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.mantle.native_report.facts.nonclaims",
+      "meaning": "Nested native evidence stays bound by report receipt and is not elevated to product, cache, CI or release authority.",
+      "contract": ".cairn/specs/mantle-native-report/spec.md:113-119",
+      "annotation": {
+        "kind": "impl",
+        "added": "crates/kiln-adapter-mantle/src/mapping.rs:210",
+        "target": "normalize_native_report"
+      },
+      "source": [
+        "crates/kiln-adapter-mantle/src/mapping.rs:226 (receipt from original bytes)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:341-369 (products only from required native outcome outputs)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:427-442 (cache from native outcome substitution/cached facts, not nested evidence collections)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:457-528,587-609 (opaque evidence arrays counted, receipt and required nonclaims retained)"
+      ],
+      "tests": [
+        "crates/kiln-adapter-mantle/src/tests.rs:554-624 injects opaque nested [{}] collections and checks count metrics"
+      ],
+      "retained_evidence": [],
+      "insufficiency": "No dedicated substantive negative-authority assertion found; impl, not verify, annotation added. Canonical/release authority is not inferred from receipt admission."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.mantle.native_report.paths",
+      "meaning": "Every output, attestation and log path is absolute and lexically contained in its declared physical/logical/state root.",
+      "contract": ".cairn/specs/mantle-native-report/spec.md:65-81",
+      "annotation": {
+        "kind": "impl",
+        "added": "crates/kiln-adapter-mantle/src/mapping.rs:796",
+        "target": "require_path_under"
+      },
+      "source": [
+        "crates/kiln-adapter-mantle/src/mapping.rs:285-302 (three output/attestation roots)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:797-809 (absolute, starts_with and ParentDir refusal)",
+        "crates/kiln-adapter-mantle/src/mapping.rs:811-834 (saved log root admission)"
+      ],
+      "tests": [
+        "crates/kiln-adapter-mantle/src/tests.rs:702-715 external root refusal",
+        "crates/kiln-adapter-mantle/src/tests.rs:719-746 direct/nested ParentDir refusal with successful baseline",
+        "crates/kiln-adapter-mantle/src/tests.rs:751-785 native failure saved-log containment"
+      ],
+      "retained_evidence": [
+        "fixtures/mantle/native-report/failure-report-v1.json (used by existing saved-log regression)"
+      ],
+      "insufficiency": "Lexical admission is not filesystem/symlink confinement. Preserved parent's repaired ParentDir behavior without changing it."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.microvm.confinement",
+      "meaning": "Bound selected proc status bytes/lines/values, require one reviewed Firecracker PID with service UID/GID, zero effective capabilities, NoNewPrivs one, Seccomp two and exact executable; fail closed on unavailable or malformed main-process evidence.",
+      "contract": ".cairn/specs/microvm-confinement/spec.md:9-29",
+      "annotation": {
+        "kind": "impl",
+        "added": [
+          "crates/kiln-microvm/src/confinement.rs:91",
+          "crates/kiln-hosted/src/microvm.rs:728"
+        ],
+        "target": "admit_status and observe_confinement_once"
+      },
+      "source": [
+        "crates/kiln-microvm/src/confinement.rs:7-14,59-154 (bounds, duplicates, exact executable and selected fact checks)",
+        "crates/kiln-hosted/src/microvm.rs:729-826 (single cgroup PID, bounded proc reads, service identity and reviewed executable)",
+        "crates/kiln-hosted/src/microvm.rs:1962-1997 (Firecracker passes allow_unfiltered_main:false and blocks guest on observation error)"
+      ],
+      "tests": [
+        "crates/kiln-microvm/src/confinement.rs:178-242 admitted facts, field drift, duplicate/missing/malformed fields and executable/byte bounds"
+      ],
+      "retained_evidence": [
+        ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:4-38"
+      ],
+      "insufficiency": "Retained November 2 host/VMM observations are cohort-local, not current hardware qualification. Separate Cloud Hypervisor main-thread exception does not apply to Firecracker. No lifecycle edits."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.microvm.confinement.nonclaims",
+      "meaning": "Documentation limits this to observing an existing unprivileged VMM claim on one host/cohort; no jailer, guest network, root or hostile-multitenant qualification added.",
+      "contract": ".cairn/specs/microvm-confinement/spec.md:84-94",
+      "annotation": {
+        "kind": "impl",
+        "status": "parent-owned docs proposal; NOT added by worker",
+        "proposed_path": "docs/hosted-ci.md",
+        "proposed_gap": "Immediately before line 559 paragraph beginning The shell observes that claim before the guest session",
+        "text": "<!-- r[impl kiln.microvm.confinement.nonclaims] -->"
+      },
+      "source": [
+        "docs/hosted-ci.md:552-569 (guest networking non-goal, exact existing process observation and one-host limitation)",
+        "docs/hosted-ci.md:646-666 (no hostile/production qualification, no jailer/dedicated uid/network namespace, service-user VMM, external qualification and backend observations excluded)"
+      ],
+      "tests": [],
+      "retained_evidence": [
+        ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:33-37 explicitly lists no root helper, jailer, guest network or generalized host/cohort claim"
+      ],
+      "insufficiency": "Only parent integration of the documentation annotation remains; user forbids worker docs edits. This is a documentation obligation, not runtime proof."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.microvm.confinement.receipt",
+      "meaning": "Retain observed fields, executable BLAKE3 and outcome in VM receipt, preserving jailer:false and hostile_isolation_claim:false outside canonical outcome.",
+      "contract": ".cairn/specs/microvm-confinement/spec.md:71-82",
+      "annotation": {
+        "kind": "impl",
+        "added": "crates/kiln-hosted/src/microvm.rs:640",
+        "target": "confinement_value"
+      },
+      "source": [
+        "crates/kiln-hosted/src/microvm.rs:641-657 (ok/error and exact observed fields including executable BLAKE3)",
+        "crates/kiln-hosted/src/microvm.rs:1733-1745 (jailer and hostile isolation false)",
+        "crates/kiln-hosted/src/microvm.rs:1971,2095-2097 (session retains observation and attaches it to VM receipt)",
+        "crates/kiln-hosted/src/execution.rs:2073-2103 (canonical outcome projects states/steps only; excludes VM observations)"
+      ],
+      "tests": [
+        "crates/kiln-hosted/tests/microvm.rs:456-482 (existing native rail inspects admitted process facts and executable identity)",
+        "crates/kiln-hosted/src/execution.rs:3004-3098 (namespace/microVM observations share canonical outcome while visible result changes differ)"
+      ],
+      "retained_evidence": [
+        ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:14-15,26-37"
+      ],
+      "insufficiency": "Impl annotation used because serializer itself is not runtime proof. Existing native rail and retained receipt do not qualify today's hardware or another VMM cohort."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.radicle.job.scenario.replay_conflict",
+      "meaning": "A published run replay with another log URL or opposite terminal reason fails without publication writes.",
+      "contract": ".cairn/specs/radicle-job-cobs/spec.md:71-76",
+      "annotation": {
+        "kind": "impl",
+        "added": "crates/kiln-adapter-radicle/src/job/shell.rs:140",
+        "target": "RadicleJobShell::publish"
+      },
+      "source": [
+        "crates/kiln-adapter-radicle/src/job/shell.rs:161-167 (read existing run then required_actions before signer resolution or create/update)",
+        "crates/kiln-adapter-radicle/src/job/plan.rs:226-249 (different log and terminal reason return errors)"
+      ],
+      "tests": [
+        "crates/kiln-adapter-radicle/tests/job_native.rs:379-409 native local signed COB started/finished replay, opposite finish, start-after-finish and log conflict diagnostic assertions",
+        "crates/kiln-adapter-radicle/src/job/tests.rs:256-278 pure replay conflict decisions"
+      ],
+      "retained_evidence": [
+        ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json:13-17,51-69"
+      ],
+      "insufficiency": "Native conflict fixture asserts refusal diagnostics but does not compare head/history after each refusal; impl chosen rather than overstating a verify claim of no write. Publication control flow rejects before signer/create/update. Local fixtures do not imply remote convergence."
+    },
+    {
+      "group": "buildInfrastructure",
+      "id": "kiln.radicle_ci.tag.scenario.push",
+      "meaning": "Branch-bound exact sources still project Push, retaining the branch alias, repository and exact source revision.",
+      "contract": ".cairn/specs/radicle-ci-tag/spec.md:23-27",
+      "annotation": {
+        "kind": "impl and verify",
+        "added": [
+          "crates/kiln-radicle-ci/src/project.rs:154 impl on trigger",
+          "crates/kiln-radicle-ci/src/project.rs:809 verify on branch_and_tag_sources_project_distinct_events_and_aliases"
+        ]
+      },
+      "source": [
+        "crates/kiln-radicle-ci/src/project.rs:115-128 (refs/heads maps branch alias to Push)",
+        "crates/kiln-radicle-ci/src/project.rs:155-180 (configured repository/exact revision admission and unchanged projection)"
+      ],
+      "tests": [
+        "crates/kiln-radicle-ci/src/project.rs:811-823 branch_and_tag_sources_project_distinct_events_and_aliases explicitly asserts main/Push and distinguishes release/v1/Tag; malformed refs refused"
+      ],
+      "retained_evidence": [
+        ".cairn/changes/run-ci-on-radicle-tags/evidence/verification.json:9-12,30-38"
+      ],
+      "insufficiency": "Verify link proves alias/event branch behavior; complete revision/repository binding remains implementation-backed. Broker tag emission and release authority remain nonclaims."
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.attestation.scenario.agent",
+      "meaning": "A trusted agent Create records the exact principal on the new revision.",
+      "accepted_clause": ".cairn/specs/attested-agent-submissions/spec.md:18-22",
+      "source": "crates/kiln-core/src/change_review.rs:2259-2262 before annotation shifts; Create derives submitted_by from trusted facts.agents and actor, not submitted revision data.",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:6185",
+        "adjacent": "assert_eq!(attested.principal, alice) in agent_submission_rejects_human_authorship_and_records_attestation"
+      },
+      "substantive_evidence": "The test applies Create with alice admitted as an agent, then reads the created revision and asserts the exact attested principal and declared harness.",
+      "retained_evidence": "attestation",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.attestation.scenario.human",
+      "meaning": "An agent claiming human authorship is rejected before any revision is created.",
+      "accepted_clause": ".cairn/specs/attested-agent-submissions/spec.md:24-28",
+      "source": "crates/kiln-core/src/change_review.rs:1495-1508 before annotation shifts; revision_valid rejects trusted agent plus Authorship::Human.",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:6165",
+        "adjacent": "agent_authorship_mismatch assertion and state.changes.is_empty()"
+      },
+      "substantive_evidence": "The applied command fails with the required error code and the state still contains no change, before the subsequent valid Create.",
+      "retained_evidence": "attestation",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.console.scenario.label",
+      "meaning": "Identity rendering labels the attested principal while preserving the self-declared, unverified authorship warning.",
+      "accepted_clause": ".cairn/specs/attested-agent-submissions/spec.md:37-42",
+      "annotation": {
+        "kind": "impl",
+        "location": "crates/kiln-web-service/src/code-review.js:805",
+        "adjacent": "drawIdentity conditional paragraph for current().submitted_by"
+      },
+      "source": "drawIdentity builds an explicitly attested-agent paragraph from the principal and states that authorship above remains self-declared and unverified. Its identity facts also use the self-declared, unverified label.",
+      "substantive_evidence": "Actual DOM rendering implementation, not source-text assertions or JSON forwarding.",
+      "retained_evidence": "attestation",
+      "insufficiency": "No newly observed browser run; therefore impl, not verify."
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.search.boundary",
+      "meaning": "Agent filtering remains read-only and is available in console queries and saved views.",
+      "accepted_clause": ".cairn/specs/agent-review-search/spec.md:42-46",
+      "annotation": {
+        "kind": "impl",
+        "locations": [
+          "crates/kiln-core/src/change_review.rs:1014",
+          "crates/kiln-web-service/src/code-review.js:631"
+        ],
+        "adjacent": "search immutable state API and console Agent submission selector"
+      },
+      "source": "search takes &ReviewState, reads current revision fields, returns borrowed changes, and cannot mutate approval, candidate, attestation, or readiness state. Console selection routes query filters; savedQueryForRoute/savedViewRoute encode and restore those same fields.",
+      "substantive_evidence": "Read-only reducer implementation and actual console query control, not forwarding tests.",
+      "retained_evidence": "search",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.search.scenario.attested",
+      "meaning": "agent=with returns the change with current-revision attestation.",
+      "accepted_clause": ".cairn/specs/agent-review-search/spec.md:20-24",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:4888",
+        "adjacent": "search Some(true) assertion in agent_search_filters_current_revision_attestation"
+      },
+      "source": "search compares requested agent presence against current revision submitted_by.",
+      "substantive_evidence": "A singleton state has its current revision attested, then actual search returns that sole change for Some(true), excludes it for Some(false), and retains it for an absent filter.",
+      "retained_evidence": "search",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.search.scenario.harness",
+      "meaning": "Exact declared harness and model match; another harness/model or absent declared model does not.",
+      "accepted_clause": ".cairn/specs/agent-review-search/spec.md:26-34",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:4901",
+        "adjacent": "by_harness omp positive and other negative assertions"
+      },
+      "source": "search reads submitted_by.agent on current revision and compares exact harness/model strings.",
+      "substantive_evidence": "The same regression exercises omp versus other, deepseek versus other, and clearing the declared model followed by exclusion from deepseek search.",
+      "retained_evidence": "search",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.search.scenario.saved",
+      "meaning": "Applying a saved agent-filtered view restores the same read-only filter.",
+      "accepted_clause": ".cairn/specs/agent-review-search/spec.md:48-52",
+      "annotation": {
+        "kind": "impl",
+        "location": "crates/kiln-web-service/src/code-review.js:255",
+        "adjacent": "savedViewRoute"
+      },
+      "source": "savedViewRoute restores review_agent via agentRoute and exact bounded harness/model route fields; saved-view Apply invokes route(savedRoute), which load then uses for the read-only query. savedQueryForRoute is the inverse representation for persistence.",
+      "substantive_evidence": "Actual saved-view application implementation. Saved JSON round-trip assertions alone were deliberately not labeled verification.",
+      "retained_evidence": "search",
+      "insufficiency": "No newly observed UI application; impl link only."
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.agent.search.scenario.unattested",
+      "meaning": "An unattested current revision is excluded when agent=with is requested.",
+      "accepted_clause": ".cairn/specs/agent-review-search/spec.md:36-40",
+      "annotation": {
+        "kind": "impl",
+        "location": "crates/kiln-core/src/change_review.rs:1033",
+        "adjacent": "wanted != revision.submitted_by.is_some() early false branch"
+      },
+      "source": "For Some(true) and absent submitted_by the presence comparison fails the filter before any result is collected.",
+      "substantive_evidence": "Actual predicate that excludes unattested revisions; web integration also creates an ordinary change and an agent change before separately querying with/without.",
+      "retained_evidence": "search",
+      "insufficiency": "Used impl rather than promoting integration total-count assertions into stronger identity-specific runtime proof."
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.evidence.policy.scenario.bounds",
+      "meaning": "Duplicate project evidence and more than eight requirements are rejected by policy admission.",
+      "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:24-28",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:4556",
+        "adjacent": "duplicate and over_bound cases in ownership_evidence_policy_admission_is_bounded_and_unique"
+      },
+      "source": "validate_policy checks MAX_OWNERSHIP_EVIDENCE and a per-rule project set before accepting requirements.",
+      "substantive_evidence": "Test supplies duplicate api requirements and nine unique requirements, independently asserts invalid_policy for each.",
+      "retained_evidence": "ownership",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.evidence.policy.scenario.unknown",
+      "meaning": "Unknown evidence kinds fail deserialization or admission.",
+      "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:18-22",
+      "annotation": {
+        "kind": "impl",
+        "location": "crates/kiln-core/src/change_review.rs:628",
+        "adjacent": "OwnershipEvidenceKind derived Deserialize closed enum"
+      },
+      "source": "The enum has only ProjectCi, renamed snake_case, with no catch-all or other variant; OwnershipEvidence uses this typed enum directly.",
+      "substantive_evidence": "Closed deserialization implementation. No focused unknown-kind runtime assertion was found in the ownership regression, so none was claimed.",
+      "retained_evidence": "ownership",
+      "insufficiency": "Implementation link only; no new runtime deserialization check requested or run."
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.evidence.project_ci.authority",
+      "meaning": "Satisfied CI evidence alone cannot satisfy owner approval, remove vetoes/threads, prepare candidates, or grant merge authority.",
+      "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:53-57",
+      "annotation": {
+        "kind": "impl",
+        "location": "crates/kiln-core/src/change_review.rs:1814",
+        "adjacent": "checklist_at actual evaluator, not public forwarding wrapper"
+      },
+      "source": "The evaluator takes immutable state/facts, independently computes eligible approvals, vetoes and threads, independently inserts owner and evidence items, then requires all items for ready. PrepareCandidate requires the checklist; submission also requires explicit submitter/candidate checks. No evidence projection mutates state or authority.",
+      "substantive_evidence": "ownership_evidence_requires_exact_current_project_ci separately establishes satisfied evidence with an unsatisfied owner item and false readiness.",
+      "retained_evidence": "ownership",
+      "insufficiency": "Existing separately accepted explicit evidence-only approval modes remain intact: any such exemption is policy authority, not an effect of satisfying CI. No unrelated semantics changed."
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.evidence.project_ci.scenario.approval",
+      "meaning": "A satisfied evidence item without eligible owner approval leaves the ownership checklist incomplete.",
+      "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:59-63",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:4463",
+        "adjacent": "owner:core unsatisfied and checks.ready false assertions"
+      },
+      "source": "The ordinary ownership rule is evaluated independently from evidence satisfaction.",
+      "substantive_evidence": "The immediately preceding assertion proves evidence is satisfied; next assertions prove owner approval is not and checklist ready remains false.",
+      "retained_evidence": "ownership",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.evidence.project_ci.scenario.observed",
+      "meaning": "A clean full successful exact-commit api run with current api-scope satisfies the matching evidence item.",
+      "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:40-45",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:4526",
+        "adjacent": "api-scope assignment and positive evidence assertion"
+      },
+      "source": "latest_for matches repository/project/commit and full/clean/current scope; CiFact::satisfies_required checks the winning observed run.",
+      "substantive_evidence": "ownership_evidence_binds_another_project_scope requires api/api-scope, adds an exact successful full clean api run, demonstrates missing scope fails, current scope passes and another scope fails.",
+      "retained_evidence": "ownership",
+      "insufficiency": null
+    },
+    {
+      "group": "reviewOwnership",
+      "id": "kiln.review.evidence.project_ci.scenario.stale",
+      "meaning": "Older-commit, wrong-scope, partial or non-clean evidence remains unsatisfied.",
+      "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:47-51",
+      "annotation": {
+        "kind": "verify",
+        "location": "crates/kiln-core/src/change_review.rs:4466",
+        "adjacent": "older-commit, clean=false and full_run=false cases"
+      },
+      "source": "The winning eligible CI predicate binds exact commit and full clean run; scoped evidence additionally binds the current scope.",
+      "substantive_evidence": "ownership_evidence_requires_exact_current_project_ci independently invalidates revision, cleanliness and fullness and asserts unsatisfied evidence. ownership_evidence_binds_another_project_scope separately invalidates current scope.",
+      "retained_evidence": "ownership",
+      "insufficiency": null
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.bounds.scenario.body",
+      "meaning": "An external body above configured byte bound is refused without replacing retained entries.",
+      "source": [
+        "crates/kiln-web-service/src/feeds.rs:fetch (Content-Length admission and bounded max_bytes+1 read)",
+        "crates/kiln-web-service/src/engine/feeds.rs:refreshed_candidate Err arm retains entries"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/feeds.rs:fetch"
+        },
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:refreshed_candidate"
+        },
+        {
+          "kind": "verify",
+          "location": "src/feeds.rs:tests::fetch_enforces_the_body_bound"
+        }
+      ],
+      "substantive_test": "Local HTTP origin supplies RSS beyond max_bytes=16; fetch must fail. Runtime round trip separately asserts retained title, last_success and failure count after failed refresh.",
+      "retained_evidence": "historical_receipt:14-15,51-52,93,108-109",
+      "insufficiency": "No single permanent test combines oversized-body fetch with engine persistence; do not interpret the body-bound verify marker as that combined runtime proof."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.config.scenario.disabled",
+      "meaning": "Absent optional feeds policy disables publication/subscription operations without creating feed state.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:feeds_view returns configured=false with no mutation",
+        "crates/kiln-web-service/src/engine/feeds.rs:render_feed requires profile.feeds",
+        "crates/kiln-web-service/src/server.rs:1065-1067 rejects mutation before fetch"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:feeds_view"
+        },
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:render_feed"
+        }
+      ],
+      "substantive_test": null,
+      "retained_evidence": "historical_receipt:56,100",
+      "insufficiency": "No new verify claim. Publication is denied by token admission when no feed credential exists; it does not necessarily expose the literal feeds_disabled error code. API read reports configured=false and mutation reports feeds_disabled."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.publish.scenario.opml",
+      "meaning": "Authenticated repository OPML lists escaped outlines for canonical repositories.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:render_feed /feeds.opml branch deduplicates canonical keys",
+        "crates/kiln-web-service/src/feeds.rs:render_opml escapes labels and URLs"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:render_feed"
+        },
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, opml request"
+        },
+        {
+          "kind": "verify",
+          "location": "src/feeds.rs:tests::opml_export_escapes_labels_and_urls"
+        }
+      ],
+      "substantive_test": "Runtime checks authorized response type, OPML root, outlines and token URLs; renderer asserts exact ampersand escaping in label and xmlUrl.",
+      "retained_evidence": "historical_receipt:14-15,81",
+      "insufficiency": "Runtime fixture does not independently assert several distinct repository outlines; canonical traversal/deduplication is implementation evidence."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.publish.scenario.revalidate",
+      "meaning": "Matching If-None-Match yields bodyless 304 permitting cached representation reuse.",
+      "source": [
+        "crates/kiln-web-service/src/server.rs:972-987 hashes representation, adds ETag/no-cache and clears 304 body",
+        "crates/kiln-web-service/src/server.rs:1313-1316 omits 304 Content-Length"
+      ],
+      "annotations_added": [
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, conditional request"
+        }
+      ],
+      "substantive_test": "Reads ETag and original Atom response, sends matching validator, checks 304, absent Content-Length and empty body.",
+      "retained_evidence": "Historical runtime case names the same real HTTPS fixture; current assertions are stronger than receipt's enumerated publication checks.",
+      "insufficiency": null
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.publish.scenario.rss",
+      "meaning": "Token-authenticated .rss publication emits escaped RSS 2.0, RFC 2822 dates and console links.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:render_feed RSS index and repository branches",
+        "crates/kiln-web-service/src/feeds.rs:render_rss, rfc2822, repository_items"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:render_feed"
+        },
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, rss request"
+        },
+        {
+          "kind": "verify",
+          "location": "src/feeds.rs:tests::rss_publication_renders_channel_and_dates"
+        }
+      ],
+      "substantive_test": "Real route checks RSS media type/root; renderer verifies escaped repository title, summary and console URL plus exact RFC 2822 UTC date.",
+      "retained_evidence": "historical_receipt:14-15",
+      "insufficiency": null
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.security.scenario.conditional",
+      "meaning": "304 with retained validators preserves entries and updates validators without parsing a body; unsolicited 304 is refused.",
+      "source": [
+        "crates/kiln-web-service/src/feeds.rs:fetch 304 branch",
+        "crates/kiln-web-service/src/engine/feeds.rs:refreshed_candidate NotModified arm"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/feeds.rs:fetch"
+        },
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:refreshed_candidate"
+        },
+        {
+          "kind": "verify",
+          "location": "src/feeds.rs:tests::conditional_fetch_honours_not_modified_and_requires_a_validator"
+        }
+      ],
+      "substantive_test": "Bodyless local 304 yields NotModified with new v2 ETag; separate unsolicited 304 must fail.",
+      "retained_evidence": "historical_receipt:111-117",
+      "insufficiency": "Validator update/no-body/unsolicited rejection are tested; engine entry preservation on NotModified is implementation evidence, not a dedicated test assertion."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.subscriptions.scenario.background",
+      "meaning": "Background cadence selects at most per-tick bound, oldest attempt first; failed refresh retains entries.",
+      "source": [
+        "crates/kiln-web-service/src/feeds.rs:due_subscriptions",
+        "crates/kiln-web-service/src/engine/feeds.rs:due_feeds, record_feed_refresh, refreshed_candidate"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/feeds.rs:due_subscriptions"
+        },
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:due_feeds"
+        },
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:refreshed_candidate"
+        },
+        {
+          "kind": "verify",
+          "location": "src/feeds.rs:tests::due_selection_is_oldest_first_and_bounded"
+        }
+      ],
+      "substantive_test": "Due selection asserts exact never/oldest identities, two-item limit and zero-cadence exclusion. Failed-refresh retention separately asserted by runtime round trip through shared candidate semantics.",
+      "retained_evidence": "historical_receipt:104-109",
+      "insufficiency": "No newly asserted autonomous tick integration; bounded selection and failed-refresh candidate behavior have distinct evidence."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.subscriptions.scenario.export",
+      "meaning": "Operator OPML exports bounded retained subscription labels/URLs; viewer denied.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:feeds_opml",
+        "crates/kiln-web-service/src/server.rs:1042-1051 role admission",
+        "crates/kiln-web-service/src/feeds.rs:render_opml"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:feeds_opml"
+        },
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, exported request"
+        }
+      ],
+      "substantive_test": "Checks OPML media type, retained feed URL and xmlUrl attribute, then viewer 403; renderer escaping tested separately.",
+      "retained_evidence": "historical_receipt:14-15,22-23",
+      "insufficiency": null
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.subscriptions.scenario.import",
+      "meaning": "Operator OPML imports admitted unique subscriptions as pending without fetch, skips duplicates/invalid URLs and denies viewer.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:prepare_feed_import and finish_feed_import",
+        "crates/kiln-web-service/src/feeds.rs:parse_opml"
+      ],
+      "annotations_added": [
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, imported request"
+        }
+      ],
+      "substantive_test": "One accepted HTTPS URL plus invalid javascript URL and existing URL yields added=1/skipped=2; retained new subscription has no fetched time or entries; viewer import 403. Dedicated parser test checks nested unique outlines and limits.",
+      "retained_evidence": "historical_receipt:14-15,22-23",
+      "insufficiency": "No-fetch is directly supported by pure admission and pending-state construction, not an outbound network spy."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.subscriptions.scenario.pause",
+      "meaning": "Operator pause excludes background selection while retaining readable entries and manual refresh availability.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:set_feed_enabled clones existing subscription and changes only enabled",
+        "crates/kiln-web-service/src/feeds.rs:due_subscriptions filters enabled",
+        "crates/kiln-web-service/src/engine/feeds.rs:feed_refresh_target ignores enabled; feeds_view retains entries"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:set_feed_enabled"
+        },
+        {
+          "kind": "impl",
+          "location": "src/feeds.rs:due_subscriptions"
+        }
+      ],
+      "substantive_test": "Runtime round trip checks pause response enabled=false then re-enables; insufficient to verify all pause semantics, so no verify marker added.",
+      "retained_evidence": "Historical receipt describes background selection; source supplies explicit pause invariant.",
+      "insufficiency": "No dedicated substantive test for paused exclusion plus manual refresh and retained reads; linked as impl only."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.subscriptions.scenario.rename",
+      "meaning": "Bounded control-free operator label is retained; viewer cannot rename.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:rename_feed trims, bounds, rejects controls, persists candidate"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:rename_feed"
+        },
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, renamed request"
+        }
+      ],
+      "substantive_test": "Checks exact renamed label from successful response and viewer rename 403.",
+      "retained_evidence": "Historical engine suite receipt:22-23; exact current assertion inspected.",
+      "insufficiency": "Invalid/control/overbound label rejection is implementation evidence, not separately verified here."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.token.scenario.operator",
+      "meaning": "Only operator feeds API may expose token-bearing subscription URLs; viewer must not.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:feeds_view role/token match, publication row insertion and publication_view"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:feeds_view role/token match"
+        }
+      ],
+      "substantive_test": "Runtime round trip explicitly checks viewer subscribe_url omission; no full operator-vs-viewer paired token-URL assertion, so only impl marker added.",
+      "retained_evidence": "historical_receipt:57,65-66",
+      "insufficiency": "Historical operator browser observation is not current visual proof; no new browser run."
+    },
+    {
+      "group": "feeds",
+      "id": "kiln.web.feeds.ui.scenario.search",
+      "meaning": "Bounded feeds filter returns matching label/URL/entry text subscriptions and entries.",
+      "source": [
+        "crates/kiln-web-service/src/engine/feeds.rs:feeds_view matching/filtering",
+        "crates/kiln-web-service/src/server.rs:feed_query bounds decoded filter to 256 bytes",
+        "crates/kiln-web-service/src/web.js:1478-1492 forwards restored feed_q and limits input to 256"
+      ],
+      "annotations_added": [
+        {
+          "kind": "impl",
+          "location": "src/engine/feeds.rs:feeds_view"
+        },
+        {
+          "kind": "verify",
+          "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, searched and no_match requests"
+        }
+      ],
+      "substantive_test": "Search release returns exact External release entry; missing filter returns zero subscriptions.",
+      "retained_evidence": "historical_receipt names same runtime case; current inspected assertions substantiate entry-text filtering.",
+      "insufficiency": "No fresh visual proof; no permanent assertion for all label/URL/summary variants or filter-size rejection. Source supplies those branches.",
+      "shared_file_proposal": {
+        "path": "crates/kiln-web-service/src/server.rs",
+        "location": "Immediately before fn feed_query at inspected line 1017",
+        "annotation": "// r[impl kiln.web.feeds.ui.scenario.search]",
+        "rationale": "This function enforces encoded/decoded filter bounds and control-character rejection, complementing engine matching. Parent owns shared file."
+      }
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.active.scenario.awaiting",
+      "meaning": "An awaiting-approval run is not cancelled by newer push supersession.",
+      "spec_span": "spec.md:75-79",
+      "annotation": {
+        "kind": "impl",
+        "status": "added",
+        "location": "crates/kiln-web-service/src/engine/automation.rs:1152"
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1153-1159",
+        "crates/kiln-web-service/src/engine/model.rs:280-283"
+      ],
+      "rationale": "waiting() includes queued and awaiting_approval; supersede_runs selects only phase queued from waiting runs, excluding awaiting_approval from both cancellation collections.",
+      "insufficiency": "No dedicated substantive supersession test for this scenario was found; existing untrusted-gate supersession tests exercise different semantics and were not mislabelled. Historical receipt isolation claim is supporting context only."
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.active.scenario.running",
+      "meaning": "Older same-scope running run receives exactly one provider cancellation and becomes Cancelled.",
+      "spec_span": "spec.md:69-73",
+      "annotation": {
+        "kind": "verify",
+        "status": "added",
+        "location": "crates/kiln-web-service/tests/engine/automation.rs:161"
+      },
+      "test_spans": [
+        "crates/kiln-web-service/tests/engine/automation.rs:new_trigger_supersedes_active_and_queued_runs_when_configured (lines 113-172 after additions; outcome/error_code and controls assertions at 162-164)"
+      ],
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1161-1192"
+      ],
+      "rationale": "Real engine dispatches three exact revisions against controlled backend, observes older active outcome Cancelled and superseded code, and asserts controls == 1.",
+      "insufficiency": null
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.cancel",
+      "meaning": "Queued cancellation uses durable replay and failure does not fail the new dispatch.",
+      "spec_span": "spec.md:55-57",
+      "annotation": {
+        "kind": "impl",
+        "status": "added",
+        "locations": [
+          "crates/kiln-web-service/src/engine/automation.rs:1193",
+          "crates/kiln-web-service/src/engine/queue.rs:543"
+        ]
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1194-1214",
+        "crates/kiln-web-service/src/engine/queue.rs:544-569"
+      ],
+      "test_spans": [
+        "crates/kiln-web-service/tests/engine/automation.rs:new_trigger_supersedes_active_and_queued_runs_when_configured",
+        "crates/kiln-web-service/tests/engine.rs:queued_cancel_reason_is_bounded_and_recorded (shared parent-owned file, inspected search evidence only)"
+      ],
+      "rationale": "Deterministic run-pair request ID invokes cancel_queued; errors/status refusal are consumed best-effort. cancel_queued fingerprints and replays the request, completes Cancelled, reserves and finishes durable control response.",
+      "insufficiency": "Used impl rather than verify because existing observed assertions do not independently prove the entire durable-replay and failure-isolation contract. No shared-file edits proposed or needed."
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.identity",
+      "meaning": "Exact trigger/project/source scope and different revision; manual, scheduled and absent-trigger runs never match.",
+      "spec_span": "spec.md:29-33",
+      "annotation": {
+        "kind": null,
+        "status": "blocked",
+        "location": null
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1027-1045,1134-1151",
+        "crates/kiln-web-service/src/engine/queue.rs:219-232,422-425",
+        "crates/kiln-web-service/src/automation.rs:134-155 (pre-addition line numbering; validation method)"
+      ],
+      "rationale": "Exact project/reference/PR/revision comparisons exist, but recorded requested_trigger is populated from source_registration for BOTH schedule and trigger reservations. Registration validation namespaces uniqueness by (kind,id), permitting a schedule to share a trigger's id. supersede_runs compares only that string, not origin kind.",
+      "insufficiency": "An active or queued schedule with same registration id/project/reference and older revision can match trigger supersession. Full normative identity marker would falsely claim scheduled-run exclusion. No marker added; no behavior change permitted. Parent informed via agent message. This is source-derived evidence, not an executed reproduction."
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.identity.scenario.origin",
+      "meaning": "Active manual or scheduled runs on same project/reference are not cancelled.",
+      "spec_span": "spec.md:41-45",
+      "annotation": {
+        "kind": null,
+        "status": "blocked",
+        "location": null
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1027-1045,1143-1151",
+        "crates/kiln-web-service/src/engine/queue.rs:219-232",
+        "crates/kiln-web-service/src/automation.rs:validate registration identity loop"
+      ],
+      "test_spans": [
+        "crates/kiln-web-service/tests/engine/automation.rs:trigger_supersession_does_not_cancel_a_manual_run (lines 175-216 after additions)"
+      ],
+      "rationale": "Manual-only test substantively asserts unchanged non-Cancelled outcome, zero controls and one dispatch, but does not cover scheduled origins. Scheduled runs retain the same untyped registration string as trigger runs; same-id registrations across kinds are allowed.",
+      "insufficiency": "Scheduled-origin exclusion is unsupported for colliding registration ids. Manual-only verification was intentionally NOT marked as satisfying the entire disjunctive scenario. Same source-derived blocker as identity; no executed reproduction and no behavior edits."
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.identity.scenario.pull_request",
+      "meaning": "Dispatch for PR 8 does not cancel active PR 7 on the same project/base.",
+      "spec_span": "spec.md:47-51",
+      "annotation": {
+        "kind": "verify",
+        "status": "added",
+        "location": "crates/kiln-web-service/tests/engine/automation.rs:279"
+      },
+      "test_spans": [
+        "crates/kiln-web-service/tests/engine/automation.rs:pull_request_supersession_is_scoped_to_one_pull_request (lines 219-294 after additions)"
+      ],
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1134-1142"
+      ],
+      "rationale": "Signed provider-native PR 7 then PR 8 payloads share project/base but use different exact commits; test asserts first not Cancelled, second queued, controls zero and dispatches one.",
+      "insufficiency": null
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.identity.scenario.reference",
+      "meaning": "Other project or requested symbolic reference is not cancelled.",
+      "spec_span": "spec.md:35-39",
+      "annotation": {
+        "kind": "impl",
+        "status": "added",
+        "location": "crates/kiln-web-service/src/engine/automation.rs:1134"
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1135-1151"
+      ],
+      "rationale": "Push scope compares exact retained requested_reference and requires absence of PR scope; subsequent predicate rejects different project before queue/active selection.",
+      "insufficiency": "No dedicated substantive other-reference/project cancellation test found; impl only. Does not claim full origin exclusion."
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.policy",
+      "meaning": "Explicit supersede_queued true opts in; absent/false retain behavior; Nickel optional field accepted.",
+      "spec_span": "spec.md:11-13",
+      "annotation": {
+        "kind": "impl",
+        "status": "added",
+        "locations": [
+          "crates/kiln-web-service/src/automation.rs:45",
+          "crates/kiln-web-service/src/engine/automation.rs:1100"
+        ]
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/automation.rs:45-48",
+        "crates/kiln-web-service/src/engine/automation.rs:1102-1118",
+        "config/web-automation.ncl:112"
+      ],
+      "rationale": "Serde bool defaults false, gate explicitly requires selected trigger supersede_queued true, Nickel Trigger has supersede_queued | Bool | optional. No configuration/policy changes.",
+      "insufficiency": null
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.policy.scenario.off",
+      "meaning": "New push without opt-in leaves older queued runs unchanged.",
+      "spec_span": "spec.md:15-19",
+      "annotation": {
+        "kind": "impl",
+        "status": "added",
+        "location": "crates/kiln-web-service/src/engine/automation.rs:1101"
+      },
+      "source_spans": [
+        "crates/kiln-web-service/src/engine/automation.rs:1102-1118",
+        "crates/kiln-web-service/src/automation.rs:45-48"
+      ],
+      "rationale": "Only conditional entry into supersede_runs requires true; absence deserializes false, so the queued collection/cancellation path is not entered.",
+      "insufficiency": "No dedicated substantive disabled-policy queued-state assertion found; impl only, not a configuration-deserialization test misrepresented as runtime proof."
+    },
+    {
+      "group": "supersede",
+      "id": "kiln.web.supersede.policy.scenario.on",
+      "meaning": "Three opt-in pushes cause older queued run Cancelled while newest remains queued.",
+      "spec_span": "spec.md:21-25",
+      "annotation": {
+        "kind": "verify",
+        "status": "added",
+        "location": "crates/kiln-web-service/tests/engine/automation.rs:154"
+      },
+      "test_spans": [
+        "crates/kiln-web-service/tests/engine/automation.rs:new_trigger_supersedes_active_and_queued_runs_when_configured (lines 113-172 after additions)"
+      ],
+      "rationale": "Test enables explicit true, dispatches three different exact revisions, asserts older queued outcome Cancelled and latest phase queued (line 170 after additions). Also observes active cancellation under separately specified active policy.",
+      "insufficiency": null
+    }
+  ],
+  "parent_overrides": [
+    {
+      "id": "kiln.microvm.confinement.nonclaims",
+      "annotation": {
+        "kind": "impl",
+        "location": "docs/operator.md",
+        "anchor": "r[impl kiln.microvm.confinement.nonclaims]"
+      },
+      "reason": "Hosted-ci documentation is outside the admitted coverage profile; the explicit bounded nonclaim is also in admitted operator documentation."
+    },
+    {
+      "id": "kiln.web.feeds.ui.scenario.search",
+      "annotation": {
+        "kind": "impl",
+        "location": "crates/kiln-web-service/src/server.rs",
+        "anchor": "r[impl kiln.web.feeds.ui.scenario.search]"
+      },
+      "reason": "Parent integrated the shared server search-handler annotation, without inventing an independent browser observation."
+    },
+    {
+      "id": "kiln.web.supersede.identity",
+      "implementation": "crates/kiln-web-service/src/engine/automation.rs::supersede_runs",
+      "reason": "Repaired shared trigger/schedule identifiers, exact typed durable Start binding only for reserved sources, and strictly older run ordinals.",
+      "proof": "origin-consumer-verification.json; actual failing-before/passing-after engine tests; final full workspace gate."
+    },
+    {
+      "id": "kiln.web.supersede.identity.scenario.origin",
+      "implementation": "crates/kiln-web-service/src/engine/automation.rs::supersede_runs",
+      "reason": "Preserves schedules/manual starts including restart, missing source links, conflicting fingerprints, nondispatched ignored events and late replay.",
+      "proof": "same_id_schedule_survives_trigger_after_restart; same_id_schedule_arrival_does_not_supersede_trigger; persisted_trigger_start_gap_is_superseded_without_late_replay_cancelling_newer; persisted_trigger_start_gap_with_mismatched_fingerprint_fails_closed; ignored_trigger_source_cannot_reclassify_a_matching_manual_start; origin-consumer-verification.json"
+    }
+  ],
+  "worker_reports": {
+    "buildInfrastructure": {
+      "schema": "kiln.readiness.missing-reference-reconciliation.v1",
+      "group": "buildInfrastructure",
+      "date": "2026-11-06",
+      "scope": "Eight promoted accepted requirements; annotation-only source edits. No production behavior, APIs, lifecycle, docs or .cairn files changed.",
+      "verification": "Inspected accepted normative clauses, actual implementation, substantive existing assertions and retained receipts. Edit tool confirmed comment insertions. No tests, builds, lint or formatters run, as assigned; parent owns final proof. Historical receipts are retained observations, not newly exercised verification.",
+      "requirements": [
+        {
+          "id": "kiln.mantle.native_report.facts",
+          "meaning": "All native collections, cache admissions, transfer totals and scheduler facts project to deterministic bounded metrics while exact report bytes retain receipt identity.",
+          "contract": ".cairn/specs/mantle-native-report/spec.md:101-111",
+          "annotation": {
+            "kind": "impl",
+            "added": "crates/kiln-adapter-mantle/src/mapping.rs:209",
+            "target": "normalize_native_report"
+          },
+          "source": [
+            "crates/kiln-adapter-mantle/src/mapping.rs:226 (exact bytes hashed in REPORT_RECEIPT_DOMAIN)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:303-340 (checked admission/transfer totals)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:443-609 (fixed-order metrics, max_metrics refusal, receipt_identity)"
+          ],
+          "tests": [
+            "crates/kiln-adapter-mantle/src/tests.rs:554-624 complete_native_report_admits_every_native_collection",
+            "crates/kiln-adapter-mantle/src/tests.rs:936-955 native_substitution_facts_are_recorded"
+          ],
+          "retained_evidence": [],
+          "insufficiency": "Implementation annotation deliberately used; existing tests assert collection/transfer metrics but are not independent exhaustive proof of every scheduler fact or exact-byte receipt property. No native/hardware qualification inferred."
+        },
+        {
+          "id": "kiln.mantle.native_report.facts.nonclaims",
+          "meaning": "Nested native evidence stays bound by report receipt and is not elevated to product, cache, CI or release authority.",
+          "contract": ".cairn/specs/mantle-native-report/spec.md:113-119",
+          "annotation": {
+            "kind": "impl",
+            "added": "crates/kiln-adapter-mantle/src/mapping.rs:210",
+            "target": "normalize_native_report"
+          },
+          "source": [
+            "crates/kiln-adapter-mantle/src/mapping.rs:226 (receipt from original bytes)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:341-369 (products only from required native outcome outputs)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:427-442 (cache from native outcome substitution/cached facts, not nested evidence collections)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:457-528,587-609 (opaque evidence arrays counted, receipt and required nonclaims retained)"
+          ],
+          "tests": [
+            "crates/kiln-adapter-mantle/src/tests.rs:554-624 injects opaque nested [{}] collections and checks count metrics"
+          ],
+          "retained_evidence": [],
+          "insufficiency": "No dedicated substantive negative-authority assertion found; impl, not verify, annotation added. Canonical/release authority is not inferred from receipt admission."
+        },
+        {
+          "id": "kiln.mantle.native_report.paths",
+          "meaning": "Every output, attestation and log path is absolute and lexically contained in its declared physical/logical/state root.",
+          "contract": ".cairn/specs/mantle-native-report/spec.md:65-81",
+          "annotation": {
+            "kind": "impl",
+            "added": "crates/kiln-adapter-mantle/src/mapping.rs:796",
+            "target": "require_path_under"
+          },
+          "source": [
+            "crates/kiln-adapter-mantle/src/mapping.rs:285-302 (three output/attestation roots)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:797-809 (absolute, starts_with and ParentDir refusal)",
+            "crates/kiln-adapter-mantle/src/mapping.rs:811-834 (saved log root admission)"
+          ],
+          "tests": [
+            "crates/kiln-adapter-mantle/src/tests.rs:702-715 external root refusal",
+            "crates/kiln-adapter-mantle/src/tests.rs:719-746 direct/nested ParentDir refusal with successful baseline",
+            "crates/kiln-adapter-mantle/src/tests.rs:751-785 native failure saved-log containment"
+          ],
+          "retained_evidence": [
+            "fixtures/mantle/native-report/failure-report-v1.json (used by existing saved-log regression)"
+          ],
+          "insufficiency": "Lexical admission is not filesystem/symlink confinement. Preserved parent's repaired ParentDir behavior without changing it."
+        },
+        {
+          "id": "kiln.microvm.confinement",
+          "meaning": "Bound selected proc status bytes/lines/values, require one reviewed Firecracker PID with service UID/GID, zero effective capabilities, NoNewPrivs one, Seccomp two and exact executable; fail closed on unavailable or malformed main-process evidence.",
+          "contract": ".cairn/specs/microvm-confinement/spec.md:9-29",
+          "annotation": {
+            "kind": "impl",
+            "added": [
+              "crates/kiln-microvm/src/confinement.rs:91",
+              "crates/kiln-hosted/src/microvm.rs:728"
+            ],
+            "target": "admit_status and observe_confinement_once"
+          },
+          "source": [
+            "crates/kiln-microvm/src/confinement.rs:7-14,59-154 (bounds, duplicates, exact executable and selected fact checks)",
+            "crates/kiln-hosted/src/microvm.rs:729-826 (single cgroup PID, bounded proc reads, service identity and reviewed executable)",
+            "crates/kiln-hosted/src/microvm.rs:1962-1997 (Firecracker passes allow_unfiltered_main:false and blocks guest on observation error)"
+          ],
+          "tests": [
+            "crates/kiln-microvm/src/confinement.rs:178-242 admitted facts, field drift, duplicate/missing/malformed fields and executable/byte bounds"
+          ],
+          "retained_evidence": [
+            ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:4-38"
+          ],
+          "insufficiency": "Retained November 2 host/VMM observations are cohort-local, not current hardware qualification. Separate Cloud Hypervisor main-thread exception does not apply to Firecracker. No lifecycle edits."
+        },
+        {
+          "id": "kiln.microvm.confinement.nonclaims",
+          "meaning": "Documentation limits this to observing an existing unprivileged VMM claim on one host/cohort; no jailer, guest network, root or hostile-multitenant qualification added.",
+          "contract": ".cairn/specs/microvm-confinement/spec.md:84-94",
+          "annotation": {
+            "kind": "impl",
+            "status": "parent-owned docs proposal; NOT added by worker",
+            "proposed_path": "docs/hosted-ci.md",
+            "proposed_gap": "Immediately before line 559 paragraph beginning The shell observes that claim before the guest session",
+            "text": "<!-- r[impl kiln.microvm.confinement.nonclaims] -->"
+          },
+          "source": [
+            "docs/hosted-ci.md:552-569 (guest networking non-goal, exact existing process observation and one-host limitation)",
+            "docs/hosted-ci.md:646-666 (no hostile/production qualification, no jailer/dedicated uid/network namespace, service-user VMM, external qualification and backend observations excluded)"
+          ],
+          "tests": [],
+          "retained_evidence": [
+            ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:33-37 explicitly lists no root helper, jailer, guest network or generalized host/cohort claim"
+          ],
+          "insufficiency": "Only parent integration of the documentation annotation remains; user forbids worker docs edits. This is a documentation obligation, not runtime proof."
+        },
+        {
+          "id": "kiln.microvm.confinement.receipt",
+          "meaning": "Retain observed fields, executable BLAKE3 and outcome in VM receipt, preserving jailer:false and hostile_isolation_claim:false outside canonical outcome.",
+          "contract": ".cairn/specs/microvm-confinement/spec.md:71-82",
+          "annotation": {
+            "kind": "impl",
+            "added": "crates/kiln-hosted/src/microvm.rs:640",
+            "target": "confinement_value"
+          },
+          "source": [
+            "crates/kiln-hosted/src/microvm.rs:641-657 (ok/error and exact observed fields including executable BLAKE3)",
+            "crates/kiln-hosted/src/microvm.rs:1733-1745 (jailer and hostile isolation false)",
+            "crates/kiln-hosted/src/microvm.rs:1971,2095-2097 (session retains observation and attaches it to VM receipt)",
+            "crates/kiln-hosted/src/execution.rs:2073-2103 (canonical outcome projects states/steps only; excludes VM observations)"
+          ],
+          "tests": [
+            "crates/kiln-hosted/tests/microvm.rs:456-482 (existing native rail inspects admitted process facts and executable identity)",
+            "crates/kiln-hosted/src/execution.rs:3004-3098 (namespace/microVM observations share canonical outcome while visible result changes differ)"
+          ],
+          "retained_evidence": [
+            ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:14-15,26-37"
+          ],
+          "insufficiency": "Impl annotation used because serializer itself is not runtime proof. Existing native rail and retained receipt do not qualify today's hardware or another VMM cohort."
+        },
+        {
+          "id": "kiln.radicle.job.scenario.replay_conflict",
+          "meaning": "A published run replay with another log URL or opposite terminal reason fails without publication writes.",
+          "contract": ".cairn/specs/radicle-job-cobs/spec.md:71-76",
+          "annotation": {
+            "kind": "impl",
+            "added": "crates/kiln-adapter-radicle/src/job/shell.rs:140",
+            "target": "RadicleJobShell::publish"
+          },
+          "source": [
+            "crates/kiln-adapter-radicle/src/job/shell.rs:161-167 (read existing run then required_actions before signer resolution or create/update)",
+            "crates/kiln-adapter-radicle/src/job/plan.rs:226-249 (different log and terminal reason return errors)"
+          ],
+          "tests": [
+            "crates/kiln-adapter-radicle/tests/job_native.rs:379-409 native local signed COB started/finished replay, opposite finish, start-after-finish and log conflict diagnostic assertions",
+            "crates/kiln-adapter-radicle/src/job/tests.rs:256-278 pure replay conflict decisions"
+          ],
+          "retained_evidence": [
+            ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json:13-17,51-69"
+          ],
+          "insufficiency": "Native conflict fixture asserts refusal diagnostics but does not compare head/history after each refusal; impl chosen rather than overstating a verify claim of no write. Publication control flow rejects before signer/create/update. Local fixtures do not imply remote convergence."
+        },
+        {
+          "id": "kiln.radicle_ci.tag.scenario.push",
+          "meaning": "Branch-bound exact sources still project Push, retaining the branch alias, repository and exact source revision.",
+          "contract": ".cairn/specs/radicle-ci-tag/spec.md:23-27",
+          "annotation": {
+            "kind": "impl and verify",
+            "added": [
+              "crates/kiln-radicle-ci/src/project.rs:154 impl on trigger",
+              "crates/kiln-radicle-ci/src/project.rs:809 verify on branch_and_tag_sources_project_distinct_events_and_aliases"
+            ]
+          },
+          "source": [
+            "crates/kiln-radicle-ci/src/project.rs:115-128 (refs/heads maps branch alias to Push)",
+            "crates/kiln-radicle-ci/src/project.rs:155-180 (configured repository/exact revision admission and unchanged projection)"
+          ],
+          "tests": [
+            "crates/kiln-radicle-ci/src/project.rs:811-823 branch_and_tag_sources_project_distinct_events_and_aliases explicitly asserts main/Push and distinguishes release/v1/Tag; malformed refs refused"
+          ],
+          "retained_evidence": [
+            ".cairn/changes/run-ci-on-radicle-tags/evidence/verification.json:9-12,30-38"
+          ],
+          "insufficiency": "Verify link proves alias/event branch behavior; complete revision/repository binding remains implementation-backed. Broker tag emission and release authority remain nonclaims."
+        }
+      ],
+      "summary": {
+        "assigned": 8,
+        "classified": 8,
+        "ids_with_source_annotations_added": 7,
+        "parent_documentation_annotation_proposals": 1,
+        "behavior_changes": 0,
+        "new_tests": 0
+      }
+    },
+    "reviewOwnership": {
+      "schema": "kiln.readiness.missing-evidence-links.v1",
+      "group": "reviewOwnership",
+      "scope": "All fourteen assigned accepted requirements; annotation-only changes. No behavior, API, lifecycle, metadata-delta, or shared-file edits.",
+      "files_changed": [
+        "crates/kiln-core/src/change_review.rs",
+        "crates/kiln-web-service/src/code-review.js"
+      ],
+      "checks_run": [],
+      "verification_boundary": "Checks explicitly skipped as assigned. Existing substantive regressions were inspected, not rerun. Retained historical receipts are corroborating records, not newly executed proof. UI annotations are implementation links, not browser verification claims.",
+      "retained_receipts": {
+        "attestation": ".cairn/changes/add-attested-agent-submissions/evidence/verification.json:4-40",
+        "search": ".cairn/changes/add-agent-review-search/evidence/verification.json:4-51",
+        "ownership": ".cairn/changes/add-ownership-evidence/evidence/verification.json:4-45"
+      },
+      "identifiers": [
+        {
+          "id": "kiln.review.agent.attestation.scenario.agent",
+          "meaning": "A trusted agent Create records the exact principal on the new revision.",
+          "accepted_clause": ".cairn/specs/attested-agent-submissions/spec.md:18-22",
+          "source": "crates/kiln-core/src/change_review.rs:2259-2262 before annotation shifts; Create derives submitted_by from trusted facts.agents and actor, not submitted revision data.",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:6185",
+            "adjacent": "assert_eq!(attested.principal, alice) in agent_submission_rejects_human_authorship_and_records_attestation"
+          },
+          "substantive_evidence": "The test applies Create with alice admitted as an agent, then reads the created revision and asserts the exact attested principal and declared harness.",
+          "retained_evidence": "attestation",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.agent.attestation.scenario.human",
+          "meaning": "An agent claiming human authorship is rejected before any revision is created.",
+          "accepted_clause": ".cairn/specs/attested-agent-submissions/spec.md:24-28",
+          "source": "crates/kiln-core/src/change_review.rs:1495-1508 before annotation shifts; revision_valid rejects trusted agent plus Authorship::Human.",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:6165",
+            "adjacent": "agent_authorship_mismatch assertion and state.changes.is_empty()"
+          },
+          "substantive_evidence": "The applied command fails with the required error code and the state still contains no change, before the subsequent valid Create.",
+          "retained_evidence": "attestation",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.agent.console.scenario.label",
+          "meaning": "Identity rendering labels the attested principal while preserving the self-declared, unverified authorship warning.",
+          "accepted_clause": ".cairn/specs/attested-agent-submissions/spec.md:37-42",
+          "annotation": {
+            "kind": "impl",
+            "location": "crates/kiln-web-service/src/code-review.js:805",
+            "adjacent": "drawIdentity conditional paragraph for current().submitted_by"
+          },
+          "source": "drawIdentity builds an explicitly attested-agent paragraph from the principal and states that authorship above remains self-declared and unverified. Its identity facts also use the self-declared, unverified label.",
+          "substantive_evidence": "Actual DOM rendering implementation, not source-text assertions or JSON forwarding.",
+          "retained_evidence": "attestation",
+          "insufficiency": "No newly observed browser run; therefore impl, not verify."
+        },
+        {
+          "id": "kiln.review.agent.search.boundary",
+          "meaning": "Agent filtering remains read-only and is available in console queries and saved views.",
+          "accepted_clause": ".cairn/specs/agent-review-search/spec.md:42-46",
+          "annotation": {
+            "kind": "impl",
+            "locations": [
+              "crates/kiln-core/src/change_review.rs:1014",
+              "crates/kiln-web-service/src/code-review.js:631"
+            ],
+            "adjacent": "search immutable state API and console Agent submission selector"
+          },
+          "source": "search takes &ReviewState, reads current revision fields, returns borrowed changes, and cannot mutate approval, candidate, attestation, or readiness state. Console selection routes query filters; savedQueryForRoute/savedViewRoute encode and restore those same fields.",
+          "substantive_evidence": "Read-only reducer implementation and actual console query control, not forwarding tests.",
+          "retained_evidence": "search",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.agent.search.scenario.attested",
+          "meaning": "agent=with returns the change with current-revision attestation.",
+          "accepted_clause": ".cairn/specs/agent-review-search/spec.md:20-24",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:4888",
+            "adjacent": "search Some(true) assertion in agent_search_filters_current_revision_attestation"
+          },
+          "source": "search compares requested agent presence against current revision submitted_by.",
+          "substantive_evidence": "A singleton state has its current revision attested, then actual search returns that sole change for Some(true), excludes it for Some(false), and retains it for an absent filter.",
+          "retained_evidence": "search",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.agent.search.scenario.harness",
+          "meaning": "Exact declared harness and model match; another harness/model or absent declared model does not.",
+          "accepted_clause": ".cairn/specs/agent-review-search/spec.md:26-34",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:4901",
+            "adjacent": "by_harness omp positive and other negative assertions"
+          },
+          "source": "search reads submitted_by.agent on current revision and compares exact harness/model strings.",
+          "substantive_evidence": "The same regression exercises omp versus other, deepseek versus other, and clearing the declared model followed by exclusion from deepseek search.",
+          "retained_evidence": "search",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.agent.search.scenario.saved",
+          "meaning": "Applying a saved agent-filtered view restores the same read-only filter.",
+          "accepted_clause": ".cairn/specs/agent-review-search/spec.md:48-52",
+          "annotation": {
+            "kind": "impl",
+            "location": "crates/kiln-web-service/src/code-review.js:255",
+            "adjacent": "savedViewRoute"
+          },
+          "source": "savedViewRoute restores review_agent via agentRoute and exact bounded harness/model route fields; saved-view Apply invokes route(savedRoute), which load then uses for the read-only query. savedQueryForRoute is the inverse representation for persistence.",
+          "substantive_evidence": "Actual saved-view application implementation. Saved JSON round-trip assertions alone were deliberately not labeled verification.",
+          "retained_evidence": "search",
+          "insufficiency": "No newly observed UI application; impl link only."
+        },
+        {
+          "id": "kiln.review.agent.search.scenario.unattested",
+          "meaning": "An unattested current revision is excluded when agent=with is requested.",
+          "accepted_clause": ".cairn/specs/agent-review-search/spec.md:36-40",
+          "annotation": {
+            "kind": "impl",
+            "location": "crates/kiln-core/src/change_review.rs:1033",
+            "adjacent": "wanted != revision.submitted_by.is_some() early false branch"
+          },
+          "source": "For Some(true) and absent submitted_by the presence comparison fails the filter before any result is collected.",
+          "substantive_evidence": "Actual predicate that excludes unattested revisions; web integration also creates an ordinary change and an agent change before separately querying with/without.",
+          "retained_evidence": "search",
+          "insufficiency": "Used impl rather than promoting integration total-count assertions into stronger identity-specific runtime proof."
+        },
+        {
+          "id": "kiln.review.evidence.policy.scenario.bounds",
+          "meaning": "Duplicate project evidence and more than eight requirements are rejected by policy admission.",
+          "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:24-28",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:4556",
+            "adjacent": "duplicate and over_bound cases in ownership_evidence_policy_admission_is_bounded_and_unique"
+          },
+          "source": "validate_policy checks MAX_OWNERSHIP_EVIDENCE and a per-rule project set before accepting requirements.",
+          "substantive_evidence": "Test supplies duplicate api requirements and nine unique requirements, independently asserts invalid_policy for each.",
+          "retained_evidence": "ownership",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.evidence.policy.scenario.unknown",
+          "meaning": "Unknown evidence kinds fail deserialization or admission.",
+          "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:18-22",
+          "annotation": {
+            "kind": "impl",
+            "location": "crates/kiln-core/src/change_review.rs:628",
+            "adjacent": "OwnershipEvidenceKind derived Deserialize closed enum"
+          },
+          "source": "The enum has only ProjectCi, renamed snake_case, with no catch-all or other variant; OwnershipEvidence uses this typed enum directly.",
+          "substantive_evidence": "Closed deserialization implementation. No focused unknown-kind runtime assertion was found in the ownership regression, so none was claimed.",
+          "retained_evidence": "ownership",
+          "insufficiency": "Implementation link only; no new runtime deserialization check requested or run."
+        },
+        {
+          "id": "kiln.review.evidence.project_ci.authority",
+          "meaning": "Satisfied CI evidence alone cannot satisfy owner approval, remove vetoes/threads, prepare candidates, or grant merge authority.",
+          "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:53-57",
+          "annotation": {
+            "kind": "impl",
+            "location": "crates/kiln-core/src/change_review.rs:1814",
+            "adjacent": "checklist_at actual evaluator, not public forwarding wrapper"
+          },
+          "source": "The evaluator takes immutable state/facts, independently computes eligible approvals, vetoes and threads, independently inserts owner and evidence items, then requires all items for ready. PrepareCandidate requires the checklist; submission also requires explicit submitter/candidate checks. No evidence projection mutates state or authority.",
+          "substantive_evidence": "ownership_evidence_requires_exact_current_project_ci separately establishes satisfied evidence with an unsatisfied owner item and false readiness.",
+          "retained_evidence": "ownership",
+          "insufficiency": "Existing separately accepted explicit evidence-only approval modes remain intact: any such exemption is policy authority, not an effect of satisfying CI. No unrelated semantics changed."
+        },
+        {
+          "id": "kiln.review.evidence.project_ci.scenario.approval",
+          "meaning": "A satisfied evidence item without eligible owner approval leaves the ownership checklist incomplete.",
+          "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:59-63",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:4463",
+            "adjacent": "owner:core unsatisfied and checks.ready false assertions"
+          },
+          "source": "The ordinary ownership rule is evaluated independently from evidence satisfaction.",
+          "substantive_evidence": "The immediately preceding assertion proves evidence is satisfied; next assertions prove owner approval is not and checklist ready remains false.",
+          "retained_evidence": "ownership",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.evidence.project_ci.scenario.observed",
+          "meaning": "A clean full successful exact-commit api run with current api-scope satisfies the matching evidence item.",
+          "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:40-45",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:4526",
+            "adjacent": "api-scope assignment and positive evidence assertion"
+          },
+          "source": "latest_for matches repository/project/commit and full/clean/current scope; CiFact::satisfies_required checks the winning observed run.",
+          "substantive_evidence": "ownership_evidence_binds_another_project_scope requires api/api-scope, adds an exact successful full clean api run, demonstrates missing scope fails, current scope passes and another scope fails.",
+          "retained_evidence": "ownership",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.review.evidence.project_ci.scenario.stale",
+          "meaning": "Older-commit, wrong-scope, partial or non-clean evidence remains unsatisfied.",
+          "accepted_clause": ".cairn/specs/ownership-evidence/spec.md:47-51",
+          "annotation": {
+            "kind": "verify",
+            "location": "crates/kiln-core/src/change_review.rs:4466",
+            "adjacent": "older-commit, clean=false and full_run=false cases"
+          },
+          "source": "The winning eligible CI predicate binds exact commit and full clean run; scoped evidence additionally binds the current scope.",
+          "substantive_evidence": "ownership_evidence_requires_exact_current_project_ci independently invalidates revision, cleanliness and fullness and asserts unsatisfied evidence. ownership_evidence_binds_another_project_scope separately invalidates current scope.",
+          "retained_evidence": "ownership",
+          "insufficiency": null
+        }
+      ],
+      "shared_file_proposals": [],
+      "blockers": [],
+      "metadata_delta": "Separately active add-attested-agent-metadata was not adopted or edited, and is not treated as a mandatory synchronization predecessor for implemented optional metadata filters.",
+      "qualification": "No hardware, host, provider-execution, hostile-isolation or release-qualification claim."
+    },
+    "feeds": {
+      "schema": "kiln.readiness.missing-evidence-links.v1",
+      "group": "feeds",
+      "expected_count": 13,
+      "scope": "Annotations only; no behavior, API, fixture, parser or bound changes. No tests/build/lint/formatters run, as assigned.",
+      "accepted_spec": ".cairn/specs/repository-feeds/spec.md",
+      "span_convention": "Paths relative to repository root. Edited source locations use stable function/assertion names; numeric spans describe inspected pre-annotation snapshots unless otherwise stated.",
+      "retained_evidence": {
+        "historical_receipt": ".cairn/changes/add-repository-feeds/evidence/verification.json",
+        "historical_limits": "2026-11-01 receipt records real fixture HTTPS service, explicit private-network exception, historical library/engine and disposable browser observations; not current host/hardware qualification. Inline screenshots are not retained image artifacts.",
+        "current_integrated_proof": "Parent-provided context: workspace all-feature suite 1575 passed, 5 ignored and strict all-target/all-feature Clippy passed, artifact956. Not rerun or independently inspected by this worker."
+      },
+      "records": [
+        {
+          "id": "kiln.web.feeds.bounds.scenario.body",
+          "meaning": "An external body above configured byte bound is refused without replacing retained entries.",
+          "source": [
+            "crates/kiln-web-service/src/feeds.rs:fetch (Content-Length admission and bounded max_bytes+1 read)",
+            "crates/kiln-web-service/src/engine/feeds.rs:refreshed_candidate Err arm retains entries"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/feeds.rs:fetch"
+            },
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:refreshed_candidate"
+            },
+            {
+              "kind": "verify",
+              "location": "src/feeds.rs:tests::fetch_enforces_the_body_bound"
+            }
+          ],
+          "substantive_test": "Local HTTP origin supplies RSS beyond max_bytes=16; fetch must fail. Runtime round trip separately asserts retained title, last_success and failure count after failed refresh.",
+          "retained_evidence": "historical_receipt:14-15,51-52,93,108-109",
+          "insufficiency": "No single permanent test combines oversized-body fetch with engine persistence; do not interpret the body-bound verify marker as that combined runtime proof."
+        },
+        {
+          "id": "kiln.web.feeds.config.scenario.disabled",
+          "meaning": "Absent optional feeds policy disables publication/subscription operations without creating feed state.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:feeds_view returns configured=false with no mutation",
+            "crates/kiln-web-service/src/engine/feeds.rs:render_feed requires profile.feeds",
+            "crates/kiln-web-service/src/server.rs:1065-1067 rejects mutation before fetch"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:feeds_view"
+            },
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:render_feed"
+            }
+          ],
+          "substantive_test": null,
+          "retained_evidence": "historical_receipt:56,100",
+          "insufficiency": "No new verify claim. Publication is denied by token admission when no feed credential exists; it does not necessarily expose the literal feeds_disabled error code. API read reports configured=false and mutation reports feeds_disabled."
+        },
+        {
+          "id": "kiln.web.feeds.publish.scenario.opml",
+          "meaning": "Authenticated repository OPML lists escaped outlines for canonical repositories.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:render_feed /feeds.opml branch deduplicates canonical keys",
+            "crates/kiln-web-service/src/feeds.rs:render_opml escapes labels and URLs"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:render_feed"
+            },
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, opml request"
+            },
+            {
+              "kind": "verify",
+              "location": "src/feeds.rs:tests::opml_export_escapes_labels_and_urls"
+            }
+          ],
+          "substantive_test": "Runtime checks authorized response type, OPML root, outlines and token URLs; renderer asserts exact ampersand escaping in label and xmlUrl.",
+          "retained_evidence": "historical_receipt:14-15,81",
+          "insufficiency": "Runtime fixture does not independently assert several distinct repository outlines; canonical traversal/deduplication is implementation evidence."
+        },
+        {
+          "id": "kiln.web.feeds.publish.scenario.revalidate",
+          "meaning": "Matching If-None-Match yields bodyless 304 permitting cached representation reuse.",
+          "source": [
+            "crates/kiln-web-service/src/server.rs:972-987 hashes representation, adds ETag/no-cache and clears 304 body",
+            "crates/kiln-web-service/src/server.rs:1313-1316 omits 304 Content-Length"
+          ],
+          "annotations_added": [
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, conditional request"
+            }
+          ],
+          "substantive_test": "Reads ETag and original Atom response, sends matching validator, checks 304, absent Content-Length and empty body.",
+          "retained_evidence": "Historical runtime case names the same real HTTPS fixture; current assertions are stronger than receipt's enumerated publication checks.",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.web.feeds.publish.scenario.rss",
+          "meaning": "Token-authenticated .rss publication emits escaped RSS 2.0, RFC 2822 dates and console links.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:render_feed RSS index and repository branches",
+            "crates/kiln-web-service/src/feeds.rs:render_rss, rfc2822, repository_items"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:render_feed"
+            },
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, rss request"
+            },
+            {
+              "kind": "verify",
+              "location": "src/feeds.rs:tests::rss_publication_renders_channel_and_dates"
+            }
+          ],
+          "substantive_test": "Real route checks RSS media type/root; renderer verifies escaped repository title, summary and console URL plus exact RFC 2822 UTC date.",
+          "retained_evidence": "historical_receipt:14-15",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.web.feeds.security.scenario.conditional",
+          "meaning": "304 with retained validators preserves entries and updates validators without parsing a body; unsolicited 304 is refused.",
+          "source": [
+            "crates/kiln-web-service/src/feeds.rs:fetch 304 branch",
+            "crates/kiln-web-service/src/engine/feeds.rs:refreshed_candidate NotModified arm"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/feeds.rs:fetch"
+            },
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:refreshed_candidate"
+            },
+            {
+              "kind": "verify",
+              "location": "src/feeds.rs:tests::conditional_fetch_honours_not_modified_and_requires_a_validator"
+            }
+          ],
+          "substantive_test": "Bodyless local 304 yields NotModified with new v2 ETag; separate unsolicited 304 must fail.",
+          "retained_evidence": "historical_receipt:111-117",
+          "insufficiency": "Validator update/no-body/unsolicited rejection are tested; engine entry preservation on NotModified is implementation evidence, not a dedicated test assertion."
+        },
+        {
+          "id": "kiln.web.feeds.subscriptions.scenario.background",
+          "meaning": "Background cadence selects at most per-tick bound, oldest attempt first; failed refresh retains entries.",
+          "source": [
+            "crates/kiln-web-service/src/feeds.rs:due_subscriptions",
+            "crates/kiln-web-service/src/engine/feeds.rs:due_feeds, record_feed_refresh, refreshed_candidate"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/feeds.rs:due_subscriptions"
+            },
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:due_feeds"
+            },
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:refreshed_candidate"
+            },
+            {
+              "kind": "verify",
+              "location": "src/feeds.rs:tests::due_selection_is_oldest_first_and_bounded"
+            }
+          ],
+          "substantive_test": "Due selection asserts exact never/oldest identities, two-item limit and zero-cadence exclusion. Failed-refresh retention separately asserted by runtime round trip through shared candidate semantics.",
+          "retained_evidence": "historical_receipt:104-109",
+          "insufficiency": "No newly asserted autonomous tick integration; bounded selection and failed-refresh candidate behavior have distinct evidence."
+        },
+        {
+          "id": "kiln.web.feeds.subscriptions.scenario.export",
+          "meaning": "Operator OPML exports bounded retained subscription labels/URLs; viewer denied.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:feeds_opml",
+            "crates/kiln-web-service/src/server.rs:1042-1051 role admission",
+            "crates/kiln-web-service/src/feeds.rs:render_opml"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:feeds_opml"
+            },
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, exported request"
+            }
+          ],
+          "substantive_test": "Checks OPML media type, retained feed URL and xmlUrl attribute, then viewer 403; renderer escaping tested separately.",
+          "retained_evidence": "historical_receipt:14-15,22-23",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.web.feeds.subscriptions.scenario.import",
+          "meaning": "Operator OPML imports admitted unique subscriptions as pending without fetch, skips duplicates/invalid URLs and denies viewer.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:prepare_feed_import and finish_feed_import",
+            "crates/kiln-web-service/src/feeds.rs:parse_opml"
+          ],
+          "annotations_added": [
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, imported request"
+            }
+          ],
+          "substantive_test": "One accepted HTTPS URL plus invalid javascript URL and existing URL yields added=1/skipped=2; retained new subscription has no fetched time or entries; viewer import 403. Dedicated parser test checks nested unique outlines and limits.",
+          "retained_evidence": "historical_receipt:14-15,22-23",
+          "insufficiency": "No-fetch is directly supported by pure admission and pending-state construction, not an outbound network spy."
+        },
+        {
+          "id": "kiln.web.feeds.subscriptions.scenario.pause",
+          "meaning": "Operator pause excludes background selection while retaining readable entries and manual refresh availability.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:set_feed_enabled clones existing subscription and changes only enabled",
+            "crates/kiln-web-service/src/feeds.rs:due_subscriptions filters enabled",
+            "crates/kiln-web-service/src/engine/feeds.rs:feed_refresh_target ignores enabled; feeds_view retains entries"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:set_feed_enabled"
+            },
+            {
+              "kind": "impl",
+              "location": "src/feeds.rs:due_subscriptions"
+            }
+          ],
+          "substantive_test": "Runtime round trip checks pause response enabled=false then re-enables; insufficient to verify all pause semantics, so no verify marker added.",
+          "retained_evidence": "Historical receipt describes background selection; source supplies explicit pause invariant.",
+          "insufficiency": "No dedicated substantive test for paused exclusion plus manual refresh and retained reads; linked as impl only."
+        },
+        {
+          "id": "kiln.web.feeds.subscriptions.scenario.rename",
+          "meaning": "Bounded control-free operator label is retained; viewer cannot rename.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:rename_feed trims, bounds, rejects controls, persists candidate"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:rename_feed"
+            },
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, renamed request"
+            }
+          ],
+          "substantive_test": "Checks exact renamed label from successful response and viewer rename 403.",
+          "retained_evidence": "Historical engine suite receipt:22-23; exact current assertion inspected.",
+          "insufficiency": "Invalid/control/overbound label rejection is implementation evidence, not separately verified here."
+        },
+        {
+          "id": "kiln.web.feeds.token.scenario.operator",
+          "meaning": "Only operator feeds API may expose token-bearing subscription URLs; viewer must not.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:feeds_view role/token match, publication row insertion and publication_view"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:feeds_view role/token match"
+            }
+          ],
+          "substantive_test": "Runtime round trip explicitly checks viewer subscribe_url omission; no full operator-vs-viewer paired token-URL assertion, so only impl marker added.",
+          "retained_evidence": "historical_receipt:57,65-66",
+          "insufficiency": "Historical operator browser observation is not current visual proof; no new browser run."
+        },
+        {
+          "id": "kiln.web.feeds.ui.scenario.search",
+          "meaning": "Bounded feeds filter returns matching label/URL/entry text subscriptions and entries.",
+          "source": [
+            "crates/kiln-web-service/src/engine/feeds.rs:feeds_view matching/filtering",
+            "crates/kiln-web-service/src/server.rs:feed_query bounds decoded filter to 256 bytes",
+            "crates/kiln-web-service/src/web.js:1478-1492 forwards restored feed_q and limits input to 256"
+          ],
+          "annotations_added": [
+            {
+              "kind": "impl",
+              "location": "src/engine/feeds.rs:feeds_view"
+            },
+            {
+              "kind": "verify",
+              "location": "tests/engine/runtime.rs:repository_feeds_and_external_subscription_round_trip, searched and no_match requests"
+            }
+          ],
+          "substantive_test": "Search release returns exact External release entry; missing filter returns zero subscriptions.",
+          "retained_evidence": "historical_receipt names same runtime case; current inspected assertions substantiate entry-text filtering.",
+          "insufficiency": "No fresh visual proof; no permanent assertion for all label/URL/summary variants or filter-size rejection. Source supplies those branches.",
+          "shared_file_proposal": {
+            "path": "crates/kiln-web-service/src/server.rs",
+            "location": "Immediately before fn feed_query at inspected line 1017",
+            "annotation": "// r[impl kiln.web.feeds.ui.scenario.search]",
+            "rationale": "This function enforces encoded/decoded filter bounds and control-character rejection, complementing engine matching. Parent owns shared file."
+          }
+        }
+      ],
+      "blockers": [],
+      "verification_performed": "Read accepted normative clauses, actual source branches and substantive assertions; successful edit responses confirm comment-only insertions. No commands/tests/build/lint/formatters run by assignment. Existing overflow handling, fallible tests, ABSOLUTE_MAX_FEED_BYTES helper and runtime fixture preserved."
+    },
+    "supersede": {
+      "schema": "kiln.readiness.missing-evidence-links.v1",
+      "group": "supersede",
+      "expected_count": 10,
+      "classification_basis": "Inspected accepted normative clauses, actual implementation and substantive existing assertions. Added comments only. No tests, builds, lint, formatters, lifecycle or remote mutations performed. Retained receipts are historical, not fresh execution or hardware qualification.",
+      "accepted_spec": ".cairn/specs/supersede-trigger-runs/spec.md",
+      "retained_evidence": [
+        ".cairn/changes/supersede-trigger-runs/evidence/verification.json:4-48",
+        ".cairn/changes/supersede-trigger-runs/evidence/readiness-reconciliation-2026-11-06.json"
+      ],
+      "records": [
+        {
+          "id": "kiln.web.supersede.active.scenario.awaiting",
+          "meaning": "An awaiting-approval run is not cancelled by newer push supersession.",
+          "spec_span": "spec.md:75-79",
+          "annotation": {
+            "kind": "impl",
+            "status": "added",
+            "location": "crates/kiln-web-service/src/engine/automation.rs:1152"
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1153-1159",
+            "crates/kiln-web-service/src/engine/model.rs:280-283"
+          ],
+          "rationale": "waiting() includes queued and awaiting_approval; supersede_runs selects only phase queued from waiting runs, excluding awaiting_approval from both cancellation collections.",
+          "insufficiency": "No dedicated substantive supersession test for this scenario was found; existing untrusted-gate supersession tests exercise different semantics and were not mislabelled. Historical receipt isolation claim is supporting context only."
+        },
+        {
+          "id": "kiln.web.supersede.active.scenario.running",
+          "meaning": "Older same-scope running run receives exactly one provider cancellation and becomes Cancelled.",
+          "spec_span": "spec.md:69-73",
+          "annotation": {
+            "kind": "verify",
+            "status": "added",
+            "location": "crates/kiln-web-service/tests/engine/automation.rs:161"
+          },
+          "test_spans": [
+            "crates/kiln-web-service/tests/engine/automation.rs:new_trigger_supersedes_active_and_queued_runs_when_configured (lines 113-172 after additions; outcome/error_code and controls assertions at 162-164)"
+          ],
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1161-1192"
+          ],
+          "rationale": "Real engine dispatches three exact revisions against controlled backend, observes older active outcome Cancelled and superseded code, and asserts controls == 1.",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.web.supersede.cancel",
+          "meaning": "Queued cancellation uses durable replay and failure does not fail the new dispatch.",
+          "spec_span": "spec.md:55-57",
+          "annotation": {
+            "kind": "impl",
+            "status": "added",
+            "locations": [
+              "crates/kiln-web-service/src/engine/automation.rs:1193",
+              "crates/kiln-web-service/src/engine/queue.rs:543"
+            ]
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1194-1214",
+            "crates/kiln-web-service/src/engine/queue.rs:544-569"
+          ],
+          "test_spans": [
+            "crates/kiln-web-service/tests/engine/automation.rs:new_trigger_supersedes_active_and_queued_runs_when_configured",
+            "crates/kiln-web-service/tests/engine.rs:queued_cancel_reason_is_bounded_and_recorded (shared parent-owned file, inspected search evidence only)"
+          ],
+          "rationale": "Deterministic run-pair request ID invokes cancel_queued; errors/status refusal are consumed best-effort. cancel_queued fingerprints and replays the request, completes Cancelled, reserves and finishes durable control response.",
+          "insufficiency": "Used impl rather than verify because existing observed assertions do not independently prove the entire durable-replay and failure-isolation contract. No shared-file edits proposed or needed."
+        },
+        {
+          "id": "kiln.web.supersede.identity",
+          "meaning": "Exact trigger/project/source scope and different revision; manual, scheduled and absent-trigger runs never match.",
+          "spec_span": "spec.md:29-33",
+          "annotation": {
+            "kind": null,
+            "status": "blocked",
+            "location": null
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1027-1045,1134-1151",
+            "crates/kiln-web-service/src/engine/queue.rs:219-232,422-425",
+            "crates/kiln-web-service/src/automation.rs:134-155 (pre-addition line numbering; validation method)"
+          ],
+          "rationale": "Exact project/reference/PR/revision comparisons exist, but recorded requested_trigger is populated from source_registration for BOTH schedule and trigger reservations. Registration validation namespaces uniqueness by (kind,id), permitting a schedule to share a trigger's id. supersede_runs compares only that string, not origin kind.",
+          "insufficiency": "An active or queued schedule with same registration id/project/reference and older revision can match trigger supersession. Full normative identity marker would falsely claim scheduled-run exclusion. No marker added; no behavior change permitted. Parent informed via agent message. This is source-derived evidence, not an executed reproduction."
+        },
+        {
+          "id": "kiln.web.supersede.identity.scenario.origin",
+          "meaning": "Active manual or scheduled runs on same project/reference are not cancelled.",
+          "spec_span": "spec.md:41-45",
+          "annotation": {
+            "kind": null,
+            "status": "blocked",
+            "location": null
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1027-1045,1143-1151",
+            "crates/kiln-web-service/src/engine/queue.rs:219-232",
+            "crates/kiln-web-service/src/automation.rs:validate registration identity loop"
+          ],
+          "test_spans": [
+            "crates/kiln-web-service/tests/engine/automation.rs:trigger_supersession_does_not_cancel_a_manual_run (lines 175-216 after additions)"
+          ],
+          "rationale": "Manual-only test substantively asserts unchanged non-Cancelled outcome, zero controls and one dispatch, but does not cover scheduled origins. Scheduled runs retain the same untyped registration string as trigger runs; same-id registrations across kinds are allowed.",
+          "insufficiency": "Scheduled-origin exclusion is unsupported for colliding registration ids. Manual-only verification was intentionally NOT marked as satisfying the entire disjunctive scenario. Same source-derived blocker as identity; no executed reproduction and no behavior edits."
+        },
+        {
+          "id": "kiln.web.supersede.identity.scenario.pull_request",
+          "meaning": "Dispatch for PR 8 does not cancel active PR 7 on the same project/base.",
+          "spec_span": "spec.md:47-51",
+          "annotation": {
+            "kind": "verify",
+            "status": "added",
+            "location": "crates/kiln-web-service/tests/engine/automation.rs:279"
+          },
+          "test_spans": [
+            "crates/kiln-web-service/tests/engine/automation.rs:pull_request_supersession_is_scoped_to_one_pull_request (lines 219-294 after additions)"
+          ],
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1134-1142"
+          ],
+          "rationale": "Signed provider-native PR 7 then PR 8 payloads share project/base but use different exact commits; test asserts first not Cancelled, second queued, controls zero and dispatches one.",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.web.supersede.identity.scenario.reference",
+          "meaning": "Other project or requested symbolic reference is not cancelled.",
+          "spec_span": "spec.md:35-39",
+          "annotation": {
+            "kind": "impl",
+            "status": "added",
+            "location": "crates/kiln-web-service/src/engine/automation.rs:1134"
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1135-1151"
+          ],
+          "rationale": "Push scope compares exact retained requested_reference and requires absence of PR scope; subsequent predicate rejects different project before queue/active selection.",
+          "insufficiency": "No dedicated substantive other-reference/project cancellation test found; impl only. Does not claim full origin exclusion."
+        },
+        {
+          "id": "kiln.web.supersede.policy",
+          "meaning": "Explicit supersede_queued true opts in; absent/false retain behavior; Nickel optional field accepted.",
+          "spec_span": "spec.md:11-13",
+          "annotation": {
+            "kind": "impl",
+            "status": "added",
+            "locations": [
+              "crates/kiln-web-service/src/automation.rs:45",
+              "crates/kiln-web-service/src/engine/automation.rs:1100"
+            ]
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/automation.rs:45-48",
+            "crates/kiln-web-service/src/engine/automation.rs:1102-1118",
+            "config/web-automation.ncl:112"
+          ],
+          "rationale": "Serde bool defaults false, gate explicitly requires selected trigger supersede_queued true, Nickel Trigger has supersede_queued | Bool | optional. No configuration/policy changes.",
+          "insufficiency": null
+        },
+        {
+          "id": "kiln.web.supersede.policy.scenario.off",
+          "meaning": "New push without opt-in leaves older queued runs unchanged.",
+          "spec_span": "spec.md:15-19",
+          "annotation": {
+            "kind": "impl",
+            "status": "added",
+            "location": "crates/kiln-web-service/src/engine/automation.rs:1101"
+          },
+          "source_spans": [
+            "crates/kiln-web-service/src/engine/automation.rs:1102-1118",
+            "crates/kiln-web-service/src/automation.rs:45-48"
+          ],
+          "rationale": "Only conditional entry into supersede_runs requires true; absence deserializes false, so the queued collection/cancellation path is not entered.",
+          "insufficiency": "No dedicated substantive disabled-policy queued-state assertion found; impl only, not a configuration-deserialization test misrepresented as runtime proof."
+        },
+        {
+          "id": "kiln.web.supersede.policy.scenario.on",
+          "meaning": "Three opt-in pushes cause older queued run Cancelled while newest remains queued.",
+          "spec_span": "spec.md:21-25",
+          "annotation": {
+            "kind": "verify",
+            "status": "added",
+            "location": "crates/kiln-web-service/tests/engine/automation.rs:154"
+          },
+          "test_spans": [
+            "crates/kiln-web-service/tests/engine/automation.rs:new_trigger_supersedes_active_and_queued_runs_when_configured (lines 113-172 after additions)"
+          ],
+          "rationale": "Test enables explicit true, dispatches three different exact revisions, asserts older queued outcome Cancelled and latest phase queued (line 170 after additions). Also observes active cancellation under separately specified active policy.",
+          "insufficiency": null
+        }
+      ],
+      "shared_file_annotation_proposals": [],
+      "changed_files": [
+        "crates/kiln-web-service/src/automation.rs",
+        "crates/kiln-web-service/src/engine/automation.rs",
+        "crates/kiln-web-service/src/engine/queue.rs",
+        "crates/kiln-web-service/tests/engine/automation.rs"
+      ],
+      "summary": {
+        "assigned_ids": 10,
+        "linked_ids": 8,
+        "blocked_ids": 2,
+        "production_behavior_changes": 0,
+        "new_tests": 0,
+        "fresh_execution": false
+      }
+    }
+  }
+}

@@ -151,12 +151,14 @@ fn new_trigger_supersedes_active_and_queued_runs_when_configured() {
         &format!("/api/runs/{queued}"),
         Role::Operator,
     ));
+    // r[verify kiln.web.supersede.policy.scenario.on]
     assert_eq!(at(&superseded, "/outcome"), json!("Cancelled"));
     let superseded_active = value(&get(
         &mut engine,
         &format!("/api/runs/{running}"),
         Role::Operator,
     ));
+    // r[verify kiln.web.supersede.active.scenario.running]
     assert_eq!(at(&superseded_active, "/outcome"), json!("Cancelled"));
     assert_eq!(at(&superseded_active, "/error_code"), json!("superseded"));
     assert_eq!(backend.lock().controls, 1);
@@ -167,6 +169,377 @@ fn new_trigger_supersedes_active_and_queued_runs_when_configured() {
     ));
     assert_eq!(at(&current, "/phase"), json!("queued"));
     assert_eq!(backend.lock().dispatches, 2);
+}
+
+#[test]
+fn ignored_trigger_source_cannot_reclassify_a_matching_manual_start() {
+    let (root, profile, revision) = fixture();
+    let mut automation = policy(root.path());
+    checked(automation.triggers.first_mut().ok_or("trigger")).supersede_queued = true;
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let deleted = json!({"repository":repository(),"ref":"refs/heads/main",
+        "after":"0".repeat(40),"deleted":true});
+    let body = checked(serde_json::to_vec(&deleted));
+    let ignored = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000055", "push", &body),
+        &body,
+    ));
+    assert_eq!(ignored.status, 202);
+    let source = value(&ignored);
+    assert_eq!(at(&source, "/status"), "ignored");
+    let source_id = checked(at(&source, "/id").as_str().ok_or("source id")).to_owned();
+    let request_id = format!("automation-{}", blake3::hash(source_id.as_bytes()).to_hex());
+    let manual_body = json!({"project_id":"fixture","request_id":request_id,
+        "reference":"refs/heads/main","source_registration":"github"});
+    let manual = checked(engine.api(
+        "POST",
+        "/api/runs",
+        &checked(serde_json::to_vec(&manual_body)),
+        Role::Operator,
+    ));
+    assert_eq!(manual.status, 201);
+    let manual_path = format!(
+        "/api/runs/{}",
+        checked(at(&value(&manual), "/id").as_str().ok_or("manual id"))
+    );
+    let before = value(&get(&mut engine, &manual_path, Role::Operator));
+    let next = advance(&profile, "after-ignored-source");
+    let body = push(&next);
+    let newer = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000056", "push", &body),
+        &body,
+    ));
+    assert_eq!(newer.status, 202);
+    tick(&mut engine);
+    let after = value(&get(&mut engine, &manual_path, Role::Operator));
+    assert_eq!(at(&after, "/outcome"), at(&before, "/outcome"));
+    assert_eq!(at(&after, "/phase"), at(&before, "/phase"));
+    assert_eq!(at(&after, "/source_revision"), json!(revision));
+    let newest = value(&get(
+        &mut engine,
+        &format!("/api/runs/{}", run_id(&newer)),
+        Role::Operator,
+    ));
+    assert_eq!(at(&newest, "/phase"), "queued");
+    assert_eq!(at(&newest, "/source_revision"), json!(next));
+    assert_eq!(backend.lock().controls, 0);
+    assert_eq!(backend.lock().dispatches, 1);
+}
+
+fn retain_trigger_start_gap(root: &std::path::Path, source_id: &str, mismatch: bool) {
+    let connection = checked(rusqlite::Connection::open(
+        root.join("state/service.sqlite"),
+    ));
+    let bytes: Vec<u8> = checked(connection.query_row(
+        "SELECT state FROM service_state WHERE id=1",
+        [],
+        |row| row.get(0),
+    ));
+    let mut state: Value = checked(serde_json::from_slice(&bytes));
+    let wrong_fingerprint = at(&state, "/requests/enroll/fingerprint");
+    let source = checked(
+        state
+            .pointer_mut(&format!("/automation/sources/{source_id}"))
+            .ok_or("source"),
+    );
+    *checked(source.get_mut("status").ok_or("source status")) = json!("reserved");
+    *checked(source.get_mut("run_id").ok_or("source run")) = Value::Null;
+    let request_id = format!("automation-{}", blake3::hash(source_id.as_bytes()).to_hex());
+    let request = checked(
+        state
+            .pointer_mut(&format!("/requests/{request_id}"))
+            .ok_or("start request"),
+    );
+    assert_eq!(at(request, "/kind"), "start");
+    *checked(request.get_mut("response").ok_or("start response")) = Value::Null;
+    *checked(request.get_mut("status").ok_or("start status")) = json!(503);
+    if mismatch {
+        assert_ne!(at(request, "/fingerprint"), wrong_fingerprint);
+        *checked(request.get_mut("fingerprint").ok_or("start fingerprint")) = wrong_fingerprint;
+    }
+    checked(connection.execute(
+        "UPDATE service_state SET state=?1 WHERE id=1",
+        [checked(serde_json::to_vec(&state))],
+    ));
+}
+
+#[test]
+fn persisted_trigger_start_gap_is_superseded_without_late_replay_cancelling_newer() {
+    for queued in [false, true] {
+        let (root, profile, revision) = fixture();
+        let mut automation = policy(root.path());
+        checked(automation.triggers.first_mut().ok_or("trigger")).supersede_queued = true;
+        let backend = Arc::new(Mutex::new(Backend::default()));
+        let mut engine = open(profile.clone(), backend.clone());
+        enroll(&mut engine);
+        checked(engine.configure_automation(automation.clone()));
+        if queued {
+            assert_eq!(start(&mut engine, "gap-blocker").status, 201);
+        }
+        let body = push(&revision);
+        let first = checked(engine.automation_trigger(
+            "github",
+            &signed("00000000-0000-4000-8000-000000000051", "push", &body),
+            &body,
+        ));
+        assert_eq!(first.status, 202);
+        let source_id = checked(at(&value(&first), "/id").as_str().ok_or("source id")).to_owned();
+        let older_id = run_id(&first);
+        let older_path = format!("/api/runs/{older_id}");
+        let before = value(&get(&mut engine, &older_path, Role::Operator));
+        assert_eq!(at(&before, "/phase") == "queued", queued);
+        drop(engine);
+        // This is the durable boundary after Start reservation but before the
+        // enclosing source records the returned run link, not a new run.
+        retain_trigger_start_gap(root.path(), &source_id, false);
+        let mut engine = open(profile.clone(), backend.clone());
+        checked(engine.configure_automation(automation));
+        let next = advance(&profile, "after-start-gap");
+        let body = push(&next);
+        let newer = checked(engine.automation_trigger(
+            "github",
+            &signed("00000000-0000-4000-8000-000000000052", "push", &body),
+            &body,
+        ));
+        assert_eq!(newer.status, 202);
+        let newer_id = run_id(&newer);
+        let newer_path = format!("/api/runs/{newer_id}");
+        let cancelled = value(&get(&mut engine, &older_path, Role::Operator));
+        assert_eq!(at(&cancelled, "/outcome"), "Cancelled");
+        assert_eq!(at(&cancelled, "/error_code"), "superseded");
+        assert_eq!(at(&cancelled, "/superseded_by"), json!(newer_id));
+        assert_eq!(at(&cancelled, "/superseded_revision"), json!(next));
+        let latest = value(&get(&mut engine, &newer_path, Role::Operator));
+        assert_eq!(at(&latest, "/phase"), "queued");
+        assert_eq!(at(&latest, "/source_revision"), json!(next));
+        let older_ordinal = checked(at(&before, "/ordinal").as_u64().ok_or("older ordinal"));
+        let newer_ordinal = checked(at(&latest, "/ordinal").as_u64().ok_or("newer ordinal"));
+        assert!(older_ordinal < newer_ordinal);
+        assert_eq!(backend.lock().controls, usize::from(!queued));
+        tick(&mut engine);
+        let after_replay = value(&get(&mut engine, &newer_path, Role::Operator));
+        assert_eq!(at(&after_replay, "/phase"), "queued");
+        assert_eq!(at(&after_replay, "/outcome"), at(&latest, "/outcome"));
+        assert_eq!(at(&after_replay, "/source_revision"), json!(next));
+        let status = value(&get(&mut engine, "/api/automation", Role::Operator));
+        let sources = checked(
+            status
+                .get("sources")
+                .and_then(Value::as_array)
+                .ok_or("sources"),
+        );
+        let replayed = checked(
+            sources
+                .iter()
+                .find(|source| at(source, "/id") == json!(source_id))
+                .ok_or("replayed source"),
+        );
+        assert_eq!(at(replayed, "/run_id"), json!(older_id));
+        assert_eq!(backend.lock().controls, usize::from(!queued));
+        assert_eq!(backend.lock().dispatches, 1);
+    }
+}
+
+#[test]
+fn persisted_trigger_start_gap_with_mismatched_fingerprint_fails_closed() {
+    let (root, profile, revision) = fixture();
+    let mut automation = policy(root.path());
+    checked(automation.triggers.first_mut().ok_or("trigger")).supersede_queued = true;
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation.clone()));
+    let body = push(&revision);
+    let first = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000053", "push", &body),
+        &body,
+    ));
+    assert_eq!(first.status, 202);
+    let source_id = checked(at(&value(&first), "/id").as_str().ok_or("source id")).to_owned();
+    let older_path = format!("/api/runs/{}", run_id(&first));
+    let before = value(&get(&mut engine, &older_path, Role::Operator));
+    drop(engine);
+    retain_trigger_start_gap(root.path(), &source_id, true);
+    let mut engine = open(profile.clone(), backend.clone());
+    checked(engine.configure_automation(automation));
+    let next = advance(&profile, "after-mismatched-start");
+    let body = push(&next);
+    let newer = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000054", "push", &body),
+        &body,
+    ));
+    assert_eq!(newer.status, 202);
+    for replay_pending in [false, true] {
+        if replay_pending {
+            tick(&mut engine);
+        }
+        let unchanged = value(&get(&mut engine, &older_path, Role::Operator));
+        assert_eq!(at(&unchanged, "/phase"), at(&before, "/phase"));
+        assert_eq!(at(&unchanged, "/outcome"), at(&before, "/outcome"));
+        assert_eq!(at(&unchanged, "/source_revision"), json!(revision));
+        let latest = value(&get(
+            &mut engine,
+            &format!("/api/runs/{}", run_id(&newer)),
+            Role::Operator,
+        ));
+        assert_eq!(at(&latest, "/phase"), "queued");
+        assert_eq!(at(&latest, "/source_revision"), json!(next));
+        assert_eq!(backend.lock().controls, 0);
+        assert_eq!(backend.lock().dispatches, 1);
+    }
+}
+
+// r[verify kiln.web.supersede.identity.scenario.origin]
+#[test]
+fn same_id_schedule_survives_trigger_after_restart() {
+    for queued_schedule in [false, true] {
+        let (root, profile, revision) = fixture();
+        let mut automation = policy(root.path());
+        checked(automation.triggers.first_mut().ok_or("trigger")).supersede_queued = true;
+        let schedule = checked(automation.schedules.first_mut().ok_or("schedule"));
+        schedule.id = "github".into();
+        schedule.enabled = true;
+        schedule.next_due_ms = Some(1);
+        let backend = Arc::new(Mutex::new(Backend::default()));
+        let mut engine = open(profile.clone(), backend.clone());
+        enroll(&mut engine);
+        checked(engine.configure_automation(automation.clone()));
+        let manual = queued_schedule.then(|| {
+            let response = call(
+                &mut engine,
+                "POST",
+                "/api/runs",
+                json!({"project_id":"fixture","request_id":"schedule-blocker"}),
+                Role::Operator,
+            );
+            assert_eq!(response.status, 201);
+            let run = value(&response);
+            let id = checked(at(&run, "/id").as_str().ok_or("manual id")).to_owned();
+            (id, run)
+        });
+        tick(&mut engine);
+        let status = value(&get(&mut engine, "/api/automation", Role::Operator));
+        let sources = checked(
+            status
+                .get("sources")
+                .and_then(Value::as_array)
+                .ok_or("sources"),
+        );
+        let scheduled = checked(
+            sources
+                .iter()
+                .find(|source| at(source, "/kind") == "schedule")
+                .ok_or("scheduled source"),
+        );
+        let scheduled_id =
+            checked(at(scheduled, "/run_id").as_str().ok_or("scheduled run")).to_owned();
+        let path = format!("/api/runs/{scheduled_id}");
+        let before = value(&get(&mut engine, &path, Role::Operator));
+        assert_eq!(at(&before, "/source_revision"), json!(revision));
+        if queued_schedule {
+            assert_eq!(at(&before, "/phase"), "queued");
+        } else {
+            assert_ne!(at(&before, "/phase"), "queued");
+            assert_ne!(at(&before, "/outcome"), "Cancelled");
+        }
+        // Reload the pre-fix representation: its registration string alone
+        // cannot distinguish this schedule from the same-id webhook.
+        drop(engine);
+        let mut engine = open(profile.clone(), backend.clone());
+        checked(engine.configure_automation(automation));
+        let next = advance(&profile, "after-schedule");
+        let body = push(&next);
+        let response = checked(engine.automation_trigger(
+            "github",
+            &signed("00000000-0000-4000-8000-000000000041", "push", &body),
+            &body,
+        ));
+        assert_eq!(response.status, 202);
+        let after = value(&get(&mut engine, &path, Role::Operator));
+        assert_eq!(at(&after, "/phase"), at(&before, "/phase"));
+        assert_eq!(at(&after, "/outcome"), at(&before, "/outcome"));
+        assert_eq!(at(&after, "/source_revision"), json!(revision));
+        assert_eq!(backend.lock().controls, 0);
+        let newest = value(&get(
+            &mut engine,
+            &format!("/api/runs/{}", run_id(&response)),
+            Role::Operator,
+        ));
+        assert_eq!(at(&newest, "/phase"), "queued");
+        assert_eq!(at(&newest, "/source_revision"), json!(next));
+        if let Some((id, before)) = manual {
+            let after = value(&get(
+                &mut engine,
+                &format!("/api/runs/{id}"),
+                Role::Operator,
+            ));
+            assert_eq!(at(&after, "/phase"), at(&before, "/phase"));
+            assert_eq!(at(&after, "/outcome"), at(&before, "/outcome"));
+        }
+        assert_eq!(backend.lock().dispatches, 1);
+    }
+}
+
+// r[verify kiln.web.supersede.identity.scenario.origin]
+#[test]
+fn same_id_schedule_arrival_does_not_supersede_trigger() {
+    let (root, profile, revision) = fixture();
+    let mut automation = policy(root.path());
+    checked(automation.triggers.first_mut().ok_or("trigger")).supersede_queued = true;
+    let schedule = checked(automation.schedules.first_mut().ok_or("schedule"));
+    schedule.id = "github".into();
+    schedule.enabled = true;
+    schedule.next_due_ms = Some(1);
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    checked(engine.configure_automation(automation));
+    let body = push(&revision);
+    let response = checked(engine.automation_trigger(
+        "github",
+        &signed("00000000-0000-4000-8000-000000000042", "push", &body),
+        &body,
+    ));
+    assert_eq!(response.status, 202);
+    let path = format!("/api/runs/{}", run_id(&response));
+    let before = value(&get(&mut engine, &path, Role::Operator));
+    let next = advance(&profile, "before-schedule");
+    tick(&mut engine);
+    let after = value(&get(&mut engine, &path, Role::Operator));
+    assert_eq!(at(&after, "/phase"), at(&before, "/phase"));
+    assert_eq!(at(&after, "/outcome"), at(&before, "/outcome"));
+    assert_ne!(at(&after, "/outcome"), "Cancelled");
+    assert_eq!(at(&after, "/source_revision"), json!(revision));
+    let status = value(&get(&mut engine, "/api/automation", Role::Operator));
+    let sources = checked(
+        status
+            .get("sources")
+            .and_then(Value::as_array)
+            .ok_or("sources"),
+    );
+    let scheduled = checked(
+        sources
+            .iter()
+            .find(|source| at(source, "/kind") == "schedule")
+            .ok_or("scheduled source"),
+    );
+    let scheduled_id = checked(at(scheduled, "/run_id").as_str().ok_or("scheduled run")).to_owned();
+    let scheduled_run = value(&get(
+        &mut engine,
+        &format!("/api/runs/{scheduled_id}"),
+        Role::Operator,
+    ));
+    assert_eq!(at(&scheduled_run, "/phase"), "queued");
+    assert_eq!(at(&scheduled_run, "/source_revision"), json!(next));
+    assert_eq!(backend.lock().controls, 0);
+    assert_eq!(backend.lock().dispatches, 1);
 }
 
 #[test]
@@ -274,6 +647,7 @@ fn pull_request_supersession_is_scoped_to_one_pull_request() {
         &format!("/api/runs/{first_id}"),
         Role::Operator,
     ));
+    // r[verify kiln.web.supersede.identity.scenario.pull_request]
     assert_ne!(at(&first_run, "/outcome"), json!("Cancelled"));
     assert_eq!(
         at(

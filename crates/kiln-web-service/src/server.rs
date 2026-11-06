@@ -1014,6 +1014,7 @@ fn is_feed_token(value: &str) -> bool {
 }
 
 // r[impl kiln.web.feeds.subscriptions.scenario.viewer]
+// r[impl kiln.web.feeds.ui.scenario.search]
 fn feed_query(target: &str) -> Result<Option<String>, ()> {
     let Some((_, query)) = target.split_once('?') else {
         return Ok(None);

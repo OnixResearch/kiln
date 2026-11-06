@@ -1,0 +1,14 @@
+{
+  "schema": "kiln.readiness.feature-acceptance.v1",
+  "date": "2026-11-06",
+  "change": "publish-radicle-job-cobs",
+  "status": "local-feature-complete",
+  "owner": "Kiln maintainers",
+  "outcome": "Governed feature delta synchronized; references reconciled against implementation and bounded evidence; final full-source verification passed.",
+  "durable_capability": "Maintained accepted requirements with explicit implementation/verification linkage and repeatable source gates.",
+  "source_verification": ".cairn/changes/reconcile-readiness-and-qualification/evidence/source-gates-verified.json",
+  "link_classification": ".cairn/changes/reconcile-readiness-and-qualification/evidence/promoted-link-classification.json",
+  "sync_executions": ".cairn/changes/reconcile-readiness-and-qualification/evidence/sync-executions.json",
+  "supersedes_pending_notes": "Earlier readiness-verification/reconciliation receipts retain historical pending observations; this fresh acceptance records their locally completed source verification.",
+  "qualification_boundary": "No patched-host hostile execution, CAT, distinct physical host, publication, deployment or operator release authorization is inferred. Those qualification tasks remain active in reconcile-readiness-and-qualification."
+}

@@ -128,7 +128,14 @@ where
 {
     let listener = TcpListener::bind(admitted.config.listen_address)
         .map_err(|_| infrastructure("github_listen", "GitHub webhook listener could not bind"))?;
-    serve_on(admitted, webhook_secret, service, stop, listener)
+    serve_on(
+        admitted,
+        webhook_secret,
+        service,
+        stop,
+        listener,
+        Arc::new(AtomicUsize::new(0)),
+    )
 }
 
 pub(crate) fn serve_on<W, P>(
@@ -137,6 +144,7 @@ pub(crate) fn serve_on<W, P>(
     mut service: GithubService<W, P>,
     stop: Arc<AtomicBool>,
     listener: TcpListener,
+    active: Arc<AtomicUsize>,
 ) -> PortResult<()>
 where
     W: kiln_provider_api::WorkflowPort + Send + 'static,
@@ -171,7 +179,6 @@ where
             }
         })
         .map_err(|_| infrastructure("github_worker", "GitHub worker could not start"))?;
-    let active = Arc::new(AtomicUsize::new(0));
     let (sender, receiver) =
         std::sync::mpsc::sync_channel::<(TcpStream, Instant)>(admitted.config.maximum_connections);
     let receiver = Arc::new(Mutex::new(receiver));

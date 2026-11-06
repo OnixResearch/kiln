@@ -1,0 +1,338 @@
+{
+  "schema": "kiln.readiness.origin-consumer.v1",
+  "date": "2026-11-06",
+  "owner": "Kiln web-service maintainers",
+  "outcome": "Three-process standalone consumer passed real persisted queued schedule/manual exclusions, exact durable Start missing-link recovery and late replay preserving the newer trigger.",
+  "boundary": "Real Engine and SQLite state, native disposable local Git, signed admission; controlled WorkflowPort. No native Lattice workload, HTTPS listener or host qualification.",
+  "hashes": [
+    "65783856a009d309b200f3c6b84d3dc2b706237f9d5ee102447764b78ecd0fc0  /home/brittonr/.cargo-target/debug/kiln-origin-consumer",
+    "ea38e5b28c3d1634d355502b96cc374ffa59d1ebcff68c86366bd8a89b72205b  /tmp/kiln-origin-consumer.d7avmz1J/src/main.rs",
+    "2755f71428ddf512a3d19ff26ae5a85e02f484d370ac927871cd94dec63f0ee7  /tmp/kiln-origin-consumer.d7avmz1J/Cargo.toml",
+    "9fd7957d458b86777541b392331bbe1e509c4e2ced507bf6105f33301d6fc8d5  /tmp/kiln-origin-consumer.d7avmz1J/Cargo.lock"
+  ],
+  "recipe": {
+    "compiler": "rustc 1.88.0",
+    "instructions": "Create an out-of-tree package with these source files; adjust only repository paths in Cargo.toml to the checkout under verification. Copy its root Cargo.lock into the disposable package; run run.sh with Rust 1.88, existing native pkg-config/OpenSSL environment and a private, initially absent runtime directory. The native Git helper explicitly bypasses global config and signing.",
+    "files": {
+      "Cargo.toml": "[package]\nname = \"kiln-origin-consumer\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[dependencies]\nkiln-web-service = { path = \"/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service\" }\nkiln-core = { path = \"/home/brittonr/git/OnixResearch/kiln/crates/kiln-core\" }\nkiln-provider-api = { path = \"/home/brittonr/git/OnixResearch/kiln/crates/kiln-provider-api\" }\nkiln-adapter-github = { path = \"/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github\" }\nserde_json = \"1.0.145\"\nhmac = \"0.12.1\"\nsha2 = \"0.10.9\"\nlibc = \"0.2\"\nrusqlite = { version = \"=0.40.2\", default-features = false, features = [\"bundled\"] }\n\n[patch.\"ssh://git@github.com/OnixResearch/onix-artifact.git\"]\nartifact-auth-core = { path = \"/home/brittonr/git/OnixResearch/kiln/vendor/artifact/crates/artifact-auth-core\" }\n",
+      "src/main.rs": "use hmac::{Hmac, Mac};\nuse kiln_adapter_github::events::DeliveryHeaders;\nuse kiln_core::{domain::Outcome, provider::CapabilityProfile, types::{EffectId, ExternalRef}, workflow::*};\nuse kiln_provider_api::{WorkflowPort, PortResult};\nuse kiln_web_service::{automation::AutomationProfile, engine::{Engine, Role}, profile::ServiceProfile};\nuse serde_json::{json, Value};\nuse sha2::Sha256;\nuse std::{collections::BTreeMap, fs, os::unix::fs::PermissionsExt, path::{Path, PathBuf}, process::Command};\n\n// Deliberately controlled execution fixture: never connects a socket, starts a\n// workload, or claims Lattice, confinement, or physical-host qualification.\nstruct ControlledPeer { profile: CapabilityProfile, root: PathBuf }\nfn load(path: &Path) -> Value { serde_json::from_slice(&fs::read(path).unwrap()).unwrap() }\nfn save(path: &Path, value: &Value) { fs::write(path, serde_json::to_vec_pretty(value).unwrap()).unwrap(); }\nfn observation(plan: &WorkflowEffectPlan) -> WorkflowObservation {\n    WorkflowObservation {\n        effect_id: plan.effect_id.clone(), attempt_id: plan.attempt_id.clone(),\n        candidate_id: plan.candidate_id.clone(), pipeline_revision_id: plan.pipeline_revision_id.clone(),\n        workflow_policy_id: plan.workflow_policy_id.clone(), provider_profile: plan.provider_profile.clone(),\n        idempotency_key: plan.idempotency_key.clone(),\n        workflow: ExternalRef::new(\"lattice\", \"workflow\", \"controlled-origin-fixture\").unwrap(),\n        execution: ExternalRef::new(\"lattice\", \"execution\", \"controlled-blocker\").unwrap(),\n        sequence: 0, state: WorkflowState::Running, terminal: false,\n        successful: false, outcome: Outcome::Pending,\n        nodes: plan.nodes.iter().map(|node| WorkflowNodeObservation {\n            node_id: node.id.clone(), state: WorkflowNodeState::Running, terminal: false, successful: false,\n            adapter: ExternalRef::new(\"lattice\", \"adapter\", \"controlled-fixture\").unwrap(), receipt: None,\n        }).collect(), logs: vec![], receipt: None,\n    }\n}\nimpl ControlledPeer {\n    fn record(&self, kind: &str) {\n        let path = self.root.join(\"peer-counts.json\");\n        let mut counts = load(&path);\n        counts[kind] = json!(counts[kind].as_u64().unwrap() + 1);\n        save(&path, &counts);\n    }\n    fn plan(&self) -> WorkflowEffectPlan {\n        serde_json::from_slice(&fs::read(self.root.join(\"peer-plan.json\")).unwrap()).unwrap()\n    }\n}\nimpl WorkflowPort for ControlledPeer {\n    fn profile(&self) -> &CapabilityProfile { &self.profile }\n    fn dispatch(&mut self, plan: &WorkflowEffectPlan) -> PortResult<WorkflowObservation> {\n        self.record(\"dispatches\");\n        fs::write(self.root.join(\"peer-plan.json\"), serde_json::to_vec(plan).unwrap()).unwrap();\n        Ok(observation(plan))\n    }\n    fn recover_dispatch(&mut self, plan: &WorkflowEffectPlan) -> PortResult<WorkflowObservation> {\n        self.record(\"recoveries\");\n        assert_eq!(serde_json::to_value(plan).unwrap(), serde_json::to_value(self.plan()).unwrap());\n        Ok(observation(plan))\n    }\n    fn observe(&mut self, id: &EffectId) -> PortResult<WorkflowObservation> {\n        let plan = self.plan(); assert_eq!(id, &plan.effect_id); Ok(observation(&plan))\n    }\n    fn control(&mut self, _: &WorkflowControlRequest) -> PortResult<WorkflowObservation> {\n        self.record(\"controls\");\n        panic!(\"origin scenario must never control the manual active execution\")\n    }\n    fn reconcile(&mut self, id: &EffectId) -> PortResult<WorkflowObservation> { self.observe(id) }\n    fn read_log(&mut self, _: &WorkflowLogReadRequest) -> PortResult<WorkflowLogChunk> {\n        panic!(\"consumer never requests fixture logs\")\n    }\n}\nfn git(root: &Path, args: &[&str]) -> String {\n    let result = Command::new(\"git\").arg(\"-C\").arg(root.join(\"source\"))\n        .args(args).env(\"GIT_CONFIG_NOSYSTEM\", \"1\").env(\"GIT_CONFIG_GLOBAL\", \"/dev/null\")\n        .env(\"GIT_AUTHOR_NAME\", \"Disposable Origin Consumer\")\n        .env(\"GIT_AUTHOR_EMAIL\", \"origin@example.invalid\")\n        .env(\"GIT_COMMITTER_NAME\", \"Disposable Origin Consumer\")\n        .env(\"GIT_COMMITTER_EMAIL\", \"origin@example.invalid\").output().unwrap();\n    assert!(result.status.success(), \"git {args:?}: {}\", String::from_utf8_lossy(&result.stderr));\n    String::from_utf8(result.stdout).unwrap().trim().to_owned()\n}\nfn commit(root: &Path, text: &str) -> String {\n    fs::write(root.join(\"source/input.txt\"), text).unwrap();\n    git(root, &[\"add\", \"input.txt\"]);\n    git(root, &[\"-c\", \"commit.gpgsign=false\", \"commit\", \"-m\", text]);\n    git(root, &[\"rev-parse\", \"HEAD\"])\n}\nfn request(engine: &mut Engine, method: &str, path: &str, body: Value, expected: u16) -> Value {\n    let bytes = if method == \"GET\" { Vec::new() } else { serde_json::to_vec(&body).unwrap() };\n    let response = engine.api(method, path, &bytes, Role::Operator).unwrap();\n    let value: Value = serde_json::from_slice(&response.body).unwrap();\n    assert_eq!(response.status, expected, \"{method} {path}: {value}\"); value\n}\nfn run(engine: &mut Engine, id: &Value) -> Value {\n    request(engine, \"GET\", &format!(\"/api/runs/{}\", id.as_str().unwrap()), Value::Null, 200)\n}\nfn open(root: &Path) -> Engine {\n    let profile: ServiceProfile = serde_json::from_value(load(&root.join(\"profile.json\"))).unwrap();\n    let peer = ControlledPeer { profile: profile.projects[0].lattice(profile.bounds.max_runs).unwrap().provider, root: root.into() };\n    let ports: BTreeMap<String, Box<dyn WorkflowPort + Send>> = BTreeMap::from([(\"fixture\".into(), Box::new(peer) as Box<dyn WorkflowPort + Send>)]);\n    let mut engine = Engine::open_with_ports(profile, ports).unwrap();\n    let automation: AutomationProfile = serde_json::from_value(load(&root.join(\"automation.json\"))).unwrap();\n    engine.configure_automation(automation).unwrap(); engine\n}\nfn trigger(engine: &mut Engine, revision: &str, delivery: &str) -> Value {\n    let body = serde_json::to_vec(&json!({\"repository\":{\"id\":42,\"name\":\"source\",\"full_name\":\"fixture/source\",\"owner\":{\"login\":\"fixture\"}},\"ref\":\"refs/heads/main\",\"after\":revision,\"deleted\":false})).unwrap();\n    let mut mac = Hmac::<Sha256>::new_from_slice(b\"throwaway-origin-fixture-secret\").unwrap();\n    mac.update(&body);\n    let signature: String = mac.finalize().into_bytes().iter().map(|b| format!(\"{b:02x}\")).collect();\n    let response = engine.automation_trigger(\"shared-origin\", &DeliveryHeaders {delivery: delivery.into(), event: \"push\".into(), signature: format!(\"sha256={signature}\")}, &body).unwrap();\n    assert_eq!(response.status, 202, \"{}\", String::from_utf8_lossy(&response.body));\n    serde_json::from_slice(&response.body).unwrap()\n}\nfn main() {\n    let args: Vec<String> = std::env::args().collect();\n    assert_eq!(args.len(), 3, \"usage: kiln-origin-consumer prepare|deliver|verify ROOT\");\n    let root = Path::new(&args[2]);\n    match args[1].as_str() {\n        \"prepare\" => {\n            fs::create_dir(root).unwrap();\n            fs::set_permissions(root, fs::Permissions::from_mode(0o700)).unwrap();\n            fs::create_dir(root.join(\"source\")).unwrap();\n            git(root, &[\"init\", \"--initial-branch=main\"]);\n            let revision = commit(root, \"initial exact source\");\n            fs::write(root.join(\"trigger.secret\"), b\"throwaway-origin-fixture-secret\").unwrap();\n            fs::set_permissions(root.join(\"trigger.secret\"), fs::Permissions::from_mode(0o600)).unwrap();\n            save(&root.join(\"profile.json\"), &json!({\n                \"schema\":\"kiln.web-service.v1\",\"service_id\":\"origin-consumer\",\"listen_address\":\"127.0.0.1:9443\",\"origin\":\"https://localhost:9443\",\n                \"tls\":{\"certificate_path\":root.join(\"unused-cert.pem\"),\"private_key_path\":root.join(\"unused-key.pem\"),\"min_version\":\"TLS1.3\"},\n                \"operator_token_file\":root.join(\"unused-operator.token\"),\"worker_token_file\":root.join(\"unused-worker.token\"),\"state_directory\":root.join(\"state\"),\n                \"projects\":[{\"id\":\"fixture\",\"label\":\"Disposable origin consumer\",\"repository_path\":root.join(\"source\"),\"reference\":\"refs/heads/main\",\n                    \"source_limits\":{\"max_entries\":32,\"max_path_bytes\":1024,\"max_file_bytes\":4096,\"max_total_bytes\":16384},\n                    \"workflow\":{\"socket_path\":root.join(\"not-used.sock\"),\"allowed_user_ids\":[unsafe {libc::geteuid()}],\n                        \"transport_limits\":{\"maximum_frame_bytes\":1048576,\"maximum_log_bytes\":65536,\"maximum_connections\":4,\"read_deadline_milliseconds\":1000,\"write_deadline_milliseconds\":1000},\n                        \"adapter_limits\":{\"maximum_request_bytes\":1048576,\"maximum_response_bytes\":1048576},\"policy_id\":\"reviewed-policy\",\"provider_profile_id\":\"reviewed-lattice\",\"platform\":\"linux-x86_64\",\n                        \"nodes\":[{\"id\":\"job\",\"kind\":\"test\",\"effect_class\":\"test\",\"adapter_kind\":\"local\",\"operation_identity\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}],\"edges\":[],\n                        \"controls\":{\"cancel\":true,\"pause\":false,\"resume\":false},\"bounds\":{\"max_nodes\":8,\"max_edges\":16,\"max_log_references\":32,\"max_log_read_bytes\":4096,\"max_total_log_bytes\":65536}}}],\n                \"bounds\":{\"max_request_bytes\":16384,\"max_response_bytes\":1048576,\"max_header_bytes\":4096,\"max_connections\":4,\"timeout_seconds\":2,\"poll_interval_ms\":10,\"max_projects\":2,\"max_runs\":16,\"max_artifact_bytes\":1024,\"max_artifacts\":2,\"max_run_artifact_bytes\":2048,\"max_total_artifact_bytes\":4096,\"max_log_read_bytes\":4096,\"max_requests\":64,\"max_events_per_run\":8,\"max_state_bytes\":1048576}\n            }));\n            save(&root.join(\"automation.json\"), &json!({\"schema\":\"kiln.web-automation.v1\",\"max_records\":100,\"status_limit\":20,\"max_event_bytes\":65536,\"max_tick_effects\":2,\n                \"triggers\":[{\"id\":\"shared-origin\",\"project_id\":\"fixture\",\"reference\":\"refs/heads/main\",\"repository\":{\"owner\":\"fixture\",\"repository\":\"source\",\"repository_id\":42,\"allow_fork_pull_requests\":false},\"secret_file\":root.join(\"trigger.secret\"),\"enabled\":true,\"push\":true,\"pull_request\":false,\"pull_request_base\":\"main\",\"supersede_queued\":true}],\n                \"schedules\":[{\"id\":\"shared-origin\",\"project_id\":\"fixture\",\"reference\":\"refs/heads/main\",\"enabled\":true,\"interval_ms\":3600000,\"min_interval_ms\":1000,\"max_interval_ms\":3600000,\"next_due_ms\":1}],\"notifications\":[]}));\n            save(&root.join(\"peer-counts.json\"), &json!({\"dispatches\":0,\"controls\":0,\"recoveries\":0}));\n            let mut engine = open(root);\n            request(&mut engine,\"POST\",\"/api/projects\",json!({\"project_id\":\"fixture\",\"request_id\":\"consumer-enroll\"}),200);\n            let manual = request(&mut engine,\"POST\",\"/api/runs\",json!({\"project_id\":\"fixture\",\"request_id\":\"manual-capacity-blocker\"}),201);\n            assert!(engine.tick_automation().unwrap().is_empty());\n            let status = request(&mut engine,\"GET\",\"/api/automation\",Value::Null,200);\n            let source = status[\"sources\"].as_array().unwrap().iter().find(|s| s[\"kind\"] == \"schedule\").unwrap().clone();\n            assert_eq!(source[\"registration_id\"], \"shared-origin\");\n            let schedule = run(&mut engine, &source[\"run_id\"]);\n            assert_eq!(schedule[\"phase\"], \"queued\"); assert_eq!(schedule[\"source_revision\"], revision);\n            save(&root.join(\"prepared.json\"), &json!({\"manual\":manual,\"schedule\":schedule,\"schedule_source\":source,\"initial_revision\":revision}));\n            drop(engine);\n            println!(\"{}\",json!({\"stage\":\"prepare\",\"result\":\"queued schedule durably retained; process exits before webhook delivery\",\"prepared\":load(&root.join(\"prepared.json\")),\"peer\":load(&root.join(\"peer-counts.json\"))}));\n        }\n        \"deliver\" => {\n            let prepared = load(&root.join(\"prepared.json\"));\n            let mut engine = open(root);\n            assert_eq!(run(&mut engine,&prepared[\"schedule\"][\"id\"]), prepared[\"schedule\"]);\n            assert_eq!(run(&mut engine,&prepared[\"manual\"][\"id\"]), prepared[\"manual\"]);\n            let revision1 = commit(root,\"first signed trigger source\");\n            let first = trigger(&mut engine,&revision1,\"10000000-0000-4000-8000-000000000001\");\n            let first_run = run(&mut engine,&first[\"run_id\"]);\n            assert_eq!(first_run[\"phase\"],\"queued\"); assert_eq!(first_run[\"source_revision\"],revision1);\n            assert_ne!(first_run[\"id\"],prepared[\"schedule\"][\"id\"]);\n            assert_eq!(run(&mut engine,&prepared[\"schedule\"][\"id\"]),prepared[\"schedule\"]);\n            drop(engine);\n            {\n                let connection = rusqlite::Connection::open(root.join(\"state/service.sqlite\")).unwrap();\n                let bytes: Vec<u8> = connection.query_row(\"SELECT state FROM service_state WHERE id=1\", [], |r| r.get(0)).unwrap();\n                let mut state: Value = serde_json::from_slice(&bytes).unwrap();\n                let source = &mut state[\"automation\"][\"sources\"][first[\"id\"].as_str().unwrap()];\n                source[\"status\"] = json!(\"reserved\");\n                source[\"run_id\"] = Value::Null;\n                let prior = state[\"requests\"].as_object_mut().unwrap().values_mut()\n                    .find(|r| r[\"kind\"] == \"start\" && r[\"resource\"] == first[\"run_id\"]).unwrap();\n                prior[\"response\"] = Value::Null;\n                prior[\"status\"] = json!(503);\n                connection.execute(\"UPDATE service_state SET state=?1 WHERE id=1\", [serde_json::to_vec(&state).unwrap()]).unwrap();\n            }\n            let mut engine = open(root);\n            let revision2 = commit(root,\"newer signed trigger source\");\n            let second = trigger(&mut engine,&revision2,\"10000000-0000-4000-8000-000000000002\");\n            let newest = run(&mut engine,&second[\"run_id\"]);\n            let superseded = run(&mut engine,&first[\"run_id\"]);\n            assert_eq!(superseded[\"outcome\"],\"Cancelled\");\n            assert_eq!(superseded[\"superseded_by\"],second[\"run_id\"]);\n            assert_eq!(superseded[\"superseded_revision\"],revision2);\n            assert_eq!(superseded[\"source_revision\"],revision1);\n            assert_eq!(newest[\"phase\"],\"queued\"); assert_eq!(newest[\"source_revision\"],revision2);\n            assert_ne!(newest[\"id\"],first[\"run_id\"]);\n            assert_eq!(run(&mut engine,&prepared[\"schedule\"][\"id\"]),prepared[\"schedule\"]);\n            assert_eq!(run(&mut engine,&prepared[\"manual\"][\"id\"]),prepared[\"manual\"]);\n            assert!(engine.tick_automation().unwrap().is_empty());\n            let replayed_newest = run(&mut engine,&second[\"run_id\"]);\n            assert_eq!(replayed_newest[\"phase\"], \"queued\");\n            assert_eq!(replayed_newest[\"source_revision\"], revision2);\n            assert_ne!(replayed_newest[\"outcome\"], \"Cancelled\");\n            let status = request(&mut engine,\"GET\",\"/api/automation\",Value::Null,200);\n            let schedule_source = status[\"sources\"].as_array().unwrap().iter().find(|s| s[\"id\"] == prepared[\"schedule_source\"][\"id\"]).unwrap();\n            assert_eq!(schedule_source,&prepared[\"schedule_source\"]);\n            for id in [&first[\"run_id\"],&second[\"run_id\"]] {\n                assert!(status[\"sources\"].as_array().unwrap().iter().any(|s| s[\"kind\"] == \"trigger\" && s[\"registration_id\"] == \"shared-origin\" && &s[\"run_id\"] == id));\n            }\n            let counts = load(&root.join(\"peer-counts.json\"));\n            assert_eq!(counts[\"dispatches\"],1); assert_eq!(counts[\"controls\"],0);\n            let proof = json!({\"durable_start_gap_exercised\":true,\"late_source_replay_exercised\":true,\"schedule\":prepared[\"schedule\"],\"manual\":prepared[\"manual\"],\"superseded\":superseded,\"newest\":replayed_newest,\"automation\":status,\"peer\":counts});\n            save(&root.join(\"delivered.json\"),&proof);\n            drop(engine);\n            println!(\"{}\",json!({\"stage\":\"deliver\",\"result\":\"same-id schedule unchanged; older trigger superseded by exact newer trigger; no execution controls\",\"proof\":proof}));\n        }\n        \"verify\" => {\n            let proof = load(&root.join(\"delivered.json\"));\n            let mut engine = open(root);\n            for key in [\"manual\",\"schedule\",\"superseded\",\"newest\"] {\n                assert_eq!(run(&mut engine,&proof[key][\"id\"]),proof[key],\"persisted run {key}\");\n            }\n            assert_eq!(load(&root.join(\"peer-counts.json\"))[\"controls\"],0);\n            assert_eq!(git(root,&[\"rev-parse\",\"HEAD\"]),proof[\"newest\"][\"source_revision\"].as_str().unwrap());\n            let receipt = json!({\"passed\":true,\"boundary\":\"Real Engine, native local Git source, signed trigger admission, durable on-disk state, three separate consumer processes. Controlled WorkflowPort only; no real Lattice, HTTPS listener, workload execution or host confinement qualification.\",\"proof\":proof});\n            save(&root.join(\"receipt.json\"),&receipt);\n            println!(\"{receipt}\");\n        }\n        _ => panic!(\"unknown stage\"),\n    }\n}\n",
+      "run.sh": "#!/usr/bin/env bash\nset -euo pipefail\n# Parent-only build/run entrypoint. This worker has NOT executed this script.\n# Source package is outside the checkout; state is disposable and unique.\npackage=/tmp/kiln-origin-consumer.d7avmz1J\nstate=\"$package/runtime\"\nif [[ -e \"$state\" ]]; then\n  printf 'Refusing to reuse existing runtime state: %s\\n' \"$state\" >&2\n  exit 1\nfi\nexport CARGO_TARGET_DIR=\"${CARGO_TARGET_DIR:-/home/brittonr/.cargo-target}\"\n\"${CARGO:-cargo}\" build --offline --manifest-path \"$package/Cargo.toml\"\nbinary=\"$CARGO_TARGET_DIR/debug/kiln-origin-consumer\"\n\"$binary\" prepare \"$state\" | tee \"$package/prepare-output.json\"\n\"$binary\" deliver \"$state\" | tee \"$package/deliver-output.json\"\n\"$binary\" verify \"$state\" | tee \"$package/verify-output.json\"\nprintf 'Receipt: %s\\n' \"$state/receipt.json\"\n# Intentionally retain this unique /tmp tree for parent evidence handoff.\n# Once receipt/output is archived, parent may remove this exact staging tree.\n"
+    }
+  },
+  "receipt": {
+    "boundary": "Real Engine, native local Git source, signed trigger admission, durable on-disk state, three separate consumer processes. Controlled WorkflowPort only; no real Lattice, HTTPS listener, workload execution or host confinement qualification.",
+    "passed": true,
+    "proof": {
+      "automation": {
+        "configured": true,
+        "deliveries": [],
+        "notifications": [],
+        "policy_identity": "aa9dd2c8bb7193c7fdbac8e133974aea9de0489d1a77a09fd1c3763abd578324",
+        "retention": {
+          "deliveries": 0,
+          "max_records": 100,
+          "requests": 0,
+          "sources": 3
+        },
+        "schedules": [
+          {
+            "cron": null,
+            "enabled": true,
+            "id": "shared-origin",
+            "interval_ms": 3600000,
+            "last_fired_ms": null,
+            "last_status": "queued",
+            "max_interval_ms": 3600000,
+            "min_interval_ms": 1000,
+            "next_due_ms": 1793988000001,
+            "project_id": "fixture",
+            "reference": "refs/heads/main",
+            "resolved_cron": null
+          }
+        ],
+        "sources": [
+          {
+            "affected": null,
+            "changed": null,
+            "error_code": null,
+            "filter": null,
+            "id": "3f8ba3f0b64bec042193bb15292d5910befb801e0582c27757e5b0b0f76dcce7",
+            "kind": "trigger",
+            "project_id": "fixture",
+            "received_at_ms": 1793985630674,
+            "registration_id": "shared-origin",
+            "run_id": "web-run-ffe1b2533e6ff61e2acb99f67b4123e8bf83f679827f191bd7aeb0421ea7d9f8",
+            "source_revision": "7cbaa4e5571774eab88fa75d5f51e986c4d8e77f",
+            "status": "queued"
+          },
+          {
+            "affected": null,
+            "changed": null,
+            "error_code": null,
+            "filter": null,
+            "id": "9950a7a4165c6b85e3b79fcf6f731bf7ea7244928a6f0c304b53ea3ac6a7d15f",
+            "kind": "trigger",
+            "project_id": "fixture",
+            "received_at_ms": 1793985630656,
+            "registration_id": "shared-origin",
+            "run_id": "web-run-9d48ff5eb504fa984a9115bcea796133b353b4137a9eac50203b52956218755d",
+            "source_revision": "a4e4372e8b20f94de75be1d1ba8ae93f01b63063",
+            "status": "queued"
+          },
+          {
+            "affected": null,
+            "changed": null,
+            "error_code": null,
+            "filter": null,
+            "id": "3e00f2b3b9f375c693193dcad790c921b8840599dd45ac6e3ae6b5c01da81e1f",
+            "kind": "schedule",
+            "project_id": "fixture",
+            "received_at_ms": 1793985630626,
+            "registration_id": "shared-origin",
+            "run_id": "web-run-a5f13ab2347a0ad9f021cf1bbc14482b4fd75f3b4ac72564d4c703c773d81a5a",
+            "source_revision": null,
+            "status": "queued"
+          }
+        ],
+        "status": "enabled",
+        "triggers": [
+          {
+            "allow_pull_request": false,
+            "allow_push": true,
+            "enabled": true,
+            "filter": {},
+            "id": "shared-origin",
+            "last_status": "queued",
+            "project_id": "fixture",
+            "pull_request": false,
+            "push": true,
+            "reference": "refs/heads/main",
+            "scope": null
+          }
+        ]
+      },
+      "durable_start_gap_exercised": true,
+      "late_source_replay_exercised": true,
+      "manual": {
+        "attempt_id": "web-attempt-dd0e9e3aa39376b8eed158977198fda0c9a38c29157370eb28993f5b6c4590f1",
+        "canonical_tree": "e698875f6c63dfe2a02b129d391e46e96315dee3570a364e7f2f36917e8b973d",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793985630624,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": {
+          "contract_version": 1,
+          "native_id": "controlled-blocker",
+          "native_kind": "execution",
+          "provider_namespace": "lattice"
+        },
+        "id": "web-run-dd0e9e3aa39376b8eed158977198fda0c9a38c29157370eb28993f5b6c4590f1",
+        "log_bounds": {
+          "maximum_chunk_bytes": 4096,
+          "maximum_chunks": 32,
+          "maximum_total_bytes": 65536
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "job",
+            "kind": "test",
+            "started_at_ms": 1793985630625,
+            "state": "Running"
+          }
+        ],
+        "ordinal": 6,
+        "outcome": "Pending",
+        "parent_run_id": null,
+        "phase": "active",
+        "project_id": "fixture",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 1,
+        "selected_nodes": [],
+        "sequence": 0,
+        "source_revision": "f42215e31219bf999ae3dc0114937a48bb79a3d0",
+        "started_at_ms": 1793985630625,
+        "step_telemetry": []
+      },
+      "newest": {
+        "attempt_id": "web-attempt-ffe1b2533e6ff61e2acb99f67b4123e8bf83f679827f191bd7aeb0421ea7d9f8",
+        "canonical_tree": "5ad62d01d1ab80acafc5a2ab297a5a2c22966510f22aed98d3ae364477a339e0",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793985630677,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": null,
+        "id": "web-run-ffe1b2533e6ff61e2acb99f67b4123e8bf83f679827f191bd7aeb0421ea7d9f8",
+        "log_bounds": {
+          "maximum_chunk_bytes": 4096,
+          "maximum_chunks": 32,
+          "maximum_total_bytes": 65536
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "job",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Pending"
+          }
+        ],
+        "ordinal": 31,
+        "outcome": "Pending",
+        "parent_run_id": null,
+        "phase": "queued",
+        "project_id": "fixture",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 1,
+        "selected_nodes": [],
+        "sequence": 0,
+        "source_revision": "7cbaa4e5571774eab88fa75d5f51e986c4d8e77f",
+        "started_at_ms": null,
+        "step_telemetry": []
+      },
+      "peer": {
+        "controls": 0,
+        "dispatches": 1,
+        "recoveries": 0
+      },
+      "schedule": {
+        "attempt_id": "web-attempt-a5f13ab2347a0ad9f021cf1bbc14482b4fd75f3b4ac72564d4c703c773d81a5a",
+        "canonical_tree": "e698875f6c63dfe2a02b129d391e46e96315dee3570a364e7f2f36917e8b973d",
+        "completed_at_ms": null,
+        "controls": {
+          "cancel": true,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793985630628,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": null,
+        "execution": null,
+        "id": "web-run-a5f13ab2347a0ad9f021cf1bbc14482b4fd75f3b4ac72564d4c703c773d81a5a",
+        "log_bounds": {
+          "maximum_chunk_bytes": 4096,
+          "maximum_chunks": 32,
+          "maximum_total_bytes": 65536
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "job",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Pending"
+          }
+        ],
+        "ordinal": 14,
+        "outcome": "Pending",
+        "parent_run_id": null,
+        "phase": "queued",
+        "project_id": "fixture",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 1,
+        "selected_nodes": [],
+        "sequence": 0,
+        "source_revision": "f42215e31219bf999ae3dc0114937a48bb79a3d0",
+        "started_at_ms": null,
+        "step_telemetry": []
+      },
+      "superseded": {
+        "attempt_id": "web-attempt-9d48ff5eb504fa984a9115bcea796133b353b4137a9eac50203b52956218755d",
+        "canonical_tree": "a5f5aba14deb78b236d750de926f171f18821fdcb210b7452334ca071521149e",
+        "completed_at_ms": 1793985630680,
+        "controls": {
+          "cancel": false,
+          "pause": false,
+          "resume": false
+        },
+        "created_at_ms": 1793985630659,
+        "duration_ms": null,
+        "edges": [],
+        "error_code": "superseded",
+        "execution": null,
+        "id": "web-run-9d48ff5eb504fa984a9115bcea796133b353b4137a9eac50203b52956218755d",
+        "log_bounds": {
+          "maximum_chunk_bytes": 4096,
+          "maximum_chunks": 32,
+          "maximum_total_bytes": 65536
+        },
+        "nodes": [
+          {
+            "completed_at_ms": null,
+            "duration_ms": null,
+            "id": "job",
+            "kind": "test",
+            "started_at_ms": null,
+            "state": "Unknown"
+          }
+        ],
+        "ordinal": 22,
+        "outcome": "Cancelled",
+        "parent_run_id": null,
+        "phase": "terminal",
+        "project_id": "fixture",
+        "report_summary": {
+          "coverage": null,
+          "tests": null
+        },
+        "repository": {
+          "contract_version": 1,
+          "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "revision": 2,
+        "selected_nodes": [],
+        "sequence": 0,
+        "source_revision": "a4e4372e8b20f94de75be1d1ba8ae93f01b63063",
+        "started_at_ms": null,
+        "step_telemetry": [],
+        "superseded_by": "web-run-ffe1b2533e6ff61e2acb99f67b4123e8bf83f679827f191bd7aeb0421ea7d9f8",
+        "superseded_revision": "7cbaa4e5571774eab88fa75d5f51e986c4d8e77f"
+      }
+    }
+  }
+}

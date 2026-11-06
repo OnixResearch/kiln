@@ -1,0 +1,154 @@
+{
+  "command": "traceability coverage",
+  "dangling": [],
+  "input_hash": "4642da7174f2cfadade693f258ed96e967f5c2d1203c44be69860e46066fecce",
+  "missing": [
+    "kiln.microvm.confinement.nonclaims"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile": {
+    "anchor_kind": "exact_marker_bytes",
+    "assurance_level": "declared",
+    "evidence_sources": [
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "crates",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "ncl"
+        ],
+        "root": "crates",
+        "source_kind": "nickel_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-aspen-host",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-radicle-nix-provider",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/hosting-and-recovery.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/observation-dashboard.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/operator.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "js",
+          "css",
+          "html"
+        ],
+        "root": "crates",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "web/dashboard-index/src",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs",
+          "ncl"
+        ],
+        "root": "tools",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs"
+        ],
+        "root": "src",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs",
+          "sh"
+        ],
+        "root": "tests",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "ts"
+        ],
+        "root": "checks/bombadil",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "nix"
+        ],
+        "root": "flake.nix",
+        "source_kind": "tool_source"
+      }
+    ],
+    "id": "cairn-default",
+    "marker_verbs": [
+      "impl",
+      "verify",
+      "depends",
+      "related"
+    ],
+    "requirement_sources": [
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/specs",
+        "source_kind": "accepted_specs"
+      }
+    ]
+  },
+  "profile_id": "cairn-default",
+  "receipt_hash": "354f052c01db4a20ab1fcce54800cd20b15f3fe3361ca1e94447304c0e4f6019",
+  "referenced": 1486,
+  "requirements": 1487,
+  "root": ".",
+  "source_summary": {
+    "evidence_files": 664,
+    "evidence_manifest_hash": "58d7db3dd5a109313b36ff73bbdea5972f58586d1ceb6c61e1e424ff5f7552cb",
+    "requirement_files": 116,
+    "requirement_manifest_hash": "9bc55643ca7763799a9d0818a2673ca52d4e14bb8c10c4e0304ee84f30319bd8"
+  },
+  "valid": false,
+  "verdict": "fail"
+}

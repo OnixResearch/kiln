@@ -50,6 +50,8 @@ pub(crate) struct AdmittedImport {
 // r[impl kiln.web.feeds.subscriptions]
 // r[impl kiln.web.feeds.publish]
 impl Engine {
+    // r[impl kiln.web.feeds.config.scenario.disabled]
+    // r[impl kiln.web.feeds.ui.scenario.search]
     pub(crate) fn feeds_view(
         &self,
         role: Role,
@@ -123,6 +125,7 @@ impl Engine {
                 })
                 .or_insert((project.label.clone(), count, newest));
         }
+        // r[impl kiln.web.feeds.token.scenario.operator]
         let token = match (role, &self.feeds_token) {
             (Role::Operator, Some(token)) => Some(token.as_str()),
             _ => None,
@@ -425,6 +428,7 @@ impl Engine {
     }
 
     /// Subscriptions whose cadence elapsed, oldest attempt first.
+    // r[impl kiln.web.feeds.subscriptions.scenario.background]
     pub(crate) fn due_feeds(&self, now_ms: u64) -> Vec<crate::feeds::DueFeed> {
         let Some(profile) = &self.profile.feeds else {
             return Vec::new();
@@ -497,6 +501,7 @@ impl Engine {
         json_response(200, json!({"subscription": candidate}))
     }
 
+    // r[impl kiln.web.feeds.subscriptions.scenario.pause]
     pub(crate) fn set_feed_enabled(
         &mut self,
         id: &str,
@@ -527,6 +532,7 @@ impl Engine {
         json_response(200, json!({"subscription": candidate}))
     }
 
+    // r[impl kiln.web.feeds.subscriptions.scenario.rename]
     pub(crate) fn rename_feed(
         &mut self,
         id: &str,
@@ -591,6 +597,7 @@ impl Engine {
 
     /// Render a repository Atom feed. The caller has already verified the
     /// dedicated feed token and passes the path without its query string.
+    // r[impl kiln.web.feeds.subscriptions.scenario.export]
     pub(crate) fn feeds_opml(&self) -> Result<ApiResponse, String> {
         if self.profile.feeds.is_none() {
             return error(404, "feeds_disabled");
@@ -654,6 +661,9 @@ impl Engine {
 
     // r[impl kiln.web.feeds.publish.scenario.rendered]
     // r[impl kiln.web.feeds.publish.scenario.missing]
+    // r[impl kiln.web.feeds.config.scenario.disabled]
+    // r[impl kiln.web.feeds.publish.scenario.opml]
+    // r[impl kiln.web.feeds.publish.scenario.rss]
     pub(crate) fn render_feed(&self, path: &str) -> Option<ApiResponse> {
         let profile = self.profile.feeds.as_ref()?;
         let token = self.feeds_token.as_ref()?;
@@ -838,6 +848,9 @@ fn publication_view(
     publication
 }
 
+// r[impl kiln.web.feeds.security.scenario.conditional]
+// r[impl kiln.web.feeds.bounds.scenario.body]
+// r[impl kiln.web.feeds.subscriptions.scenario.background]
 fn refreshed_candidate(
     existing: FeedSubscription,
     fetched: Result<FetchOutcome, String>,

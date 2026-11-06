@@ -1,0 +1,146 @@
+{
+  "schema": "kiln.readiness.qualification-prerequisites.v1",
+  "date": "2026-11-06",
+  "observations": [
+    {
+      "host": "local-reference",
+      "architecture": "x86_64",
+      "kernel_release": "6.18.50",
+      "booted_kernel": "/nix/store/9xdswfnj5dv4al2cd51f3nlvsh78s5vv-linux-6.18.50/bzImage",
+      "issue_policy_status": "vulnerable",
+      "smt_active": true,
+      "ksm_running": false,
+      "resctrl_mounted": false,
+      "noninteractive_admin_probe": "sudo -n true: password required",
+      "cat_capability_indicators": [
+        "rdt_a",
+        "cat_l3",
+        "cdp_l3",
+        "mba"
+      ]
+    },
+    {
+      "host": "aspen1",
+      "architecture": "x86_64",
+      "kernel_release": "7.2.4",
+      "booted_kernel": "/nix/store/j66ih4hz9b6k8fm6qhspnxancdfwsbda-linux-7.2.4/bzImage",
+      "issue_policy_status": "vulnerable",
+      "smt_active": true,
+      "ksm_running": false,
+      "resctrl_mounted": false,
+      "kvm_read_write": true,
+      "noninteractive_admin_probe": "sudo -n true denied",
+      "unrelated_active_services_observed": true,
+      "declared_hardware_class": "Framework Desktop AMD AI Max300"
+    },
+    {
+      "host": "aspen2-1",
+      "architecture": "x86_64",
+      "kernel_release": "7.2.4",
+      "booted_kernel": "/nix/store/j66ih4hz9b6k8fm6qhspnxancdfwsbda-linux-7.2.4/bzImage",
+      "issue_policy_status": "vulnerable",
+      "smt_active": true,
+      "ksm_running": false,
+      "resctrl_mounted": false,
+      "kvm_read_write": true,
+      "noninteractive_admin_probe": "sudo -n true denied",
+      "unrelated_active_services_observed": true,
+      "declared_hardware_class": "Framework Desktop AMD AI Max300"
+    },
+    {
+      "host": "aspen3-1",
+      "architecture": "x86_64",
+      "kernel_release": "6.18.59",
+      "booted_kernel": "/nix/store/y01zxghc3c4cfbm1vmzhm84a4xbq8z8a-linux-6.18.59/bzImage",
+      "issue_policy_status": "fixed",
+      "smt_active": true,
+      "ksm_running": false,
+      "resctrl_mounted": false,
+      "kvm_read_write": true,
+      "noninteractive_admin_probe": "sudo -n true denied",
+      "unrelated_active_services_observed": true,
+      "declared_hardware_class": "ASUS Flow GZ302EAC"
+    }
+  ],
+  "attempts": [
+    {
+      "host": "aspen1/aspen2-1/aspen3-1",
+      "result": "Existing strict-key SSH authenticated; initial POSIX script was rejected by fish; explicit sh -c probes succeeded. No remote mutation."
+    },
+    {
+      "host": "spark-e442",
+      "result": "Strict host-key verification refused an unknown key; no bypass or first-use trust was added."
+    },
+    {
+      "host": "nixarr-vpn-probe",
+      "result": "Bounded SSH connection timed out."
+    },
+    {
+      "host": "aspen3 LAN alias",
+      "result": "No route to the configured LAN address."
+    }
+  ],
+  "independent_inventory": {
+    "owner": "brittonr / onix-core machine operator",
+    "sources": [
+      {
+        "path": "machines/aspen1/configuration.nix",
+        "spans": "22,35",
+        "facts": "Framework hardware declaration; latest-kernel intent"
+      },
+      {
+        "path": "machines/aspen2/configuration.nix",
+        "spans": "9,21",
+        "facts": "Framework hardware declaration; latest-kernel intent"
+      },
+      {
+        "path": "machines/aspen3/configuration.nix",
+        "spans": "98,131,169-170",
+        "facts": "ASUS Flow hardware declaration; generic-kernel intent"
+      },
+      {
+        "path": "machines/britton-desktop/configuration.nix",
+        "spans": "421,568-585",
+        "facts": "6.18 kernel intent and narrowly scoped noninteractive tracing/device/service commands, not general CAT provisioning"
+      }
+    ],
+    "repository": "operator-maintained onix-core; inspected read-only, not a durable product dependency",
+    "limitation": "Configuration declares hardware classes, not independent endpoint-to-chassis identity. No physical distinctness is inferred from hostnames, OS IDs or virtualization-none observations."
+  },
+  "blockers": [
+    {
+      "id": "approved-untrusted",
+      "owner": "brittonr / CI host operator",
+      "prerequisites": [
+        "Reserve an eligible host and account for existing workloads/whole-host trust exclusion.",
+        "Disable SMT through the maintained operator procedure or supply an actual reviewed SMT exception; do not override vulnerable/unknown issue-policy status.",
+        "Make required privileged/delegated host operations available without exposing credentials.",
+        "Run actual approved-untrusted VMM execution and retain exact guest/host/approval/placement receipts."
+      ]
+    },
+    {
+      "id": "cat",
+      "owner": "host operator / CAT delegation owner",
+      "prerequisites": [
+        "Verify L3 CAT capabilities after an operator-approved resctrl mount.",
+        "Provision an existing exclusive group with independently validated non-overlapping masks and writable runner delegation.",
+        "Verify schemata/task membership and run actual CAT channel measurements; do not infer isolation from affinity."
+      ]
+    },
+    {
+      "id": "distinct-physical-hosts",
+      "owner": "host operator / hardware inventory owner",
+      "prerequisites": [
+        "Bind selected SSH endpoints to distinct physical chassis using independent operator/hardware evidence.",
+        "Provision matched Firecracker/kernel/probe inputs and Python worker runtime; Python3 was absent from the probed remote PATH.",
+        "Establish synchronized clocks and run actual cross-physical-host measurements."
+      ]
+    }
+  ],
+  "nonclaims": [
+    "Issue28 supplied fixed-release policy only; not an independently verified CVE advisory.",
+    "No host kernel, SMT/KSM setting, resctrl mount, cache mask, service, privilege policy or remote repository was changed.",
+    "No approved-untrusted execution, CAT measurement or distinct-physical-host measurement succeeded in this operation.",
+    "hostile_isolation_claim remains false."
+  ]
+}

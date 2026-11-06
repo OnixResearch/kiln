@@ -625,6 +625,7 @@ pub enum OwnershipApprovalMode {
 /// its owner approval. Evidence is collected by the shell, never asserted by
 /// a request body.
 // r[impl kiln.review.evidence.policy]
+// r[impl kiln.review.evidence.policy.scenario.unknown]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OwnershipEvidenceKind {
@@ -1010,6 +1011,7 @@ fn carry_forward(change: &mut Change, previous: &str, next: &str, facts: &Facts)
     change.reviewed_hunks = carried;
 }
 
+// r[impl kiln.review.agent.search.boundary]
 pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> Vec<&'a Change> {
     let text = query.text.to_lowercase();
     state
@@ -1028,6 +1030,7 @@ pub fn search<'a>(state: &'a ReviewState, actor: &str, query: &SearchQuery) -> V
             {
                 return false;
             }
+            // r[impl kiln.review.agent.search.scenario.unattested]
             if query
                 .agent
                 .is_some_and(|wanted| wanted != revision.submitted_by.is_some())
@@ -1808,6 +1811,7 @@ pub fn validate_candidate(
 pub fn checklist(state: &ReviewState, change_id: &str, facts: &Facts) -> ReviewResult<Checklist> {
     checklist_at(state, change_id, facts, None)
 }
+// r[impl kiln.review.evidence.project_ci.authority]
 fn checklist_at(
     state: &ReviewState,
     change_id: &str,
@@ -4456,8 +4460,10 @@ mod tests {
         create(&mut state, &mut facts, "c")?;
         let checks = checklist(&state, "c", &facts)?;
         assert!(evidence_item(&checks, "evidence:core:project_ci:project")?);
+        // r[verify kiln.review.evidence.project_ci.scenario.approval]
         assert!(!evidence_item(&checks, "owner:core")?);
         assert!(!checks.ready);
+        // r[verify kiln.review.evidence.project_ci.scenario.stale]
         facts.ci.first_mut().required()?.revision = "older-commit".into();
         assert!(!evidence_item(
             &checklist(&state, "c", &facts)?,
@@ -4517,6 +4523,7 @@ mod tests {
         create(&mut state, &mut facts, "c")?;
         let key = "evidence:core:project_ci:api";
         assert!(!evidence_item(&checklist(&state, "c", &facts)?, key)?);
+        // r[verify kiln.review.evidence.project_ci.scenario.observed]
         facts.ci.last_mut().required()?.scope_identity = Some("api-scope".into());
         assert!(evidence_item(&checklist(&state, "c", &facts)?, key)?);
         facts.ci.last_mut().required()?.scope_identity = Some("other-scope".into());
@@ -4546,6 +4553,7 @@ mod tests {
                 project: " ".into(),
             });
         assert_eq!(reject(&empty)?, "invalid_policy");
+        // r[verify kiln.review.evidence.policy.scenario.bounds]
         let mut duplicate = base.clone();
         for _ in 0..2 {
             duplicate
@@ -4877,6 +4885,7 @@ mod tests {
             agent_harness: None,
             agent_model: None,
         };
+        // r[verify kiln.review.agent.search.scenario.attested]
         assert_eq!(search(&state, "alice", &query(Some(true))).len(), 1);
         assert!(search(&state, "alice", &query(Some(false))).is_empty());
         assert_eq!(search(&state, "alice", &query(None)).len(), 1);
@@ -4889,6 +4898,7 @@ mod tests {
             agent_harness: Some(harness.into()),
             agent_model: None,
         };
+        // r[verify kiln.review.agent.search.scenario.harness]
         assert_eq!(search(&state, "alice", &by_harness("omp")).len(), 1);
         assert!(search(&state, "alice", &by_harness("other")).is_empty());
         let by_model = |model: &str| SearchQuery {
@@ -6152,6 +6162,7 @@ mod tests {
         let mut state = ReviewState::default();
         let mut human = revision("c-r1", 1, "commit-c");
         human.authorship = Authorship::Human;
+        // r[verify kiln.review.agent.attestation.scenario.human]
         assert_eq!(
             send(&mut state, &mut facts, "alice", create(human))
                 .err()
@@ -6171,6 +6182,7 @@ mod tests {
             .submitted_by
             .as_ref()
             .required()?;
+        // r[verify kiln.review.agent.attestation.scenario.agent]
         assert_eq!(attested.principal, "alice");
         assert_eq!(
             attested.agent.as_ref().map(|agent| agent.harness.as_str()),

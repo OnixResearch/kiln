@@ -1,4 +1,5 @@
 use super::api::{error, json_response};
+use super::queue::StartRequest;
 use super::{ApiResponse, Engine, Role, identity};
 use crate::automation::{
     AutomationProfile, DeliveryRecord, HttpsRuntime, NotificationProfile, RegistrationState,
@@ -50,6 +51,22 @@ fn digest<T: Serialize>(value: &T) -> Result<String, String> {
 }
 fn head_key(project: &crate::profile::ProjectProfile, reference: &str) -> String {
     format!("{}:{reference}", project.repository_key())
+}
+
+fn automation_request_id(source_id: &str) -> String {
+    format!("automation-{}", blake3::hash(source_id.as_bytes()).to_hex())
+}
+
+fn automation_start_request(request_id: String, source: &SourceRecord) -> StartRequest {
+    StartRequest {
+        project_id: source.project_id.clone(),
+        request_id,
+        reference: Some(source.reference.clone()),
+        pull_request: source.pull_request,
+        source_registration: Some(source.registration_id.clone()),
+        source_revision: source.source_revision.clone(),
+        snapshot_id: None,
+    }
 }
 
 // r[impl kiln.monorepo.dispatch]
@@ -1024,20 +1041,7 @@ impl Engine {
         if reservation.status != "reserved" {
             return Ok(());
         }
-        let request_id = format!("automation-{}", blake3::hash(id.as_bytes()).to_hex());
-        let mut body = match reservation.source_revision {
-            Some(ref revision) => {
-                json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_revision":revision,"source_registration":reservation.registration_id})
-            }
-            None => {
-                json!({"project_id":reservation.project_id,"request_id":request_id,"reference":reservation.reference,"source_registration":reservation.registration_id})
-            }
-        };
-        if let Some(pull_request) = reservation.pull_request
-            && let Some(object) = body.as_object_mut()
-        {
-            object.insert("pull_request".into(), json!(pull_request));
-        }
+        let body = automation_start_request(automation_request_id(id), &reservation);
         let principal = crate::access::Principal {
             id: format!(
                 "automation:{}:{}",
@@ -1097,6 +1101,8 @@ impl Engine {
         if let Some(settings) = self.state.automation.settings.get_mut(&registration_key) {
             settings.last_status = Some(status.clone());
         }
+        // r[impl kiln.web.supersede.policy]
+        // r[impl kiln.web.supersede.policy.scenario.off]
         if status != super::untrusted::AWAITING_APPROVAL
             && reservation.kind == "trigger"
             && self
@@ -1118,17 +1124,51 @@ impl Engine {
     }
 
     fn supersede_runs(&mut self, reservation: &SourceRecord, new_run: &str) {
-        let Some(new_revision) = self
+        let Some((new_revision, new_ordinal)) = self
             .state
             .runs
             .get(new_run)
-            .map(|run| run.source.exact_revision.clone())
+            .map(|run| (run.source.exact_revision.clone(), run.ordinal))
         else {
             return;
         };
         let mut queued = Vec::new();
         let mut active = Vec::new();
-        for run in self.state.runs.values() {
+        // r[impl kiln.web.supersede.identity]
+        // r[impl kiln.web.supersede.identity.scenario.origin]
+        for source in self.state.automation.sources.values() {
+            if source.kind != "trigger" || source.registration_id != reservation.registration_id {
+                continue;
+            }
+            let run = match source.run_id.as_deref() {
+                Some(id) => self.state.runs.get(id),
+                None => {
+                    if source.status != "reserved" {
+                        continue;
+                    }
+                    // Start may be durable before its source link. Resolve only
+                    // the exact typed reservation, never replay provider effects.
+                    let request_id = automation_request_id(&source.id);
+                    let Some(prior) = self.state.requests.get(&request_id) else {
+                        continue;
+                    };
+                    if !matches!(prior.kind, super::model::RequestKind::Start) {
+                        continue;
+                    }
+                    let request = automation_start_request(request_id, source);
+                    let Ok(fingerprint) = identity(&("/api/runs", &request)) else {
+                        continue;
+                    };
+                    if prior.fingerprint != fingerprint {
+                        continue;
+                    }
+                    self.state.runs.get(&prior.resource)
+                }
+            };
+            let Some(run) = run else {
+                continue;
+            };
+            // r[impl kiln.web.supersede.identity.scenario.reference]
             let same_scope = match reservation.pull_request {
                 Some(pull_request) => run.requested_pull_request == Some(pull_request),
                 None => {
@@ -1138,6 +1178,7 @@ impl Engine {
                 }
             };
             if run.id == new_run
+                || run.ordinal >= new_ordinal
                 || run.project_id != reservation.project_id
                 || run.requested_trigger.as_deref() != Some(reservation.registration_id.as_str())
                 || !same_scope
@@ -1146,6 +1187,7 @@ impl Engine {
             {
                 continue;
             }
+            // r[impl kiln.web.supersede.active.scenario.awaiting]
             if run.waiting() {
                 if run.phase == "queued" {
                     queued.push(run.id.clone());
@@ -1186,6 +1228,7 @@ impl Engine {
                 run.superseded_revision = Some(new_revision.native_id.as_str().to_owned());
             }
         }
+        // r[impl kiln.web.supersede.cancel]
         for id in queued {
             let request_id = format!(
                 "supersede-{}",

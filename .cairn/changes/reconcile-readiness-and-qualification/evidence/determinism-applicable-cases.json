@@ -1,0 +1,2414 @@
+{
+  "schema": "kiln.readiness.determinism-applicable-cases.v1",
+  "date": "2026-11-06",
+  "root": "/tmp/kiln-readiness-replay-FPX419",
+  "source": "Complete tracked source archive (12,576 files), not a substituted fixture.",
+  "results": [
+    {
+      "id": "agent_completion_validate",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "agent-receipt",
+              "complete",
+              "--contract",
+              "fixtures/agent-completion/contract.json",
+              "--results",
+              "fixtures/agent-completion/results.json",
+              "--subject-hash",
+              "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            ],
+            "command_kind": "agent_completion_validate",
+            "comparison_modes": [
+              "repeated",
+              "cross_root"
+            ],
+            "display_only_paths": [
+              "contract_path",
+              "results_path"
+            ],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": "<root>",
+            "hash_fields": [
+              "completion_receipt_hash",
+              "current_policy_hash",
+              "current_subject_hash"
+            ],
+            "id": "agent_completion_validate",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "0ab2003aed818f4faa54c21780e37dc25198a60f2b1454fe11cc7fafd93f49c2",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "bf0eaca6dd214d35ee8899e2266849ceb060b20031636feb5fc53f78f30b1ed2",
+                "output_hash": "bf0eaca6dd214d35ee8899e2266849ceb060b20031636feb5fc53f78f30b1ed2",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "bf0eaca6dd214d35ee8899e2266849ceb060b20031636feb5fc53f78f30b1ed2",
+                "output_hash": "bf0eaca6dd214d35ee8899e2266849ceb060b20031636feb5fc53f78f30b1ed2",
+                "root": "a"
+              },
+              {
+                "iteration": 1,
+                "normalized_output_hash": "bf0eaca6dd214d35ee8899e2266849ceb060b20031636feb5fc53f78f30b1ed2",
+                "output_hash": "bf0eaca6dd214d35ee8899e2266849ceb060b20031636feb5fc53f78f30b1ed2",
+                "root": "b"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "958b489a6f69f89accdce60f1f8588b29244520d39c4af91337627754420a878",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "agent_completion_validate",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "agent_completion_validate"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "agent_completion_validate",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "6f857e7ca2b8ab63a5b0ed1627c6abd433b526832446a9be38c4a133cc3885fe",
+        "receipt_hash": "4b4eee13c8db887df515dec00b306ea58bc729869b37ad67cffe78144efa2509",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "agent_completion_validate"
+        ],
+        "selected_groups": [],
+        "skipped": [],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 0,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    },
+    {
+      "id": "preserves_corpus_freshness",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "preserves-corpus",
+              "update",
+              "--path",
+              "fixtures/preserves-canonicalization/corpus.json"
+            ],
+            "command_kind": "preserves_corpus_freshness",
+            "comparison_modes": [
+              "repeated"
+            ],
+            "display_only_paths": [
+              "path"
+            ],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": "<root>",
+            "hash_fields": [
+              "corpus_hash",
+              "receipt_hash"
+            ],
+            "id": "preserves_corpus_freshness",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "afcab0a4262ebd3d779d9a660b55ebf24448982ccdf3d52cfa0059028407bf06",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "2cc178788f9c48388dfbcd75d5d041242f9ce34bfd37ef5e1003f2cf6b935de1",
+                "output_hash": "2cc178788f9c48388dfbcd75d5d041242f9ce34bfd37ef5e1003f2cf6b935de1",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "2cc178788f9c48388dfbcd75d5d041242f9ce34bfd37ef5e1003f2cf6b935de1",
+                "output_hash": "2cc178788f9c48388dfbcd75d5d041242f9ce34bfd37ef5e1003f2cf6b935de1",
+                "root": "a"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "b05ba92ffc4172b72e211ef0ba1214c88dd83d6e318ab23a90d7f68829a0eca2",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "preserves_corpus_freshness",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "preserves_corpus_freshness"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "preserves_corpus_freshness",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "c50b3f37d3d11f1c8c1670b13e3c04e0cb30abecca1beae9ecfe3ec0d09f8d55",
+        "receipt_hash": "6a3163941a898adef591e9aa4ca4039e2946278c30d860f9abb8ad218503e728",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "preserves_corpus_freshness"
+        ],
+        "selected_groups": [],
+        "skipped": [
+          {
+            "case": "preserves_corpus_freshness",
+            "comparison": "cross_root",
+            "reason": "not requested by policy"
+          }
+        ],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 1,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    },
+    {
+      "id": "mcp_describe",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "mcp",
+              "--describe"
+            ],
+            "command_kind": "mcp_describe",
+            "comparison_modes": [
+              "repeated",
+              "cross_root"
+            ],
+            "display_only_paths": [],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": "<root>",
+            "hash_fields": [],
+            "id": "mcp_describe",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "e0d635893985636e6b2ea57c96af533472a6cff09331e9965e7592021142d47b",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "591cfa25b52f4577c68cc32f639b96e4e686f267610f23b0eab94873de0e4c8d",
+                "output_hash": "591cfa25b52f4577c68cc32f639b96e4e686f267610f23b0eab94873de0e4c8d",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "591cfa25b52f4577c68cc32f639b96e4e686f267610f23b0eab94873de0e4c8d",
+                "output_hash": "591cfa25b52f4577c68cc32f639b96e4e686f267610f23b0eab94873de0e4c8d",
+                "root": "a"
+              },
+              {
+                "iteration": 1,
+                "normalized_output_hash": "591cfa25b52f4577c68cc32f639b96e4e686f267610f23b0eab94873de0e4c8d",
+                "output_hash": "591cfa25b52f4577c68cc32f639b96e4e686f267610f23b0eab94873de0e4c8d",
+                "root": "b"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "0871b9b5aa7a1e50e252e2923d3fa007269055d57ad075de5d1b68d08656404e",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "mcp_describe",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "mcp_describe"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "mcp_describe",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "8c3fc3af4d41bc86db26bb8ac8f9f6ee4627a10802d782a1fa1fe3cb156e1098",
+        "receipt_hash": "df1e465ad485a819d67c44d0bca965fb83506c8e29f57f3566e3ad001469833b",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "mcp_describe"
+        ],
+        "selected_groups": [],
+        "skipped": [],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 0,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    },
+    {
+      "id": "mcp_status",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "mcp",
+              "--call",
+              "cairn_status",
+              "{root:<root>}"
+            ],
+            "command_kind": "mcp_call",
+            "comparison_modes": [
+              "repeated",
+              "cross_root"
+            ],
+            "display_only_paths": [
+              "content.root"
+            ],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": "<root>",
+            "hash_fields": [],
+            "id": "mcp_status",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "84f75558f15113678f5eea6f04ab20748f93f2485808c99d89bcfce652156d55",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "004ab13861eb7f20daed18b6b64a35c9cb5fd544b8b3ae9a5ead4d9da9b87742",
+                "output_hash": "004ab13861eb7f20daed18b6b64a35c9cb5fd544b8b3ae9a5ead4d9da9b87742",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "004ab13861eb7f20daed18b6b64a35c9cb5fd544b8b3ae9a5ead4d9da9b87742",
+                "output_hash": "004ab13861eb7f20daed18b6b64a35c9cb5fd544b8b3ae9a5ead4d9da9b87742",
+                "root": "a"
+              },
+              {
+                "iteration": 1,
+                "normalized_output_hash": "004ab13861eb7f20daed18b6b64a35c9cb5fd544b8b3ae9a5ead4d9da9b87742",
+                "output_hash": "004ab13861eb7f20daed18b6b64a35c9cb5fd544b8b3ae9a5ead4d9da9b87742",
+                "root": "b"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "0f6ebca2489740125c654d51ce59ae2f875b104607f22b6b574073e316152617",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "mcp_status",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "mcp_status"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "mcp_status",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "cf4276694e0def11b4481f54cb0d66d141d0e6a8d4f73a30977b1139d61eb4e1",
+        "receipt_hash": "30cb3bd5aa44d4375449c64ea683182988a5b75fd3ad5e48f866a3ecaec62c13",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "mcp_status"
+        ],
+        "selected_groups": [],
+        "skipped": [],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 0,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    },
+    {
+      "id": "release_readiness",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "release-readiness",
+              "--root",
+              "<root>"
+            ],
+            "command_kind": "release_readiness",
+            "comparison_modes": [
+              "repeated"
+            ],
+            "display_only_paths": [
+              "root"
+            ],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": ".",
+            "hash_fields": [
+              "preserves_content_hash",
+              "receipt_hash",
+              "cairn_validation_hash",
+              "traceability_coverage_hash",
+              "mcp_smoke_receipt_hash",
+              "coverage_audit_receipt_hash",
+              "release_evidence_index_check_hash",
+              "preserves_corpus_freshness_hash",
+              "semantic_review_ledger_hash",
+              "stack_provenance_hash",
+              "function_address_hash",
+              "workspace_contract_matrix_hash"
+            ],
+            "id": "release_readiness",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "389877ad4a0cfa0f8b9e07185f38a1db12d7721682d88eecc543fd2f40be6435",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "24088d345d909ee6d0bd7a25ad82f0472764d3ef40c8d0ae8820113ce5d130d2",
+                "output_hash": "24088d345d909ee6d0bd7a25ad82f0472764d3ef40c8d0ae8820113ce5d130d2",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "24088d345d909ee6d0bd7a25ad82f0472764d3ef40c8d0ae8820113ce5d130d2",
+                "output_hash": "24088d345d909ee6d0bd7a25ad82f0472764d3ef40c8d0ae8820113ce5d130d2",
+                "root": "a"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "d02b025dcfc1bf454248f99cab9f035c900d9a8de9f94e314d7fa697e41de764",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "release_readiness",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "release_readiness"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "release_readiness",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "1383449a07d52ac6ee40051f44212c49ca1f2facc11cb22e49444f004d114b5c",
+        "receipt_hash": "6891bd88e6258e9b3c26e9675d702a987c9248c9aa838a16841307bbb0ec3354",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "release_readiness"
+        ],
+        "selected_groups": [],
+        "skipped": [
+          {
+            "case": "release_readiness",
+            "comparison": "cross_root",
+            "reason": "not requested by policy"
+          }
+        ],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 1,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    },
+    {
+      "id": "status",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "status",
+              "--root",
+              "<root>"
+            ],
+            "command_kind": "status",
+            "comparison_modes": [
+              "repeated",
+              "cross_root"
+            ],
+            "display_only_paths": [
+              "root",
+              "specs",
+              "changes"
+            ],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": "<root>",
+            "hash_fields": [],
+            "id": "status",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "a276ff8262ee7ee6b629cee80de1bd516552e521306355df215645c79cf6a9a2",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "0a15eeed574d2349c304e24278a65854baa56f805acba5fac6d03db485142e8d",
+                "output_hash": "0a15eeed574d2349c304e24278a65854baa56f805acba5fac6d03db485142e8d",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "0a15eeed574d2349c304e24278a65854baa56f805acba5fac6d03db485142e8d",
+                "output_hash": "0a15eeed574d2349c304e24278a65854baa56f805acba5fac6d03db485142e8d",
+                "root": "a"
+              },
+              {
+                "iteration": 1,
+                "normalized_output_hash": "0a15eeed574d2349c304e24278a65854baa56f805acba5fac6d03db485142e8d",
+                "output_hash": "0a15eeed574d2349c304e24278a65854baa56f805acba5fac6d03db485142e8d",
+                "root": "b"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "e82a7f7cd079cab8191a20f1c5e55d87972343be9c73660b6ce4fa9c5c7575cd",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "status",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "status"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "status",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "6e1b14e9817314668a3cce2960f4bb4c91d0a207269f35c2dd858f426c157b14",
+        "receipt_hash": "16a91a8be9dc3a2991a95e4e007ddde9cbd096d44ebb369a82f00cb6115a7a4c",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "status"
+        ],
+        "selected_groups": [],
+        "skipped": [],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 0,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    },
+    {
+      "id": "validate",
+      "exit": 0,
+      "receipt": {
+        "available_cases": [
+          "agent_completion_validate",
+          "agent_receipt_preserves_hash",
+          "agent_receipt_validate",
+          "archive_dry_run",
+          "gate_design",
+          "gate_proposal",
+          "gate_tasks",
+          "mcp_describe",
+          "mcp_status",
+          "migrate_dry_run",
+          "preserves_corpus_freshness",
+          "receipt_preserves_diff",
+          "release_readiness",
+          "status",
+          "sync_dry_run",
+          "validate",
+          "view_graph",
+          "view_kanban",
+          "view_mindmap"
+        ],
+        "available_groups": [
+          "agent",
+          "full",
+          "release",
+          "smoke"
+        ],
+        "cases": [
+          {
+            "args": [
+              "validate",
+              "--root",
+              "<root>"
+            ],
+            "command_kind": "validate",
+            "comparison_modes": [
+              "repeated",
+              "cross_root"
+            ],
+            "display_only_paths": [
+              "root"
+            ],
+            "expected_mutability": "read_only_or_dry_run",
+            "fixture_root": "<root>",
+            "hash_fields": [
+              "receipt_hash"
+            ],
+            "id": "validate",
+            "normalization_rules": [
+              "portable_root_paths",
+              "canonical_json"
+            ],
+            "portable_evidence_hash": "151beae271358fa5b93a0907d6d0bdb06770cb3d261ad813f59341d05687da93",
+            "runs": [
+              {
+                "iteration": 1,
+                "normalized_output_hash": "2dbcc9507aaece139630fa9e3f626f16d10f9594de12939b0fbbf1a62ab20a38",
+                "output_hash": "2dbcc9507aaece139630fa9e3f626f16d10f9594de12939b0fbbf1a62ab20a38",
+                "root": "a"
+              },
+              {
+                "iteration": 2,
+                "normalized_output_hash": "2dbcc9507aaece139630fa9e3f626f16d10f9594de12939b0fbbf1a62ab20a38",
+                "output_hash": "2dbcc9507aaece139630fa9e3f626f16d10f9594de12939b0fbbf1a62ab20a38",
+                "root": "a"
+              },
+              {
+                "iteration": 1,
+                "normalized_output_hash": "2dbcc9507aaece139630fa9e3f626f16d10f9594de12939b0fbbf1a62ab20a38",
+                "output_hash": "2dbcc9507aaece139630fa9e3f626f16d10f9594de12939b0fbbf1a62ab20a38",
+                "root": "b"
+              }
+            ]
+          }
+        ],
+        "command": "determinism replay",
+        "entropy_assumptions": [
+          {
+            "class": "clock_date",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_inventory": [
+          {
+            "class": "environment",
+            "description": "Archive date environment overrides are replay-relevant clock/date entropy and are rejected during replay when present; values are never disclosed.",
+            "handling": "reject",
+            "id": "archive_date_env",
+            "receipt_field": "nondeterminism_failures",
+            "source": "CAIRN_ARCHIVE_DATE,IRONSPEC_ARCHIVE_DATE"
+          },
+          {
+            "class": "clock_date",
+            "description": "Archive dry-run replay assumes the deterministic default archive date unless an explicit rejected override is present.",
+            "handling": "normalize",
+            "id": "clock_date_default",
+            "receipt_field": "entropy_assumptions",
+            "source": "archive default date"
+          },
+          {
+            "class": "filesystem_path",
+            "description": "Root-specific checkout and temporary prefixes are normalized before portable hash computation; display paths remain operator-facing.",
+            "handling": "normalize",
+            "id": "cwd_root_paths",
+            "receipt_field": "root,normalization_rules",
+            "source": "current working directory and replay root"
+          },
+          {
+            "class": "toolchain",
+            "description": "Replay discloses that toolchain identity is represented by policy and receipt hashes rather than raw host paths.",
+            "handling": "disclose",
+            "id": "external_command_versions",
+            "receipt_field": "entropy_assumptions",
+            "source": "cairn binary, Nix/devshell, and external checker versions"
+          },
+          {
+            "class": "filesystem_metadata",
+            "description": "Replay manifests sort root-relative paths and hash file contents; volatile host metadata is not part of portable evidence.",
+            "handling": "normalize",
+            "id": "filesystem_order",
+            "receipt_field": "mutability_observations",
+            "source": "directory iteration order and file metadata"
+          },
+          {
+            "class": "locale_timezone",
+            "description": "Replay receipts use canonical JSON, sorted keys, and policy-owned string data rather than locale-sensitive formatting.",
+            "handling": "normalize",
+            "id": "locale_timezone",
+            "receipt_field": "entropy_assumptions",
+            "source": "process locale and timezone"
+          },
+          {
+            "class": "build_context",
+            "description": "Replay assumes a reviewed Nix-built Cairn surface and does not capture machine-specific store paths in portable evidence.",
+            "handling": "disclose",
+            "id": "nix_build_context",
+            "receipt_field": "entropy_assumptions",
+            "source": "Nix flake/devshell context"
+          }
+        ],
+        "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+        "environment_attestation": {
+          "attestation_hash": "e2b93bc1eac75acc53988b7961152060253b83c22b5793429ba353a011c166fd",
+          "attestation_policy_hash": "83a3542deb212c64578aec5349516aec30b32a49b7d03b0027e077a5d8b11711",
+          "cairn_package": "cairn",
+          "cairn_version": "0.1.0",
+          "entropy_policy_hash": "dc8d1f7847c9a94d11e27bdf0ad58be969eae9c765d63b540bec5eb367c7eafe",
+          "generated_policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "normalization_rules": [
+            "canonical_json",
+            "no_host_paths",
+            "no_raw_environment_values"
+          ],
+          "policy_facts": [
+            {
+              "class": "attestation_policy_identity",
+              "description": "Replay binds this reviewed environment attestation policy by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "attestation_policy",
+              "receipt_field": "environment_attestation.attestation_policy_hash",
+              "source": "determinism_replay_policy.environment_attestation"
+            },
+            {
+              "class": "binary_identity",
+              "description": "Replay discloses the Cairn package name and version compiled into the binary, not the host binary path.",
+              "handling": "disclose",
+              "id": "cairn_package_version",
+              "receipt_field": "environment_attestation.cairn_version",
+              "source": "CARGO_PKG_VERSION"
+            },
+            {
+              "class": "entropy_policy_identity",
+              "description": "Replay binds the reviewed entropy inventory by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "entropy_policy_hash",
+              "receipt_field": "environment_attestation.entropy_policy_hash",
+              "source": "determinism_replay_policy.entropy_inventory"
+            },
+            {
+              "class": "policy_identity",
+              "description": "Replay binds the generated policy content by BLAKE3 hash.",
+              "handling": "hash",
+              "id": "generated_policy_hash",
+              "receipt_field": "environment_attestation.generated_policy_hash",
+              "source": "cairn-policy/generated/cairn-policy.json"
+            },
+            {
+              "class": "selection_identity",
+              "description": "Replay discloses the selected case and group ids used to produce evidence.",
+              "handling": "disclose",
+              "id": "replay_selection",
+              "receipt_field": "environment_attestation.selected_cases,environment_attestation.selected_groups",
+              "source": "--case/--group/default replay selection"
+            },
+            {
+              "class": "build_context",
+              "description": "Replay discloses reviewed build/toolchain context as policy facts and avoids machine-specific store paths.",
+              "handling": "disclose",
+              "id": "toolchain_build_context",
+              "receipt_field": "environment_attestation.policy_facts",
+              "source": "Nix/devshell/toolchain context"
+            }
+          ],
+          "replay_scope": {
+            "selected_case": "validate",
+            "selected_group": null,
+            "selector": "case"
+          },
+          "selected_cases": [
+            "validate"
+          ],
+          "selected_groups": []
+        },
+        "mismatches": [],
+        "mutability_observations": [
+          {
+            "case": "validate",
+            "mutated": false
+          }
+        ],
+        "nondeterminism_failures": [],
+        "normalization_rules": [
+          "portable_root_paths",
+          "canonical_json"
+        ],
+        "preserves_content_hash": "d064cc29f0513e8ad8841ceb47b96c0b044009cfa606b3e91f9da9b31fce6270",
+        "receipt_hash": "e01b8246a5eed805bae12ac826c31ee79b9d0a963596f9a4e1f1a6a4b3e3d859",
+        "root": "/tmp/kiln-readiness-replay-FPX419",
+        "selected_cases": [
+          "validate"
+        ],
+        "selected_groups": [],
+        "skipped": [],
+        "summary": {
+          "failed_cases": [],
+          "mismatch_count": 0,
+          "nondeterminism_failure_count": 0,
+          "passed_cases": 1,
+          "skipped": 0,
+          "total_cases": 1
+        },
+        "valid": true,
+        "verdict": "pass"
+      },
+      "stderr": ""
+    }
+  ],
+  "unavailable": [
+    {
+      "args": [
+        "agent-receipt",
+        "preserves-hash",
+        "fixtures/agent-receipts/positive.json"
+      ],
+      "command_kind": "agent_receipt_preserves_hash",
+      "comparison_modes": [
+        "repeated"
+      ],
+      "display_only_paths": [
+        "path"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "<root>",
+      "hash_fields": [
+        "agent_receipt_preserves_hash",
+        "input_hash",
+        "preserves_content_hash",
+        "receipt_hash"
+      ],
+      "id": "agent_receipt_preserves_hash",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/agent-receipts/positive.json"
+      ]
+    },
+    {
+      "args": [
+        "agent-receipt",
+        "validate",
+        "fixtures/agent-receipts/positive.json"
+      ],
+      "command_kind": "agent_receipt_validate",
+      "comparison_modes": [
+        "repeated"
+      ],
+      "display_only_paths": [
+        "path"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "<root>",
+      "hash_fields": [
+        "agent_receipt_hash"
+      ],
+      "id": "agent_receipt_validate",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/agent-receipts/positive.json"
+      ]
+    },
+    {
+      "args": [
+        "archive",
+        "ready",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "archive_dry_run",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [
+        "actions.path",
+        "delta_specs"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/archive-ready",
+      "hash_fields": [
+        "input_hash",
+        "plan_hash",
+        "policy_hash",
+        "receipt_hash"
+      ],
+      "id": "archive_dry_run",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/archive-ready"
+      ]
+    },
+    {
+      "args": [
+        "gate",
+        "design",
+        "demo",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "gate",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/basic",
+      "hash_fields": [
+        "input_hash",
+        "policy_hash",
+        "receipt_hash"
+      ],
+      "id": "gate_design",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/basic"
+      ]
+    },
+    {
+      "args": [
+        "gate",
+        "proposal",
+        "demo",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "gate",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/basic",
+      "hash_fields": [
+        "input_hash",
+        "policy_hash",
+        "receipt_hash"
+      ],
+      "id": "gate_proposal",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/basic"
+      ]
+    },
+    {
+      "args": [
+        "gate",
+        "tasks",
+        "demo",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "gate",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/basic",
+      "hash_fields": [
+        "input_hash",
+        "policy_hash",
+        "receipt_hash"
+      ],
+      "id": "gate_tasks",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/basic"
+      ]
+    },
+    {
+      "args": [
+        "migrate",
+        "openspec",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "migrate_dry_run",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [
+        "actions.source",
+        "actions.destination",
+        "root"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/basic",
+      "hash_fields": [
+        "source_manifest_hash",
+        "destination_manifest_hash",
+        "manifest_hash",
+        "plan_hash",
+        "policy_hash",
+        "receipt_hash"
+      ],
+      "id": "migrate_dry_run",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/basic"
+      ]
+    },
+    {
+      "args": [
+        "sync",
+        "demo",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "sync_dry_run",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [
+        "actions.path",
+        "delta_specs"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/basic",
+      "hash_fields": [
+        "input_hash",
+        "plan_hash",
+        "policy_hash",
+        "receipt_hash"
+      ],
+      "id": "sync_dry_run",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/basic"
+      ]
+    },
+    {
+      "args": [
+        "view",
+        "graph",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "view",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [
+        "root"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/lifecycle-views/positive",
+      "hash_fields": [
+        "input_hash",
+        "receipt_hash"
+      ],
+      "id": "view_graph",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/lifecycle-views/positive"
+      ]
+    },
+    {
+      "args": [
+        "view",
+        "kanban",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "view",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [
+        "root"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/lifecycle-views/positive",
+      "hash_fields": [
+        "input_hash",
+        "receipt_hash"
+      ],
+      "id": "view_kanban",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/lifecycle-views/positive"
+      ]
+    },
+    {
+      "args": [
+        "view",
+        "mindmap",
+        "--root",
+        "<root>"
+      ],
+      "command_kind": "view",
+      "comparison_modes": [
+        "repeated",
+        "cross_root"
+      ],
+      "display_only_paths": [
+        "root"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": "fixtures/lifecycle-views/positive",
+      "hash_fields": [
+        "input_hash",
+        "receipt_hash"
+      ],
+      "id": "view_mindmap",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/lifecycle-views/positive"
+      ]
+    },
+    {
+      "args": [
+        "receipt-preserves-diff",
+        "--baseline",
+        "fixtures/receipt-preserves-diff/baseline.json",
+        "--candidate",
+        "fixtures/receipt-preserves-diff/candidate.json"
+      ],
+      "command_kind": "receipt_preserves_diff",
+      "comparison_modes": [
+        "repeated"
+      ],
+      "display_only_paths": [
+        "baseline_path",
+        "candidate_path"
+      ],
+      "expected_mutability": "read_only_or_dry_run",
+      "fixture_root": ".",
+      "hash_fields": [
+        "baseline_json_hash",
+        "candidate_json_hash",
+        "baseline_preserves_hash",
+        "candidate_preserves_hash",
+        "receipt_hash"
+      ],
+      "id": "receipt_preserves_diff",
+      "normalization_rules": [
+        "portable_root_paths",
+        "canonical_json"
+      ],
+      "missing": [
+        "fixtures/receipt-preserves-diff/baseline.json",
+        "fixtures/receipt-preserves-diff/candidate.json"
+      ]
+    }
+  ],
+  "boundary": "Selected reachable cases do not waive the required full preflight. Full replay is blocked by missing declared upstream fixture inputs; Kiln/Cairn integration maintainers must provision a governed exact fixture cohort or own an explicitly scoped repository replay policy. No fixture reconstruction or fake replacement was performed."
+}

@@ -1,0 +1,83 @@
+{
+  "schema": "kiln.readiness.remaining-blockers.v1",
+  "date": "2026-11-06",
+  "local_source": {
+    "coverage": {
+      "requirements": 1487,
+      "referenced": 1487,
+      "missing": 0,
+      "dangling": 0
+    },
+    "feature_packages_synchronized_and_archived": 12,
+    "workspace_tests": {
+      "passed": 1580,
+      "ignored": 5,
+      "filtered": 52,
+      "suites": 157
+    },
+    "strict_clippy": true,
+    "nix_flake_check_x86_64_linux": true,
+    "full_native_fixture_replay": {
+      "valid": true,
+      "cases": 19,
+      "case_level_skips": 5,
+      "mismatches": 0
+    },
+    "policy_local_readiness": {
+      "valid": true,
+      "onix_release_ready": false
+    }
+  },
+  "blockers": [
+    {
+      "id": "direct-workspace-format",
+      "owner": "Kiln/Cairn vendor-import maintainers",
+      "state": "blocked",
+      "evidence": "source-gates-verified.json",
+      "prerequisites": [
+        "Review the maintained partial Cairn import and restore a formatter-compatible manifest boundary through its repo-owned synchronization mechanism or an explicitly governed formatter scope.",
+        "Run the direct whole-workspace formatter after that change; targeted rustfmt and successful Nix checks are not relabelled as its pass."
+      ],
+      "boundary": "Known prior local formatter failure; not rerun merely to reconfirm, no hand reconstruction of vendored source."
+    },
+    {
+      "id": "approved-untrusted-host",
+      "owner": "Allocated host operator and Kiln hosted-execution maintainer",
+      "state": "blocked",
+      "evidence": "qualification-prerequisites.json",
+      "prerequisites": [
+        "Allocate a booted issue-policy-patched host (aspen3-1 observed 6.18.59) with whole-host trust exclusion and no unrelated sensitive co-tenancy.",
+        "Provide reviewed SMT safety treatment and authorized operator provisioning; SMT is currently active and noninteractive administrative authority is unavailable.",
+        "Run and retain actual approved-untrusted workload execution against the exact admitted cohort after prerequisites hold."
+      ],
+      "boundary": "Kernel/SSH observations and controlled peers are not workload or hostile isolation qualification."
+    },
+    {
+      "id": "exclusive-cat-and-distinct-chassis",
+      "owner": "Hardware/host operator with CAT delegation authority",
+      "state": "blocked",
+      "evidence": "qualification-prerequisites.json",
+      "prerequisites": [
+        "Provision/delegate an operator-created exclusive resctrl/CAT group with reviewed cache and trust allocation.",
+        "Independently bind selected endpoints to distinct physical chassis using controlled placement evidence, without publishing raw serials or machine IDs.",
+        "Run actual channel/physical-host measurements and retain exact allocations and observations."
+      ],
+      "boundary": "No mounted/delegated CAT group was established; OS instance differences and hardware-class configs are not distinct physical-host proof."
+    }
+  ],
+  "retained_active_changes": [
+    "add-attested-agent-metadata",
+    "reconcile-readiness-and-qualification"
+  ],
+  "publication": {
+    "new_push": false,
+    "new_deployment": false,
+    "published_main_unchanged": "b4078c09123470d28c05191bac7f6feb336a3151",
+    "deployed_source_unchanged": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6"
+  },
+  "durable_capability": {
+    "owner": "Kiln maintainers",
+    "contribution": "Exact requirement classification, governed synchronization/archive, typed recovery and run-order invariants, real process admission probes, compiled persisted-state consumer recipe and native-fixture replay source admission.",
+    "repeatability": "Retained recipes, exact native fixture/tool cohorts, BLAKE3 source manifests and complete gate logs."
+  }
+}

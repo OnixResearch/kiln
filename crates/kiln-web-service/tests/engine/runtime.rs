@@ -377,7 +377,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         token_file: feed_token_path.clone(),
         max_subscriptions: 4,
         max_entries_per_feed: 10,
-        max_feed_bytes: 65_536,
+        max_feed_bytes: kiln_web_service::feeds::ABSOLUTE_MAX_FEED_BYTES,
         max_redirects: 1,
         timeout_seconds: 5,
         refresh_interval_ms: 0,
@@ -490,6 +490,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     let xml = checked(feed.text());
     assert!(xml.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
+    // r[verify kiln.web.feeds.publish.scenario.revalidate]
     let conditional = checked(
         client
             .get(format!(
@@ -568,6 +569,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         403
     );
 
+    // r[verify kiln.web.feeds.publish.scenario.rss]
     let rss = checked(
         client
             .get(format!(
@@ -594,6 +596,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         200
     );
 
+    // r[verify kiln.web.feeds.publish.scenario.opml]
     let opml = checked(
         client
             .get(format!("{}/feeds.opml?token={feed_token}", profile.origin))
@@ -663,6 +666,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         .cloned()
         .unwrap_or_else(|| unreachable!("fixture last success"));
 
+    // r[verify kiln.web.feeds.ui.scenario.search]
     let searched = checked(
         client
             .get(format!("{}/api/feeds?q=release", profile.origin))
@@ -743,6 +747,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
         200
     );
 
+    // r[verify kiln.web.feeds.subscriptions.scenario.rename]
     let renamed = checked(
         client
             .post(format!("{}/api/feeds/{id}/label", profile.origin))
@@ -767,6 +772,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     assert_eq!(viewer_rename.status(), 403);
 
+    // r[verify kiln.web.feeds.subscriptions.scenario.export]
     let exported = checked(
         client
             .get(format!("{}/api/feeds/export", profile.origin))
@@ -823,6 +829,7 @@ fn repository_feeds_and_external_subscription_round_trip() {
     );
     assert_eq!(viewer_write.status(), 403);
 
+    // r[verify kiln.web.feeds.subscriptions.scenario.import]
     let imported = checked(
         client
             .post(format!("{}/api/feeds/import", profile.origin))

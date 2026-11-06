@@ -57,6 +57,11 @@ The adapter admits only `crunch-build-report-v1` and covers every top-level fiel
 
 The report must bind the exact profile inputs: `file` to the admitted plan path, `store_dir` to the logical store prefix, `output_dir` to the physical store directory, and `state_dir` to the state directory. Product paths must remain under the physical store, artifact logical paths under the logical prefix, and artifact sidecar or log paths under the state directory. These are lexical checks, not filesystem containment or symlink proofs.
 
+Absolute paths containing a parent-directory (`..`) component are rejected even
+when their unresolved text starts with the admitted root. This applies to
+products, logical artifacts, sidecars, successful logs, and saved failure logs;
+it does not add filesystem or symlink containment guarantees.
+
 Native counts must equal the outcome, cached, built and failure arrays. A successful report must contain no failure envelope and no FOD mismatch. Failure phases and error classes must use the pinned producer vocabulary. Failure log paths are added to the same exact-build log map as successful logs.
 
 A successful native report must contain every required product exactly once. Cache and substitution observations remain advisory.

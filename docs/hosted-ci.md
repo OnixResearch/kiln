@@ -556,6 +556,8 @@ there is no network device (see [Guest networking (non-goal)](#guest-networking-
 The retained escape suite denied namespace creation, host `/proc`/`/sys`
 observation and IP or vsock egress.
 
+<!-- r[impl kiln.microvm.confinement.nonclaims] -->
+
 The shell observes that claim before the guest session. It adds
 `NoNewPrivileges=yes` to the attempt unit, reads the unit's `cgroup.procs`, and
 requires exactly one `firecracker` process with the service user's UID/GID,

@@ -1,0 +1,47 @@
+{
+  "schema": "kiln.readiness.actual-binary-capacity-probe.v1",
+  "date": "2026-11-06",
+  "recipe": [
+    {
+      "provider": "github",
+      "template": "crates/kiln-adapter-github/tests/local_ci_e2e.rs",
+      "target": "crates/kiln-adapter-github/tests/omp_readiness_capacity_20261106.rs",
+      "append_test": "\n#[test]\nfn omp_real_binary_capacity_observation() {\n    const CONNECTION_BOUND: usize = 2;\n    const PARTIAL_DEADLINE_MS: u64 = 5_000;\n    const WRITE_DEADLINE_MS: u64 = 500;\n    let status = StatusServer::start();\n    let mut fixture = Fixture::new(BASIC_PASS_COMMAND, true);\n    fixture.config.read_timeout_ms = PARTIAL_DEADLINE_MS;\n    fixture.config.write_timeout_ms = WRITE_DEADLINE_MS;\n    fixture.config.maximum_connections = CONNECTION_BOUND;\n    let mut child = fixture.spawn_binary(&status.origin());\n    let observed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n        let mut partials = Vec::new();\n        for _ in 0..CONNECTION_BOUND {\n            let mut stream = connect(fixture.config.listen_address);\n            stream.write_all(b\"POST /github/webhook HTTP/1.1\\r\\nHost: localhost\\r\\n\").unwrap();\n            partials.push(stream);\n        }\n        let payload = body(&fixture.source_revision);\n        let delivery = headers(&payload, DELIVERY_BASE);\n        let capacity = raw_request(fixture.config.listen_address, &signed_request(&payload, &delivery));\n        assert!(capacity.starts_with(\"HTTP/1.1 503\"), \"capacity premise was not observed: {capacity}\");\n        let state = fixture.job_state();\n        assert_eq!(state.dispatches, 0);\n        assert_eq!(state.job_runs, 0);\n        drop(state);\n        assert!(status.records().is_empty());\n        for stream in &mut partials {\n            stream.set_read_timeout(Some(TEST_TIMEOUT)).unwrap();\n            let mut response = String::new();\n            stream.read_to_string(&mut response).unwrap();\n            assert!(response.starts_with(\"HTTP/1.1 408\"), \"actual partial deadline: {response}\");\n        }\n        drop(partials);\n        let response = fixture.send(DELIVERY_BASE);\n        assert!(!response_duplicate(&response));\n        let run = fixture.run_identity(&response);\n        let record = fixture.wait_for_terminal(&run);\n        assert_eq!(record.outcome().unwrap(), Outcome::Success);\n        let state = fixture.job_state();\n        assert_eq!(state.dispatches, 1);\n        assert_eq!(state.job_runs, 1);\n        drop(state);\n        assert_eq!(status.records().len(), 2);\n        println!(\"observed github standalone binary: 2 actual partial connections at bound; capacity503/no job/status effect; both partial408; same delivery202/nonduplicate; exactly1 dispatch and job\");\n    }));\n    fixture.stop_binary(&mut child);\n    if let Err(error) = observed { std::panic::resume_unwind(error); }\n}\n",
+      "cargo_args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-github",
+        "--features",
+        "protocol-fixtures",
+        "--test",
+        "omp_readiness_capacity_20261106",
+        "omp_real_binary_capacity_observation",
+        "--",
+        "--exact",
+        "--nocapture"
+      ]
+    },
+    {
+      "provider": "gitea",
+      "template": "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs",
+      "target": "crates/kiln-adapter-gitea/tests/omp_readiness_capacity_20261106.rs",
+      "append_test": "\n#[test]\nfn omp_real_binary_capacity_observation() {\n    const CONNECTION_BOUND: usize = 2;\n    const PARTIAL_DEADLINE_MS: u64 = 5_000;\n    const WRITE_DEADLINE_MS: u64 = 500;\n    let status = StatusServer::start();\n    let mut fixture = Fixture::new(BASIC_PASS_COMMAND, true);\n    fixture.config.read_timeout_ms = PARTIAL_DEADLINE_MS;\n    fixture.config.write_timeout_ms = WRITE_DEADLINE_MS;\n    fixture.config.maximum_connections = CONNECTION_BOUND;\n    let mut child = fixture.spawn_binary(&status.origin());\n    let observed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n        let mut partials = Vec::new();\n        for _ in 0..CONNECTION_BOUND {\n            let mut stream = connect(fixture.config.listen_address);\n            stream.write_all(b\"POST /gitea/webhook HTTP/1.1\\r\\nHost: localhost\\r\\n\").unwrap();\n            partials.push(stream);\n        }\n        let payload = body(&fixture.source_revision);\n        let delivery = headers(&payload, DELIVERY_BASE);\n        let capacity = raw_request(fixture.config.listen_address, &signed_request(&payload, &delivery));\n        assert!(capacity.starts_with(\"HTTP/1.1 503\"), \"capacity premise was not observed: {capacity}\");\n        let state = fixture.job_state();\n        assert_eq!(state.dispatches, 0);\n        assert_eq!(state.job_runs, 0);\n        drop(state);\n        assert!(status.records().is_empty());\n        for stream in &mut partials {\n            stream.set_read_timeout(Some(TEST_TIMEOUT)).unwrap();\n            let mut response = String::new();\n            stream.read_to_string(&mut response).unwrap();\n            assert!(response.starts_with(\"HTTP/1.1 408\"), \"actual partial deadline: {response}\");\n        }\n        drop(partials);\n        let response = fixture.send(DELIVERY_BASE);\n        assert!(!response_duplicate(&response));\n        let run = fixture.run_identity(&response);\n        let record = fixture.wait_for_terminal(&run);\n        assert_eq!(record.outcome().unwrap(), Outcome::Success);\n        let state = fixture.job_state();\n        assert_eq!(state.dispatches, 1);\n        assert_eq!(state.job_runs, 1);\n        drop(state);\n        assert_eq!(status.records().len(), 2);\n        println!(\"observed gitea standalone binary: 2 actual partial connections at bound; capacity503/no job/status effect; both partial408; same delivery202/nonduplicate; exactly1 dispatch and job\");\n    }));\n    fixture.stop_binary(&mut child);\n    if let Err(error) = observed { std::panic::resume_unwind(error); }\n}\n",
+      "cargo_args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-gitea",
+        "--features",
+        "protocol-fixtures",
+        "--test",
+        "omp_readiness_capacity_20261106",
+        "omp_real_binary_capacity_observation",
+        "--",
+        "--exact",
+        "--nocapture"
+      ]
+    }
+  ],
+  "scope": "Copy the current process fixture to the temporary target and append only the selected probe. Execute only that exact test, retain observed outcomes, then remove the temporary targets. No passing observation is implied by this recipe."
+}

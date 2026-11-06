@@ -1,0 +1,94 @@
+{
+  "schema": "kiln.readiness.source-gates.v1",
+  "date": "2026-11-06",
+  "owner": "Kiln maintainers",
+  "compiler": "1.88.0",
+  "workspace": {
+    "command": [
+      "env",
+      "KILN_PIJUL_EXE=/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul",
+      "KILN_NIX_JOB_SOURCE=/nix/store/b8bcc0qabaywjhypl93dafm4mi1dkc9w-jobset",
+      "cargo",
+      "test",
+      "--locked",
+      "--workspace",
+      "--all-features"
+    ],
+    "exit": 0,
+    "totals": {
+      "suites": 157,
+      "passed": 1580,
+      "failed": 0,
+      "ignored": 5,
+      "filtered": 52
+    },
+    "log": "all-feature-workspace-verified.log"
+  },
+  "clippy": {
+    "label": "final-workspace-clippy",
+    "args": [
+      "cargo",
+      "clippy",
+      "--locked",
+      "--workspace",
+      "--all-targets",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "    Blocking waiting for file lock on build directory\n    Checking kiln-hosted v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted)\n    Checking kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.43s\n"
+  },
+  "targeted_format": {
+    "paths": [
+      "crates/kiln-adapter-gitea/src/events.rs",
+      "crates/kiln-adapter-gitea/src/server.rs",
+      "crates/kiln-adapter-gitea/src/tests.rs",
+      "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs",
+      "crates/kiln-adapter-github/src/server.rs",
+      "crates/kiln-adapter-github/src/tests.rs",
+      "crates/kiln-adapter-github/tests/local_ci_e2e.rs",
+      "crates/kiln-adapter-mantle/src/mapping.rs",
+      "crates/kiln-adapter-mantle/src/tests.rs",
+      "crates/kiln-adapter-nix/src/tests.rs",
+      "crates/kiln-adapter-radicle/src/job/shell.rs",
+      "crates/kiln-core/src/change_review.rs",
+      "crates/kiln-hosted/src/microvm.rs",
+      "crates/kiln-microvm/src/confinement.rs",
+      "crates/kiln-radicle-ci/src/project.rs",
+      "crates/kiln-web-service/src/automation.rs",
+      "crates/kiln-web-service/src/engine/automation.rs",
+      "crates/kiln-web-service/src/engine/feeds.rs",
+      "crates/kiln-web-service/src/engine/queue.rs",
+      "crates/kiln-web-service/src/feeds.rs",
+      "crates/kiln-web-service/src/server.rs",
+      "crates/kiln-web-service/tests/engine/automation.rs",
+      "crates/kiln-web-service/tests/engine/runtime.rs",
+      "crates/kiln-web-service/tests/engine.rs"
+    ],
+    "exit": 0,
+    "command": "rustfmt --edition 2024 --config skip_children=true"
+  },
+  "frontend_annotation_syntax": {
+    "command": "node --check crates/kiln-web-service/src/code-review.js",
+    "exit": 0
+  },
+  "full_workspace_format": {
+    "passed": false,
+    "rerun": false,
+    "reason": "Previously observed partial vendored Cairn lacks vendor/cairn/crates/cairn-core/Cargo.toml; no snapshot reconstruction or redundant failing formatter run."
+  },
+  "origin_review": {
+    "agent": "ReviewOriginAndEvidence",
+    "result": "correct",
+    "findings": [],
+    "boundary": "Read-only review, not runtime proof."
+  },
+  "origin_runtime": "origin-consumer-verification.json",
+  "earlier_manifest_boundary": "source-manifest.json and source-manifest-final.json are preserved intermediate observations, not authoritative final-source manifests.",
+  "nonclaims": [
+    "No physical host isolation, CAT, distinct chassis, new publication or deployment qualification."
+  ]
+}

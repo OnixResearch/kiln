@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.readiness.nix-gate.v1",
+  "date": "2026-11-06",
+  "command": "nix flake check path:/home/brittonr/git/OnixResearch/kiln -L --builders '' --option build-hook ''",
+  "system": "x86_64-linux",
+  "passed": true,
+  "observation": "all checks passed!",
+  "log": "nix-flake-check.log",
+  "remote_builders": false,
+  "incompatible_systems_omitted": [
+    "aarch64-linux"
+  ],
+  "warnings": {
+    "radicle_read_only_head_fetch": "Several seed.radicle.garden HEAD queries failed; Nix reported expired cached refs for six repositories and continued. This pass is not evidence of current remote availability or fresh HEAD observations."
+  },
+  "boundary": "Local-system Nix checks and their exact realized cohorts; no publication, deployment, untrusted-host execution, CAT or distinct-physical-host qualification."
+}

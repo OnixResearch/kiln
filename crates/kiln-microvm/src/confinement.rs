@@ -88,6 +88,7 @@ fn parse_u8(value: &str) -> Result<u8, &'static str> {
     value.parse::<u8>().map_err(|_| reject())
 }
 
+// r[impl kiln.microvm.confinement]
 /// Admit one exact VMM process. `/proc/<pid>/exe` is read by the caller and
 /// passed as `exe`; the parser performs no I/O.
 pub fn admit_status(

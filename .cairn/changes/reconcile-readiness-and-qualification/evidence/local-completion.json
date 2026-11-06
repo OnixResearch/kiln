@@ -1,0 +1,111 @@
+{
+  "schema": "kiln.readiness.local-completion.v1",
+  "date": "2026-11-06",
+  "immediate_outcome": "All reachable local reconciliation and verification completed; hardware qualification remains explicitly blocked.",
+  "coverage": {
+    "requirements": 1487,
+    "referenced": 1487,
+    "missing": 0,
+    "dangling": 0,
+    "receipt_hash": "6ca5b9f9d4af71879e6e256941b802363268984d837fb7e7c9baa85001e09110"
+  },
+  "classification": {
+    "initial_dangling": 98,
+    "completed_unsynced": 85,
+    "wrong_detail_ids": 11,
+    "obsolete_duplicate_audit_markers": 2,
+    "newly_promoted_links": 45
+  },
+  "synchronized_and_archived_changes": [
+    "add-gitea-forgejo-ci",
+    "complete-mantle-native-report",
+    "publish-radicle-job-cobs",
+    "support-canonical-radicle-tags",
+    "run-ci-on-radicle-tags",
+    "add-repository-feeds",
+    "add-monorepo-work-views",
+    "supersede-trigger-runs",
+    "add-attested-agent-submissions",
+    "add-ownership-evidence",
+    "add-firecracker-confinement-observation",
+    "add-agent-review-search"
+  ],
+  "retained_unfinished": [
+    "add-attested-agent-metadata",
+    "reconcile-readiness-and-qualification"
+  ],
+  "verification": {
+    "workspace": {
+      "passed": 1580,
+      "suites": 157,
+      "ignored": 5,
+      "filtered": 52
+    },
+    "strict_all_feature_clippy": true,
+    "targeted_format": {
+      "label": "verified-targeted-format-check",
+      "args": [
+        "rustfmt",
+        "--edition",
+        "2024",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "crates/kiln-adapter-gitea/src/events.rs",
+        "crates/kiln-adapter-gitea/src/server.rs",
+        "crates/kiln-adapter-gitea/src/tests.rs",
+        "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs",
+        "crates/kiln-adapter-github/src/server.rs",
+        "crates/kiln-adapter-github/src/tests.rs",
+        "crates/kiln-adapter-github/tests/local_ci_e2e.rs",
+        "crates/kiln-adapter-mantle/src/mapping.rs",
+        "crates/kiln-adapter-mantle/src/tests.rs",
+        "crates/kiln-adapter-nix/src/tests.rs",
+        "crates/kiln-adapter-radicle/src/job/shell.rs",
+        "crates/kiln-core/src/change_review.rs",
+        "crates/kiln-hosted/src/microvm.rs",
+        "crates/kiln-microvm/src/confinement.rs",
+        "crates/kiln-radicle-ci/src/project.rs",
+        "crates/kiln-web-service/src/automation.rs",
+        "crates/kiln-web-service/src/engine/automation.rs",
+        "crates/kiln-web-service/src/engine/feeds.rs",
+        "crates/kiln-web-service/src/engine/queue.rs",
+        "crates/kiln-web-service/src/feeds.rs",
+        "crates/kiln-web-service/src/server.rs",
+        "crates/kiln-web-service/tests/engine/automation.rs",
+        "crates/kiln-web-service/tests/engine/runtime.rs",
+        "crates/kiln-web-service/tests/engine.rs"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "nix_all_current_system_checks": true,
+    "nix_system": "x86_64-linux",
+    "native_fixture_full_replay": {
+      "valid": true,
+      "total_cases": 19,
+      "case_level_skips": 5,
+      "mismatches": 0
+    },
+    "compiled_persisted_state_consumer": "origin-consumer-final.json",
+    "actual_adapter_binaries": "actual-binary-capacity-verification.json",
+    "lifecycle_valid": true,
+    "release_policy_valid": true,
+    "onix_release_ready": false,
+    "release_receipt_hash": "b3efa2b81ffbdfa7b41d3e8bc3d289a569e8717484db5c5bb4524234570f2557"
+  },
+  "durable_capability": "Exact requirement-to-source/evidence ledgers; guarded typed durable-request recovery and monotonic supersession; repeatable real-binary admission probes, native-source cohort replay and complete source-gate receipts.",
+  "maintenance_owner": "Kiln maintainers; host operator owns physical provisioning and safety.",
+  "repeatability": [
+    "verified-source-manifest.json",
+    "source-gates-verified.json",
+    "capacity-probe-recipe.json",
+    "origin-consumer-verification.json",
+    "origin-consumer-final.json",
+    "determinism-native-fixture-cohort.json",
+    "nix-flake-check.log"
+  ],
+  "remaining": "remaining-blockers.json",
+  "operator_decision": "Allocate/provision an issue-policy-patched dedicated host with whole-host trust exclusion and reviewed SMT treatment, exclusive CAT delegation, and independent distinct-chassis placement evidence; otherwise retain qualification blocked. No host alteration, push or deployment is authorized by these receipts."
+}

@@ -151,6 +151,7 @@ impl ProjectWorkerProfile {
         Ok(())
     }
 
+    // r[impl kiln.radicle_ci.tag.scenario.push]
     pub fn trigger(&self, source: &SourceContext) -> Result<TriggerRequest> {
         if source.provider != "radicle"
             || source.repository != self.source.repository_id
@@ -805,6 +806,7 @@ pub(crate) mod tests {
     }
 
     // r[verify kiln.radicle_ci.tag] r[verify kiln.radicle_ci.tag.scenario.projection]
+    // r[verify kiln.radicle_ci.tag.scenario.push]
     #[test]
     fn branch_and_tag_sources_project_distinct_events_and_aliases() {
         assert_eq!(

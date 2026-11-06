@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.readiness.source-cohort.v1",
+  "date": "2026-11-06",
+  "base_source_revision": "b4078c09123470d28c05191bac7f6feb336a3151",
+  "files": [
+    {
+      "path": "crates/kiln-adapter-mantle/src/mapping.rs",
+      "blake3": "5aaff07b47cb16a169ff9dcf79966e778ff91a5d250ed7ab9a2b1a49d2883c78"
+    },
+    {
+      "path": "crates/kiln-adapter-mantle/src/tests.rs",
+      "blake3": "69d11b4d4155cb3623475fddb9178fe52c8a1dfb730247a158725bff0cea3edd"
+    },
+    {
+      "path": "crates/kiln-web-service/src/feeds.rs",
+      "blake3": "11fbd60e24dfeaa543c8779a18fcf8d4f14a08f0f852c0a54375183cd5bd68ca"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/events.rs",
+      "blake3": "5c92903a8be5149a503dee3b0e6c9f67a68ace0ac5e8b2c3e79e7d1c7c5bcf01"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs",
+      "blake3": "2968456c3978dc852413afc0e58603686190552bf69ced915f4927cfb79a0312"
+    },
+    {
+      "path": "crates/kiln-adapter-nix/src/tests.rs",
+      "blake3": "5cabcb30ff06e4c05dd91a339000fb0a840b007057b7af6e855b1baa7625e545"
+    }
+  ],
+  "note": "Production behavior changed only in Mantle lexical path admission and external-feed overflow rejection. Gitea changes are trace comments/obsolete administrative prose; Nix changes repair only native live-fixture named-output binding, not production behavior or wire format."
+}

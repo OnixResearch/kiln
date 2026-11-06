@@ -237,6 +237,8 @@ pub fn is_due(now_ms: u64, fetched_at_ms: Option<u64>, interval_ms: u64) -> bool
         && fetched_at_ms.is_none_or(|fetched| now_ms.saturating_sub(fetched) >= interval_ms)
 }
 
+// r[impl kiln.web.feeds.subscriptions.scenario.background]
+// r[impl kiln.web.feeds.subscriptions.scenario.pause]
 /// Select due subscriptions, oldest attempt first, up to the per-tick bound.
 #[must_use]
 pub fn due_subscriptions<'a>(
@@ -368,6 +370,8 @@ fn globally_routable_v4(ip: Ipv4Addr) -> bool {
 /// pinned to the admitted address so a second resolution cannot rebind it.
 /// Redirects are manual and re-admitted, and proxy environment variables are
 /// ignored.
+// r[impl kiln.web.feeds.bounds.scenario.body]
+// r[impl kiln.web.feeds.security.scenario.conditional]
 pub fn fetch(url: &str, options: FetchOptions<'_>) -> Result<FetchOutcome, String> {
     let FetchOptions {
         max_bytes,
@@ -598,11 +602,14 @@ fn parse_rss(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parsed
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
     {
         let entry = rss_entry(item);
+        if entries.len() >= max_entries {
+            if seen.contains(&entry.id) {
+                continue;
+            }
+            return Err("external feed entry count exceeds its bound".into());
+        }
         if seen.insert(entry.id.clone()) {
             entries.push(entry);
-        }
-        if entries.len() >= max_entries {
-            break;
         }
     }
     Ok(ParsedFeed { title, entries })
@@ -622,11 +629,14 @@ fn parse_rdf(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parsed
         .filter(|node| node.is_element() && node.tag_name().name() == "item")
     {
         let entry = rss_entry(item);
+        if entries.len() >= max_entries {
+            if seen.contains(&entry.id) {
+                continue;
+            }
+            return Err("external feed entry count exceeds its bound".into());
+        }
         if seen.insert(entry.id.clone()) {
             entries.push(entry);
-        }
-        if entries.len() >= max_entries {
-            break;
         }
     }
     Ok(ParsedFeed { title, entries })
@@ -684,11 +694,14 @@ fn parse_atom(root: roxmltree::Node<'_, '_>, max_entries: usize) -> Result<Parse
             published,
             summary,
         };
+        if entries.len() >= max_entries {
+            if seen.contains(&entry.id) {
+                continue;
+            }
+            return Err("external feed entry count exceeds its bound".into());
+        }
         if seen.insert(entry.id.clone()) {
             entries.push(entry);
-        }
-        if entries.len() >= max_entries {
-            break;
         }
     }
     Ok(ParsedFeed { title, entries })
@@ -1114,11 +1127,56 @@ mod tests {
         assert!(parse(b"", 10).is_err());
     }
 
+    // r[verify kiln.web.feeds.security.scenario.malformed]
     #[test]
-    fn parser_limits_entries_and_sanitizes_links() {
+    fn parser_accepts_entry_limit_and_rejects_entry_overflow() -> Result<(), String> {
+        const ENTRY_LIMIT: usize = 3;
+        for format in ["rss", "rdf", "atom"] {
+            let document = |count: usize| {
+                let entries = (0..count)
+                    .map(|index| {
+                        if format == "atom" {
+                            format!("<entry><id>entry-{index}</id><title>Entry {index}</title></entry>")
+                        } else {
+                            format!("<item><guid>entry-{index}</guid><title>Entry {index}</title></item>")
+                        }
+                    })
+                    .collect::<String>();
+                match format {
+                    "rss" => {
+                        format!("<rss><channel><title>Bounded</title>{entries}</channel></rss>")
+                    }
+                    "rdf" => {
+                        format!("<RDF><channel><title>Bounded</title></channel>{entries}</RDF>")
+                    }
+                    _ => format!("<feed><title>Bounded</title>{entries}</feed>"),
+                }
+            };
+            let at_limit = document(ENTRY_LIMIT);
+            let parsed = parse(at_limit.as_bytes(), ENTRY_LIMIT)?;
+            assert_eq!(
+                parsed
+                    .entries
+                    .iter()
+                    .map(|entry| entry.id.as_str())
+                    .collect::<Vec<_>>(),
+                ["entry-0", "entry-1", "entry-2"],
+                "{format} must retain every admitted entry in source order"
+            );
+            let overflow = document(ENTRY_LIMIT + 1);
+            assert!(
+                parse(overflow.as_bytes(), ENTRY_LIMIT).is_err(),
+                "{format} must reject the whole feed instead of silently truncating entries"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn parser_sanitizes_links_and_retains_first_duplicate_id() {
         let many = format!(
             "<rss><channel>{}</channel></rss>",
-            (0..10)
+            (0..3)
                 .map(|i| format!("<item><title>{i}</title><link>javascript:alert(1)</link></item>"))
                 .collect::<String>()
         );
@@ -1154,7 +1212,7 @@ mod tests {
         last_modified: Option<&'a str>,
     ) -> FetchOptions<'a> {
         FetchOptions {
-            max_bytes: 65_536,
+            max_bytes: ABSOLUTE_MAX_FEED_BYTES,
             max_entries: 10,
             max_redirects: 1,
             timeout_seconds: 5,
@@ -1191,7 +1249,7 @@ mod tests {
 
     #[test]
     // r[verify kiln.web.feeds.security.scenario.redirect]
-    fn bounded_fetch_reads_local_feed_and_follows_one_redirect() {
+    fn bounded_fetch_reads_local_feed_and_follows_one_redirect() -> Result<(), String> {
         let (port, handle) = serve(vec![
             ("302 Found", "Location: /feed.xml\r\n", ""),
             ("200 OK", "", RSS),
@@ -1199,13 +1257,13 @@ mod tests {
         let fetched = fetch(
             &format!("http://127.0.0.1:{port}/start"),
             options(true, None, None),
-        )
-        .unwrap_or_else(|_| unreachable!());
+        )?;
         let FetchOutcome::Modified { feed, .. } = fetched else {
             unreachable!("redirected feed must be modified")
         };
         assert_eq!(feed.entries.len(), 2);
         handle.join().unwrap_or_else(|_| unreachable!());
+        Ok(())
     }
 
     #[test]
@@ -1215,14 +1273,14 @@ mod tests {
         assert!(fetch("https://10.0.0.1/feed.xml", options(false, None, None)).is_err());
     }
 
+    // r[verify kiln.web.feeds.security.scenario.conditional]
     #[test]
-    fn conditional_fetch_honours_not_modified_and_requires_a_validator() {
+    fn conditional_fetch_honours_not_modified_and_requires_a_validator() -> Result<(), String> {
         let (port, handle) = serve(vec![("304 Not Modified", "ETag: \"v2\"\r\n", "")]);
         let fetched = fetch(
             &format!("http://127.0.0.1:{port}/feed.xml"),
             options(true, Some("\"v1\""), None),
-        )
-        .unwrap_or_else(|_| unreachable!());
+        )?;
         assert!(matches!(
             fetched,
             FetchOutcome::NotModified { etag: Some(ref value), .. } if value == "\"v2\""
@@ -1241,8 +1299,10 @@ mod tests {
             .is_err()
         );
         handle.join().unwrap_or_else(|_| unreachable!());
+        Ok(())
     }
 
+    // r[verify kiln.web.feeds.bounds.scenario.body]
     #[test]
     // r[verify kiln.web.feeds.bounds]
     fn fetch_enforces_the_body_bound() {
@@ -1260,6 +1320,7 @@ mod tests {
         handle.join().unwrap_or_else(|_| unreachable!());
     }
 
+    // r[verify kiln.web.feeds.subscriptions.scenario.background]
     #[test]
     fn due_selection_is_oldest_first_and_bounded() {
         let subscription = |id: &str, fetched| FeedSubscription {
@@ -1335,6 +1396,7 @@ mod tests {
         assert!(parse_opml(b"<opml><body/></opml>", 10).is_err());
     }
 
+    // r[verify kiln.web.feeds.publish.scenario.rss]
     #[test]
     fn rss_publication_renders_channel_and_dates() {
         let xml = render_rss(
@@ -1357,6 +1419,7 @@ mod tests {
         assert!(xml.contains("A &amp; B"));
     }
 
+    // r[verify kiln.web.feeds.publish.scenario.opml]
     #[test]
     fn opml_export_escapes_labels_and_urls() {
         let xml = render_opml(

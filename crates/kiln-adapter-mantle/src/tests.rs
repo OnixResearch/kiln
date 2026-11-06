@@ -714,6 +714,76 @@ fn native_report_paths_must_stay_inside_their_declared_roots() {
     }
 }
 
+// r[verify kiln.mantle.native_report.paths.escape]
+#[test]
+fn native_report_parent_directory_paths_are_rejected() {
+    assert_eq!(
+        observe_report(success_report_value(false, true)).outcome,
+        BuildEvaluationOutcome::Success
+    );
+    for (pointer, root) in [
+        ("/outcomes/0/outputs/0/path", "/var/lib/kiln/mantle-store"),
+        (
+            "/outcomes/0/outputs/0/artifact_attestation/logical_path",
+            "/mantle/store",
+        ),
+        (
+            "/outcomes/0/outputs/0/artifact_attestation/path",
+            "/var/lib/kiln/mantle-state",
+        ),
+        ("/outcomes/0/log_file", "/var/lib/kiln/mantle-state"),
+    ] {
+        for suffix in ["../escape", "nested/../../escape"] {
+            let mut report = success_report_value(false, true);
+            set(
+                &mut report,
+                pointer,
+                serde_json::json!(format!("{root}/{suffix}")),
+            );
+            assert!(report_is_rejected(report), "{pointer}: {suffix}");
+        }
+    }
+}
+
+// r[verify kiln.mantle.native_report.paths.escape]
+// r[verify kiln.mantle.native_report.failures.log]
+#[test]
+fn native_report_parent_directory_failure_logs_are_rejected() {
+    let bytes = include_bytes!(concat!(
+        "../../../fixtures/mantle/native-report/",
+        "failure-report-v1.json"
+    ));
+    for (path, expected) in [
+        (
+            "/var/lib/kiln/mantle-state/logs/demo.drv.log",
+            BuildEvaluationOutcome::Failed,
+        ),
+        (
+            "/var/lib/kiln/mantle-state/../escape.log",
+            BuildEvaluationOutcome::ProviderError,
+        ),
+        (
+            "/var/lib/kiln/mantle-state/logs/../../escape.log",
+            BuildEvaluationOutcome::ProviderError,
+        ),
+    ] {
+        let mut report: serde_json::Value =
+            serde_json::from_slice(bytes).unwrap_or_else(|_| unreachable!());
+        set(
+            &mut report,
+            "/failed/0/saved_log_path",
+            serde_json::json!(path),
+        );
+        let runtime = FakeRuntime::with_outputs([exited_with_status(
+            1,
+            serde_json::to_vec(&report).unwrap_or_else(|_| unreachable!()),
+        )]);
+        let mut adapter = MantleAdapter::new(profile(), runtime).unwrap_or_else(|_| unreachable!());
+        let observation = adapter.dispatch(&plan()).unwrap_or_else(|_| unreachable!());
+        assert_eq!(observation.outcome, expected, "{path}");
+    }
+}
+
 // r[verify kiln.mantle.native_report.counts.valid]
 // r[verify kiln.mantle.native_report.counts.contradiction]
 #[test]

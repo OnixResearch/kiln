@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.readiness.source-gates.v1",
+  "date": "2026-11-06",
+  "workspace": {
+    "command": "cargo test --locked --workspace --all-features",
+    "native_inputs": {
+      "KILN_PIJUL_EXE": "/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul",
+      "KILN_NIX_JOB_SOURCE": "/nix/store/b8bcc0qabaywjhypl93dafm4mi1dkc9w-jobset"
+    },
+    "passed": 1575,
+    "failed": 0,
+    "ignored": 5,
+    "filtered": 52,
+    "suites": 157,
+    "exit_code": 0
+  },
+  "clippy": {
+    "command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings",
+    "exit_code": 0
+  },
+  "raw_log": "all-feature-workspace-before-origin-repair.log",
+  "scope": "Actual passing cohort before post-promotion annotation linking and the newly discovered schedule/trigger origin repair. This is not proof of that origin invariant or physical qualification."
+}

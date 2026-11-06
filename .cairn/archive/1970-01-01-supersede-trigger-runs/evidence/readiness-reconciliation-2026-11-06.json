@@ -1,0 +1,417 @@
+{
+  "schema": "kiln.readiness.lifecycle-reconciliation.v1",
+  "date": "2026-11-06",
+  "change": "supersede-trigger-runs",
+  "repair": "Split the queued and active cancellation requirement headings so each operation carries exactly one bare requirement identifier. No normative text, identifiers or implementation changed.",
+  "before": {
+    "sync_blocker": "delta_merge.requirement_identity_cardinality",
+    "requirement": "Queued and active cancellation",
+    "identifiers": [
+      "kiln.web.supersede.cancel",
+      "kiln.web.supersede.active"
+    ]
+  },
+  "checks": [
+    {
+      "command": "cairn gate proposal supersede-trigger-runs --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "result": {
+        "acceptance_ids": [],
+        "change": "supersede-trigger-runs",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "b9329829aa41f49589fbb2622f0be3ccae01c603cce21c0afd9a676204cb307a",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "policy_selection": {
+          "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": null,
+        "profile_identity_hash": "fc1ee2aeadf37ff8d875aefdeaca0854de96ea4e7a1291ff46f45a12b41e8917",
+        "receipt_hash": "6574e090102fd9d8126a8abe65189aa92b6bc7b77106f851c1d7f7458b36eaf2",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "proposal",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": "cairn gate design supersede-trigger-runs --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "result": {
+        "acceptance_ids": [],
+        "change": "supersede-trigger-runs",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "8ba4997447e5e6412be4c112c194fb71cf1623299545e1d0b5ed67c1fe3d729e",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "policy_selection": {
+          "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": null,
+        "profile_identity_hash": "fc1ee2aeadf37ff8d875aefdeaca0854de96ea4e7a1291ff46f45a12b41e8917",
+        "receipt_hash": "f7fe9fc99f21adbc13d76178a121bb7a633a4cdc17257e93da3c41b60b534384",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "design",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 27,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md",
+            "requirement_blocks": 4,
+            "scenario_blocks": 7,
+            "substantive_lines": 41,
+            "substantive_requirement_blocks": 4,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": null,
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": "cairn gate tasks supersede-trigger-runs --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "result": {
+        "acceptance_ids": [],
+        "change": "supersede-trigger-runs",
+        "evidence_summary": {
+          "docs_only": 0,
+          "fixture": 0,
+          "formal": 0,
+          "mode": "advisory",
+          "model": 0,
+          "probe": 0,
+          "property": 0
+        },
+        "input_hash": "f5f887676eb228fb0a03e2a7dc84728a6f6f77b00e3f35159ce7a35c85494e65",
+        "issues": [],
+        "layout": "cairn",
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "policy_selection": {
+          "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "probe_evidence": {
+          "declarations_present": false,
+          "probes": []
+        },
+        "profile_identity_hash": "fc1ee2aeadf37ff8d875aefdeaca0854de96ea4e7a1291ff46f45a12b41e8917",
+        "receipt_hash": "3b866556fdd9a250a0e0383eca55095265ca30bd298e09a0495d9bd32576fb14",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "stage": "tasks",
+        "substance": [
+          {
+            "checkbox_tasks": 0,
+            "kind": "design",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/design.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 27,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "proposal",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/proposal.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 15,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 0,
+            "kind": "delta_spec",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md",
+            "requirement_blocks": 4,
+            "scenario_blocks": 7,
+            "substantive_lines": 41,
+            "substantive_requirement_blocks": 4,
+            "substantive_tasks": 0,
+            "task_done": 0,
+            "task_in_progress": 0,
+            "task_todo": 0
+          },
+          {
+            "checkbox_tasks": 4,
+            "kind": "tasks",
+            "malformed_dependency_markers": 0,
+            "path": "./.cairn/changes/supersede-trigger-runs/tasks.md",
+            "requirement_blocks": 0,
+            "scenario_blocks": 0,
+            "substantive_lines": 4,
+            "substantive_requirement_blocks": 0,
+            "substantive_tasks": 4,
+            "task_done": 4,
+            "task_in_progress": 0,
+            "task_todo": 0
+          }
+        ],
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        },
+        "valid": true,
+        "verdict": "PASS",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    },
+    {
+      "command": "cairn sync supersede-trigger-runs --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "result": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "merge delta spec into main specs: ./.cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md",
+            "kind": "sync_delta_spec",
+            "path": "./.cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md"
+          }
+        ],
+        "blocked": false,
+        "change": "supersede-trigger-runs",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "delta_specs": [
+          "./.cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md"
+        ],
+        "dry_run": true,
+        "input_hash": "007f1c94b055e8287989c48c0f89afcbaaff7c67d7ab7db8f1d6f219fef66d3c",
+        "layout": "cairn",
+        "merge_preflight": {
+          "documents": [
+            {
+              "accepted_before_exists": false,
+              "accepted_before_hash": "5ad3a6d65efe143938e0db079ddbb73a2b4586ce20a27e0e8388fc12845ce516",
+              "blocked": false,
+              "changed": true,
+              "delta_hash": "1d91b79b1eaa46cd4592c7ea00994ab0c98dea5e471929fc02c5de99ab5e3add",
+              "destination": ".cairn/specs/supersede-trigger-runs/spec.md",
+              "diagnostics": [],
+              "expected_after_hash": "60d945f0f75b4d472b9b56f0d68242c49dea557fffb98c09e4a33b64f59297bf",
+              "operations": [
+                {
+                  "block_hash": "70f55986c7e63320523f20d251ab44d0bac7944497b3c7be26eee2797c2e3043",
+                  "heading": "### Requirement: Opt-in trigger policy",
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.policy"
+                },
+                {
+                  "block_hash": "f4560972697ce6d338dd35f9660511718e9c596becd4882215e12fd40c79c446",
+                  "heading": "### Requirement: Exact identity match",
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.identity"
+                },
+                {
+                  "block_hash": "1a0d6d39f4a104afb034b9f5348a9c19bb18aeee5ea51bb28c331bb9a616cae6",
+                  "heading": "### Requirement: Queued cancellation",
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.cancel"
+                },
+                {
+                  "block_hash": "508163f749cb7330b7dee2ee5ab0ffdaa6c0ded5b4e7f82aa8e346321adc68c6",
+                  "heading": "### Requirement: Active cancellation",
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.active"
+                }
+              ],
+              "outcomes": [
+                {
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.policy",
+                  "state": "applied"
+                },
+                {
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.identity",
+                  "state": "applied"
+                },
+                {
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.cancel",
+                  "state": "applied"
+                },
+                {
+                  "kind": "added",
+                  "requirement_id": "kiln.web.supersede.active",
+                  "state": "applied"
+                }
+              ],
+              "source": ".cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md"
+            }
+          ]
+        },
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "0b9afc8d72e3fc4e871db2e890c7b47fd35b024b7faf9e6fdd360de3e9314014",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fc1ee2aeadf37ff8d875aefdeaca0854de96ea4e7a1291ff46f45a12b41e8917",
+        "reasons": [],
+        "receipt_hash": "ace834ddb03a35774054ff87e8904c9e06d50ccce930163d5430c2cb8a994615",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      },
+      "stderr": ""
+    }
+  ],
+  "non_claims": [
+    "Structural gates and non-mutating sync preview do not prove runtime correctness or release readiness.",
+    "No tests/build/lint/formatter, accepted-spec sync, archive, deployment or host mutation performed."
+  ]
+}

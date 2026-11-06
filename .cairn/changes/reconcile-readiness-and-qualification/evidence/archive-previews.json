@@ -1,0 +1,633 @@
+{
+  "date": "2026-11-06",
+  "previews": [
+    {
+      "name": "add-gitea-forgejo-ci",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-gitea-forgejo-ci",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-gitea-forgejo-ci"
+          }
+        ],
+        "blocked": false,
+        "change": "add-gitea-forgejo-ci",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "19713b1b726c539b5806074445a42282d1d5245366ee5cdcaaebdef4c40d3830",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "1f6c814bee6f13cf7371bbea36a311bed96197dca992e985ec8377b41cf166a3",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "f67a48bf75976e45c4e4792c411f7013d70bb55be696bedf43baf43bf541ee1e",
+        "reasons": [],
+        "receipt_hash": "3e85fd0e721042e8c8b1e7e4cf9f097d31682da0e6e13ec1db8ca8ce2d6e5232",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "complete-mantle-native-report",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: complete-mantle-native-report",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/complete-mantle-native-report"
+          }
+        ],
+        "blocked": false,
+        "change": "complete-mantle-native-report",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "f600a036b9117ac298e31be7f587273d398b8f4bb515fb7d2faa5579c9ae874e",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "2bed005fc1a42fe3d3d07c3762dd9213e3386356a9a0d393ad30f51f7090e21c",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "cc8219e64a37bcfaf49334dabc71c53e9706b75aa3f7d6eee86676db4f59aff8",
+        "reasons": [],
+        "receipt_hash": "ac6628026257c4787e35dd3c12aeae397c469f117e1d345d4d4875541196f259",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "publish-radicle-job-cobs",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: publish-radicle-job-cobs",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/publish-radicle-job-cobs"
+          }
+        ],
+        "blocked": false,
+        "change": "publish-radicle-job-cobs",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "3d692e5405a363ef318666e85a3af51ec9c975008a67a7c2e21779ea3bb25cb4",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "7f97b9ba7a6be19ef179638d8c73e374ef0a8554ac909f3efc36f28c69f21f2e",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fbd3aca4b92b62721f76cc5de1c6ac1112ac421c777009eb4356e10adc857ac1",
+        "reasons": [],
+        "receipt_hash": "5149297135ae825142789fa19437788402232569b9d61ae722024a7175fe9560",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "support-canonical-radicle-tags",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: support-canonical-radicle-tags",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/support-canonical-radicle-tags"
+          }
+        ],
+        "blocked": false,
+        "change": "support-canonical-radicle-tags",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "e38d8dce7d83d55b7e98e06d1670e27f6c2b6d71aeeaf9bc3fdf952bbcaed353",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "66f576337c8fa14cd5315baa5c26346c114aab6b3807852c15d06ce3c16796d0",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "fa2d6ff654d6d3aac5d6d68f9c91ccdc1c2e0e3670f728642164a0996b8fd322",
+        "reasons": [],
+        "receipt_hash": "529a16e6f6e7a0df3df676e897c869ba52e44eb2b7bcba0823ef77ff5fb2cb33",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "run-ci-on-radicle-tags",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: run-ci-on-radicle-tags",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/run-ci-on-radicle-tags"
+          }
+        ],
+        "blocked": false,
+        "change": "run-ci-on-radicle-tags",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "8fb521d88c0fd3dc77059cbde8b958a8fa87609eeb76df08c31886cae92f1921",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "705c07c029ba875d0112f85be7c30a20c20f597372559c9b3f2168cd1c1fd063",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "8d4de75c100cb65c3851b76b2d73db5fe4ec26d75fc1c2d5ab0a2c7ad9bcc4e0",
+        "reasons": [],
+        "receipt_hash": "f737312dbed0e303a9f051d372e91e3ca40953b051f62c1e4ef50218472b8661",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "add-repository-feeds",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-repository-feeds",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-repository-feeds"
+          }
+        ],
+        "blocked": false,
+        "change": "add-repository-feeds",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "75f9fb53562c5d5487d543f39f5d37f6fcf402d6553094ea5b871e6bc7131368",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "6419b57228a1fbe4a80b6ceb0238daa1953d2155e049606b2dd0e2de2c8b71a1",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "7d7a03561edb874bbaa6b2bbd664bc29ec318a6d23a4a520b62aeda493321cfe",
+        "reasons": [],
+        "receipt_hash": "8ddbb684ed81230b1ce22608a21f5a2e13a756334a86cf919325a9be32b6ea8e",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "add-monorepo-work-views",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-monorepo-work-views",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-monorepo-work-views"
+          }
+        ],
+        "blocked": false,
+        "change": "add-monorepo-work-views",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "9f302fd6d8ea9d9b490e93497450efb49781a9ef50bf23b19bc0e981a16eb4fa",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "ce6c32166c11f80fe708b0e7ca48b3012ad1b87f26d40ec0b1ef397cad080d97",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "56315e676a8dce26256fe735d049a9f7f6508f8c7876c7552cc80279c6ba2ce7",
+        "reasons": [],
+        "receipt_hash": "a8af81d201481ae90c4d3142a02388d232e7f1f4b02d41a44bc41cb77bef34a4",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "add-attested-agent-submissions",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-attested-agent-submissions",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-attested-agent-submissions"
+          }
+        ],
+        "blocked": false,
+        "change": "add-attested-agent-submissions",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "b74074f526bb045423275b99aa5d0c1a30724149bab683df41aa3261187e4608",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "e407e33f84f1a80830ba99ef070017f831397328ee5194267660e1e248a02742",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "3b806debeeec7f6c5858ac5c4fab7cc0668ad35e9e2a972a5353a9cebbef6134",
+        "reasons": [],
+        "receipt_hash": "278ca22190fbce03918fa58969a1ca60a9ef628a3347cbd52f41a04c8bc01adc",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "add-ownership-evidence",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-ownership-evidence",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-ownership-evidence"
+          }
+        ],
+        "blocked": false,
+        "change": "add-ownership-evidence",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "43b494de4146873e963fe3a4919f64349b47e97e96ade18d47a58007dfba1209",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "baa2f7e03c3006691dae7eb97ef72ee1f78dd60c1287774897aed1369d1d988c",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "15984ee3608682d93af9b0a591790d7c6188be8542bbfd245cdcef19c73e49fa",
+        "reasons": [],
+        "receipt_hash": "55b8982c6409850a09ee25d13837318048387a2364722b8055792f53d12a229a",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "add-firecracker-confinement-observation",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-firecracker-confinement-observation",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-firecracker-confinement-observation"
+          }
+        ],
+        "blocked": false,
+        "change": "add-firecracker-confinement-observation",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "b91ec830c75c857c953e6939d5cd19c420e8a50c0ac892b8c507a552540b4797",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "379d13d2eb2fd1ef67fe9ebdddae0d67176b28c632404d658352d0b53fa3c707",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "1c49dd4443dcc94d73314ccff8e53b54155ec7b1011eb82e149d3ff15654e26b",
+        "reasons": [],
+        "receipt_hash": "c10c58474018fa353b94fc42121c9ea64c2b3818587f7260a96ef116b68cdc71",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    },
+    {
+      "name": "add-agent-review-search",
+      "exit": 0,
+      "receipt": {
+        "acceptance_ids": [],
+        "actions": [
+          {
+            "description": "move active change to archive: add-agent-review-search",
+            "kind": "archive_change",
+            "path": "./.cairn/changes/add-agent-review-search"
+          }
+        ],
+        "blocked": false,
+        "change": "add-agent-review-search",
+        "cross_repo_dependencies": {
+          "blocked_count": 0,
+          "dependency_count": 0,
+          "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+          "non_claims": [
+            "dependency satisfaction proves presented receipt linkage only",
+            "dependency satisfaction does not prove upstream correctness or remote trust",
+            "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+          ],
+          "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+          "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+          "rows": [],
+          "satisfied_count": 0,
+          "schema": "cairn.cross-repo-dependency-receipt.v1",
+          "valid": true,
+          "verdict": "PASS"
+        },
+        "cross_repo_evidence_issues": [],
+        "dry_run": true,
+        "input_hash": "1a77022b89506576f260114bfafd95fb84fecd8df7aeea6119b538451fb8281c",
+        "layout": "cairn",
+        "mutated": false,
+        "mutation_manifest": null,
+        "non_claims": [
+          "workflow state proves only the selected policy graph and observed structural artifact facts",
+          "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+          "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+          "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+        ],
+        "plan_hash": "7a0d4611603dc7982a2bd0ab64f9bdd3f307afd0f64809e9731089480e6c95ab",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "profile_identity_hash": "830428c9ac1bc2774424a082d760cfec994ffce47acbe7df3b4251c263b37dbe",
+        "reasons": [],
+        "receipt_hash": "a3d3c03cd4b30a918cad32ea2ab0110751b6b2d7a7ae74c45aa2e1704eea9e92",
+        "review_receipt_hashes": [],
+        "spec_effect": "delta",
+        "workflow_profile": "spec-driven",
+        "workflow_profile_compatibility_fallback": false,
+        "workflow_profile_source": "change_create",
+        "workflow_profile_version": 1
+      }
+    }
+  ],
+  "excluded": "supersede-trigger-runs remains active until actual origin defect repair and verification"
+}

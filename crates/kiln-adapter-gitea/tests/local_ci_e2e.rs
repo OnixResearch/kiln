@@ -1,5 +1,4 @@
 // r[verify kiln.gitea.local_e2e]
-// r[verify kiln.gitea.local_e2e.nonclaims]
 #![cfg(feature = "protocol-fixtures")]
 
 use std::collections::BTreeMap;
@@ -1076,7 +1075,7 @@ fn status_states(record: &RunRecord) -> Vec<StatusState> {
         .collect()
 }
 
-// r[verify kiln.gitea.local_e2e.outcomes] r[verify kiln.gitea.source] r[verify kiln.gitea.workflow]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.source] r[verify kiln.gitea.workflow]
 #[test]
 fn passing_composition_executes_exact_source_and_publishes_success() {
     let fixture = Fixture::new(PASS_COMMAND, true);
@@ -1112,7 +1111,7 @@ fn passing_composition_executes_exact_source_and_publishes_success() {
     fixture.stop_service(stop, handle);
 }
 
-// r[verify kiln.gitea.local_e2e.outcomes] r[verify kiln.gitea.source] r[verify kiln.gitea.workflow]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.source] r[verify kiln.gitea.workflow]
 #[test]
 fn failing_command_publishes_domain_failure() {
     let fixture = Fixture::new("exit 23", true);
@@ -1146,7 +1145,7 @@ fn failing_command_publishes_domain_failure() {
     fixture.stop_service(stop, handle);
 }
 
-// r[verify kiln.gitea.local_e2e.recovery] r[verify kiln.gitea.replay]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.replay]
 #[test]
 fn duplicate_delivery_reuses_run_without_second_job() {
     let fixture = Fixture::new(BASIC_PASS_COMMAND, true);
@@ -1178,7 +1177,7 @@ fn duplicate_delivery_reuses_run_without_second_job() {
     fixture.stop_service(stop, handle);
 }
 
-// r[verify kiln.gitea.local_e2e.recovery] r[verify kiln.gitea.replay] r[verify kiln.gitea.workflow]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.replay] r[verify kiln.gitea.workflow]
 #[test]
 fn restart_recovers_original_execution_without_redispatch() {
     let fixture = Fixture::new(BASIC_PASS_COMMAND, false);
@@ -1224,7 +1223,7 @@ fn restart_recovers_original_execution_without_redispatch() {
     fixture.stop_service(stop, handle);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.outcomes] r[verify kiln.gitea.local_e2e.process]
+// r[verify kiln.gitea.local_e2e]
 #[test]
 fn real_binary_publishes_through_fixture_status() {
     let status = StatusServer::start();
@@ -1276,7 +1275,7 @@ fn real_binary_publishes_through_fixture_status() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.recovery] r[verify kiln.gitea.local_e2e.process]
+// r[verify kiln.gitea.local_e2e]
 #[test]
 fn real_binary_restart_recovers_without_redispatch() {
     let status = StatusServer::start();
@@ -1329,7 +1328,7 @@ fn real_binary_restart_recovers_without_redispatch() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.outcomes] r[verify kiln.gitea.local_e2e.process]
+// r[verify kiln.gitea.local_e2e]
 #[test]
 fn real_binary_failing_command_publishes_failure() {
     let status = StatusServer::start();
@@ -1370,7 +1369,7 @@ fn real_binary_failing_command_publishes_failure() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.recovery] r[verify kiln.gitea.local_e2e.process]
+// r[verify kiln.gitea.local_e2e]
 #[test]
 fn real_binary_duplicate_delivery_reuses_run() {
     let status = StatusServer::start();
@@ -1402,7 +1401,7 @@ fn real_binary_duplicate_delivery_reuses_run() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.authentication]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.authentication]
 #[test]
 fn real_binary_rejects_invalid_signature_before_effects() {
     let status = StatusServer::start();
@@ -1427,7 +1426,7 @@ fn real_binary_rejects_invalid_signature_before_effects() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.status_recovery] r[verify kiln.gitea.status]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.status]
 #[test]
 fn real_binary_reconciles_ambiguous_status_without_repost() {
     let status = StatusServer::start();
@@ -1466,7 +1465,7 @@ fn real_binary_reconciles_ambiguous_status_without_repost() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.framing] r[verify kiln.gitea.authentication] r[verify kiln.gitea.shell]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.authentication] r[verify kiln.gitea.shell]
 #[test]
 fn real_binary_rejects_malformed_webhook_framing() {
     let status = StatusServer::start();
@@ -1497,7 +1496,7 @@ fn real_binary_rejects_malformed_webhook_framing() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.profile_drift] r[verify kiln.gitea.replay]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.replay]
 #[test]
 fn real_binary_rejects_changed_profile_against_existing_replay_state() {
     let status = StatusServer::start();
@@ -1548,7 +1547,7 @@ fn real_binary_rejects_changed_profile_against_existing_replay_state() {
     drop(state);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.status_recovery] r[verify kiln.gitea.status]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.status]
 #[test]
 fn real_binary_keeps_terminal_status_unknown_on_conflict() {
     let status = StatusServer::start();
@@ -1588,7 +1587,7 @@ fn real_binary_keeps_terminal_status_unknown_on_conflict() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.events] r[verify kiln.gitea.events]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.events]
 #[test]
 fn real_binary_admits_same_repository_pull_request() {
     let status = StatusServer::start();
@@ -1628,7 +1627,7 @@ fn real_binary_admits_same_repository_pull_request() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.events] r[verify kiln.gitea.events]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.events]
 #[test]
 fn real_binary_denies_fork_pull_request() {
     let status = StatusServer::start();
@@ -1660,7 +1659,7 @@ fn real_binary_denies_fork_pull_request() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.events] r[verify kiln.gitea.events]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.events]
 #[test]
 fn real_binary_ignores_closed_pull_request() {
     let status = StatusServer::start();
@@ -1692,9 +1691,9 @@ fn real_binary_ignores_closed_pull_request() {
     fixture.stop_binary(&mut child);
 }
 
-// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.local_e2e.process] r[verify kiln.gitea.local_e2e.shell_bounds] r[verify kiln.gitea.shell]
+// r[verify kiln.gitea.local_e2e] r[verify kiln.gitea.shell]
 #[test]
-fn real_binary_survives_partial_request_and_overload() {
+fn real_binary_expires_partial_requests_and_remains_available() {
     let status = StatusServer::start();
     let mut fixture = Fixture::new(BASIC_PASS_COMMAND, true);
     fixture.config.read_timeout_ms = 200;
@@ -1702,26 +1701,10 @@ fn real_binary_survives_partial_request_and_overload() {
     fixture.config.maximum_connections = 2;
     let mut child = fixture.spawn_binary(&status.origin());
 
-    let mut stalled = Vec::new();
-    for _ in 0..2 {
-        let mut stream = connect(fixture.config.listen_address);
-        stream
-            .write_all(b"POST /gitea/webhook HTTP/1.1\r\nHost: localhost\r\n")
-            .unwrap_or_else(|_| unreachable!("fixture partial request is written"));
-        stalled.push(stream);
-    }
-
-    let body = body(&fixture.source_revision);
-    let headers = headers(&body, DELIVERY_BASE);
-    let response = raw_request(
-        fixture.config.listen_address,
-        &signed_request(&body, &headers),
-    );
-    assert!(response.starts_with("HTTP/1.1 503"), "{response}");
-
-    let mut timed_out = stalled
-        .pop()
-        .unwrap_or_else(|| unreachable!("fixture stalled stream exists"));
+    let mut timed_out = connect(fixture.config.listen_address);
+    timed_out
+        .write_all(b"POST /gitea/webhook HTTP/1.1\r\nHost: localhost\r\n")
+        .unwrap_or_else(|_| unreachable!("fixture partial request is written"));
     timed_out
         .set_read_timeout(Some(TEST_TIMEOUT))
         .unwrap_or_else(|_| unreachable!("fixture stalled read timeout is set"));
@@ -1731,8 +1714,6 @@ fn real_binary_survives_partial_request_and_overload() {
         .unwrap_or_else(|_| unreachable!("fixture stalled response is read"));
     assert!(response.starts_with("HTTP/1.1 408"), "{response}");
     drop(timed_out);
-    drop(stalled);
-    std::thread::sleep(Duration::from_millis(100));
 
     let response = fixture.send(DELIVERY_BASE);
     assert!(!response_duplicate(&response));

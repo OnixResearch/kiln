@@ -1,0 +1,69 @@
+{
+  "schema": "kiln.readiness.source-cohort.v1",
+  "date": "2026-11-06",
+  "base_source_revision": "b4078c09123470d28c05191bac7f6feb336a3151",
+  "files": [
+    {
+      "path": "crates/kiln-adapter-mantle/src/mapping.rs",
+      "blake3": "5aaff07b47cb16a169ff9dcf79966e778ff91a5d250ed7ab9a2b1a49d2883c78"
+    },
+    {
+      "path": "crates/kiln-adapter-mantle/src/tests.rs",
+      "blake3": "69d11b4d4155cb3623475fddb9178fe52c8a1dfb730247a158725bff0cea3edd"
+    },
+    {
+      "path": "crates/kiln-web-service/src/feeds.rs",
+      "blake3": "7d06a7cb1df40da3807c013557c60949f4386687feaaeba05f2ee134c601757f"
+    },
+    {
+      "path": "crates/kiln-adapter-nix/src/tests.rs",
+      "blake3": "5cabcb30ff06e4c05dd91a339000fb0a840b007057b7af6e855b1baa7625e545"
+    },
+    {
+      "path": "crates/kiln-adapter-github/src/server.rs",
+      "blake3": "aaf3ccf84459f98b1df3ce97c2cb4480ad7024230b87238b9b04d9127254b47b"
+    },
+    {
+      "path": "crates/kiln-adapter-github/src/tests.rs",
+      "blake3": "406c74fdb4311dad472d22557048cfc063dcc9ee7d7b91f945c24e11e4832f8e"
+    },
+    {
+      "path": "crates/kiln-adapter-github/tests/local_ci_e2e.rs",
+      "blake3": "ce5db53ca51e7a5ef5a6456ed40fa9ea7741fca068cfb8256b5c7412f3894b1f"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/events.rs",
+      "blake3": "5c92903a8be5149a503dee3b0e6c9f67a68ace0ac5e8b2c3e79e7d1c7c5bcf01"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/server.rs",
+      "blake3": "3d0fa3df2d2ec9ea488b9fb40a9be7a7a0b36ac29e56f4a1bfd4620451523dec"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/src/tests.rs",
+      "blake3": "e739f6fab85ad797d97adccae9acd283c4318895f205b86e81138fd6e1e23cd0"
+    },
+    {
+      "path": "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs",
+      "blake3": "455d7cb32c71b0c13d54a6d802d785fa7af8676f821c02a7d34ef432b46851de"
+    }
+  ],
+  "changes": {
+    "product_contract_repairs": [
+      "Mantle lexical ParentDir rejection",
+      "RSS/RDF/Atom distinct-entry overflow rejection"
+    ],
+    "behavior_preserving_internal_seam": "HTTP active-counter initialization moved to existing private callers; production still starts at zero with identical admission/decrement policy.",
+    "verification_only": [
+      "Native Nix named-output fixture binding",
+      "Deterministic HTTP at-bound state transition tests",
+      "Real-process deadline/recovery checks without scheduler-dependent saturation assumptions",
+      "Fallible/checked semantic assertions"
+    ],
+    "traceability_only": [
+      "Eleven Gitea detail IDs corrected to existing obligations",
+      "Two unsupported duplicate administrative audit markers removed; proof sealing and compile-fail checks retained"
+    ]
+  },
+  "capacity_probe_scope": "actual-binary-capacity-verification.json binds the exact exercised source/executables before subsequent assertion-access/fallible-test cleanup; no HTTP runtime policy changed afterward."
+}

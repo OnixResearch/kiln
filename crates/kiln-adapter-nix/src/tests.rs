@@ -834,13 +834,21 @@ fn live_derivation(
     names: &[&str],
     home: &Path,
 ) -> (String, ContentId, Vec<NixOutputBinding>) {
-    let derivation_expression = format!("({expression}).drvPath");
+    #[derive(serde::Deserialize)]
+    struct NamedOutputs {
+        path: String,
+        outputs: std::collections::BTreeMap<String, String>,
+    }
+
+    let derivation_expression = format!(
+        "let drv = {expression}; in {{ path = drv.drvPath; outputs = builtins.listToAttrs (builtins.map (output: {{ name = output.outputName; value = output.outPath; }}) drv.all); }}"
+    );
     let evaluation = std::process::Command::new(PINNED_NIX_EXECUTABLE_PATH)
         .args([
             "--extra-experimental-features",
             "nix-command",
             "eval",
-            "--raw",
+            "--json",
             "--expr",
             &derivation_expression,
         ])
@@ -850,37 +858,27 @@ fn live_derivation(
         .output()
         .unwrap_or_else(|_| unreachable!());
     assert!(evaluation.status.success());
-    let derivation_path = String::from_utf8(evaluation.stdout)
-        .unwrap_or_else(|_| unreachable!())
-        .trim()
-        .to_string();
-    let derivation_bytes = std::fs::read(&derivation_path).unwrap_or_else(|_| unreachable!());
+    let bindings: NamedOutputs =
+        serde_json::from_slice(&evaluation.stdout).unwrap_or_else(|_| unreachable!());
+    let derivation_bytes = std::fs::read(&bindings.path).unwrap_or_else(|_| unreachable!());
     let derivation_identity =
         ContentId::from_blake3_hex(blake3::hash(&derivation_bytes).to_hex().to_string())
             .unwrap_or_else(|_| unreachable!());
-    let query = std::process::Command::new(PINNED_NIX_STORE_EXECUTABLE_PATH)
-        .args(["-q", "--outputs", &derivation_path])
-        .env_clear()
-        .env("HOME", home)
-        .env("NIX_CONFIG", PINNED_NIX_CONFIG)
-        .output()
-        .unwrap_or_else(|_| unreachable!());
-    assert!(query.status.success());
-    let paths = String::from_utf8(query.stdout)
-        .unwrap_or_else(|_| unreachable!())
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-    assert_eq!(paths.len(), names.len());
+    assert_eq!(bindings.outputs.len(), names.len());
     let mut outputs = names
         .iter()
-        .zip(paths)
-        .map(|(name, path)| output(name, &path))
+        .map(|name| {
+            output(
+                name,
+                bindings
+                    .outputs
+                    .get(*name)
+                    .unwrap_or_else(|| unreachable!()),
+            )
+        })
         .collect::<Vec<_>>();
     outputs.sort_by(|left, right| left.name.cmp(&right.name));
-    (derivation_path, derivation_identity, outputs)
+    (bindings.path, derivation_identity, outputs)
 }
 
 #[cfg(feature = "nix-live")]
@@ -988,8 +986,8 @@ fn live_multi_output_is_rooted_and_released() {
         live_derivation(expression, &["out", "dev"], &home);
     let output_paths = outputs
         .iter()
-        .map(|output| output.path.clone())
-        .collect::<Vec<_>>();
+        .map(|output| (output.name.as_str().to_owned(), output.path.clone()))
+        .collect::<std::collections::BTreeMap<_, _>>();
     let profile = live_profile(
         &temp,
         &home,
@@ -1005,12 +1003,12 @@ fn live_multi_output_is_rooted_and_released() {
     assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
     assert_eq!(observation.products.len(), 2);
     assert_eq!(
-        std::fs::read_to_string(output_paths.first().unwrap_or_else(|| unreachable!()))
+        std::fs::read_to_string(output_paths.get("out").unwrap_or_else(|| unreachable!()))
             .unwrap_or_else(|_| unreachable!()),
         "multi-out\n"
     );
     assert_eq!(
-        std::fs::read_to_string(output_paths.get(1).unwrap_or_else(|| unreachable!()))
+        std::fs::read_to_string(output_paths.get("dev").unwrap_or_else(|| unreachable!()))
             .unwrap_or_else(|_| unreachable!()),
         "multi-dev\n"
     );

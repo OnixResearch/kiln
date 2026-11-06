@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.readiness.determinism-preflight.v1",
+  "date": "2026-11-06",
+  "owner": "Kiln/Cairn integration maintainers",
+  "initial_attempt": {
+    "command": "cairn determinism replay --root . --policy cairn-policy/generated/cairn-policy.json",
+    "exit": 1,
+    "stderr": "error: replay fixture contains a symlink: result\n"
+  },
+  "source_export": {
+    "method": "jj file list with exact working-copy tracked paths; copy regular files preserving modes into private temporary source archive",
+    "tracked_files": 12576,
+    "tracked_symlinks": [],
+    "ignored_output_preserved": "result",
+    "note": "No source narrowing: all tracked paths included; VCS metadata and ignored build outputs are not source-archive members."
+  },
+  "command": [
+    "cairn",
+    "determinism",
+    "replay",
+    "--root",
+    "/tmp/kiln-readiness-replay-FPX419",
+    "--policy",
+    "/tmp/kiln-readiness-replay-FPX419/cairn-policy/generated/cairn-policy.json"
+  ],
+  "exit": 1,
+  "receipt": null,
+  "stderr": "error: No such file or directory (os error 2)\n",
+  "unparsed_stdout": ""
+}

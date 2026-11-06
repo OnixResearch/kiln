@@ -1,0 +1,314 @@
+{
+  "boundary": "Real Engine, native local Git source, signed trigger admission, durable on-disk state, three separate consumer processes. Controlled WorkflowPort only; no real Lattice, HTTPS listener, workload execution or host confinement qualification.",
+  "passed": true,
+  "proof": {
+    "automation": {
+      "configured": true,
+      "deliveries": [],
+      "notifications": [],
+      "policy_identity": "aa9dd2c8bb7193c7fdbac8e133974aea9de0489d1a77a09fd1c3763abd578324",
+      "retention": {
+        "deliveries": 0,
+        "max_records": 100,
+        "requests": 0,
+        "sources": 3
+      },
+      "schedules": [
+        {
+          "cron": null,
+          "enabled": true,
+          "id": "shared-origin",
+          "interval_ms": 3600000,
+          "last_fired_ms": null,
+          "last_status": "queued",
+          "max_interval_ms": 3600000,
+          "min_interval_ms": 1000,
+          "next_due_ms": 1793988000001,
+          "project_id": "fixture",
+          "reference": "refs/heads/main",
+          "resolved_cron": null
+        }
+      ],
+      "sources": [
+        {
+          "affected": null,
+          "changed": null,
+          "error_code": null,
+          "filter": null,
+          "id": "3f8ba3f0b64bec042193bb15292d5910befb801e0582c27757e5b0b0f76dcce7",
+          "kind": "trigger",
+          "project_id": "fixture",
+          "received_at_ms": 1793985145273,
+          "registration_id": "shared-origin",
+          "run_id": "web-run-6c3cc96208f498926c7a4a5a728f071432f4892bc5f479c9ad339c2e3d33aa86",
+          "source_revision": "03f4321015fd919ba86bff23e811a8677257225b",
+          "status": "queued"
+        },
+        {
+          "affected": null,
+          "changed": null,
+          "error_code": null,
+          "filter": null,
+          "id": "9950a7a4165c6b85e3b79fcf6f731bf7ea7244928a6f0c304b53ea3ac6a7d15f",
+          "kind": "trigger",
+          "project_id": "fixture",
+          "received_at_ms": 1793985145252,
+          "registration_id": "shared-origin",
+          "run_id": "web-run-29e933fae783b2ee00831c30d1ace88a62365856cc0f51cea17ef727a3f6cf72",
+          "source_revision": "12d78104957c5e79decc5bf0c33e5d542d662edc",
+          "status": "queued"
+        },
+        {
+          "affected": null,
+          "changed": null,
+          "error_code": null,
+          "filter": null,
+          "id": "3e00f2b3b9f375c693193dcad790c921b8840599dd45ac6e3ae6b5c01da81e1f",
+          "kind": "schedule",
+          "project_id": "fixture",
+          "received_at_ms": 1793985145204,
+          "registration_id": "shared-origin",
+          "run_id": "web-run-c12116d894d0a2f6f3a1b4bae378fb97dfc0a59d5f6a62686c84e2e7cd635a11",
+          "source_revision": null,
+          "status": "queued"
+        }
+      ],
+      "status": "enabled",
+      "triggers": [
+        {
+          "allow_pull_request": false,
+          "allow_push": true,
+          "enabled": true,
+          "filter": {},
+          "id": "shared-origin",
+          "last_status": "queued",
+          "project_id": "fixture",
+          "pull_request": false,
+          "push": true,
+          "reference": "refs/heads/main",
+          "scope": null
+        }
+      ]
+    },
+    "manual": {
+      "attempt_id": "web-attempt-803a6ff3150f6045b2e1239e00f50e7d1b2e7c900a49cda16fdc37f4c0818293",
+      "canonical_tree": "e698875f6c63dfe2a02b129d391e46e96315dee3570a364e7f2f36917e8b973d",
+      "completed_at_ms": null,
+      "controls": {
+        "cancel": true,
+        "pause": false,
+        "resume": false
+      },
+      "created_at_ms": 1793985145200,
+      "duration_ms": null,
+      "edges": [],
+      "error_code": null,
+      "execution": {
+        "contract_version": 1,
+        "native_id": "controlled-blocker",
+        "native_kind": "execution",
+        "provider_namespace": "lattice"
+      },
+      "id": "web-run-803a6ff3150f6045b2e1239e00f50e7d1b2e7c900a49cda16fdc37f4c0818293",
+      "log_bounds": {
+        "maximum_chunk_bytes": 4096,
+        "maximum_chunks": 32,
+        "maximum_total_bytes": 65536
+      },
+      "nodes": [
+        {
+          "completed_at_ms": null,
+          "duration_ms": null,
+          "id": "job",
+          "kind": "test",
+          "started_at_ms": 1793985145201,
+          "state": "Running"
+        }
+      ],
+      "ordinal": 6,
+      "outcome": "Pending",
+      "parent_run_id": null,
+      "phase": "active",
+      "project_id": "fixture",
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      },
+      "repository": {
+        "contract_version": 1,
+        "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+        "native_kind": "repository",
+        "provider_namespace": "git"
+      },
+      "revision": 1,
+      "selected_nodes": [],
+      "sequence": 0,
+      "source_revision": "31f1f82226f3259000f9680248f4df68d6753ab7",
+      "started_at_ms": 1793985145201,
+      "step_telemetry": []
+    },
+    "newest": {
+      "attempt_id": "web-attempt-6c3cc96208f498926c7a4a5a728f071432f4892bc5f479c9ad339c2e3d33aa86",
+      "canonical_tree": "5ad62d01d1ab80acafc5a2ab297a5a2c22966510f22aed98d3ae364477a339e0",
+      "completed_at_ms": null,
+      "controls": {
+        "cancel": true,
+        "pause": false,
+        "resume": false
+      },
+      "created_at_ms": 1793985145279,
+      "duration_ms": null,
+      "edges": [],
+      "error_code": null,
+      "execution": null,
+      "id": "web-run-6c3cc96208f498926c7a4a5a728f071432f4892bc5f479c9ad339c2e3d33aa86",
+      "log_bounds": {
+        "maximum_chunk_bytes": 4096,
+        "maximum_chunks": 32,
+        "maximum_total_bytes": 65536
+      },
+      "nodes": [
+        {
+          "completed_at_ms": null,
+          "duration_ms": null,
+          "id": "job",
+          "kind": "test",
+          "started_at_ms": null,
+          "state": "Pending"
+        }
+      ],
+      "ordinal": 30,
+      "outcome": "Pending",
+      "parent_run_id": null,
+      "phase": "queued",
+      "project_id": "fixture",
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      },
+      "repository": {
+        "contract_version": 1,
+        "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+        "native_kind": "repository",
+        "provider_namespace": "git"
+      },
+      "revision": 1,
+      "selected_nodes": [],
+      "sequence": 0,
+      "source_revision": "03f4321015fd919ba86bff23e811a8677257225b",
+      "started_at_ms": null,
+      "step_telemetry": []
+    },
+    "peer": {
+      "controls": 0,
+      "dispatches": 1,
+      "recoveries": 0
+    },
+    "schedule": {
+      "attempt_id": "web-attempt-c12116d894d0a2f6f3a1b4bae378fb97dfc0a59d5f6a62686c84e2e7cd635a11",
+      "canonical_tree": "e698875f6c63dfe2a02b129d391e46e96315dee3570a364e7f2f36917e8b973d",
+      "completed_at_ms": null,
+      "controls": {
+        "cancel": true,
+        "pause": false,
+        "resume": false
+      },
+      "created_at_ms": 1793985145207,
+      "duration_ms": null,
+      "edges": [],
+      "error_code": null,
+      "execution": null,
+      "id": "web-run-c12116d894d0a2f6f3a1b4bae378fb97dfc0a59d5f6a62686c84e2e7cd635a11",
+      "log_bounds": {
+        "maximum_chunk_bytes": 4096,
+        "maximum_chunks": 32,
+        "maximum_total_bytes": 65536
+      },
+      "nodes": [
+        {
+          "completed_at_ms": null,
+          "duration_ms": null,
+          "id": "job",
+          "kind": "test",
+          "started_at_ms": null,
+          "state": "Pending"
+        }
+      ],
+      "ordinal": 14,
+      "outcome": "Pending",
+      "parent_run_id": null,
+      "phase": "queued",
+      "project_id": "fixture",
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      },
+      "repository": {
+        "contract_version": 1,
+        "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+        "native_kind": "repository",
+        "provider_namespace": "git"
+      },
+      "revision": 1,
+      "selected_nodes": [],
+      "sequence": 0,
+      "source_revision": "31f1f82226f3259000f9680248f4df68d6753ab7",
+      "started_at_ms": null,
+      "step_telemetry": []
+    },
+    "superseded": {
+      "attempt_id": "web-attempt-29e933fae783b2ee00831c30d1ace88a62365856cc0f51cea17ef727a3f6cf72",
+      "canonical_tree": "a5f5aba14deb78b236d750de926f171f18821fdcb210b7452334ca071521149e",
+      "completed_at_ms": 1793985145285,
+      "controls": {
+        "cancel": false,
+        "pause": false,
+        "resume": false
+      },
+      "created_at_ms": 1793985145256,
+      "duration_ms": null,
+      "edges": [],
+      "error_code": "superseded",
+      "execution": null,
+      "id": "web-run-29e933fae783b2ee00831c30d1ace88a62365856cc0f51cea17ef727a3f6cf72",
+      "log_bounds": {
+        "maximum_chunk_bytes": 4096,
+        "maximum_chunks": 32,
+        "maximum_total_bytes": 65536
+      },
+      "nodes": [
+        {
+          "completed_at_ms": null,
+          "duration_ms": null,
+          "id": "job",
+          "kind": "test",
+          "started_at_ms": null,
+          "state": "Unknown"
+        }
+      ],
+      "ordinal": 22,
+      "outcome": "Cancelled",
+      "parent_run_id": null,
+      "phase": "terminal",
+      "project_id": "fixture",
+      "report_summary": {
+        "coverage": null,
+        "tests": null
+      },
+      "repository": {
+        "contract_version": 1,
+        "native_id": "2322c2ee3ffe1db2b5a955a6784f6f90bb2bed829f5be86867eebbc145e3f4f8",
+        "native_kind": "repository",
+        "provider_namespace": "git"
+      },
+      "revision": 2,
+      "selected_nodes": [],
+      "sequence": 0,
+      "source_revision": "12d78104957c5e79decc5bf0c33e5d542d662edc",
+      "started_at_ms": null,
+      "step_telemetry": [],
+      "superseded_by": "web-run-6c3cc96208f498926c7a4a5a728f071432f4892bc5f479c9ad339c2e3d33aa86",
+      "superseded_revision": "03f4321015fd919ba86bff23e811a8677257225b"
+    }
+  }
+}

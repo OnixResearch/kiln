@@ -1,0 +1,198 @@
+{
+  "command": "traceability coverage",
+  "dangling": [],
+  "input_hash": "d33c33a8a9e7140ca0b27cd4726af45265a7409cc9eda6e349e1fea47f6faa1e",
+  "missing": [
+    "kiln.mantle.native_report.facts",
+    "kiln.mantle.native_report.facts.nonclaims",
+    "kiln.mantle.native_report.paths",
+    "kiln.microvm.confinement",
+    "kiln.microvm.confinement.nonclaims",
+    "kiln.microvm.confinement.receipt",
+    "kiln.radicle.job.scenario.replay_conflict",
+    "kiln.radicle_ci.tag.scenario.push",
+    "kiln.review.agent.attestation.scenario.agent",
+    "kiln.review.agent.attestation.scenario.human",
+    "kiln.review.agent.console.scenario.label",
+    "kiln.review.agent.search.boundary",
+    "kiln.review.agent.search.scenario.attested",
+    "kiln.review.agent.search.scenario.harness",
+    "kiln.review.agent.search.scenario.saved",
+    "kiln.review.agent.search.scenario.unattested",
+    "kiln.review.evidence.policy.scenario.bounds",
+    "kiln.review.evidence.policy.scenario.unknown",
+    "kiln.review.evidence.project_ci.authority",
+    "kiln.review.evidence.project_ci.scenario.approval",
+    "kiln.review.evidence.project_ci.scenario.observed",
+    "kiln.review.evidence.project_ci.scenario.stale",
+    "kiln.web.feeds.bounds.scenario.body",
+    "kiln.web.feeds.config.scenario.disabled",
+    "kiln.web.feeds.publish.scenario.opml",
+    "kiln.web.feeds.publish.scenario.revalidate",
+    "kiln.web.feeds.publish.scenario.rss",
+    "kiln.web.feeds.security.scenario.conditional",
+    "kiln.web.feeds.subscriptions.scenario.background",
+    "kiln.web.feeds.subscriptions.scenario.export",
+    "kiln.web.feeds.subscriptions.scenario.import",
+    "kiln.web.feeds.subscriptions.scenario.pause",
+    "kiln.web.feeds.subscriptions.scenario.rename",
+    "kiln.web.feeds.token.scenario.operator",
+    "kiln.web.feeds.ui.scenario.search",
+    "kiln.web.supersede.active.scenario.awaiting",
+    "kiln.web.supersede.active.scenario.running",
+    "kiln.web.supersede.cancel",
+    "kiln.web.supersede.identity",
+    "kiln.web.supersede.identity.scenario.origin",
+    "kiln.web.supersede.identity.scenario.pull_request",
+    "kiln.web.supersede.identity.scenario.reference",
+    "kiln.web.supersede.policy",
+    "kiln.web.supersede.policy.scenario.off",
+    "kiln.web.supersede.policy.scenario.on"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile": {
+    "anchor_kind": "exact_marker_bytes",
+    "assurance_level": "declared",
+    "evidence_sources": [
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "crates",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "ncl"
+        ],
+        "root": "crates",
+        "source_kind": "nickel_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-aspen-host",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-radicle-nix-provider",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/hosting-and-recovery.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/observation-dashboard.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/operator.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "js",
+          "css",
+          "html"
+        ],
+        "root": "crates",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "web/dashboard-index/src",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs",
+          "ncl"
+        ],
+        "root": "tools",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs"
+        ],
+        "root": "src",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs",
+          "sh"
+        ],
+        "root": "tests",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "ts"
+        ],
+        "root": "checks/bombadil",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "nix"
+        ],
+        "root": "flake.nix",
+        "source_kind": "tool_source"
+      }
+    ],
+    "id": "cairn-default",
+    "marker_verbs": [
+      "impl",
+      "verify",
+      "depends",
+      "related"
+    ],
+    "requirement_sources": [
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/specs",
+        "source_kind": "accepted_specs"
+      }
+    ]
+  },
+  "profile_id": "cairn-default",
+  "receipt_hash": "b55b257e486bc0a93b17abe53eec1d63290f69c98b533ba30c363d55a18f65cd",
+  "referenced": 1442,
+  "requirements": 1487,
+  "root": ".",
+  "source_summary": {
+    "evidence_files": 664,
+    "evidence_manifest_hash": "47b861f85b7bc4c20e6b6b9c81cd6cc857f20060a3e6707ddff20577bec543b0",
+    "requirement_files": 116,
+    "requirement_manifest_hash": "9bc55643ca7763799a9d0818a2673ca52d4e14bb8c10c4e0304ee84f30319bd8"
+  },
+  "valid": false,
+  "verdict": "fail"
+}

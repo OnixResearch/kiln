@@ -252,6 +252,7 @@
       ...(model ? { agent_model: model } : {}),
     };
   }
+  // r[impl kiln.review.agent.search.scenario.saved]
   function savedViewRoute(view) {
     return {
       review_q: view.query.text || "",
@@ -627,6 +628,7 @@
     const q = field(search, "Search change text", "search", state.route.review_q || "", [], "search");
     const status = field(search, "State", "select", state.route.review_status || "", [["", "All states"], ["open", "Open"], ["abandoned", "Abandoned"], ["submitted", "Submitted"]]);
     const advisory = field(search, "Advisory approvals", "select", state.route.review_advisory || "", [["", "Any advisory state"], ["with", "With advisory approvals"], ["without", "Without advisory approvals"]]);
+    // r[impl kiln.review.agent.search.boundary]
     const agent = field(search, "Agent submission", "select", state.route.review_agent || "", [["", "Any agent state"], ["with", "Agent-submitted revision"], ["without", "No agent attestation"]]);
     const harnesses = [...new Set([...Object.values(state.snapshot.agent_metadata || {}).map(identity => identity.harness), ...(state.route.review_agent_harness ? [state.route.review_agent_harness] : [])])].sort();
     const agentHarness = field(search, "Agent harness", "select", state.route.review_agent_harness || "", [["", "Any declared harness"], ...harnesses.map(harness => [harness, harness])]);
@@ -800,6 +802,7 @@
     facts(card, [["Stable change", c.id], ["State", `${label(c.state)}${c.wip ? " · Work in progress" : ""}`], ["Owner", c.owner], ["Project / repository", `${c.project} / ${c.repository}`], ["Target ref", c.target_ref], ["Observed target", state.detail.source?.current_target], ["Current revision", current()?.id], ["Current commit", current()?.commit], ["Authorship (self-declared, unverified)", authorshipClassLabel(c.authorship)]]);
     const log = node("ol", null, "cr-history");
     for (const item of arr(c.revisions)) { const li = node("li"), meta = node("span", null, "cr-muted"); if (item.id === revision()) li.setAttribute("aria-current", "true"); meta.append(`${item.author} · `, when(item.created_ms), ` · ${authorshipLabel(item.authorship)}`, item.submitted_by ? ` · attested agent ${item.submitted_by.principal}${item.submitted_by.agent ? ` (${item.submitted_by.agent.harness}${item.submitted_by.agent.model ? ` / ${item.submitted_by.agent.model}` : ""})` : ""}` : ""); li.append(link(`Revision ${item.number}`, { review_revision: item.id, review_base: "base", review_file: "", review_side: "", review_line: "" }), meta, node("code", item.commit)); log.append(li); }
+    // r[impl kiln.review.agent.console.scenario.label]
     if (current()?.submitted_by) { const attested = current().submitted_by; card.append(node("p", `The current revision was submitted by the attested agent principal ${attested.principal}${attested.agent ? ` (${attested.agent.harness}${attested.agent.model ? ` / ${attested.agent.model}` : ""})` : ""}. Authorship above remains self-declared and unverified.`, "cr-muted")); }
     card.append(log);
   }

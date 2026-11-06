@@ -137,6 +137,7 @@ impl RadicleJobShell {
     // r[impl kiln.radicle.job.authority]
     // r[impl kiln.radicle.job.identity]
     // r[impl kiln.radicle.job.bounds]
+    // r[impl kiln.radicle.job.scenario.replay_conflict]
     pub fn publish(&self, plan: &JobPlan, reason: &str) -> PortResult<JobDispatch> {
         self.admit_plan(plan)?;
         let signer_identity = self.profile.signer_identity.clone();

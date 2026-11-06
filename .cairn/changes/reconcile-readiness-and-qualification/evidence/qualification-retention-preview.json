@@ -1,0 +1,59 @@
+{
+  "acceptance_ids": [
+    "approved-untrusted",
+    "inventory",
+    "physical-channels",
+    "readiness",
+    "reconciliation"
+  ],
+  "actions": [],
+  "blocked": true,
+  "change": "reconcile-readiness-and-qualification",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": true,
+  "input_hash": "9ccae53338929ce88abf8acb306bb75a6087848ada57daaad56e5acc33d528cb",
+  "layout": "cairn",
+  "mutated": false,
+  "mutation_manifest": null,
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+    "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+    "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+  ],
+  "plan_hash": "7d397dd2e0629cab1edc2db42896617fcbdbc0579e249b973c699de33c21bef2",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "186f18e334e859c26ca63cfc74abbb13ae04c5ec0cf05e762a497630ab9ed248",
+  "reasons": [
+    "reconcile-readiness-and-qualification: tasks not archive-ready (todo: 2, in_progress: 0, unmarked: 0)"
+  ],
+  "receipt_hash": "c33913ea5eb0bfe8de659fe8bff590ca4d4f157956c6f4f1cbf162334f97742d",
+  "review_receipt_hashes": [
+    "5f945f90ef6d67b5332a07d0b9234186adffe42d4082aeea2eea160fcac13ec0"
+  ],
+  "spec_effect": "none",
+  "workflow_profile": "no-spec-delta",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}

@@ -115,6 +115,13 @@ declarations are refused, and element nesting is bounded to 64 levels. Titles, s
 bounded. Links are restricted to HTTP(S). The console renders feed text with
 text nodes, never HTML.
 
+`max_entries_per_feed` admits that many distinct entry identifiers, including
+exactly the configured limit. A further distinct entry rejects the entire RSS,
+RSS 1.0/RDF, or Atom document instead of silently truncating it. Repeated entry
+identifiers retain their first value and do not consume another slot. Refresh
+failure retains the subscription's previous entries rather than publishing a
+partial replacement.
+
 `allow_private_destinations` is an explicit test/private-network exception. It
 is not a hostile-network or production claim.
 

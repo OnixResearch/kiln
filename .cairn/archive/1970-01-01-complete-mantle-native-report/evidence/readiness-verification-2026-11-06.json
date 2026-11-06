@@ -1,0 +1,40 @@
+{
+  "schema": "kiln.readiness.package-verification.v1",
+  "date": "2026-11-06",
+  "source_manifest": "../../reconcile-readiness-and-qualification/evidence/source-manifest.json",
+  "checks": [
+    {
+      "label": "mantle-parentdir-before",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-mantle",
+        "native_report_parent_directory",
+        "--",
+        "--nocapture"
+      ],
+      "exit": 101,
+      "stdout": "\nrunning 2 tests\ntest tests::native_report_parent_directory_paths_are_rejected ... FAILED\ntest tests::native_report_parent_directory_failure_logs_are_rejected ... FAILED\n\nfailures:\n\nfailures:\n    tests::native_report_parent_directory_failure_logs_are_rejected\n    tests::native_report_parent_directory_paths_are_rejected\n\ntest result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 19 filtered out; finished in 0.00s\n\n",
+      "stderr": "   Compiling kiln-core v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-core)\n   Compiling nix-derivation v0.6.1\n   Compiling nix-narinfo v0.4.0\n   Compiling kiln-nix-store v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-nix-store)\n   Compiling kiln-provider-api v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-provider-api)\n   Compiling kiln-adapter-mantle v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-mantle)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 15.19s\n     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_mantle-170250f7b4593bc3)\n\nthread 'tests::native_report_parent_directory_paths_are_rejected' panicked at crates/kiln-adapter-mantle/src/tests.rs:743:13:\n/outcomes/0/outputs/0/path: ../escape\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\nthread 'tests::native_report_parent_directory_failure_logs_are_rejected' panicked at crates/kiln-adapter-mantle/src/tests.rs:783:9:\nassertion `left == right` failed: /var/lib/kiln/mantle-state/../escape.log\n  left: Failed\n right: ProviderError\nerror: test failed, to rerun pass `-p kiln-adapter-mantle --lib`\n"
+    },
+    {
+      "label": "mantle-parentdir-after",
+      "args": [
+        "cargo",
+        "test",
+        "-p",
+        "kiln-adapter-mantle",
+        "--lib"
+      ],
+      "exit": 0,
+      "stdout": "\nrunning 21 tests\ntest tests::core_and_provider_manifests_do_not_import_mantle_or_bounded_exec ... ok\ntest tests::bounded_runtime_hashes_files_and_enforces_log_bounds ... ok\ntest tests::profile_and_file_identity_drift_fail_before_dispatch ... ok\ntest tests::independent_consumer_accepts_exact_producer_fixtures ... ok\ntest tests::restored_unknown_reconciles_without_process_redispatch ... ok\ntest tests::captured_native_failure_report_is_admitted ... ok\ntest tests::cache_cannot_hide_a_missing_required_product ... ok\ntest tests::native_substitution_facts_are_recorded ... ok\ntest tests::complete_native_report_admits_every_native_collection ... ok\ntest tests::timeout_cancellation_and_unknown_remain_distinct_without_redispatch ... ok\ntest tests::mantle_products_carry_nar_facts_when_the_runtime_observes_them ... ok\ntest tests::optional_native_collections_may_be_omitted ... ok\ntest tests::repeated_effect_rejects_candidate_and_plan_substitution ... ok\ntest tests::exact_native_report_admits_success_repeat_logs_and_reconciliation ... ok\ntest tests::native_failure_logs_are_bound_and_unknown_vocabulary_is_rejected ... ok\ntest tests::native_report_rejects_unknown_or_missing_top_level_fields ... ok\ntest tests::native_counts_and_success_facts_must_agree ... ok\ntest tests::native_report_parent_directory_failure_logs_are_rejected ... ok\ntest tests::native_report_binds_distinct_logical_and_physical_roots ... ok\ntest tests::native_report_paths_must_stay_inside_their_declared_roots ... ok\ntest tests::native_report_parent_directory_paths_are_rejected ... ok\n\ntest result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n",
+      "stderr": "   Compiling kiln-adapter-mantle v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-mantle)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.77s\n     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_adapter_mantle-170250f7b4593bc3)\n"
+    }
+  ],
+  "limits": [
+    "Local controlled inputs and fixture process/API observations only; no live forge publication or release authority.",
+    "No approved-untrusted VM execution, CAT assignment, hardware attestation or hostile-isolation claim."
+  ],
+  "pending": "Parent integrates final workspace/Nix/lifecycle receipts before archive."
+}

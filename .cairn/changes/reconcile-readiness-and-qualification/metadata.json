@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "This package records the readiness reconciliation and physical-qualification operation, not a new governed product obligation. Existing feature packages own their accepted-spec promotions and the Mantle containment/feed-overflow repairs. Unfinished operator qualification remains explicit and is not archived as complete.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

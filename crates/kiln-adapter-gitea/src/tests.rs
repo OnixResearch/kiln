@@ -1,8 +1,8 @@
 mod export;
 
-use std::io::{Read, Write};
+use std::io::{BufRead, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -634,13 +634,37 @@ fn request(address: std::net::SocketAddr, bytes: &[u8]) -> String {
         .set_write_timeout(Some(Duration::from_secs(2)))
         .unwrap_or_else(|_| unreachable!());
     stream.write_all(bytes).unwrap_or_else(|_| unreachable!());
-    stream
-        .shutdown(std::net::Shutdown::Write)
-        .unwrap_or_else(|_| unreachable!());
+    // Capacity rejection can close with unread request bytes. Read the framed
+    // response rather than requiring a graceful EOF after its complete body.
+    let mut reader = std::io::BufReader::new(stream);
     let mut response = String::new();
-    stream
-        .read_to_string(&mut response)
+    let mut content_length = None;
+    loop {
+        let mut line = String::new();
+        assert_ne!(
+            reader
+                .read_line(&mut line)
+                .unwrap_or_else(|_| unreachable!()),
+            0
+        );
+        response.push_str(&line);
+        if line == "\r\n" {
+            break;
+        }
+        if let Some(value) = line.strip_prefix("Content-Length: ") {
+            content_length = Some(
+                value
+                    .trim()
+                    .parse::<usize>()
+                    .unwrap_or_else(|_| unreachable!()),
+            );
+        }
+    }
+    let mut body = vec![0; content_length.unwrap_or_else(|| unreachable!())];
+    reader
+        .read_exact(&mut body)
         .unwrap_or_else(|_| unreachable!());
+    response.push_str(std::str::from_utf8(&body).unwrap_or_else(|_| unreachable!()));
     response
 }
 
@@ -678,6 +702,7 @@ fn http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_header
             service,
             shutdown,
             listener,
+            Arc::new(AtomicUsize::new(0)),
         )
     });
     for _ in 0..6 {
@@ -727,7 +752,71 @@ fn http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_header
 
 #[test]
 // r[verify kiln.gitea.shell]
-fn incomplete_connection_does_not_block_another_webhook_and_overload_does_not_stop_daemon() {
+fn controlled_admission_state_rejects_at_bound_without_effect_then_admits_same_delivery() {
+    let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());
+    let address = listener.local_addr().unwrap_or_else(|_| unreachable!());
+    let mut cfg = config(&root);
+    cfg.listen_address = address;
+    let admitted = admit_config(cfg).unwrap_or_else(|_| unreachable!());
+    let run = plan_event(&admitted, &event(&admitted, 'a', 1))
+        .unwrap_or_else(|_| unreachable!())
+        .run_identity;
+    let store = open_store(&admitted).unwrap_or_else(|_| unreachable!());
+    let remote = Arc::new(Mutex::new(Remote::default()));
+    let service = service(&admitted, Arc::clone(&remote), false, false, false);
+    // Inject the admission count at its bound; this does not claim that actual
+    // handlers are occupied, nor establish physical resource isolation.
+    let active = Arc::new(AtomicUsize::new(admitted.config.maximum_connections));
+    let controlled_active = Arc::clone(&active);
+    let stop = Arc::new(AtomicBool::new(false));
+    let shutdown = Arc::clone(&stop);
+    let server = std::thread::spawn(move || {
+        crate::server::serve_on(
+            admitted,
+            ResolvedSecret::from_bytes(SECRET.to_vec()).unwrap_or_else(|_| unreachable!()),
+            service,
+            shutdown,
+            listener,
+            controlled_active,
+        )
+    });
+    let delivery = http_event(1, false);
+    let rejected = request(address, &delivery);
+    assert!(rejected.starts_with("HTTP/1.1 503"));
+    assert!(rejected.contains("\"accepted\":false"));
+    assert!(rejected.contains("\"error\":\"gitea_http_capacity\""));
+    assert!(
+        store
+            .load(&run)
+            .unwrap_or_else(|_| unreachable!())
+            .is_none()
+    );
+    assert_eq!(
+        remote.lock().unwrap_or_else(|_| unreachable!()).dispatches,
+        0
+    );
+
+    active.store(0, Ordering::Release);
+    let accepted = request(address, &delivery);
+    assert!(accepted.starts_with("HTTP/1.1 202"));
+    assert!(accepted.contains("\"duplicate\":false"));
+    assert!(
+        store
+            .load(&run)
+            .unwrap_or_else(|_| unreachable!())
+            .is_some()
+    );
+    stop.store(true, Ordering::Release);
+    server
+        .join()
+        .unwrap_or_else(|_| unreachable!())
+        .unwrap_or_else(|_| unreachable!());
+}
+
+#[test]
+// r[verify kiln.gitea.shell]
+fn incomplete_connection_does_not_block_another_webhook() {
     let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());
     let address = listener.local_addr().unwrap_or_else(|_| unreachable!());
@@ -751,6 +840,7 @@ fn incomplete_connection_does_not_block_another_webhook_and_overload_does_not_st
             service,
             shutdown,
             listener,
+            Arc::new(AtomicUsize::new(0)),
         )
     });
     let mut slow = TcpStream::connect(address).unwrap_or_else(|_| unreachable!());

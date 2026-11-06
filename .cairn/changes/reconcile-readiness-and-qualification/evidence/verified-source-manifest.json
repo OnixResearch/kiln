@@ -1,0 +1,194 @@
+{
+  "schema": "kiln.readiness.verified-source-manifest.v1",
+  "date": "2026-11-06",
+  "authoritative_for": "Final changed runtime/test/frontend source, critical recovery model, operator documentation, dependency locks and all12 canonical feature specification projections.",
+  "boundary": "Each retained gate/consumer/replay receipt binds its own observation cohort. Post-gate task/evidence/documentation bookkeeping is not a claim to have rerun Nix over its own output evidence. Runtime Rust source was frozen before final full source gates and consumer observation.",
+  "previous_manifests": "source-manifest.json and source-manifest-final.json are retained intermediate observations.",
+  "files": [
+    {
+      "blake3": "92bcdd8b1cca18add7b150e431765a73d2c01d9e085d659c94414c848fcaf33f",
+      "path": ".cairn/specs/agent-review-search/spec.md"
+    },
+    {
+      "blake3": "c0c64291dc07023b05ee5f6cc3b44248ef9cbd9dd10c80093b731cd2533f5b55",
+      "path": ".cairn/specs/attested-agent-submissions/spec.md"
+    },
+    {
+      "blake3": "b6889659ab47bbc82cd90f56ddbb1f4725a934292b26bed68a5f4f0c933f936d",
+      "path": ".cairn/specs/gitea-ci/spec.md"
+    },
+    {
+      "blake3": "872094a7dc1ad8f87b0a412a421f1d7e5f8a83a103c265144ec3224febc05541",
+      "path": ".cairn/specs/mantle-native-report/spec.md"
+    },
+    {
+      "blake3": "63108ce5cfdda1ef4edcf31ad77cbbbc4d9c461bc63d16cda1ad3aeb4eba3ba6",
+      "path": ".cairn/specs/microvm-confinement/spec.md"
+    },
+    {
+      "blake3": "07d81ce1ebb24a00a6d0c9d6ff560f3016a1e0bd42cac3b1e04eb633e590c424",
+      "path": ".cairn/specs/ownership-evidence/spec.md"
+    },
+    {
+      "blake3": "25cd73e9059af05200432dbd49883a2257300dcb34b4b66acda8e4f4e2c8fd0b",
+      "path": ".cairn/specs/radicle-canonical-tag/spec.md"
+    },
+    {
+      "blake3": "c61baf75c99ca5832b0f3c93911416e6d84d999ef362173080d37c0915c3337b",
+      "path": ".cairn/specs/radicle-ci-tag/spec.md"
+    },
+    {
+      "blake3": "c9bdeca79f67702cf422c8c2192db906fcc9e12de18e5287c1cb89548d0bec25",
+      "path": ".cairn/specs/radicle-job-cobs/spec.md"
+    },
+    {
+      "blake3": "7df1e6f77a3a2758a0016808b027336604eaf66385add00e7e6bb833503e945b",
+      "path": ".cairn/specs/repository-feeds/spec.md"
+    },
+    {
+      "blake3": "60d945f0f75b4d472b9b56f0d68242c49dea557fffb98c09e4a33b64f59297bf",
+      "path": ".cairn/specs/supersede-trigger-runs/spec.md"
+    },
+    {
+      "blake3": "6e0d226bdef166653e58496d4b7f9327008070bd014b1379ccefc18495b2e85d",
+      "path": ".cairn/specs/work-monorepo-views/spec.md"
+    },
+    {
+      "blake3": "1a2b5013f33ae7895291084b696b941109f29a03b383fff0dd5d9a04ad9d670f",
+      "path": "Cargo.lock"
+    },
+    {
+      "blake3": "fa7bf7501d234acd8465c17125e86b4f8c3004e6c106adea110d7e5f1a978ba7",
+      "path": "Cargo.toml"
+    },
+    {
+      "blake3": "5c92903a8be5149a503dee3b0e6c9f67a68ace0ac5e8b2c3e79e7d1c7c5bcf01",
+      "path": "crates/kiln-adapter-gitea/src/events.rs"
+    },
+    {
+      "blake3": "3d0fa3df2d2ec9ea488b9fb40a9be7a7a0b36ac29e56f4a1bfd4620451523dec",
+      "path": "crates/kiln-adapter-gitea/src/server.rs"
+    },
+    {
+      "blake3": "e739f6fab85ad797d97adccae9acd283c4318895f205b86e81138fd6e1e23cd0",
+      "path": "crates/kiln-adapter-gitea/src/tests.rs"
+    },
+    {
+      "blake3": "455d7cb32c71b0c13d54a6d802d785fa7af8676f821c02a7d34ef432b46851de",
+      "path": "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs"
+    },
+    {
+      "blake3": "aaf3ccf84459f98b1df3ce97c2cb4480ad7024230b87238b9b04d9127254b47b",
+      "path": "crates/kiln-adapter-github/src/server.rs"
+    },
+    {
+      "blake3": "406c74fdb4311dad472d22557048cfc063dcc9ee7d7b91f945c24e11e4832f8e",
+      "path": "crates/kiln-adapter-github/src/tests.rs"
+    },
+    {
+      "blake3": "ce5db53ca51e7a5ef5a6456ed40fa9ea7741fca068cfb8256b5c7412f3894b1f",
+      "path": "crates/kiln-adapter-github/tests/local_ci_e2e.rs"
+    },
+    {
+      "blake3": "74ca968bbc232a3a4192509799f23906ce6bc3033f48bb66898a8323f52aa5ac",
+      "path": "crates/kiln-adapter-mantle/src/mapping.rs"
+    },
+    {
+      "blake3": "69d11b4d4155cb3623475fddb9178fe52c8a1dfb730247a158725bff0cea3edd",
+      "path": "crates/kiln-adapter-mantle/src/tests.rs"
+    },
+    {
+      "blake3": "5cabcb30ff06e4c05dd91a339000fb0a840b007057b7af6e855b1baa7625e545",
+      "path": "crates/kiln-adapter-nix/src/tests.rs"
+    },
+    {
+      "blake3": "2289e38e1550707ae544c5ff5f33129222a09299674bbc715311c4099839f58c",
+      "path": "crates/kiln-adapter-radicle/src/job/shell.rs"
+    },
+    {
+      "blake3": "5242ec962971a16b319b335244acbd2304107f41921581cd2f006e2c73901daa",
+      "path": "crates/kiln-core/src/change_review.rs"
+    },
+    {
+      "blake3": "8b278c4b4f1b2b633ffae29eb211f7841730263d47329824101306e207e78339",
+      "path": "crates/kiln-hosted/src/microvm.rs"
+    },
+    {
+      "blake3": "7a27d780467b322e9af80430d4dd1d969ef36a8fd61c4ea2dfde7867300e1694",
+      "path": "crates/kiln-microvm/src/confinement.rs"
+    },
+    {
+      "blake3": "48f39f7cbc71112ea68a5f1532542708617a4092b83414554740e80ed2567deb",
+      "path": "crates/kiln-radicle-ci/src/project.rs"
+    },
+    {
+      "blake3": "797999be28ace05563873ec25626e9529722b9d2fe66c85f7550353a6d3d9a7b",
+      "path": "crates/kiln-web-service/src/automation.rs"
+    },
+    {
+      "blake3": "6b5cc2f1c7259ad59c0f61a84105b2b5d6bb1203191a332800a0e981dc9aa685",
+      "path": "crates/kiln-web-service/src/code-review.js"
+    },
+    {
+      "blake3": "ec2660ec21a87d3dd44cea7e1b3671e05123071bc3d38770967000d179aae4f6",
+      "path": "crates/kiln-web-service/src/engine/automation.rs"
+    },
+    {
+      "blake3": "d4d6b2de3e407e56ba98bd4b39f1716f4820131854b9110ebedbbf0ccfe56419",
+      "path": "crates/kiln-web-service/src/engine/feeds.rs"
+    },
+    {
+      "blake3": "057587521b1f4569cd2b0c9f4803096e64c7abe3537cc2e31a78b579ac76e5c2",
+      "path": "crates/kiln-web-service/src/engine/model.rs"
+    },
+    {
+      "blake3": "ce45ba28a82054a71d694d7b188317b1d1ef936dc669c52d36d4a430565e156b",
+      "path": "crates/kiln-web-service/src/engine/queue.rs"
+    },
+    {
+      "blake3": "2ccbe620863ad7671682a8a080689f0761801f2a0ada89a4c45128e255c1bb62",
+      "path": "crates/kiln-web-service/src/feeds.rs"
+    },
+    {
+      "blake3": "779c358fdad02d1f4c75a7642397a29ca2ddb94c51e322e1c5a602e2be914a56",
+      "path": "crates/kiln-web-service/src/server.rs"
+    },
+    {
+      "blake3": "d8a1e044c50ba735581f708869a913b3cbe30b2f3803b079c77cd25423142390",
+      "path": "crates/kiln-web-service/tests/engine.rs"
+    },
+    {
+      "blake3": "d3c987dae35ee1c6dcf48b23090cd449165174d7558179a1872acef60351af90",
+      "path": "crates/kiln-web-service/tests/engine/automation.rs"
+    },
+    {
+      "blake3": "ee0bd7e51562f00b18c82ab2adab1cfa45f9cde507b13394d7e133ac0cb7da8b",
+      "path": "crates/kiln-web-service/tests/engine/runtime.rs"
+    },
+    {
+      "blake3": "96cc7a797ed7538787f5c873b13ee6946c5c7e93509560c3d284f1b2e53ef53c",
+      "path": "docs/hosted-ci.md"
+    },
+    {
+      "blake3": "f1279bf39a416c912d3636247a2753b7d7cb40c0bc865b04e3e8399967b960ee",
+      "path": "docs/mantle-build.md"
+    },
+    {
+      "blake3": "412277f283a67d6cc91d40fab1ccaec79cbb5e5f530b1a9a7dbc2f8dc7014f32",
+      "path": "docs/operator.md"
+    },
+    {
+      "blake3": "2125658bef4308bf6fc04ad23deda8b92e3e291e01501f40dd4cb09005606350",
+      "path": "docs/repository-feeds.md"
+    },
+    {
+      "blake3": "2caea648ccc7ccf6b10ee2f95aa2774f4ba8a3378d110a273d1209ac6da2d141",
+      "path": "flake.lock"
+    }
+  ],
+  "coverage_receipt_hash": "6ca5b9f9d4af71879e6e256941b802363268984d837fb7e7c9baa85001e09110",
+  "source_gates": "source-gates-verified.json",
+  "final_consumer": "origin-consumer-final.json",
+  "nix": "nix-flake-check.json",
+  "full_replay": "determinism-native-fixture-cohort.json"
+}

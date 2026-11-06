@@ -540,6 +540,7 @@ impl Engine {
         {
             return error(400, "queue_control_invalid");
         }
+        // r[impl kiln.web.supersede.cancel]
         let fingerprint = identity(&(id, &req))?;
         if let Some(response) = self.request_replay(&req.request_id, &fingerprint)? {
             return Ok(response);

@@ -206,6 +206,8 @@ pub(crate) fn lower_request(
 
 // r[impl kiln.mantle.completion]
 // r[impl kiln.mantle.native_report.surface]
+// r[impl kiln.mantle.native_report.facts]
+// r[impl kiln.mantle.native_report.facts.nonclaims]
 pub(crate) fn normalize_native_report(
     profile: &MantleProfile,
     plan: &BuildEffectPlan,
@@ -791,9 +793,15 @@ fn strictly_unique(values: &[String]) -> bool {
         .all(|value| !value.is_empty() && seen.insert(value.as_str()))
 }
 
+// r[impl kiln.mantle.native_report.paths]
 fn require_path_under(value: &str, root: &Path, field: &str, message: &str) -> PortResult<()> {
     let path = Path::new(value);
-    if !path.is_absolute() || !path.starts_with(root) {
+    if !path.is_absolute()
+        || !path.starts_with(root)
+        || path
+            .components()
+            .any(|part| matches!(part, std::path::Component::ParentDir))
+    {
         Err(domain("mantle_native_report_path", field, message))
     } else {
         Ok(())

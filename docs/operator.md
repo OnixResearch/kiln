@@ -3756,3 +3756,117 @@ Evidence under `complete-review-workflow/evidence/` distinguishes native checks,
 browser observations and unsuccessful crash experiments; none grants deployment,
 publication, lifecycle acceptance or release authority.
 
+
+## Readiness reconciliation and qualification (2026-11-06)
+
+The refreshed inventory identified 98 dangling references with no missing
+accepted requirements. The reconciliation distinguishes 85 completed feature
+declarations, 11 incorrect detail identifiers, and two obsolete administrative
+audit markers; it does not delete substantive obligations to make coverage pass.
+Mantle report admission now rejects parent-directory traversal under declared
+roots, and external feed parsers reject overflow rather than publishing a
+silently truncated document. These source changes are local until separately
+published and deployed.
+
+r[verify kiln.github.local_e2e.shell_bounds]
+r[verify kiln.gitea.local_e2e]
+
+The actual standalone GitHub and Gitea binaries were each exercised with two
+real partial TCP requests at a connection bound of two. A valid signed delivery
+received 503 with no job or status effect; both partial requests then returned
+408, and the identical delivery completed as a nonduplicate 202 with exactly
+one dispatch and job. The immutable
+[capacity observation](../.cairn/changes/reconcile-readiness-and-qualification/evidence/actual-binary-capacity-verification.json)
+binds logs, permanent source and executable hashes. Its adjacent probe recipe
+reuses the local process fixture and records the exact temporary append-only
+probe; temporary targets are removed after execution. These are fixture
+Lattice/status peers, not live forge or deployment qualification.
+
+Permanent tests separately cover controlled at-bound HTTP admission and release,
+plus actual process partial-request expiry and recovery. The controlled counter
+tests are not described as occupied-handler measurements; the process deadline
+tests no longer assume that a scheduler preserves a 200 ms saturation window.
+Kiln maintainers own these reusable verification rails. Native Nix live fixtures
+bind output names to native `drv.all` records rather than positional query order.
+Optional Pijul native fixtures require the actual pinned producer executable
+from `pijul-cohort-fixture-producer`, not a substitute binary.
+
+The optional live Nix discovery rail also needs the maintained cohort jobset as
+an immutable input. Materialize
+`fixtures/nix-eval-jobs/cohort/a0cd02231c58974a6b5aaa3712069b071047162e/jobset`
+with `nix --extra-experimental-features nix-command store add-path` and pass the
+returned path as `KILN_NIX_JOB_SOURCE`. Supplying these real fixture inputs is
+distinct from weakening a failed test or adding a fallback implementation.
+
+Local lifecycle readiness remains distinct from physical qualification. The
+[host prerequisite receipt](../.cairn/changes/reconcile-readiness-and-qualification/evidence/qualification-prerequisites.json)
+records the booted kernels and real SSH attempts. `aspen3-1` runs 6.18.59 and
+meets the supplied issue table, but SMT is active and no reviewed exception or
+operator allocation is recorded. Other observed hosts fail their supplied
+kernel thresholds. None has an established mounted/delegated exclusive CAT
+group. Hardware-class configuration is not endpoint-to-chassis attestation.
+The host operator must supply target allocation, safety/delegation and physical
+placement evidence before the still-active qualification tasks can complete.
+No host setting, cache policy or service was changed, and
+`hostile_isolation_claim` remains false.
+
+r[impl kiln.microvm.confinement.nonclaims]
+
+Confinement observation inspects an existing unprivileged-VMM configuration on
+one host and one reviewed Firecracker cohort. It does not add the jailer, a
+guest network path, root privileges, or hostile multi-tenant isolation, and
+must not be generalized beyond the observed host and executable cohort.
+
+Trigger supersession now resolves retained trigger-kind source provenance and
+the linked run before applying exact project/reference/pull-request/revision
+filters. A scheduled run with the same registration text remains distinct,
+including active and queued runs restored from persisted state. This preserves
+existing registration metadata and serialization rather than forbidding shared
+identifiers or inventing a compatibility encoding.
+
+If a crash leaves a durable Start request but no source `run_id`, recovery
+requires a still-reserved trigger source, Start kind and the exact typed request
+fingerprint. Ignored, filtered and skipped events cannot reclassify a manual
+request as trigger-origin. Cancellation also requires a strictly older immutable
+run ordinal, so replay of an older source cannot cancel its newer successor.
+Mismatched durable request bindings fail closed without provider effects.
+
+The [standalone origin consumer receipt and recipe](../.cairn/changes/reconcile-readiness-and-qualification/evidence/origin-consumer-verification.json)
+exercise native local Git, signed trigger admission, SQLite restart, the missing
+source-link window and later replay across three consumer processes. Its
+controlled workflow peer is not native Lattice or workload execution, and proves
+no HTTPS deployment or host confinement property. Kiln web-service maintainers
+own the reusable typed construction, provenance selection and replay-order
+regressions; repeat the retained out-of-tree recipe against the candidate source.
+
+Final all-feature source verification observed 1,580 passing tests, five ignored
+tests and 52 filtered tests across 157 suites; strict all-target/all-feature
+Clippy passed. Targeted Rust formatting and frontend annotation syntax checks
+also passed. The separately required whole-workspace formatter remains blocked
+by the partial vendored Cairn snapshot's absent
+`vendor/cairn/crates/cairn-core/Cargo.toml`; do not reconstruct that snapshot or
+report a global formatter pass from the targeted check.
+
+The [complete determinism preflight](../.cairn/changes/reconcile-readiness-and-qualification/evidence/determinism-native-fixture-cohort.json)
+returned a valid 19-case receipt with five case-level skips and no mismatches.
+It used every tracked source file in a private archive, preserving the ignored
+Nix `result` symlink in the checkout. Missing upstream fixture inputs were copied
+byte-for-byte only into that archive from the exact installed Cairn producer's
+declared immutable Nix source, with all 29 imported file hashes retained. No
+tracked source, vendor tree or permanent fixture was overwritten. Kiln/Cairn
+integration maintainers own repeating that source-export/native-fixture recipe;
+framework replay does not establish arbitrary workload determinism or physical
+qualification.
+
+All `x86_64-linux` Nix flake checks passed with remote builders disabled;
+`aarch64-linux` was not checked. Evaluation used expired cached refs after some
+read-only Radicle HEAD queries failed, so this is not upstream freshness or
+availability evidence. Post-archive Cairn coverage is 1,487/1,487 with no missing
+or dangling references. The policy-local readiness receipt is valid, while
+`onix_release_ready` remains false. The
+[remaining-blocker ledger](../.cairn/changes/reconcile-readiness-and-qualification/evidence/remaining-blockers.json)
+names the direct workspace formatter prerequisite and the operator-owned host,
+SMT, exclusive CAT and independent physical-placement prerequisites. Completed
+feature packages are archived; the qualification operation and unfinished
+attested-agent metadata work remain active. No new push or deployment occurred.
+

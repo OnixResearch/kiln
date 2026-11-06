@@ -1,0 +1,251 @@
+{
+  "command": "traceability coverage",
+  "dangling": [
+    "kiln.dashboard.repositories.gitea_export",
+    "kiln.dashboard.repositories.gitea_export.scenario.admission",
+    "kiln.gitea.authentication",
+    "kiln.gitea.event_proof",
+    "kiln.gitea.event_proof.audit",
+    "kiln.gitea.event_proof.audit.scenario.names",
+    "kiln.gitea.event_proof.scenario.forgery",
+    "kiln.gitea.events",
+    "kiln.gitea.local_e2e",
+    "kiln.gitea.local_e2e.events",
+    "kiln.gitea.local_e2e.framing",
+    "kiln.gitea.local_e2e.nonclaims",
+    "kiln.gitea.local_e2e.outcomes",
+    "kiln.gitea.local_e2e.process",
+    "kiln.gitea.local_e2e.profile_drift",
+    "kiln.gitea.local_e2e.recovery",
+    "kiln.gitea.local_e2e.shell_bounds",
+    "kiln.gitea.local_e2e.status_recovery",
+    "kiln.gitea.nonclaims",
+    "kiln.gitea.profile",
+    "kiln.gitea.replay",
+    "kiln.gitea.secrets",
+    "kiln.gitea.shell",
+    "kiln.gitea.source",
+    "kiln.gitea.status",
+    "kiln.gitea.workflow",
+    "kiln.mantle.native_report.counts",
+    "kiln.mantle.native_report.counts.contradiction",
+    "kiln.mantle.native_report.counts.valid",
+    "kiln.mantle.native_report.facts.metrics",
+    "kiln.mantle.native_report.failures",
+    "kiln.mantle.native_report.failures.log",
+    "kiln.mantle.native_report.failures.vocabulary",
+    "kiln.mantle.native_report.paths.escape",
+    "kiln.mantle.native_report.paths.valid",
+    "kiln.mantle.native_report.store_binding",
+    "kiln.mantle.native_report.store_binding.drift",
+    "kiln.mantle.native_report.store_binding.match",
+    "kiln.mantle.native_report.surface",
+    "kiln.mantle.native_report.surface.complete",
+    "kiln.mantle.native_report.surface.drift",
+    "kiln.microvm.confinement.lifecycle",
+    "kiln.microvm.confinement.observation",
+    "kiln.radicle.canonical_tag",
+    "kiln.radicle.canonical_tag.scenario.revision",
+    "kiln.radicle.canonical_tag.scenario.tag",
+    "kiln.radicle.job",
+    "kiln.radicle.job.authority",
+    "kiln.radicle.job.bounds",
+    "kiln.radicle.job.console",
+    "kiln.radicle.job.identity",
+    "kiln.radicle.job.multi_writer",
+    "kiln.radicle.job.replay",
+    "kiln.radicle.job.scenario.extend",
+    "kiln.radicle.job.scenario.fresh",
+    "kiln.radicle.job.scenario.mismatch",
+    "kiln.radicle.job.scenario.replay",
+    "kiln.radicle_ci.tag",
+    "kiln.radicle_ci.tag.scenario.projection",
+    "kiln.review.agent.attestation",
+    "kiln.review.agent.console",
+    "kiln.review.agent.search",
+    "kiln.review.evidence.policy",
+    "kiln.review.evidence.project_ci",
+    "kiln.web.feeds.bounds",
+    "kiln.web.feeds.config",
+    "kiln.web.feeds.config.scenario.console",
+    "kiln.web.feeds.publish",
+    "kiln.web.feeds.publish.scenario.missing",
+    "kiln.web.feeds.publish.scenario.rendered",
+    "kiln.web.feeds.security",
+    "kiln.web.feeds.security.scenario.malformed",
+    "kiln.web.feeds.security.scenario.private",
+    "kiln.web.feeds.security.scenario.redirect",
+    "kiln.web.feeds.subscriptions",
+    "kiln.web.feeds.subscriptions.scenario.add",
+    "kiln.web.feeds.subscriptions.scenario.refresh",
+    "kiln.web.feeds.subscriptions.scenario.viewer",
+    "kiln.web.feeds.token",
+    "kiln.web.feeds.token.scenario.required",
+    "kiln.web.feeds.ui",
+    "kiln.web.supersede.active",
+    "kiln.work.monorepo.board",
+    "kiln.work.monorepo.board.scenario.empty",
+    "kiln.work.monorepo.board.scenario.lanes",
+    "kiln.work.monorepo.compat",
+    "kiln.work.monorepo.compat.scenario.invalid",
+    "kiln.work.monorepo.compat.scenario.old",
+    "kiln.work.monorepo.facts",
+    "kiln.work.monorepo.facts.scenario.resolved",
+    "kiln.work.monorepo.facts.scenario.unknown",
+    "kiln.work.monorepo.filter",
+    "kiln.work.monorepo.filter.scenario.project",
+    "kiln.work.monorepo.filter.scenario.repository",
+    "kiln.work.monorepo.grouping",
+    "kiln.work.monorepo.grouping.scenario.grouped",
+    "kiln.work.monorepo.planning",
+    "kiln.work.monorepo.planning.scenario.set"
+  ],
+  "input_hash": "6cb1e8e9c6635a1f11e173fe8b6ee4e6a7b269c855922ce34db95a8800382bec",
+  "missing": [],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile": {
+    "anchor_kind": "exact_marker_bytes",
+    "assurance_level": "declared",
+    "evidence_sources": [
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "crates",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "ncl"
+        ],
+        "root": "crates",
+        "source_kind": "nickel_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-aspen-host",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-radicle-nix-provider",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/hosting-and-recovery.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/observation-dashboard.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/operator.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "js",
+          "css",
+          "html"
+        ],
+        "root": "crates",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "web/dashboard-index/src",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs",
+          "ncl"
+        ],
+        "root": "tools",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs"
+        ],
+        "root": "src",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs",
+          "sh"
+        ],
+        "root": "tests",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "ts"
+        ],
+        "root": "checks/bombadil",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "nix"
+        ],
+        "root": "flake.nix",
+        "source_kind": "tool_source"
+      }
+    ],
+    "id": "cairn-default",
+    "marker_verbs": [
+      "impl",
+      "verify",
+      "depends",
+      "related"
+    ],
+    "requirement_sources": [
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/specs",
+        "source_kind": "accepted_specs"
+      }
+    ]
+  },
+  "profile_id": "cairn-default",
+  "receipt_hash": "92eeb118a3f03992df56bf5c5bb26b5ceb9072e851e09c5f3d05b0303168276b",
+  "referenced": 1357,
+  "requirements": 1357,
+  "root": ".",
+  "source_summary": {
+    "evidence_files": 664,
+    "evidence_manifest_hash": "f8d150b410d088cba6845ab454f1e91570645962f46e09a43c0e549fe3c7d804",
+    "requirement_files": 104,
+    "requirement_manifest_hash": "45d85f4d05d249eeed8c15f1cd0e55938558d13e77322c7fe32c42e2ab001987"
+  },
+  "valid": false,
+  "verdict": "fail"
+}

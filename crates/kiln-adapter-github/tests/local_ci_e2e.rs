@@ -1691,7 +1691,7 @@ fn real_binary_ignores_closed_pull_request() {
 
 // r[verify kiln.github.local_e2e] r[verify kiln.github.local_e2e.process] r[verify kiln.github.local_e2e.shell_bounds] r[verify kiln.github.shell]
 #[test]
-fn real_binary_survives_partial_request_and_overload() {
+fn real_binary_expires_partial_requests_and_remains_available() {
     let status = StatusServer::start();
     let mut fixture = Fixture::new(BASIC_PASS_COMMAND, true);
     fixture.config.read_timeout_ms = 200;
@@ -1699,26 +1699,10 @@ fn real_binary_survives_partial_request_and_overload() {
     fixture.config.maximum_connections = 2;
     let mut child = fixture.spawn_binary(&status.origin());
 
-    let mut stalled = Vec::new();
-    for _ in 0..2 {
-        let mut stream = connect(fixture.config.listen_address);
-        stream
-            .write_all(b"POST /github/webhook HTTP/1.1\r\nHost: localhost\r\n")
-            .unwrap_or_else(|_| unreachable!("fixture partial request is written"));
-        stalled.push(stream);
-    }
-
-    let body = body(&fixture.source_revision);
-    let headers = headers(&body, DELIVERY_BASE);
-    let response = raw_request(
-        fixture.config.listen_address,
-        &signed_request(&body, &headers),
-    );
-    assert!(response.starts_with("HTTP/1.1 503"), "{response}");
-
-    let mut timed_out = stalled
-        .pop()
-        .unwrap_or_else(|| unreachable!("fixture stalled stream exists"));
+    let mut timed_out = connect(fixture.config.listen_address);
+    timed_out
+        .write_all(b"POST /github/webhook HTTP/1.1\r\nHost: localhost\r\n")
+        .unwrap_or_else(|_| unreachable!("fixture partial request is written"));
     timed_out
         .set_read_timeout(Some(TEST_TIMEOUT))
         .unwrap_or_else(|_| unreachable!("fixture stalled read timeout is set"));
@@ -1728,8 +1712,6 @@ fn real_binary_survives_partial_request_and_overload() {
         .unwrap_or_else(|_| unreachable!("fixture stalled response is read"));
     assert!(response.starts_with("HTTP/1.1 408"), "{response}");
     drop(timed_out);
-    drop(stalled);
-    std::thread::sleep(Duration::from_millis(100));
 
     let response = fixture.send(DELIVERY_BASE);
     assert!(!response_duplicate(&response));

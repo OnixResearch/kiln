@@ -4,17 +4,6 @@
 //! functions build one, every field is private, and the type is neither
 //! serializable nor deserializable.
 //!
-//! ## Admitted proof-type audit
-//!
-//! The other `Admitted*` types were audited with this change:
-//! `AdmittedGiteaConfig`, `AdmittedRadicleConfig`,
-//! `AdmittedAspenRuntimeProfile` and `AdmittedJournal` are each sealed by their
-//! dedicated change. `AdmittedResult` is a plain record embedded in persisted
-//! semantic-merge state, not the output of a check, so it keeps its fields and
-//! deserialization.
-//!
-// r[impl kiln.gitea.event_proof.audit]
-// r[verify kiln.gitea.event_proof.audit.scenario.names]
 use hmac::{Hmac, Mac};
 use kiln_core::types::ContentId;
 use kiln_provider_api::PortResult;
@@ -78,7 +67,7 @@ pub enum EventSelector {
     },
 }
 
-// r[impl kiln.gitea.event_proof]
+// r[impl kiln.gitea.authentication]
 /// An admitted webhook event: signature, selection and identity checks passed.
 ///
 /// Only [`admit_event`] and [`admit_event_with`] construct one. Every field is
@@ -91,7 +80,7 @@ pub enum EventSelector {
 /// # let _ = read;
 /// ```
 ///
-// r[verify kiln.gitea.event_proof.scenario.forgery]
+// r[verify kiln.gitea.authentication]
 /// A struct literal fails because the fields are private:
 ///
 /// ```compile_fail

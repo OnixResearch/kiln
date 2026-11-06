@@ -1,0 +1,2592 @@
+{
+  "schema": "kiln.readiness.reference-reconciliation.v1",
+  "date": "2026-11-06",
+  "baseline_receipt_hash": "92eeb118a3f03992df56bf5c5bb26b5ceb9072e851e09c5f3d05b0303168276b",
+  "counts": {
+    "completed-unsynced": 85,
+    "wrong-identifier-corrected": 11,
+    "obsolete-administrative-marker-removed": 2
+  },
+  "records": [
+    {
+      "id": "kiln.gitea.profile",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.profile",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/profile.rs:168-314"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/tests.rs:771-810"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.authentication",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.authentication",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:290-315",
+          "crates/kiln-adapter-gitea/src/server.rs:290-347"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/events/tests.rs:94-101,175-278,533-570"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.events",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.events",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:318-449"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/events/tests.rs:102-174,280-418"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.replay",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.replay",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/replay.rs:138-226"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/tests.rs:327-425"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.workflow",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.workflow",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/service.rs:372-478"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/tests.rs:426-468,547-660"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.source",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.source",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/job.rs:297-375"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/job.rs:118-208,468-478"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.status",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.status",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/service.rs:489-543",
+          "crates/kiln-adapter-gitea/src/status.rs:704-800"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/status.rs:942-1322"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.secrets",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.secrets",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/secret.rs:70-180",
+          "crates/kiln-adapter-gitea/src/job.rs:339-375"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/secret.rs:254-320"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.shell",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.shell",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/server.rs:290-405"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/tests.rs:660-770",
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1469-1498,1695-1755"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.nonclaims",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.nonclaims",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "docs/gitea-ci.md:14-29,181-185",
+          "crates/kiln-adapter-gitea/src/profile.rs:232"
+        ],
+        "verification_spans": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json:54-58"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1-3,1079-1755"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1079-1755"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Current source/fixture assertions inspected; retained 2026-11-02 receipt reports prior execution, not current-source or live-service qualification. Parent owns fresh execution.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.gitea.event_proof",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.authentication",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.event_proof",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:81-135"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:94-118"
+        ],
+        "correction_target": "kiln.gitea.authentication",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Sealed proof is a mechanism preserving existing authentication admission, not a separately proposed feature. Compile-fail doctests exist; no targeted current execution receipt examined.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.event_proof.scenario.forgery",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.authentication",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.event_proof.scenario.forgery",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:94-118"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:94-118"
+        ],
+        "correction_target": "kiln.gitea.authentication",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Sealed proof is a mechanism preserving existing authentication admission, not a separately proposed feature. Compile-fail doctests exist; no targeted current execution receipt examined.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.event_proof.audit",
+      "group": "gitea",
+      "classification": "obsolete-administrative-marker-removed",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Removed an unsupported duplicate administrative audit paragraph/markers, not a product obligation. The separately accepted github-event-proof audit remains unchanged; VerifiedEvent privacy and compile-fail checks remain.",
+      "as_found": {
+        "id": "kiln.gitea.event_proof.audit",
+        "classification": "genuinely unfinished/unsupported",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:7-17"
+        ],
+        "verification_spans": [],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Only an informational audit paragraph and a verify marker exist. No independently declared audit obligation, dedicated executed audit receipt, or substantive cross-type verification was found. Names alone do not prove each separate seal. Do not manufacture a requirement or treat this marker as runtime proof.",
+        "smallest_justified_repair": "Maintainer must determine whether informational audit trace markers were misapplied or supply governed audit intent and cross-type evidence; leave unresolved, do not archive unfinished work."
+      }
+    },
+    {
+      "id": "kiln.gitea.event_proof.audit.scenario.names",
+      "group": "gitea",
+      "classification": "obsolete-administrative-marker-removed",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Removed an unsupported duplicate administrative audit paragraph/markers, not a product obligation. The separately accepted github-event-proof audit remains unchanged; VerifiedEvent privacy and compile-fail checks remain.",
+      "as_found": {
+        "id": "kiln.gitea.event_proof.audit.scenario.names",
+        "classification": "genuinely unfinished/unsupported",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/events.rs:7-17"
+        ],
+        "verification_spans": [],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Only an informational audit paragraph and a verify marker exist. No independently declared audit obligation, dedicated executed audit receipt, or substantive cross-type verification was found. Names alone do not prove each separate seal. Do not manufacture a requirement or treat this marker as runtime proof.",
+        "smallest_justified_repair": "Maintainer must determine whether informational audit trace markers were misapplied or supply governed audit intent and cross-type evidence; leave unresolved, do not archive unfinished work."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.events",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.events",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1591-1693"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1591-1693"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.framing",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.framing",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1469-1498"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1469-1498"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.nonclaims",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.nonclaims",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1-3"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1-3"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.outcomes",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.outcomes",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1079-1147,1227-1277,1332-1371"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1079-1147,1227-1277,1332-1371"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.process",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.process",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1227-1755"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1227-1755"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.profile_drift",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.profile_drift",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1500-1549"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1500-1549"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.recovery",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.recovery",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1149-1225,1279-1330,1373-1403"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1149-1225,1279-1330,1373-1403"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.shell_bounds",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.shell_bounds",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1695-1755"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1695-1755"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.gitea.local_e2e.status_recovery",
+      "group": "gitea",
+      "classification": "wrong-identifier-corrected",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": "kiln.gitea.local_e2e",
+      "resolution": "Refinement markers now reference the existing authentication/local-composition obligation; redundant suite marker removed without removing assertions.",
+      "as_found": {
+        "id": "kiln.gitea.local_e2e.status_recovery",
+        "classification": "wrong identifier",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1430-1467,1551-1589"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/tests/local_ci_e2e.rs:1430-1467,1551-1589"
+        ],
+        "correction_target": "kiln.gitea.local_e2e",
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Detail marker refines existing local-composition scenarios and related shell/replay/status obligations; no independent detail requirement was declared. Retained fixture receipt supports local composition only, not live service or confinement.",
+        "smallest_justified_repair": "Parent-owned marker migration to existing declared obligation; retain implementation and fixture assertions."
+      }
+    },
+    {
+      "id": "kiln.dashboard.repositories.gitea_export",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.dashboard.repositories.gitea_export",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/export.rs:34-183",
+          "crates/kiln-adapter-gitea/src/replay.rs:307-383"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/tests/export.rs:92-405"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Documented export command predates repair (docs/gitea-ci.md:139-144). Existing positive/negative assertions inspected, but retained receipt does not explicitly name export, and current source execution is pending parent. No live forge authority.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.dashboard.repositories.gitea_export.scenario.admission",
+      "group": "gitea",
+      "classification": "completed-unsynced",
+      "owning_change": "add-gitea-forgejo-ci",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.dashboard.repositories.gitea_export.scenario.admission",
+        "classification": "completed-unsynced",
+        "owning_change": "add-gitea-forgejo-ci",
+        "owning_spec": ".cairn/changes/add-gitea-forgejo-ci/specs/gitea-ci/spec.md",
+        "implementing_spans": [
+          "crates/kiln-adapter-gitea/src/export.rs:34-183",
+          "crates/kiln-adapter-gitea/src/replay.rs:307-383"
+        ],
+        "verification_spans": [
+          "crates/kiln-adapter-gitea/src/tests/export.rs:92-405"
+        ],
+        "correction_target": null,
+        "evidence_receipts": [
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.json",
+          ".cairn/changes/add-gitea-forgejo-ci/evidence/verification.md"
+        ],
+        "evidence_limit": "Documented export command predates repair (docs/gitea-ci.md:139-144). Existing positive/negative assertions inspected, but retained receipt does not explicitly name export, and current source execution is pending parent. No live forge authority.",
+        "smallest_justified_repair": "Sync grounded active delta after parent verification; do not archive on checked tasks alone."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.counts",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.counts",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:678-725,399-418",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:717-758",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.counts.contradiction",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.counts.contradiction",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:678-725,399-418",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:717-758",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.counts.valid",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.counts.valid",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:678-725,399-418",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:717-758",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.facts.metrics",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.facts.metrics",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:441-606",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:551-624,864-900",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.failures",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.failures",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:728-754,803-825",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:761-820,823-863",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.failures.log",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.failures.log",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:728-754,803-825",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:761-820,823-863",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.failures.vocabulary",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.failures.vocabulary",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:728-754,803-825",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:761-820,823-863",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.paths.escape",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Reproduced actual traversal acceptance, repaired the shared lexical validator, and retained direct/nested escape regressions across product/logical/sidecar/success/failure log paths; full adapter21 passed.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.paths.escape",
+        "classification": "genuinely unfinished/unsupported",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:283-300,794-825",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:699-714",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [
+          "MANTLE-LEXICAL-ESCAPE"
+        ],
+        "smallest_justified_repair": "Reject parent-directory traversal in shared path admission and exercise product/logical artifact/sidecar/log cases before accepting package."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.paths.valid",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.paths.valid",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:283-300,794-825",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:699-714",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.store_binding",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.store_binding",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:662-674;crates/kiln-adapter-mantle/src/adapter.rs:374-378",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:680-696",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.store_binding.drift",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.store_binding.drift",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:662-674;crates/kiln-adapter-mantle/src/adapter.rs:374-378",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:680-696",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.store_binding.match",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.store_binding.match",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:662-674;crates/kiln-adapter-mantle/src/adapter.rs:374-378",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:680-696",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.surface",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.surface",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:209-224,615-658",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:551-678,823-863",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.surface.complete",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.surface.complete",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:209-224,615-658",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:551-678,823-863",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.mantle.native_report.surface.drift",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "complete-mantle-native-report",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.mantle.native_report.surface.drift",
+        "classification": "completed-unsynced",
+        "owning_change": "complete-mantle-native-report",
+        "owning_spec": "mantle-native-report",
+        "delta": ".cairn/changes/complete-mantle-native-report/specs/mantle-native-report/spec.md",
+        "implementation_spans": "crates/kiln-adapter-mantle/src/mapping.rs:209-224,615-658",
+        "test_spans": "crates/kiln-adapter-mantle/src/tests.rs:551-678,823-863",
+        "evidence_receipts": [
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.json",
+          ".cairn/changes/complete-mantle-native-report/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.canonical_tag",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "support-canonical-radicle-tags",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.canonical_tag",
+        "classification": "completed-unsynced",
+        "owning_change": "support-canonical-radicle-tags",
+        "owning_spec": "radicle-canonical-tag",
+        "delta": ".cairn/changes/support-canonical-radicle-tags/specs/radicle-canonical-tag/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/source/canonical.rs:349-410;crates/kiln-adapter-radicle/src/source/protocol.rs:270-297",
+        "test_spans": "crates/kiln-adapter-radicle/tests/source_canonical_native.rs:295-398",
+        "evidence_receipts": [
+          ".cairn/changes/support-canonical-radicle-tags/evidence/verification.json",
+          ".cairn/changes/support-canonical-radicle-tags/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.canonical_tag.scenario.revision",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "support-canonical-radicle-tags",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.canonical_tag.scenario.revision",
+        "classification": "completed-unsynced",
+        "owning_change": "support-canonical-radicle-tags",
+        "owning_spec": "radicle-canonical-tag",
+        "delta": ".cairn/changes/support-canonical-radicle-tags/specs/radicle-canonical-tag/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/source/canonical.rs:349-410;crates/kiln-adapter-radicle/src/source/protocol.rs:270-297",
+        "test_spans": "crates/kiln-adapter-radicle/tests/source_canonical_native.rs:295-398",
+        "evidence_receipts": [
+          ".cairn/changes/support-canonical-radicle-tags/evidence/verification.json",
+          ".cairn/changes/support-canonical-radicle-tags/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.canonical_tag.scenario.tag",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "support-canonical-radicle-tags",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.canonical_tag.scenario.tag",
+        "classification": "completed-unsynced",
+        "owning_change": "support-canonical-radicle-tags",
+        "owning_spec": "radicle-canonical-tag",
+        "delta": ".cairn/changes/support-canonical-radicle-tags/specs/radicle-canonical-tag/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/source/canonical.rs:349-410;crates/kiln-adapter-radicle/src/source/protocol.rs:270-297",
+        "test_spans": "crates/kiln-adapter-radicle/tests/source_canonical_native.rs:295-398",
+        "evidence_receipts": [
+          ".cairn/changes/support-canonical-radicle-tags/evidence/verification.json",
+          ".cairn/changes/support-canonical-radicle-tags/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:300-343",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.authority",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.authority",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:539-568",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.bounds",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.bounds",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:571-658",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.console",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.console",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-web-service/tests/cobs.rs:1372-1425",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.identity",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.identity",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:411-455",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.multi_writer",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.multi_writer",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:458-518",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.replay",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.replay",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:346-408",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.scenario.extend",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.scenario.extend",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:411-455",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.scenario.fresh",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.scenario.fresh",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:300-343",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.scenario.mismatch",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.scenario.mismatch",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:521-536",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle.job.scenario.replay",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "publish-radicle-job-cobs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle.job.scenario.replay",
+        "classification": "completed-unsynced",
+        "owning_change": "publish-radicle-job-cobs",
+        "owning_spec": "radicle-job-cobs",
+        "delta": ".cairn/changes/publish-radicle-job-cobs/specs/radicle-job-cobs/spec.md",
+        "implementation_spans": "crates/kiln-adapter-radicle/src/job/shell.rs:140-429,457-526;crates/kiln-adapter-radicle/src/job/reducer.rs:102-224;crates/kiln-adapter-radicle/src/job/plan.rs:128-251",
+        "test_spans": "crates/kiln-adapter-radicle/tests/job_native.rs:346-408",
+        "evidence_receipts": [
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.json",
+          ".cairn/changes/publish-radicle-job-cobs/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle_ci.tag",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "run-ci-on-radicle-tags",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle_ci.tag",
+        "classification": "completed-unsynced",
+        "owning_change": "run-ci-on-radicle-tags",
+        "owning_spec": "radicle-ci-tag",
+        "delta": ".cairn/changes/run-ci-on-radicle-tags/specs/radicle-ci-tag/spec.md",
+        "implementation_spans": "crates/kiln-radicle-ci/src/project.rs:115-140,220-258",
+        "test_spans": "crates/kiln-radicle-ci/src/project.rs:807-855",
+        "evidence_receipts": [
+          ".cairn/changes/run-ci-on-radicle-tags/evidence/verification.json",
+          ".cairn/changes/run-ci-on-radicle-tags/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.radicle_ci.tag.scenario.projection",
+      "group": "buildAndRadicle",
+      "classification": "completed-unsynced",
+      "owning_change": "run-ci-on-radicle-tags",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.radicle_ci.tag.scenario.projection",
+        "classification": "completed-unsynced",
+        "owning_change": "run-ci-on-radicle-tags",
+        "owning_spec": "radicle-ci-tag",
+        "delta": ".cairn/changes/run-ci-on-radicle-tags/specs/radicle-ci-tag/spec.md",
+        "implementation_spans": "crates/kiln-radicle-ci/src/project.rs:115-140,220-258",
+        "test_spans": "crates/kiln-radicle-ci/src/project.rs:807-855",
+        "evidence_receipts": [
+          ".cairn/changes/run-ci-on-radicle-tags/evidence/verification.json",
+          ".cairn/changes/run-ci-on-radicle-tags/evidence/verification.md"
+        ],
+        "evidence_status": "Existing historical receipts and current source/test assertions inspected; no runtime tests/builds rerun in this worker.",
+        "blockers": [],
+        "smallest_justified_repair": "Parent-controlled accepted-spec sync only, subject to integrated verification; do not archive if package-level blocker remains."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.bounds",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.bounds",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/feeds.rs:371-474",
+          "crates/kiln-web-service/src/profile.rs:290-309",
+          "crates/kiln-web-service/src/engine/feeds.rs:479-488"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1247-1260"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Named fetch/retention ceilings enforced; candidate state checked before persistence.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.config",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.config",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/profile.rs:69-104,290-309"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:368-385"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Optional admitted policy defaults disabled.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.config.scenario.console",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.config.scenario.console",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/web.js:1474-1640"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:627-655"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Repository subscriptions and operator controls rendered; historical disposable browser observation retained.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.publish",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.publish",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/engine/feeds.rs:655-729",
+          "crates/kiln-web-service/src/feeds.rs:895-984"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1372-1448",
+          "crates/kiln-web-service/tests/engine/runtime.rs:464-612"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Read-only Atom/OPML publication over admitted canonical repositories and retained runs.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.publish.scenario.missing",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.publish.scenario.missing",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/engine/feeds.rs:655-815"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:537-548"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Unknown repository key returns no feed.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.publish.scenario.rendered",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.publish.scenario.rendered",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/engine/feeds.rs:655-815",
+          "crates/kiln-web-service/src/feeds.rs:895-984"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1372-1448",
+          "crates/kiln-web-service/tests/engine/runtime.rs:464-492"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Escaped bounded newest-first run projection; repository selection is shell-owned.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.security",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.security",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/feeds.rs:371-543"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1138-1148,1193-1260"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "HTTPS policy, DNS address admission and pinning, no proxies, bounded manual redirects and bytes.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.security.scenario.malformed",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Reproduced silent overflow truncation, repaired RSS/RDF/Atom to reject overflow without partial replacement, and passed cardinality/deduplication boundary regressions plus24 compiled public-API decisions.",
+      "as_found": {
+        "id": "kiln.web.feeds.security.scenario.malformed",
+        "classification": "genuinely unfinished/unsupported",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/feeds.rs:546-565"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1109-1134"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "DTD/malformed/unknown-root rejection exists, but entry overflow is deliberately truncated rather than rejected as the delta scenario requires.",
+        "evidence_insufficiency": "Direct source/test contradiction for the too-many-entries rejection clause.",
+        "smallest_justified_repair": "Regression cases staged; parent owns failing-before proof, minimal parser overflow rejection and passing-after. Keep package active until complete."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.security.scenario.private",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.security.scenario.private",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/feeds.rs:497-543"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1138-1148,1211-1216"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Private destinations rejected without explicit private-network exception.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.security.scenario.redirect",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.security.scenario.redirect",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/feeds.rs:422-442,497-543"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/feeds.rs:1193-1208"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Every redirect re-enters URL/DNS admission; local positive rail explicitly uses private exception, not public-host qualification.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.subscriptions",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.subscriptions",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/engine/feeds.rs:50-52,464-497",
+          "crates/kiln-web-service/src/server.rs:1032-1218"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:614-655"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Operator-only fetch/retain/refresh/remove routes, durable candidate preflight; historical runtime evidence retained.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.subscriptions.scenario.add",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.subscriptions.scenario.add",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/server.rs:1032-1218",
+          "crates/kiln-web-service/src/engine/feeds.rs:50-52"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:614-655,702-710"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Successful fetch retained before success; failed add returns 502.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.subscriptions.scenario.refresh",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.subscriptions.scenario.refresh",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/engine/feeds.rs:464-497"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:366-956"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Bounded error candidate persists while previous entries remain; retained runtime receipt explicitly records failed-refresh behavior.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.subscriptions.scenario.viewer",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.subscriptions.scenario.viewer",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/server.rs:1032-1218"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:760-768"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Operator-required mutation admission; historical runtime receipt records viewer add rejection and token URL omission.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.token",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.token",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/server.rs:952-1014"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:506-568"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Single bounded query token or bearer credential checked through dedicated feed verifier; historical rotation receipt retained.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.token.scenario.required",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.token.scenario.required",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/server.rs:952-1014"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:506-568"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Wrong token 403, missing token 400, valid dedicated bearer 200.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.feeds.ui",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-repository-feeds",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.feeds.ui",
+        "classification": "completed-unsynced",
+        "change": "add-repository-feeds",
+        "spec": ".cairn/changes/add-repository-feeds/specs/repository-feeds/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/web.js:1474-1640"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/runtime.rs:627-655"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-repository-feeds/evidence/verification.json:12-117"
+        ],
+        "reason": "Console uses DOM/text elements and operator-only subscription controls; historical browser receipt retained.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; accepted-spec sync after package blocker resolved."
+      }
+    },
+    {
+      "id": "kiln.web.supersede.active",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "supersede-trigger-runs",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.web.supersede.active",
+        "classification": "completed-unsynced",
+        "change": "supersede-trigger-runs",
+        "spec": ".cairn/changes/supersede-trigger-runs/specs/supersede-trigger-runs/spec.md:60-80",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/engine/automation.rs:1120-1187",
+          "crates/kiln-web-service/src/engine/api.rs:460-529",
+          "crates/kiln-core/src/workflow.rs:185-188"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/engine/automation.rs:112-169"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/supersede-trigger-runs/evidence/verification.json:4-48",
+          ".cairn/changes/supersede-trigger-runs/evidence/readiness-reconciliation-2026-11-06.json"
+        ],
+        "reason": "Exact admitted attempt/revision/sequence/execution provider control; deterministic replay id; best-effort refusal; waiting/terminal exclusion; assertion records exactly one cancellation and Cancelled old active run.",
+        "smallest_justified_repair": "Applied heading-only split removing sync identity-cardinality blocker; sync package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.board",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.board",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/board.rs:383-537"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/board_tests.rs:355-442",
+          "crates/kiln-web-service/tests/work.rs:1493-1635"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Deterministic CI lanes, one card once, Other, independent status move columns.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.board.scenario.empty",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.board.scenario.empty",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/board.rs:509-537"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/board_tests.rs:388-399"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Empty admitted lane remains with zero cards.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.board.scenario.lanes",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.board.scenario.lanes",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/board.rs:424-473"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/board_tests.rs:355-442",
+          "crates/kiln-web-service/tests/work.rs:1590-1611"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Exact linked cards assigned once to first project lane; unlinked cards remain Other.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.compat",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.compat",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/model.rs:887-1038",
+          "crates/kiln-web-service/src/work/board.rs:383-537"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/model_tests.rs:1980-2133",
+          "crates/kiln-web-service/src/work/board_tests.rs:555-576"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Old saved view bytes preserved; malformed/duplicate/overbound sets rejected before write.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.compat.scenario.invalid",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.compat.scenario.invalid",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/model.rs:909-1038"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/model_tests.rs:1980-2073"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Empty, duplicate, malformed, noncanonical and overbound sets fail admission.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.compat.scenario.old",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.compat.scenario.old",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/model.rs:993-1014"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/model_tests.rs:2120-2133",
+          "crates/kiln-web-service/src/work/board_tests.rs:555-576"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Pre-lane view round-trips byte-identically; status board remains status lanes.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.facts",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.facts",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:1-205",
+          "crates/kiln-web-service/src/server.rs:773-776"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:247-342",
+          "crates/kiln-web-service/tests/engine/monorepo.rs:847-849",
+          "crates/kiln-web-service/tests/work.rs:1493-1567"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Read-only bounded shell facts; only explicit retained run links resolve admitted projects.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.facts.scenario.resolved",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.facts.scenario.resolved",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:107-165"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:247-296",
+          "crates/kiln-web-service/tests/work.rs:1544-1555"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Exact run link resolves the correct admitted project.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.facts.scenario.unknown",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.facts.scenario.unknown",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:107-165"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:247-296",
+          "crates/kiln-web-service/tests/work.rs:1556-1567"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Unknown and absent links contribute no inferred project.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.filter",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.filter",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:168-205",
+          "crates/kiln-web-service/src/work/model.rs:967-985"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/board_tests.rs:444-514",
+          "crates/kiln-web-service/src/work/model_tests.rs:2013-2073"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Bounded exact CI-id/repository filters use derived facts, never signed CI outcomes.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.filter.scenario.project",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.filter.scenario.project",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:171-191"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/work.rs:1613-1625",
+          "tests/work-views.test.mjs:27-36"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Project-specific filter excludes other monorepo projects and unresolvable links.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.filter.scenario.repository",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.filter.scenario.repository",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/ci.rs:183-188"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/tests/work.rs:1626-1635",
+          "tests/work-views.test.mjs:38-44"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Canonical repository-key filter spans both linked monorepo projects.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.grouping",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.grouping",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work-board.js:20-24",
+          "crates/kiln-web-service/src/work.js:487-490,515-518"
+        ],
+        "test_spans": [
+          "tests/work-views.test.mjs:46-54"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "First exact deterministic project is one group; explicit unlinked group and read-only row chips.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.grouping.scenario.grouped",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.grouping.scenario.grouped",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work-board.js:20-24",
+          "crates/kiln-web-service/src/work.js:515-518"
+        ],
+        "test_spans": [
+          "tests/work-views.test.mjs:46-54"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Grouping chooses one linked project and unlinked group without duplicate row.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.planning",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.planning",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/model.rs:946-954,1019-1038",
+          "crates/kiln-web-service/src/work/board.rs:164-167"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/model_tests.rs:1980-2011",
+          "crates/kiln-web-service/src/work/board_tests.rs:515-553"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "Planning-project set validates every live signed reference; single project compatibility maintained.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.work.monorepo.planning.scenario.set",
+      "group": "webWork",
+      "classification": "completed-unsynced",
+      "owning_change": "add-monorepo-work-views",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.work.monorepo.planning.scenario.set",
+        "classification": "completed-unsynced",
+        "change": "add-monorepo-work-views",
+        "spec": ".cairn/changes/add-monorepo-work-views/specs/work-monorepo-views/spec.md",
+        "implementing_spans": [
+          "crates/kiln-web-service/src/work/model.rs:946-954",
+          "crates/kiln-web-service/src/work/board.rs:164-167"
+        ],
+        "test_spans": [
+          "crates/kiln-web-service/src/work/board_tests.rs:515-553",
+          "tests/work-views.test.mjs:56-69"
+        ],
+        "evidence_receipts": [
+          ".cairn/changes/add-monorepo-work-views/evidence/verification.json:4-67"
+        ],
+        "reason": "A,B matches either member and excludes C.",
+        "evidence_insufficiency": null,
+        "smallest_justified_repair": "No marker/code repair; sync the completed package after integrated verification."
+      }
+    },
+    {
+      "id": "kiln.microvm.confinement.lifecycle",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-firecracker-confinement-observation",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.microvm.confinement.lifecycle",
+        "classification": "completed-unsynced",
+        "owning_change": "add-firecracker-confinement-observation",
+        "owning_spec": "microvm-confinement",
+        "declaration": ".cairn/changes/add-firecracker-confinement-observation/specs/microvm-confinement/spec.md:31-48",
+        "implementation": [
+          "crates/kiln-microvm/src/lifecycle.rs:98-122",
+          "crates/kiln-hosted/src/microvm.rs:1929-1995"
+        ],
+        "semantic_tests": [
+          "crates/kiln-microvm/src/lifecycle.rs:302-330"
+        ],
+        "finding": "Spawned requests ObserveConfinement; only ok:true sets confined and requests AwaitGuest; premature GuestConnected errors without mutation; failed observation requests Journal before destruction. Actual host shell advances the same observed event before driving the guest.",
+        "retained_receipts": [
+          ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:4-38",
+          ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.md:12-29"
+        ],
+        "readiness_blockers": [],
+        "smallest_justified_repair": "Parent integrates existing native delta; do not remove marker or infer hostile qualification."
+      }
+    },
+    {
+      "id": "kiln.microvm.confinement.observation",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-firecracker-confinement-observation",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.microvm.confinement.observation",
+        "classification": "completed-unsynced",
+        "owning_change": "add-firecracker-confinement-observation",
+        "owning_spec": "microvm-confinement",
+        "declaration": ".cairn/changes/add-firecracker-confinement-observation/specs/microvm-confinement/spec.md:50-69",
+        "implementation": [
+          "crates/kiln-hosted/src/execution.rs:2156-2172",
+          "crates/kiln-hosted/src/microvm.rs:698-823",
+          "crates/kiln-hosted/src/microvm.rs:1929-2013"
+        ],
+        "semantic_tests": [
+          "crates/kiln-hosted/src/execution.rs:2743-2748",
+          "crates/kiln-hosted/tests/microvm.rs:456-482"
+        ],
+        "finding": "VMM unit receives NoNewPrivileges=yes. Bounded cgroup.procs must resolve to one PID; unavailable process/executable evidence rejects. Firecracker does not use the separate cloud-hypervisor unfiltered-main exception. Cold observation follows spawn; warm observation follows snapshot/load; receipt is set before guest driving. Retained November 2 evidence reports actual cold, warm and held-job runs on Firecracker 1.15.1, not just fixture assertions.",
+        "retained_receipts": [
+          ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.json:14-38",
+          ".cairn/changes/add-firecracker-confinement-observation/evidence/verification.md:17-29"
+        ],
+        "readiness_blockers": [
+          "No new host/VMM-cohort qualification was run in this audit; retained local receipts cannot qualify today's approved-untrusted execution."
+        ],
+        "smallest_justified_repair": "Sync local observation delta as scoped. Preserve jailer:false and hostile_isolation_claim:false. Host remediation and operator qualification are separate prerequisites, not grounds to delete this completed implementation marker."
+      }
+    },
+    {
+      "id": "kiln.review.agent.attestation",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-attested-agent-submissions",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.review.agent.attestation",
+        "classification": "completed-unsynced",
+        "owning_change": "add-attested-agent-submissions",
+        "owning_spec": "attested-agent-submissions",
+        "declaration": ".cairn/changes/add-attested-agent-submissions/specs/attested-agent-submissions/spec.md:10-29",
+        "implementation": [
+          "crates/kiln-core/src/change_review.rs:306-314",
+          "crates/kiln-core/src/change_review.rs:1495-1509",
+          "crates/kiln-core/src/change_review.rs:2248-2262",
+          "crates/kiln-core/src/change_review.rs:2315-2341"
+        ],
+        "semantic_tests": [
+          "crates/kiln-core/src/change_review.rs:6131-6197"
+        ],
+        "finding": "Both Create and Upload overwrite request-provided submission identity using trusted agent membership and actor, including declared metadata when available. Agent human authorship rejects before state mutation. Current regression asserts rejection, exact principal/harness, and absent human attestation. Later AttestedSubmission representation extends the original principal-only feature; it is not a wrong identifier.",
+        "retained_receipts": [
+          ".cairn/changes/add-attested-agent-submissions/evidence/verification.json:4-40"
+        ],
+        "readiness_blockers": [],
+        "smallest_justified_repair": "Parent syncs existing delta before metadata-dependent agent search. No product-code repair justified."
+      }
+    },
+    {
+      "id": "kiln.review.agent.console",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-attested-agent-submissions",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.review.agent.console",
+        "classification": "completed-unsynced",
+        "owning_change": "add-attested-agent-submissions",
+        "owning_spec": "attested-agent-submissions",
+        "declaration": ".cairn/changes/add-attested-agent-submissions/specs/attested-agent-submissions/spec.md:31-43",
+        "implementation": [
+          "crates/kiln-web-service/src/code-review.js:582-584",
+          "crates/kiln-web-service/src/code-review.js:674-675",
+          "crates/kiln-web-service/src/code-review.js:797-805",
+          "crates/kiln-web-service/src/code_review.rs:1490-1503"
+        ],
+        "semantic_tests": [
+          "crates/kiln-web-service/tests/code_review.rs:1961-1976"
+        ],
+        "finding": "List and header carry declared agent principal and optional harness/model; identity history labels attested agent separately and explicitly says authorship remains self-declared and unverified. The rendering adds no command or merge effect. API semantic coverage supports identity projection, but no fresh browser proof was performed under the assignment's audit-only boundary.",
+        "retained_receipts": [
+          ".cairn/changes/add-attested-agent-submissions/evidence/verification.json:22-40"
+        ],
+        "readiness_blockers": [
+          "Retained verification is source/test evidence, not an independent fresh browser rendering receipt."
+        ],
+        "smallest_justified_repair": "Parent integrates delta; retain evidence limitations rather than treating checked tasks as browser qualification."
+      }
+    },
+    {
+      "id": "kiln.review.agent.search",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-agent-review-search",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.review.agent.search",
+        "classification": "completed-unsynced",
+        "owning_change": "add-agent-review-search",
+        "owning_spec": "agent-review-search",
+        "declaration": ".cairn/changes/add-agent-review-search/specs/agent-review-search/spec.md:9-52",
+        "implementation": [
+          "crates/kiln-core/src/change_review.rs:498-506",
+          "crates/kiln-core/src/change_review.rs:1031-1055",
+          "crates/kiln-web-service/src/code_review.rs:1505-1542",
+          "crates/kiln-web-service/src/code-review.js:243-264",
+          "crates/kiln-web-service/src/code-review.js:630-658",
+          "crates/kiln-web-service/src/web.js:1252-1254"
+        ],
+        "semantic_tests": [
+          "crates/kiln-core/src/change_review.rs:4854-4954",
+          "crates/kiln-web-service/tests/code_review.rs:1792-1976"
+        ],
+        "finding": "Core matches current revision attestation and exact declared harness/model; absent model cannot match. Shell admits with/without, UI carries all filters through query/URL/saved-view apply/clear. Retained focused web receipt reports positive, human-negative, malformed/control/untrimmed/over-bound/multibyte boundaries and saved-view round trip. Read-only search introduces no state transition.",
+        "retained_receipts": [
+          ".cairn/changes/add-agent-review-search/evidence/verification.json:4-51"
+        ],
+        "readiness_blockers": [],
+        "smallest_justified_repair": "Parent syncs existing delta after attested submissions and the separately owned add-attested-agent-metadata contract; verify metadata lifecycle readiness independently."
+      }
+    },
+    {
+      "id": "kiln.review.evidence.policy",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-ownership-evidence",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.review.evidence.policy",
+        "classification": "completed-unsynced",
+        "owning_change": "add-ownership-evidence",
+        "owning_spec": "ownership-evidence",
+        "declaration": ".cairn/changes/add-ownership-evidence/specs/ownership-evidence/spec.md:10-29",
+        "implementation": [
+          "crates/kiln-core/src/change_review.rs:627-662",
+          "crates/kiln-core/src/change_review.rs:1261-1280",
+          "config/web-code-review.ncl:81"
+        ],
+        "semantic_tests": [
+          "crates/kiln-core/src/change_review.rs:4527-4577"
+        ],
+        "finding": "Closed ProjectCi enum, absent empty lists, eight-item named bound, nonempty trimmed bounded unique projects. Current regression rejects blank, duplicate and excessive policy. Unknown kinds are rejected by closed enum deserialization, not accepted as opaque policy.",
+        "retained_receipts": [
+          ".cairn/changes/add-ownership-evidence/evidence/verification.json:4-45"
+        ],
+        "readiness_blockers": [],
+        "smallest_justified_repair": "Parent integrates existing delta. Preserve successor evidence-only policy as separately scoped work, not an obsolete original marker."
+      }
+    },
+    {
+      "id": "kiln.review.evidence.project_ci",
+      "group": "reviewAndConfinement",
+      "classification": "completed-unsynced",
+      "owning_change": "add-ownership-evidence",
+      "correction_target": null,
+      "resolution": "Implementation and bounded retained evidence support the existing delta; integrate only after current verification.",
+      "as_found": {
+        "id": "kiln.review.evidence.project_ci",
+        "classification": "completed-unsynced",
+        "owning_change": "add-ownership-evidence",
+        "owning_spec": "ownership-evidence",
+        "declaration": ".cairn/changes/add-ownership-evidence/specs/ownership-evidence/spec.md:31-64",
+        "implementation": [
+          "crates/kiln-core/src/change_review.rs:1899-1903",
+          "crates/kiln-core/src/change_review.rs:2099-2127"
+        ],
+        "semantic_tests": [
+          "crates/kiln-core/src/change_review.rs:4439-4525"
+        ],
+        "finding": "One named evidence item per matching rule and required project, resolved against current required scope (or legacy own-project unscoped case), satisfied via existing full/clean/success predicate. Regression asserts exact success while owner remains false and readiness false; stale commit, non-clean, partial and wrong/absent scope fail. Later explicitly configured evidence-only classes extend approval semantics, not implicit evidence authority.",
+        "retained_receipts": [
+          ".cairn/changes/add-ownership-evidence/evidence/verification.json:4-45"
+        ],
+        "readiness_blockers": [],
+        "smallest_justified_repair": "Parent integrates original evidence delta before any later class/interface delta; no marker suppression or product change warranted."
+      }
+    }
+  ],
+  "scope": "All98 baseline identifiers exactly once. as_found spans and evidence are historical pre-integration observations; final integration receipts record accepted and archived destinations."
+}
