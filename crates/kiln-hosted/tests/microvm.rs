@@ -1181,10 +1181,19 @@ fn namespace_corrupt_and_saturated_cache_preserve_successful_cold_jobs() {
         "python": at(&host.tools, "/python"), "mount": at(&host.tools, "/mount"),
         "shell": at(&host.tools, "/bash"), "runtime_roots": ["/nix/store"]});
     let mut pipeline = cache_pipeline();
-    let tool_bin = Path::new(host.tools["env"]["path"].as_str().unwrap_or_default())
-        .parent()
-        .unwrap_or_else(|| unreachable!("coreutils executable parent"));
-    pipeline["jobs"]["build"]["env"] = json!({"PATH": tool_bin});
+    let tool_bin = Path::new(
+        host.tools
+            .pointer("/env/path")
+            .and_then(Value::as_str)
+            .unwrap_or_else(|| unreachable!("coreutils executable path")),
+    )
+    .parent()
+    .unwrap_or_else(|| unreachable!("coreutils executable parent"));
+    pipeline
+        .pointer_mut("/jobs/build")
+        .and_then(Value::as_object_mut)
+        .unwrap_or_else(|| unreachable!("build job fixture"))
+        .insert("env".into(), json!({"PATH": tool_bin}));
     let mut deployment = Deployment::new(&host, backend, &pipeline);
     let cache_root = enable_cache(&mut deployment);
     let first = deployment.run("namespace-cache-first");

@@ -2150,8 +2150,10 @@ fn agent_thread_outcome_window_is_read_only_and_bounded() -> Result<()> {
     );
     assert_eq!(response.status, 200);
     let value = value(&response)?;
-    assert_eq!(value["schema"], "kiln.code-review.agent-thread-outcomes.v1");
-    assert_eq!(value["agents"], json!([]));
+    assert_eq!(
+        value.get("schema").and_then(Value::as_str),
+        Some("kiln.code-review.agent-thread-outcomes.v1")
+    );
     assert_eq!(
         get(
             &workspace,

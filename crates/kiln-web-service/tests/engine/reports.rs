@@ -359,7 +359,8 @@ fn unavailable_reports_and_recorded_review_never_invent_test_results_or_gate_aut
 #[test]
 fn review_node_retains_a_patchgate_receipt_as_run_bound_evidence() {
     let (_root, mut profile, _) = fixture();
-    let review = &mut profile.projects[0].workflow.nodes[0];
+    let project = checked(profile.projects.first_mut().ok_or("fixture project"));
+    let review = checked(project.workflow.nodes.first_mut().ok_or("fixture node"));
     review.id = "review".into();
     review.kind = "review".into();
     review.effect_class = ConfigEffectClass::Custom;
@@ -403,12 +404,15 @@ fn review_node_retains_a_patchgate_receipt_as_run_bound_evidence() {
         serde_json::to_string_pretty(&retained).unwrap_or_default()
     );
     assert!(
-        retained["reports"]
-            .as_array()
+        retained
+            .get("reports")
+            .and_then(Value::as_array)
             .is_some_and(|reports| reports.iter().any(|report| {
-                report["kind"] == "review"
-                    && report["report"]["evidence"]["document"]["schema"]
-                        == "kiln.patchgate.review.v1"
+                report.get("kind").and_then(Value::as_str) == Some("review")
+                    && report
+                        .pointer("/report/evidence/document/schema")
+                        .and_then(Value::as_str)
+                        == Some("kiln.patchgate.review.v1")
             }))
     );
 }

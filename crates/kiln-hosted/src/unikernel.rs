@@ -682,21 +682,33 @@ mod tests {
         assert!(bound_observation(observation("small output".into()), 1024).success);
         let overflow = bound_observation(observation("x".repeat(4096)), 1024);
         assert!(!overflow.success);
-        assert_eq!(overflow.value["reason"], json!("output_budget_exhausted"));
+        assert_eq!(
+            overflow.value.get("reason"),
+            Some(&json!("output_budget_exhausted"))
+        );
         assert!(overflow.value.to_string().len() <= 1024);
         assert!(capture_limit(1023).is_err());
     }
     fn elf() -> Vec<u8> {
         let mut bytes = vec![0; 120];
-        bytes[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
-        bytes[16] = 3;
-        bytes[18] = 62;
-        bytes[20] = 1;
-        bytes[32] = 64;
-        bytes[52] = 64;
-        bytes[54] = 56;
-        bytes[56] = 1;
-        bytes[64] = 1;
+        bytes
+            .get_mut(..7)
+            .unwrap_or_else(|| unreachable!("ELF identification missing"))
+            .copy_from_slice(b"\x7fELF\x02\x01\x01");
+        for (offset, value) in [
+            (16, 3),
+            (18, 62),
+            (20, 1),
+            (32, 64),
+            (52, 64),
+            (54, 56),
+            (56, 1),
+            (64, 1),
+        ] {
+            *bytes
+                .get_mut(offset)
+                .unwrap_or_else(|| unreachable!("ELF fixture byte {offset} missing")) = value;
+        }
         bytes
     }
     fn spec(bytes: &[u8]) -> TestSpec {
@@ -714,33 +726,53 @@ mod tests {
         let bytes = elf();
         assert!(validate_elf(&bytes).is_ok());
         let mut interpreter = bytes.clone();
-        interpreter[56] = 2;
+        *interpreter
+            .get_mut(56)
+            .unwrap_or_else(|| unreachable!("ELF program header count missing")) = 2;
         let mut header = [0; 56];
-        header[0] = 3;
+        *header
+            .get_mut(0)
+            .unwrap_or_else(|| unreachable!("ELF program header type missing")) = 3;
         interpreter.extend_from_slice(&header);
         assert!(validate_elf(&interpreter).is_err());
         let mut dynamic = bytes.clone();
-        dynamic[56] = 2;
+        *dynamic
+            .get_mut(56)
+            .unwrap_or_else(|| unreachable!("ELF program header count missing")) = 2;
         let mut header = [0; 56];
-        header[0] = 2;
-        header[8] = 176;
-        header[32] = 32;
+        for (offset, value) in [(0, 2), (8, 176), (32, 32)] {
+            *header
+                .get_mut(offset)
+                .unwrap_or_else(|| unreachable!("ELF dynamic header byte {offset} missing")) =
+                value;
+        }
         dynamic.extend_from_slice(&header);
         dynamic.extend_from_slice(&[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         dynamic.extend_from_slice(&[0; 16]);
         assert!(validate_elf(&dynamic).is_err());
-        dynamic[176] = 0;
+        *dynamic
+            .get_mut(176)
+            .unwrap_or_else(|| unreachable!("ELF dynamic entry missing")) = 0;
         assert!(validate_elf(&dynamic).is_ok());
     }
     #[test]
     fn elf_architecture_and_truncation_boundaries() {
         for (offset, value) in [(4, 1), (5, 2), (16, 2), (18, 183), (54, 55), (56, 0)] {
             let mut bytes = elf();
-            bytes[offset] = value;
+            *bytes
+                .get_mut(offset)
+                .unwrap_or_else(|| unreachable!("ELF fixture byte {offset} missing")) = value;
             assert!(validate_elf(&bytes).is_err());
         }
         for length in [0, 6, 63, 119] {
-            assert!(validate_elf(&elf()[..length]).is_err());
+            assert!(
+                validate_elf(
+                    elf()
+                        .get(..length)
+                        .unwrap_or_else(|| unreachable!("ELF fixture shorter than {length}"))
+                )
+                .is_err()
+            );
         }
     }
     #[test]
@@ -752,7 +784,14 @@ mod tests {
         assert!(serial_result(b"boot\n", false).is_err());
         assert!(serial_result(&[ok.as_slice(), ok.as_slice()].concat(), false).is_err());
         assert!(serial_result(b"KILN_RESULT:{bad}\n", false).is_err());
-        assert!(serial_result(&ok[..ok.len() - 1], false).is_err());
+        assert!(
+            serial_result(
+                ok.get(..ok.len() - 1)
+                    .unwrap_or_else(|| unreachable!("result frame fixture missing")),
+                false
+            )
+            .is_err()
+        );
         assert!(serial_result(ok, true).is_err());
         assert!(
             serial_result(
@@ -791,22 +830,39 @@ mod tests {
         let mut offset = 0;
         let mut actual = BTreeMap::new();
         loop {
-            let header = &image[offset..offset + 110];
+            let header = image
+                .get(offset..offset + 110)
+                .unwrap_or_else(|| unreachable!("archive header missing at {offset}"));
             let field = |start| {
                 usize::from_str_radix(
-                    std::str::from_utf8(&header[start..start + 8]).unwrap_or(""),
+                    std::str::from_utf8(
+                        header
+                            .get(start..start + 8)
+                            .unwrap_or_else(|| unreachable!("archive field missing at {start}")),
+                    )
+                    .unwrap_or_else(|e| unreachable!("archive field encoding: {e}")),
                     16,
                 )
-                .unwrap_or(0)
+                .unwrap_or_else(|e| unreachable!("archive field number: {e}"))
             };
             let size = field(54);
             let name_size = field(94);
             let mode = field(14);
-            let name = std::str::from_utf8(&image[offset + 110..offset + 110 + name_size - 1])
-                .unwrap_or("")
-                .to_owned();
+            let name_length = name_size
+                .checked_sub(1)
+                .unwrap_or_else(|| unreachable!("archive name terminator missing"));
+            let name = std::str::from_utf8(
+                image
+                    .get(offset + 110..offset + 110 + name_length)
+                    .unwrap_or_else(|| unreachable!("archive name missing at {offset}")),
+            )
+            .unwrap_or_else(|e| unreachable!("archive name encoding: {e}"))
+            .to_owned();
             offset = (offset + 110 + name_size + 3) & !3;
-            let data = image[offset..offset + size].to_vec();
+            let data = image
+                .get(offset..offset + size)
+                .unwrap_or_else(|| unreachable!("archive data missing at {offset}"))
+                .to_vec();
             offset = (offset + size + 3) & !3;
             if name == "TRAILER!!!" {
                 break;
@@ -915,10 +971,13 @@ mod tests {
             &std::env::var("KILN_UNIKERNEL_SMOKE_EXPECTED_EXIT").unwrap_or_else(|_| "0".into()),
         )
         .unwrap_or_else(|e| unreachable!("expected exit code: {e}"));
-        assert_eq!(observed.value["exit_code"], json!(expected_exit));
+        assert_eq!(observed.value.get("exit_code"), Some(&json!(expected_exit)));
         assert_eq!(observed.success, expected_exit == Some(0));
         assert!(observed.cleaned);
-        assert_eq!(vm["confinement"]["ok"], json!(true));
+        assert_eq!(
+            vm.pointer("/confinement/ok").and_then(Value::as_bool),
+            Some(true)
+        );
         assert_eq!(
             vm.pointer("/confinement/seccomp").and_then(Value::as_u64),
             Some(2)
@@ -932,6 +991,9 @@ mod tests {
                 .and_then(Value::as_str),
             Some(PREBOOT_POLICY)
         );
-        assert_eq!(vm["hostile_isolation_claim"], json!(false));
+        assert_eq!(
+            vm.get("hostile_isolation_claim").and_then(Value::as_bool),
+            Some(false)
+        );
     }
 }

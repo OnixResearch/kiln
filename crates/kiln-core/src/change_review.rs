@@ -4782,7 +4782,7 @@ mod tests {
             name: None,
         }];
         assert!(validate_policy(policy).is_ok());
-        policy.required_checks[0].kind = "unknown".into();
+        policy.required_checks.first_mut().required()?.kind = "unknown".into();
         assert_eq!(
             validate_policy(policy).err().required()?.code,
             "invalid_policy"
@@ -4811,17 +4811,25 @@ mod tests {
             kind: "property".into(),
             name: Some("property-suite".into()),
         }];
-        facts.ci[0].checks = vec![CiCheck {
+        facts.ci.first_mut().required()?.checks = vec![CiCheck {
             name: "property-suite".into(),
             kind: "property".into(),
             outcome: "pass".into(),
             artifact_digest: None,
         }];
         assert!(evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
-        facts.ci[0].checks[0].kind = "test".into();
+        facts
+            .ci
+            .first_mut()
+            .required()?
+            .checks
+            .first_mut()
+            .required()?
+            .kind = "test".into();
         assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
-        facts.ci[0].checks[0].kind = "property".into();
-        facts.ci[0].revision = "other-commit".into();
+        let ci = facts.ci.first_mut().required()?;
+        ci.checks.first_mut().required()?.kind = "property".into();
+        ci.revision = "other-commit".into();
         assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
         Ok(())
     }

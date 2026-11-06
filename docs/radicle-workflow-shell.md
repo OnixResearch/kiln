@@ -93,6 +93,8 @@ The default `defelo` protocol requires broker request kind `trigger` and version
 
 `fixtures/radicle-ci-broker/0.31.0/trigger.json` is the published producer fixture. Malformed envelopes, wrong versions, unknown events, and missing commits fail before runtime dispatch.
 
+An omitted or JSON `null` patch ID decodes as absent and is omitted when patch metadata is serialized. A string ID retains its exact value; other JSON types are rejected. Absence remains invalid for patch-trigger admission. Kiln maintainers own this compatibility boundary, exercised by `cargo test -p kiln-adapter-radicle --lib defelo::tests` and `checks.x86_64-linux.radicle-broker-wire-octet-deny-all`.
+
 ## Durable replay and recovery
 
 On the direct Lattice path, Kiln reserves the deterministic trigger identity in SQLite before dispatch.

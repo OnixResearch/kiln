@@ -1,0 +1,74 @@
+{
+  "schema": "kiln.local-implementation-receipt.v1",
+  "change": "clear-clippy-octet-gates",
+  "scope": "Local lint-gate maintenance with unchanged broker wire behavior and review outcome classifications; no publication, deployment, operator-only qualification, issue closure or release authorization.",
+  "maintenance_owner": "Kiln repository maintainers",
+  "durable_capability": "Strict all-target/all-feature Clippy and isolated Octet consumer gates, with maintained semantic boundary regressions rather than implementation-copy assertions.",
+  "core_compiler": "1.88.0",
+  "final_full_flake": {
+    "command": "nix flake check path:. --keep-going -L --builders '' --option build-hook ''",
+    "checked_source": "/nix/store/4ipaz0cm2xjhx2n8lgwd0f3z3cyvpi9y-source",
+    "exit_code": 0,
+    "result": "all checks passed",
+    "system": "x86_64-linux",
+    "omitted_systems": [
+      "aarch64-linux"
+    ],
+    "workspace_passed": 1452,
+    "workspace_failed": 0,
+    "workspace_ignored": 5,
+    "workspace_summaries": 151,
+    "note": "The checked source predates lifecycle/receipt finalization; source_bindings identify the exact tested Rust contents."
+  },
+  "source_bindings": {
+    "crates/kiln-adapter-lattice/src/tests.rs": "6e21477a4873458af93ead7788a33306de1f3a4b6f8c0d67f9c4732945f0d9ed",
+    "crates/kiln-adapter-radicle/src/defelo.rs": "cc4b5aef96bbe6ecb837cadfed94e3f3ded662f6f9fbf5c3d66df0445b200bcc",
+    "crates/kiln-adapter-radicle/src/defelo/tests.rs": "a8cc6478e6bbaa330148090f2f5f559b4536d5ea49f2bf6f8954222e3f9fa77a",
+    "crates/kiln-adapter-radicle/src/patch_read.rs": "b27c91f501b240ff67839132e1cd1fe8e330d0645eae7cb10579c09896dadb69",
+    "crates/kiln-core/src/change_review.rs": "26576f21780e35e2f30d5d5c6378c611a591eee16aa0ae00c5e4b91ca95ec267",
+    "crates/kiln-microvm/src/backend.rs": "49c9a671557cdaa65eb61bb2da048af4fed53cd0df53e336792166e06220de8a",
+    "crates/kiln-microvm/src/plan.rs": "d9a40e0b3cf5a726d0de1261800baf1fde70fed0d16f8b8f3c5da806f2a8d67c",
+    "crates/kiln-web-service/src/code_review.rs": "c8d1e4addea942816c8c196c65f4eb0354effae68ba9cb2821ac32a056f6b100",
+    "crates/kiln-web-service/src/code_review/outcome_tests.rs": "722c29de5d0e51054663da35bc20fa965e45dbbea7b05efb87ce7195df0ca0e2",
+    "crates/kiln-radicle-ci/src/patch_tests.rs": "7501a019073e5282a8923b66b9f92e814a8d148217a427a98851ec72495d12f0",
+    "crates/kiln-hosted/src/pipelines.rs": "2cfb4d56c524a88013f0a7267ea69c7d1e6f348b58c15cea2f72d9bc51d4c3ab",
+    "crates/kiln-hosted/src/unikernel.rs": "1f3ed407d6ea7d180e5f5e09e38a4e460ca115bb5ce463a59825278671379b26",
+    "crates/kiln-web-service/tests/code_review.rs": "c599dff73c78e3e86afc866269c9500170726ffeafb23e7789630d1091bb663d",
+    "crates/kiln-web-service/tests/engine/reports.rs": "85931c986614f1624afcf146cda98fe9f311c007c8311409a2c82b45b5cca782",
+    "crates/kiln-hosted/tests/microvm.rs": "640db8116c006cbf5dbc77b0f1a8366b9319a328acd2f0390898f002836e3763"
+  },
+  "verification": {
+    "broker_contract_before_attribute_removal": {
+      "command": "cargo test -p kiln-adapter-radicle --lib defelo::tests",
+      "passed": 5,
+      "contract": "Missing/null IDs decode as absent and omit the field on serialization; strings preserve exact values; non-string IDs reject; absent patch identities reject before service acceptance."
+    },
+    "standalone_broker_api_smoke_after": {
+      "command": "cargo run --quiet -p kiln-adapter-radicle --example gate_contract_smoke",
+      "result": "passed; disposable example removed",
+      "wire_outputs": ["{\"commits\":[\"revision\"]}", "{\"commits\":[\"revision\"]}", "{\"id\":\"patch-1\",\"commits\":[\"revision\"]}"],
+      "non_string_ids_rejected": ["number", "boolean", "object", "array"],
+      "patch_admission": {"omitted_id": false, "null_id": false, "string_id": true},
+      "repeatability": "The retained optional_patch_identity_preserves_wire_bytes and patch_event_preserves_exact_patch_identity_and_revision regressions exercise the same contract."
+    },
+    "initial_affected_libraries": {
+      "command": "cargo test -p kiln-adapter-radicle -p kiln-core -p kiln-microvm --lib",
+      "passed": 280
+    },
+    "lattice_conformance": {"command": "cargo test -p kiln-adapter-lattice --lib", "passed": 20},
+    "review_outcome_before": {"command": "cargo test -p kiln-web-service --lib code_review::outcome_tests", "passed": 1},
+    "review_and_adapter_after": {"command": "cargo test -p kiln-web-service -p kiln-adapter-radicle --lib", "passed": 229, "ignored": 1},
+    "revision_range_smoke": {"result": "passed", "exclusive_anchor_inclusive_resolution_ranges_matched": 43680, "revision_lengths": "0..=64", "method": "Standalone Rust iterator/slice equivalence program; disposable source and executable removed."},
+    "revision_authority": {"command": "cargo test -p kiln-radicle-ci --lib", "passed": 17},
+    "hosted_library": {"command": "cargo test -p kiln-hosted --lib", "passed": 93, "ignored": 1},
+    "web_integrations": {"command": "cargo test -p kiln-web-service --test code_review --test engine", "passed": 110},
+    "strict_workspace_clippy": {"command": "cargo clippy --workspace --all-targets --all-features -- -D warnings", "result": "passed"},
+    "targeted_formatting": {"tool": "rustfmt 1.88.0", "arguments": "--check --edition 2024", "explicit_rust_files": 15, "result": "passed"},
+    "octet": {"reproduction_command": "nix build path:.#checks.x86_64-linux.octet --no-link -L --builders '' --option build-hook ''", "observed_in": "Final successful x86_64-linux full flake check", "result": "passed; rebuilt consumers clean", "findings": 0, "warnings": 0, "errors": 0, "input_revision": "cf04e894e53eb0947230118a086ef6066ddba38c"}
+  },
+  "non_claims": [
+    "The ignored native KVM/user-systemd test is operator-only and was not rerun for this maintenance change.",
+    "Host qualification, hardware measurements, dangling-reference resolution and release readiness are outside this change.",
+    "No dependency pins, live Radicle state, production VM behavior, broker field presence or CI authority rules were changed."
+  ]
+}

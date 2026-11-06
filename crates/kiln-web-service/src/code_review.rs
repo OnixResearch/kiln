@@ -1270,7 +1270,7 @@ fn first_thread_author(thread: &domain::Thread) -> Option<&str> {
         .map(|comment| comment.author.as_str())
 }
 
-fn side_path<'a>(file: &'a DiffFile, side: domain::Side) -> Option<&'a str> {
+fn side_path(file: &DiffFile, side: domain::Side) -> Option<&str> {
     match side {
         domain::Side::Base => file.old_path.as_deref().or(file.new_path.as_deref()),
         domain::Side::Revision => file.new_path.as_deref().or(file.old_path.as_deref()),
@@ -1322,7 +1322,12 @@ fn thread_outcome<P: ChangeReviewPort>(
     }
     let mut compared = false;
     let mut comparisons = 0usize;
-    for revision in &change.revisions[anchor_index + 1..=resolved_index] {
+    for revision in change
+        .revisions
+        .iter()
+        .skip(anchor_index + 1)
+        .take(resolved_index - anchor_index)
+    {
         if revision.base != thread.anchor.base_commit {
             continue;
         }

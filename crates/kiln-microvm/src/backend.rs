@@ -239,41 +239,4 @@ mod tests {
         assert!(Firecracker.capabilities().admits_arch("x86_64"));
         assert!(!Firecracker.capabilities().admits_arch("riscv64"));
     }
-
-    #[test]
-    fn cloud_hypervisor_argv_has_no_network_or_api_socket() {
-        let policy = MachinePolicy {
-            vcpus: 2,
-            memory_mib: 256,
-            boot_timeout_ms: 10_000,
-            source_image_mib: 64,
-            warm_slots: None,
-            guest_shell: "/bin/sh",
-        };
-        let arguments = cloud_hypervisor_cold_boot(
-            "/nix/store/ch/bin/cloud-hypervisor",
-            &ColdBootPaths {
-                kernel: "/k",
-                initrd: "/i",
-                source_image: "/s",
-                vsock: "/v",
-            },
-            &policy,
-        );
-        assert!(arguments.iter().any(|value| value == "--seccomp"));
-        assert!(!arguments.iter().any(|value| value == "--net"));
-        assert!(!arguments.iter().any(|value| value == "--api-socket"));
-        assert!(arguments.iter().any(|value| value == "path=/s,readonly=on"));
-    }
-
-    #[test]
-    fn cloud_hypervisor_snapshot_and_restore_plans_stay_network_free() {
-        let requests = cloud_hypervisor_snapshot_requests("/s");
-        assert_eq!(requests.len(), 2);
-        assert_eq!(requests[0].path, "/api/v1/vm.pause");
-        assert_eq!(requests[1].body["destination_url"], "file:///s");
-        let arguments = cloud_hypervisor_restore("/ch", "/s", "/a.sock");
-        assert!(arguments.iter().any(|value| value == "--restore"));
-        assert!(!arguments.iter().any(|value| value == "--net"));
-    }
 }

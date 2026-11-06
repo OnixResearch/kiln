@@ -291,8 +291,16 @@ fn revisions_are_separately_journaled_reapproved_and_duplicate_events_never_redi
         .request
         .as_ref()
         .unwrap_or_else(|| unreachable!("fixture value is missing"));
-    assert_eq!(request["untrusted"]["source_commit"], f.first.oid);
-    assert_eq!(request["trust"], "hostile");
+    assert_eq!(
+        request
+            .pointer("/untrusted/source_commit")
+            .and_then(Value::as_str),
+        Some(f.first.oid.as_str())
+    );
+    assert_eq!(
+        request.get("trust").and_then(Value::as_str),
+        Some("hostile")
+    );
     f.projection(true);
     let second = f
         .profile
@@ -345,8 +353,10 @@ fn revisions_are_separately_journaled_reapproved_and_duplicate_events_never_redi
     assert_eq!(
         running_second
             .request
-            .unwrap_or_else(|| unreachable!("fixture request missing"))["untrusted"]["source_commit"],
-        f.second.oid
+            .as_ref()
+            .and_then(|request| request.pointer("/untrusted/source_commit"))
+            .and_then(Value::as_str),
+        Some(f.second.oid.as_str())
     );
     println!(
         "two exact revision journals; untrusted approval/reapproval; exact source snapshots; duplicate updates only recover original attempt"
@@ -361,7 +371,9 @@ fn missing_signed_author_reachability_and_substituted_revision_results_fail_clos
             .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}")),
     )
     .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
-    value["revisions"][0]["signed_source"] = Value::Null;
+    *value
+        .pointer_mut("/revisions/0/signed_source")
+        .unwrap_or_else(|| unreachable!("signed-source fixture field missing")) = Value::Null;
     fs::write(
         f.root.path().join("projection.json"),
         serde_json::to_vec(&value)
@@ -429,7 +441,10 @@ fn native_fixture_authority_cannot_be_forged_in_profile_json() {
     let f = fixture();
     let mut value = serde_json::to_value(&f.profile)
         .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
-    value["native_fixtures"] = Value::Bool(true);
+    value
+        .as_object_mut()
+        .unwrap_or_else(|| unreachable!("profile fixture must be an object"))
+        .insert("native_fixtures".into(), Value::Bool(true));
     assert!(serde_json::from_value::<PatchProfile>(value).is_err());
 }
 

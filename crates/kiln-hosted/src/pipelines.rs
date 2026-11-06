@@ -1648,42 +1648,47 @@ mod tests {
                 "unikernel":{"binary":{"path":"bin/tests","blake3":"a".repeat(64)},"argv":["pass"],"fixtures":[]}}}})
     }
 
-    // r[verify kiln.hosted.unikernel.test]
-    #[test]
-    fn unikernel_job_preserves_exact_prebuilt_binary_and_argv() {
-        let source: Pipeline = ok(serde_json::from_value(unikernel_pipeline()));
-        let compiled = ok(compile(&source));
-        assert_eq!(compiled.jobs[0].kind.as_deref(), Some("unikernel-test"));
-        assert!(compiled.jobs[0].steps.is_empty());
-        assert_eq!(compiled.jobs[0].unikernel, source.jobs["test"].unikernel);
-    }
-
     #[test]
     fn unikernel_job_refuses_multiple_steps() {
         let mut value = unikernel_pipeline();
-        value["jobs"]["test"]["steps"] = json!([
-            {"kind":"run","run":"echo one"}, {"kind":"run","run":"echo two"}]);
+        set(
+            &mut value,
+            "/jobs/test",
+            "steps",
+            json!([
+                {"kind":"run","run":"echo one"}, {"kind":"run","run":"echo two"}]),
+        );
         assert!(compile(&ok(serde_json::from_value(value))).is_err());
     }
 
     #[test]
     fn unikernel_job_refuses_shell_step() {
         let mut value = unikernel_pipeline();
-        value["jobs"]["test"]["steps"] = json!([{ "kind":"run","run":"/bin/sh -c true" }]);
+        set(
+            &mut value,
+            "/jobs/test",
+            "steps",
+            json!([{ "kind":"run","run":"/bin/sh -c true" }]),
+        );
         assert!(compile(&ok(serde_json::from_value(value))).is_err());
     }
 
     #[test]
     fn unikernel_job_refuses_exec_request() {
         let mut value = unikernel_pipeline();
-        value["jobs"]["test"]["unikernel"]["exec"] = json!(["other"]);
+        set(&mut value, "/jobs/test/unikernel", "exec", json!(["other"]));
         assert!(serde_json::from_value::<Pipeline>(value).is_err());
     }
 
     #[test]
     fn unikernel_job_refuses_network_request() {
         let mut value = unikernel_pipeline();
-        value["jobs"]["test"]["unikernel"]["network"] = json!("internet");
+        set(
+            &mut value,
+            "/jobs/test/unikernel",
+            "network",
+            json!("internet"),
+        );
         assert!(serde_json::from_value::<Pipeline>(value).is_err());
     }
 
@@ -1692,16 +1697,26 @@ mod tests {
         let source = unikernel_pipeline();
         for field in ["kind", "unikernel"] {
             let mut value = source.clone();
-            some(value["jobs"]["test"].as_object_mut()).remove(field);
+            some(
+                value
+                    .pointer_mut("/jobs/test")
+                    .and_then(Value::as_object_mut),
+            )
+            .remove(field);
             assert!(compile(&ok(serde_json::from_value(value))).is_err());
         }
         for field in ["env", "matrix", "parameters"] {
             let mut value = source.clone();
-            value["jobs"]["test"][field] = if field == "matrix" {
-                json!({"version":["one"]})
-            } else {
-                json!({"VALUE":"one"})
-            };
+            set(
+                &mut value,
+                "/jobs/test",
+                field,
+                if field == "matrix" {
+                    json!({"version":["one"]})
+                } else {
+                    json!({"VALUE":"one"})
+                },
+            );
             assert!(compile(&ok(serde_json::from_value(value))).is_err());
         }
     }

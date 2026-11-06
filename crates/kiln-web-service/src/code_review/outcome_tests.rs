@@ -133,7 +133,7 @@ fn change(resolved_revision: Option<&str>, resolved: bool) -> Change {
 }
 
 #[test]
-fn outcomes_use_resolved_revision_and_anchor_overlap() {
+fn outcomes_use_resolved_revision_and_anchor_overlap() -> Result<(), Box<dyn std::error::Error>> {
     let addressed = change(Some("revision-two"), true);
     let dismissed = change(Some("revision-two"), true);
     let open = change(None, false);
@@ -144,7 +144,10 @@ fn outcomes_use_resolved_revision_and_anchor_overlap() {
                 comparison: comparison(2, 1)
             },
             &addressed,
-            &addressed.threads[0]
+            addressed
+                .threads
+                .first()
+                .ok_or("missing addressed thread")?
         ),
         "addressed"
     );
@@ -154,7 +157,10 @@ fn outcomes_use_resolved_revision_and_anchor_overlap() {
                 comparison: comparison(10, 1)
             },
             &dismissed,
-            &dismissed.threads[0]
+            dismissed
+                .threads
+                .first()
+                .ok_or("missing dismissed thread")?
         ),
         "dismissed"
     );
@@ -164,7 +170,7 @@ fn outcomes_use_resolved_revision_and_anchor_overlap() {
                 comparison: comparison(2, 1)
             },
             &open,
-            &open.threads[0]
+            open.threads.first().ok_or("missing open thread")?
         ),
         "open"
     );
@@ -174,8 +180,9 @@ fn outcomes_use_resolved_revision_and_anchor_overlap() {
                 comparison: comparison(2, 1)
             },
             &unknown,
-            &unknown.threads[0]
+            unknown.threads.first().ok_or("missing unknown thread")?
         ),
         "unknown"
     );
+    Ok(())
 }

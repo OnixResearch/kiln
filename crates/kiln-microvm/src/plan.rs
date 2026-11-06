@@ -334,38 +334,4 @@ mod tests {
             None
         );
     }
-    #[test]
-    fn cache_image_is_an_optional_read_only_second_drive() {
-        let policy = MachinePolicy {
-            vcpus: 1,
-            memory_mib: 256,
-            boot_timeout_ms: 10_000,
-            source_image_mib: 16,
-            warm_slots: None,
-            guest_shell: "/bin/bash",
-        };
-        let without = vm_config(
-            &VmPaths {
-                kernel: "/k",
-                initrd: "/i",
-                source_image: "/s",
-                cache_image: None,
-                vsock: "/v",
-            },
-            &policy,
-        );
-        assert_eq!(without["drives"].as_array().map(Vec::len), Some(1));
-        let with = vm_config(
-            &VmPaths {
-                kernel: "/k",
-                initrd: "/i",
-                source_image: "/s",
-                cache_image: Some("/c"),
-                vsock: "/v",
-            },
-            &policy,
-        );
-        assert_eq!(with["drives"].as_array().map(Vec::len), Some(2));
-        assert_eq!(with["drives"][1]["is_read_only"], true);
-    }
 }

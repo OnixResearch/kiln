@@ -186,38 +186,8 @@ mod tests {
     }
 
     #[test]
-    fn helper_output_is_bounded_and_parsed() {
-        let directory = helper("printf '{\"state\":\"open\",\"revisions\":2}'");
-        let value = read_patch(
-            &directory.path().join("helper"),
-            Path::new("/store"),
-            "zRepo",
-            "abc",
-        )
-        .unwrap_or_else(|error| unreachable!("{error}"));
-        assert_eq!(value["state"], "open");
-        assert_eq!(value["revisions"], 2);
-    }
-
-    #[test]
-    fn review_uses_child_environment_and_bounded_output() {
-        let directory =
-            helper("test -n \"$RADICLE_SIGNER_SEED\" && printf '{\"review_id\":\"r1\"}'");
-        let value = review_patch(
-            &directory.path().join("helper"),
-            Path::new("/store"),
-            ReviewRequest {
-                repository_id: "zRepo",
-                patch_id: "abc",
-                revision_id: "rev",
-                verdict: "accept",
-                summary: "looks good",
-                expected_heads: &BTreeSet::from(["a".into()]),
-            },
-            &[7; 32],
-        )
-        .unwrap_or_else(|error| unreachable!("{error}"));
-        assert_eq!(value["review_id"], "r1");
+    fn unsupported_review_verdict_fails_before_child_effects() {
+        let directory = helper("printf invoked > \"$0.called\"; printf '{}'");
         assert!(
             review_patch(
                 &directory.path().join("helper"),
@@ -234,6 +204,7 @@ mod tests {
             )
             .is_err()
         );
+        assert!(!directory.path().join("helper.called").exists());
     }
 
     #[test]

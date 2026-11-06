@@ -34,7 +34,7 @@ pub struct DefeloRepository {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DefeloPatch {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     pub commits: Vec<String>,
 }

@@ -104,13 +104,55 @@ fn patch_event_preserves_exact_patch_identity_and_revision() {
         Some("patch-1")
     );
     assert!(mapped.branch.is_none());
-    let missing_id = patch.replace("\"id\":\"patch-1\",", "");
-    assert!(
-        map_defelo_request(
-            &parse_defelo_request(&missing_id).unwrap_or_else(|_| unreachable!("patch fixture"))
-        )
-        .is_err()
-    );
+    for absent_id in [
+        patch.replace("\"id\":\"patch-1\",", ""),
+        patch.replace("\"id\":\"patch-1\"", "\"id\":null"),
+    ] {
+        let request =
+            parse_defelo_request(&absent_id).unwrap_or_else(|_| unreachable!("patch fixture"));
+        assert!(map_defelo_request(&request).is_err());
+        let mut service = FixtureService {
+            terminal: TriggerTerminal::Success,
+            accept_calls: 0,
+        };
+        assert!(run_defelo_protocol(&absent_id, &mut service).is_err());
+        assert_eq!(service.accept_calls, 0);
+    }
+}
+
+// r[verify kiln.radicle.broker_031_wire.patch_identity]
+#[test]
+fn optional_patch_identity_preserves_wire_bytes() -> Result<(), serde_json::Error> {
+    for (input, identity, encoded) in [
+        (
+            r#"{"commits":["revision"]}"#,
+            None,
+            r#"{"commits":["revision"]}"#,
+        ),
+        (
+            r#"{"id":null,"commits":["revision"]}"#,
+            None,
+            r#"{"commits":["revision"]}"#,
+        ),
+        (
+            r#"{"id":"patch-\"1","commits":["revision"]}"#,
+            Some("patch-\"1"),
+            r#"{"id":"patch-\"1","commits":["revision"]}"#,
+        ),
+    ] {
+        let patch: DefeloPatch = serde_json::from_str(input)?;
+        assert_eq!(patch.id.as_deref(), identity);
+        assert_eq!(serde_json::to_string(&patch)?, encoded);
+    }
+    for input in [
+        r#"{"id":1,"commits":["revision"]}"#,
+        r#"{"id":true,"commits":["revision"]}"#,
+        r#"{"id":{},"commits":["revision"]}"#,
+        r#"{"id":[],"commits":["revision"]}"#,
+    ] {
+        assert!(serde_json::from_str::<DefeloPatch>(input).is_err());
+    }
+    Ok(())
 }
 
 // r[verify kiln.radicle.broker_031_wire.rejected]

@@ -143,7 +143,7 @@ r[kiln.radicle.shell_nonclaims.scenario.local]
 
 ### Requirement: Broker 0.31 request projection
 
-r[kiln.radicle.broker_031_wire] Kiln MUST admit the exact Radicle CI broker `0.31` request kind and version while projecting only bounded authoritative trigger fields into Kiln.
+r[kiln.radicle.broker_031_wire] Kiln MUST admit the exact Radicle CI broker `0.31` request kind and version while projecting only bounded authoritative trigger fields into Kiln. An omitted or null optional patch ID MUST decode as absent and serialize without the ID field. A present string ID MUST retain its exact serialized value; an ID of another JSON type MUST be rejected. An absent optional ID MUST NOT become an admitted patch-trigger identity.
 
 #### Scenario: Published push envelope is admitted
 
@@ -161,3 +161,12 @@ r[kiln.radicle.broker_031_wire.rejected]
 - WHEN Defelo admission runs
 - THEN the request MUST fail before Aspen or Lattice effects
 - AND no fallback runtime or provider MUST be selected
+
+#### Scenario: Optional patch identity retains its wire contract
+
+r[kiln.radicle.broker_031_wire.patch_identity]
+- GIVEN patch metadata with an omitted, null, string, or non-string ID
+- WHEN the broker boundary decodes and serializes it
+- THEN omitted and null IDs MUST remain absent with no serialized ID field
+- AND a string ID MUST retain its exact bytes while non-string IDs MUST fail decoding
+- AND absent IDs MUST fail patch-trigger admission before service effects
