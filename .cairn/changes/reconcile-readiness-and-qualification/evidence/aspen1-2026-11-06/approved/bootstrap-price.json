@@ -1,0 +1,15 @@
+{
+  "error": null,
+  "request_id": "price",
+  "result": {
+    "price": {
+      "class": "linux",
+      "currency": "usd",
+      "max_units": 120,
+      "unit_minor": 1,
+      "unit_ms": 1000
+    },
+    "price_id": "05515a5de3fb9c169a7eb21aed4f3304d38c822c6e34478b2f1512a34c96b362"
+  },
+  "schema": "kiln.hosted.v1"
+}

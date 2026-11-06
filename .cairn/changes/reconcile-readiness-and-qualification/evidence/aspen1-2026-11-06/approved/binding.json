@@ -1,0 +1,35 @@
+{
+  "cat_group": "kilnqual20261106-sender",
+  "guest_directory": "/nix/store/6rjx8bv22brsdha5vsp2mqv2qn75v7kz-kiln-microvm-guest",
+  "guest_manifest": {
+    "firecracker": {
+      "blake3": "4e4b972c0a8b73d7b598b178d5b40cb7b3989a0f692e82b8339ef58bad6e988c",
+      "path": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker"
+    },
+    "guest_shell": "/bin/bash",
+    "initrd": {
+      "blake3": "8fff0808498b21d9614df20348b594ad6469e779c458f79faf4441fbc75003d9",
+      "path": "/nix/store/i82f9vh4m9x9blr9gvpfl9fa1zn19jli-kiln-microvm-guest-initrd/initrd"
+    },
+    "kernel": {
+      "blake3": "82b233c0997f2fa73413cc5a536b5380734e2225dc3adcf3fcb9bf1aa52d6ede",
+      "path": "/nix/store/banrncybk21whqw5m9l6302r8j00m009-kiln-microvm-vmlinux"
+    },
+    "kernel_version": "6.18.60",
+    "schema": "kiln.microvm.guest-image.v2",
+    "vmm": {
+      "binary": {
+        "blake3": "4e4b972c0a8b73d7b598b178d5b40cb7b3989a0f692e82b8339ef58bad6e988c",
+        "path": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker"
+      },
+      "kind": "firecracker",
+      "version": "1.16.1"
+    }
+  },
+  "operator_label": "brittonr",
+  "output": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/approved-output",
+  "source": "/nix/store/7xjch1qa7hrjmf5fnjlf641w1pfs6sml-kiln-aspen1-source-cohort",
+  "source_commit": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+  "state": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/approved-state",
+  "uid": 962
+}

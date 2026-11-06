@@ -1,0 +1,7 @@
+{
+  "action": "system.info",
+  "input": {},
+  "organization": "aspen-qualification",
+  "request_id": "identity",
+  "schema": "kiln.hosted.v1"
+}

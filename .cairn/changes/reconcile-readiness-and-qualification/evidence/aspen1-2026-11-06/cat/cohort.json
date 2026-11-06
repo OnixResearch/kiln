@@ -1,0 +1,59 @@
+{
+  "schema": "kiln.operator.cat-cohort.v1",
+  "uid": 962,
+  "runtime": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/cat",
+  "topology": {
+    "sender": {
+      "physical_package_id": "0",
+      "core_id": "0",
+      "thread_siblings_list": "0",
+      "llc_shared_cpus": "0-7"
+    },
+    "receiver": {
+      "physical_package_id": "0",
+      "core_id": "1",
+      "thread_siblings_list": "1",
+      "llc_shared_cpus": "0-7"
+    }
+  },
+  "groups": {
+    "sender": "/sys/fs/resctrl/kilnqual20261106-sender",
+    "receiver": "/sys/fs/resctrl/kilnqual20261106-receiver"
+  },
+  "cpus": {
+    "sender": 0,
+    "receiver": 1
+  },
+  "python": "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14",
+  "script": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/microvm-channels.py",
+  "firecracker": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker",
+  "kernel": "/nix/store/banrncybk21whqw5m9l6302r8j00m009-kiln-microvm-vmlinux",
+  "initrd": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/probe-initrd.gz",
+  "taskset": "/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin/taskset",
+  "operator_tool": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/operator_cat.py",
+  "input_blake3": {
+    "python": "42bd94105d205eb80f3599889947003f3ba415bbf09860b4ecd6ee72f2a34bbc",
+    "script": "d2598daa6d4acd8aef78bf091f9585ba75a3f5cea4a2064b890f76ba4c10d390",
+    "firecracker": "4e4b972c0a8b73d7b598b178d5b40cb7b3989a0f692e82b8339ef58bad6e988c",
+    "kernel": "82b233c0997f2fa73413cc5a536b5380734e2225dc3adcf3fcb9bf1aa52d6ede",
+    "initrd": "55c869ed517a4462205e33c00383b1cf2b9fb6d194d3456160bd9634998150a7",
+    "taskset": "5b265532be147fee2795fca681d5e1021008749713c46c2731b796bdd2859ff8",
+    "operator_tool": "bacbfbb74a4f040d154544257413f3ef0fc29bf758ce871d1771b94ff94c6815"
+  },
+  "group_snapshot": {
+    "sender": {
+      "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+      "mode": "exclusive",
+      "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+      "cpus_list": ""
+    },
+    "receiver": {
+      "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+      "mode": "exclusive",
+      "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+      "cpus_list": ""
+    }
+  },
+  "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+  "placements_blake3": "4b5e9694fc6d5ea40b305ad386517be53795972f9429b5c1204b9741926669bb"
+}

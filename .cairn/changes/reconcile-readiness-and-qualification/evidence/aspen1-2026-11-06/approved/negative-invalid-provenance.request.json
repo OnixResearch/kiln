@@ -1,0 +1,20 @@
+{
+  "action": "execution.run",
+  "input": {
+    "attempt_id": "invalid-provenance-1",
+    "class": "linux",
+    "pipeline_id": "f3e2df50cf7968a345b298db6314f1a5e8fd1ee766dabe2139d689d1eaebf70f",
+    "price_id": "05515a5de3fb9c169a7eb21aed4f3304d38c822c6e34478b2f1512a34c96b362",
+    "project": "approved-untrusted",
+    "trust": "trusted",
+    "untrusted": {
+      "approver_id": "iroh:599011e4b37d42de68c6b5355720a001622de0bf8fe5922fe9da54676267ccd8",
+      "reason": "fork",
+      "source_commit": "HEAD"
+    },
+    "workspace": "exact"
+  },
+  "organization": "aspen-qualification",
+  "request_id": "negative-invalid-provenance",
+  "schema": "kiln.hosted.v1"
+}

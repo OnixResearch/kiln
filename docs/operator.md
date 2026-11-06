@@ -3799,16 +3799,47 @@ returned path as `KILN_NIX_JOB_SOURCE`. Supplying these real fixture inputs is
 distinct from weakening a failed test or adding a fallback implementation.
 
 Local lifecycle readiness remains distinct from physical qualification. The
-[host prerequisite receipt](../.cairn/changes/reconcile-readiness-and-qualification/evidence/qualification-prerequisites.json)
-records the booted kernels and real SSH attempts. `aspen3-1` runs 6.18.59 and
-meets the supplied issue table, but SMT is active and no reviewed exception or
-operator allocation is recorded. Other observed hosts fail their supplied
-kernel thresholds. None has an established mounted/delegated exclusive CAT
-group. Hardware-class configuration is not endpoint-to-chassis attestation.
-The host operator must supply target allocation, safety/delegation and physical
-placement evidence before the still-active qualification tasks can complete.
-No host setting, cache policy or service was changed, and
-`hostile_isolation_claim` remains false.
+[earlier host prerequisite receipt](../.cairn/changes/reconcile-readiness-and-qualification/evidence/qualification-prerequisites.json)
+is historical. The operator subsequently authorized maintenance on **aspen1
+only**, explicitly excluding aspen3. Aspen1 booted its already-installed Linux
+7.3 image (live release `7.3.0`), with no new product deployment. During the
+bounded experiment, application/build intake was drained, a fresh unprivileged
+account ran the VMMs, SMT and KSM were off, and two exclusive L3 CAT allocations
+were programmed in both observed LLC domains: root `3f`, sender `7c0`, receiver
+`f800`. The [exact receipts and samples](../.cairn/changes/reconcile-readiness-and-qualification/evidence/aspen1-2026-11-06/)
+retain the inputs and non-claims.
+
+Actual authenticated hosted `execution.run` succeeded on exact source
+`cf6e793b0cf74714d37e6284671fb0701b863b8e`; the invalid `HEAD` provenance request
+was refused without reserving its negative attempt. This was operator-authorized
+**caller-supplied untrusted provenance**, not a production Web exact-commit
+approval or a verified Web-to-hosted approval handoff. That combined flow remains
+unqualified. The Linux sysfs resource names were space-padded; hosted CAT
+admission now accepts that native alignment without relaxing the L3 requirement.
+
+The unchanged maintained channel worker ran cache, CPU and memory probes on
+observed cores 0 and 1 in the same LLC, using Firecracker 1.16.1 and guest kernel
+6.18.60. A separate operator wrapper assigned inherited CAT groups and sampled
+live VMM/vCPU membership and affinity; its sidecar returned `verified:true`.
+At an offered 10 symbols/s, held-out errors were **3/64 cache, 34/64 CPU, and
+0/64 memory**. These are bounded cooperative measurements, not reliable channel
+capacity, continuous membership proof, hardware isolation, or channel-absence
+evidence. CAT did not eliminate observed cooperative signalling.
+
+Services and original SMT state were restored; account/group, owned processes,
+CAT groups/mount and recovery timers were removed. Matrix, Vaultwarden, Buildbot,
+RustFS, both inference HTTP health endpoints and PostgreSQL readiness were
+exercised successfully. The original Nix cache socket needed a restart once its
+tailnet address was available; `/nix-cache-info` then returned 200. A scheduled
+`radicle-ci-sync.service` timeout remains reported, not manually retried: this
+maintenance does not authorize a new Radicle synchronization. The preexisting
+PostgreSQL collation warning was not repaired. The patched kernel remains loaded.
+
+Distinct-physical-host measurements remain blocked: no second physical host was
+allocated or independently attested. No aspen3 operation was performed.
+`hostile_isolation_claim` remains false. Kiln maintainers own the retained
+operator recipes, exact BLAKE3 cohorts and the native-row regression test; these
+add repeatable qualification evidence, not an automatic host provisioner.
 
 r[impl kiln.microvm.confinement.nonclaims]
 
@@ -3858,15 +3889,15 @@ integration maintainers own repeating that source-export/native-fixture recipe;
 framework replay does not establish arbitrary workload determinism or physical
 qualification.
 
-All `x86_64-linux` Nix flake checks passed with remote builders disabled;
+Before this maintenance, all `x86_64-linux` Nix flake checks passed with remote builders disabled;
 `aarch64-linux` was not checked. Evaluation used expired cached refs after some
 read-only Radicle HEAD queries failed, so this is not upstream freshness or
 availability evidence. Post-archive Cairn coverage is 1,487/1,487 with no missing
 or dangling references. The policy-local readiness receipt is valid, while
 `onix_release_ready` remains false. The
 [remaining-blocker ledger](../.cairn/changes/reconcile-readiness-and-qualification/evidence/remaining-blockers.json)
-names the direct workspace formatter prerequisite and the operator-owned host,
-SMT, exclusive CAT and independent physical-placement prerequisites. Completed
+names the direct workspace formatter prerequisite, the unexercised combined Web
+approval handoff and independent physical-placement prerequisites. Completed
 feature packages are archived; the qualification operation and unfinished
 attested-agent metadata work remain active. No new push or deployment occurred.
 

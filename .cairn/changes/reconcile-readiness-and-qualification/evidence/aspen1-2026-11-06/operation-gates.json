@@ -1,0 +1,318 @@
+[
+  {
+    "stage": "proposal",
+    "exit": 0,
+    "receipt": {
+      "acceptance_ids": [
+        "approved-untrusted",
+        "inventory",
+        "physical-channels",
+        "readiness",
+        "reconciliation"
+      ],
+      "change": "reconcile-readiness-and-qualification",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "2de38ae33b81d01f7f59e68c578637e09cbfdf59f0d2a494c3e41b3c844ef7a8",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+        "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+        "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "695ab8ed5532d15c29d02ba80f0811c4e3856ec1433c8e108df35ad3affce592",
+      "receipt_hash": "5318199daeaec19a26a4bca7d2183e76d7c6d1837bdf13e3c1bea0879b712160",
+      "review_receipt_hashes": [
+        "5f945f90ef6d67b5332a07d0b9234186adffe42d4082aeea2eea160fcac13ec0"
+      ],
+      "spec_effect": "none",
+      "stage": "proposal",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 6,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "no-spec-delta",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    "stderr": ""
+  },
+  {
+    "stage": "design",
+    "exit": 0,
+    "receipt": {
+      "acceptance_ids": [
+        "approved-untrusted",
+        "inventory",
+        "physical-channels",
+        "readiness",
+        "reconciliation"
+      ],
+      "change": "reconcile-readiness-and-qualification",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "3cf870e7fc26f37cfacadd310c3f390ecac34aa800bf0b75f03afe4bf9cc3a02",
+      "issues": [],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+        "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+        "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": null,
+      "profile_identity_hash": "695ab8ed5532d15c29d02ba80f0811c4e3856ec1433c8e108df35ad3affce592",
+      "receipt_hash": "c7959a6adfd15a0e77e61bad138ecab1dd0489bdac6e38257bccd10e46e792f1",
+      "review_receipt_hashes": [
+        "5f945f90ef6d67b5332a07d0b9234186adffe42d4082aeea2eea160fcac13ec0"
+      ],
+      "spec_effect": "none",
+      "stage": "design",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/acceptance.md#profile-adapter",
+          "requirement_blocks": 1,
+          "scenario_blocks": 5,
+          "substantive_lines": 20,
+          "substantive_requirement_blocks": 1,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 17,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 6,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ],
+      "task_ordering": null,
+      "valid": true,
+      "verdict": "PASS",
+      "workflow_profile": "no-spec-delta",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    "stderr": ""
+  },
+  {
+    "stage": "tasks",
+    "exit": 0,
+    "receipt": {
+      "acceptance_ids": [
+        "approved-untrusted",
+        "inventory",
+        "physical-channels",
+        "readiness",
+        "reconciliation"
+      ],
+      "change": "reconcile-readiness-and-qualification",
+      "evidence_summary": {
+        "docs_only": 0,
+        "fixture": 0,
+        "formal": 0,
+        "mode": "advisory",
+        "model": 0,
+        "probe": 0,
+        "property": 0
+      },
+      "input_hash": "98f2e2992735486d578f47cea46e2efd9efb88a3c840be7af8eabe355db3ae71",
+      "issues": [
+        {
+          "code": "cairn.workflow.profile.artifact",
+          "message": "workflow profile artifact is not structurally complete: no-spec-review (blocked)",
+          "promoted": "no",
+          "scope": "tasks"
+        },
+        {
+          "code": "cairn.workflow.profile.review",
+          "message": "workflow review is invalid or not approved: no-spec-classification-review",
+          "promoted": "no",
+          "scope": "tasks"
+        }
+      ],
+      "layout": "cairn",
+      "non_claims": [
+        "workflow state proves only the selected policy graph and observed structural artifact facts",
+        "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+        "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+        "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+        "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+        "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+      ],
+      "policy": "kiln-default",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "policy_selection": {
+        "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+        "installation_receipt": false,
+        "locator": "cairn-policy/generated/cairn-policy.json",
+        "source": "explicit"
+      },
+      "probe_evidence": {
+        "declarations_present": false,
+        "probes": []
+      },
+      "profile_identity_hash": "695ab8ed5532d15c29d02ba80f0811c4e3856ec1433c8e108df35ad3affce592",
+      "receipt_hash": "1734315a7a69fc38e88ba01df19b6bef9d69838d6f05eb0444438e5b9c8f10ea",
+      "review_receipt_hashes": [
+        "5f945f90ef6d67b5332a07d0b9234186adffe42d4082aeea2eea160fcac13ec0"
+      ],
+      "spec_effect": "none",
+      "stage": "tasks",
+      "substance": [
+        {
+          "checkbox_tasks": 0,
+          "kind": "delta_spec",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/acceptance.md#profile-adapter",
+          "requirement_blocks": 1,
+          "scenario_blocks": 5,
+          "substantive_lines": 20,
+          "substantive_requirement_blocks": 1,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "design",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/design.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 17,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 0,
+          "kind": "proposal",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/proposal.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 6,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 0,
+          "task_done": 0,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 5,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 9,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 5,
+          "task_done": 4,
+          "task_in_progress": 0,
+          "task_todo": 1
+        }
+      ],
+      "task_ordering": {
+        "active": false,
+        "edges": [],
+        "issues": [],
+        "nodes": [],
+        "order": [],
+        "ready_tasks": [],
+        "valid": true
+      },
+      "valid": false,
+      "verdict": "FAIL",
+      "workflow_profile": "no-spec-delta",
+      "workflow_profile_compatibility_fallback": false,
+      "workflow_profile_source": "change_create",
+      "workflow_profile_version": 1
+    },
+    "stderr": ""
+  }
+]

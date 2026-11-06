@@ -1,0 +1,9 @@
+{
+  "error": null,
+  "request_id": "negative-effects",
+  "result": {
+    "attempts": [],
+    "next_after": null
+  },
+  "schema": "kiln.hosted.v1"
+}

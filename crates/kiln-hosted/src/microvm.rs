@@ -173,6 +173,13 @@ fn security_files(directory: &str) -> std::collections::BTreeMap<String, String>
     facts
 }
 
+fn has_l3_cache_assignment(schemata: &str) -> bool {
+    schemata
+        .lines()
+        .map(str::trim_start)
+        .any(|line| line.starts_with("L3:") || line.starts_with("L3CODE:"))
+}
+
 /// Assign every VMM/vCPU thread to an operator-created CAT group before
 /// guest job dispatch. Future threads inherit their parent's group.
 fn assign_cache_partition(pid: u32, partition: &str) -> Result<Value, String> {
@@ -182,10 +189,7 @@ fn assign_cache_partition(pid: u32, partition: &str) -> Result<Value, String> {
     let group = Path::new("/sys/fs/resctrl").join(partition);
     let schemata = read_bounded(&group.join("schemata"), MAX_HOST_FACT_BYTES)?;
     let schemata = std::str::from_utf8(&schemata).map_err(|_| "CAT schemata is not UTF-8")?;
-    if !schemata
-        .lines()
-        .any(|line| line.starts_with("L3:") || line.starts_with("L3CODE:"))
-    {
+    if !has_l3_cache_assignment(schemata) {
         return Err("cache partition has no L3 CAT assignment".into());
     }
     let mut threads = Vec::new();
@@ -2201,6 +2205,19 @@ pub(crate) fn observations_for_reports(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn l3_cache_assignment_accepts_padded_kernel_rows_only_for_l3_resources() {
+        for schemata in [
+            "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=ffff;1=ffff\n",
+            "    L3CODE:0=ff\n  L3DATA:0=ff\n",
+        ] {
+            assert!(has_l3_cache_assignment(schemata));
+        }
+        for schemata in ["", "    MB:0=4096\n", "L3DATA:0=ff\n", "otherL3:0=ff\n"] {
+            assert!(!has_l3_cache_assignment(schemata));
+        }
+    }
 
     // r[verify kiln.hosted.microvm.cache_integrity]
     #[test]

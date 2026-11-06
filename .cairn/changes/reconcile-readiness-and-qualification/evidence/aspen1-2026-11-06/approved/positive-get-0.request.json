@@ -1,0 +1,10 @@
+{
+  "action": "execution.get",
+  "input": {
+    "attempt_id": "approved-untrusted-exact-1",
+    "project": "approved-untrusted"
+  },
+  "organization": "aspen-qualification",
+  "request_id": "positive-get-0",
+  "schema": "kiln.hosted.v1"
+}

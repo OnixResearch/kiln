@@ -1,0 +1,126 @@
+{
+  "schema": "kiln.aspen1.restoration.v1",
+  "kernel_retained": "7.3.0",
+  "restoration": {
+    "phase": "restored",
+    "errors": [],
+    "smt_control": "on",
+    "booted_kernel": "7.3.0"
+  },
+  "verification": {
+    "account_absent": true,
+    "group_absent": true,
+    "ksm": "0",
+    "missing_baseline_services": [],
+    "owned_uid_processes": [],
+    "phase": "restored",
+    "resctrl_mounted": false,
+    "restored_baseline_services": {
+      "NetworkManager.service": "active",
+      "accounts-daemon.service": "active",
+      "alloy.service": "active",
+      "avahi-daemon.service": "active",
+      "buildbot-master.service": "active",
+      "buildbot-worker.service": "active",
+      "cloudflared-tunnel-aspen1-services.service": "active",
+      "dbus-broker.service": "active",
+      "dhcpcd.service": "active",
+      "display-manager.service": "active",
+      "docker-diffusion-gemma-structured.service": "active",
+      "docker-diffusion-gemma.service": "active",
+      "docker.service": "active",
+      "envoy.service": "active",
+      "grafana.service": "active",
+      "herdr-iroh.service": "active",
+      "homepage-dashboard.service": "active",
+      "irqbalance.service": "active",
+      "kache-rustfs.service": "active",
+      "laya-laya-aspen1.service": "active",
+      "loki.service": "active",
+      "matrix-synapse.service": "active",
+      "mesh-llm-mesh-llm-private-inference.service": "active",
+      "music-assistant.service": "active",
+      "nginx.service": "active",
+      "nix-daemon.service": "active",
+      "nix-grpc-daemon.service": "active",
+      "nscd.service": "active",
+      "polkit.service": "active",
+      "postgresql.service": "active",
+      "prometheus-blackbox-exporter.service": "active",
+      "prometheus-node-exporter.service": "active",
+      "prometheus-systemd-exporter.service": "active",
+      "prometheus.service": "active",
+      "radicle-ci-node.service": "active",
+      "radicle-httpd.service": "active",
+      "radicle-node.service": "active",
+      "redis-searx.service": "active",
+      "renews-iroh.service": "active",
+      "rustfs-niks3-cache.service": "active",
+      "rustfs.service": "active",
+      "scx.service": "active",
+      "serial-getty@ttyS0.service": "active",
+      "sshd.service": "active",
+      "systemd-journald.service": "active",
+      "systemd-logind.service": "active",
+      "systemd-networkd.service": "active",
+      "systemd-oomd.service": "active",
+      "systemd-resolved.service": "active",
+      "systemd-timesyncd.service": "active",
+      "systemd-udevd.service": "active",
+      "tailscaled.service": "active",
+      "tailscalesd.service": "active",
+      "user@0.service": "active",
+      "user@78.service": "active",
+      "uwsgi.service": "active",
+      "vaultwarden.service": "active",
+      "wpa_supplicant.service": "active"
+    },
+    "smt_control": "on"
+  },
+  "http_and_postgresql_health": [
+    {
+      "service": "matrix",
+      "status": 200
+    },
+    {
+      "service": "vaultwarden",
+      "status": 200
+    },
+    {
+      "service": "buildbot",
+      "status": 200
+    },
+    {
+      "service": "rustfs",
+      "status": 200
+    },
+    {
+      "service": "inference",
+      "status": 200
+    },
+    {
+      "service": "inference-structured",
+      "status": 200
+    },
+    {
+      "service": "postgresql",
+      "exit": 0,
+      "status": "127.0.0.1:5432 - accepting connections"
+    }
+  ],
+  "cache_socket_recovery": {
+    "cause": "Boot attempted to bind the tailnet address before it was available",
+    "result": [
+      "active",
+      "niks3_cache_info_status=200"
+    ]
+  },
+  "warning": "radicle-ci-sync.service failed after original timers were restored; no manual Radicle synchronization or remote mutation attempted",
+  "radicle_sync_failure": {
+    "result": "timeout",
+    "exec_main_status": 15,
+    "manually_retried": false
+  },
+  "postgresql_warning": "Preexisting buildbot collation version mismatch 2.42 versus 2.44 retained; no ALTER DATABASE or reindex performed",
+  "excluded_host_touched": false
+}

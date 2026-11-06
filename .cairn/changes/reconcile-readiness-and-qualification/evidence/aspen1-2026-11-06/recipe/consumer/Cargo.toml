@@ -1,0 +1,15 @@
+[package]
+name = "kiln-aspen1-approved-consumer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+blake3 = "1"
+iroh = { version = "=0.95.1", default-features = false }
+kiln-hosted = { path = "/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted" }
+kiln-adapter-git = { path = "/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git" }
+kiln-core = { path = "/home/brittonr/git/OnixResearch/kiln/crates/kiln-core" }
+kiln-provider-api = { path = "/home/brittonr/git/OnixResearch/kiln/crates/kiln-provider-api" }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }

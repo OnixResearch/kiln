@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.aspen1.source-cohort.v1",
+  "hash_algorithm": "blake3",
+  "retained_sources": {
+    "recipe/host-maintenance.py": "d3ff086dabedfcea0e9423887a120aa1e2b39bcf36597ae428d4f9161cfb9803",
+    "recipe/operator_cat.py": "bacbfbb74a4f040d154544257413f3ef0fc29bf758ce871d1771b94ff94c6815",
+    "recipe/consumer/src/main.rs": "80057d1e86f1e926836fdbc111a244d99c0a53d7171034e060b46ac1ab28e94a",
+    "recipe/consumer/Cargo.toml": "258fa57af0bb2895cf50f38ab614cc2e8e9e8f37072a5ac99b7a51d627cc797a",
+    "recipe/consumer/Cargo.lock": "15dfedfe4f3a0a6e2bf219cb7be6b3e6bf9e767030ad7d7577996de5ee10c0e0",
+    "recipe/consumer/run-recipe.sh": "f28e677e8846174451fdd5e085a92f3c281b7033e0137a233e416f2319974ed8"
+  },
+  "repository_sources": {
+    "crates/kiln-hosted/src/microvm.rs": "b6f9e8fd77bf04d59ef00d05820f452d22cec00c326b810fe829f3a92eedd37c",
+    "scripts/microvm-channels.py": "d2598daa6d4acd8aef78bf091f9585ba75a3f5cea4a2064b890f76ba4c10d390",
+    "tools/microvm-channel-probe.c": "ba01bc3dcbdebef3c6dfe3336c54a76b02ef522c0c685c5b3306237512f5b2f0",
+    "flake.lock": "2caea648ccc7ccf6b10ee2f95aa2774f4ba8a3378d110a273d1209ac6da2d141"
+  },
+  "producer_binary_blake3": "a1a4ccd54315fa0a7b80dab4a5ea8cfda5ec3c8ce32ef5e5de1f7419d51d7d47",
+  "reproduction_boundary": "Historical operator cohort, not an automatic provisioner. Copy the consumer source package out of the Cargo workspace before building; its exact captured manifest binds this checkout path. Relocate only those path dependencies to the explicitly selected Kiln checkout on another operator workstation. Host/store paths and account/root names require fresh allocation and review; do not replay historical mutation commands blindly.",
+  "git_source_trust": "The disposable account admitted only the exact root-owned immutable source store path via safe.directory, not a wildcard",
+  "build_compiler": "Rust 1.88.0",
+  "host_source_boundary": "Repository source hash describes the retained formatted source state; the consumer binary was built from the equivalent pre-format hosted parser source. Consumer/helper/wrapper source bytes are retained separately."
+}

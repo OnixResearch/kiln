@@ -1,0 +1,16 @@
+{
+  "error": null,
+  "request_id": "account",
+  "result": {
+    "available_minor": 1000,
+    "cap_minor": 1000,
+    "credits_minor": 0,
+    "currency": "usd",
+    "max_concurrent": 1,
+    "request_max_minor": 1000,
+    "reserved_minor": 0,
+    "revision": 1,
+    "spent_minor": 0
+  },
+  "schema": "kiln.hosted.v1"
+}

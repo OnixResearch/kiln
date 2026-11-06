@@ -1,0 +1,20 @@
+{
+  "jobs": {
+    "qualify": {
+      "runner": "linux",
+      "steps": [
+        {
+          "kind": "run",
+          "name": "real-source-no-credentials",
+          "run": "set -euo pipefail; [[ $(id -u) == 1000 ]]; [[ -z ${KILN_WORKLOAD_TOKEN+x} ]]; [[ ! -e /work/.git ]]; [[ -f /work/Cargo.toml ]]; [[ -f /work/crates/kiln-hosted/src/execution.rs ]]; [[ ! -e /root/.ssh/id_ed25519 ]]; [[ ! -e /root/.aws/credentials ]]; [[ ! -e /work/operator.key ]]; [[ ! -e /work/server.key ]]; [[ $(ls /sys/class/net) == lo ]]; printf 'KILN_APPROVED_UNTRUSTED_OK source=exact-native-git workload_token=absent network=none guest_uid=%s\\n' \"$(id -u)\""
+        }
+      ],
+      "timeout_ms": 60000
+    }
+  },
+  "name": "Approved untrusted qualification",
+  "schema": "kiln.hosted.pipeline.v1",
+  "triggers": [
+    "manual"
+  ]
+}

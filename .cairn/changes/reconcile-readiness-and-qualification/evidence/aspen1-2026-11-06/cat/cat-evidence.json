@@ -1,0 +1,396 @@
+{
+  "schema": "kiln.operator.cat-assignment-observation.v1",
+  "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+  "manifest_blake3": "0e300705312033556a2e5abbb468ae7794f3ee1c40eafd96a6a91aaf39563279",
+  "measurement_command": [
+    "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14",
+    "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/microvm-channels.py",
+    "run",
+    "--config",
+    "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/cat/placements.json",
+    "--output",
+    "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/cat/observations.json",
+    "--symbols",
+    "64",
+    "--symbol-ms",
+    "100",
+    "--lead-ms",
+    "5000"
+  ],
+  "non_claim": "Operator sidecar only; not built-in worker CAT metadata, hostile isolation, channel absence or physical-pool evidence.",
+  "measurement_exit_code": 0,
+  "registrations": {
+    "29497-208943.json": {
+      "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+      "role": "sender",
+      "channel": "cache",
+      "pid": 29497,
+      "start_ticks": "208943",
+      "start_ms": 1793998927122,
+      "symbol_ms": 100,
+      "count": 96,
+      "request_blake3": "32dcde0a47efe12568c203876f37354e1300e13fa30fa36a1fb002637950193c",
+      "sender_bits_blake3": "81933949c63d51462576398ff7a6268ec1466873378ead4fb68ad08c3991c93c",
+      "assigned_group": "/sys/fs/resctrl/kilnqual20261106-sender",
+      "assigned_at_ns": 1793998922163069400
+    },
+    "29498-208943.json": {
+      "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+      "role": "receiver",
+      "channel": "cache",
+      "pid": 29498,
+      "start_ticks": "208943",
+      "start_ms": 1793998927122,
+      "symbol_ms": 100,
+      "count": 96,
+      "request_blake3": "4868d68b08f58d2d206ecf6c58da2f8f1eb8339d885d8cfb706b44bae8c462a4",
+      "sender_bits_blake3": null,
+      "assigned_group": "/sys/fs/resctrl/kilnqual20261106-receiver",
+      "assigned_at_ns": 1793998922162246400
+    },
+    "29569-210425.json": {
+      "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+      "role": "receiver",
+      "channel": "cpu",
+      "pid": 29569,
+      "start_ticks": "210425",
+      "start_ms": 1793998941948,
+      "symbol_ms": 100,
+      "count": 96,
+      "request_blake3": "3ee49d99cbbf3b0dea0e3009ceb31273edc71236e3bc43a545a610e527d601ed",
+      "sender_bits_blake3": null,
+      "assigned_group": "/sys/fs/resctrl/kilnqual20261106-receiver",
+      "assigned_at_ns": 1793998936985483300
+    },
+    "29570-210425.json": {
+      "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+      "role": "sender",
+      "channel": "cpu",
+      "pid": 29570,
+      "start_ticks": "210425",
+      "start_ms": 1793998941948,
+      "symbol_ms": 100,
+      "count": 96,
+      "request_blake3": "3ae71a8f0be581e26a4618fe302550d0603e09d07c0656c4334324eba2de8353",
+      "sender_bits_blake3": "7b3683798df2a3ee6ded784a67cb15d625f833ff9b297914c58a2199f432ca8b",
+      "assigned_group": "/sys/fs/resctrl/kilnqual20261106-sender",
+      "assigned_at_ns": 1793998936986797800
+    },
+    "29637-211908.json": {
+      "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+      "role": "receiver",
+      "channel": "memory",
+      "pid": 29637,
+      "start_ticks": "211908",
+      "start_ms": 1793998956771,
+      "symbol_ms": 100,
+      "count": 96,
+      "request_blake3": "e5f73de2a8949a677208b6bb45c98fce6eb0747d94895e36249515559a0ff444",
+      "sender_bits_blake3": null,
+      "assigned_group": "/sys/fs/resctrl/kilnqual20261106-receiver",
+      "assigned_at_ns": 1793998951806430000
+    },
+    "29636-211908.json": {
+      "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+      "role": "sender",
+      "channel": "memory",
+      "pid": 29636,
+      "start_ticks": "211908",
+      "start_ms": 1793998956771,
+      "symbol_ms": 100,
+      "count": 96,
+      "request_blake3": "cfc267d245fcce3ebb454d7c06d9240ecb7cbe4fa49d286ab3015a2deb704a75",
+      "sender_bits_blake3": "7e6c42f8c98d52cf56ae64e452fd9796908bc2525044ae589a7160365fd709ab",
+      "assigned_group": "/sys/fs/resctrl/kilnqual20261106-sender",
+      "assigned_at_ns": 1793998951807274200
+    }
+  },
+  "live_vmm_observations": {
+    "29497-208943.json": {
+      "first_observed_ns": 1793998922226030300,
+      "samples": 696,
+      "last_observed_ns": 1793998936855155700,
+      "vmm_pid": 29550,
+      "vmm_start_ticks": "208950",
+      "tasks": [
+        {
+          "tid": 29550,
+          "name": "firecracker",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        },
+        {
+          "tid": 29555,
+          "name": "fc_vcpu 0",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        },
+        {
+          "tid": 29557,
+          "name": "kvm-nx-lpage-re",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        }
+      ],
+      "group_snapshot": {
+        "sender": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+          "cpus_list": ""
+        },
+        "receiver": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+          "cpus_list": ""
+        }
+      }
+    },
+    "29498-208943.json": {
+      "first_observed_ns": 1793998922226208800,
+      "samples": 697,
+      "last_observed_ns": 1793998936876420600,
+      "vmm_pid": 29551,
+      "vmm_start_ticks": "208950",
+      "tasks": [
+        {
+          "tid": 29551,
+          "name": "firecracker",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        },
+        {
+          "tid": 29556,
+          "name": "fc_vcpu 0",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        },
+        {
+          "tid": 29558,
+          "name": "kvm-nx-lpage-re",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        }
+      ],
+      "group_snapshot": {
+        "sender": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+          "cpus_list": ""
+        },
+        "receiver": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+          "cpus_list": ""
+        }
+      }
+    },
+    "29569-210425.json": {
+      "first_observed_ns": 1793998937041596400,
+      "samples": 697,
+      "last_observed_ns": 1793998951699179000,
+      "vmm_pid": 29622,
+      "vmm_start_ticks": "210433",
+      "tasks": [
+        {
+          "tid": 29622,
+          "name": "firecracker",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        },
+        {
+          "tid": 29626,
+          "name": "fc_vcpu 0",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        },
+        {
+          "tid": 29627,
+          "name": "kvm-nx-lpage-re",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        }
+      ],
+      "group_snapshot": {
+        "sender": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+          "cpus_list": ""
+        },
+        "receiver": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+          "cpus_list": ""
+        }
+      }
+    },
+    "29570-210425.json": {
+      "first_observed_ns": 1793998937041773000,
+      "samples": 697,
+      "last_observed_ns": 1793998951699567400,
+      "vmm_pid": 29624,
+      "vmm_start_ticks": "210433",
+      "tasks": [
+        {
+          "tid": 29624,
+          "name": "firecracker",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        },
+        {
+          "tid": 29628,
+          "name": "fc_vcpu 0",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        },
+        {
+          "tid": 29629,
+          "name": "kvm-nx-lpage-re",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        }
+      ],
+      "group_snapshot": {
+        "sender": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+          "cpus_list": ""
+        },
+        "receiver": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+          "cpus_list": ""
+        }
+      }
+    },
+    "29637-211908.json": {
+      "first_observed_ns": 1793998951864867600,
+      "samples": 696,
+      "last_observed_ns": 1793998966526209300,
+      "vmm_pid": 29690,
+      "vmm_start_ticks": "211915",
+      "tasks": [
+        {
+          "tid": 29690,
+          "name": "firecracker",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        },
+        {
+          "tid": 29693,
+          "name": "fc_vcpu 0",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        },
+        {
+          "tid": 29695,
+          "name": "kvm-nx-lpage-re",
+          "cpus": [
+            1
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-receiver"
+        }
+      ],
+      "group_snapshot": {
+        "sender": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+          "cpus_list": ""
+        },
+        "receiver": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+          "cpus_list": ""
+        }
+      }
+    },
+    "29636-211908.json": {
+      "first_observed_ns": 1793998951865038300,
+      "samples": 695,
+      "last_observed_ns": 1793998966505589000,
+      "vmm_pid": 29689,
+      "vmm_start_ticks": "211915",
+      "tasks": [
+        {
+          "tid": 29689,
+          "name": "firecracker",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        },
+        {
+          "tid": 29694,
+          "name": "fc_vcpu 0",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        },
+        {
+          "tid": 29696,
+          "name": "kvm-nx-lpage-re",
+          "cpus": [
+            0
+          ],
+          "observed_in_group": "/sys/fs/resctrl/kilnqual20261106-sender"
+        }
+      ],
+      "group_snapshot": {
+        "sender": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-sender",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=7c0;1=7c0",
+          "cpus_list": ""
+        },
+        "receiver": {
+          "path": "/sys/fs/resctrl/kilnqual20261106-receiver",
+          "mode": "exclusive",
+          "schemata": "SMBA:0=4096;1=4096\n    MB:0=4096;1=4096\n    L3:0=f800;1=f800",
+          "cpus_list": ""
+        }
+      }
+    }
+  },
+  "measurement_blake3": "bd640e8bb5e474fcf254f385981aabb2904cce23ee6e52b459b08b5eb61cff56",
+  "resctrl_tasks_empty_after": true,
+  "errors": [],
+  "verified": true
+}

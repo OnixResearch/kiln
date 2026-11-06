@@ -1,0 +1,11 @@
+{
+  "actual_hosted_operator_untrusted_execution": "passed",
+  "approval_boundary": "operator-authorized authenticated hosted execution.run; provenance supplied by this consumer, not verified against a Web approval by hosted",
+  "attempt_id": "approved-untrusted-exact-1",
+  "authenticated_peer": "599011e4b37d42de68c6b5355720a001622de0bf8fe5922fe9da54676267ccd8",
+  "hostile_isolation_claim": false,
+  "missing_combined_web_approval_prerequisite": "real production Web run blocked on this exact source commit, an authenticated interactive operator approval, and supported exact-provenance handoff into this hosted deployment",
+  "new_attempt_created_during_recovery": false,
+  "source_commit": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+  "web_exact_commit_approval_exercised": false
+}

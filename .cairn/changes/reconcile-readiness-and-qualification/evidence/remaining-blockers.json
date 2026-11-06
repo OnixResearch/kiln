@@ -2,6 +2,7 @@
   "schema": "kiln.readiness.remaining-blockers.v1",
   "date": "2026-11-06",
   "local_source": {
+    "scope": "Pre-maintenance full-source baseline; the follow-up parser fix and hardware qualification have separate exact evidence in aspen1-2026-11-06/summary.json",
     "coverage": {
       "requirements": 1487,
       "referenced": 1487,
@@ -41,28 +42,29 @@
       "boundary": "Known prior local formatter failure; not rerun merely to reconfirm, no hand reconstruction of vendored source."
     },
     {
-      "id": "approved-untrusted-host",
-      "owner": "Allocated host operator and Kiln hosted-execution maintainer",
+      "id": "combined-web-approval-handoff",
+      "owner": "Interactive operator and Kiln Web/hosted-execution maintainers",
       "state": "blocked",
-      "evidence": "qualification-prerequisites.json",
+      "evidence": "aspen1-2026-11-06/approved/verdict.json",
       "prerequisites": [
-        "Allocate a booted issue-policy-patched host (aspen3-1 observed 6.18.59) with whole-host trust exclusion and no unrelated sensitive co-tenancy.",
-        "Provide reviewed SMT safety treatment and authorized operator provisioning; SMT is currently active and noninteractive administrative authority is unavailable.",
-        "Run and retain actual approved-untrusted workload execution against the exact admitted cohort after prerequisites hold."
+        "Exercise a real production Web run blocked on the exact admitted source commit and an authenticated interactive approval.",
+        "Exercise a supported exact-provenance Web-to-hosted handoff; hosted execution.run currently trusts caller-supplied provenance."
       ],
-      "boundary": "Kernel/SSH observations and controlled peers are not workload or hostile isolation qualification."
+      "completed": "Aspen1 booted Linux 7.3.0; actual operator-authorized authenticated untrusted execution and invalid-provenance refusal passed under whole-host exclusion, SMT off, KSM off and exclusive CAT; temporary state and services were restored.",
+      "boundary": "Actual hosted execution is qualified only for the retained cohort; Web approval and hostile isolation were not established."
     },
     {
-      "id": "exclusive-cat-and-distinct-chassis",
-      "owner": "Hardware/host operator with CAT delegation authority",
+      "id": "distinct-physical-host",
+      "owner": "Hardware/host operator with physical placement authority",
       "state": "blocked",
-      "evidence": "qualification-prerequisites.json",
+      "evidence": "aspen1-2026-11-06/cat/cat-evidence.json",
       "prerequisites": [
-        "Provision/delegate an operator-created exclusive resctrl/CAT group with reviewed cache and trust allocation.",
-        "Independently bind selected endpoints to distinct physical chassis using controlled placement evidence, without publishing raw serials or machine IDs.",
-        "Run actual channel/physical-host measurements and retain exact allocations and observations."
+        "Explicitly allocate a second eligible physical host; aspen3 remains excluded.",
+        "Independently bind endpoints to distinct physical chassis without publishing raw serials or machine IDs.",
+        "Run and retain distinct-host measurements against the exact admitted cohorts."
       ],
-      "boundary": "No mounted/delegated CAT group was established; OS instance differences and hardware-class configs are not distinct physical-host proof."
+      "completed": "Aspen1 exclusive CAT groups and pinned-core cache/CPU/memory measurements completed with verified sampled VMM/vCPU membership; 64-symbol held-out errors were 3, 34 and 0 respectively.",
+      "boundary": "Same-LLC cores and OS-instance pseudonyms are not distinct-physical-host proof; hostile_isolation_claim remains false."
     }
   ],
   "retained_active_changes": [

@@ -1,0 +1,11 @@
+{
+  "schema": "kiln.aspen1.local-cleanup.v1",
+  "removed_owned_temporary_directories": [
+    "/tmp/kiln-aspen1-operation-nXDI7H",
+    "/tmp/kiln-aspen1-approved-20261106-buildapprovedconsumer",
+    "/tmp/kiln-aspen1-cat-20261106-bcw"
+  ],
+  "retained_operator_sources": "recipe/",
+  "shared_cargo_target_removed": false,
+  "unrelated_workspace_files_removed": false
+}

@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.qualification.maintenance-authorization.v1",
+  "recorded_at": "2026-11-06T20:25:02.806Z",
+  "target": "aspen1",
+  "excluded": [
+    "aspen3",
+    "aspen3-1"
+  ],
+  "source": "User selected Authorize maintenance now after live service impact was disclosed.",
+  "authorized": [
+    "Close/drain build intake and interrupt aspen1 services",
+    "Reboot existing staged fixed7.3 kernel, no unrelated fleet deployment",
+    "Dedicated unprivileged qualification account and bounded recovery lease",
+    "Temporary host SMT-off and exclusive operator CAT allocation",
+    "Actual bounded qualification with owned teardown",
+    "Restore services and temporary settings; retain patched kernel"
+  ],
+  "cohort_blake3": [
+    "4e861d0cd1714b7593baa2b2cf48be38d9a99a2f2afda959bb87c05330da4a87  /tmp/kiln-aspen1-operation-nXDI7H/host-maintenance.py",
+    "303f6e5953fe5a0941d73139dafc00ca98baa4406cd31277d3580881f19046a5  /tmp/kiln-aspen1-operation-nXDI7H/approved-consumer",
+    "24142589634b40dde8c0251f3455eb39beef0a63bec8b52b93193575e7150525  /tmp/kiln-aspen1-cat-20261106-bcw/operator_cat.py",
+    "55c869ed517a4462205e33c00383b1cf2b9fb6d194d3456160bd9634998150a7  /tmp/kiln-aspen1-operation-nXDI7H/probe/probe-initrd.gz"
+  ],
+  "native_guest": "/nix/store/6rjx8bv22brsdha5vsp2mqv2qn75v7kz-kiln-microvm-guest",
+  "native_source": "/nix/store/7xjch1qa7hrjmf5fnjlf641w1pfs6sml-kiln-aspen1-source-cohort",
+  "exact_source_commit": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+  "review": {
+    "host_recovery": "ReviewAspenMaintenance: former blockers closed by static review",
+    "runtime": "ReviewAspenRuntime: former RAM blocker closed by static review"
+  },
+  "nonclaims": [
+    "No Web exact-commit approval verification implied by hosted caller-supplied provenance",
+    "No second physical host allocated",
+    "hostile_isolation_claim remains false"
+  ]
+}

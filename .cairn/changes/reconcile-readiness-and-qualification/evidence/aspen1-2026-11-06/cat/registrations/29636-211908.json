@@ -1,0 +1,14 @@
+{
+  "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+  "role": "sender",
+  "channel": "memory",
+  "pid": 29636,
+  "start_ticks": "211908",
+  "start_ms": 1793998956771,
+  "symbol_ms": 100,
+  "count": 96,
+  "request_blake3": "cfc267d245fcce3ebb454d7c06d9240ecb7cbe4fa49d286ab3015a2deb704a75",
+  "sender_bits_blake3": "7e6c42f8c98d52cf56ae64e452fd9796908bc2525044ae589a7160365fd709ab",
+  "assigned_group": "/sys/fs/resctrl/kilnqual20261106-sender",
+  "assigned_at_ns": 1793998951807274200
+}

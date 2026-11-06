@@ -741,6 +741,16 @@ IDs were replaced with per-evidence `REDACTED` OS-instance labels preserving onl
 equality. Raw samples, serial, rates and historical cohort hashes are unchanged;
 the redaction and corrected non-hardware classifications are explicit metadata.
 
+The separate [2026-11-06 aspen1 maintenance experiment](operator.md#readiness-reconciliation-and-qualification-2026-11-06)
+booted host Linux 7.3.0, disabled SMT, and used exclusive operator-created CAT
+groups with independent live membership/affinity sampling. Three pinned-core
+rows at an offered 10 symbols/s had held-out errors of 3/64 (cache), 34/64 (CPU),
+and 0/64 (memory). The maintained worker itself remains CAT-unaware; the retained
+operator sidecar is separate evidence, not continuous enforcement or a hardware
+isolation proof. No second physical host was allocated. Native space-padded
+`L3:`/`L3CODE:` rows are accepted by hosted CAT admission; non-L3-only input is
+still refused. This does not broaden the `hostile_isolation_claim:false` boundary.
+
 
 ### Cloud Hypervisor (phase 1, plan only)
 

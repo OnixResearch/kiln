@@ -1,0 +1,15 @@
+{
+  "approval_entrypoint": "none; hosted execution.run trusts the authenticated caller's provenance assertion",
+  "attempt": "approved-untrusted-exact-1",
+  "authenticated_operator_peer": "599011e4b37d42de68c6b5355720a001622de0bf8fe5922fe9da54676267ccd8",
+  "authority": "explicit user-authorized aspen1 maintenance and qualification in parent session",
+  "cache_configured": false,
+  "credentials_configured": false,
+  "hosted_approval_verified": false,
+  "operator_label": "brittonr",
+  "private_key_files_outside_source": true,
+  "source_commit": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+  "untrusted_reason": "fork is the hosted untrusted policy lane selected for this qualification, not a claim of a forge webhook",
+  "web_approval_exercised": false,
+  "workload_policies_configured": false
+}

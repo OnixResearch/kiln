@@ -1,0 +1,17 @@
+{
+  "schema": "kiln.aspen1.owned-cleanup.v1",
+  "raw_host_id_scan_passed": true,
+  "owned_runtime_roots_removed": [
+    "aspen1-20261106-cf6e793b",
+    "aspen1-20261106-cf6e793b-r2",
+    "aspen1-20261106-cf6e793b-r3",
+    "aspen1-20261106-cf6e793b-r4",
+    "aspen1-20261106-cf6e793b-r5"
+  ],
+  "private_keys_and_raw_service_state_exported": false,
+  "temporary_account_and_group_absent": true,
+  "resctrl_unmounted": true,
+  "smt_control": "on",
+  "kernel_retained": "7.3.0",
+  "recovery_timers_active": false
+}

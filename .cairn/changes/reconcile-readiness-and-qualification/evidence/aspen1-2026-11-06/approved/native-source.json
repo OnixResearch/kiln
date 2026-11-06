@@ -1,0 +1,104 @@
+{
+  "profile": {
+    "allow_collaboration": false,
+    "allow_credentials": false,
+    "allow_gitlinks": false,
+    "allow_mutation": false,
+    "allow_network": false,
+    "allow_signing": false,
+    "capabilities": [
+      "Discover",
+      "ResolveExact",
+      "Acquire",
+      "ObserveIdentity"
+    ],
+    "id": "aspen-native-git",
+    "library_source": "crates.io:git2:0.20.4",
+    "license": "MIT OR Apache-2.0",
+    "limits": {
+      "max_entries": 100000,
+      "max_file_bytes": 268435456,
+      "max_path_bytes": 4096,
+      "max_total_bytes": 268435456
+    },
+    "native_library_source": "crates.io:libgit2-sys:0.18.7+1.9.6",
+    "native_license": "GPL-2.0-only with libgit2 linking exception",
+    "non_claims": [
+      "local Git observations do not prove source or signature trust",
+      "local Git observations do not prove complete history or remote availability",
+      "local Git observations do not grant forge or collaboration authority"
+    ],
+    "object_format": "Sha1",
+    "platform": "linux",
+    "repository_format_version": 0
+  },
+  "resolution": {
+    "canonical_tree": "b1904f8cc901332cc7cc4eb46acfdca77e06808f59f2bd150cea62d58dbd534f",
+    "exact_revision": {
+      "contract_version": 1,
+      "native_id": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+      "native_kind": "commit",
+      "provider_namespace": "git"
+    },
+    "native_facts": {
+      "Git": {
+        "alternate_object_database": false,
+        "exact_commit": {
+          "contract_version": 1,
+          "native_id": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+          "native_kind": "commit",
+          "provider_namespace": "git"
+        },
+        "native_tree": {
+          "contract_version": 1,
+          "native_id": "d949377c15a597ce7540c75ac9658a590ca0cb98",
+          "native_kind": "tree",
+          "provider_namespace": "git"
+        },
+        "object_format": "Sha1",
+        "observed_ref_after": {
+          "contract_version": 1,
+          "native_id": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+          "native_kind": "commit",
+          "provider_namespace": "git"
+        },
+        "observed_ref_before": {
+          "contract_version": 1,
+          "native_id": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+          "native_kind": "commit",
+          "provider_namespace": "git"
+        },
+        "partial_repository": false,
+        "replacement_objects": false,
+        "repository": {
+          "contract_version": 1,
+          "native_id": "be17a6c3d2174f42c1f179e6b2d22e5d8355143cc34f6cfc5c6eb0607617ea69",
+          "native_kind": "repository",
+          "provider_namespace": "git"
+        },
+        "signature_observed": false,
+        "symbolic_reference": {
+          "contract_version": 1,
+          "native_id": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+          "native_kind": "reference",
+          "provider_namespace": "git"
+        }
+      }
+    },
+    "repository": {
+      "contract_version": 1,
+      "native_id": "be17a6c3d2174f42c1f179e6b2d22e5d8355143cc34f6cfc5c6eb0607617ea69",
+      "native_kind": "repository",
+      "provider_namespace": "git"
+    },
+    "source_provider": "aspen-native-git",
+    "symbolic_reference": {
+      "contract_version": 1,
+      "native_id": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+      "native_kind": "reference",
+      "provider_namespace": "git"
+    }
+  },
+  "snapshot_blake3": "b1904f8cc901332cc7cc4eb46acfdca77e06808f59f2bd150cea62d58dbd534f",
+  "snapshot_bytes": 189194303
+}

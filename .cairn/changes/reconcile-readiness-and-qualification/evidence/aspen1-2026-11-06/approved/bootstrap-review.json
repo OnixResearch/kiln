@@ -1,0 +1,11 @@
+{
+  "error": null,
+  "request_id": "review",
+  "result": {
+    "identity": "f3e2df50cf7968a345b298db6314f1a5e8fd1ee766dabe2139d689d1eaebf70f",
+    "name": "approved-untrusted",
+    "project": "approved-untrusted",
+    "revision": 1
+  },
+  "schema": "kiln.hosted.v1"
+}

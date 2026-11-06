@@ -1,0 +1,40 @@
+{
+  "pinned_cores": {
+    "sender": {
+      "firecracker": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker",
+      "kernel": "/nix/store/banrncybk21whqw5m9l6302r8j00m009-kiln-microvm-vmlinux",
+      "initrd": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/probe-initrd.gz",
+      "taskset": "/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin/taskset",
+      "cpus": [
+        0
+      ],
+      "command": [
+        "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14",
+        "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/operator_cat.py",
+        "worker",
+        "--manifest",
+        "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/cat/cohort.json",
+        "--role",
+        "sender"
+      ]
+    },
+    "receiver": {
+      "firecracker": "/nix/store/ld9dnfimyd44a524a7j7apl61wilnxci-firecracker-1.16.1/bin/firecracker",
+      "kernel": "/nix/store/banrncybk21whqw5m9l6302r8j00m009-kiln-microvm-vmlinux",
+      "initrd": "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/probe-initrd.gz",
+      "taskset": "/nix/store/2lgg8jqyzjp60svh7kmp39kqwnig31p2-util-linux-2.42.4-bin/bin/taskset",
+      "cpus": [
+        1
+      ],
+      "command": [
+        "/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14",
+        "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/operator_cat.py",
+        "worker",
+        "--manifest",
+        "/var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/runtime/cat/cohort.json",
+        "--role",
+        "receiver"
+      ]
+    }
+  }
+}

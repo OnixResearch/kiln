@@ -1,0 +1,27 @@
+    Checking kiln-codec v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-codec)
+    Checking hyper-rustls v0.27.10
+    Checking verified-logic v0.2.0 (/home/brittonr/git/OnixResearch/kiln/vendor/ucan/vendor/verified-logic)
+    Checking lattice-workflow-transport v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/lattice/crates/lattice-workflow-contract/transport)
+    Checking hickory-proto v0.25.2
+    Checking radicle-cob v0.21.1
+    Checking ureq v2.12.1
+    Checking kiln-build-graph v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-build-graph)
+    Checking kiln-microvm v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-microvm)
+    Checking kiln-highlight v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-highlight)
+    Checking kiln-adapter-git v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git)
+    Checking kiln-adapter-lattice v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-lattice)
+    Checking kiln-adapter-jj v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-jj)
+    Checking kiln-adapter-webhook v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-webhook)
+    Checking reqwest v0.12.28
+    Checking reqwest v0.13.5
+    Checking onix-radicle-cob-git-store v0.2.0 (/home/brittonr/git/OnixResearch/kiln/vendor/radicle-cob-git-store)
+    Checking kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)
+    Checking pkarr v5.0.3
+    Checking hickory-resolver v0.25.2
+    Checking iroh-relay v0.95.1
+    Checking iroh v0.95.1
+    Checking ucan v0.1.0 (/home/brittonr/git/OnixResearch/kiln/vendor/ucan)
+    Checking kiln-adapter-http-observe v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-http-observe)
+    Checking kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+    Checking kiln-hosted v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 37.37s

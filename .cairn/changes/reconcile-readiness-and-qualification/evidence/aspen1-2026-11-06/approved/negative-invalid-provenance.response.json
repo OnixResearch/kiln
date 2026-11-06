@@ -1,0 +1,6 @@
+{
+  "error": "untrusted run provenance invalid",
+  "request_id": "negative-invalid-provenance",
+  "result": null,
+  "schema": "kiln.hosted.v1"
+}

@@ -1,0 +1,33 @@
+
+running 1 test
+test microvm::tests::l3_cache_assignment_accepts_padded_kernel_rows_only_for_l3_resources ... FAILED
+
+failures:
+
+---- microvm::tests::l3_cache_assignment_accepts_padded_kernel_rows_only_for_l3_resources stdout ----
+
+thread 'microvm::tests::l3_cache_assignment_accepts_padded_kernel_rows_only_for_l3_resources' panicked at crates/kiln-hosted/src/microvm.rs:2214:13:
+assertion failed: has_l3_cache_assignment(schemata)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    microvm::tests::l3_cache_assignment_accepts_padded_kernel_rows_only_for_l3_resources
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 94 filtered out; finished in 0.00s
+
+    Blocking waiting for file lock on build directory
+   Compiling kiln-codec v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-codec)
+   Compiling kiln-adapter-http-observe v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-http-observe)
+   Compiling kiln-build-graph v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-build-graph)
+   Compiling kiln-microvm v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-microvm)
+   Compiling kiln-adapter-git v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-git)
+   Compiling kiln-adapter-lattice v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-lattice)
+   Compiling kiln-adapter-jj v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-jj)
+   Compiling kiln-adapter-webhook v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-webhook)
+   Compiling kiln-adapter-github v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-adapter-github)
+   Compiling kiln-web-service v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-web-service)
+   Compiling kiln-hosted v0.1.0 (/home/brittonr/git/OnixResearch/kiln/crates/kiln-hosted)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 55s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_hosted-261981edca5849ee)
+error: test failed, to rerun pass `-p kiln-hosted --lib`

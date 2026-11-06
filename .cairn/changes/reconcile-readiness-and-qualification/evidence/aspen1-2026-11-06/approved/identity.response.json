@@ -1,0 +1,25 @@
+{
+  "error": null,
+  "request_id": "identity",
+  "result": {
+    "alpn": "kiln.customer.v1",
+    "connection": "iroh",
+    "modules": [
+      "accounts",
+      "connections",
+      "finance",
+      "pipelines",
+      "execution",
+      "fleet",
+      "secrets",
+      "operations"
+    ],
+    "organization": "aspen-qualification",
+    "peer": "599011e4b37d42de68c6b5355720a001622de0bf8fe5922fe9da54676267ccd8",
+    "production_ready": false,
+    "role": "owner",
+    "schema": "kiln.hosted.v1",
+    "service_id": "aspen1-approved-qualification"
+  },
+  "schema": "kiln.hosted.v1"
+}

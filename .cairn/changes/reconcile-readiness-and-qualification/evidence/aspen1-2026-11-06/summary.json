@@ -1,0 +1,101 @@
+{
+  "schema": "kiln.aspen1.qualification-summary.v1",
+  "date": "2026-11-06",
+  "target": "aspen1",
+  "excluded_host_touched": false,
+  "immediate_outcome": "Patched boot, actual authenticated hosted untrusted execution, exclusive CAT channel measurements, and full owned teardown/service restoration completed",
+  "maintenance_owner": "Kiln maintainers and the allocated host operator",
+  "durable_capability": "Native space-padded resctrl admission regression coverage plus exact bounded operator recipes, source/image/tool identities, live membership samples, workload receipts and recovery evidence",
+  "source_commit": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+  "hosted_runtime_source": "This change contains the native-space-alignment fix in crates/kiln-hosted/src/microvm.rs; producer source/binary hashes distinguish it from the exact workload source commit",
+  "host_kernel": "7.3.0",
+  "host_kernel_image": "/nix/store/sby4x25d1wl7nn915c62jps8nr65sncj-linux-7.3/bzImage",
+  "host_policy_boundary": "Fixed according to the repository supplied issue-28 release table, not an independently verified advisory",
+  "qualification": {
+    "actual_hosted_operator_untrusted_execution": "passed",
+    "approval_boundary": "operator-authorized authenticated hosted execution.run; provenance supplied by this consumer, not verified against a Web approval by hosted",
+    "attempt_id": "approved-untrusted-exact-1",
+    "authenticated_peer": "599011e4b37d42de68c6b5355720a001622de0bf8fe5922fe9da54676267ccd8",
+    "hostile_isolation_claim": false,
+    "missing_combined_web_approval_prerequisite": "real production Web run blocked on this exact source commit, an authenticated interactive operator approval, and supported exact-provenance handoff into this hosted deployment",
+    "new_attempt_created_during_recovery": false,
+    "source_commit": "cf6e793b0cf74714d37e6284671fb0701b863b8e",
+    "web_exact_commit_approval_exercised": false
+  },
+  "channels": [
+    {
+      "channel": "cache",
+      "offered_symbols_per_second": 10,
+      "held_out_symbols": 64,
+      "bit_errors": 3,
+      "bit_error_rate": 0.046875
+    },
+    {
+      "channel": "cpu",
+      "offered_symbols_per_second": 10,
+      "held_out_symbols": 64,
+      "bit_errors": 34,
+      "bit_error_rate": 0.53125
+    },
+    {
+      "channel": "memory",
+      "offered_symbols_per_second": 10,
+      "held_out_symbols": 64,
+      "bit_errors": 0,
+      "bit_error_rate": 0
+    }
+  ],
+  "cat_sidecar_verified": true,
+  "cat_membership_boundary": "Separate operator assignment/inheritance and sampled live VMM/vCPU membership/affinity; unchanged maintained worker is CAT-unaware; no continuous or hardware isolation proof",
+  "hostile_isolation_claim": false,
+  "intermediate_failures_and_recovery": [
+    "Live release 7.3.0 differed from package spelling 7.3; exact authorized immutable boot image was confirmed and the guard bound to that path",
+    "Initial CAT setup rejected padded native L3 rows; restored immediately, corrected helper/observer/runtime parsing and reproduced the core parser failure before the fix",
+    "Initial Docker-backed restoration reached its retry limit before the daemon was ready; daemon-first recovery restored it",
+    "Verified owned orphan primary group was removed; final helper guards and removes only its exact owned group",
+    "Background timer and collateral socket-to-service stop races were closed by stopping maintenance timers and journaling service state before and after socket shutdown",
+    "Malformed Pueue argument joining was terminated as owned task 57; no consumer or guest ran from it",
+    "Task 60 stopped at native Git ownership admission before any attempt initialization; an exact safe.directory entry was supplied to the disposable account only, and task 61 resumed original binding/keys/review/price without a new attempt",
+    "Task 61 actual hosted execution passed; task 62 ran all three actual CAT channel measurements",
+    "Nix cache socket boot binding failed before the tailnet address existed; restarting the original socket after address availability restored cache-info HTTP 200"
+  ],
+  "host_tool_blake3": [
+    "a1a4ccd54315fa0a7b80dab4a5ea8cfda5ec3c8ce32ef5e5de1f7419d51d7d47  /var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/approved-consumer",
+    "d3ff086dabedfcea0e9423887a120aa1e2b39bcf36597ae428d4f9161cfb9803  /var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/host-maintenance.py",
+    "d2598daa6d4acd8aef78bf091f9585ba75a3f5cea4a2064b890f76ba4c10d390  /var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/microvm-channels.py",
+    "bacbfbb74a4f040d154544257413f3ef0fc29bf758ce871d1771b94ff94c6815  /var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/operator_cat.py",
+    "55c869ed517a4462205e33c00383b1cf2b9fb6d194d3456160bd9634998150a7  /var/lib/kiln-qualification/aspen1-20261106-cf6e793b-r5/scripts/probe-initrd.gz"
+  ],
+  "tests": {
+    "regression_before_exit": 101,
+    "focused_library_after": {
+      "passed": 94,
+      "ignored": 1
+    },
+    "all_feature_hosted_contracts": {
+      "passed": 109,
+      "ignored": 1,
+      "exit": 0
+    },
+    "strict_all_target_all_feature_clippy": 0,
+    "targeted_rustfmt": "passed using pinned Rust 1.88.0",
+    "full_workspace_format": "Known partial vendor/cairn manifest blocker; not rerun",
+    "prior_full_workspace_and_nix_evidence": "Pre-maintenance baseline retained separately; not relabelled as fresh checks for this parser change"
+  },
+  "restoration": "restoration.json",
+  "cleanup": "cleanup.json",
+  "remaining_prerequisites": [
+    "An explicitly allocated and independently attested second physical host; aspen3 excluded",
+    "A real production Web exact-commit approval and supported verified Web-to-hosted provenance handoff"
+  ],
+  "warnings": [
+    "radicle-ci-sync.service failed after original timers were restored; no manual Radicle synchronization or remote mutation attempted",
+    "Preexisting PostgreSQL buildbot collation version 2.42 versus 2.44; no database repair attempted"
+  ],
+  "publication": {
+    "push": false,
+    "new_product_deployment": false,
+    "published_main_unchanged": "b4078c09123470d28c05191bac7f6feb336a3151",
+    "deployed_source_unchanged": "946e2d29c6d3173b8f98a8a6d6e184d85db61af6"
+  }
+}

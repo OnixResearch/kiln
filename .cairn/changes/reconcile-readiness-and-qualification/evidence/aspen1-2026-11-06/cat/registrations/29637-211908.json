@@ -1,0 +1,14 @@
+{
+  "cohort": "993906b79a28dbc2c2cdffe7c66ed77732d05493d0ec1f17a17655fcce500952",
+  "role": "receiver",
+  "channel": "memory",
+  "pid": 29637,
+  "start_ticks": "211908",
+  "start_ms": 1793998956771,
+  "symbol_ms": 100,
+  "count": 96,
+  "request_blake3": "e5f73de2a8949a677208b6bb45c98fce6eb0747d94895e36249515559a0ff444",
+  "sender_bits_blake3": null,
+  "assigned_group": "/sys/fs/resctrl/kilnqual20261106-receiver",
+  "assigned_at_ns": 1793998951806430000
+}
