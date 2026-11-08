@@ -409,6 +409,15 @@ let Execution =
               && std.record.has_field "host_identity" runner
             )
           )
+          (std.record.values admitted.runners)
+        && std.array.all
+          (fun runner =>
+            !(
+              runner.kind == "firecracker"
+              && std.record.has_field "debug_hold" runner
+            )
+            || runner.debug_hold.max_concurrent <= admitted.maximum_concurrent
+          )
           (std.record.values admitted.runners) then
           'Ok admitted
         else
