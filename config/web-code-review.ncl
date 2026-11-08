@@ -284,6 +284,32 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
+let PathPattern =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 1024
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f\\\\\\[\\]{}]" value)
+    && !(std.string.is_match "(^|/)(\\.|\\.\\.)?(/|$)" value)
+    && !(std.string.is_match "[^/]\\*\\*|\\*\\*[^/]" value)
+  )
+in
+let UniqueOptionalProjects =
+  std.contract.from_predicate (fun rules =>
+    let check = fun state rule =>
+      if std.array.elem rule.project state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [rule.project], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } rules).duplicate
+  )
+in
 let UniqueDestinationIds =
   std.contract.from_predicate (fun destinations =>
     let check = fun state destination =>
@@ -425,9 +451,11 @@ fun input =>
             # when every exact changed file matches `paths` (Rust admits globs).
             optional_ci
               | Array {
-                project | String,
-                paths | Array String,
+                project | Text 128,
+                paths | Array PathPattern | NonEmptyAtMost 32,
               }
+              | AtMost 32
+              | UniqueOptionalProjects
               | optional,
             agent_votes | AgentVotes | optional,
           },
