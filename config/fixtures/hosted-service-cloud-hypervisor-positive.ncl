@@ -21,6 +21,7 @@ let vm = base.runners.microvm in
               boot_timeout_ms = 10000,
               source_image_mib = 64,
               version = "v1.0",
+              cpu_affinity = "0-1",
             },
           }
       }
