@@ -64,7 +64,9 @@ committed credential fixture:
 ```
 
 The uppercase placeholder intentionally does not satisfy the peer contract.
-Replace it, do not weaken the contract. Export with private permissions:
+Replace it, do not weaken the contract. The profile rejects unknown fields at
+the top level and in each nested section; remove stale keys instead of carrying
+forward an older shape. Export with private permissions:
 
 ```sh
 nickel export --format json config/hosted-service-local.ncl > "$HOME/kiln-hosted-local/server.json"
