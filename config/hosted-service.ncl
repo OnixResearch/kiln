@@ -594,7 +594,18 @@ let Execution =
               = [],
             env | Executable,
             work_root | c.AbsolutePath,
-            runners | { _ : Backend } | NonEmptyRecord | RecordAtMost 32,
+            runners
+              | { _ : Backend }
+              | NonEmptyRecord
+              | RecordAtMost 32
+              | std.contract.from_predicate (fun runners =>
+                std.array.all
+                  (fun label =>
+                    std.string.length label <= 128
+                    && std.string.is_match "^[A-Za-z0-9_.-]+$" label
+                  )
+                  (std.record.fields runners)
+              ),
             maximum_concurrent | c.BoundedInteger 1 128,
             memory_bytes | c.BoundedInteger 67108864 68719476736,
             processes | c.BoundedInteger 8 1024,
