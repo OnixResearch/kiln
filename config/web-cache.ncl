@@ -56,5 +56,8 @@ fun input =>
           }
           | Nonempty,
       }
+      | std.contract.from_predicate (fun value =>
+        value.maximum_total_bytes >= value.maximum_entry_bytes
+      )
   in
   admitted & { schema = "kiln.web-cache.v1" }
