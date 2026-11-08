@@ -148,6 +148,8 @@
     in
     let groups = std.array.length parts in
     hex_ok
+    && std.array.length (std.string.split "::" host) <= 2
+    && !(std.string.is_match ":::" host)
     && (
       if !(std.array.length dotted == 0) then
         std.array.length dotted == 1
