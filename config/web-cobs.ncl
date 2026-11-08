@@ -9,6 +9,29 @@ let Text = fun maximum =>
     && std.string.is_match "^[ -~]+$" value
   )
 in
+let UniqueRepositories =
+  std.contract.from_predicate (fun value =>
+    let check = fun state repository =>
+      if std.array.elem repository.id state.ids
+      || std.array.elem repository.repository_id state.native
+      || std.array.elem repository.git_directory state.paths then
+        {
+          ids = state.ids,
+          native = state.native,
+          paths = state.paths,
+          duplicate = true,
+        }
+      else
+        {
+          ids = state.ids @ [repository.id],
+          native = state.native @ [repository.repository_id],
+          paths = state.paths @ [repository.git_directory],
+          duplicate = false,
+        }
+    in
+    !(std.array.fold_left check { ids = [], native = [], paths = [], duplicate = false } value.repositories).duplicate
+  )
+in
 let Repository = {
   id | c.Component,
   label | Text 128,
@@ -24,6 +47,7 @@ fun input =>
           | Array Repository
           | std.contract.from_predicate (fun rows => std.array.length rows <= 64),
       }
+      | UniqueRepositories
   in
   {
     schema = "kiln.web-cobs.v1",
