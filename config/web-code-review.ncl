@@ -45,6 +45,14 @@ let OwnershipAtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let DependentsBound =
+  std.contract.from_predicate (fun value =>
+    std.array.length (std.record.fields value) <= 64
+    && std.array.all
+      (fun targets => std.array.length targets <= 64)
+      (std.record.values value)
+  )
+in
 let ChangeClass = {
   id | std.contract.from_predicate (fun value => value != "logic") | Text 128,
   paths | Array (Text 1024) | OwnershipAtMost 16,
@@ -73,7 +81,7 @@ in
 let Ownership = {
   teams | { _ | Array Principal },
   classes | Array ChangeClass | OwnershipAtMost 8 | optional,
-  dependents | { _ | Array (Text 128) } | optional,
+  dependents | { _ | Array (Text 128) } | DependentsBound | optional,
   rules
     | Array {
       id | Text 128,
@@ -83,7 +91,7 @@ let Ownership = {
       target_refs | Array Target,
       project | Text 128 | optional,
       interface | Array (Text 1024) | optional,
-      required_evidence | Array OwnershipEvidence | optional,
+      required_evidence | Array OwnershipEvidence | OwnershipAtMost 8 | optional,
       approval | { _ | ApprovalMode } | optional,
     },
 }
@@ -230,7 +238,10 @@ let ReviewRelations =
           rule.teams
         && (
           !(std.record.has_field "interface" rule)
-          || std.array.length rule.interface <= std.array.length rule.paths
+          || (
+            std.array.length rule.interface <= std.array.length rule.paths
+            && Unique rule.interface
+          )
         )
       )
       profile.policy.ownership.rules
