@@ -140,6 +140,26 @@ let CacheText =
     && std.string.is_match "^[ -~]+$" value
   )
 in
+let NonOverlappingPaths =
+  std.contract.from_predicate (fun values =>
+    let components = fun path => std.string.split "/" path in
+    let under = fun root path =>
+      let root_parts = components root in
+      let path_parts = components path in
+      std.array.length path_parts >= std.array.length root_parts
+      && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
+    in
+    let check = fun state value =>
+      if std.array.any
+        (fun prior => under prior value || under value prior)
+        state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
 let RecordAtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.array.length (std.record.fields value) <= maximum
@@ -201,8 +221,8 @@ let Step = {
       producer | CacheText,
       toolchain | CacheText,
       platform | CacheText,
-      inputs | Array RelativeFile | NonEmptyAtMost 4096,
-      paths | Array RelativeFile | NonEmptyAtMost 4096,
+      inputs | Array RelativeFile | NonEmptyAtMost 4096 | NonOverlappingPaths,
+      paths | Array RelativeFile | NonEmptyAtMost 4096 | NonOverlappingPaths,
       maximum_entry_bytes | Integer 8388608,
       maximum_files | Integer 4096,
     }
