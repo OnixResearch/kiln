@@ -1,6 +1,2 @@
-(import "../hosted-pipeline.ncl") {
-  name = "Rejected",
-  triggers = ["manual"],
-  schedules.nightly = { cron = "H 2 * * *", extra = 1 },
-  jobs.check = { runner = "linux-reviewed", steps = [{ kind = "run", run = "true", shell = "bash" }] },
-}
+let positive = import "hosted-pipeline-triggers-positive.ncl" in
+(import "../hosted-pipeline.ncl") (positive & { schedules | force = positive.schedules & { nightly | force = positive.schedules.nightly & { extra = 1 } } })
