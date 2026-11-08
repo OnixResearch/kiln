@@ -4,6 +4,7 @@
 # against exact BLAKE3 immediately before use. No ambient environment is inherited.
 let c = import "github-contracts.ncl" in
 let CpuAffinity = (import "field-contracts.ncl").CpuAffinity in
+let GuestShell = (import "field-contracts.ncl").GuestShell in
 let CacheRelative = (import "field-contracts.ncl").CacheRelative in
 let Positive = fun maximum =>
   std.contract.from_predicate (fun value =>
@@ -51,7 +52,7 @@ let Backend = {
   kernel | Immutable | optional,
   initramfs | Immutable | optional,
   root_image | Dyn | optional,
-  guest_shell | Absolute | optional,
+  guest_shell | GuestShell | optional,
   acceleration | std.contract.from_predicate (fun value => std.array.elem value ["tcg", "kvm"]) | optional,
   firecracker | Immutable | optional,
   cloud_hypervisor | Immutable | optional,

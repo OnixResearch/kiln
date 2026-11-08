@@ -92,4 +92,13 @@
     std.contract.from_predicate (fun value =>
       std.is_record value && std.array.length (std.record.fields value) <= maximum
     ),
+  GuestShell =
+    std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 4096
+      && std.string.is_match "^/" value
+      && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+      && !(std.string.is_match "(^|/)\\.\\.(/|$)" value)
+    ),
 }
