@@ -47,6 +47,11 @@ let CacheText =
     && std.string.is_match "^[ -~]+$" value
   )
 in
+let Audience =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0 && std.string.length value <= 256
+  )
+in
 let Absolute =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -215,7 +220,7 @@ fun input =>
           organization | Identifier,
           project | Identifier,
           runner | Identifier,
-          audience | Dyn,
+          audience | c.Nullable Audience | default = null,
           secrets | Array { environment | Environment, name | Identifier, revision | Positive 9007199254740991 },
         }
         | default
