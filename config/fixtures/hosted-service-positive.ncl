@@ -146,7 +146,7 @@ let executable = { path = "/nix/store/fixture-not-a-runtime/bin/tool", blake3 = 
     memory_bytes = 335544320,
     processes = 8,
     cpu_percent = 100,
-    maximum_timeout_ms = 1000,
+    maximum_timeout_ms = 60000,
     maximum_output_bytes = 1024,
   },
   fleet = {

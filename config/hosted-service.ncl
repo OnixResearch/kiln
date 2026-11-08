@@ -670,6 +670,7 @@ let Execution =
                 + 67108864 <= admitted.memory_bytes
                 && runner.vcpus
                 + 4 <= admitted.processes
+                && runner.boot_timeout_ms < admitted.maximum_timeout_ms
               )
             )
             (std.record.values admitted.runners) then
