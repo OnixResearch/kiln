@@ -1,18 +1,18 @@
 //! Durable hosted repository bindings. Only startup admission accepts filesystem paths.
-use crate::{accounts, Actor};
+use crate::{Actor, accounts};
 use base64::Engine;
 use kiln_adapter_github::{
-    events::{admit_event, DeliveryHeaders},
+    events::{DeliveryHeaders, admit_event},
     profile::{
-        admit_config, load_config, AdmittedGithubConfig, GithubConfig, MAXIMUM_PROFILE_BYTES,
+        AdmittedGithubConfig, GithubConfig, MAXIMUM_PROFILE_BYTES, admit_config, load_config,
     },
     secret::resolve_secret,
     server::{open_store, runtime},
     service::plan_event,
 };
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::Read;
 use std::path::Path;
 
@@ -1107,16 +1107,18 @@ mod tests {
         bad.signature = format!("sha256={}", "0".repeat(64));
         assert!(ingest(&mut f.db, "acme", "app", "origin", 1, &bad, &body).is_err());
         let other = super::tests::body(42);
-        assert!(ingest(
-            &mut f.db,
-            "acme",
-            "app",
-            "origin",
-            1,
-            &super::tests::headers(&other, 2),
-            &other
-        )
-        .is_err());
+        assert!(
+            ingest(
+                &mut f.db,
+                "acme",
+                "app",
+                "origin",
+                1,
+                &super::tests::headers(&other, 2),
+                &other
+            )
+            .is_err()
+        );
         assert!(ingest(&mut f.db, "other", "app", "origin", 1, &headers, &body).is_err());
         assert!(ingest(&mut f.db, "acme", "private", "origin", 1, &headers, &body).is_err());
         let view = status(&f.db, &f.actor, "app", "origin", 1)
@@ -1131,14 +1133,16 @@ mod tests {
         );
         // Unfunded dispatch fails before resolving a status token or opening a workflow socket.
         assert!(tick(&mut f.db, &f.actor, "app", "origin", 1, &[], true).is_err());
-        assert!(handle(
-            &mut f.db,
-            &f.actor,
-            "tick",
-            json!({"project":"app","connection":"origin","generation":1}),
-            1
-        )
-        .is_err());
+        assert!(
+            handle(
+                &mut f.db,
+                &f.actor,
+                "tick",
+                json!({"project":"app","connection":"origin","generation":1}),
+                1
+            )
+            .is_err()
+        );
     }
     // r[verify kiln.hosted.connections.scenario.revoke]
     #[test]
@@ -1205,16 +1209,18 @@ mod tests {
         changed.push(b' ');
         std::fs::write(&f.path, &changed)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
-        assert!(ingest(
-            &mut f.db,
-            "acme",
-            "app",
-            "origin",
-            1,
-            &super::tests::headers(&body, 2),
-            &body
-        )
-        .is_err());
+        assert!(
+            ingest(
+                &mut f.db,
+                "acme",
+                "app",
+                "origin",
+                1,
+                &super::tests::headers(&body, 2),
+                &body
+            )
+            .is_err()
+        );
         std::fs::write(&f.path, &retained)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         begin_profile_configuration(&f.db)
@@ -1273,14 +1279,16 @@ mod tests {
         let accepted = handle(&mut f.db, &member, "ingest", input.clone(), 1002)
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert_eq!(accepted.get("accepted"), Some(&json!(true)));
-        assert!(handle(
-            &mut f.db,
-            &member,
-            "list",
-            json!({"project":"private"}),
-            1003
-        )
-        .is_err());
+        assert!(
+            handle(
+                &mut f.db,
+                &member,
+                "list",
+                json!({"project":"private"}),
+                1003
+            )
+            .is_err()
+        );
         accounts::handle(&mut f.db,&f.actor,"set_membership",json!({"peer":peer,"expected_revision":1,"role":"member","projects":["app"],"active":false}),1003).unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert!(handle(&mut f.db, &member, "ingest", input, 1004).is_err());
         assert!(status(&f.db, &member, "app", "origin", 1).is_err());

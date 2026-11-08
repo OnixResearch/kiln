@@ -5,8 +5,8 @@ use std::sync::mpsc;
 use std::time::Duration;
 
 use bounded_exec::{
-    run_with_cancellation, CommandSpec, Completion, EnvironmentMode, ExecutionLimits, Input,
-    OutcomePolicy, RunRequest, TerminationScope,
+    CommandSpec, Completion, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest,
+    TerminationScope, run_with_cancellation,
 };
 
 use super::profile::{Step, WorkerProfile};

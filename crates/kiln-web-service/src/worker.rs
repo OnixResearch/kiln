@@ -28,8 +28,8 @@ pub fn stream_child_main(arguments: impl Iterator<Item = std::ffi::OsString>) ->
 }
 
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 // r[impl kiln.web.worker]
 pub fn load_profile(path: &Path, identity: &str) -> Result<WorkerProfile, String> {

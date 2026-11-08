@@ -1,9 +1,9 @@
 use crate::profile::ProjectProfile;
-use kiln_core::domain::{decide, evolve, Command, CommandEnvelope, Event, Outcome, State};
+use kiln_core::domain::{Command, CommandEnvelope, Event, Outcome, State, decide, evolve};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::{
-    Alias, AttemptId, CandidateId, CommandId, ContentId, EffectId, ExternalRef, Limits,
-    PipelineRevisionId, PolicyId, ProviderProfileId, RunId, CONTRACT_VERSION_V1,
+    Alias, AttemptId, CONTRACT_VERSION_V1, CandidateId, CommandId, ContentId, EffectId,
+    ExternalRef, Limits, PipelineRevisionId, PolicyId, ProviderProfileId, RunId,
 };
 use kiln_core::workflow::{
     WorkflowControls, WorkflowEdge, WorkflowEffectPlan, WorkflowNode, WorkflowNodeState,

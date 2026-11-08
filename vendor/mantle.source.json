@@ -12,6 +12,7 @@
   "archive_blake3": "56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083",
   "importer": "scripts/import-pinned-source.sh",
   "package_licenses": {},
-  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
-  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+  "scope": "Selected upstream files; a tree-local rustfmt configuration disables host formatting. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln.",
+  "formatter_scope": "Tree-local rustfmt configuration sets disable_all_formatting so the host workspace formatter covers Kiln-owned sources without rewriting pinned upstream bytes."
 }

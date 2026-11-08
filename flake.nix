@@ -831,8 +831,9 @@
           };
           format = pkgs.runCommand "kiln-format" { nativeBuildInputs = [ toolchain ]; } ''
             ${copySource}
-            # Check every member, not the pristine partial producer workspaces.
-            cargo fmt -- --check
+            # Check every member and local path dependency. Pinned producer
+            # trees disable formatting through their own rustfmt configuration.
+            cargo fmt --all -- --check
             touch "$out"
           '';
           clippy = rustPlatform.buildRustPackage {

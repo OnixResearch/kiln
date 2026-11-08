@@ -1,8 +1,8 @@
 //! Durable integer-money admission. Only trusted executor entry points may meter usage.
 use hmac::{Hmac, Mac};
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::Sha256;
 
 const MAX_MONEY: u64 = 1_000_000_000_000;
@@ -1467,32 +1467,36 @@ mod tests {
             .unwrap_or_else(|error| unreachable!("{error:?}")),
             receipt
         );
-        assert!(settle_elapsed_trusted(
-            &mut db,
-            "org",
-            "a",
-            &ElapsedMeasurement {
-                receipt_id: "receipt",
-                elapsed_ms: 2100,
-                execution_outcome: "failed",
-                evidence: "trusted host clock"
-            },
-            7
-        )
-        .is_err());
-        assert!(settle_elapsed_trusted(
-            &mut db,
-            "org",
-            "a",
-            &ElapsedMeasurement {
-                receipt_id: "other",
-                elapsed_ms: 1100,
-                execution_outcome: "failed",
-                evidence: "trusted host clock"
-            },
-            7
-        )
-        .is_err());
+        assert!(
+            settle_elapsed_trusted(
+                &mut db,
+                "org",
+                "a",
+                &ElapsedMeasurement {
+                    receipt_id: "receipt",
+                    elapsed_ms: 2100,
+                    execution_outcome: "failed",
+                    evidence: "trusted host clock"
+                },
+                7
+            )
+            .is_err()
+        );
+        assert!(
+            settle_elapsed_trusted(
+                &mut db,
+                "org",
+                "a",
+                &ElapsedMeasurement {
+                    receipt_id: "other",
+                    elapsed_ms: 1100,
+                    execution_outcome: "failed",
+                    evidence: "trusted host clock"
+                },
+                7
+            )
+            .is_err()
+        );
         assert_eq!(
             reconcile(&db, "org")
                 .unwrap_or_else(|error| unreachable!("{error:?}"))
@@ -1510,31 +1514,35 @@ mod tests {
             .unwrap_or_else(|error| unreachable!("unexpected finance test failure: {error:?}"));
         let price = setup(&mut db, 100, 1);
         let owner = actor("owner");
-        assert!(credit(
-            &mut db,
-            &actor("member"),
-            json!({"request_id":"evil","amount_minor":100,"reason":"mint"}),
-            2
-        )
-        .is_err());
+        assert!(
+            credit(
+                &mut db,
+                &actor("member"),
+                json!({"request_id":"evil","amount_minor":100,"reason":"mint"}),
+                2
+            )
+            .is_err()
+        );
         assert!(handle(&mut db, &owner, "usage.settle", json!({"units":0}), 2).is_err());
         reserve(&mut db, &actor("member"), request("a", &price, 8), 2)
             .unwrap_or_else(|error| unreachable!("unexpected finance test failure: {error:?}"));
         assert!(reserve(&mut db, &actor("member"), request("b", &price, 1), 2).is_err());
-        assert!(settle_trusted(
-            &mut db,
-            "org",
-            "a",
-            &Settlement {
-                receipt_id: "r".into(),
-                price_id: "different".into(),
-                units: 1,
-                execution_outcome: "succeeded".into(),
-                evidence: "host".into()
-            },
-            3
-        )
-        .is_err());
+        assert!(
+            settle_trusted(
+                &mut db,
+                "org",
+                "a",
+                &Settlement {
+                    receipt_id: "r".into(),
+                    price_id: "different".into(),
+                    units: 1,
+                    execution_outcome: "succeeded".into(),
+                    evidence: "host".into()
+                },
+                3
+            )
+            .is_err()
+        );
         settle_elapsed_trusted(
             &mut db,
             "org",
@@ -1606,14 +1614,16 @@ mod tests {
             organization: "other".into(),
             ..owner
         };
-        assert!(handle(
-            &mut db,
-            &other,
-            "invoice.get",
-            json!({"invoice_id":inv.get("invoice_id").unwrap_or(&Value::Null)}),
-            9
-        )
-        .is_err());
+        assert!(
+            handle(
+                &mut db,
+                &other,
+                "invoice.get",
+                json!({"invoice_id":inv.get("invoice_id").unwrap_or(&Value::Null)}),
+                9
+            )
+            .is_err()
+        );
     }
     // r[verify kiln.hosted.finance.scenario.cap]
     #[test]
@@ -1769,13 +1779,15 @@ mod tests {
             limited
         );
         assert!(configure(&mut db,&owner,json!({"request_id":"stale","expected_revision":1,"currency":"usd","cap_minor":100,"request_max_minor":20,"max_concurrent":2}),3).is_err());
-        assert!(reserve(
-            &mut db,
-            &actor("member"),
-            request("too-large", &price, 3),
-            3
-        )
-        .is_err());
+        assert!(
+            reserve(
+                &mut db,
+                &actor("member"),
+                request("too-large", &price, 3),
+                3
+            )
+            .is_err()
+        );
         assert!(reserve(&mut db, &actor("viewer"), request("viewer", &price, 1), 3).is_err());
         assert!(reserve(&mut db, &actor("member"), request("zero", &price, 0), 3).is_err());
         let mut wrong = request("wrong-project", &price, 1);
@@ -1786,19 +1798,21 @@ mod tests {
         reserve(&mut db, &actor("member"), request("good", &price, 2), 3)
             .unwrap_or_else(|error| unreachable!("unexpected finance test failure: {error:?}"));
         assert!(configure(&mut db,&owner,json!({"request_id":"below-obligation","expected_revision":2,"currency":"usd","cap_minor":10,"request_max_minor":10,"max_concurrent":2}),4).is_err());
-        assert!(settle_elapsed_trusted(
-            &mut db,
-            "org",
-            "good",
-            &ElapsedMeasurement {
-                receipt_id: "over-max",
-                elapsed_ms: 3000,
-                execution_outcome: "succeeded",
-                evidence: "trusted host"
-            },
-            4
-        )
-        .is_err());
+        assert!(
+            settle_elapsed_trusted(
+                &mut db,
+                "org",
+                "good",
+                &ElapsedMeasurement {
+                    receipt_id: "over-max",
+                    elapsed_ms: 3000,
+                    execution_outcome: "succeeded",
+                    evidence: "trusted host"
+                },
+                4
+            )
+            .is_err()
+        );
         assert_eq!(
             account(&db, "org")
                 .unwrap_or_else(|error| unreachable!("{error:?}"))
@@ -1807,14 +1821,16 @@ mod tests {
             20
         );
         db.execute("UPDATE hosted_memberships SET projects='[]',revision=2 WHERE organization='org' AND peer=?1",[actor("member").peer]).unwrap_or_else(|error| unreachable!("unexpected finance test failure: {error:?}"));
-        assert!(handle(
-            &mut db,
-            &actor("member"),
-            "reservation.get",
-            json!({"attempt_id":"good"}),
-            5
-        )
-        .is_err());
+        assert!(
+            handle(
+                &mut db,
+                &actor("member"),
+                "reservation.get",
+                json!({"attempt_id":"good"}),
+                5
+            )
+            .is_err()
+        );
         assert!(reserve(&mut db, &actor("member"), request("good", &price, 2), 5).is_err());
         settle_elapsed_trusted(
             &mut db,
@@ -1844,13 +1860,15 @@ mod tests {
         setup(&mut db, 100, 1);
         let owner = actor("owner");
         assert!(admit_price(&mut db,&owner,json!({"class":"linux","currency":"usd","unit_minor":MAX_MONEY,"unit_ms":1,"max_units":2}),2).is_err());
-        assert!(admit_price(
-            &mut db,
-            &actor("member"),
-            json!({"class":"linux","currency":"usd","unit_minor":1,"unit_ms":1,"max_units":2}),
-            2
-        )
-        .is_err());
+        assert!(
+            admit_price(
+                &mut db,
+                &actor("member"),
+                json!({"class":"linux","currency":"usd","unit_minor":1,"unit_ms":1,"max_units":2}),
+                2
+            )
+            .is_err()
+        );
         credit(
             &mut db,
             &owner,
@@ -1858,20 +1876,24 @@ mod tests {
             3,
         )
         .unwrap_or_else(|error| unreachable!("unexpected finance test failure: {error:?}"));
-        assert!(credit(
-            &mut db,
-            &owner,
-            json!({"request_id":"credit","amount_minor":11,"reason":"service correction"}),
-            4
-        )
-        .is_err());
-        assert!(credit(
-            &mut db,
-            &owner,
-            json!({"request_id":"overflow","amount_minor":MAX_MONEY,"reason":"too much"}),
-            4
-        )
-        .is_err());
+        assert!(
+            credit(
+                &mut db,
+                &owner,
+                json!({"request_id":"credit","amount_minor":11,"reason":"service correction"}),
+                4
+            )
+            .is_err()
+        );
+        assert!(
+            credit(
+                &mut db,
+                &owner,
+                json!({"request_id":"overflow","amount_minor":MAX_MONEY,"reason":"too much"}),
+                4
+            )
+            .is_err()
+        );
         assert_eq!(
             account(&db, "org")
                 .unwrap_or_else(|error| unreachable!("{error:?}"))
@@ -1890,34 +1912,42 @@ mod tests {
         db.execute("UPDATE hosted_memberships SET role='owner',revision=2 WHERE organization='org' AND peer=?1",[actor("member").peer]).unwrap_or_else(|error|unreachable!("{error:?}"));
         db.execute("UPDATE hosted_memberships SET role='member',projects='[]',revision=2 WHERE organization='org' AND peer=?1",[&stale_owner.peer]).unwrap_or_else(|error|unreachable!("{error:?}"));
         assert!(configure(&mut db,&stale_owner,json!({"request_id":"config","expected_revision":0,"currency":"usd","cap_minor":100,"request_max_minor":100,"max_concurrent":2}),2).is_err());
-        assert!(admit_price(
-            &mut db,
-            &stale_owner,
-            json!({"class":"new","currency":"usd","unit_minor":1,"unit_ms":1,"max_units":1}),
-            2
-        )
-        .is_err());
-        assert!(credit(
-            &mut db,
-            &stale_owner,
-            json!({"request_id":"stale-credit","amount_minor":10,"reason":"unauthorized"}),
-            2
-        )
-        .is_err());
-        assert!(draft(
-            &mut db,
-            &stale_owner,
-            json!({"request_id":"stale-invoice"}),
-            2
-        )
-        .is_err());
-        assert!(reserve(
-            &mut db,
-            &stale_owner,
-            request("stale-project", &price, 1),
-            2
-        )
-        .is_err());
+        assert!(
+            admit_price(
+                &mut db,
+                &stale_owner,
+                json!({"class":"new","currency":"usd","unit_minor":1,"unit_ms":1,"max_units":1}),
+                2
+            )
+            .is_err()
+        );
+        assert!(
+            credit(
+                &mut db,
+                &stale_owner,
+                json!({"request_id":"stale-credit","amount_minor":10,"reason":"unauthorized"}),
+                2
+            )
+            .is_err()
+        );
+        assert!(
+            draft(
+                &mut db,
+                &stale_owner,
+                json!({"request_id":"stale-invoice"}),
+                2
+            )
+            .is_err()
+        );
+        assert!(
+            reserve(
+                &mut db,
+                &stale_owner,
+                request("stale-project", &price, 1),
+                2
+            )
+            .is_err()
+        );
         db.execute("UPDATE hosted_memberships SET active=0,revision=3 WHERE organization='org' AND peer=?1",[&stale_owner.peer]).unwrap_or_else(|error|unreachable!("{error:?}"));
         assert!(reserve(
             &mut db,

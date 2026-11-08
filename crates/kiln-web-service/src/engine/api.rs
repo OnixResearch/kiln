@@ -1,12 +1,12 @@
 use super::model::{RequestKind, RequestRecord};
-use super::{identity, ApiResponse, Engine, Role};
+use super::{ApiResponse, Engine, Role, identity};
 use kiln_core::domain::Command;
 use kiln_core::types::{Alias, AttemptId, ExternalRef};
 use kiln_core::workflow::{
     WorkflowControlAction, WorkflowControlRequest, WorkflowLogReadRequest, WorkflowLogStream,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
 pub(crate) fn json_response(status: u16, value: impl Serialize) -> Result<ApiResponse, String> {

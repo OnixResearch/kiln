@@ -1,7 +1,7 @@
 use crate::Actor;
-use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const MAX_MEMBERS: i64 = 4096;
 const MAX_INVITATIONS: i64 = 16384;
@@ -439,22 +439,26 @@ mod tests {
     fn intended_peer_once_scope_and_revocation() {
         let (mut db, owner, peer) = setup();
         let invitation = invite(&mut db, &owner, &peer, "first");
-        assert!(accept_invitation(
-            &mut db,
-            &"03".repeat(32),
-            "acme",
-            json!({"invitation":invitation}),
-            1001
-        )
-        .is_err());
-        assert!(accept_invitation(
-            &mut db,
-            &peer,
-            "other",
-            json!({"invitation":invitation}),
-            1001
-        )
-        .is_err());
+        assert!(
+            accept_invitation(
+                &mut db,
+                &"03".repeat(32),
+                "acme",
+                json!({"invitation":invitation}),
+                1001
+            )
+            .is_err()
+        );
+        assert!(
+            accept_invitation(
+                &mut db,
+                &peer,
+                "other",
+                json!({"invitation":invitation}),
+                1001
+            )
+            .is_err()
+        );
         accept_invitation(
             &mut db,
             &peer,
@@ -463,14 +467,16 @@ mod tests {
             1001,
         )
         .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
-        assert!(accept_invitation(
-            &mut db,
-            &peer,
-            "acme",
-            json!({"invitation":invitation}),
-            1002
-        )
-        .is_err());
+        assert!(
+            accept_invitation(
+                &mut db,
+                &peer,
+                "acme",
+                json!({"invitation":invitation}),
+                1002
+            )
+            .is_err()
+        );
         let member = authorize(&db, &peer, "acme")
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         require_project(&db, &member, "app", &["member"])
@@ -487,36 +493,42 @@ mod tests {
         handle(&mut db,&owner,"set_membership",json!({"peer":peer,"expected_revision":1,"role":"member","projects":["app"],"active":false}),1003).unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert!(authorize(&db, &peer, "acme").is_err());
         assert!(require_project(&db, &member, "app", &["member"]).is_err());
-        assert!(accept_invitation(
-            &mut db,
-            &peer,
-            "acme",
-            json!({"invitation":invitation}),
-            1004
-        )
-        .is_err());
+        assert!(
+            accept_invitation(
+                &mut db,
+                &peer,
+                "acme",
+                json!({"invitation":invitation}),
+                1004
+            )
+            .is_err()
+        );
     }
     // r[verify kiln.hosted.accounts.scenario.membership]
     #[test]
     fn final_owner_expiry_and_bootstrap_pin() {
         let (mut db, owner, peer) = setup();
-        assert!(handle(
-            &mut db,
-            &owner,
-            "set_membership",
-            json!({"peer":owner.peer,"expected_revision":1,"role":"viewer","active":true}),
-            1
-        )
-        .is_err());
+        assert!(
+            handle(
+                &mut db,
+                &owner,
+                "set_membership",
+                json!({"peer":owner.peer,"expected_revision":1,"role":"viewer","active":true}),
+                1
+            )
+            .is_err()
+        );
         let invitation = invite(&mut db, &owner, &peer, "expired");
-        assert!(accept_invitation(
-            &mut db,
-            &peer,
-            "acme",
-            json!({"invitation":invitation}),
-            5000
-        )
-        .is_err());
+        assert!(
+            accept_invitation(
+                &mut db,
+                &peer,
+                "acme",
+                json!({"invitation":invitation}),
+                5000
+            )
+            .is_err()
+        );
         bootstrap(&mut db, &owner.peer, "acme")
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert!(bootstrap(&mut db, &peer, "acme").is_err());
@@ -551,14 +563,16 @@ mod tests {
             1001,
         )
         .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
-        assert!(accept_invitation(
-            &mut db,
-            &peer,
-            "acme",
-            json!({"invitation":invitation}),
-            1002
-        )
-        .is_err());
+        assert!(
+            accept_invitation(
+                &mut db,
+                &peer,
+                "acme",
+                json!({"invitation":invitation}),
+                1002
+            )
+            .is_err()
+        );
     }
     // r[verify kiln.hosted.accounts.scenario.membership]
     #[test]
@@ -597,13 +611,15 @@ mod tests {
             .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
         assert!(authorize(&db, &owner.peer, "acme").is_err());
         assert!(handle(&mut db, &owner, "list", json!({}), 1003).is_err());
-        assert!(handle(
-            &mut db,
-            &second,
-            "set_membership",
-            json!({"peer":peer,"expected_revision":1,"role":"member","active":true}),
-            1004
-        )
-        .is_err());
+        assert!(
+            handle(
+                &mut db,
+                &second,
+                "set_membership",
+                json!({"peer":peer,"expected_revision":1,"role":"member","active":true}),
+                1004
+            )
+            .is_err()
+        );
     }
 }

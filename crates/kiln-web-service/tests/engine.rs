@@ -7,7 +7,7 @@ use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult, Workflow
 use kiln_web_service::engine::{ApiResponse, Engine, Role};
 use kiln_web_service::profile::ServiceProfile;
 use parking_lot::Mutex;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -1287,8 +1287,10 @@ fn missing_reply_after_durable_start_returns_original_resource_without_redispatc
     database
         .execute(
             "UPDATE service_state SET state=?1 WHERE id=1",
-            rusqlite::params![serde_json::to_vec(&state)
-                .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"))],
+            rusqlite::params![
+                serde_json::to_vec(&state)
+                    .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"))
+            ],
         )
         .unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     drop(database);
@@ -1310,9 +1312,11 @@ fn failed_durable_reservation_prevents_provider_effects_and_further_authority() 
     database.execute_batch("CREATE TRIGGER reject_state BEFORE UPDATE ON service_state BEGIN SELECT RAISE(ABORT, 'isolated disk failure'); END;").unwrap_or_else(|error| unreachable!("fixture failed: {error:?}"));
     let request = serde_json::to_vec(&json!({"project_id":"fixture","request_id":"failed-start"}))
         .unwrap_or_else(|error| unreachable!("fixture encoding: {error}"));
-    assert!(engine
-        .api("POST", "/api/runs", &request, Role::Operator)
-        .is_err());
+    assert!(
+        engine
+            .api("POST", "/api/runs", &request, Role::Operator)
+            .is_err()
+    );
     assert_eq!(start(&mut engine, "no-effects-after-failure").status, 503);
     assert!(engine.poll().is_err());
     assert_eq!(backend.lock().dispatches, 0);

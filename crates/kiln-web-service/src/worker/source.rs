@@ -4,12 +4,12 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 use git2::{Oid, Repository, Tree};
-use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
+use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::ProviderProfileId;
 
 use super::files;
-use super::profile::{hex, WorkerProfile};
+use super::profile::{WorkerProfile, hex};
 
 const MAX_TREE_DEPTH: usize = 128;
 

@@ -1,13 +1,13 @@
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
-use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
+use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::{ExternalRef, ProviderProfileId};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::{LogBounds, Node, RunBinding, ServiceClient, WorkerProfile};
 
@@ -553,16 +553,18 @@ fn execution_log_https_consumer_fits_minimum_http_envelope_across_chunks() {
     let client = checked(ServiceClient::new(&profile));
     checked(client.upload_execution_logs(&bound, "build", &bytes, b"", true, false));
     // Reference exhaustion must reject before another binding lookup or upload.
-    assert!(client
-        .upload_execution_logs(
-            &bound,
-            "build",
-            &vec![b'x'; maximum * 2 + 1],
-            b"",
-            false,
-            false
-        )
-        .is_err());
+    assert!(
+        client
+            .upload_execution_logs(
+                &bound,
+                "build",
+                &vec![b'x'; maximum * 2 + 1],
+                b"",
+                false,
+                false
+            )
+            .is_err()
+    );
     stop.store(true, Ordering::SeqCst);
     assert_eq!(checked(server.join()), 3);
     let requests = checked(requests.lock());
@@ -752,9 +754,11 @@ fn execution_log_limits_reserve_both_streams_and_reject_before_upload() {
     let (origin, stop, server) =
         receiver(vec![(Duration::ZERO, checked(serde_json::to_value(stale)))]);
     profile.service_origin = origin;
-    assert!(checked(ServiceClient::new(&profile))
-        .upload_execution_logs(&bound, "build", b"captured", b"", false, false)
-        .is_err());
+    assert!(
+        checked(ServiceClient::new(&profile))
+            .upload_execution_logs(&bound, "build", b"captured", b"", false, false)
+            .is_err()
+    );
     stop.store(true, Ordering::SeqCst);
     assert_eq!(
         checked(server.join()),

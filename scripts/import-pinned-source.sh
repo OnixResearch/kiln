@@ -57,6 +57,41 @@ if [[ "$observed" != "$archive_blake3" ]]; then
 fi
 mkdir "$temporary/source"
 tar -xf "$temporary/source.tar" -C "$temporary/source"
+# A partial import retains the upstream workspace manifest for package
+# inheritance. Drop members whose imported paths are absent so Cargo can read
+# the manifest without resolving unselected upstream producers.
+# Pinned upstream bytes are also outside the host workspace formatter. Every
+# rustfmt configuration root in the imported tree disables formatting, so the
+# direct workspace formatter covers Kiln-owned sources without rewriting
+# vendored code.
+python3 - "$temporary/source" <<'PY'
+import pathlib
+import re
+import sys
+
+root = pathlib.Path(sys.argv[1])
+manifest = root / "Cargo.toml"
+if manifest.is_file():
+    text = manifest.read_text()
+    match = re.search(r"(?m)^members\s*=\s*\[(.*?)\]", text, re.S)
+    if match:
+        body = match.group(1)
+        entries = re.findall(r'"([^"]+)"', body)
+        keep = [entry for entry in entries if (root / entry).is_dir()]
+        if len(keep) != len(entries):
+            first_indent = re.search(r"(?m)^([ \t]*)\"", body)
+            indent = first_indent.group(1) if first_indent else "  "
+            replacement = "members = [\n" + "".join(
+                f'{indent}"{entry}",\n' for entry in keep
+            ) + "]"
+            manifest.write_text(text[: match.start()] + replacement + text[match.end() :])
+policy = "disable_all_formatting = true"
+configs = list(root.rglob("rustfmt.toml"))
+if not any(config.parent == root for config in configs):
+    configs.append(root / "rustfmt.toml")
+for config in configs:
+    config.write_text(policy + "\n")
+PY
 if [[ -e "$destination" || -L "$destination" ]]; then
   # Compare bytes, symlink targets and executable bits. Never replace drift.
   git diff --no-index --exit-code -- "$temporary/source" "$destination"

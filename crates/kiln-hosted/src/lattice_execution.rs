@@ -3,17 +3,17 @@ use std::io::Write;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 
 use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter};
-use kiln_core::source::{validate_resolution, GitSnapshotLimits, SourceNativeFacts};
+use kiln_core::source::{GitSnapshotLimits, SourceNativeFacts, validate_resolution};
 use kiln_core::workflow::WorkflowEffectPlan;
 use kiln_provider_api::{SourceRepositoryPort, WorkflowDispatchBinding};
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Durable Web cancellation intent is the only authority the backend observes
 /// when the native task itself was destroyed without a signal.
@@ -753,7 +753,7 @@ fn materialize(manifest: &[u8], root: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use kiln_core::source::{build_git_snapshot_manifest, GitEntryKind, GitSnapshotEntry};
+    use kiln_core::source::{GitEntryKind, GitSnapshotEntry, build_git_snapshot_manifest};
     use kiln_core::types::ExternalRef;
     use std::os::unix::fs::PermissionsExt;
 
@@ -804,10 +804,12 @@ mod tests {
                 .unwrap_or_else(|_| unreachable!("runner panicked")),
             Err("Lattice admission cancelled before execution".into())
         );
-        assert!(registry
-            .lock()
-            .unwrap_or_else(|e| unreachable!("{e}"))
-            .is_empty());
+        assert!(
+            registry
+                .lock()
+                .unwrap_or_else(|e| unreachable!("{e}"))
+                .is_empty()
+        );
     }
 
     #[test]
@@ -818,10 +820,12 @@ mod tests {
         assert_eq!(pending.get("state"), Some(&json!("unknown")));
         assert_eq!(pending.get("admission_registered"), Some(&json!(false)));
         assert_eq!(pending.get("cancellation_requested"), Some(&json!(false)));
-        assert!(registry
-            .lock()
-            .unwrap_or_else(|e| unreachable!("{e}"))
-            .is_empty());
+        assert!(
+            registry
+                .lock()
+                .unwrap_or_else(|e| unreachable!("{e}"))
+                .is_empty()
+        );
         let admission =
             AdmissionCancellation::register(&registry, ("org".into(), "lattice-binding".into()))
                 .unwrap_or_else(|e| unreachable!("{e}"));

@@ -6,9 +6,9 @@ use bounded_exec::{
     CommandSpec, Completion, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest,
     TerminationScope,
 };
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Only a reviewed immutable local executable is admitted. This is a protocol
 /// boundary, not a built-in cloud provider or permission to purchase capacity.

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::files;
-use super::profile::{hex, WorkerProfile};
+use super::profile::{WorkerProfile, hex};
 
 const MAX_CA_BYTES: usize = 1_048_576;
 

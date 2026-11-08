@@ -16,12 +16,12 @@ use std::{
 };
 
 use kiln_hosted::{
+    Request, Response, SCHEMA,
     execution::Config,
     service::{Profile, Service},
     transport::{self, NetworkProfile},
-    Request, Response, SCHEMA,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const ORG: &str = "microvm-org";
 const PROJECT: &str = "alpha";

@@ -1,6 +1,6 @@
 use super::api::{error, json_response};
 use super::model::ArtifactView;
-use super::{identity, ApiResponse, Engine};
+use super::{ApiResponse, Engine, identity};
 use base64::Engine as _;
 use kiln_core::types::{AttemptId, ExternalRef};
 use kiln_core::workflow::WorkflowState;

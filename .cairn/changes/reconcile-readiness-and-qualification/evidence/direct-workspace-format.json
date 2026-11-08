@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.readiness.direct-workspace-format.v1",
+  "date": "2026-11-08",
+  "command": [
+    "cargo",
+    "fmt",
+    "--all",
+    "--check"
+  ],
+  "exit": 0,
+  "stdout": "",
+  "stderr": "",
+  "toolchain": "rustfmt 1.8.0-stable (6b00bc3880 2025-06-23)",
+  "style": "workspace edition 2024",
+  "governance": {
+    "manifest_normalization": "scripts/import-pinned-source.sh prunes workspace members whose imported paths are absent from each retained root manifest.",
+    "vendor_formatter_scope": "The same importer writes or replaces tree-local rustfmt configuration with disable_all_formatting = true for pinned imports, including nested upstream configuration roots.",
+    "kiln_scope": "cargo fmt --all covers every Kiln-owned workspace member and local path dependency outside the pinned vendor trees.",
+    "kiln_formatting": "The direct workspace formatter was applied to Kiln-owned sources without rewriting pinned upstream bytes."
+  },
+  "nonclaims": [
+    "Formatter success is not proof of source correctness, review quality, release eligibility, or upstream formatting authority.",
+    "Pinned vendored bytes remain outside host formatting; their source records, archive digests and importers remain authoritative."
+  ]
+}

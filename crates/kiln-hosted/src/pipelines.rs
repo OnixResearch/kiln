@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub const PIPELINE_SCHEMA: &str = "kiln.hosted.pipeline.v1";
 pub const PLAN_SCHEMA: &str = "kiln.hosted.pipeline-plan.v1";
@@ -30,8 +30,8 @@ pub const MILLISECONDS_PER_MINUTE: u64 = 60_000;
 pub const ACTIONS_DEFAULT_TIMEOUT_MS: u64 = 360 * MILLISECONDS_PER_MINUTE;
 mod triggers;
 pub use triggers::{
-    select as select_trigger, ScheduleEntry, SourceEvent, Trigger, DEFAULT_SCHEDULE_REFERENCE,
-    MAX_SCHEDULES, MAX_TRIGGERS,
+    DEFAULT_SCHEDULE_REFERENCE, MAX_SCHEDULES, MAX_TRIGGERS, ScheduleEntry, SourceEvent, Trigger,
+    select as select_trigger,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -1394,14 +1394,16 @@ mod tests {
             params![actor.organization, scoped.peer, actor.peer],
         ));
         assert!(error(reviewed(&db, &scoped, "project", identity)).contains("scope"));
-        assert!(error(handle(
-            &mut db,
-            &scoped,
-            "list",
-            json!({"project":"project"}),
-            2
-        ))
-        .contains("scope"));
+        assert!(
+            error(handle(
+                &mut db,
+                &scoped,
+                "list",
+                json!({"project":"project"}),
+                2
+            ))
+            .contains("scope")
+        );
         ok(db.execute(
             "UPDATE hosted_memberships SET projects='[\"project\"]' WHERE peer=?1",
             [&scoped.peer],
@@ -1498,10 +1500,12 @@ mod tests {
                 }),
             ]
         );
-        assert!(migrated
-            .diagnostics
-            .iter()
-            .any(|d| d.contains("closed and merged")));
+        assert!(
+            migrated
+                .diagnostics
+                .iter()
+                .any(|d| d.contains("closed and merged"))
+        );
         let round_trip = ok(compile_value(ok(serde_json::to_value(&migrated.pipeline))));
         assert_eq!(round_trip, migrated.compiled);
         for (input, path) in [

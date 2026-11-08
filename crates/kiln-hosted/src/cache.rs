@@ -286,7 +286,7 @@ pub fn restore_image(
     capacity: u64,
 ) -> Result<(CacheKey, CacheObservation), String> {
     use base64::Engine as _;
-    use kiln_microvm::archive::{header, EntryKind, SourceEntry};
+    use kiln_microvm::archive::{EntryKind, SourceEntry, header};
     use std::io::Write;
     use std::os::unix::fs::OpenOptionsExt;
 
@@ -506,7 +506,7 @@ mod tests {
         }
     }
     fn guest_tar(path: &str, body: &[u8]) -> Vec<u8> {
-        use kiln_microvm::archive::{header, EntryKind, SourceEntry, BLOCK_BYTES};
+        use kiln_microvm::archive::{BLOCK_BYTES, EntryKind, SourceEntry, header};
         let entry = SourceEntry {
             path: path.into(),
             kind: EntryKind::File {
@@ -635,13 +635,15 @@ mod tests {
             b"compiled-product",
         ));
         ok(std::fs::write(source.path().join("input"), b"source-v2"));
-        assert!(publish_extracted(
-            &cache,
-            &context(source.path(), "org", "config-v1"),
-            returned.path(),
-            &key,
-        )
-        .is_err());
+        assert!(
+            publish_extracted(
+                &cache,
+                &context(source.path(), "org", "config-v1"),
+                returned.path(),
+                &key,
+            )
+            .is_err()
+        );
     }
     #[test]
     fn cache_tar_bound_must_fit_the_guest_frame() {

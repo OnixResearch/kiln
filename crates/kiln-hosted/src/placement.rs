@@ -1,7 +1,7 @@
 //! Local managed-VMM overlap evidence, separate from whole-attempt reservations.
 //! r[impl kiln.hosted.microvm.host_placement]
-use rusqlite::{params, Connection};
-use serde_json::{json, Value};
+use rusqlite::{Connection, params};
+use serde_json::{Value, json};
 
 pub(crate) fn init(db: &Connection) -> Result<(), String> {
     db.execute_batch("CREATE TABLE IF NOT EXISTS hosted_vm_active(org TEXT NOT NULL,attempt TEXT NOT NULL,job TEXT NOT NULL,host TEXT NOT NULL,pid INTEGER,start_ticks TEXT,PRIMARY KEY(org,attempt,job));

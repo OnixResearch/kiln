@@ -9,12 +9,12 @@ use std::{
 
 use iroh::{Endpoint, EndpointAddr};
 use kiln_hosted::{
+    MAX_FRAME_BYTES, Request, Response, SCHEMA,
     operations::{self, OperationsProfile},
     service::{Profile, Service},
     transport::{self, NetworkProfile},
-    Request, Response, MAX_FRAME_BYTES, SCHEMA,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio::{io::AsyncWriteExt, sync::oneshot, time::timeout};
 
 const ORG: &str = "journey-org";
@@ -257,16 +257,17 @@ fn current_membership_and_project_authority_precede_retained_responses() {
     assert_eq!(accepted(service.handle(&guest, lookup.clone())), original);
     let privileged = request("cached-members", "accounts.list", json!({}));
     let members = accepted(service.handle(&guest, privileged.clone()));
-    assert!(members
-        .get("members")
-        .unwrap_or(&Value::Null)
-        .as_array()
-        .unwrap_or_else(|| unreachable!("expected members array"))
-        .iter()
-        .any(
-            |member| member.get("peer").and_then(Value::as_str) == Some(fixture.owner.as_str())
-                && member.get("role").unwrap_or(&Value::Null) == "owner"
-        ));
+    assert!(
+        members
+            .get("members")
+            .unwrap_or(&Value::Null)
+            .as_array()
+            .unwrap_or_else(|| unreachable!("expected members array"))
+            .iter()
+            .any(|member| member.get("peer").and_then(Value::as_str)
+                == Some(fixture.owner.as_str())
+                && member.get("role").unwrap_or(&Value::Null) == "owner")
+    );
 
     // A downgraded role must not retrieve a response produced under admin authority.
     change_membership(
@@ -923,16 +924,17 @@ fn organization_owner_without_host_authority_cannot_create_whole_service_backup(
         "accounts.list",
         json!({}),
     );
-    assert!(members
-        .get("members")
-        .unwrap_or(&Value::Null)
-        .as_array()
-        .unwrap_or_else(|| unreachable!("expected members array"))
-        .iter()
-        .any(
-            |member| member.get("peer").and_then(Value::as_str) == Some(fixture.owner.as_str())
-                && member.get("active").unwrap_or(&Value::Null) == true
-        ));
+    assert!(
+        members
+            .get("members")
+            .unwrap_or(&Value::Null)
+            .as_array()
+            .unwrap_or_else(|| unreachable!("expected members array"))
+            .iter()
+            .any(|member| member.get("peer").and_then(Value::as_str)
+                == Some(fixture.owner.as_str())
+                && member.get("active").unwrap_or(&Value::Null) == true)
+    );
 }
 
 #[test]

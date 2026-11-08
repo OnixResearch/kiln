@@ -4,11 +4,11 @@
 
 use super::api::error;
 use super::model::{RequestKind, RunRecord};
-use super::{host_time_ms, identity, ApiResponse, Engine, Role};
+use super::{ApiResponse, Engine, Role, host_time_ms, identity};
 use kiln_core::domain::Outcome;
 use kiln_core::untrusted::{
-    decide_approval, supersedes, ApprovalRejection, ApproveUntrustedRun, Approver,
-    ApproverAuthority, UntrustedGate, UntrustedState,
+    ApprovalRejection, ApproveUntrustedRun, Approver, ApproverAuthority, UntrustedGate,
+    UntrustedState, decide_approval, supersedes,
 };
 use serde::{Deserialize, Serialize};
 

@@ -1,14 +1,14 @@
 use crate::{Request, Response, SCHEMA};
 use fs2::FileExt;
-use rusqlite::{params, Connection, OptionalExtension};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc, Mutex, RwLock,
+    atomic::{AtomicBool, Ordering},
 };
 
 const MAX_REQUEST_RECORDS: i64 = 100_000;

@@ -5,7 +5,7 @@ use hmac::{Hmac, Mac};
 use kiln_adapter_github::events::DeliveryHeaders;
 use kiln_core::monorepo::{ChangedFallback, ChangedFiles};
 use kiln_web_service::automation::AutomationProfile;
-use kiln_web_service::monorepo::{changed_files, ChangedBounds};
+use kiln_web_service::monorepo::{ChangedBounds, changed_files};
 use sha2::Sha256;
 use std::collections::BTreeSet;
 use std::os::unix::fs::PermissionsExt;
@@ -551,9 +551,11 @@ fn push_dispatches_only_affected_projects_and_records_skipped_ones() {
             .map(str::to_owned)
             .ok_or("run"),
     );
-    assert!(run_view(&mut engine, &whole_run)
-        .get("project_root")
-        .is_none());
+    assert!(
+        run_view(&mut engine, &whole_run)
+            .get("project_root")
+            .is_none()
+    );
 
     // Replays never dispatch again; restart keeps every retained decision.
     assert_eq!(
@@ -865,10 +867,12 @@ fn work_ci_facts_mirror_the_admitted_monorepo_without_dispatch() {
         ["a", "b", "c", "whole"]
     );
     let canonical = path.to_string_lossy().trim_end_matches('/').to_owned();
-    assert!(facts
-        .projects()
-        .iter()
-        .all(|project| project.repository_key == key && project.repository == canonical));
+    assert!(
+        facts
+            .projects()
+            .iter()
+            .all(|project| project.repository_key == key && project.repository == canonical)
+    );
     assert_eq!(
         facts
             .project("a")

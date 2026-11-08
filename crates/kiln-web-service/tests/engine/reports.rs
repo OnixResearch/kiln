@@ -403,14 +403,16 @@ fn review_node_retains_a_patchgate_receipt_as_run_bound_evidence() {
         "{}",
         serde_json::to_string_pretty(&retained).unwrap_or_default()
     );
-    assert!(retained
-        .get("reports")
-        .and_then(Value::as_array)
-        .is_some_and(|reports| reports.iter().any(|report| {
-            report.get("kind").and_then(Value::as_str) == Some("review")
-                && report
-                    .pointer("/report/evidence/document/schema")
-                    .and_then(Value::as_str)
-                    == Some("kiln.patchgate.review.v1")
-        })));
+    assert!(
+        retained
+            .get("reports")
+            .and_then(Value::as_array)
+            .is_some_and(|reports| reports.iter().any(|report| {
+                report.get("kind").and_then(Value::as_str) == Some("review")
+                    && report
+                        .pointer("/report/evidence/document/schema")
+                        .and_then(Value::as_str)
+                        == Some("kiln.patchgate.review.v1")
+            }))
+    );
 }

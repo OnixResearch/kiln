@@ -13,6 +13,7 @@
     "lattice-workflow-contract": "MIT",
     "lattice-workflow-transport": "MIT"
   },
-  "scope": "Unmodified selected upstream files; root Cargo.toml is retained only for workspace inheritance where present. Unselected producer applications are not dependencies.",
-  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+  "scope": "Selected upstream files; a tree-local rustfmt configuration disables host formatting. Unselected producer applications are not dependencies.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln.",
+  "formatter_scope": "Tree-local rustfmt configuration sets disable_all_formatting so the host workspace formatter covers Kiln-owned sources without rewriting pinned upstream bytes."
 }

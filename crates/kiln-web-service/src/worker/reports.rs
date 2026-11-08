@@ -4,10 +4,10 @@ use std::path::Path;
 use base64::Engine as _;
 use kiln_core::source::SourceResolution;
 
-use super::client::{exact_binding, RunBinding, ServiceClient};
+use super::client::{RunBinding, ServiceClient, exact_binding};
 use super::files;
 use super::profile::{Step, WorkerProfile};
-use crate::reports::{ReportBinding, ReportUpload, MAX_REPORT_BYTES, MAX_TOTAL_REPORT_BYTES};
+use crate::reports::{MAX_REPORT_BYTES, MAX_TOTAL_REPORT_BYTES, ReportBinding, ReportUpload};
 
 impl ServiceClient {
     /// Called after every completed command, including failures and cancellation.

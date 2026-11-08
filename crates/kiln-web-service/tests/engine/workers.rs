@@ -95,12 +95,16 @@ fn inventory_groups_exact_bindings_with_stable_redacted_target_identity() {
         .iter()
         .map(|id| checked(id.as_str().ok_or("id")))
         .collect();
-    assert!(string_ids
-        .windows(2)
-        .all(|pair| matches!(pair, [a, b] if a < b)));
-    assert!(string_ids
-        .iter()
-        .all(|id| id.len() == 64 && id.bytes().all(|b| b.is_ascii_hexdigit())));
+    assert!(
+        string_ids
+            .windows(2)
+            .all(|pair| matches!(pair, [a, b] if a < b))
+    );
+    assert!(
+        string_ids
+            .iter()
+            .all(|id| id.len() == 64 && id.bytes().all(|b| b.is_ascii_hexdigit()))
+    );
     let shared = checked(
         workers(&snapshot)
             .iter()
@@ -454,14 +458,16 @@ fn failed_storage_denies_inventory_without_reporting_usable_capacity() {
         profile.state_directory.join("service.sqlite"),
     ));
     checked(connection.execute_batch("CREATE TRIGGER reject_state BEFORE UPDATE ON service_state BEGIN SELECT RAISE(ABORT, 'isolated disk failure'); END;"));
-    assert!(engine
-        .api(
-            "POST",
-            "/api/runs",
-            br#"{"project_id":"fixture","request_id":"fail"}"#,
-            Role::Operator
-        )
-        .is_err());
+    assert!(
+        engine
+            .api(
+                "POST",
+                "/api/runs",
+                br#"{"project_id":"fixture","request_id":"fail"}"#,
+                Role::Operator
+            )
+            .is_err()
+    );
     for role in [Role::Viewer, Role::Operator, Role::Worker] {
         let response = get(&mut engine, "/api/workers", role);
         assert_eq!(response.status, 503);

@@ -1,6 +1,6 @@
 {
   "schema": "kiln.readiness.remaining-blockers.v1",
-  "date": "2026-11-06",
+  "date": "2026-11-08",
   "local_source": {
     "scope": "Pre-maintenance full-source baseline; the follow-up parser fix and hardware qualification have separate exact evidence in aspen1-2026-11-06/summary.json",
     "coverage": {
@@ -30,17 +30,6 @@
     }
   },
   "blockers": [
-    {
-      "id": "direct-workspace-format",
-      "owner": "Kiln/Cairn vendor-import maintainers",
-      "state": "blocked",
-      "evidence": "source-gates-verified.json",
-      "prerequisites": [
-        "Review the maintained partial Cairn import and restore a formatter-compatible manifest boundary through its repo-owned synchronization mechanism or an explicitly governed formatter scope.",
-        "Run the direct whole-workspace formatter after that change; targeted rustfmt and successful Nix checks are not relabelled as its pass."
-      ],
-      "boundary": "Known prior local formatter failure; not rerun merely to reconfirm, no hand reconstruction of vendored source."
-    },
     {
       "id": "combined-web-approval-handoff",
       "owner": "Interactive operator and Kiln Web/hosted-execution maintainers",
@@ -83,5 +72,19 @@
     "owner": "Kiln maintainers",
     "contribution": "Exact requirement classification, governed synchronization/archive, typed recovery and run-order invariants, real process admission probes, compiled persisted-state consumer recipe and native-fixture replay source admission.",
     "repeatability": "Retained recipes, exact native fixture/tool cohorts, BLAKE3 source manifests and complete gate logs."
-  }
+  },
+  "resolved": [
+    {
+      "id": "direct-workspace-format",
+      "owner": "Kiln/Cairn vendor-import maintainers",
+      "evidence": "direct-workspace-format.json",
+      "prerequisites": [
+        "Review the maintained partial Cairn import and restore a formatter-compatible manifest boundary through its repo-owned synchronization mechanism or an explicitly governed formatter scope.",
+        "Run the direct whole-workspace formatter after that change; targeted rustfmt and successful Nix checks are not relabelled as its pass."
+      ],
+      "boundary": "Known prior local formatter failure; not rerun merely to reconfirm, no hand reconstruction of vendored source.",
+      "state": "resolved",
+      "completed": "The pinned import now prunes absent workspace members so cargo metadata loads, and tree-local rustfmt configuration disables formatting for pinned upstream bytes. Kiln-owned sources were formatted with the workspace toolchain; cargo fmt --all --check exits zero."
+    }
+  ]
 }

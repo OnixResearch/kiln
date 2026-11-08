@@ -1,8 +1,8 @@
 //! Reserved Lattice identities survive operator policy removal and crash recovery.
 use kiln_hosted::{
+    Request, SCHEMA,
     service::{Profile, Service},
     transport::{self, NetworkProfile},
-    Request, SCHEMA,
 };
 use serde_json::json;
 use std::os::unix::fs::PermissionsExt;

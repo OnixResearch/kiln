@@ -4,9 +4,9 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
-    Alias, AttemptId, CommandId, ContentId, CoreResult, Diagnostic, EffectId, EvaluationId,
-    ExternalRef, Limits, PipelineRevisionId, ProjectId, ProviderProfileId, RunId, TaskId,
-    CONTRACT_VERSION_V1,
+    Alias, AttemptId, CONTRACT_VERSION_V1, CommandId, ContentId, CoreResult, Diagnostic, EffectId,
+    EvaluationId, ExternalRef, Limits, PipelineRevisionId, ProjectId, ProviderProfileId, RunId,
+    TaskId,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -857,16 +857,18 @@ mod tests {
                 },
             };
             assert!(decide(&state, &invalid, Limits::default()).is_err());
-            assert!(evolve(
-                &state,
-                &Event::AttemptReconciled {
-                    command_id: CommandId::new("invalid-replay")?,
-                    attempt_id: AttemptId::new("attempt-1")?,
-                    outcome: Outcome::Pending,
-                    external_reference: reference
-                }
-            )
-            .is_err());
+            assert!(
+                evolve(
+                    &state,
+                    &Event::AttemptReconciled {
+                        command_id: CommandId::new("invalid-replay")?,
+                        attempt_id: AttemptId::new("attempt-1")?,
+                        outcome: Outcome::Pending,
+                        external_reference: reference
+                    }
+                )
+                .is_err()
+            );
         }
         let reconcile = CommandEnvelope {
             contract_version: CONTRACT_VERSION_V1,

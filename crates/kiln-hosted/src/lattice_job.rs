@@ -4,8 +4,8 @@
 use std::io::Read;
 use std::path::Path;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 use std::time::{Duration, Instant};
 
@@ -523,8 +523,8 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn failed_job_output_survives_skipped_dependencies_without_inventing_output(
-    ) -> Result<(), String> {
+    fn failed_job_output_survives_skipped_dependencies_without_inventing_output()
+    -> Result<(), String> {
         let output = captured_output(&json!({"jobs":[
             {"state":"failed","steps":[{"stdout":"exact source output\n","stderr":"failure\n","stderr_truncated":true}]},
             {"state":"skipped_dependency"}
@@ -539,8 +539,8 @@ mod tests {
     }
 
     #[test]
-    fn backend_receipts_require_exact_attempt_state_and_both_verification_facts(
-    ) -> Result<(), String> {
+    fn backend_receipts_require_exact_attempt_state_and_both_verification_facts()
+    -> Result<(), String> {
         let identity = "a".repeat(64);
         let make = |approval,
                     source,

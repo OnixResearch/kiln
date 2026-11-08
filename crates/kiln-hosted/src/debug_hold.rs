@@ -11,11 +11,11 @@ use std::io::Read;
 use std::time::Duration;
 
 use kiln_microvm::debug_hold::{
-    self, CapabilityRecord, HoldEnd, HoldFacts, DEBUG_COMMAND_TIMEOUT_MS, MAX_CAPABILITIES_PER_HOLD,
+    self, CapabilityRecord, DEBUG_COMMAND_TIMEOUT_MS, HoldEnd, HoldFacts, MAX_CAPABILITIES_PER_HOLD,
 };
-use rusqlite::{params, Connection, OptionalExtension, Transaction, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior, params};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Poll interval of the relay and of a waiting `debug_exec` caller.
 pub(crate) const HOLD_POLL: Duration = Duration::from_millis(50);
@@ -790,9 +790,11 @@ mod tests {
             issue(&mut db, &owner, target()).is_err(),
             "no new capability"
         );
-        assert!(active(&db, ORG, "a-1")
-            .unwrap_or_else(|e| unreachable!("{e}"))
-            .is_empty());
+        assert!(
+            active(&db, ORG, "a-1")
+                .unwrap_or_else(|e| unreachable!("{e}"))
+                .is_empty()
+        );
     }
 
     // r[verify kiln.hosted.microvm.debug_hold.capability.scenario.single_use]

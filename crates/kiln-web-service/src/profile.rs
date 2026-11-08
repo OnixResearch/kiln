@@ -6,12 +6,12 @@ use std::path::{Component, Path, PathBuf};
 use kiln_adapter_github::profile::WorkflowConfig;
 use kiln_adapter_http_observe::TlsProfile;
 use kiln_adapter_lattice::{LatticeAdapterLimits, LatticeProfile};
-use kiln_core::monorepo::{admit_scope, AdmittedScope, ProjectScope, MAX_PROJECTS_PER_REPOSITORY};
+use kiln_core::monorepo::{AdmittedScope, MAX_PROJECTS_PER_REPOSITORY, ProjectScope, admit_scope};
 use kiln_core::source::GitSnapshotLimits;
 use kiln_core::types::ProviderProfileId;
 use lattice_workflow_transport::{
-    validate_transport_profile, PeerPolicy, TransportProfile, REQUIRED_NON_CLAIMS,
-    TRANSPORT_PROFILE_SCHEMA,
+    PeerPolicy, REQUIRED_NON_CLAIMS, TRANSPORT_PROFILE_SCHEMA, TransportProfile,
+    validate_transport_profile,
 };
 use serde::{Deserialize, Serialize};
 

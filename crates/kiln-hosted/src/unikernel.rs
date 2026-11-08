@@ -1,7 +1,7 @@
 //! Cold-only trusted static test execution on the pinned Unikraft ABI.
 use crate::execution::{Backend, Config, ProcessFacts, StepObservation};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
@@ -634,14 +634,18 @@ mod tests {
         assert!(validate_preboot_filter(&exact).is_ok());
         assert!(validate_preboot_filter("SystemCallErrorNumber=1\n").is_err());
         assert!(validate_preboot_filter(&exact.replace("accept ", "")).is_err());
-        assert!(validate_preboot_filter(
-            &exact.replace("SystemCallFilter=", "SystemCallFilter=ptrace ")
-        )
-        .is_err());
-        assert!(validate_preboot_filter(
-            &exact.replace("SystemCallErrorNumber=1", "SystemCallErrorNumber=0")
-        )
-        .is_err());
+        assert!(
+            validate_preboot_filter(
+                &exact.replace("SystemCallFilter=", "SystemCallFilter=ptrace ")
+            )
+            .is_err()
+        );
+        assert!(
+            validate_preboot_filter(
+                &exact.replace("SystemCallErrorNumber=1", "SystemCallErrorNumber=0")
+            )
+            .is_err()
+        );
     }
     #[test]
     fn binary_output_does_not_change_framed_exit_status() {
@@ -761,12 +765,14 @@ mod tests {
             assert!(validate_elf(&bytes).is_err());
         }
         for length in [0, 6, 63, 119] {
-            assert!(validate_elf(
-                elf()
-                    .get(..length)
-                    .unwrap_or_else(|| unreachable!("ELF fixture shorter than {length}"))
-            )
-            .is_err());
+            assert!(
+                validate_elf(
+                    elf()
+                        .get(..length)
+                        .unwrap_or_else(|| unreachable!("ELF fixture shorter than {length}"))
+                )
+                .is_err()
+            );
         }
     }
     #[test]
@@ -778,18 +784,22 @@ mod tests {
         assert!(serial_result(b"boot\n", false).is_err());
         assert!(serial_result(&[ok.as_slice(), ok.as_slice()].concat(), false).is_err());
         assert!(serial_result(b"KILN_RESULT:{bad}\n", false).is_err());
-        assert!(serial_result(
-            ok.get(..ok.len() - 1)
-                .unwrap_or_else(|| unreachable!("result frame fixture missing")),
-            false
-        )
-        .is_err());
+        assert!(
+            serial_result(
+                ok.get(..ok.len() - 1)
+                    .unwrap_or_else(|| unreachable!("result frame fixture missing")),
+                false
+            )
+            .is_err()
+        );
         assert!(serial_result(ok, true).is_err());
-        assert!(serial_result(
-            b"KILN_RESULT:{\"schema\":\"other\",\"exit_code\":0}\n",
-            false
-        )
-        .is_err());
+        assert!(
+            serial_result(
+                b"KILN_RESULT:{\"schema\":\"other\",\"exit_code\":0}\n",
+                false
+            )
+            .is_err()
+        );
     }
     #[test]
     fn arguments_cannot_inject_elfloader_parameters() {

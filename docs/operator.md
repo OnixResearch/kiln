@@ -3884,10 +3884,13 @@ regressions; repeat the retained out-of-tree recipe against the candidate source
 The retained pre-maintenance source baseline observed 1,580 passing tests, five
 ignored tests and 52 filtered tests across 157 suites; strict all-target/all-feature
 Clippy passed. Targeted Rust formatting and frontend annotation syntax checks
-also passed. The separately required whole-workspace formatter remains blocked
-by the partial vendored Cairn snapshot's absent
-`vendor/cairn/crates/cairn-core/Cargo.toml`; do not reconstruct that snapshot or
-report a global formatter pass from the targeted check.
+also passed. The direct whole-workspace formatter now passes: the pinned importer
+prunes workspace members whose imported paths are absent and disables host
+formatting inside every pinned tree, while Kiln-owned sources are formatted with
+the workspace edition. The
+[formatter receipt](../.cairn/changes/reconcile-readiness-and-qualification/evidence/direct-workspace-format.json)
+records the exact `cargo fmt --all --check` result; it grants no upstream
+formatting authority and does not rewrite pinned bytes.
 
 The [complete determinism preflight](../.cairn/changes/reconcile-readiness-and-qualification/evidence/determinism-native-fixture-cohort.json)
 returned a valid 19-case receipt with five case-level skips and no mismatches.
@@ -3907,8 +3910,8 @@ availability evidence. Post-archive Cairn coverage is 1,487/1,487 with no missin
 or dangling references. The policy-local readiness receipt is valid, while
 `onix_release_ready` remains false. The
 [remaining-blocker ledger](../.cairn/changes/reconcile-readiness-and-qualification/evidence/remaining-blockers.json)
-names the direct workspace formatter prerequisite, the unexercised combined Web
-approval handoff and independent physical-placement prerequisites. Completed
+names the unexercised combined Web approval handoff and independent
+physical-placement prerequisites. Completed
 feature packages are archived; the qualification operation and unfinished
 attested-agent metadata work remain active. No new push or deployment occurred.
 

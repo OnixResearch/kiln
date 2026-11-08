@@ -1,8 +1,8 @@
 use super::api::error;
-use super::model::{selected_plan, workflow_plan, RequestKind, RunRecord};
-use super::{host_time_ms, identity, ApiResponse, Engine};
+use super::model::{RequestKind, RunRecord, selected_plan, workflow_plan};
+use super::{ApiResponse, Engine, host_time_ms, identity};
 use crate::profile::ProjectProfile;
-use kiln_adapter_git::{resolve_and_acquire, GitSourceProfile, LocalGitAdapter};
+use kiln_adapter_git::{GitSourceProfile, LocalGitAdapter, resolve_and_acquire};
 use kiln_core::domain::{Command, Outcome, State};
 use kiln_core::source::SourceResolution;
 use kiln_core::types::{Alias, ExternalRef, ProviderProfileId, RunId};

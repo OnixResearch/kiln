@@ -1,9 +1,9 @@
 use super::api::{decoded, error, json_response};
-use super::model::{duration, ArtifactView, ReportRecord, RunRecord};
-use super::{host_time_ms, identity, storage, ApiResponse, Engine};
+use super::model::{ArtifactView, ReportRecord, RunRecord, duration};
+use super::{ApiResponse, Engine, host_time_ms, identity, storage};
 use crate::reports::{self, CaseStatus, ReportBinding, ReportUpload};
 use kiln_core::workflow::WorkflowState;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 fn binding(run: &RunRecord, node: &str) -> Result<ReportBinding, String> {

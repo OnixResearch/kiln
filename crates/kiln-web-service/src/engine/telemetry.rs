@@ -1,6 +1,6 @@
 use super::api::{error, json_response};
 use super::model::RunRecord;
-use super::{host_time_ms, identity, ApiResponse, Engine};
+use super::{ApiResponse, Engine, host_time_ms, identity};
 use crate::reports::ReportBinding;
 use crate::telemetry::{self, TelemetryRecord, TelemetryUpload};
 

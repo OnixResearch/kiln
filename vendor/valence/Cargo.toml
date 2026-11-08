@@ -1,9 +1,6 @@
 [workspace]
 members = [
   "crates/valence-core",
-  "crates/valence-cli",
-  "crates/valence-radicle",
-  "pilots/shared-identity",
 ]
 resolver = "2"
 exclude = [

@@ -11,7 +11,11 @@
   ],
   "archive_blake3": "2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7",
   "importer": "scripts/import-pinned-source.sh",
-  "package_licenses": {"rat-table": "MIT"},
-  "scope": "Pristine upstream DataTable Rust source, package/workspace manifests and license notices. Kiln's independent browser workspace uses a local wrapper manifest pointing directly to this lib.rs; the upstream terminal workspace and ratcore dependency are not built.",
-  "nonclaims": "This immutable local import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln."
+  "package_licenses": {
+    "rat-table": "MIT"
+  },
+  "scope": "Selected upstream DataTable Rust source, package/workspace manifests and license notices; the retained root manifest has absent workspace members pruned, and a tree-local rustfmt configuration disables host formatting. Kiln's independent browser workspace uses a local wrapper manifest pointing directly to this lib.rs; the upstream terminal workspace and ratcore dependency are not built.",
+  "nonclaims": "This immutable local import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln.",
+  "manifest_normalization": "Absent workspace members are pruned from the retained root manifest so Cargo can read the partial import without resolving unselected upstream producers.",
+  "formatter_scope": "Tree-local rustfmt configuration sets disable_all_formatting so the host workspace formatter covers Kiln-owned sources without rewriting pinned upstream bytes."
 }

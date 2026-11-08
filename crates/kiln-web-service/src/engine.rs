@@ -6,7 +6,7 @@ use kiln_core::types::ContentId;
 use kiln_provider_api::WorkflowPort;
 use serde::Serialize;
 
-use crate::profile::{ServiceProfile, MAX_PROFILE_BYTES};
+use crate::profile::{MAX_PROFILE_BYTES, ServiceProfile};
 mod admission;
 pub(crate) mod api;
 mod artifacts;
@@ -247,7 +247,7 @@ impl Engine {
         id: &str,
         result: kiln_provider_api::PortResult<kiln_core::workflow::WorkflowObservation>,
     ) -> Result<(), String> {
-        use kiln_core::workflow::{admit_workflow_observation, WorkflowState};
+        use kiln_core::workflow::{WorkflowState, admit_workflow_observation};
         match result {
             Err(failure) => {
                 use kiln_provider_api::PortFailure;

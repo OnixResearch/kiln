@@ -13,8 +13,8 @@ use kiln_core::domain::Outcome;
 use kiln_core::gating::{GateEffectPlan, GateEvaluationObservation};
 use kiln_core::operations::{JournalRecord, OutboxRecord};
 use kiln_core::provider::{
-    classify_provider_failure, CapabilityProfile, ProviderFailureClass, ProviderFailureDisposition,
-    ProviderObservation, ProviderRole,
+    CapabilityProfile, ProviderFailureClass, ProviderFailureDisposition, ProviderObservation,
+    ProviderRole, classify_provider_failure,
 };
 use kiln_core::remote::{RemoteAction, RemoteObservation};
 use kiln_core::review::{ReviewEffectPlan, ReviewEvaluationObservation};

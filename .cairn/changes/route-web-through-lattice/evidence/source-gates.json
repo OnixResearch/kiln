@@ -75,7 +75,8 @@
       "crates/kiln-web-service/tests/engine.rs"
     ],
     "skip_children": true,
-    "whole_workspace_pass": false
+    "whole_workspace_pass": true,
+    "whole_workspace_evidence": "../../reconcile-readiness-and-qualification/evidence/direct-workspace-format.json"
   },
   "canonical_spec_sync": {
     "exit": 0,
