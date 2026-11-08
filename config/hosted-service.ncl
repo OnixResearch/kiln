@@ -123,14 +123,7 @@ let Version =
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
   )
 in
-let CacheText =
-  std.contract.from_predicate (fun value =>
-    std.is_string value
-    && std.string.length value > 0
-    && std.string.length value <= 256
-    && std.string.is_match "^[ -~]+$" value
-  )
-in
+let CacheText = (import "field-contracts.ncl").CacheText in
 let NonEmptyAtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
@@ -244,11 +237,7 @@ in
 let NonEmptyRecord =
   std.contract.from_predicate (fun value => std.array.length (std.record.fields value) >= 1)
 in
-let Audience =
-  std.contract.from_predicate (fun value =>
-    std.is_string value && std.string.length value > 0 && std.string.length value <= 256
-  )
-in
+let Audience = (import "field-contracts.ncl").Audience in
 let ActivationPricing =
   std.contract.from_predicate (fun sources =>
     std.array.all

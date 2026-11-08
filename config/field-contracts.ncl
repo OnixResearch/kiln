@@ -65,4 +65,15 @@
       && std.string.length value <= 128
       && std.string.is_match "^[A-Za-z0-9_.-]+$" value
     ),
+  CacheText =
+    std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 256
+      && std.string.is_match "^[ -~]+$" value
+    ),
+  Audience =
+    std.contract.from_predicate (fun value =>
+      std.is_string value && std.string.length value > 0 && std.string.length value <= 256
+    ),
 }

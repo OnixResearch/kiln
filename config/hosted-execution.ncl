@@ -34,19 +34,8 @@ let Environment =
     std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
   )
 in
-let CacheText =
-  std.contract.from_predicate (fun value =>
-    std.is_string value
-    && std.string.length value > 0
-    && std.string.length value <= 256
-    && std.string.is_match "^[ -~]+$" value
-  )
-in
-let Audience =
-  std.contract.from_predicate (fun value =>
-    std.is_string value && std.string.length value > 0 && std.string.length value <= 256
-  )
-in
+let CacheText = (import "field-contracts.ncl").CacheText in
+let Audience = (import "field-contracts.ncl").Audience in
 let Absolute =
   std.contract.from_predicate (fun value =>
     std.is_string value
