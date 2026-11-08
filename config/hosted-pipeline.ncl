@@ -173,6 +173,21 @@ let PipelineRelations =
         )
       )
       jobs
+    && (
+      let expansions =
+        std.array.fold_left
+          (fun total job =>
+            total
+            + std.array.fold_left
+              (fun count values => count * std.array.length values)
+              1
+              (std.record.values job.matrix)
+          )
+          0
+          jobs
+      in
+      expansions <= 256
+    )
   )
 in
 let Matrix =
