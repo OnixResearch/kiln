@@ -198,7 +198,25 @@ let RuntimeRoot =
 in
 let Backend =
   std.contract.custom (fun label value =>
-    if value.kind == "namespaces" then
+    let allowed =
+      if value.kind == "namespaces" then
+        ["kind", "unshare", "python", "mount", "shell", "runtime_roots"]
+      else if value.kind == "qemu" then
+        ["kind", "qemu", "kernel", "initramfs", "root_image", "guest_shell", "acceleration", "qualification_identity", "network"]
+      else if value.kind == "unikernel-test" then
+        ["kind", "firecracker", "kernel", "project", "version", "vcpus", "memory_mib", "network"]
+      else if value.kind == "firecracker" then
+        ["kind", "firecracker", "kernel", "initrd", "guest_shell", "vcpus", "memory_mib", "boot_timeout_ms", "source_image_mib", "warm_pool", "debug_hold", "untrusted_capable", "host_preflight_override", "trust_domain", "host_identity", "cache_partition", "cpu_affinity", "qualification_identity", "network"]
+      else
+        ["kind"]
+    in
+    if !(
+      std.array.all
+        (fun field => std.array.elem field allowed)
+        (std.record.fields value)
+    ) then
+      'Error { message = "unknown backend field" }
+    else if value.kind == "namespaces" then
       std.contract.check
         {
           kind | std.contract.from_predicate (fun v => v == "namespaces"),
@@ -221,6 +239,7 @@ let Backend =
           guest_shell | c.AbsolutePath,
           acceleration | std.contract.from_predicate (fun v => v == "tcg" || v == "kvm"),
           qualification_identity | c.Nullable c.Blake3 | default = null,
+          network | std.contract.from_predicate (fun v => v == "none") | optional,
         }
         label
         value
@@ -322,6 +341,7 @@ let Backend =
             )
             | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,
+          network | std.contract.from_predicate (fun v => v == "none") | optional,
         }
         label
         value
