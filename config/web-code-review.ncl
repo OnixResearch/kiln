@@ -100,9 +100,16 @@ let JujutsuShape =
     && (std.record.has_field "workspace_path" value || value.change_id_header)
   )
 in
+let IntakeBound =
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= 128
+  )
+in
 let Intake = {
   default_target_ref | Target,
-  mappings | Array { source_ref | Target, target_ref | Target, principal | Principal },
+  mappings
+    | Array { source_ref | Target, target_ref | Target, principal | Principal }
+    | IntakeBound,
   jujutsu | Jujutsu | JujutsuShape | optional,
 }
 in
@@ -203,6 +210,20 @@ let ReviewRelations =
               (std.array.map (fun destination => destination.id) profile.delivery.destinations)
           )
           profile.delivery.recipients
+      )
+    )
+    && (
+      profile.intake == null
+      || (
+        std.array.elem profile.intake.default_target_ref profile.provider.target_refs
+        && Unique (std.array.map (fun mapping => mapping.source_ref) profile.intake.mappings)
+        && std.array.all
+          (fun mapping =>
+            !std.array.elem mapping.source_ref profile.provider.target_refs
+            && std.array.elem mapping.target_ref profile.provider.target_refs
+            && std.array.elem mapping.principal writers
+          )
+          profile.intake.mappings
       )
     )
   )

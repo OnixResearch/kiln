@@ -1459,6 +1459,7 @@
             nickel typecheck config/web-code-review.ncl
             nickel export config/fixtures/web-code-review-positive.ncl >/dev/null
             nickel export config/fixtures/web-code-review-delivery-positive.ncl >/dev/null
+            nickel export config/fixtures/web-code-review-intake-positive.ncl >/dev/null
             nickel export config/fixtures/web-code-review-jujutsu-positive.ncl >/dev/null
             nickel export config/fixtures/web-code-review-speculative-positive.ncl >/dev/null
             nickel export config/fixtures/web-code-review-noise-positive.ncl >/dev/null
