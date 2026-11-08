@@ -36,6 +36,22 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let WorkerRelations =
+  std.contract.from_predicate (fun worker =>
+    let under = fun root path =>
+      path == root || std.string.is_match ("^" ++ root ++ "/") path
+    in
+    !under worker.repository_path worker.token_file
+    && !under worker.work_root worker.token_file
+    && !under worker.repository_path worker.work_root
+    && std.array.all
+      (fun step =>
+        !under worker.repository_path step.program
+        && !under worker.work_root step.program
+      )
+      worker.steps
+  )
+in
 let HeartbeatRelations =
   std.contract.from_predicate (fun heartbeat =>
     heartbeat.ttl_ms >= heartbeat.interval_ms * 3
@@ -221,6 +237,7 @@ fun input =>
         value.snapshot_limits.max_file_bytes <= value.snapshot_limits.max_total_bytes
         && value.maximum_total_artifact_bytes >= value.maximum_artifact_bytes
       )
+      | WorkerRelations
   in
   {
     schema = "kiln.web-worker.v2",
