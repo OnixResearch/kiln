@@ -14,6 +14,13 @@ let ListenAddress =
     && std.string.is_match "^([0-9]{1,3}\\.){3}[0-9]{1,3}:[1-9][0-9]*$|^\\[[0-9a-fA-F:]+\\]:[1-9][0-9]*$" value
   )
 in
+let BoundedText = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= maximum
+  )
+in
 let AllowedUsers =
   std.contract.from_predicate (fun values =>
     let sorted =
@@ -67,8 +74,8 @@ let Workflow = {
       write_deadline_milliseconds | c.Positive,
     },
   adapter_limits | { maximum_request_bytes | c.Positive, maximum_response_bytes | c.Positive },
-  policy_id | c.NonEmpty,
-  provider_profile_id | c.NonEmpty,
+  policy_id | BoundedText 128,
+  provider_profile_id | BoundedText 128,
   platform | c.NonEmpty,
   nodes
     | Array {
