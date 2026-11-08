@@ -46,6 +46,78 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
+let UniqueCacheScopes =
+  std.contract.from_predicate (fun policies =>
+    let check = fun state policy =>
+      let key =
+        policy.organization ++ "\u{0}" ++ policy.project ++ "\u{0}" ++ policy.runner
+      in
+      if std.array.elem key state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [key], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } policies).duplicate
+  )
+in
+let UniquePricing =
+  std.contract.from_predicate (fun policies =>
+    let check = fun state policy =>
+      let key =
+        policy.organization
+        ++ "\u{0}"
+        ++ policy.runner
+        ++ "\u{0}"
+        ++ policy.price_id
+        ++ "\u{0}"
+        ++ policy.class
+      in
+      if std.array.elem key state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [key], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } policies).duplicate
+  )
+in
+let UniqueWorkload =
+  std.contract.from_predicate (fun policies =>
+    let check = fun state policy =>
+      let key =
+        policy.organization ++ "\u{0}" ++ policy.project ++ "\u{0}" ++ policy.runner
+      in
+      if std.array.elem key state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [key], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } policies).duplicate
+  )
+in
+let UniqueSecretEnvironments =
+  std.contract.from_predicate (fun secrets =>
+    let check = fun state secret =>
+      if std.array.elem secret.environment state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [secret.environment], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } secrets).duplicate
+  )
+in
+let NonEmptyRecord =
+  std.contract.from_predicate (fun value => std.array.length (std.record.fields value) >= 1)
+in
+let Audience =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0 && std.string.length value <= 256
+  )
+in
 let Executable = { path | c.AbsolutePath, blake3 | c.Blake3 } in
 let RuntimeRoot =
   std.contract.from_predicate (fun value =>
@@ -211,13 +283,14 @@ let Cache = {
           producer | c.NonEmpty,
           toolchain | c.NonEmpty,
           platform | c.NonEmpty,
-          inputs | Array CacheRelative | AtMost 4096,
-          paths | Array CacheRelative | AtMost 4096,
+          inputs | Array CacheRelative | NonEmptyAtMost 4096,
+          paths | Array CacheRelative | NonEmptyAtMost 4096,
           maximum_entry_bytes | c.BoundedInteger 1 1048576,
           maximum_files | c.BoundedInteger 1 4096,
         },
     }
-    | AtMost 128,
+    | NonEmptyAtMost 128
+    | UniqueCacheScopes,
 }
 in
 let Execution = {
@@ -243,6 +316,7 @@ let Execution = {
       max_units | c.BoundedInteger 1 1000000000,
     }
     | AtMost 128
+    | UniquePricing
     | default
     = [],
   workload
@@ -250,7 +324,7 @@ let Execution = {
       organization | Identifier,
       project | Identifier,
       runner | Identifier,
-      audience | c.Nullable c.NonEmpty | default = null,
+      audience | c.Nullable Audience | default = null,
       secrets
         | Array {
           environment
@@ -260,14 +334,16 @@ let Execution = {
           name | Identifier,
           revision | c.Positive,
         }
-        | AtMost 32,
+        | AtMost 32
+        | UniqueSecretEnvironments,
     }
     | AtMost 128
+    | UniqueWorkload
     | default
     = [],
   env | Executable,
   work_root | c.AbsolutePath,
-  runners | { _ : Backend },
+  runners | { _ : Backend } | NonEmptyRecord,
   maximum_concurrent | c.BoundedInteger 1 128,
   memory_bytes | c.BoundedInteger 67108864 68719476736,
   processes | c.BoundedInteger 8 1024,
