@@ -93,9 +93,22 @@ let PipelineRelations =
               []
           in
           if trigger.event == "schedule" then
-            has_schedule && std.array.elem trigger.schedule schedule_names
+            has_schedule
+            && std.array.elem trigger.schedule schedule_names
+            && !(std.record.has_field "branches" trigger)
+            && !(std.record.has_field "tags" trigger)
+            && !(std.record.has_field "types" trigger)
+            && !(std.record.has_field "paths" trigger)
+          else if trigger.event == "push" then
+            !(std.record.has_field "types" trigger) && !has_schedule
+          else if trigger.event == "pull_request" then
+            !(std.record.has_field "tags" trigger) && !has_schedule
           else
-            !has_schedule
+            !(std.record.has_field "branches" trigger)
+            && !(std.record.has_field "tags" trigger)
+            && !(std.record.has_field "types" trigger)
+            && !(std.record.has_field "paths" trigger)
+            && !has_schedule
       )
       pipeline.triggers
     && std.array.all
