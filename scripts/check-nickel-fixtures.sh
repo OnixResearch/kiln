@@ -63,4 +63,9 @@ for profile in config/*.ncl deployment/*.ncl; do
     exit 1
   fi
 done
+
+if ! nickel format --check $(find config deployment -name '*.ncl') >/dev/null; then
+  printf 'Nickel formatting check failed\n' >&2
+  exit 1
+fi
 printf 'Nickel fixture gate passed (%s positive, %s negative)\n' "$positive_count" "$negative_count"
