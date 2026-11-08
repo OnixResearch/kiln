@@ -110,6 +110,13 @@ let SocketAddress =
   )
 in
 let GuestShell = (import "field-contracts.ncl").GuestShell in
+let PathUnder = fun root path =>
+  let parts = fun value => std.string.split "/" value in
+  let root_parts = parts root in
+  let path_parts = parts path in
+  std.array.length path_parts >= std.array.length root_parts
+  && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
+in
 let CleanPath =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -633,7 +640,8 @@ let Execution =
           && (
             admitted.cache == null
             || (
-              admitted.cache.directory != admitted.work_root
+              !PathUnder admitted.work_root admitted.cache.directory
+              && !PathUnder admitted.cache.directory admitted.work_root
               && std.array.all
                 (fun policy => std.array.elem policy.runner runners)
                 admitted.cache.policies
@@ -734,6 +742,8 @@ let Execution =
               || (
                 runner.warm_pool.slots <= admitted.maximum_concurrent
                 && !(std.string.is_match "^/nix/store(/|$)" runner.warm_pool.directory)
+                && !PathUnder admitted.work_root runner.warm_pool.directory
+                && !PathUnder runner.warm_pool.directory admitted.work_root
               )
             )
             (std.record.values admitted.runners)
