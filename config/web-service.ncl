@@ -60,9 +60,9 @@ let Workflow = {
   allowed_user_ids | Array (c.BoundedInteger 0 4294967295) | AllowedUsers,
   transport_limits
     | {
-      maximum_frame_bytes | c.Positive,
-      maximum_log_bytes | c.Positive,
-      maximum_connections | c.Positive,
+      maximum_frame_bytes | c.BoundedInteger 1 33554432,
+      maximum_log_bytes | c.BoundedInteger 1 16777216,
+      maximum_connections | c.BoundedInteger 1 65536,
       read_deadline_milliseconds | c.Positive,
       write_deadline_milliseconds | c.Positive,
     },
