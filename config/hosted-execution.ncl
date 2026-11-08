@@ -39,6 +39,14 @@ let Environment =
     std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
   )
 in
+let CacheText =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 256
+    && std.string.is_match "^[ -~]+$" value
+  )
+in
 let Absolute =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -175,9 +183,9 @@ fun input =>
               runner | Identifier,
               worker
                 | {
-                  producer | String,
-                  toolchain | String,
-                  platform | String,
+                  producer | CacheText,
+                  toolchain | CacheText,
+                  platform | CacheText,
                   inputs | Array CacheRelative,
                   paths | Array CacheRelative,
                   maximum_entry_bytes | Positive 1048576,
