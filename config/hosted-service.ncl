@@ -67,6 +67,17 @@ let NonEmptyAtMost = fun maximum =>
     std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
   )
 in
+let UniqueLatticeIds =
+  std.contract.from_predicate (fun policies =>
+    let check = fun state policy =>
+      if std.array.elem policy.id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [policy.id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } policies).duplicate
+  )
+in
 let UniqueCacheScopes =
   std.contract.from_predicate (fun policies =>
     let check = fun state policy =>
@@ -541,6 +552,7 @@ fun input =>
             class | Identifier,
           }
           | AtMost 128
+          | UniqueLatticeIds
           | default
           = [],
         operations | OptionalBuilder (import "hosted-operations.ncl") | default = null,
