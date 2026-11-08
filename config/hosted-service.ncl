@@ -110,13 +110,7 @@ let SocketAddress =
   )
 in
 let GuestShell = (import "field-contracts.ncl").GuestShell in
-let PathUnder = fun root path =>
-  let parts = fun value => std.string.split "/" value in
-  let root_parts = parts root in
-  let path_parts = parts path in
-  std.array.length path_parts >= std.array.length root_parts
-  && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
-in
+let PathUnder = (import "field-contracts.ncl").PathUnder in
 let CleanPath =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -206,13 +200,6 @@ let UniqueLatticeIds =
     in
     !(std.array.fold_left check { seen = [], duplicate = false } policies).duplicate
   )
-in
-let PathUnder = fun root path =>
-  let split = fun value => std.string.split "/" value in
-  let root_parts = split root in
-  let path_parts = split path in
-  std.array.length path_parts >= std.array.length root_parts
-  && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
 in
 let NonOverlappingPaths =
   std.contract.from_predicate (fun values =>

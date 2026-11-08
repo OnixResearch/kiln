@@ -117,4 +117,10 @@
     std.contract.from_predicate (fun value =>
       std.is_string value && std.string.is_match "^[0-9a-fA-F]{64}$" value
     ),
+  PathUnder = fun root path =>
+    let split = fun value => std.string.split "/" value in
+    let root_parts = split root in
+    let path_parts = split path in
+    std.array.length path_parts >= std.array.length root_parts
+    && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root,
 }
