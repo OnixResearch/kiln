@@ -1,38 +1,56 @@
 # r[impl kiln.lattice.profile] r[impl kiln.lattice.nonclaims]
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
-let NonEmptyPositiveArray = std.contract.from_predicate (fun value =>
-  std.is_array value
-  && std.array.length value > 0
-  && std.array.all (fun item => std.is_number item && item >= 0) value
-) in
-let ExactSource = std.contract.from_predicate (fun value =>
-  value == "ssh://git@github.com/OnixResearch/lattice.git"
-) in
-let ExactRevision = std.contract.from_predicate (fun value =>
-  value == "70496e67c7fd4a8b05914161a8e09de2759bebc8"
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
+let NonEmptyPositiveArray =
+  std.contract.from_predicate (fun value =>
+    std.is_array value
+    && std.array.length value > 0
+    && std.array.all (fun item => std.is_number item && item >= 0) value
+  )
+in
+let ExactSource =
+  std.contract.from_predicate (fun value =>
+    value == "ssh://git@github.com/OnixResearch/lattice.git"
+  )
+in
+let ExactRevision =
+  std.contract.from_predicate (fun value =>
+    value == "70496e67c7fd4a8b05914161a8e09de2759bebc8"
+  )
+in
 let ExactLicense = std.contract.from_predicate (fun value => value == "MIT") in
-let RequestSchema = std.contract.from_predicate (fun value =>
-  value == "lattice.workflow-request.v2"
-) in
-let ObservationSchema = std.contract.from_predicate (fun value =>
-  value == "lattice.workflow-observation.v1"
-) in
-let GraphSchema = std.contract.from_predicate (fun value =>
-  value == "lattice.workflow-graph.v1"
-) in
+let RequestSchema =
+  std.contract.from_predicate (fun value =>
+    value == "lattice.workflow-request.v2"
+  )
+in
+let ObservationSchema =
+  std.contract.from_predicate (fun value =>
+    value == "lattice.workflow-observation.v1"
+  )
+in
+let GraphSchema =
+  std.contract.from_predicate (fun value =>
+    value == "lattice.workflow-graph.v1"
+  )
+in
 let Platform = std.contract.from_predicate (fun value => value == "linux-x86_64") in
 let RequiredNodes = std.contract.from_predicate (fun value => value == ["build", "review", "test"]) in
 let RequiredEffects = std.contract.from_predicate (fun value => value == ["build", "test", "custom"]) in
 let RequiredAdapters = std.contract.from_predicate (fun value => value == ["local", "remote"]) in
-let RequiredControls = std.contract.from_predicate (fun value =>
-  value == { cancel = true, pause = false, resume = false }
-) in
+let RequiredControls =
+  std.contract.from_predicate (fun value =>
+    value == { cancel = true, pause = false, resume = false }
+  )
+in
 let Profile = {
   source | ExactSource,
   revision | ExactRevision,
@@ -49,26 +67,29 @@ let Profile = {
   observation_mode | NonEmpty,
   socket_path | NonEmpty,
   allowed_user_ids | NonEmptyPositiveArray,
-  transport_limits | {
-    maximum_frame_bytes | Positive,
-    maximum_log_bytes | Positive,
-    maximum_connections | Positive,
-    read_deadline_milliseconds | Positive,
-    write_deadline_milliseconds | Positive,
-  },
-  limits | {
-    max_nodes | Positive,
-    max_edges | Positive,
-    max_log_references | Positive,
-    max_log_read_bytes | Positive,
-    max_total_log_bytes | Positive,
-    max_request_bytes | Positive,
-    max_response_bytes | Positive,
-    max_in_flight | Positive,
-    timeout_milliseconds | Positive,
-  },
+  transport_limits
+    | {
+      maximum_frame_bytes | Positive,
+      maximum_log_bytes | Positive,
+      maximum_connections | Positive,
+      read_deadline_milliseconds | Positive,
+      write_deadline_milliseconds | Positive,
+    },
+  limits
+    | {
+      max_nodes | Positive,
+      max_edges | Positive,
+      max_log_references | Positive,
+      max_log_read_bytes | Positive,
+      max_total_log_bytes | Positive,
+      max_request_bytes | Positive,
+      max_response_bytes | Positive,
+      max_in_flight | Positive,
+      timeout_milliseconds | Positive,
+    },
   non_claims | Array NonEmpty,
-} in
+}
+in
 let MaxNodes = 256 in
 let MaxEdges = 1024 in
 let MaxLogReferences = 256 in

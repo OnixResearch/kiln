@@ -52,22 +52,27 @@ let Fixed = {
     "source-defined Wasm handshake does not prove a versioned public host ABI",
     "owner-approved package review source does not establish a production release",
   ],
-} in
+}
+in
 let Absolute = fun value =>
   std.is_string value && std.string.is_match "^/" value
 in
-let ProfileContract = std.contract.from_predicate (fun value =>
-  std.is_record value
-  && std.record.has_field "gc_root_base" value
-  && std.record.has_field "home_base" value
-  && Absolute value.gc_root_base
-  && Absolute value.home_base
-  && (std.record.remove "gc_root_base" (std.record.remove "home_base" value)) == Fixed
-) in
+let ProfileContract =
+  std.contract.from_predicate (fun value =>
+    std.is_record value
+    && std.record.has_field "gc_root_base" value
+    && std.record.has_field "home_base" value
+    && Absolute value.gc_root_base
+    && Absolute value.home_base
+    && (std.record.remove "gc_root_base" (std.record.remove "home_base" value)) == Fixed
+  )
+in
 {
   Profile = ProfileContract,
-  profile | ProfileContract = Fixed & {
-    gc_root_base = "/var/lib/kiln/onix-nix-eval-roots",
-    home_base = "/var/lib/kiln/onix-nix-eval-home",
-  },
+  profile | ProfileContract =
+    Fixed
+    & {
+      gc_root_base = "/var/lib/kiln/onix-nix-eval-roots",
+      home_base = "/var/lib/kiln/onix-nix-eval-home",
+    },
 }

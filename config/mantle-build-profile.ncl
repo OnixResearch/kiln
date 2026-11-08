@@ -1,13 +1,19 @@
 # r[impl kiln.mantle.profile] r[impl kiln.mantle.nonclaims]
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
-let AbsolutePath = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^/" value
-) in
-let Blake3 = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
-) in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
+let AbsolutePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^/" value
+  )
+in
+let Blake3 =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
+  )
+in
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
 let Profile = {
   source | Exact "ssh://git@github.com/OnixResearch/mantle.git",
@@ -37,33 +43,36 @@ let Profile = {
   builder_identity | Blake3,
   worker_identity | Blake3,
   store_identity | Blake3,
-  limits | {
-    max_required_products | Positive,
-    max_products | Positive,
-    max_logs | Positive,
-    max_metrics | Positive,
-    max_request_bytes | Positive,
-    max_result_bytes | Positive,
-    max_stderr_bytes | Positive,
-    max_log_bytes | Positive,
-    max_executable_bytes | Positive,
-    max_plan_bytes | Positive,
-    max_store_identity_bytes | Positive,
-    max_in_flight | Positive,
-    stdin_max_bytes | Positive,
-    timeout_milliseconds | Positive,
-    poll_interval_milliseconds | Positive,
-    teardown_timeout_milliseconds | Positive,
-  },
-  required_non_claims | Exact [
-    "build observation does not prove build correctness",
-    "build observation does not prove sandbox completeness",
-    "cache observation does not prove cache truth",
-    "product admission does not prove product semantics",
-    "build observation does not prove reproducibility",
-    "build observation does not establish release readiness",
-  ],
-} in
+  limits
+    | {
+      max_required_products | Positive,
+      max_products | Positive,
+      max_logs | Positive,
+      max_metrics | Positive,
+      max_request_bytes | Positive,
+      max_result_bytes | Positive,
+      max_stderr_bytes | Positive,
+      max_log_bytes | Positive,
+      max_executable_bytes | Positive,
+      max_plan_bytes | Positive,
+      max_store_identity_bytes | Positive,
+      max_in_flight | Positive,
+      stdin_max_bytes | Positive,
+      timeout_milliseconds | Positive,
+      poll_interval_milliseconds | Positive,
+      teardown_timeout_milliseconds | Positive,
+    },
+  required_non_claims
+    | Exact [
+      "build observation does not prove build correctness",
+      "build observation does not prove sandbox completeness",
+      "cache observation does not prove cache truth",
+      "product admission does not prove product semantics",
+      "build observation does not prove reproducibility",
+      "build observation does not establish release readiness",
+    ],
+}
+in
 let MaxRequiredProducts = 256 in
 let MaxProducts = 256 in
 let MaxLogs = 256 in

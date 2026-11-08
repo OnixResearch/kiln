@@ -19,4 +19,5 @@ let Contracts = import "../contracts.ncl" in
     max_text_bytes = 1,
     max_response_bytes = 1,
   },
-}) | Contracts.ValenceProfile
+}
+) | Contracts.ValenceProfile

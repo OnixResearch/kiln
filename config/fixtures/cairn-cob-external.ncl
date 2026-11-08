@@ -1,14 +1,19 @@
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let Hash = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value == 64
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let Hash =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value == 64
+  )
+in
 let Envelope = {
   type_name | NonEmpty,
   schema_line | NonEmpty,
   mode | NonEmpty,
-} in
+}
+in
 {
   upstream = {
     revision = "837d730799faffe6a088cfd6dc49e08c7e0f1822",

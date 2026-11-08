@@ -13,4 +13,5 @@ let Contracts = import "../contracts.ncl" in
     max_fields = 1,
   },
   non_claims = ["lossless only"],
-}) | Contracts.CDEventsProfile
+}
+) | Contracts.CDEventsProfile

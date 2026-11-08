@@ -25,4 +25,5 @@ let Contracts = import "../contracts.ncl" in
   },
   migration_edges = [{ from = 0, to = 1 }],
   non_claims = ["invalid unsafe profile"],
-}) | Contracts.SQLiteProfile
+}
+) | Contracts.SQLiteProfile

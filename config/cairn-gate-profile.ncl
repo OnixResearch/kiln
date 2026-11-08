@@ -1,10 +1,14 @@
 # r[impl kiln.cairn_gate.profile] r[impl kiln.cairn_gate.nonclaims]
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
-let AbsolutePath = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^/" value
-) in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
+let AbsolutePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^/" value
+  )
+in
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
 let Profile = {
   source | Exact "ssh://git@github.com/OnixResearch/cairn.git",
@@ -32,34 +36,37 @@ let Profile = {
   repository_root | AbsolutePath,
   policy_path | AbsolutePath,
   policy_identity | Exact "be930a118f405d176ea56de5c72ba05b8061ab3a4f996113cde505710cce5c74",
-  exit_statuses | {
-    success | Exact 0,
-    invalid_arguments | Exact 2,
-    not_found | Exact 3,
-    policy_error | Exact 4,
-    blocked | Exact 5,
-    internal_error | Exact 70,
-  },
-  limits | {
-    max_changes | Positive,
-    max_edges | Positive,
-    max_evidence_identities | Positive,
-    max_findings | Positive,
-    max_request_bytes | Positive,
-    max_result_bytes | Positive,
-    max_stderr_bytes | Positive,
-    max_diagnostic_bytes | Positive,
-    max_executable_bytes | Positive,
-    max_in_flight | Positive,
-    stdin_max_bytes | Positive,
-    timeout_milliseconds | Positive,
-    poll_interval_milliseconds | Positive,
-    teardown_timeout_milliseconds | Positive,
-  },
+  exit_statuses
+    | {
+      success | Exact 0,
+      invalid_arguments | Exact 2,
+      not_found | Exact 3,
+      policy_error | Exact 4,
+      blocked | Exact 5,
+      internal_error | Exact 70,
+    },
+  limits
+    | {
+      max_changes | Positive,
+      max_edges | Positive,
+      max_evidence_identities | Positive,
+      max_findings | Positive,
+      max_request_bytes | Positive,
+      max_result_bytes | Positive,
+      max_stderr_bytes | Positive,
+      max_diagnostic_bytes | Positive,
+      max_executable_bytes | Positive,
+      max_in_flight | Positive,
+      stdin_max_bytes | Positive,
+      timeout_milliseconds | Positive,
+      poll_interval_milliseconds | Positive,
+      teardown_timeout_milliseconds | Positive,
+    },
   machine_non_claims | Array String,
   native_gate_non_claims | Array String,
   result_non_claims | Array String,
-} in
+}
+in
 let MaxChanges = 64 in
 let MaxEdges = 256 in
 let MaxEvidenceIdentities = 256 in

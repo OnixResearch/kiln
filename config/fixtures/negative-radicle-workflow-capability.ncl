@@ -1,4 +1,5 @@
 let shell = import "../radicle-workflow-shell.ncl" in
-shell & {
+shell
+& {
   profile.capabilities.collaboration = true,
 }

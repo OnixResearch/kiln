@@ -130,10 +130,12 @@ let CobRetryLimit = 3 in
       "mirror observations do not grant repository authority",
       "replica agreement does not prove source or CI correctness",
     ],
-    mirrors = [{
-      route = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
-      authority = "read_only_projection",
-    }],
+    mirrors = [
+      {
+        route = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+        authority = "read_only_projection",
+      }
+    ],
   },
   cob = {
     max_profiles = MaxCobProfiles,
@@ -154,4 +156,5 @@ let CobRetryLimit = 3 in
       "xyz.onixresearch.policy-exception",
     ],
   },
-}) | Contracts.Config
+}
+) | Contracts.Config

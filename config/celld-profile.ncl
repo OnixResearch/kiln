@@ -42,4 +42,5 @@ let TimeoutMillis = 30000 in
     "worker responses do not prove CI success or provider correctness",
     "storage probe results do not prove object-store durability",
   ],
-}) | Contracts.CelldProfile
+}
+) | Contracts.CelldProfile

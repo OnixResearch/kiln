@@ -49,4 +49,5 @@ let RetryLimit = 2 in
     "backend acceptance does not prove CI success",
     "projection checks do not prove complete telemetry or backend durability",
   ],
-}) | Contracts.OpenTelemetryProfile
+}
+) | Contracts.OpenTelemetryProfile

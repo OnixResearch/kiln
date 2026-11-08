@@ -2,9 +2,11 @@
 # r[impl kiln.source.pijul_capabilities]
 # r[impl kiln.source.pijul_nonclaims]
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
 let Denied = Exact false in
 let ProfileId = "pijul-source-v1" in
 let PijulVersion = "1.0.0-beta.11" in
@@ -28,7 +30,8 @@ let NonClaims = [
   "local Pijul observation does not grant collaboration authority",
   "local Pijul observation does not grant source mutation authority",
   "equal canonical trees do not prove equal Pijul history",
-] in
+]
+in
 let MaxChannels = 64 in
 let MaxRepositoryMembers = 65536 in
 let MaxRepositoryBytes = 536870912 in
@@ -55,13 +58,14 @@ let Profile = {
   max_channels | Positive,
   max_repository_members | Positive,
   max_repository_bytes | Positive,
-  limits | {
-    max_changes | Positive,
-    max_entries | Positive,
-    max_path_bytes | Positive,
-    max_file_bytes | Positive,
-    max_total_bytes | Positive,
-  },
+  limits
+    | {
+      max_changes | Positive,
+      max_entries | Positive,
+      max_path_bytes | Positive,
+      max_file_bytes | Positive,
+      max_total_bytes | Positive,
+    },
   allow_network | Denied,
   allow_credentials | Denied,
   allow_collaboration | Denied,
@@ -69,7 +73,8 @@ let Profile = {
   allow_status_publication | Denied,
   allow_mutation | Denied,
   non_claims | Exact NonClaims,
-} in
+}
+in
 {
   profile | Profile = {
     id = ProfileId,

@@ -38,4 +38,5 @@ let RetryLimit = 3 in
     "endpoint transport does not change canonical CI outcomes",
     "TLS and DNS observations do not prove endpoint trust",
   ],
-}) | Contracts.WebhookProfile
+}
+) | Contracts.WebhookProfile

@@ -17,18 +17,21 @@ let RecoveryTransportExchanges = 16 in
 let CallbackTimeoutMilliseconds = 240000 in
 let HostTimeoutMilliseconds = 300000 in
 fun inputs =>
-  let selected | {
-    root | Absolute,
-    source_path | StoreRoot,
-    source_identity | Blake3,
-    case | Case,
-    operation_identity | Blake3,
-    worker_identity | Blake3,
-    store_identity | Blake3,
-    plan_identity | Blake3,
-    policy_identity | Blake3,
-    user_id | Number,
-  } = inputs in
+  let selected
+    | {
+      root | Absolute,
+      source_path | StoreRoot,
+      source_identity | Blake3,
+      case | Case,
+      operation_identity | Blake3,
+      worker_identity | Blake3,
+      store_identity | Blake3,
+      plan_identity | Blake3,
+      policy_identity | Blake3,
+      user_id | Number,
+    }
+    = inputs
+  in
   {
     eval_selection = {
       runtime = {
@@ -49,25 +52,29 @@ fun inputs =>
     },
     # Existing task composition replaces the template derivation/outputs with the
     # admitted real task and measures its derivation before provider dispatch.
-    build_profile = Build & {
-      home_base | force = selected.root ++ "/build-home",
-      gc_root_base | force = selected.root ++ "/build-roots",
-      worker_identity | force = selected.worker_identity,
-      store_identity | force = selected.store_identity,
-      plan_identity | force = selected.plan_identity,
-      policy_identity | force = selected.policy_identity,
-      limits.timeout_milliseconds | force = ExecutionTimeoutMilliseconds,
-    },
+    build_profile =
+      Build
+      & {
+        home_base | force = selected.root ++ "/build-home",
+        gc_root_base | force = selected.root ++ "/build-roots",
+        worker_identity | force = selected.worker_identity,
+        store_identity | force = selected.store_identity,
+        plan_identity | force = selected.plan_identity,
+        policy_identity | force = selected.policy_identity,
+        limits.timeout_milliseconds | force = ExecutionTimeoutMilliseconds,
+      },
     aspen_document = Aspen & { bounds.callback_timeout_millis | force = CallbackTimeoutMilliseconds },
-    radicle_profile = Radicle & {
-      socket_path | force = selected.root ++ "/lattice.sock",
-      replay_database_path | force = selected.root ++ "/radicle-replay.sqlite",
-      maximum_polls | force = LifecyclePolls,
-      allowed_user_ids | force = [selected.user_id],
-      # Lattice counts lifetime exchanges, not concurrent connections.
-      transport_limits.maximum_connections | force = LifecyclePolls * 2 + RecoveryTransportExchanges,
-      workflow.nodes | force = [{ id = "build", kind = "build", effect_class = "build", adapter_kind = "local", operation_identity = selected.operation_identity }],
-    },
+    radicle_profile =
+      Radicle
+      & {
+        socket_path | force = selected.root ++ "/lattice.sock",
+        replay_database_path | force = selected.root ++ "/radicle-replay.sqlite",
+        maximum_polls | force = LifecyclePolls,
+        allowed_user_ids | force = [selected.user_id],
+        # Lattice counts lifetime exchanges, not concurrent connections.
+        transport_limits.maximum_connections | force = LifecyclePolls * 2 + RecoveryTransportExchanges,
+        workflow.nodes | force = [{ id = "build", kind = "build", effect_class = "build", adapter_kind = "local", operation_identity = selected.operation_identity }],
+      },
     host_options = {
       timeout_milliseconds = HostTimeoutMilliseconds,
       poll_interval_milliseconds = PollIntervalMilliseconds,

@@ -1,6 +1,8 @@
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
 let Profile = {
   id | NonEmpty,
   role | NonEmpty,
@@ -8,7 +10,8 @@ let Profile = {
   capabilities | Array NonEmpty,
   unsupported_capabilities | Array NonEmpty,
   authority_boundary | NonEmpty,
-} in
+}
+in
 {
   profiles | Array Profile = [
     {

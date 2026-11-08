@@ -28,4 +28,5 @@ let MaxResponseBytes = 65536 in
     max_text_bytes = MaxTextBytes,
     max_response_bytes = MaxResponseBytes,
   },
-}) | Contracts.ValenceProfile
+}
+) | Contracts.ValenceProfile

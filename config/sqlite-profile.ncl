@@ -38,4 +38,5 @@ let MaxRetentionDeletes = 4096 in
     "backup integrity does not prove disaster recovery readiness",
     "outbox leases do not prove exactly-once provider execution",
   ],
-}) | Contracts.SQLiteProfile
+}
+) | Contracts.SQLiteProfile

@@ -23,4 +23,5 @@ let MaxFields = 16 in
     "imported events do not create canonical Kiln outcomes",
     "encoding does not prove delivery or provider correctness",
   ],
-}) | Contracts.CDEventsProfile
+}
+) | Contracts.CDEventsProfile

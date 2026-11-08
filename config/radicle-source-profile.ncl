@@ -1,15 +1,21 @@
 # r[impl kiln.radicle.shell_profile] r[impl kiln.radicle.shell_nonclaims]
 let SourceContract = import "../contracts/radicle-source-contract.ncl" in
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
-let AbsolutePath = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^/[^\\x00]+$" value
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
+let AbsolutePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^/[^\\x00]+$" value
+  )
+in
 let NonClaims = [
   "local source admission does not prove signer or repository trust",
   "an expected signed-refs commit does not prove global freshness",
@@ -20,7 +26,8 @@ let NonClaims = [
   "an absolute repository path does not prevent filesystem substitution",
   "source receipt admission does not prove build correctness",
   "source receipt admission does not establish release readiness",
-] in
+]
+in
 let Cohort = {
   protocol_version | Exact "0.25.1",
   protocol_source_sha256 | Exact "fc23b44b518df749486358fef29c4375daa47299eeec32b3659781c1bfd207e4",
@@ -37,13 +44,18 @@ let Cohort = {
   license | Exact "MIT OR Apache-2.0",
   full_radicle_runtime | Exact false,
   sqlite_backend | Exact false,
-} in
-let SourceOnly = std.contract.from_predicate (fun value => value == {
-  source = true,
-  trigger = false,
-  status = false,
-  collaboration = false,
-}) in
+}
+in
+let SourceOnly =
+  std.contract.from_predicate (fun value =>
+    value == {
+      source = true,
+      trigger = false,
+      status = false,
+      collaboration = false,
+    }
+  )
+in
 let Profile = {
   schema | Exact "kiln.radicle-source-profile.v1",
   contract_revision | Exact "0a5924dd2092243a0fe5df94d43008f0402e46f6",
@@ -57,7 +69,8 @@ let Profile = {
   allow_mutation | Exact false,
   allow_collaboration | Exact false,
   non_claims | Exact NonClaims,
-} in
+}
+in
 let MaxIdentityBytes = 256 in
 let MaxReferenceBytes = 256 in
 let MaxEntries = 4096 in

@@ -26,4 +26,5 @@ let Contracts = import "../contracts.ncl" in
     timeout_millis = 30000,
   },
   non_claims = ["fixture positive cohort"],
-}) | Contracts.CelldProfile
+}
+) | Contracts.CelldProfile

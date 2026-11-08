@@ -11,31 +11,34 @@ let CommandMilliseconds = 900000 in
 let OutputBytes = 1048576 in
 let TeardownMilliseconds = 2000 in
 fun input =>
-let settings = input | {
-  owner | c.Owner,
-  repository | c.Component,
-  program_path | c.AbsolutePath,
-  args | Array String,
-  environment | { _ : String },
-  source_secret | c.Nullable c.SecretReference,
-} in
-{
-  schema_version = 1,
-  owner = settings.owner,
-  repository = settings.repository,
-  program_path = settings.program_path,
-  args = settings.args,
-  environment = settings.environment,
-  source_secret = settings.source_secret,
-  snapshot_limits = {
-    max_entries = Entries,
-    max_path_bytes = PathBytes,
-    max_file_bytes = FileBytes,
-    max_total_bytes = TotalBytes,
-  },
-  maximum_transfer_bytes = TransferBytes,
-  acquisition_timeout_ms = AcquisitionMilliseconds,
-  command_timeout_ms = CommandMilliseconds,
-  maximum_output_bytes = OutputBytes,
-  teardown_grace_ms = TeardownMilliseconds,
-} | c.JobProfile
+  let settings =
+    input
+      | {
+        owner | c.Owner,
+        repository | c.Component,
+        program_path | c.AbsolutePath,
+        args | Array String,
+        environment | { _ : String },
+        source_secret | c.Nullable c.SecretReference,
+      }
+  in
+  {
+    schema_version = 1,
+    owner = settings.owner,
+    repository = settings.repository,
+    program_path = settings.program_path,
+    args = settings.args,
+    environment = settings.environment,
+    source_secret = settings.source_secret,
+    snapshot_limits = {
+      max_entries = Entries,
+      max_path_bytes = PathBytes,
+      max_file_bytes = FileBytes,
+      max_total_bytes = TotalBytes,
+    },
+    maximum_transfer_bytes = TransferBytes,
+    acquisition_timeout_ms = AcquisitionMilliseconds,
+    command_timeout_ms = CommandMilliseconds,
+    maximum_output_bytes = OutputBytes,
+    teardown_grace_ms = TeardownMilliseconds,
+  } | c.JobProfile

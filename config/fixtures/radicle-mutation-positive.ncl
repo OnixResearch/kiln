@@ -7,7 +7,8 @@ let Request = {
   object_id | Exact "2222222222222222222222222222222222222222",
   payload_identity | Exact "ab3758f296630f83d4e381c41d023612b2106dce68845786b3959fdb963b1a73",
   action | Exact "review",
-} in
+}
+in
 {
   profile = Source.profile,
   request | Request = {

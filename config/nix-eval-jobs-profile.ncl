@@ -1,15 +1,21 @@
 # r[impl kiln.nix_eval_jobs.cohort_admission]
 # r[impl kiln.nix_eval_jobs.input_admission]
 # r[impl kiln.nix_eval_jobs.onix_boundary]
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
-let AbsolutePath = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^/" value
-) in
-let Blake3 = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
-) in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
+let AbsolutePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^/" value
+  )
+in
+let Blake3 =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
+  )
+in
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
 let Policy = {
   flake_mode | Exact true,
@@ -23,7 +29,8 @@ let Policy = {
   check_cache_status | Exact true,
   include_metadata | Exact true,
   include_input_derivations | Exact true,
-} in
+}
+in
 let Limits = {
   max_line_bytes | Positive,
   max_total_stdout_bytes | Positive,
@@ -46,7 +53,8 @@ let Limits = {
   timeout_milliseconds | Positive,
   poll_interval_milliseconds | Positive,
   teardown_timeout_milliseconds | Positive,
-} in
+}
+in
 let Profile = {
   upstream_source | Exact "ssh://git@github.com/NixOS/nix-eval-jobs.git",
   upstream_revision | Exact "a0cd02231c58974a6b5aaa3712069b071047162e",
@@ -74,17 +82,19 @@ let Profile = {
   home_base | AbsolutePath,
   policy | Policy,
   limits | Limits,
-  required_non_claims | Exact [
-    "discovery observation does not prove Nix evaluation correctness",
-    "source identity does not prove source trust",
-    "task mapping does not prove complete dependency semantics",
-    "cache advisory does not prove cache truth or output presence",
-    "discovery observation does not prove build execution or output correctness",
-    "stock Nix cohort evidence does not prove Onix Nix compatibility",
-    "discovery observation does not prove reproducibility",
-    "discovery observation does not establish release readiness",
-  ],
-} in
+  required_non_claims
+    | Exact [
+      "discovery observation does not prove Nix evaluation correctness",
+      "source identity does not prove source trust",
+      "task mapping does not prove complete dependency semantics",
+      "cache advisory does not prove cache truth or output presence",
+      "discovery observation does not prove build execution or output correctness",
+      "stock Nix cohort evidence does not prove Onix Nix compatibility",
+      "discovery observation does not prove reproducibility",
+      "discovery observation does not establish release readiness",
+    ],
+}
+in
 let MaxLineBytes = 1048576 in
 let MaxTotalStdoutBytes = 16777216 in
 let MaxStderrBytes = 1048576 in

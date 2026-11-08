@@ -17,20 +17,24 @@ let StoreExecutable =
   )
 in
 fun inputs =>
-  let selected | {
-    root | CanaryRoot,
-    source_branch | String | Exact "ci-canary",
-    status_checkpoint_branch | String | Exact "kiln-status-checkpoint",
-    tools | {
-      radicle | StoreExecutable,
-      radicle_node | StoreExecutable,
-      broker | StoreExecutable,
-      broker_tool | StoreExecutable,
-      jj | StoreExecutable,
-      git | StoreExecutable,
-      secretspec | String | Exact Status.signer.executable_path,
-    },
-  } = inputs in
+  let selected
+    | {
+      root | CanaryRoot,
+      source_branch | String | Exact "ci-canary",
+      status_checkpoint_branch | String | Exact "kiln-status-checkpoint",
+      tools
+        | {
+          radicle | StoreExecutable,
+          radicle_node | StoreExecutable,
+          broker | StoreExecutable,
+          broker_tool | StoreExecutable,
+          jj | StoreExecutable,
+          git | StoreExecutable,
+          secretspec | String | Exact Status.signer.executable_path,
+        },
+    }
+    = inputs
+  in
   {
     root = selected.root,
     source_branch = selected.source_branch,

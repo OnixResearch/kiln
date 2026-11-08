@@ -15,4 +15,5 @@ let Contracts = import "../contracts.ncl" in
   },
   hosting = { state = "planned", canonical_branch = "main", rid = "", delegates = ["unassigned"], threshold = 1, required_replicas = 1, license = "MIT", rollback_revision = "main", mirrors = [] },
   cob = { max_profiles = 1, max_heads = 1, max_payload_bytes = 1, max_actions = 1, retry_limit = 1, unknown_type_policy = "deny", required_profile_types = [] },
-}) | Contracts.Config
+}
+) | Contracts.Config

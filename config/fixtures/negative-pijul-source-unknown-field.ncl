@@ -1,4 +1,5 @@
 let source = import "../pijul-source-profile.ncl" in
-source & {
+source
+& {
   profile.ambient_authority = true,
 }

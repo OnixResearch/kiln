@@ -1,9 +1,13 @@
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
 let Profile = {
   id | NonEmpty,
   provider | NonEmpty,
@@ -15,15 +19,17 @@ let Profile = {
   license | NonEmpty,
   capabilities | Array NonEmpty,
   actions | Array NonEmpty,
-  limits | {
-    max_heads | Positive,
-    max_payload_bytes | Positive,
-    max_actions | Positive,
-    retry_limit | Positive,
-  },
+  limits
+    | {
+      max_heads | Positive,
+      max_payload_bytes | Positive,
+      max_actions | Positive,
+      retry_limit | Positive,
+    },
   complete_head_resolution | Bool,
   non_claims | Array NonEmpty,
-} in
+}
+in
 let MaxHeads = 32 in
 let MaxPayloadBytes = 1048576 in
 let MaxActions = 16 in
@@ -38,12 +44,14 @@ let Limits = {
   max_payload_bytes = MaxPayloadBytes,
   max_actions = MaxActions,
   retry_limit = RetryLimit,
-} in
+}
+in
 let NonClaims = [
   "local reduction does not prove remote synchronization",
   "a signature observation does not prove actor trust or action authority",
   "a COB projection does not replace the Kiln journal or release authority",
-] in
+]
+in
 {
   profiles | Array Profile = [
     { id = "radicle-issue-v1", provider = "radicle", type_name = "xyz.radicle.issue", schema_line = "radicle.issue.v1", mapper_version = 1, upstream_revision = RadicleRevision, reducer = "radicle-issue-0.24.0", license = "MIT OR Apache-2.0", capabilities = ["typed_read", "event_intake"], actions = [], limits = Limits, complete_head_resolution = true, non_claims = NonClaims },

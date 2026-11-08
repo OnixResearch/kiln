@@ -1,4 +1,5 @@
 let source = import "../pijul-source-profile.ncl" in
-source & {
+source
+& {
   profile.pijul_source_revision = "crates.io:sha256:substituted",
 }

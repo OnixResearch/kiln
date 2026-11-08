@@ -1,10 +1,14 @@
 # r[impl kiln.git.profile] r[impl kiln.git.capabilities] r[impl kiln.git.nonclaims]
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
 let ObjectFormat = [| 'Sha1 |] in
 let Denied = std.contract.from_predicate (fun value => value == false) in
 let Profile = {
@@ -17,12 +21,13 @@ let Profile = {
   repository_format_version | Number,
   platforms | Array NonEmpty,
   capabilities | Array NonEmpty,
-  limits | {
-    max_entries | Positive,
-    max_path_bytes | Positive,
-    max_file_bytes | Positive,
-    max_total_bytes | Positive,
-  },
+  limits
+    | {
+      max_entries | Positive,
+      max_path_bytes | Positive,
+      max_file_bytes | Positive,
+      max_total_bytes | Positive,
+    },
   allow_network | Denied,
   allow_credentials | Denied,
   allow_mutation | Denied,
@@ -30,7 +35,8 @@ let Profile = {
   allow_collaboration | Denied,
   allow_gitlinks | Denied,
   non_claims | Array NonEmpty,
-} in
+}
+in
 let MaxEntries = 4096 in
 let MaxPathBytes = 512 in
 let MaxFileBytes = 16777216 in

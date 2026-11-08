@@ -1,17 +1,25 @@
 # r[verify kiln.nix_eval_jobs.conformance]
 let Source = import "../nix-eval-jobs-profile.ncl" in
-let NonEmpty = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.length value > 0
-) in
-let StorePath = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^/nix/store/[0-9a-z]{32}-" value
-) in
-let Blake3 = std.contract.from_predicate (fun value =>
-  std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
-) in
-let Positive = std.contract.from_predicate (fun value =>
-  std.is_number value && value > 0
-) in
+let NonEmpty =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value > 0
+  )
+in
+let StorePath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^/nix/store/[0-9a-z]{32}-" value
+  )
+in
+let Blake3 =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
+  )
+in
+let Positive =
+  std.contract.from_predicate (fun value =>
+    std.is_number value && value > 0
+  )
+in
 let Exact = fun expected => std.contract.from_predicate (fun value => value == expected) in
 let WorkerCount = 2 in
 let MemoryMebibytes = 512 in
@@ -32,7 +40,8 @@ let Request = {
   workers | Positive,
   max_memory_mebibytes | Positive,
   partial_admission | Exact false,
-} in
+}
+in
 {
   profile = Source.profile,
   request | Request = {

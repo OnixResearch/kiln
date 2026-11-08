@@ -28,4 +28,5 @@ let Contracts = import "../contracts.ncl" in
     retry_limit = 1,
   },
   non_claims = ["invalid dynamic destination"],
-}) | Contracts.WebhookProfile
+}
+) | Contracts.WebhookProfile

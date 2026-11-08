@@ -11,5 +11,6 @@ let Signer = {
   nixpkgs_revision,
   executable_path,
   executable_blake3,
-} in
+}
+in
 std.record.remove "secret_key" Source.profile.signer | Signer
