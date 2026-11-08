@@ -152,6 +152,7 @@ let ExactWorker = std.contract.from_predicate (ExactFields ["producer", "toolcha
 let Version =
   std.contract.from_predicate (fun value =>
     std.is_string value
+    && std.string.trim value != ""
     && std.string.length value > 0
     && std.string.length value <= 128
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
@@ -299,7 +300,7 @@ let Backend =
       else if value.kind == "unikernel-test" then
         ["kind", "firecracker", "kernel", "project", "version", "vcpus", "memory_mib", "network"]
       else if value.kind == "firecracker" then
-        ["kind", "firecracker", "kernel", "initrd", "guest_shell", "vcpus", "memory_mib", "boot_timeout_ms", "source_image_mib", "warm_pool", "debug_hold", "untrusted_capable", "host_preflight_override", "trust_domain", "host_identity", "cache_partition", "cpu_affinity", "qualification_identity", "network"]
+        ["kind", "firecracker", "kernel", "initrd", "guest_shell", "vcpus", "memory_mib", "boot_timeout_ms", "source_image_mib", "warm_pool", "debug_hold", "untrusted_capable", "version", "host_preflight_override", "trust_domain", "host_identity", "cache_partition", "cpu_affinity", "qualification_identity", "network"]
       else
         ["kind"]
     in
@@ -386,6 +387,8 @@ let Backend =
           # may execute approved untrusted pull-request runs, always without
           # secrets, workload token or cache. Omitted means it may not.
           untrusted_capable | Bool | optional,
+          # Reviewed VMM version; recorded in snapshot identity.
+          version | Version | optional,
           # SMT/KSM-only operator exception. Unfixed/unknown kernel status
           # cannot be overridden. The reason is retained in the receipt.
           host_preflight_override
