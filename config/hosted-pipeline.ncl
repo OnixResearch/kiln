@@ -23,6 +23,17 @@ let NonEmptyRecordAtMost = fun maximum =>
     count >= 1 && count <= maximum
   )
 in
+let UniqueStrings =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
 let PipelineRelations =
   std.contract.from_predicate (fun pipeline =>
     let job_names = std.record.fields pipeline.jobs in
@@ -48,6 +59,24 @@ let PipelineRelations =
         step.kind != "use" || std.array.elem step.step step_names
       )
       steps
+    && std.array.all
+      (fun job =>
+        let has_kind = std.record.has_field "kind" job in
+        let has_unikernel = std.record.has_field "unikernel" job in
+        has_kind == has_unikernel
+        && (!has_kind || job.kind == "unikernel-test")
+        && (
+          !has_kind
+          || (
+            job.steps == []
+            && job.template == null
+            && job.env == {}
+            && job.parameters == {}
+            && job.matrix == {}
+          )
+        )
+      )
+      jobs
   )
 in
 let Matrix =
@@ -114,7 +143,7 @@ let Job = {
   runner | Nullable String | default = null,
   steps | Array Step | AtMost 64 | default = [],
   env | TextMap | RecordAtMost 128 | default = {},
-  needs | Array String | AtMost 64 | default = [],
+  needs | Array String | AtMost 64 | UniqueStrings | default = [],
   matrix | { _ : Array String } | RecordAtMost 8 | Matrix | default = {},
   timeout_ms | Nullable Timeout | default = null,
 }
