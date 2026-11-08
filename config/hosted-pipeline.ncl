@@ -115,6 +115,21 @@ let PipelineRelations =
     && std.array.all
       (fun name => !(std.array.elem name (std.record.get name pipeline.jobs).needs))
       job_names
+    && std.array.all
+      (fun name =>
+        let job = std.record.get name pipeline.jobs in
+        let declared =
+          std.record.fields pipeline.parameters
+          @ (
+            if job.template == null then
+              []
+            else
+              std.record.fields (std.record.get job.template pipeline.templates).parameters
+          )
+        in
+        std.array.all (fun key => std.array.elem key declared) (std.record.fields job.parameters)
+      )
+      job_names
     && (
       let dedup = fun values =>
         std.array.fold_left
