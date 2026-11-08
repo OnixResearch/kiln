@@ -352,22 +352,39 @@ let Execution = {
   maximum_output_bytes | c.BoundedInteger 1024 1048576,
 }
 in
-let Fleet = {
-  driver | Executable,
-  minimum | c.BoundedInteger 0 128,
-  maximum | c.BoundedInteger 1 128,
-  slots_per_instance | c.BoundedInteger 1 256,
-  organizations | Array Identifier | NonEmptyAtMost 128,
-  pricing
-    | c.Nullable {
-      price_id | c.Blake3,
-      class | Identifier,
-      max_units | c.BoundedInteger 1 1000000000,
+let Fleet =
+  std.contract.custom (fun label value =>
+    let result =
+      std.contract.check
+        {
+          driver | Executable,
+          minimum | c.BoundedInteger 0 128,
+          maximum | c.BoundedInteger 1 128,
+          slots_per_instance | c.BoundedInteger 1 256,
+          organizations | Array Identifier | NonEmptyAtMost 128,
+          pricing
+            | c.Nullable {
+              price_id | c.Blake3,
+              class | Identifier,
+              max_units | c.BoundedInteger 1 1000000000,
+            }
+            | default
+            = null,
+          timeout_ms | c.BoundedInteger 100 300000,
+        }
+        label
+        value
+    in
+    result
+    |> match {
+      'Ok admitted =>
+        if admitted.minimum <= admitted.maximum then
+          'Ok admitted
+        else
+          'Error { message = "fleet minimum must not exceed maximum" },
+      'Error error => 'Error error,
     }
-    | default
-    = null,
-  timeout_ms | c.BoundedInteger 100 300000,
-}
+  )
 in
 # Import module builders as contracts so non-null optional sections retain all
 # their nested checks, including SecretSpec references and operations bounds.
