@@ -401,15 +401,7 @@ let Backend =
       'Error { message = "Backend kind must be namespaces, qemu, firecracker, cloud-hypervisor or unikernel-test" }
   )
 in
-let CacheRelative =
-  std.contract.from_predicate (fun value =>
-    std.is_string value
-    && std.string.length value > 0
-    && std.string.length value <= 1024
-    && std.string.is_match "^[^/\\\\\\x00-\\x1f\\x7f]+(/[^/\\\\\\x00-\\x1f\\x7f]+)*$" value
-    && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
-  )
-in
+let CacheRelative = (import "field-contracts.ncl").CacheRelative in
 let Cache =
   std.contract.custom (fun label value =>
     let allowed = ["directory", "maximum_entry_bytes", "maximum_total_bytes", "maximum_entries", "maximum_age_seconds", "maximum_files", "policies"]

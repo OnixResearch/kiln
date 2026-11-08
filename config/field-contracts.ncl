@@ -80,4 +80,12 @@
     std.contract.from_predicate (fun value =>
       std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
     ),
+  CacheRelative =
+    std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 1024
+      && std.string.is_match "^[^/\\\\\\x00-\\x1f\\x7f]+(/[^/\\\\\\x00-\\x1f\\x7f]+)*$" value
+      && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
+    ),
 }
