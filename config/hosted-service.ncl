@@ -382,7 +382,13 @@ let Execution =
         )
         && std.string.is_match "^/run/user/[0-9]+$" admitted.manager_runtime_directory
         && admitted.work_root != "/"
-        && !(std.string.is_match "^/nix/store(/|$)" admitted.work_root) then
+        && !(std.string.is_match "^/nix/store(/|$)" admitted.work_root)
+        && (
+          !std.array.any
+            (fun runner => std.record.has_field "cpu_affinity" runner)
+            (std.record.values admitted.runners)
+          || std.record.has_field "taskset" admitted
+        ) then
           'Ok admitted
         else
           'Error { message = "execution policy references an unknown runner or invalid root" },
