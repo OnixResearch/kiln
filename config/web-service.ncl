@@ -94,7 +94,7 @@ let Workflow = {
   adapter_limits | { maximum_request_bytes | c.Positive, maximum_response_bytes | c.Positive },
   policy_id | BoundedText 128,
   provider_profile_id | BoundedText 128,
-  platform | LatticeLabel,
+  platform | std.contract.from_predicate (fun value => value == "linux-x86_64"),
   nodes
     | Array {
       id | LatticeLabel,
