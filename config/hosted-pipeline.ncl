@@ -243,7 +243,59 @@ let Nullable = fun Contract =>
   )
 in
 let TestFile = { path | TextValue, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-f]{64}$" v) } in
-let TestSpec = { binary | TestFile, argv | Array String | default = [], fixtures | Array TestFile | default = [] } in
+let TestPath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 4096
+    && !(std.string.is_match "[\\\x00-\\x1f\\x7f]" value)
+    && !(std.string.is_match "(^|/)(\\.|\\.\\.)?(/|$)" value)
+    && value != "TRAILER!!!"
+    && !(std.string.is_match "^TRAILER!!!/" value)
+  )
+in
+let Arg = fun value =>
+  std.is_string value
+  && std.string.length value > 0
+  && value != "KILN_ARGV_END"
+  && !(std.string.is_match "^--|--" value)
+  && !(std.string.is_match "^-" value)
+  && std.string.is_match "^[A-Za-z0-9_./:+,@%-]+$" value
+in
+let ArgList =
+  std.contract.from_predicate (fun values =>
+    std.array.length values <= 64
+    && std.array.all Arg values
+    && std.array.fold_left (fun total value => total + std.string.length value + 1) 0 values <= 1024
+  )
+in
+let TestFile = { path | TestPath, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-f]{64}$" v) } in
+let PathUnder = fun root path =>
+  let split = fun value => std.string.split "/" value in
+  let root_parts = split root in
+  let path_parts = split path in
+  std.array.length path_parts >= std.array.length root_parts
+  && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
+in
+let TestFiles =
+  std.contract.from_predicate (fun files =>
+    std.array.length files <= 128
+    && std.array.length (std.array.map (fun file => file.path) files) == std.array.length (
+      std.array.fold_left
+        (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+        []
+        (std.array.map (fun file => file.path) files)
+    )
+    && std.array.all
+      (fun file =>
+        std.array.all
+          (fun other => file.path == other.path || (!PathUnder file.path other.path && !PathUnder other.path file.path))
+          files
+      )
+      files
+  )
+in
+let TestSpec = { binary | TestFile, argv | Array String | ArgList | default = [], fixtures | Array TestFile | TestFiles | default = [] } in
 let Job = {
   kind | std.contract.from_predicate (fun v => v == "unikernel-test") | optional,
   unikernel | TestSpec | optional,
