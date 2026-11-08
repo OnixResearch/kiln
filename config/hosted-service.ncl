@@ -301,6 +301,8 @@ let Backend =
         ["kind", "firecracker", "kernel", "project", "version", "vcpus", "memory_mib", "network"]
       else if value.kind == "firecracker" then
         ["kind", "firecracker", "kernel", "initrd", "guest_shell", "vcpus", "memory_mib", "boot_timeout_ms", "source_image_mib", "warm_pool", "debug_hold", "untrusted_capable", "version", "host_preflight_override", "trust_domain", "host_identity", "cache_partition", "cpu_affinity", "qualification_identity", "network"]
+      else if value.kind == "cloud-hypervisor" then
+        ["kind", "cloud_hypervisor", "kernel", "initrd", "guest_shell", "vcpus", "memory_mib", "boot_timeout_ms", "source_image_mib", "warm_pool", "qualification_identity", "network", "version", "cpu_affinity"]
       else
         ["kind"]
     in
@@ -348,6 +350,32 @@ let Backend =
           vcpus | c.BoundedInteger 1 1,
           memory_mib | c.BoundedInteger 32 16384,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
+        }
+        label
+        value
+    else if value.kind == "cloud-hypervisor" then
+      std.contract.check
+        {
+          kind | std.contract.from_predicate (fun v => v == "cloud-hypervisor"),
+          cloud_hypervisor | Executable,
+          kernel | Executable,
+          initrd | Executable,
+          guest_shell | GuestShell,
+          vcpus | c.BoundedInteger 1 8,
+          memory_mib | c.BoundedInteger 128 16384,
+          boot_timeout_ms | c.BoundedInteger 100 60000,
+          source_image_mib | c.BoundedInteger 1 1024,
+          warm_pool
+            | c.Nullable {
+              directory | c.AbsolutePath,
+              slots | c.BoundedInteger 1 16,
+            }
+            | default
+            = null,
+          qualification_identity | c.Nullable c.Blake3 | default = null,
+          network | std.contract.from_predicate (fun v => v == "none") | optional,
+          version | Version | optional,
+          cpu_affinity | CpuAffinity | optional,
         }
         label
         value
