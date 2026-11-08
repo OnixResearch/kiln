@@ -495,6 +495,13 @@ let Execution =
             )
             || runner.debug_hold.max_concurrent <= admitted.maximum_concurrent
           )
+          (std.record.values admitted.runners)
+        && std.array.all
+          (fun runner =>
+            runner.kind != "unikernel-test"
+            || runner.memory_mib
+            * 1048576 <= admitted.memory_bytes
+          )
           (std.record.values admitted.runners) then
           'Ok admitted
         else
