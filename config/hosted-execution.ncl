@@ -83,6 +83,7 @@ let Backend = {
   host_preflight_override
     | std.contract.from_predicate (fun value =>
       std.is_string value
+      && std.string.trim value != ""
       && std.string.length value > 0
       && std.string.length value <= 1024
       && !(std.string.is_match "\\x00" value)
@@ -92,6 +93,7 @@ let Backend = {
   trust_domain
     | std.contract.from_predicate (fun value =>
       std.is_string value
+      && std.string.trim value != ""
       && std.string.length value > 0
       && std.string.length value <= 128
       && !(std.string.is_match "\\x00" value)
@@ -101,6 +103,7 @@ let Backend = {
   host_identity
     | std.contract.from_predicate (fun value =>
       std.is_string value
+      && std.string.trim value != ""
       && std.string.length value > 0
       && std.string.length value <= 128
       && !(std.string.is_match "\\x00" value)
