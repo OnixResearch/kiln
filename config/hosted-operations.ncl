@@ -9,6 +9,20 @@ let Text = fun maximum =>
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
   )
 in
+let UniqueRoots =
+  std.contract.from_predicate (fun settings =>
+    let roots =
+      [settings.backup_root, settings.restore_root, settings.content_root]
+      @ settings.replay_roots
+    in
+    std.array.length roots == std.array.length (
+      std.array.fold_left
+        (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+        []
+        roots
+    )
+  )
+in
 let AtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value <= maximum
@@ -39,6 +53,7 @@ fun input =>
         maximum_content_records | c.BoundedInteger 1 1000000,
         maximum_backup_ms | c.BoundedInteger 1 300000,
       }
+      | UniqueRoots
   in
   {
     service_id = settings.service_id,
