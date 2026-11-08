@@ -164,6 +164,18 @@ let PipelineRelations =
       )
       steps
     && std.array.all
+      (fun step =>
+        step.kind != "use"
+        || std.array.all
+          (fun key =>
+            std.array.elem
+              key
+              (std.record.fields (std.record.get step.step pipeline.steps).parameters)
+          )
+          (std.record.fields step.parameters)
+      )
+      steps
+    && std.array.all
       (fun trigger =>
         if std.is_string trigger then
           true
