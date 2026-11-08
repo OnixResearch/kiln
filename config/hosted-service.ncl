@@ -76,6 +76,17 @@ let ExactLattice =
       rows
   )
 in
+let ExactRows = fun allowed =>
+  std.contract.from_predicate (fun rows =>
+    std.array.all (ExactFields allowed) rows
+  )
+in
+let ExactTrusted = ExactRows ["organization", "project"] in
+let ExactPricing = ExactRows ["organization", "runner", "price_id", "class", "max_units"] in
+let ExactWorkload = ExactRows ["organization", "project", "runner", "audience", "secrets"] in
+let ExactSecrets = ExactRows ["environment", "name", "revision"] in
+let ExactPolicies = ExactRows ["organization", "project", "runner", "worker"] in
+let ExactWorker = std.contract.from_predicate (ExactFields ["producer", "toolchain", "platform", "inputs", "paths", "maximum_entry_bytes", "maximum_files"]) in
 let Version =
   std.contract.from_predicate (fun value =>
     std.is_string value
