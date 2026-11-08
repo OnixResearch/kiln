@@ -14,6 +14,26 @@ let ListenAddress =
     && std.string.is_match "^([0-9]{1,3}\\.){3}[0-9]{1,3}:[1-9][0-9]*$|^\\[[0-9a-fA-F:]+\\]:[1-9][0-9]*$" value
   )
 in
+let AllowedUsers =
+  std.contract.from_predicate (fun values =>
+    let sorted =
+      std.array.sort
+        (fun left right =>
+          if left < right then 'Lesser else if left > right then 'Greater else 'Equal
+        )
+        values
+    in
+    std.array.length values >= 1
+    && std.array.length values <= 64
+    && sorted == values
+    && std.array.length values == std.array.length (
+      std.array.fold_left
+        (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+        []
+        values
+    )
+  )
+in
 let WorkflowRelations =
   std.contract.from_predicate (fun workflow =>
     let unique = fun values =>
@@ -37,7 +57,7 @@ let WorkflowRelations =
 in
 let Workflow = {
   socket_path | c.AbsolutePath,
-  allowed_user_ids | Array (c.BoundedInteger 0 4294967295),
+  allowed_user_ids | Array (c.BoundedInteger 0 4294967295) | AllowedUsers,
   transport_limits
     | {
       maximum_frame_bytes | c.Positive,
