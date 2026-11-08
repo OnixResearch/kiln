@@ -19,7 +19,7 @@ let Https =
   std.contract.from_predicate (fun value =>
     std.is_string value
     && std.string.length value <= 2048
-    && std.string.is_match "^https://[^ @?#]+$" value
+    && std.string.is_match "^https://[^/ @?#][^ @?#]*$" value
     && (
       let authority =
         std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
