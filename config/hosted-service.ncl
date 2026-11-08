@@ -40,8 +40,33 @@ let SocketAddress =
     std.is_string value
     && std.string.is_match "^([0-9.]+|\\[[0-9a-fA-F:]+\\]):[0-9]+$" value
     && (
-      let port = std.string.to_number (std.array.last (std.string.split ":" value)) in
-      std.is_number port && port >= 0 && port <= 65535 && std.number.floor port == port
+      let parts = std.string.split ":" value in
+      let host = std.array.first parts in
+      let port = std.string.to_number (std.array.last parts) in
+      let octets = std.string.split "." host in
+      let ipv4 =
+        std.string.is_match "^\\[" host
+        || (
+          std.array.length octets == 4
+          && std.array.all
+            (fun octet =>
+              std.string.length octet > 0
+              && (
+                let number = std.string.to_number octet in
+                std.is_number number
+                && number >= 0
+                && number <= 255
+                && std.number.floor number == number
+              )
+            )
+            octets
+        )
+      in
+      ipv4
+      && std.is_number port
+      && port >= 0
+      && port <= 65535
+      && std.number.floor port == port
     )
   )
 in
