@@ -242,7 +242,6 @@ let Nullable = fun Contract =>
     if value == null then 'Ok value else std.contract.check Contract label value
   )
 in
-let TestFile = { path | TextValue, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-f]{64}$" v) } in
 let TestPath =
   std.contract.from_predicate (fun value =>
     std.is_string value
