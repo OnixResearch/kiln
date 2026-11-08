@@ -195,6 +195,7 @@ let ReviewRelations =
     && std.array.all
       (fun principal => std.array.elem principal readers && std.array.elem principal writers)
       profile.policy.submitters
+    && profile.policy.minimum_approvals <= std.array.length profile.policy.eligible_reviewers
     && std.array.elem "inspect" profile.provider.capabilities
     && std.array.elem "compare" profile.provider.capabilities
     && (
