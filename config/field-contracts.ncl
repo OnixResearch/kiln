@@ -127,7 +127,13 @@
   Ipv6GroupCount = fun host =>
     let compressed = std.string.is_match "::" host in
     let dotted = std.string.is_match "\\." host in
-    compressed
-    || dotted
-    || std.array.length (std.array.filter (fun part => part != "") (std.string.split ":" host)) == 8,
+    let groups =
+      std.array.length (std.array.filter (fun part => part != "") (std.string.split ":" host))
+    in
+    if dotted then
+      true
+    else if compressed then
+      groups <= 7
+    else
+      groups == 8,
 }
