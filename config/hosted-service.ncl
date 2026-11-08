@@ -39,6 +39,10 @@ let SocketAddress =
   std.contract.from_predicate (fun value =>
     std.is_string value
     && std.string.is_match "^([0-9.]+|\\[[0-9a-fA-F:]+\\]):[0-9]+$" value
+    && (
+      let port = std.string.to_number (std.array.last (std.string.split ":" value)) in
+      std.is_number port && port >= 0 && port <= 65535 && std.number.floor port == port
+    )
   )
 in
 let AtMost = fun maximum =>
