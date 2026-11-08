@@ -73,7 +73,14 @@ let PipelineRelations =
             && job.env == {}
             && job.parameters == {}
             && job.matrix == {}
+            && job.runner != null
           )
+        )
+        && (
+          if job.template != null then
+            job.steps == [] && job.runner == null && job.timeout_ms == null
+          else
+            job.runner != null && (has_kind || job.steps != [])
         )
       )
       jobs
