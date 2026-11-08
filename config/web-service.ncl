@@ -21,6 +21,16 @@ let BoundedText = fun maximum =>
     && std.string.length value <= maximum
   )
 in
+let NodeKind =
+  std.contract.from_predicate (fun value =>
+    std.array.elem value ["build", "review", "test"]
+  )
+in
+let AdapterKind =
+  std.contract.from_predicate (fun value =>
+    std.array.elem value ["local", "remote"]
+  )
+in
 let LatticeLabel =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -88,9 +98,9 @@ let Workflow = {
   nodes
     | Array {
       id | LatticeLabel,
-      kind | LatticeLabel,
+      kind | NodeKind,
       effect_class | std.contract.from_predicate (fun value => value == "build" || value == "test" || value == "custom"),
-      adapter_kind | LatticeLabel,
+      adapter_kind | AdapterKind,
       operation_identity | c.Blake3,
     },
   edges | Array { source | LatticeLabel, target | LatticeLabel },
