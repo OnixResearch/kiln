@@ -173,7 +173,21 @@ let Run = {
 in
 let Step =
   std.contract.custom (fun label value =>
-    if value.kind == "run" then
+    let allowed =
+      if value.kind == "run" then
+        ["kind", "name", "run", "shell", "env", "working_directory"]
+      else if value.kind == "use" then
+        ["kind", "step", "parameters"]
+      else
+        []
+    in
+    if !(
+      std.array.all
+        (fun field => std.array.elem field allowed)
+        (std.record.fields value)
+    ) then
+      'Error { message = "unknown step field" }
+    else if value.kind == "run" then
       std.contract.check ({ kind | std.contract.from_predicate (fun v => v == "run") } & Run) label value
     else if value.kind == "use" then
       std.contract.check
@@ -256,8 +270,14 @@ let Trigger =
         'Ok value
       else
         'Error { message = "bare triggers are manual, push or pull_request" }
-    else
+    else if std.array.all
+      (fun field =>
+        std.array.elem field ["event", "branches", "tags", "types", "paths", "schedule"]
+      )
+      (std.record.fields value) then
       std.contract.check TriggerObject label value
+    else
+      'Error { message = "unknown trigger field" }
   )
 in
 let MinInterval =
