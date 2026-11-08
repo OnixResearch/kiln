@@ -2,6 +2,20 @@
 # that JSON to pipeline.compile / pipeline.review through the hosted Iroh CLI.
 # Rust admission enforces named expansion, byte, graph and deadline bounds.
 let TextMap = { _ : String } in
+let BoundedText = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= maximum
+  )
+in
+let Command =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 32768
+  )
+in
 let AtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value <= maximum
@@ -104,7 +118,7 @@ in
 let Shell = std.contract.from_predicate (fun value => value == "bash" || value == "sh") in
 let Run = {
   name | String | default = "",
-  run | String,
+  run | Command,
   shell | Shell | default = "bash",
   env | TextMap | default = {},
   working_directory | String | default = ".",
@@ -118,7 +132,7 @@ let Step =
       std.contract.check
         {
           kind | std.contract.from_predicate (fun v => v == "use"),
-          step | String,
+          step | BoundedText 128,
           parameters | TextMap | default = {},
         }
         label
@@ -129,7 +143,7 @@ let Step =
 in
 let JobTemplate = {
   parameters | TextMap | RecordAtMost 64 | default = {},
-  runner | String,
+  runner | BoundedText 128,
   steps | Array Step | NonEmptyAtMost 64,
   env | TextMap | RecordAtMost 128 | default = {},
   timeout_ms | Timeout | default = 3600000,
@@ -145,9 +159,9 @@ let TestSpec = { binary | TestFile, argv | Array String | default = [], fixtures
 let Job = {
   kind | std.contract.from_predicate (fun v => v == "unikernel-test") | optional,
   unikernel | TestSpec | optional,
-  template | Nullable String | default = null,
+  template | Nullable (BoundedText 128) | default = null,
   parameters | TextMap | RecordAtMost 64 | default = {},
-  runner | Nullable String | default = null,
+  runner | Nullable (BoundedText 128) | default = null,
   steps | Array Step | AtMost 64 | default = [],
   env | TextMap | RecordAtMost 128 | default = {},
   needs | Array String | AtMost 64 | UniqueStrings | default = [],
