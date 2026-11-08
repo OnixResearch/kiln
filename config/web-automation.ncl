@@ -59,6 +59,34 @@ let ScheduleAdmission =
       schedules
   )
 in
+let Host =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 253
+    && !(std.string.is_match "[:?#\\\\]" value)
+    && std.string.is_match "^[A-Za-z0-9.-]+$" value
+  )
+in
+let NotificationPath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 2048
+    && !(std.string.is_match "[?#\\\\\\x00-\\x20\\x7f]" value)
+    && !(std.string.is_match "^//" value)
+  )
+in
+let NotificationAddresses =
+  std.contract.from_predicate (fun notifications =>
+    std.array.all
+      (fun notification =>
+        std.array.length notification.addresses >= 1
+        && std.array.length notification.addresses <= notification.max_resolver_candidates
+      )
+      notifications
+  )
+in
 let UniqueIds =
   std.contract.from_predicate (fun values =>
     let check = fun state value =>
@@ -184,9 +212,9 @@ fun input =>
             enabled | Bool,
             on_success | Bool,
             on_failure | Bool,
-            host | c.NonEmpty,
+            host | Host,
             port | c.BoundedInteger 1 65535,
-            path | c.NonEmpty,
+            path | NotificationPath,
             addresses | Array String,
             bearer_secret_file | c.Nullable c.AbsolutePath,
             ca_certificate_file | c.Nullable c.AbsolutePath,
@@ -197,7 +225,8 @@ fun input =>
             max_response_bytes | c.BoundedInteger 1 1048576,
             max_resolver_candidates | c.BoundedInteger 1 16,
           }
-          | UniqueIds,
+          | UniqueIds
+          | NotificationAddresses,
         max_records | c.BoundedInteger 1 100000,
         status_limit | c.BoundedInteger 1 100,
         max_event_bytes | c.BoundedInteger 1 1048576,
