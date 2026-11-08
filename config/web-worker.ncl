@@ -36,6 +36,17 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let UniqueStrings =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
 let AbsolutePath =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -135,13 +146,18 @@ fun input =>
                   std.array.elem value ["/nix/store", "/usr", "/bin", "/lib", "/lib64"]
                 )
               )
-              | NonEmptyAtMost 16,
+              | NonEmptyAtMost 16
+              | UniqueStrings,
             # Explicit operator-reviewed data roots; Rust admits only /srv and
             # /var/lib/kiln by default, binds them read-only, and rejects links.
-            read_only_data_mounts | Array AbsolutePath | AtMost 4 | optional,
+            read_only_data_mounts | Array AbsolutePath | AtMost 4 | UniqueStrings | optional,
             # Optional reviewed roots for data mounts. Omitted keeps the default
             # roots; explicit roots must stay in the reviewed data families.
-            read_only_data_mount_roots | Array AbsolutePath | NonEmptyAtMost 4 | optional,
+            read_only_data_mount_roots
+              | Array AbsolutePath
+              | NonEmptyAtMost 4
+              | UniqueStrings
+              | optional,
             network | std.contract.from_predicate (fun value => std.array.elem value ["deny", "host"]),
             cpu_seconds | Integer 86400,
             address_space_bytes | Between 16777216 1099511627776,
