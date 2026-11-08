@@ -249,7 +249,7 @@ let TestPath =
     std.is_string value
     && std.string.length value > 0
     && std.string.length value <= 4096
-    && !(std.string.is_match "[\\\x00-\\x1f\\x7f]" value)
+    && std.string.is_match "^[\\x20-\\x7e]+$" value
     && !(std.string.is_match "(^|/)(\\.|\\.\\.)?(/|$)" value)
     && value != "TRAILER!!!"
     && !(std.string.is_match "^TRAILER!!!/" value)
