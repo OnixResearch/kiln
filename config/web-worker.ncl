@@ -18,9 +18,22 @@ let Integer = fun maximum =>
     && std.number.floor value == value
   )
 in
+let Between = fun minimum maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_number value
+    && value >= minimum
+    && value <= maximum
+    && std.number.floor value == value
+  )
+in
 let NonEmptyAtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
+let AtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= maximum
   )
 in
 let AbsolutePath =
@@ -121,18 +134,19 @@ fun input =>
                 std.contract.from_predicate (fun value =>
                   std.array.elem value ["/nix/store", "/usr", "/bin", "/lib", "/lib64"]
                 )
-              ),
+              )
+              | NonEmptyAtMost 16,
             # Explicit operator-reviewed data roots; Rust admits only /srv and
             # /var/lib/kiln by default, binds them read-only, and rejects links.
-            read_only_data_mounts | Array AbsolutePath | optional,
+            read_only_data_mounts | Array AbsolutePath | AtMost 4 | optional,
             # Optional reviewed roots for data mounts. Omitted keeps the default
             # roots; explicit roots must stay in the reviewed data families.
-            read_only_data_mount_roots | Array AbsolutePath | optional,
+            read_only_data_mount_roots | Array AbsolutePath | NonEmptyAtMost 4 | optional,
             network | std.contract.from_predicate (fun value => std.array.elem value ["deny", "host"]),
             cpu_seconds | Integer 86400,
-            address_space_bytes | Integer 1099511627776,
+            address_space_bytes | Between 16777216 1099511627776,
             maximum_file_bytes | Integer 1099511627776,
-            maximum_open_files | Integer 65536,
+            maximum_open_files | Between 16 65536,
           }
           | optional,
         heartbeat
