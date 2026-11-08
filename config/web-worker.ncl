@@ -82,6 +82,30 @@ let ExecutionRelations =
       data_mounts
   )
 in
+let Unique = fun values =>
+  std.array.length values == std.array.length (
+    std.array.fold_left
+      (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+      []
+      values
+  )
+in
+let UniqueArtifactNames =
+  std.contract.from_predicate (fun steps =>
+    let names =
+      std.array.fold_left
+        (fun state step =>
+          std.array.fold_left
+            (fun inner artifact => inner @ [std.array.last (std.string.split "/" artifact)])
+            state
+            step.artifacts
+        )
+        []
+        steps
+    in
+    Unique names
+  )
+in
 let CacheText =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -239,7 +263,7 @@ fun input =>
         # per-job microVM without credentials or cache; only then does it accept
         # untrusted run bindings. Omitted means it refuses them.
         untrusted_capable | Bool | optional,
-        steps | Array Step | NonEmptyAtMost 128,
+        steps | Array Step | NonEmptyAtMost 128 | UniqueArtifactNames,
       }
       | std.contract.from_predicate (fun value =>
         value.snapshot_limits.max_file_bytes <= value.snapshot_limits.max_total_bytes
