@@ -333,7 +333,7 @@ let Backend =
           python | Executable,
           mount | Executable,
           shell | Executable,
-          runtime_roots | Array RuntimeRoot | AtMost 6,
+          runtime_roots | Array RuntimeRoot | NonEmptyAtMost 6,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
         }
         label
