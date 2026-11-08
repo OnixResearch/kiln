@@ -113,4 +113,8 @@
       && std.string.length value <= 256
       && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
     ),
+  HexIdentity =
+    std.contract.from_predicate (fun value =>
+      std.is_string value && std.string.is_match "^[0-9a-fA-F]{64}$" value
+    ),
 }

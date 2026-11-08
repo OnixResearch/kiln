@@ -124,6 +124,7 @@ in
 let RecordAtMost = (import "field-contracts.ncl").RecordAtMost in
 let helpers = import "field-contracts.ncl" in
 let ExactFields = helpers.ExactFields in
+let HexIdentity = helpers.HexIdentity in
 let CpuAffinity = helpers.CpuAffinity in
 let ExactSourceProfiles =
   std.contract.from_predicate (fun rows =>
@@ -349,7 +350,7 @@ let Backend =
           root_image | c.Nullable Executable | default = null,
           guest_shell | GuestShell,
           acceleration | std.contract.from_predicate (fun v => v == "tcg" || v == "kvm"),
-          qualification_identity | c.Nullable c.Blake3 | default = null,
+          qualification_identity | c.Nullable HexIdentity | default = null,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
         }
         label
@@ -387,7 +388,7 @@ let Backend =
             }
             | default
             = null,
-          qualification_identity | c.Nullable c.Blake3 | default = null,
+          qualification_identity | c.Nullable HexIdentity | default = null,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
           version | Version | optional,
           cpu_affinity | CpuAffinity | optional,
@@ -469,7 +470,7 @@ let Backend =
           cache_partition | Identifier | optional,
           # Pin VMM and inherited vCPU threads; physical host exclusion still applies.
           cpu_affinity | CpuAffinity | optional,
-          qualification_identity | c.Nullable c.Blake3 | default = null,
+          qualification_identity | c.Nullable HexIdentity | default = null,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
         }
         label
@@ -836,7 +837,7 @@ fun input =>
             peer | Peer,
             workflow_policy_id | Identifier,
             node_id | Identifier,
-            operation_identity | c.Blake3,
+            operation_identity | HexIdentity,
             web_service
               | {
                 service_origin | Origin,

@@ -17,6 +17,7 @@ let Identity =
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
   )
 in
+let HexIdentity = (import "field-contracts.ncl").HexIdentity in
 let Identifier = (import "field-contracts.ncl").Identifier in
 let Environment = (import "field-contracts.ncl").Environment in
 let CacheText = (import "field-contracts.ncl").CacheText in
@@ -132,7 +133,7 @@ let Backend = {
   cpu_affinity | CpuAffinity | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
-  qualification_identity | Identity | optional,
+  qualification_identity | HexIdentity | optional,
 }
 in
 fun input =>
