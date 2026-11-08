@@ -1,15 +1,39 @@
 # Apply to explicit operator-owned existing local roots, then export JSON.
 # The runtime rejects symlinks, traversal, non-0700 roots, aliases and overwrite.
 let c = import "github-contracts.ncl" in
+let Text = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= maximum
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+  )
+in
+let AtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= maximum
+  )
+in
+let UniquePaths =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
 fun input =>
   let settings =
     input
       | {
-        service_id | c.NonEmpty,
+        service_id | Text 128,
         backup_root | c.AbsolutePath,
         restore_root | c.AbsolutePath,
         content_root | c.AbsolutePath,
-        replay_roots | Array c.AbsolutePath,
+        replay_roots | Array c.AbsolutePath | AtMost 128 | UniquePaths,
         maximum_database_bytes | c.BoundedInteger 1 17179869184,
         maximum_content_bytes | c.BoundedInteger 1 16777216,
         maximum_content_records | c.BoundedInteger 1 1000000,

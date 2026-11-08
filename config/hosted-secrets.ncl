@@ -23,6 +23,33 @@ let BoundedArray =
     std.is_array values && std.array.length values <= 128
   )
 in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun values =>
+    std.is_array values && std.array.length values >= 1 && std.array.length values <= maximum
+  )
+in
+let UniqueStrings =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
+let UniqueResolverIds =
+  std.contract.from_predicate (fun resolvers =>
+    let check = fun state resolver =>
+      if std.array.elem resolver.id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [resolver.id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } resolvers).duplicate
+  )
+in
 fun input =>
   input
     | {
@@ -33,7 +60,7 @@ fun input =>
           && std.string.is_match "^https://[^ @?#]+[^/ @?#]$" value
         ),
       signing_key_path | c.AbsolutePath,
-      audiences | Array Audience | BoundedArray,
+      audiences | Array Audience | NonEmptyAtMost 128 | UniqueStrings,
       token_lifetime_seconds
         | std.contract.from_predicate (fun value =>
           std.is_number value
@@ -48,5 +75,6 @@ fun input =>
           project | Identifier,
           reference | c.SecretReference,
         }
-        | BoundedArray,
+        | BoundedArray
+        | UniqueResolverIds,
     }
