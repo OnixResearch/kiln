@@ -24,11 +24,21 @@ let Https =
       let authority =
         std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
       in
+      let bracketed = std.string.is_match "^\\[" authority in
+      let has_port =
+        if bracketed then
+          std.string.is_match "\\]:" authority
+        else
+          std.string.is_match ":" authority
+      in
       let port = std.array.last (std.string.split ":" authority) in
-      !(std.string.is_match "^[0-9]+$" port)
+      !has_port
       || (
-        let number = std.string.to_number port in
-        std.is_number number && number >= 0 && number <= 65535
+        std.string.is_match "^[0-9]+$" port
+        && (
+          let number = std.string.to_number port in
+          std.is_number number && number >= 0 && number <= 65535
+        )
       )
     )
   )
@@ -42,11 +52,21 @@ let Origin =
       let authority =
         std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
       in
+      let bracketed = std.string.is_match "^\\[" authority in
+      let has_port =
+        if bracketed then
+          std.string.is_match "\\]:" authority
+        else
+          std.string.is_match ":" authority
+      in
       let port = std.array.last (std.string.split ":" authority) in
-      !(std.string.is_match "^[0-9]+$" port)
+      !has_port
       || (
-        let number = std.string.to_number port in
-        std.is_number number && number >= 0 && number <= 65535
+        std.string.is_match "^[0-9]+$" port
+        && (
+          let number = std.string.to_number port in
+          std.is_number number && number >= 0 && number <= 65535
+        )
       )
     )
   )
