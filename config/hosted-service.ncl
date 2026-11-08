@@ -619,9 +619,16 @@ let Execution =
           && std.array.all (fun policy => std.array.elem policy.runner runners) admitted.workload
           && (
             admitted.cache == null
-            || std.array.all
-              (fun policy => std.array.elem policy.runner runners)
-              admitted.cache.policies
+            || (
+              std.array.all
+                (fun policy => std.array.elem policy.runner runners)
+                admitted.cache.policies
+              && std.array.all
+                (fun policy =>
+                  (std.record.get policy.runner admitted.runners).kind != "cloud-hypervisor"
+                )
+                admitted.cache.policies
+            )
           )
           && std.string.is_match "^/run/user/[0-9]+$" admitted.manager_runtime_directory
           && admitted.work_root != "/"
