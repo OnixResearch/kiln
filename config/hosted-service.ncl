@@ -648,6 +648,51 @@ let Execution =
               )
             )
             (std.record.values admitted.runners)
+          && (
+            let labels = std.record.fields admitted.runners in
+            let workload_runners =
+              std.array.map (fun policy => policy.runner) admitted.workload
+            in
+            let untrusted =
+              std.array.filter
+                (fun label =>
+                  let runner = std.record.get label admitted.runners in
+                  runner.kind == "firecracker"
+                  && std.record.has_field "untrusted_capable" runner
+                  && runner.untrusted_capable
+                )
+                labels
+            in
+            let field = fun name label =>
+              let runner = std.record.get label admitted.runners in
+              if std.record.has_field name runner then
+                std.record.get name runner
+              else
+                label
+            in
+            let partition = fun label =>
+              let runner = std.record.get label admitted.runners in
+              if std.record.has_field "cache_partition" runner then
+                std.record.get "cache_partition" runner
+              else
+                null
+            in
+            std.array.all
+              (fun untrusted_label =>
+                std.array.all
+                  (fun workload_label =>
+                    field "trust_domain" untrusted_label != field "trust_domain" workload_label
+                    && field "host_identity" untrusted_label != field "host_identity" workload_label
+                    && (
+                      partition untrusted_label == null
+                      || partition workload_label == null
+                      || partition untrusted_label != partition workload_label
+                    )
+                  )
+                  workload_runners
+              )
+              untrusted
+          )
           && std.array.all
             (fun runner =>
               !(
