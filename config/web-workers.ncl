@@ -3,6 +3,30 @@ let Integer = fun maximum =>
     std.is_number value && value >= 1 && value <= maximum && std.number.floor value == value
   )
 in
+let Between = fun minimum maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_number value
+    && value >= minimum
+    && value <= maximum
+    && std.number.floor value == value
+  )
+in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
+let UniqueWorkerIds =
+  std.contract.from_predicate (fun value =>
+    let check = fun state worker =>
+      if std.array.elem worker.worker_id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [worker.worker_id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } value.workers).duplicate
+  )
+in
 let Component =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -29,15 +53,16 @@ fun input =>
   let settings =
     input
       | {
-        maximum_ttl_ms | Integer 120000 | default = 30000,
+        maximum_ttl_ms | Between 300 120000 | default = 30000,
         maximum_clock_skew_ms
           | std.contract.from_predicate (fun value =>
             std.is_number value && value >= 0 && value <= 10000 && std.number.floor value == value
           )
           | default
           = 1000,
-        workers | Array Worker,
+        workers | Array Worker | NonEmptyAtMost 256,
       }
+      | UniqueWorkerIds
   in
   {
     schema = "kiln.worker-status.v1",
