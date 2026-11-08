@@ -207,7 +207,7 @@ fun input =>
         | Array {
           organization | Identifier,
           runner | Identifier,
-          price_id | Identity,
+          price_id | Identifier,
           class | Identifier,
           max_units | Positive 1000000000
         }

@@ -553,7 +553,7 @@ let Execution =
               | Array {
                 organization | Identifier,
                 runner | Identifier,
-                price_id | c.Blake3,
+                price_id | Identifier,
                 class | Identifier,
                 max_units | c.BoundedInteger 1 1000000000,
               }
@@ -698,7 +698,7 @@ let Fleet =
             organizations | Array Identifier | NonEmptyAtMost 128,
             pricing
               | c.Nullable {
-                price_id | c.Blake3,
+                price_id | Identifier,
                 class | Identifier,
                 max_units | c.BoundedInteger 1 1000000000,
               }
@@ -754,7 +754,7 @@ fun input =>
             organization | Identifier,
             project | Identifier,
             network_activation | Bool | default = false,
-            price_id | c.Nullable c.Blake3 | default = null,
+            price_id | c.Nullable Identifier | default = null,
             class | c.Nullable Identifier | default = null,
             max_units | c.Nullable (c.BoundedInteger 1 1000000000) | default = null,
           }
@@ -790,8 +790,8 @@ fun input =>
                 max_total_bytes | c.BoundedInteger 1 268435456,
               },
             hosted_project | Identifier,
-            pipeline_id | c.Blake3,
-            price_id | c.Blake3,
+            pipeline_id | Identifier,
+            price_id | Identifier,
             class | Identifier,
           }
           | AtMost 128

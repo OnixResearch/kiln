@@ -92,7 +92,7 @@ let executable = { path = "/nix/store/fixture-not-a-runtime/bin/tool", blake3 = 
       {
         organization = "acme",
         runner = "local",
-        price_id = identity,
+        price_id = "standard",
         class = "local",
         max_units = 1000,
       }
