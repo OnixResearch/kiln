@@ -59,7 +59,7 @@ let Backend = {
   # Trusted cold-only Unikraft test runner; kernel and Firecracker are immutable.
   project | std.contract.from_predicate (fun value => value == "unikraft") | optional,
   initrd | Immutable | optional,
-  vcpus | Positive 1 | optional,
+  vcpus | Positive 8 | optional,
   memory_mib
     | std.contract.from_predicate (fun value =>
       std.is_number value && value >= 32 && value <= 16384 && std.number.floor value == value
