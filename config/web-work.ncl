@@ -8,6 +8,17 @@ let Principal =
     && std.string.is_match "^[A-Za-z0-9_.:@/-]+$" value
   )
 in
+let UniquePrincipals =
+  std.contract.from_predicate (fun value =>
+    let check = fun state principal =>
+      if std.array.elem principal state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [principal], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } value.write_principals).duplicate
+  )
+in
 fun input =>
   let admitted =
     input
@@ -18,6 +29,7 @@ fun input =>
           | Array Principal
           | std.contract.from_predicate (fun rows => std.array.length rows > 0 && std.array.length rows <= 128),
       }
+      | UniquePrincipals
   in
   {
     schema = "kiln.web-work.v1",
