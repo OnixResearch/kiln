@@ -21,6 +21,14 @@ let BoundedText = fun maximum =>
     && std.string.length value <= maximum
   )
 in
+let LatticeLabel =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 128
+    && std.string.is_match "^[a-z0-9_.:-]+$" value
+  )
+in
 let AllowedUsers =
   std.contract.from_predicate (fun values =>
     let sorted =
@@ -76,16 +84,16 @@ let Workflow = {
   adapter_limits | { maximum_request_bytes | c.Positive, maximum_response_bytes | c.Positive },
   policy_id | BoundedText 128,
   provider_profile_id | BoundedText 128,
-  platform | BoundedText 128,
+  platform | LatticeLabel,
   nodes
     | Array {
-      id | BoundedText 128,
-      kind | BoundedText 128,
+      id | LatticeLabel,
+      kind | LatticeLabel,
       effect_class | std.contract.from_predicate (fun value => value == "build" || value == "test" || value == "custom"),
-      adapter_kind | BoundedText 128,
+      adapter_kind | LatticeLabel,
       operation_identity | c.Blake3,
     },
-  edges | Array { source | BoundedText 128, target | BoundedText 128 },
+  edges | Array { source | LatticeLabel, target | LatticeLabel },
   controls
     | {
       cancel | Bool,
