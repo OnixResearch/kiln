@@ -338,33 +338,55 @@ let CacheRelative =
     && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
   )
 in
-let Cache = {
-  directory | c.AbsolutePath,
-  maximum_entry_bytes | c.BoundedInteger 1 1048576,
-  maximum_total_bytes | c.BoundedInteger 1 1073741824,
-  maximum_entries | c.BoundedInteger 1 4096,
-  maximum_age_seconds | c.BoundedInteger 1 31536000,
-  maximum_files | c.BoundedInteger 1 4096,
-  policies
-    | Array {
-      organization | Identifier,
-      project | Identifier,
-      runner | Identifier,
-      worker
-        | {
-          producer | CacheText,
-          toolchain | CacheText,
-          platform | CacheText,
-          inputs | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
-          paths | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
+let Cache =
+  std.contract.custom (fun label value =>
+    let result =
+      std.contract.check
+        {
+          directory | c.AbsolutePath,
           maximum_entry_bytes | c.BoundedInteger 1 1048576,
+          maximum_total_bytes | c.BoundedInteger 1 1073741824,
+          maximum_entries | c.BoundedInteger 1 4096,
+          maximum_age_seconds | c.BoundedInteger 1 31536000,
           maximum_files | c.BoundedInteger 1 4096,
-        },
+          policies
+            | Array {
+              organization | Identifier,
+              project | Identifier,
+              runner | Identifier,
+              worker
+                | {
+                  producer | CacheText,
+                  toolchain | CacheText,
+                  platform | CacheText,
+                  inputs | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
+                  paths | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
+                  maximum_entry_bytes | c.BoundedInteger 1 1048576,
+                  maximum_files | c.BoundedInteger 1 4096,
+                },
+            }
+            | NonEmptyAtMost 128
+            | UniqueCacheScopes
+            | CacheIo,
+        }
+        label
+        value
+    in
+    result
+    |> match {
+      'Ok cache =>
+        if std.array.all
+          (fun policy =>
+            policy.worker.maximum_entry_bytes <= cache.maximum_entry_bytes
+            && policy.worker.maximum_files <= cache.maximum_files
+          )
+          cache.policies then
+          'Ok cache
+        else
+          'Error { message = "cache policy exceeds operator bounds" },
+      'Error error => 'Error error,
     }
-    | NonEmptyAtMost 128
-    | UniqueCacheScopes
-    | CacheIo,
-}
+  )
 in
 let Execution =
   std.contract.custom (fun label value =>
