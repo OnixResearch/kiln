@@ -118,6 +118,16 @@ let Audience =
     std.is_string value && std.string.length value > 0 && std.string.length value <= 256
   )
 in
+let ActivationPricing =
+  std.contract.from_predicate (fun sources =>
+    std.array.all
+      (fun source =>
+        !source.network_activation
+        || (source.price_id != null && source.class != null && source.max_units != null)
+      )
+      sources
+  )
+in
 let Executable = { path | c.AbsolutePath, blake3 | c.Blake3 } in
 let RuntimeRoot =
   std.contract.from_predicate (fun value =>
@@ -293,64 +303,92 @@ let Cache = {
     | UniqueCacheScopes,
 }
 in
-let Execution = {
-  systemd_run | Executable,
-  systemctl | Executable,
-  taskset | Executable | optional,
-  manager_runtime_directory | c.AbsolutePath,
-  cache | c.Nullable Cache | default = null,
-  trusted_projects
-    | Array {
-      organization | Identifier,
-      project | Identifier,
-    }
-    | AtMost 128
-    | default
-    = [],
-  pricing
-    | Array {
-      organization | Identifier,
-      runner | Identifier,
-      price_id | c.Blake3,
-      class | Identifier,
-      max_units | c.BoundedInteger 1 1000000000,
-    }
-    | AtMost 128
-    | UniquePricing
-    | default
-    = [],
-  workload
-    | Array {
-      organization | Identifier,
-      project | Identifier,
-      runner | Identifier,
-      audience | c.Nullable Audience | default = null,
-      secrets
-        | Array {
-          environment
-            | std.contract.from_predicate (fun value =>
-              std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
-            ),
-          name | Identifier,
-          revision | c.Positive,
+let Execution =
+  std.contract.custom (fun label value =>
+    let result =
+      std.contract.check
+        {
+          systemd_run | Executable,
+          systemctl | Executable,
+          taskset | Executable | optional,
+          manager_runtime_directory | c.AbsolutePath,
+          cache | c.Nullable Cache | default = null,
+          trusted_projects
+            | Array {
+              organization | Identifier,
+              project | Identifier,
+            }
+            | AtMost 128
+            | default
+            = [],
+          pricing
+            | Array {
+              organization | Identifier,
+              runner | Identifier,
+              price_id | c.Blake3,
+              class | Identifier,
+              max_units | c.BoundedInteger 1 1000000000,
+            }
+            | AtMost 128
+            | UniquePricing
+            | default
+            = [],
+          workload
+            | Array {
+              organization | Identifier,
+              project | Identifier,
+              runner | Identifier,
+              audience | c.Nullable Audience | default = null,
+              secrets
+                | Array {
+                  environment
+                    | std.contract.from_predicate (fun value =>
+                      std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
+                    ),
+                  name | Identifier,
+                  revision | c.Positive,
+                }
+                | AtMost 32
+                | UniqueSecretEnvironments,
+            }
+            | AtMost 128
+            | UniqueWorkload
+            | default
+            = [],
+          env | Executable,
+          work_root | c.AbsolutePath,
+          runners | { _ : Backend } | NonEmptyRecord,
+          maximum_concurrent | c.BoundedInteger 1 128,
+          memory_bytes | c.BoundedInteger 67108864 68719476736,
+          processes | c.BoundedInteger 8 1024,
+          cpu_percent | c.BoundedInteger 1 800,
+          maximum_timeout_ms | c.BoundedInteger 100 3600000,
+          maximum_output_bytes | c.BoundedInteger 1024 1048576,
         }
-        | AtMost 32
-        | UniqueSecretEnvironments,
+        label
+        value
+    in
+    result
+    |> match {
+      'Ok admitted =>
+        let runners = std.record.fields admitted.runners in
+        if std.array.all (fun policy => std.array.elem policy.runner runners) admitted.pricing
+        && std.array.all (fun policy => std.array.elem policy.runner runners) admitted.workload
+        && (
+          admitted.cache == null
+          || std.array.all
+            (fun policy => std.array.elem policy.runner runners)
+            admitted.cache.policies
+        )
+        && std.string.is_match "^/run/user/[0-9]+$" admitted.manager_runtime_directory
+        && admitted.work_root != "/"
+        && !(std.string.is_match "^/nix/store(/|$)" admitted.work_root) then
+          'Ok admitted
+        else
+          'Error { message = "execution policy references an unknown runner or invalid root" },
+      'Error error => 'Error error,
     }
-    | AtMost 128
-    | UniqueWorkload
-    | default
-    = [],
-  env | Executable,
-  work_root | c.AbsolutePath,
-  runners | { _ : Backend } | NonEmptyRecord,
-  maximum_concurrent | c.BoundedInteger 1 128,
-  memory_bytes | c.BoundedInteger 67108864 68719476736,
-  processes | c.BoundedInteger 8 1024,
-  cpu_percent | c.BoundedInteger 1 800,
-  maximum_timeout_ms | c.BoundedInteger 100 3600000,
-  maximum_output_bytes | c.BoundedInteger 1024 1048576,
-}
+  )
 in
 let Fleet =
   std.contract.custom (fun label value =>
@@ -424,6 +462,7 @@ fun input =>
             max_units | c.Nullable (c.BoundedInteger 1 1000000000) | default = null,
           }
           | AtMost 128
+          | ActivationPricing
           | default
           = [],
         lattice_execution
