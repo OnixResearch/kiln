@@ -452,13 +452,7 @@ let Backend =
             )
             | optional,
           # Existing operator-created resctrl CAT group; Rust verifies assignment.
-          cache_partition
-            | std.contract.from_predicate (fun value =>
-              std.is_string value
-              && std.string.length value <= 128
-              && std.string.is_match "^[A-Za-z0-9][A-Za-z0-9_-]*$" value
-            )
-            | optional,
+          cache_partition | Identifier | optional,
           # Pin VMM and inherited vCPU threads; physical host exclusion still applies.
           cpu_affinity | CpuAffinity | optional,
           qualification_identity | c.Nullable c.Blake3 | default = null,

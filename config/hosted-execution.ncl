@@ -115,13 +115,7 @@ let Backend = {
     )
     | optional,
   # Existing operator-created resctrl CAT group; assignment is checked before dispatch.
-  cache_partition
-    | std.contract.from_predicate (fun value =>
-      std.is_string value
-      && std.string.length value <= 128
-      && std.string.is_match "^[A-Za-z0-9][A-Za-z0-9_-]*$" value
-    )
-    | optional,
+  cache_partition | Identifier | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
   network | std.contract.from_predicate (fun value => value == "none") | optional,
   # Reviewed VMM version; recorded in receipts and snapshot identity v2.
