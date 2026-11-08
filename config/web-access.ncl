@@ -10,6 +10,15 @@ let Label =
     && std.string.is_match "^[ -~]+$" value
   )
 in
+let LoginName =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 128
+    && std.string.is_match "^[ -~]+$" value
+    && !(std.string.is_match "\\*" value)
+  )
+in
 let Identifier =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -110,7 +119,7 @@ fun input =>
           principals
             | Array {
               user_id | UserID,
-              login_name | Label,
+              login_name | LoginName,
               label | Label,
               role | Role,
               agent | { harness | Label | AgentText, model | Label | AgentText | optional } | optional,
