@@ -115,12 +115,78 @@ let RepositoryProjects =
       }
   )
 in
+let ProjectId =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 100
+    && std.string.is_match "^[A-Za-z0-9_.-]+$" value
+  )
+in
+let ProjectLabel =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 256
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+  )
+in
+let Reference =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 1024
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+  )
+in
+let AdmittedReferences =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    std.array.length values <= 64
+    && std.array.all
+      (fun value =>
+        std.string.length value > 0
+        && std.string.length value <= 1024
+        && !(std.string.is_match "^-" value)
+        && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
+      )
+      values
+    && !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
+let Unique = fun values =>
+  std.array.length values == std.array.length (
+    std.array.fold_left
+      (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+      []
+      values
+  )
+in
+let ProfileRelations =
+  std.contract.from_predicate (fun settings =>
+    let bounds = settings.bounds in
+    std.array.length settings.projects >= 1
+    && std.array.length settings.projects <= bounds.max_projects
+    && Unique (std.array.map (fun project => project.id) settings.projects)
+    && bounds.max_requests >= bounds.max_runs
+    && bounds.max_artifact_bytes <= bounds.max_run_artifact_bytes
+    && bounds.max_run_artifact_bytes <= bounds.max_total_artifact_bytes
+    && bounds.max_artifact_bytes
+    * 4
+    / 3
+    + 4096 <= bounds.max_request_bytes
+  )
+in
 let Project = {
-  id | Identifier,
-  label | c.NonEmpty,
+  id | ProjectId,
+  label | ProjectLabel,
   repository_path | c.AbsolutePath,
-  reference | c.NonEmpty,
-  admitted_references | Array c.NonEmpty | default = [],
+  reference | Reference,
+  admitted_references | Array c.NonEmpty | AdmittedReferences | default = [],
   source_limits | { max_entries | c.Positive, max_path_bytes | c.Positive, max_file_bytes | c.Positive, max_total_bytes | c.Positive },
   workflow | Workflow,
   scope | Scope | optional,
@@ -164,6 +230,7 @@ fun input =>
             max_state_bytes | c.BoundedInteger 1048576 9007199254740991,
           },
       }
+      | ProfileRelations
   in
   {
     schema = "kiln.web-service.v1",
