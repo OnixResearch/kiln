@@ -47,6 +47,17 @@ let UniqueProjects =
     !(std.array.fold_left check { seen = [], duplicate = false } projects).duplicate
   )
 in
+let UniquePaths =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
 let Identifier =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -70,7 +81,7 @@ fun input =>
             producers | Array Text | Nonempty256,
             toolchains | Array Text | Nonempty256,
             platforms | Array Text | Nonempty256,
-            paths | Array Relative | Nonempty,
+            paths | Array Relative | Nonempty | UniquePaths,
           }
           | Nonempty256
           | UniqueProjects,
