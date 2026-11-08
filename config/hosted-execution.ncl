@@ -17,6 +17,11 @@ let Positive = fun maximum =>
     std.is_number value && value >= 1 && value <= maximum && std.number.floor value == value
   )
 in
+let RecordAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_record value && std.array.length (std.record.fields value) <= maximum
+  )
+in
 let Identity =
   std.contract.from_predicate (fun value =>
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
@@ -123,7 +128,17 @@ fun input =>
       # Only externally acquired customer snapshots below organization/project may
       # be placed here. Never point this at the platform database or credentials.
       work_root | Absolute,
-      runners | { _ : Backend },
+      runners
+        | { _ : Backend }
+        | RecordAtMost 32
+        | std.contract.from_predicate (fun runners =>
+          std.array.all
+            (fun label =>
+              std.string.length label <= 128
+              && std.string.is_match "^[A-Za-z0-9_.-]+$" label
+            )
+            (std.record.fields runners)
+        ),
       maximum_concurrent | Positive 128,
       memory_bytes | Positive 68719476736,
       processes | Positive 1024,
