@@ -9,7 +9,7 @@
       argv = ["pass"],
       fixtures = [
         { path = "data/input", blake3 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
-        { path = "docs/readme", blake3 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+        { path = "docs/readme", blake3 = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC" },
       ],
     },
   },

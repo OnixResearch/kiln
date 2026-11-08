@@ -270,7 +270,7 @@ let ArgList =
     && std.array.fold_left (fun total value => total + std.string.length value + 1) 0 values <= 1024
   )
 in
-let TestFile = { path | TestPath, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-f]{64}$" v) } in
+let TestFile = { path | TestPath, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-fA-F]{64}$" v) } in
 let PathUnder = fun root path =>
   let split = fun value => std.string.split "/" value in
   let root_parts = split root in
