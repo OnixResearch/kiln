@@ -59,6 +59,24 @@ let ScheduleAdmission =
       schedules
   )
 in
+let Owner =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 39
+    && std.string.is_match "^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$" value
+  )
+in
+let RepositoryName =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 100
+    && value != "."
+    && value != ".."
+    && std.string.is_match "^[A-Za-z0-9_.-]+$" value
+  )
+in
 let Host =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -172,8 +190,8 @@ fun input =>
             reference | Reference,
             repository
               | {
-                owner | c.NonEmpty,
-                repository | c.NonEmpty,
+                owner | Owner,
+                repository | RepositoryName,
                 repository_id | c.Positive,
                 # Retired: readable, and only `false` is admitted.
                 allow_fork_pull_requests | std.contract.from_predicate (fun value => value == false),
