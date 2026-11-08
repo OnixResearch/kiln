@@ -36,6 +36,31 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let ExecutionRelations =
+  std.contract.from_predicate (fun execution =>
+    let under = fun root path =>
+      path == root || std.string.is_match ("^" ++ root ++ "/") path
+    in
+    let roots =
+      if std.record.has_field "read_only_data_mount_roots" execution then
+        execution.read_only_data_mount_roots
+      else
+        ["/srv", "/var/lib/kiln"]
+    in
+    let data_mounts =
+      if std.record.has_field "read_only_data_mounts" execution then
+        execution.read_only_data_mounts
+      else
+        []
+    in
+    std.array.any
+      (fun mount => under mount execution.probe_program)
+      execution.read_only_mounts
+    && std.array.all
+      (fun path => std.array.any (fun root => under root path) roots)
+      data_mounts
+  )
+in
 let UniqueStrings =
   std.contract.from_predicate (fun values =>
     let check = fun state value =>
@@ -164,6 +189,7 @@ fun input =>
             maximum_file_bytes | Integer 1099511627776,
             maximum_open_files | Between 16 65536,
           }
+          | ExecutionRelations
           | optional,
         heartbeat
           | {
