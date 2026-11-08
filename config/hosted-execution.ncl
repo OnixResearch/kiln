@@ -27,6 +27,13 @@ let Identity =
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
   )
 in
+let Identifier =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 128
+    && std.string.is_match "^[A-Za-z0-9_.-]+$" value
+  )
+in
 let Absolute =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -158,9 +165,9 @@ fun input =>
           maximum_files | Positive 4096,
           policies
             | Array {
-              organization | String,
-              project | String,
-              runner | String,
+              organization | Identifier,
+              project | Identifier,
+              runner | Identifier,
               worker
                 | {
                   producer | String,
@@ -177,24 +184,24 @@ fun input =>
         = null,
       # Customer trust strings grant no authority. This exact operator allowlist is
       # mandatory even for trusted namespace execution and unqualified VM smoke.
-      trusted_projects | Array { organization | String, project | String } | default = [],
+      trusted_projects | Array { organization | Identifier, project | Identifier } | default = [],
       # Every compiled runner must match an operator price policy. Absent pricing
       # denies dispatch; customer-admitted prices alone cannot grant compute.
       pricing
         | Array {
-          organization | String,
-          runner | String,
+          organization | Identifier,
+          runner | Identifier,
           price_id | Identity,
-          class | String,
+          class | Identifier,
           max_units | Positive 1000000000
         }
         | default
         = [],
       workload
         | Array {
-          organization | String,
-          project | String,
-          runner | String,
+          organization | Identifier,
+          project | Identifier,
+          runner | Identifier,
           audience | Dyn,
           secrets | Array { environment | String, name | String, revision | Positive 9007199254740991 },
         }
