@@ -46,10 +46,7 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
-let ExactFields = fun allowed =>
-  fun value =>
-    std.array.all (fun field => std.array.elem field allowed) (std.record.fields value)
-in
+let ExactFields = (import "field-contracts.ncl").ExactFields in
 let ExactSourceProfiles =
   std.contract.from_predicate (fun rows =>
     std.array.all
