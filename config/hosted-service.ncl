@@ -20,6 +20,7 @@ let Https =
     std.is_string value
     && std.string.length value <= 2048
     && std.string.is_match "^https://[^/ @?#][^ @?#]*$" value
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
     && (
       let authority =
         std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
@@ -48,6 +49,7 @@ let Origin =
     std.is_string value
     && std.string.length value <= 2048
     && std.string.is_match "^https://[^/?#@ ]+$" value
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
     && (
       let authority =
         std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
