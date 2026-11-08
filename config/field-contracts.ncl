@@ -81,7 +81,9 @@
     ),
   Environment =
     std.contract.from_predicate (fun value =>
-      std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
+      std.is_string value
+      && std.string.length value <= 128
+      && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
     ),
   CacheRelative =
     std.contract.from_predicate (fun value =>
