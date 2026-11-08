@@ -57,7 +57,7 @@ if ! nickel export config/hosted-pipeline-example.ncl >/dev/null; then
   exit 1
 fi
 
-for profile in config/*.ncl; do
+for profile in config/*.ncl deployment/*.ncl; do
   if ! nickel typecheck "$profile" >/dev/null; then
     printf 'Nickel typecheck failed: %s\n' "$profile" >&2
     exit 1
