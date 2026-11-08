@@ -40,9 +40,14 @@ let OwnershipEvidence = {
   project | Text 128,
 }
 in
+let OwnershipAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= maximum
+  )
+in
 let ChangeClass = {
   id | std.contract.from_predicate (fun value => value != "logic") | Text 128,
-  paths | Array (Text 1024),
+  paths | Array (Text 1024) | OwnershipAtMost 16,
 }
 in
 let ApprovalMode =
@@ -67,7 +72,7 @@ let AgentIdentity = {
 in
 let Ownership = {
   teams | { _ | Array Principal },
-  classes | Array ChangeClass | optional,
+  classes | Array ChangeClass | OwnershipAtMost 8 | optional,
   dependents | { _ | Array (Text 128) } | optional,
   rules
     | Array {
