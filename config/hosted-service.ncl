@@ -110,6 +110,14 @@ let SocketAddress =
   )
 in
 let GuestShell = (import "field-contracts.ncl").GuestShell in
+let CleanPath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.is_match "^/" value
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+    && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
+  )
+in
 let WebPath =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -385,7 +393,7 @@ let Backend =
           source_image_mib | c.BoundedInteger 1 1024,
           warm_pool
             | c.Nullable {
-              directory | c.AbsolutePath,
+              directory | CleanPath,
               slots | c.BoundedInteger 1 16,
             }
             | default
@@ -492,7 +500,7 @@ let Cache =
       let result =
         std.contract.check
           {
-            directory | c.AbsolutePath,
+            directory | CleanPath,
             maximum_entry_bytes | c.BoundedInteger 1 1048576,
             maximum_total_bytes | c.BoundedInteger 1 1073741824,
             maximum_entries | c.BoundedInteger 1 4096,
@@ -592,7 +600,7 @@ let Execution =
               | default
               = [],
             env | Executable,
-            work_root | c.AbsolutePath,
+            work_root | CleanPath,
             runners
               | { _ : Backend }
               | NonEmptyRecord
