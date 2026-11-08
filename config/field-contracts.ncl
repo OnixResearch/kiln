@@ -1,5 +1,5 @@
-# Shared admission contracts for hosted Nickel records: exact fields and CPU
-# affinity grammar shared by the service and legacy execution profiles.
+# Shared admission contracts for hosted Nickel records, reused by the service
+# and legacy execution profiles.
 {
   ExactFields = fun allowed =>
     fun value =>
