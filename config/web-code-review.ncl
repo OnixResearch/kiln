@@ -79,10 +79,21 @@ let AgentIdentity = {
   model | Text 128 | AgentText | optional,
 }
 in
+let OwnerKey = fun value =>
+  std.is_string value
+  && std.string.length value > 0
+  && std.string.length value <= 128
+  && std.string.trim value == value
+in
+let RecordKeys =
+  std.contract.from_predicate (fun value =>
+    std.array.all (fun key => OwnerKey key) (std.record.fields value)
+  )
+in
 let Ownership = {
-  teams | { _ | Array Principal },
+  teams | { _ | Array Principal } | RecordKeys,
   classes | Array ChangeClass | OwnershipAtMost 8 | optional,
-  dependents | { _ | Array (Text 128) } | DependentsBound | optional,
+  dependents | { _ | Array (Text 128) } | DependentsBound | RecordKeys | optional,
   rules
     | Array {
       id | Text 128,
