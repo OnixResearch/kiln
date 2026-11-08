@@ -66,6 +66,11 @@ let ExecutionRelations =
       data_mounts
   )
 in
+let RecordAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.array.length (std.record.fields value) <= maximum
+  )
+in
 let UniqueStrings =
   std.contract.from_predicate (fun values =>
     let check = fun state value =>
@@ -112,9 +117,9 @@ in
 let Step = {
   node_id | Component,
   program | AbsolutePath,
-  argv | Array String,
-  environment | { _ : String },
-  artifacts | Array RelativeFile,
+  argv | Array String | AtMost 4096,
+  environment | { _ : String } | RecordAtMost 4096,
+  artifacts | Array RelativeFile | AtMost 4096,
   # Omitted declarations remain omitted, preserving existing profile JSON identity.
   reports | Array Report | optional,
   cache
@@ -122,8 +127,8 @@ let Step = {
       producer | String,
       toolchain | String,
       platform | String,
-      inputs | Array RelativeFile,
-      paths | Array RelativeFile,
+      inputs | Array RelativeFile | NonEmptyAtMost 4096,
+      paths | Array RelativeFile | NonEmptyAtMost 4096,
       maximum_entry_bytes | Integer 8388608,
       maximum_files | Integer 4096,
     }
