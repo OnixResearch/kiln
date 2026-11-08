@@ -41,5 +41,13 @@ for fixture in config/fixtures/*positive*.ncl; do
   fi
 done
 
+for fixture in deployment/fixtures/positive.ncl; do
+  positive_count=$((positive_count + 1))
+  if ! nickel export "$fixture" >/dev/null; then
+    printf 'positive Nickel fixture failed: %s\n' "$fixture" >&2
+    exit 1
+  fi
+done
+
 nickel export config/hosted-pipeline-example.ncl >/dev/null
 printf 'Nickel fixture gate passed (%s positive, %s negative)\n' "$positive_count" "$negative_count"
