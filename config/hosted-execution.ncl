@@ -111,13 +111,40 @@ let Backend = {
     }
     | optional,
   # Recorded SMT/KSM-only exception; never overrides unfixed/unknown kernel status.
-  host_preflight_override | String | optional,
+  host_preflight_override
+    | std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 1024
+      && !(std.string.is_match "\\x00" value)
+    )
+    | optional,
   # Reviewed placement pool; untrusted and workload-bearing runners must differ.
-  trust_domain | String | optional,
+  trust_domain
+    | std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 128
+      && !(std.string.is_match "\\x00" value)
+    )
+    | optional,
   # Reviewed physical host; untrusted and workload-bearing runners must differ.
-  host_identity | String | optional,
+  host_identity
+    | std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 128
+      && !(std.string.is_match "\\x00" value)
+    )
+    | optional,
   # Existing operator-created resctrl CAT group; assignment is checked before dispatch.
-  cache_partition | String | optional,
+  cache_partition
+    | std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value <= 128
+      && std.string.is_match "^[A-Za-z0-9][A-Za-z0-9_-]*$" value
+    )
+    | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
   network | std.contract.from_predicate (fun value => value == "none") | optional,
   # Reviewed VMM version; recorded in receipts and snapshot identity v2.
