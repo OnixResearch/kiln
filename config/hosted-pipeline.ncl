@@ -23,6 +23,33 @@ let NonEmptyRecordAtMost = fun maximum =>
     count >= 1 && count <= maximum
   )
 in
+let PipelineRelations =
+  std.contract.from_predicate (fun pipeline =>
+    let job_names = std.record.fields pipeline.jobs in
+    let template_names = std.record.fields pipeline.templates in
+    let step_names = std.record.fields pipeline.steps in
+    let jobs = std.record.values pipeline.jobs in
+    let templates = std.record.values pipeline.templates in
+    let steps =
+      std.array.fold_left
+        (fun state job => state @ job.steps)
+        []
+        jobs
+      @ std.array.fold_left (fun state template => state @ template.steps) [] templates
+    in
+    std.array.all
+      (fun job => job.template == null || std.array.elem job.template template_names)
+      jobs
+    && std.array.all
+      (fun job => std.array.all (fun need => std.array.elem need job_names) job.needs)
+      jobs
+    && std.array.all
+      (fun step =>
+        step.kind != "use" || std.array.elem step.step step_names
+      )
+      steps
+  )
+in
 let Matrix =
   std.contract.from_predicate (fun value =>
     std.array.all
@@ -176,3 +203,4 @@ fun input =>
         = {},
       jobs | { _ : Job } | NonEmptyRecordAtMost 64,
     }
+    | PipelineRelations
