@@ -50,6 +50,15 @@ let UniqueResolverIds =
     !(std.array.fold_left check { seen = [], duplicate = false } resolvers).duplicate
   )
 in
+let ExactFields = fun allowed =>
+  fun value =>
+    std.array.all (fun field => std.array.elem field allowed) (std.record.fields value)
+in
+let ExactResolvers =
+  std.contract.from_predicate (fun rows =>
+    std.array.all (ExactFields ["id", "organization", "project", "reference"]) rows
+  )
+in
 fun input =>
   input
     | {
@@ -76,5 +85,7 @@ fun input =>
           reference | c.SecretReference,
         }
         | BoundedArray
+        | ExactResolvers
         | UniqueResolverIds,
     }
+    | std.contract.from_predicate (ExactFields ["issuer", "signing_key_path", "audiences", "token_lifetime_seconds", "resolvers"])

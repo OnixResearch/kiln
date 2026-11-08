@@ -39,6 +39,10 @@ let UniquePaths =
     !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
   )
 in
+let ExactFields = fun allowed =>
+  fun value =>
+    std.array.all (fun field => std.array.elem field allowed) (std.record.fields value)
+in
 fun input =>
   let settings =
     input
@@ -54,6 +58,7 @@ fun input =>
         maximum_backup_ms | c.BoundedInteger 1 300000,
       }
       | UniqueRoots
+      | std.contract.from_predicate (ExactFields ["service_id", "backup_root", "restore_root", "content_root", "replay_roots", "maximum_database_bytes", "maximum_content_bytes", "maximum_content_records", "maximum_backup_ms"])
   in
   {
     service_id = settings.service_id,
