@@ -114,6 +114,7 @@ let executable = { path = "/nix/store/fixture-not-a-runtime/bin/tool", blake3 = 
         mount = executable,
         shell = executable,
         runtime_roots = ["/nix/store"],
+        network = "none",
       },
       vm = {
         kind = "qemu",

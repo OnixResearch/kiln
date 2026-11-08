@@ -294,7 +294,7 @@ let Backend =
   std.contract.custom (fun label value =>
     let allowed =
       if value.kind == "namespaces" then
-        ["kind", "unshare", "python", "mount", "shell", "runtime_roots"]
+        ["kind", "unshare", "python", "mount", "shell", "runtime_roots", "network"]
       else if value.kind == "qemu" then
         ["kind", "qemu", "kernel", "initramfs", "root_image", "guest_shell", "acceleration", "qualification_identity", "network"]
       else if value.kind == "unikernel-test" then
@@ -321,6 +321,7 @@ let Backend =
           mount | Executable,
           shell | Executable,
           runtime_roots | Array RuntimeRoot | AtMost 6,
+          network | std.contract.from_predicate (fun v => v == "none") | optional,
         }
         label
         value
