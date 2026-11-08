@@ -59,6 +59,24 @@ let ScheduleAdmission =
       schedules
   )
 in
+let UniqueIds =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.elem value.id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value.id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
+let RegistrationBound =
+  std.contract.from_predicate (fun value =>
+    std.array.length value.triggers
+    + std.array.length value.schedules
+    + std.array.length value.notifications <= 128
+  )
+in
 let PullRequestType =
   std.contract.from_predicate (fun value =>
     std.array.elem value ["opened", "reopened", "synchronize", "closed", "merged"]
@@ -142,7 +160,8 @@ fun input =>
             untrusted_results_satisfy_required_ci | Bool | optional,
             filter | TriggerFilter | optional,
           }
-          | UntrustedCounting,
+          | UntrustedCounting
+          | UniqueIds,
         schedules
           | Array {
             id | Identifier,
@@ -156,7 +175,8 @@ fun input =>
             next_due_ms | c.Nullable (c.BoundedInteger 0 9007199254740991),
           }
           | Cadences
-          | ScheduleAdmission,
+          | ScheduleAdmission
+          | UniqueIds,
         notifications
           | Array {
             id | Identifier,
@@ -176,12 +196,14 @@ fun input =>
             max_request_bytes | c.BoundedInteger 1 1048576,
             max_response_bytes | c.BoundedInteger 1 1048576,
             max_resolver_candidates | c.BoundedInteger 1 16,
-          },
+          }
+          | UniqueIds,
         max_records | c.BoundedInteger 1 100000,
         status_limit | c.BoundedInteger 1 100,
         max_event_bytes | c.BoundedInteger 1 1048576,
         max_tick_effects | c.BoundedInteger 1 16,
       }
+      | RegistrationBound
   in
   {
     schema = "kiln.web-automation.v1",
