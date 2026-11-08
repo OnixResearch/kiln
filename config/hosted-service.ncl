@@ -113,6 +113,7 @@ let GuestShell = (import "field-contracts.ncl").GuestShell in
 let CleanPath =
   std.contract.from_predicate (fun value =>
     std.is_string value
+    && value != "/"
     && std.string.is_match "^/" value
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
     && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
