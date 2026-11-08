@@ -624,7 +624,8 @@ let Execution =
           && (
             admitted.cache == null
             || (
-              std.array.all
+              admitted.cache.directory != admitted.work_root
+              && std.array.all
                 (fun policy => std.array.elem policy.runner runners)
                 admitted.cache.policies
               && std.array.all
