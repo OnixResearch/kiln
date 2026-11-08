@@ -59,4 +59,10 @@
         !(std.array.fold_left check { seen = [], duplicate = false } cpus).duplicate
       )
     ),
+  Identifier =
+    std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value <= 128
+      && std.string.is_match "^[A-Za-z0-9_.-]+$" value
+    ),
 }

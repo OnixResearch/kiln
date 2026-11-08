@@ -28,13 +28,7 @@ let Identity =
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
   )
 in
-let Identifier =
-  std.contract.from_predicate (fun value =>
-    std.is_string value
-    && std.string.length value <= 128
-    && std.string.is_match "^[A-Za-z0-9_.-]+$" value
-  )
-in
+let Identifier = (import "field-contracts.ncl").Identifier in
 let Environment =
   std.contract.from_predicate (fun value =>
     std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value

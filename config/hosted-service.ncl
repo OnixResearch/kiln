@@ -1,13 +1,7 @@
 # Host-owned service profile builder. JSON admission and filesystem/tool checks remain
 # authoritative in Rust. Optional modules are validated, never discarded.
 let c = import "github-contracts.ncl" in
-let Identifier =
-  std.contract.from_predicate (fun value =>
-    std.is_string value
-    && std.string.length value <= 128
-    && std.string.is_match "^[A-Za-z0-9_.-]+$" value
-  )
-in
+let Identifier = (import "field-contracts.ncl").Identifier in
 let WebRepository =
   std.contract.from_predicate (fun value =>
     std.is_string value
