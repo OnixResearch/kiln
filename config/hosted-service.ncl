@@ -46,6 +46,14 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let Version =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 128
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+  )
+in
 let CacheText =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -177,7 +185,7 @@ let Backend =
           firecracker | Executable,
           kernel | Executable,
           project | std.contract.from_predicate (fun v => v == "unikraft"),
-          version | String,
+          version | Version,
           vcpus | c.BoundedInteger 1 1,
           memory_mib | c.BoundedInteger 32 16384,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
