@@ -115,6 +115,34 @@ let PipelineRelations =
     && std.array.all
       (fun name => !(std.array.elem name (std.record.get name pipeline.jobs).needs))
       job_names
+    && (
+      let dedup = fun values =>
+        std.array.fold_left
+          (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+          []
+          values
+      in
+      let cycles = fun name =>
+        let step = fun state =>
+          let next =
+            dedup (
+              std.array.fold_left
+                (fun acc job => acc @ (std.record.get job pipeline.jobs).needs)
+                []
+                state.frontier
+            )
+          in
+          { frontier = next, cycle = state.cycle || std.array.elem name next }
+        in
+        (
+          std.array.fold_left
+            (fun state _ => step state)
+            { frontier = (std.record.get name pipeline.jobs).needs, cycle = false }
+            (std.array.generate (fun _ => 0) 64)
+        ).cycle
+      in
+      !(std.array.any cycles job_names)
+    )
     && std.array.all
       (fun step =>
         step.kind != "use" || std.array.elem step.step step_names
