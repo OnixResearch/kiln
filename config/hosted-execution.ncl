@@ -21,6 +21,7 @@ let Identifier = (import "field-contracts.ncl").Identifier in
 let Environment = (import "field-contracts.ncl").Environment in
 let CacheText = (import "field-contracts.ncl").CacheText in
 let Audience = (import "field-contracts.ncl").Audience in
+let WorkloadAudience = (import "field-contracts.ncl").WorkloadAudience in
 let Absolute =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -212,7 +213,7 @@ fun input =>
           organization | Identifier,
           project | Identifier,
           runner | Identifier,
-          audience | c.Nullable Audience | default = null,
+          audience | c.Nullable WorkloadAudience | default = null,
           secrets | Array { environment | Environment, name | Identifier, revision | Positive 9007199254740991 },
         }
         | default

@@ -104,4 +104,11 @@
       && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
       && !(std.string.is_match "(^|/)\\.\\.(/|$)" value)
     ),
+  WorkloadAudience =
+    std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 256
+      && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
+    ),
 }

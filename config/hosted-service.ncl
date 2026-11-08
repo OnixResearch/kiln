@@ -286,6 +286,7 @@ let NonEmptyRecord =
   std.contract.from_predicate (fun value => std.array.length (std.record.fields value) >= 1)
 in
 let Audience = (import "field-contracts.ncl").Audience in
+let WorkloadAudience = (import "field-contracts.ncl").WorkloadAudience in
 let Environment = (import "field-contracts.ncl").Environment in
 let ActivationPricing =
   std.contract.from_predicate (fun sources =>
@@ -573,7 +574,7 @@ let Execution =
                 organization | Identifier,
                 project | Identifier,
                 runner | Identifier,
-                audience | c.Nullable Audience | default = null,
+                audience | c.Nullable WorkloadAudience | default = null,
                 secrets
                   | Array {
                     environment | Environment,
