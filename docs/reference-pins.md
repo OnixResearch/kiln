@@ -115,8 +115,11 @@ The importer runs `git archive --format=tar COMMIT -- PATHS...` in the exact
 against both the reviewed source record and importer pin, then imports it. If a
 destination already exists, it compares bytes, symlink targets, and executable
 bits and refuses replacement on drift. It does not inspect the checkout's HEAD
-or working tree. Git, Bash, jq, BLAKE3's `b3sum`, GNU tar, and GNU coreutils are
-import-time tools only.
+or working tree. It also prunes workspace members whose imported paths are
+absent and writes a tree-local `rustfmt.toml` with
+`disable_all_formatting = true`, so Cargo and the host formatter can traverse a
+partial import without rewriting pinned bytes. Git, Bash, jq, BLAKE3's
+`b3sum`, GNU tar, GNU coreutils, and Python 3 are import-time tools only.
 The root-workspace source records additionally retain the BLAKE3 identity of the original full
 `git archive --format=tar COMMIT` as `full_archive_blake3`. That is provenance
 for the whole upstream revision, not an instruction to redistribute it. The
