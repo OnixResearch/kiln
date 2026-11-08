@@ -56,4 +56,9 @@ if ! nickel export config/hosted-pipeline-example.ncl >/dev/null; then
   printf 'positive Nickel fixture failed: config/hosted-pipeline-example.ncl\n' >&2
   exit 1
 fi
+
+if ! nickel typecheck config/hosted-execution.ncl >/dev/null; then
+  printf 'Nickel typecheck failed: config/hosted-execution.ncl\n' >&2
+  exit 1
+fi
 printf 'Nickel fixture gate passed (%s positive, %s negative)\n' "$positive_count" "$negative_count"
