@@ -1317,6 +1317,7 @@
               '';
           nickel = pkgs.runCommand "kiln-nickel" { nativeBuildInputs = [ pkgs.nickel ]; } ''
             ${copySource}
+            bash scripts/check-nickel-fixtures.sh
             nickel format --check \
               config/radicle-nix-provider.ncl \
               config/radicle-workflow-shell.ncl \
