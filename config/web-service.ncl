@@ -8,6 +8,27 @@ let Identifier =
     && std.string.is_match "^[A-Za-z0-9_.-]+$" value
   )
 in
+let WorkflowRelations =
+  std.contract.from_predicate (fun workflow =>
+    let unique = fun values =>
+      std.array.length values == std.array.length (
+        std.array.fold_left
+          (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+          []
+          values
+      )
+    in
+    let ids = std.array.map (fun node => node.id) workflow.nodes in
+    let keys = std.array.map (fun edge => edge.source ++ "\u{0}" ++ edge.target) workflow.edges in
+    unique ids
+    && unique keys
+    && std.array.all
+      (fun edge => std.array.elem edge.source ids && std.array.elem edge.target ids)
+      workflow.edges
+    && std.array.length workflow.nodes <= workflow.bounds.max_nodes
+    && std.array.length workflow.edges <= workflow.bounds.max_edges
+  )
+in
 let Workflow = {
   socket_path | c.AbsolutePath,
   allowed_user_ids | Array (c.BoundedInteger 0 4294967295),
@@ -206,7 +227,7 @@ let Project = {
   reference | Reference,
   admitted_references | Array c.NonEmpty | AdmittedReferences | default = [],
   source_limits | { max_entries | c.Positive, max_path_bytes | c.Positive, max_file_bytes | c.Positive, max_total_bytes | c.Positive },
-  workflow | Workflow,
+  workflow | Workflow | WorkflowRelations,
   scope | Scope | optional,
   # r[impl kiln.untrusted.execution] Operator declaration that this project's
   # execution target runs each job in a microVM without credentials or cache;
