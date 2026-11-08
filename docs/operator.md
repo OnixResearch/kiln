@@ -19,6 +19,7 @@
    ```console
    cargo test --locked --workspace
    cargo clippy --locked --workspace --all-targets -- -D warnings
+   cargo fmt --all --check
    cairn validate --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
    cairn traceability coverage --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --json
    cairn release-readiness --root .
