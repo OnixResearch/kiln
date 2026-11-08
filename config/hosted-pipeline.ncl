@@ -14,6 +14,14 @@ let BoundedText = fun maximum =>
     && std.string.length value <= maximum
   )
 in
+let PipelineName =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 4096
+    && std.string.trim value != ""
+  )
+in
 let BranchReference =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -398,7 +406,7 @@ fun input =>
         | std.contract.from_predicate (fun value => value == "kiln.hosted.pipeline.v1")
         | default
         = "kiln.hosted.pipeline.v1",
-      name | String,
+      name | PipelineName,
       triggers | Array Trigger | NonEmptyAtMost 8,
       schedules | { _ : ScheduleEntry } | RecordAtMost 8 | ScheduleFields | optional,
       parameters | TextMap | RecordAtMost 64 | default = {},
