@@ -2,6 +2,34 @@
 # that JSON to pipeline.compile / pipeline.review through the hosted Iroh CLI.
 # Rust admission enforces named expansion, byte, graph and deadline bounds.
 let TextMap = { _ : String } in
+let AtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= maximum
+  )
+in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
+let RecordAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.array.length (std.record.fields value) <= maximum
+  )
+in
+let NonEmptyRecordAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    let count = std.array.length (std.record.fields value) in
+    count >= 1 && count <= maximum
+  )
+in
+let Matrix =
+  std.contract.from_predicate (fun value =>
+    std.array.all
+      (fun values => std.array.length values >= 1 && std.array.length values <= 32)
+      (std.record.values value)
+  )
+in
 let Timeout =
   std.contract.from_predicate (fun value =>
     std.is_number value
@@ -37,10 +65,10 @@ let Step =
   )
 in
 let JobTemplate = {
-  parameters | TextMap | default = {},
+  parameters | TextMap | RecordAtMost 64 | default = {},
   runner | String,
-  steps | Array Step,
-  env | TextMap | default = {},
+  steps | Array Step | NonEmptyAtMost 64,
+  env | TextMap | RecordAtMost 128 | default = {},
   timeout_ms | Timeout | default = 3600000,
 }
 in
@@ -55,12 +83,12 @@ let Job = {
   kind | std.contract.from_predicate (fun v => v == "unikernel-test") | optional,
   unikernel | TestSpec | optional,
   template | Nullable String | default = null,
-  parameters | TextMap | default = {},
+  parameters | TextMap | RecordAtMost 64 | default = {},
   runner | Nullable String | default = null,
-  steps | Array Step | default = [],
-  env | TextMap | default = {},
-  needs | Array String | default = [],
-  matrix | { _ : Array String } | default = {},
+  steps | Array Step | AtMost 64 | default = [],
+  env | TextMap | RecordAtMost 128 | default = {},
+  needs | Array String | AtMost 64 | default = [],
+  matrix | { _ : Array String } | RecordAtMost 8 | Matrix | default = {},
   timeout_ms | Nullable Timeout | default = null,
 }
 in
@@ -131,19 +159,20 @@ fun input =>
         | default
         = "kiln.hosted.pipeline.v1",
       name | String,
-      triggers | Array Trigger,
-      schedules | { _ : ScheduleEntry } | optional,
-      parameters | TextMap | default = {},
-      env | TextMap | default = {},
-      templates | { _ : JobTemplate } | default = {},
+      triggers | Array Trigger | NonEmptyAtMost 8,
+      schedules | { _ : ScheduleEntry } | RecordAtMost 8 | optional,
+      parameters | TextMap | RecordAtMost 64 | default = {},
+      env | TextMap | RecordAtMost 128 | default = {},
+      templates | { _ : JobTemplate } | RecordAtMost 64 | default = {},
       steps
         | {
           _ : {
-            parameters | TextMap | default = {},
+            parameters | TextMap | RecordAtMost 64 | default = {},
             step | Run,
           }
         }
+        | RecordAtMost 64
         | default
         = {},
-      jobs | { _ : Job },
+      jobs | { _ : Job } | NonEmptyRecordAtMost 64,
     }
