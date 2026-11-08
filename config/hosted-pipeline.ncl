@@ -60,6 +60,33 @@ let UniqueStrings =
     !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
   )
 in
+let ExactFields = fun allowed =>
+  fun value =>
+    std.array.all (fun field => std.array.elem field allowed) (std.record.fields value)
+in
+let JobFields =
+  std.contract.from_predicate (fun jobs =>
+    std.array.all
+      (
+        ExactFields ["kind", "unikernel", "template", "parameters", "runner", "steps", "env", "needs", "matrix", "timeout_ms"]
+      )
+      (std.record.values jobs)
+  )
+in
+let TemplateFields =
+  std.contract.from_predicate (fun templates =>
+    std.array.all
+      (ExactFields ["parameters", "runner", "steps", "env", "timeout_ms"])
+      (std.record.values templates)
+  )
+in
+let ScheduleFields =
+  std.contract.from_predicate (fun schedules =>
+    std.array.all
+      (ExactFields ["cron", "timezone", "min_interval_ms", "reference"])
+      (std.record.values schedules)
+  )
+in
 let PipelineRelations =
   std.contract.from_predicate (fun pipeline =>
     let job_names = std.record.fields pipeline.jobs in
@@ -304,10 +331,10 @@ fun input =>
         = "kiln.hosted.pipeline.v1",
       name | String,
       triggers | Array Trigger | NonEmptyAtMost 8,
-      schedules | { _ : ScheduleEntry } | RecordAtMost 8 | optional,
+      schedules | { _ : ScheduleEntry } | RecordAtMost 8 | ScheduleFields | optional,
       parameters | TextMap | RecordAtMost 64 | default = {},
       env | TextMap | RecordAtMost 128 | default = {},
-      templates | { _ : JobTemplate } | RecordAtMost 64 | default = {},
+      templates | { _ : JobTemplate } | RecordAtMost 64 | TemplateFields | default = {},
       steps
         | {
           _ : {
@@ -318,6 +345,6 @@ fun input =>
         | RecordAtMost 64
         | default
         = {},
-      jobs | { _ : Job } | NonEmptyRecordAtMost 64,
+      jobs | { _ : Job } | NonEmptyRecordAtMost 64 | JobFields,
     }
     | PipelineRelations
