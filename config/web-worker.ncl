@@ -36,6 +36,11 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let HeartbeatRelations =
+  std.contract.from_predicate (fun heartbeat =>
+    heartbeat.ttl_ms >= heartbeat.interval_ms * 3
+  )
+in
 let ExecutionRelations =
   std.contract.from_predicate (fun execution =>
     let under = fun root path =>
@@ -195,10 +200,11 @@ fun input =>
           | {
             worker_id | Component,
             target_id | std.contract.from_predicate (fun value => std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value),
-            interval_ms | Integer 30000,
+            interval_ms | Between 100 30000,
             ttl_ms | Integer 120000,
             slots | Integer 256,
           }
+          | HeartbeatRelations
           | optional,
         # r[impl kiln.untrusted.execution] Declares that this worker runs inside a
         # per-job microVM without credentials or cache; only then does it accept
