@@ -8,6 +8,14 @@ let Identifier =
     && std.string.is_match "^[A-Za-z0-9_.-]+$" value
   )
 in
+let WebRepository =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 2048
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+  )
+in
 let Peer =
   std.contract.from_predicate (fun value =>
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
@@ -335,7 +343,7 @@ fun input =>
               },
             organization | Identifier,
             web_project | Identifier,
-            web_repository | c.NonEmpty,
+            web_repository | WebRepository,
             repository_path | c.AbsolutePath,
             source_limits
               | {
