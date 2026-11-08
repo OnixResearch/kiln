@@ -46,6 +46,36 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let ExactFields = fun allowed =>
+  fun value =>
+    std.array.all (fun field => std.array.elem field allowed) (std.record.fields value)
+in
+let ExactSourceProfiles =
+  std.contract.from_predicate (fun rows =>
+    std.array.all
+      (
+        ExactFields ["path", "blake3", "organization", "project", "network_activation", "price_id", "class", "max_units"]
+      )
+      rows
+  )
+in
+let ExactLattice =
+  std.contract.from_predicate (fun rows =>
+    std.array.all
+      (fun row =>
+        ExactFields
+          ["id", "peer", "workflow_policy_id", "node_id", "operation_identity", "web_service", "organization", "web_project", "web_repository", "repository_path", "source_limits", "hosted_project", "pipeline_id", "price_id", "class"]
+          row
+        && ExactFields
+          ["service_origin", "tls_ca_path", "token_file", "http_timeout_ms", "maximum_response_bytes"]
+          row.web_service
+        && ExactFields
+          ["max_entries", "max_path_bytes", "max_file_bytes", "max_total_bytes"]
+          row.source_limits
+      )
+      rows
+  )
+in
 let Version =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -586,7 +616,8 @@ fun input =>
             key_file | c.AbsolutePath,
             bind_address | SocketAddress,
             relay_urls | Array Https | AtMost 8,
-          },
+          }
+          | std.contract.from_predicate (ExactFields ["key_file", "bind_address", "relay_urls"]),
         bootstrap_peer | Peer,
         bootstrap_organization | Identifier,
         operator_peers | Array Peer | AtMost 16 | default = [],
@@ -602,6 +633,7 @@ fun input =>
             max_units | c.Nullable (c.BoundedInteger 1 1000000000) | default = null,
           }
           | AtMost 128
+          | ExactSourceProfiles
           | ActivationPricing
           | default
           = [],
@@ -637,6 +669,7 @@ fun input =>
             class | Identifier,
           }
           | AtMost 128
+          | ExactLattice
           | UniqueLatticeIds
           | default
           = [],
