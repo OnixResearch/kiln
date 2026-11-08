@@ -13,7 +13,7 @@ let positive = import "hosted-service-positive.ncl" in
           service_origin = "https://web.example.test",
           tls_ca_path = "/srv/kiln/web-ca.pem",
           token_file = "/srv/kiln/web-worker.token",
-          http_timeout_ms = 10000,
+          http_timeout_ms = 3600000,
           maximum_response_bytes = 1048576,
         },
         organization = "example",

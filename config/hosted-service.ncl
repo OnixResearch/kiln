@@ -774,7 +774,7 @@ fun input =>
                 service_origin | Origin,
                 tls_ca_path | c.AbsolutePath,
                 token_file | c.AbsolutePath,
-                http_timeout_ms | c.BoundedInteger 1 300000,
+                http_timeout_ms | c.BoundedInteger 1 86400000,
                 maximum_response_bytes | c.BoundedInteger 1 1048576,
               },
             organization | Identifier,
