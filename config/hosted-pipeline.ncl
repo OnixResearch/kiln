@@ -295,7 +295,23 @@ let TestFiles =
       files
   )
 in
-let TestSpec = { binary | TestFile, argv | Array String | ArgList | default = [], fixtures | Array TestFile | TestFiles | default = [] } in
+let TestSpecShape = { binary | TestFile, argv | Array String | ArgList | default = [], fixtures | Array TestFile | TestFiles | default = [] } in
+let TestSpec =
+  std.contract.custom (fun label value =>
+    let result = std.contract.check TestSpecShape label value in
+    result
+    |> match {
+      'Ok spec =>
+        if std.array.all
+          (fun file => file.path != "test" && !PathUnder "test" file.path)
+          spec.fixtures then
+          'Ok spec
+        else
+          'Error { message = "unikernel fixture collides with the reserved test binary path" },
+      'Error error => 'Error error,
+    }
+  )
+in
 let Job = {
   kind | std.contract.from_predicate (fun v => v == "unikernel-test") | optional,
   unikernel | TestSpec | optional,
