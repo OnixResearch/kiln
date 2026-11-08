@@ -9,6 +9,13 @@ let BoundedText = fun maximum =>
     && std.string.length value <= maximum
   )
 in
+let BranchReference =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 512
+    && std.string.is_match "^refs/heads/[^ ~^:?*\\\\]+$" value
+  )
+in
 let Command =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -222,10 +229,10 @@ let MinInterval =
   )
 in
 let ScheduleEntry = {
-  cron | String,
-  timezone | String | default = "UTC",
+  cron | BoundedText 256,
+  timezone | BoundedText 128 | default = "UTC",
   min_interval_ms | MinInterval | default = 300000,
-  reference | String | default = "refs/heads/main",
+  reference | BranchReference | default = "refs/heads/main",
 }
 in
 fun input =>
