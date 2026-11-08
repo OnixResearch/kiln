@@ -124,14 +124,29 @@
     let path_parts = parts path in
     std.array.length path_parts >= std.array.length root_parts
     && std.array.slice 0 (std.array.length root_parts) path_parts == root_parts,
+  Ipv4Group = fun value =>
+    let octets = std.string.split "." value in
+    std.array.length octets == 4
+    && std.array.all
+      (fun octet =>
+        std.string.length octet > 0
+        && std.string.is_match "^[0-9]+$" octet
+        && (octet == "0" || !(std.string.is_match "^0" octet))
+        && (
+          let number = std.string.to_number octet in
+          std.is_number number && number >= 0 && number <= 255 && std.number.floor number == number
+        )
+      )
+      octets,
   Ipv6GroupCount = fun host =>
+    let parts = std.array.filter (fun part => part != "") (std.string.split ":" host) in
     let compressed = std.string.is_match "::" host in
-    let dotted = std.string.is_match "\\." host in
-    let groups =
-      std.array.length (std.array.filter (fun part => part != "") (std.string.split ":" host))
-    in
-    if dotted then
-      true
+    let dotted = std.array.filter (fun part => std.string.is_match "\\." part) parts in
+    let groups = std.array.length parts in
+    if !(std.array.length dotted == 0) then
+      std.array.length dotted == 1
+      && std.array.last parts == std.array.first dotted
+      && Ipv4Group (std.array.last parts)
     else if compressed then
       groups <= 7
     else

@@ -79,7 +79,10 @@ let SocketAddress =
     std.is_string value
     && std.string.is_match "^([0-9.]+|\\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\\]):[0-9]+$" value
     && !(std.string.is_match ":::" value)
-    && Ipv6GroupCount (std.array.first (std.string.split "]" (std.array.last (std.string.split "[" value))))
+    && (
+      !(std.string.is_match "^\\[" value)
+      || Ipv6GroupCount (std.array.first (std.string.split "]" (std.array.last (std.string.split "[" value))))
+    )
     && (
       let parts = std.string.split ":" value in
       let host = std.array.first parts in
