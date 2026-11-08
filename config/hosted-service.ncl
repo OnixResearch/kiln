@@ -388,7 +388,20 @@ let Execution =
             (fun runner => std.record.has_field "cpu_affinity" runner)
             (std.record.values admitted.runners)
           || std.record.has_field "taskset" admitted
-        ) then
+        )
+        && std.array.all
+          (fun runner =>
+            !(
+              runner.kind == "firecracker"
+              && std.record.has_field "untrusted_capable" runner
+              && runner.untrusted_capable
+            )
+            || (
+              std.record.has_field "trust_domain" runner
+              && std.record.has_field "host_identity" runner
+            )
+          )
+          (std.record.values admitted.runners) then
           'Ok admitted
         else
           'Error { message = "execution policy references an unknown runner or invalid root" },
