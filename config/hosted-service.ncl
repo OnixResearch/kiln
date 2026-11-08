@@ -331,7 +331,7 @@ fun input =>
                 tls_ca_path | c.AbsolutePath,
                 token_file | c.AbsolutePath,
                 http_timeout_ms | c.BoundedInteger 1 300000,
-                maximum_response_bytes | c.BoundedInteger 1 16777216,
+                maximum_response_bytes | c.BoundedInteger 1 1048576,
               },
             organization | Identifier,
             web_project | Identifier,
