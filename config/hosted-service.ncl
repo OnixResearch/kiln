@@ -390,208 +390,223 @@ let CacheRelative =
 in
 let Cache =
   std.contract.custom (fun label value =>
-    let result =
-      std.contract.check
-        {
-          directory | c.AbsolutePath,
-          maximum_entry_bytes | c.BoundedInteger 1 1048576,
-          maximum_total_bytes | c.BoundedInteger 1 1073741824,
-          maximum_entries | c.BoundedInteger 1 4096,
-          maximum_age_seconds | c.BoundedInteger 1 31536000,
-          maximum_files | c.BoundedInteger 1 4096,
-          policies
-            | Array {
-              organization | Identifier,
-              project | Identifier,
-              runner | Identifier,
-              worker
-                | {
-                  producer | CacheText,
-                  toolchain | CacheText,
-                  platform | CacheText,
-                  inputs | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
-                  paths | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
-                  maximum_entry_bytes | c.BoundedInteger 1 1048576,
-                  maximum_files | c.BoundedInteger 1 4096,
-                },
-            }
-            | NonEmptyAtMost 128
-            | UniqueCacheScopes
-            | CacheIo,
-        }
-        label
-        value
+    let allowed = ["directory", "maximum_entry_bytes", "maximum_total_bytes", "maximum_entries", "maximum_age_seconds", "maximum_files", "policies"]
     in
-    result
-    |> match {
-      'Ok cache =>
-        if std.array.all
-          (fun policy =>
-            policy.worker.maximum_entry_bytes <= cache.maximum_entry_bytes
-            && policy.worker.maximum_files <= cache.maximum_files
-          )
-          cache.policies then
-          'Ok cache
-        else
-          'Error { message = "cache policy exceeds operator bounds" },
-      'Error error => 'Error error,
-    }
+    if !(ExactFields allowed value) then
+      'Error { message = "unknown cache field" }
+    else
+      let result =
+        std.contract.check
+          {
+            directory | c.AbsolutePath,
+            maximum_entry_bytes | c.BoundedInteger 1 1048576,
+            maximum_total_bytes | c.BoundedInteger 1 1073741824,
+            maximum_entries | c.BoundedInteger 1 4096,
+            maximum_age_seconds | c.BoundedInteger 1 31536000,
+            maximum_files | c.BoundedInteger 1 4096,
+            policies
+              | Array {
+                organization | Identifier,
+                project | Identifier,
+                runner | Identifier,
+                worker
+                  | {
+                    producer | CacheText,
+                    toolchain | CacheText,
+                    platform | CacheText,
+                    inputs | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
+                    paths | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
+                    maximum_entry_bytes | c.BoundedInteger 1 1048576,
+                    maximum_files | c.BoundedInteger 1 4096,
+                  },
+              }
+              | NonEmptyAtMost 128
+              | UniqueCacheScopes
+              | CacheIo,
+          }
+          label
+          value
+      in
+      result
+      |> match {
+        'Ok cache =>
+          if std.array.all
+            (fun policy =>
+              policy.worker.maximum_entry_bytes <= cache.maximum_entry_bytes
+              && policy.worker.maximum_files <= cache.maximum_files
+            )
+            cache.policies then
+            'Ok cache
+          else
+            'Error { message = "cache policy exceeds operator bounds" },
+        'Error error => 'Error error,
+      }
   )
 in
 let Execution =
   std.contract.custom (fun label value =>
-    let result =
-      std.contract.check
-        {
-          systemd_run | Executable,
-          systemctl | Executable,
-          taskset | Executable | optional,
-          manager_runtime_directory | c.AbsolutePath,
-          cache | c.Nullable Cache | default = null,
-          trusted_projects
-            | Array {
-              organization | Identifier,
-              project | Identifier,
-            }
-            | AtMost 128
-            | default
-            = [],
-          pricing
-            | Array {
-              organization | Identifier,
-              runner | Identifier,
-              price_id | c.Blake3,
-              class | Identifier,
-              max_units | c.BoundedInteger 1 1000000000,
-            }
-            | AtMost 128
-            | UniquePricing
-            | default
-            = [],
-          workload
-            | Array {
-              organization | Identifier,
-              project | Identifier,
-              runner | Identifier,
-              audience | c.Nullable Audience | default = null,
-              secrets
-                | Array {
-                  environment
-                    | std.contract.from_predicate (fun value =>
-                      std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
-                    ),
-                  name | Identifier,
-                  revision | c.Positive,
-                }
-                | AtMost 32
-                | UniqueSecretEnvironments,
-            }
-            | AtMost 128
-            | UniqueWorkload
-            | default
-            = [],
-          env | Executable,
-          work_root | c.AbsolutePath,
-          runners | { _ : Backend } | NonEmptyRecord,
-          maximum_concurrent | c.BoundedInteger 1 128,
-          memory_bytes | c.BoundedInteger 67108864 68719476736,
-          processes | c.BoundedInteger 8 1024,
-          cpu_percent | c.BoundedInteger 1 800,
-          maximum_timeout_ms | c.BoundedInteger 100 3600000,
-          maximum_output_bytes | c.BoundedInteger 1024 1048576,
-        }
-        label
-        value
+    let allowed = ["systemd_run", "systemctl", "taskset", "manager_runtime_directory", "cache", "trusted_projects", "pricing", "workload", "env", "work_root", "runners", "maximum_concurrent", "memory_bytes", "processes", "cpu_percent", "maximum_timeout_ms", "maximum_output_bytes"]
     in
-    result
-    |> match {
-      'Ok admitted =>
-        let runners = std.record.fields admitted.runners in
-        if std.array.all (fun policy => std.array.elem policy.runner runners) admitted.pricing
-        && std.array.all (fun policy => std.array.elem policy.runner runners) admitted.workload
-        && (
-          admitted.cache == null
-          || std.array.all
-            (fun policy => std.array.elem policy.runner runners)
-            admitted.cache.policies
-        )
-        && std.string.is_match "^/run/user/[0-9]+$" admitted.manager_runtime_directory
-        && admitted.work_root != "/"
-        && !(std.string.is_match "^/nix/store(/|$)" admitted.work_root)
-        && (
-          !std.array.any
-            (fun runner => std.record.has_field "cpu_affinity" runner)
+    if !(ExactFields allowed value) then
+      'Error { message = "unknown execution field" }
+    else
+      let result =
+        std.contract.check
+          {
+            systemd_run | Executable,
+            systemctl | Executable,
+            taskset | Executable | optional,
+            manager_runtime_directory | c.AbsolutePath,
+            cache | c.Nullable Cache | default = null,
+            trusted_projects
+              | Array {
+                organization | Identifier,
+                project | Identifier,
+              }
+              | AtMost 128
+              | default
+              = [],
+            pricing
+              | Array {
+                organization | Identifier,
+                runner | Identifier,
+                price_id | c.Blake3,
+                class | Identifier,
+                max_units | c.BoundedInteger 1 1000000000,
+              }
+              | AtMost 128
+              | UniquePricing
+              | default
+              = [],
+            workload
+              | Array {
+                organization | Identifier,
+                project | Identifier,
+                runner | Identifier,
+                audience | c.Nullable Audience | default = null,
+                secrets
+                  | Array {
+                    environment
+                      | std.contract.from_predicate (fun value =>
+                        std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
+                      ),
+                    name | Identifier,
+                    revision | c.Positive,
+                  }
+                  | AtMost 32
+                  | UniqueSecretEnvironments,
+              }
+              | AtMost 128
+              | UniqueWorkload
+              | default
+              = [],
+            env | Executable,
+            work_root | c.AbsolutePath,
+            runners | { _ : Backend } | NonEmptyRecord,
+            maximum_concurrent | c.BoundedInteger 1 128,
+            memory_bytes | c.BoundedInteger 67108864 68719476736,
+            processes | c.BoundedInteger 8 1024,
+            cpu_percent | c.BoundedInteger 1 800,
+            maximum_timeout_ms | c.BoundedInteger 100 3600000,
+            maximum_output_bytes | c.BoundedInteger 1024 1048576,
+          }
+          label
+          value
+      in
+      result
+      |> match {
+        'Ok admitted =>
+          let runners = std.record.fields admitted.runners in
+          if std.array.all (fun policy => std.array.elem policy.runner runners) admitted.pricing
+          && std.array.all (fun policy => std.array.elem policy.runner runners) admitted.workload
+          && (
+            admitted.cache == null
+            || std.array.all
+              (fun policy => std.array.elem policy.runner runners)
+              admitted.cache.policies
+          )
+          && std.string.is_match "^/run/user/[0-9]+$" admitted.manager_runtime_directory
+          && admitted.work_root != "/"
+          && !(std.string.is_match "^/nix/store(/|$)" admitted.work_root)
+          && (
+            !std.array.any
+              (fun runner => std.record.has_field "cpu_affinity" runner)
+              (std.record.values admitted.runners)
+            || std.record.has_field "taskset" admitted
+          )
+          && std.array.all
+            (fun runner =>
+              !(
+                runner.kind == "firecracker"
+                && std.record.has_field "untrusted_capable" runner
+                && runner.untrusted_capable
+              )
+              || (
+                std.record.has_field "trust_domain" runner
+                && std.record.has_field "host_identity" runner
+              )
+            )
             (std.record.values admitted.runners)
-          || std.record.has_field "taskset" admitted
-        )
-        && std.array.all
-          (fun runner =>
-            !(
-              runner.kind == "firecracker"
-              && std.record.has_field "untrusted_capable" runner
-              && runner.untrusted_capable
+          && std.array.all
+            (fun runner =>
+              !(
+                runner.kind == "firecracker"
+                && std.record.has_field "debug_hold" runner
+              )
+              || runner.debug_hold.max_concurrent <= admitted.maximum_concurrent
             )
-            || (
-              std.record.has_field "trust_domain" runner
-              && std.record.has_field "host_identity" runner
+            (std.record.values admitted.runners)
+          && std.array.all
+            (fun runner =>
+              runner.kind != "unikernel-test"
+              || runner.memory_mib
+              * 1048576 <= admitted.memory_bytes
             )
-          )
-          (std.record.values admitted.runners)
-        && std.array.all
-          (fun runner =>
-            !(
-              runner.kind == "firecracker"
-              && std.record.has_field "debug_hold" runner
-            )
-            || runner.debug_hold.max_concurrent <= admitted.maximum_concurrent
-          )
-          (std.record.values admitted.runners)
-        && std.array.all
-          (fun runner =>
-            runner.kind != "unikernel-test"
-            || runner.memory_mib
-            * 1048576 <= admitted.memory_bytes
-          )
-          (std.record.values admitted.runners) then
-          'Ok admitted
-        else
-          'Error { message = "execution policy references an unknown runner or invalid root" },
-      'Error error => 'Error error,
-    }
+            (std.record.values admitted.runners) then
+            'Ok admitted
+          else
+            'Error { message = "execution policy references an unknown runner or invalid root" },
+        'Error error => 'Error error,
+      }
   )
 in
 let Fleet =
   std.contract.custom (fun label value =>
-    let result =
-      std.contract.check
-        {
-          driver | Executable,
-          minimum | c.BoundedInteger 0 128,
-          maximum | c.BoundedInteger 1 128,
-          slots_per_instance | c.BoundedInteger 1 256,
-          organizations | Array Identifier | NonEmptyAtMost 128,
-          pricing
-            | c.Nullable {
-              price_id | c.Blake3,
-              class | Identifier,
-              max_units | c.BoundedInteger 1 1000000000,
-            }
-            | default
-            = null,
-          timeout_ms | c.BoundedInteger 100 300000,
-        }
-        label
-        value
+    let allowed = ["driver", "minimum", "maximum", "slots_per_instance", "organizations", "pricing", "timeout_ms"]
     in
-    result
-    |> match {
-      'Ok admitted =>
-        if admitted.minimum <= admitted.maximum then
-          'Ok admitted
-        else
-          'Error { message = "fleet minimum must not exceed maximum" },
-      'Error error => 'Error error,
-    }
+    if !(ExactFields allowed value) then
+      'Error { message = "unknown fleet field" }
+    else
+      let result =
+        std.contract.check
+          {
+            driver | Executable,
+            minimum | c.BoundedInteger 0 128,
+            maximum | c.BoundedInteger 1 128,
+            slots_per_instance | c.BoundedInteger 1 256,
+            organizations | Array Identifier | NonEmptyAtMost 128,
+            pricing
+              | c.Nullable {
+                price_id | c.Blake3,
+                class | Identifier,
+                max_units | c.BoundedInteger 1 1000000000,
+              }
+              | default
+              = null,
+            timeout_ms | c.BoundedInteger 100 300000,
+          }
+          label
+          value
+      in
+      result
+      |> match {
+        'Ok admitted =>
+          if admitted.minimum <= admitted.maximum then
+            'Ok admitted
+          else
+            'Error { message = "fleet minimum must not exceed maximum" },
+        'Error error => 'Error error,
+      }
   )
 in
 # Import module builders as contracts so non-null optional sections retain all
