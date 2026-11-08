@@ -196,6 +196,39 @@ let ReviewRelations =
       (fun principal => std.array.elem principal readers && std.array.elem principal writers)
       profile.policy.submitters
     && profile.policy.minimum_approvals <= std.array.length profile.policy.eligible_reviewers
+    && std.array.all
+      (fun members =>
+        std.array.length members >= 1
+        && std.array.all
+          (fun member => std.array.elem member profile.policy.eligible_reviewers)
+          members
+      )
+      (std.record.values profile.policy.ownership.teams)
+    && (
+      !(std.record.has_field "classes" profile.policy.ownership)
+      || (
+        Unique (std.array.map (fun class => class.id) profile.policy.ownership.classes)
+        && std.array.all
+          (fun class => std.array.length class.paths >= 1)
+          profile.policy.ownership.classes
+      )
+    )
+    && Unique (std.array.map (fun rule => rule.id) profile.policy.ownership.rules)
+    && std.array.all
+      (fun rule =>
+        std.array.length rule.paths >= 1
+        && std.array.all
+          (fun owner => std.array.elem owner profile.policy.eligible_reviewers)
+          rule.owners
+        && std.array.all
+          (fun team => std.array.elem team (std.record.fields profile.policy.ownership.teams))
+          rule.teams
+        && (
+          !(std.record.has_field "interface" rule)
+          || std.array.length rule.interface <= std.array.length rule.paths
+        )
+      )
+      profile.policy.ownership.rules
     && std.array.elem "inspect" profile.provider.capabilities
     && std.array.elem "compare" profile.provider.capabilities
     && (
