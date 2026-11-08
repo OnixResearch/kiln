@@ -18,6 +18,11 @@ let Integer = fun maximum =>
     && std.number.floor value == value
   )
 in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
 let AbsolutePath =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -143,8 +148,12 @@ fun input =>
         # per-job microVM without credentials or cache; only then does it accept
         # untrusted run bindings. Omitted means it refuses them.
         untrusted_capable | Bool | optional,
-        steps | Array Step,
+        steps | Array Step | NonEmptyAtMost 128,
       }
+      | std.contract.from_predicate (fun value =>
+        value.snapshot_limits.max_file_bytes <= value.snapshot_limits.max_total_bytes
+        && value.maximum_total_artifact_bytes >= value.maximum_artifact_bytes
+      )
   in
   {
     schema = "kiln.web-worker.v2",
