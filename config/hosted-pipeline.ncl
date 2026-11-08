@@ -60,10 +60,7 @@ let UniqueStrings =
     !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
   )
 in
-let ExactFields = fun allowed =>
-  fun value =>
-    std.array.all (fun field => std.array.elem field allowed) (std.record.fields value)
-in
+let ExactFields = (import "field-contracts.ncl").ExactFields in
 let JobFields =
   std.contract.from_predicate (fun jobs =>
     std.array.all
