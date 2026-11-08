@@ -54,9 +54,19 @@ let DependentsBound =
       (std.record.values value)
   )
 in
+let OwnershipPattern =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 1024
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f\\\\\\[\\]{}]" value)
+    && !(std.string.is_match "(^|/)(\\.|\\.\\.)?(/|$)" value)
+    && !(std.string.is_match "[^/]\\*\\*|\\*\\*[^/]" value)
+  )
+in
 let ChangeClass = {
   id | std.contract.from_predicate (fun value => value != "logic") | Text 128,
-  paths | Array (Text 1024) | OwnershipAtMost 16,
+  paths | Array OwnershipPattern | OwnershipAtMost 16,
 }
 in
 let ApprovalMode =
@@ -97,12 +107,12 @@ let Ownership = {
   rules
     | Array {
       id | Text 128,
-      paths | Array (Text 1024),
+      paths | Array OwnershipPattern,
       owners | Array Principal,
       teams | Array (Text 128),
       target_refs | Array Target,
       project | Text 128 | optional,
-      interface | Array (Text 1024) | optional,
+      interface | Array OwnershipPattern | optional,
       required_evidence | Array OwnershipEvidence | OwnershipAtMost 8 | optional,
       approval | { _ | ApprovalMode } | optional,
     },
