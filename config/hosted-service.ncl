@@ -51,6 +51,7 @@ let SocketAddress =
           && std.array.all
             (fun octet =>
               std.string.length octet > 0
+              && (octet == "0" || !(std.string.is_match "^0" octet))
               && (
                 let number = std.string.to_number octet in
                 std.is_number number
