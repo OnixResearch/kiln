@@ -63,6 +63,10 @@ committed credential fixture:
 }
 ```
 
+`network.relay_urls` entries are canonical HTTPS base URLs: no spaces, query
+strings, fragments, control characters, or out-of-range ports. Bracketed IPv6
+and IPv4 socket addresses are accepted.
+
 The uppercase placeholder intentionally does not satisfy the peer contract.
 Replace it, do not weaken the contract. The profile rejects unknown fields at
 the top level and in each nested section; remove stale keys instead of carrying
