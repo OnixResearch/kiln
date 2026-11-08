@@ -34,6 +34,11 @@ let Identifier =
     && std.string.is_match "^[A-Za-z0-9_.-]+$" value
   )
 in
+let Environment =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
+  )
+in
 let Absolute =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -203,7 +208,7 @@ fun input =>
           project | Identifier,
           runner | Identifier,
           audience | Dyn,
-          secrets | Array { environment | String, name | String, revision | Positive 9007199254740991 },
+          secrets | Array { environment | Environment, name | Identifier, revision | Positive 9007199254740991 },
         }
         | default
         = [],
