@@ -8,6 +8,12 @@ let Identifier =
     && std.string.is_match "^[A-Za-z0-9_.-]+$" value
   )
 in
+let ListenAddress =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.is_match "^([0-9]{1,3}\\.){3}[0-9]{1,3}:[1-9][0-9]*$|^\\[[0-9a-fA-F:]+\\]:[1-9][0-9]*$" value
+  )
+in
 let WorkflowRelations =
   std.contract.from_predicate (fun workflow =>
     let unique = fun values =>
@@ -241,7 +247,7 @@ fun input =>
     input
       | {
         service_id | Identifier,
-        listen_address | c.NonEmpty,
+        listen_address | ListenAddress,
         origin | std.contract.from_predicate (fun value => std.is_string value && std.string.is_match "^https://[^/?#@ ]+$" value),
         tls | { certificate_path | c.AbsolutePath, private_key_path | c.AbsolutePath, min_version | std.contract.from_predicate (fun value => value == "TLS1.3") },
         operator_token_file | c.AbsolutePath,
