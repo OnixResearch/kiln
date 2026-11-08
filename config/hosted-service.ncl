@@ -78,6 +78,41 @@ let UniqueLatticeIds =
     !(std.array.fold_left check { seen = [], duplicate = false } policies).duplicate
   )
 in
+let PathUnder = fun root path =>
+  let split = fun value => std.string.split "/" value in
+  let root_parts = split root in
+  let path_parts = split path in
+  std.array.length path_parts >= std.array.length root_parts
+  && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
+in
+let NonOverlappingPaths =
+  std.contract.from_predicate (fun values =>
+    let check = fun state value =>
+      if std.array.any
+        (fun prior => PathUnder prior value || PathUnder value prior)
+        state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [value], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } values).duplicate
+  )
+in
+let CacheIo =
+  std.contract.from_predicate (fun policies =>
+    std.array.all
+      (fun policy =>
+        std.array.all
+          (fun input =>
+            std.array.all
+              (fun output => !PathUnder input output && !PathUnder output input)
+              policy.worker.paths
+          )
+          policy.worker.inputs
+      )
+      policies
+  )
+in
 let UniqueCacheScopes =
   std.contract.from_predicate (fun policies =>
     let check = fun state policy =>
@@ -320,14 +355,15 @@ let Cache = {
           producer | CacheText,
           toolchain | CacheText,
           platform | CacheText,
-          inputs | Array CacheRelative | NonEmptyAtMost 4096,
-          paths | Array CacheRelative | NonEmptyAtMost 4096,
+          inputs | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
+          paths | Array CacheRelative | NonEmptyAtMost 4096 | NonOverlappingPaths,
           maximum_entry_bytes | c.BoundedInteger 1 1048576,
           maximum_files | c.BoundedInteger 1 4096,
         },
     }
     | NonEmptyAtMost 128
-    | UniqueCacheScopes,
+    | UniqueCacheScopes
+    | CacheIo,
 }
 in
 let Execution =
