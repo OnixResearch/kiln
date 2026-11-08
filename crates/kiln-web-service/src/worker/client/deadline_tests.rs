@@ -173,12 +173,14 @@ fn recording_receiver(
             drop(reader);
             requests += 1;
             let bytes = checked(serde_json::to_vec(&body));
-            checked(write!(
+            // A deadline can close the socket before the headers flush. The
+            // client-side assertion covers the observed outcome.
+            let _ = write!(
                 stream,
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                 bytes.len()
-            ));
-            checked(stream.flush());
+            );
+            let _ = stream.flush();
             std::thread::sleep(delay);
             // A deadline correctly closes this socket before the late body.
             let _ = stream.write_all(&bytes).and_then(|()| stream.flush());
