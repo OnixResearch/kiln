@@ -227,6 +227,12 @@ let ReviewRelations =
           profile.policy.ownership.classes
       )
     )
+    && (
+      !(std.record.has_field "dependents" profile.policy.ownership)
+      || std.array.all
+        (fun entry => !std.array.elem entry.field entry.value)
+        (std.record.to_array profile.policy.ownership.dependents)
+    )
     && Unique (std.array.map (fun rule => rule.id) profile.policy.ownership.rules)
     && std.array.all
       (fun rule =>
