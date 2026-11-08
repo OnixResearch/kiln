@@ -113,6 +113,9 @@ let PipelineRelations =
       (fun job => std.array.all (fun need => std.array.elem need job_names) job.needs)
       jobs
     && std.array.all
+      (fun name => !(std.array.elem name (std.record.get name pipeline.jobs).needs))
+      job_names
+    && std.array.all
       (fun step =>
         step.kind != "use" || std.array.elem step.step step_names
       )
