@@ -35,8 +35,10 @@ let Https =
       let valid_colons =
         bracketed || std.array.length (std.string.split ":" authority) <= 2
       in
+      let host = std.array.first (std.string.split ":" authority) in
       let port = std.array.last (std.string.split ":" authority) in
       valid_colons
+      && std.string.length host > 0
       && (
         !has_port
         || (
@@ -70,8 +72,10 @@ let Origin =
       let valid_colons =
         bracketed || std.array.length (std.string.split ":" authority) <= 2
       in
+      let host = std.array.first (std.string.split ":" authority) in
       let port = std.array.last (std.string.split ":" authority) in
       valid_colons
+      && std.string.length host > 0
       && (
         !has_port
         || (
