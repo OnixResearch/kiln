@@ -7,6 +7,7 @@
     selected_task = "kiln",
     product_path = "bin/kiln",
     failure_marker = "self_ci_genuine_failure",
+    unavailable_settle_seconds = 30,
     source_limits = {
       max_identity_bytes = 4096,
       max_reference_bytes = 512,

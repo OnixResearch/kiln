@@ -9,7 +9,7 @@ let positive = import "hosted-service-positive.ncl" in
         runners | force =
           positive.execution.runners
           & {
-            microvm | force = positive.execution.runners.microvm & { untrusted_capable = true },
+            microvm | force = positive.execution.runners.microvm & { untrusted_capable = true, trust_domain = "untrusted", host_identity = "host-untrusted" },
           },
       },
   }
