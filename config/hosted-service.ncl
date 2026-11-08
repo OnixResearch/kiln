@@ -102,6 +102,16 @@ let SocketAddress =
     )
   )
 in
+let GuestShell =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 4096
+    && std.string.is_match "^/" value
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+    && !(std.string.is_match "(^|/)\\.\\.(/|$)" value)
+  )
+in
 let AtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value <= maximum
@@ -328,7 +338,7 @@ let Backend =
           kernel | Executable,
           initramfs | Executable,
           root_image | c.Nullable Executable | default = null,
-          guest_shell | c.AbsolutePath,
+          guest_shell | GuestShell,
           acceleration | std.contract.from_predicate (fun v => v == "tcg" || v == "kvm"),
           qualification_identity | c.Nullable c.Blake3 | default = null,
           network | std.contract.from_predicate (fun v => v == "none") | optional,
@@ -359,7 +369,7 @@ let Backend =
           firecracker | Executable,
           kernel | Executable,
           initrd | Executable,
-          guest_shell | c.AbsolutePath,
+          guest_shell | GuestShell,
           vcpus | c.BoundedInteger 1 8,
           memory_mib | c.BoundedInteger 128 16384,
           boot_timeout_ms | c.BoundedInteger 100 60000,
