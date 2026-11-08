@@ -1438,6 +1438,12 @@
             nickel typecheck config/web-systemd.ncl
             nickel typecheck config/web-cobs.ncl
             nickel export config/fixtures/web-access-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-web-access-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative access fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel export config/fixtures/web-automation-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-tag-positive.ncl >/dev/null
             nickel export config/fixtures/web-automation-untrusted-positive.ncl >/dev/null

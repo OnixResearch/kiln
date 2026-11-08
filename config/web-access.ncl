@@ -30,6 +30,46 @@ let AgentText =
     std.is_string value && std.string.trim value == value
   )
 in
+let AtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= maximum
+  )
+in
+let NonEmptyAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
+  )
+in
+let UniqueViewerIds =
+  std.contract.from_predicate (fun value =>
+    let check = fun state viewer =>
+      if std.array.elem viewer.id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [viewer.id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } value.viewers).duplicate
+  )
+in
+let UniquePrincipals =
+  std.contract.from_predicate (fun value =>
+    if value.proxy == null then
+      true
+    else
+      let check = fun state principal =>
+        if std.array.elem principal.user_id state.users
+        || std.array.elem principal.login_name state.logins then
+          { users = state.users, logins = state.logins, duplicate = true }
+        else
+          {
+            users = state.users @ [principal.user_id],
+            logins = state.logins @ [principal.login_name],
+            duplicate = false,
+          }
+      in
+      !(std.array.fold_left check { users = [], logins = [], duplicate = false } value.proxy.principals).duplicate
+  )
+in
 fun input =>
   let settings =
     input
@@ -46,10 +86,13 @@ fun input =>
               }
               | optional,
           }
+          | AtMost 128
           | default
           = [],
         proxy | Dyn | default = null,
       }
+      | UniqueViewerIds
+      | UniquePrincipals
   in
   let admitted_proxy =
     if settings.proxy == null then
@@ -59,7 +102,8 @@ fun input =>
         | {
           listen_address
             | std.contract.from_predicate (fun value =>
-              std.is_string value && std.string.is_match "^(127\\.0\\.0\\.1|\\[::1\\]):[0-9]+$" value
+              std.is_string value
+              && std.string.is_match "^(127\\.0\\.0\\.1|\\[::1\\]):[1-9][0-9]*$" value
             ),
           credential_file | c.AbsolutePath,
           tailscaled_socket_path | c.AbsolutePath,
@@ -70,7 +114,8 @@ fun input =>
               label | Label,
               role | Role,
               agent | { harness | Label | AgentText, model | Label | AgentText | optional } | optional,
-            },
+            }
+            | NonEmptyAtMost 128,
         }
   in
   {

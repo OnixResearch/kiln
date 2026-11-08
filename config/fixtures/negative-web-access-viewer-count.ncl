@@ -1,0 +1,1 @@
+(import "../web-access.ncl") ((import "web-access-inputs.ncl") & { viewers | force = std.array.generate (fun index => { id = "v" ++ std.string.from_number index, label = "Viewer", token_file = "/private/v" ++ std.string.from_number index ++ ".token" }) 129 })
