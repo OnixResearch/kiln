@@ -701,15 +701,7 @@ fun input =>
         execution | c.Nullable Execution | default = null,
         fleet | c.Nullable Fleet | default = null,
       }
-      | std.contract.from_predicate (fun value =>
-        std.array.all
-          (fun field =>
-            std.array.elem
-              field
-              ["schema", "service_id", "state_directory", "network", "bootstrap_peer", "bootstrap_organization", "operator_peers", "source_profiles", "lattice_execution", "operations", "secrets", "execution", "fleet"]
-          )
-          (std.record.fields value)
-      )
+      | std.contract.from_predicate (ExactFields ["schema", "service_id", "state_directory", "network", "bootstrap_peer", "bootstrap_organization", "operator_peers", "source_profiles", "lattice_execution", "operations", "secrets", "execution", "fleet"])
   in
   {
     schema = settings.schema,
