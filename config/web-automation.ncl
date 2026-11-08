@@ -30,6 +30,35 @@ let FilterPatterns =
     std.is_array value && std.array.length value <= 32
   )
 in
+let BranchReference =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 512
+    && std.string.is_match "^refs/heads/[^ ~^:?*\\\\]+$" value
+  )
+in
+let ScheduleAdmission =
+  std.contract.from_predicate (fun schedules =>
+    std.array.all
+      (fun value =>
+        value.min_interval_ms <= value.max_interval_ms
+        && (
+          if std.record.has_field "interval_ms" value then
+            value.interval_ms >= value.min_interval_ms
+            && value.interval_ms <= value.max_interval_ms
+          else
+            true
+        )
+        && (
+          if value.enabled && std.record.has_field "interval_ms" value then
+            value.next_due_ms != null
+          else
+            true
+        )
+      )
+      schedules
+  )
+in
 let PullRequestType =
   std.contract.from_predicate (fun value =>
     std.array.elem value ["opened", "reopened", "synchronize", "closed", "merged"]
@@ -118,7 +147,7 @@ fun input =>
           | Array {
             id | Identifier,
             project_id | Identifier,
-            reference | Reference,
+            reference | BranchReference,
             enabled | Bool,
             interval_ms | c.BoundedInteger 1000 31536000000 | optional,
             cron | Cron | optional,
@@ -126,7 +155,8 @@ fun input =>
             max_interval_ms | c.BoundedInteger 1000 31536000000,
             next_due_ms | c.Nullable (c.BoundedInteger 0 9007199254740991),
           }
-          | Cadences,
+          | Cadences
+          | ScheduleAdmission,
         notifications
           | Array {
             id | Identifier,
