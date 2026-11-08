@@ -357,7 +357,7 @@ let Fleet = {
   minimum | c.BoundedInteger 0 128,
   maximum | c.BoundedInteger 1 128,
   slots_per_instance | c.BoundedInteger 1 256,
-  organizations | Array Identifier | AtMost 128,
+  organizations | Array Identifier | NonEmptyAtMost 128,
   pricing
     | c.Nullable {
       price_id | c.Blake3,
