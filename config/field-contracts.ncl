@@ -124,4 +124,10 @@
     let path_parts = parts path in
     std.array.length path_parts >= std.array.length root_parts
     && std.array.slice 0 (std.array.length root_parts) path_parts == root_parts,
+  Ipv6GroupCount = fun host =>
+    let compressed = std.string.is_match "::" host in
+    let dotted = std.string.is_match "\\." host in
+    compressed
+    || dotted
+    || std.array.length (std.array.filter (fun part => part != "") (std.string.split ":" host)) == 8,
 }

@@ -15,6 +15,7 @@ let Peer =
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
   )
 in
+let Ipv6GroupCount = (import "field-contracts.ncl").Ipv6GroupCount in
 let HttpsAuthority = fun value =>
   let authority =
     std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
@@ -25,6 +26,7 @@ let HttpsAuthority = fun value =>
     || (
       std.string.is_match "^\\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\\](:[0-9]+)?$" authority
       && !(std.string.is_match ":::" authority)
+      && Ipv6GroupCount (std.array.first (std.string.split "]" (std.array.last (std.string.split "[" authority))))
     )
   in
   let has_port =
@@ -77,6 +79,7 @@ let SocketAddress =
     std.is_string value
     && std.string.is_match "^([0-9.]+|\\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\\]):[0-9]+$" value
     && !(std.string.is_match ":::" value)
+    && Ipv6GroupCount (std.array.first (std.string.split "]" (std.array.last (std.string.split "[" value))))
     && (
       let parts = std.string.split ":" value in
       let host = std.array.first parts in
