@@ -1,0 +1,3 @@
+let positive = import "hosted-pipeline-triggers-positive.ncl" in
+let job = positive.jobs.check in
+(import "../hosted-pipeline.ncl") (positive & { jobs | force = positive.jobs & { check | force = job & { matrix | force = { a = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"], b = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"] } } } })

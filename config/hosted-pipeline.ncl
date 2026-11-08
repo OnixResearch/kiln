@@ -177,13 +177,15 @@ let PipelineRelations =
 in
 let Matrix =
   std.contract.from_predicate (fun value =>
+    let axes = std.record.values value in
     std.array.all
       (fun values =>
         std.array.length values >= 1
         && std.array.length values <= 32
         && std.array.all (fun item => std.string.length item <= 4096) values
       )
-      (std.record.values value)
+      axes
+    && std.array.fold_left (fun total values => total * std.array.length values) 1 axes <= 256
   )
 in
 let Timeout =
