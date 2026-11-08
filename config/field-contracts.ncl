@@ -147,6 +147,12 @@
       std.array.length dotted == 1
       && std.array.last parts == std.array.first dotted
       && Ipv4Group (std.array.last parts)
+      && (
+        if compressed then
+          groups <= 6
+        else
+          groups == 7
+      )
     else if compressed then
       groups <= 7
     else
