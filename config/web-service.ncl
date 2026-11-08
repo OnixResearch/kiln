@@ -135,8 +135,18 @@ let FeedPolicy = {
   allow_private_destinations | Bool | default = false,
 }
 in
-let ScopeRoot = std.contract.from_predicate (fun value => value == "" || is_relative_path value) in
-let ScopePattern = std.contract.from_predicate is_relative_path in
+let ScopeRoot =
+  std.contract.from_predicate (fun value =>
+    (value == "" || is_relative_path value)
+    && !(std.string.is_match "[*?\\[\\]{}]" value)
+  )
+in
+let ScopePattern =
+  std.contract.from_predicate (fun value =>
+    is_relative_path value
+    && !(std.string.is_match "^!|[\\[\\]{}+\\\\]|(^|/)\\.{0,2}(/|$)|[^/]\\*\\*|\\*\\*[^/]" value)
+  )
+in
 let PatternList = std.contract.from_predicate (fun value => std.is_array value && std.array.length value <= max_scope_patterns) in
 let GraphKind = std.contract.from_predicate (fun value => value == "cargo" || value == "nix") in
 let DistinctGraphs =
