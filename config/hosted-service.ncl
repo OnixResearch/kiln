@@ -96,6 +96,35 @@ let CpuAffinity =
         )
       )
       (std.string.split "," value)
+    && (
+      let entries =
+        std.array.map
+          (fun item =>
+            let parts = std.string.split "-" item in
+            {
+              start = std.string.to_number (std.array.first parts),
+              end =
+                if std.array.length parts == 1 then
+                  std.string.to_number (std.array.first parts)
+                else
+                  std.string.to_number (std.array.last parts),
+            }
+          )
+          (std.string.split "," value)
+      in
+      let cpus =
+        std.array.flat_map
+          (fun entry => std.array.generate (fun offset => entry.start + offset) (entry.end - entry.start + 1))
+          entries
+      in
+      let check = fun state cpu =>
+        if std.array.elem cpu state.seen then
+          { seen = state.seen, duplicate = true }
+        else
+          { seen = state.seen @ [cpu], duplicate = false }
+      in
+      !(std.array.fold_left check { seen = [], duplicate = false } cpus).duplicate
+    )
   )
 in
 let AtMost = fun maximum =>
