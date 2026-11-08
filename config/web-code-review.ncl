@@ -6,6 +6,7 @@ let Text = fun maximum =>
     std.is_string value
     && std.string.length value > 0
     && std.string.length value <= maximum
+    && std.string.trim value != ""
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
   )
 in
