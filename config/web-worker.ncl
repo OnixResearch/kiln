@@ -90,6 +90,25 @@ let Unique = fun values =>
       values
   )
 in
+let ReportRelations =
+  std.contract.from_predicate (fun steps =>
+    let keys =
+      std.array.fold_left
+        (fun state step =>
+          let reports =
+            if std.record.has_field "reports" step then step.reports else []
+          in
+          std.array.fold_left
+            (fun inner report => inner @ [step.node_id ++ "\u{0}" ++ report.path])
+            state
+            reports
+        )
+        []
+        steps
+    in
+    std.array.length keys <= 128 && Unique keys
+  )
+in
 let UniqueArtifactNames =
   std.contract.from_predicate (fun steps =>
     let names =
@@ -263,7 +282,7 @@ fun input =>
         # per-job microVM without credentials or cache; only then does it accept
         # untrusted run bindings. Omitted means it refuses them.
         untrusted_capable | Bool | optional,
-        steps | Array Step | NonEmptyAtMost 128 | UniqueArtifactNames,
+        steps | Array Step | NonEmptyAtMost 128 | UniqueArtifactNames | ReportRelations,
       }
       | std.contract.from_predicate (fun value =>
         value.snapshot_limits.max_file_bytes <= value.snapshot_limits.max_total_bytes
