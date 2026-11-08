@@ -59,6 +59,15 @@ let ScheduleAdmission =
       schedules
   )
 in
+let BranchName =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 256
+    && !(std.string.is_match "[ ~^:?*\\[\\\\]" value)
+    && !(std.string.is_match "(\\.\\.|//|/\\.|[.]lock$|[./]$|^/)" value)
+  )
+in
 let Owner =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -201,7 +210,7 @@ fun input =>
             enabled | Bool,
             push | Bool,
             pull_request | Bool,
-            pull_request_base | c.Nullable String,
+            pull_request_base | c.Nullable BranchName,
             supersede_queued | Bool | optional,
             untrusted_results_satisfy_required_ci | Bool | optional,
             filter | TriggerFilter | optional,
