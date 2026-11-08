@@ -16,6 +16,14 @@ for fixture in config/fixtures/negative-*.ncl; do
   fi
 done
 
+for fixture in config/fixtures/*-negative.ncl; do
+  negative_count=$((negative_count + 1))
+  if nickel export "$fixture" >/dev/null 2>&1; then
+    printf 'negative Nickel fixture passed: %s\n' "$fixture" >&2
+    exit 1
+  fi
+done
+
 positive_count=0
 for fixture in config/fixtures/*positive*.ncl; do
   positive_count=$((positive_count + 1))
