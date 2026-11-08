@@ -20,6 +20,9 @@ let HttpsAuthority = fun value =>
     std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
   in
   let bracketed = std.string.is_match "^\\[" authority in
+  let valid_brackets =
+    !bracketed || std.string.is_match "^\\[[0-9a-fA-F:.]+\\]" authority
+  in
   let has_port =
     if bracketed then
       std.string.is_match "\\]:" authority
@@ -31,7 +34,8 @@ let HttpsAuthority = fun value =>
   in
   let host = std.array.first (std.string.split ":" authority) in
   let port = std.array.last (std.string.split ":" authority) in
-  valid_colons
+  valid_brackets
+  && valid_colons
   && std.string.length host > 0
   && (
     !has_port
