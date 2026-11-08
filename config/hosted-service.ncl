@@ -20,6 +20,17 @@ let Https =
     std.is_string value
     && std.string.length value <= 2048
     && std.string.is_match "^https://[^ @?#]+$" value
+    && (
+      let authority =
+        std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
+      in
+      let port = std.array.last (std.string.split ":" authority) in
+      !(std.string.is_match "^[0-9]+$" port)
+      || (
+        let number = std.string.to_number port in
+        std.is_number number && number >= 0 && number <= 65535
+      )
+    )
   )
 in
 let Origin =
@@ -27,6 +38,17 @@ let Origin =
     std.is_string value
     && std.string.length value <= 2048
     && std.string.is_match "^https://[^/?#@ ]+$" value
+    && (
+      let authority =
+        std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
+      in
+      let port = std.array.last (std.string.split ":" authority) in
+      !(std.string.is_match "^[0-9]+$" port)
+      || (
+        let number = std.string.to_number port in
+        std.is_number number && number >= 0 && number <= 65535
+      )
+    )
   )
 in
 let SocketAddress =
