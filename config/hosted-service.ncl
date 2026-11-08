@@ -15,41 +15,42 @@ let Peer =
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value
   )
 in
+let HttpsAuthority = fun value =>
+  let authority =
+    std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
+  in
+  let bracketed = std.string.is_match "^\\[" authority in
+  let has_port =
+    if bracketed then
+      std.string.is_match "\\]:" authority
+    else
+      std.string.is_match ":" authority
+  in
+  let valid_colons =
+    bracketed || std.array.length (std.string.split ":" authority) <= 2
+  in
+  let host = std.array.first (std.string.split ":" authority) in
+  let port = std.array.last (std.string.split ":" authority) in
+  valid_colons
+  && std.string.length host > 0
+  && (
+    !has_port
+    || (
+      std.string.is_match "^[0-9]+$" port
+      && (
+        let number = std.string.to_number port in
+        std.is_number number && number >= 0 && number <= 65535
+      )
+    )
+  )
+in
 let Https =
   std.contract.from_predicate (fun value =>
     std.is_string value
     && std.string.length value <= 2048
     && std.string.is_match "^https://[^/ @?#][^ @?#]*$" value
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
-    && (
-      let authority =
-        std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
-      in
-      let bracketed = std.string.is_match "^\\[" authority in
-      let has_port =
-        if bracketed then
-          std.string.is_match "\\]:" authority
-        else
-          std.string.is_match ":" authority
-      in
-      let valid_colons =
-        bracketed || std.array.length (std.string.split ":" authority) <= 2
-      in
-      let host = std.array.first (std.string.split ":" authority) in
-      let port = std.array.last (std.string.split ":" authority) in
-      valid_colons
-      && std.string.length host > 0
-      && (
-        !has_port
-        || (
-          std.string.is_match "^[0-9]+$" port
-          && (
-            let number = std.string.to_number port in
-            std.is_number number && number >= 0 && number <= 65535
-          )
-        )
-      )
-    )
+    && HttpsAuthority value
   )
 in
 let Origin =
@@ -58,35 +59,7 @@ let Origin =
     && std.string.length value <= 2048
     && std.string.is_match "^https://[^/?#@ ]+$" value
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
-    && (
-      let authority =
-        std.array.first (std.string.split "/" (std.array.last (std.string.split "://" value)))
-      in
-      let bracketed = std.string.is_match "^\\[" authority in
-      let has_port =
-        if bracketed then
-          std.string.is_match "\\]:" authority
-        else
-          std.string.is_match ":" authority
-      in
-      let valid_colons =
-        bracketed || std.array.length (std.string.split ":" authority) <= 2
-      in
-      let host = std.array.first (std.string.split ":" authority) in
-      let port = std.array.last (std.string.split ":" authority) in
-      valid_colons
-      && std.string.length host > 0
-      && (
-        !has_port
-        || (
-          std.string.is_match "^[0-9]+$" port
-          && (
-            let number = std.string.to_number port in
-            std.is_number number && number >= 0 && number <= 65535
-          )
-        )
-      )
-    )
+    && HttpsAuthority value
   )
 in
 let SocketAddress =
