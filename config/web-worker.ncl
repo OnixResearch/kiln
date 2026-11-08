@@ -121,7 +121,7 @@ let Step = {
   environment | { _ : String } | RecordAtMost 4096,
   artifacts | Array RelativeFile | AtMost 4096,
   # Omitted declarations remain omitted, preserving existing profile JSON identity.
-  reports | Array Report | optional,
+  reports | Array Report | AtMost 128 | optional,
   cache
     | {
       producer | String,
