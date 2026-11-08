@@ -76,4 +76,8 @@
     std.contract.from_predicate (fun value =>
       std.is_string value && std.string.length value > 0 && std.string.length value <= 256
     ),
+  Environment =
+    std.contract.from_predicate (fun value =>
+      std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
+    ),
 }

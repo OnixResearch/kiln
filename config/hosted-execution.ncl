@@ -29,11 +29,7 @@ let Identity =
   )
 in
 let Identifier = (import "field-contracts.ncl").Identifier in
-let Environment =
-  std.contract.from_predicate (fun value =>
-    std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
-  )
-in
+let Environment = (import "field-contracts.ncl").Environment in
 let CacheText = (import "field-contracts.ncl").CacheText in
 let Audience = (import "field-contracts.ncl").Audience in
 let Absolute =

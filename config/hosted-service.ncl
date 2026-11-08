@@ -238,6 +238,7 @@ let NonEmptyRecord =
   std.contract.from_predicate (fun value => std.array.length (std.record.fields value) >= 1)
 in
 let Audience = (import "field-contracts.ncl").Audience in
+let Environment = (import "field-contracts.ncl").Environment in
 let ActivationPricing =
   std.contract.from_predicate (fun sources =>
     std.array.all
@@ -507,10 +508,7 @@ let Execution =
                 audience | c.Nullable Audience | default = null,
                 secrets
                   | Array {
-                    environment
-                      | std.contract.from_predicate (fun value =>
-                        std.is_string value && std.string.is_match "^[A-Za-z_][A-Za-z0-9_]*$" value
-                      ),
+                    environment | Environment,
                     name | Identifier,
                     revision | c.Positive,
                   }
