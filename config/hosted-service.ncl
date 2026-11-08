@@ -651,7 +651,11 @@ let Execution =
           && (
             let labels = std.record.fields admitted.runners in
             let workload_runners =
-              std.array.map (fun policy => policy.runner) admitted.workload
+              std.array.filter
+                (fun label =>
+                  (std.record.get label admitted.runners).kind == "firecracker"
+                )
+                (std.array.map (fun policy => policy.runner) admitted.workload)
             in
             let untrusted =
               std.array.filter
