@@ -46,6 +46,14 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let CacheText =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 256
+    && std.string.is_match "^[ -~]+$" value
+  )
+in
 let NonEmptyAtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value >= 1 && std.array.length value <= maximum
@@ -290,9 +298,9 @@ let Cache = {
       runner | Identifier,
       worker
         | {
-          producer | c.NonEmpty,
-          toolchain | c.NonEmpty,
-          platform | c.NonEmpty,
+          producer | CacheText,
+          toolchain | CacheText,
+          platform | CacheText,
           inputs | Array CacheRelative | NonEmptyAtMost 4096,
           paths | Array CacheRelative | NonEmptyAtMost 4096,
           maximum_entry_bytes | c.BoundedInteger 1 1048576,
