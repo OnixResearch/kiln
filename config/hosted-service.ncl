@@ -21,7 +21,11 @@ let HttpsAuthority = fun value =>
   in
   let bracketed = std.string.is_match "^\\[" authority in
   let valid_brackets =
-    !bracketed || std.string.is_match "^\\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\\](:[0-9]+)?$" authority
+    !bracketed
+    || (
+      std.string.is_match "^\\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\\](:[0-9]+)?$" authority
+      && !(std.string.is_match ":::" authority)
+    )
   in
   let has_port =
     if bracketed then
@@ -70,6 +74,7 @@ let SocketAddress =
   std.contract.from_predicate (fun value =>
     std.is_string value
     && std.string.is_match "^([0-9.]+|\\[[0-9a-fA-F:.]*:[0-9a-fA-F:.]*\\]):[0-9]+$" value
+    && !(std.string.is_match ":::" value)
     && (
       let parts = std.string.split ":" value in
       let host = std.array.first parts in
