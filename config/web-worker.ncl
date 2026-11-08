@@ -82,6 +82,14 @@ let ExecutionRelations =
       data_mounts
   )
 in
+let CacheText =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 256
+    && std.string.is_match "^[ -~]+$" value
+  )
+in
 let RecordAtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.array.length (std.record.fields value) <= maximum
@@ -140,9 +148,9 @@ let Step = {
   reports | Array Report | AtMost 128 | optional,
   cache
     | {
-      producer | String,
-      toolchain | String,
-      platform | String,
+      producer | CacheText,
+      toolchain | CacheText,
+      platform | CacheText,
       inputs | Array RelativeFile | NonEmptyAtMost 4096,
       paths | Array RelativeFile | NonEmptyAtMost 4096,
       maximum_entry_bytes | Integer 8388608,
