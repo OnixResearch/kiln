@@ -649,6 +649,13 @@ let Execution =
             (std.record.values admitted.runners)
           && std.array.all
             (fun runner =>
+              !(std.record.has_field "warm_pool" runner)
+              || runner.warm_pool == null
+              || runner.warm_pool.slots <= admitted.maximum_concurrent
+            )
+            (std.record.values admitted.runners)
+          && std.array.all
+            (fun runner =>
               runner.kind != "unikernel-test"
               || runner.memory_mib
               * 1048576 <= admitted.memory_bytes
