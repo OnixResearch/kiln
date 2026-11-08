@@ -57,8 +57,10 @@ if ! nickel export config/hosted-pipeline-example.ncl >/dev/null; then
   exit 1
 fi
 
-if ! nickel typecheck config/hosted-execution.ncl >/dev/null; then
-  printf 'Nickel typecheck failed: config/hosted-execution.ncl\n' >&2
-  exit 1
-fi
+for profile in config/hosted-execution.ncl config/github-ci.ncl config/gitea-ci.ncl; do
+  if ! nickel typecheck "$profile" >/dev/null; then
+    printf 'Nickel typecheck failed: %s\n' "$profile" >&2
+    exit 1
+  fi
+done
 printf 'Nickel fixture gate passed (%s positive, %s negative)\n' "$positive_count" "$negative_count"
