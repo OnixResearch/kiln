@@ -58,10 +58,14 @@ let Backend = {
   firecracker | Immutable | optional,
   cloud_hypervisor | Immutable | optional,
   # Trusted cold-only Unikraft test runner; kernel and Firecracker are immutable.
-  project | String | optional,
+  project | std.contract.from_predicate (fun value => value == "unikraft") | optional,
   initrd | Immutable | optional,
-  vcpus | Positive 8 | optional,
-  memory_mib | Positive 16384 | optional,
+  vcpus | Positive 1 | optional,
+  memory_mib
+    | std.contract.from_predicate (fun value =>
+      std.is_number value && value >= 32 && value <= 16384 && std.number.floor value == value
+    )
+    | optional,
   boot_timeout_ms | Positive 60000 | optional,
   source_image_mib | Positive 1024 | optional,
   # Snapshot/restore warm pool: a private 0700 directory outside work_root and
@@ -85,9 +89,16 @@ let Backend = {
   # Existing operator-created resctrl CAT group; assignment is checked before dispatch.
   cache_partition | String | optional,
   # Reviewed CPU list for this runner's VMM, e.g. "0-3,8".
-  network | String | optional,
+  network | std.contract.from_predicate (fun value => value == "none") | optional,
   # Reviewed VMM version; recorded in receipts and snapshot identity v2.
-  version | String | optional,
+  version
+    | std.contract.from_predicate (fun value =>
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 128
+      && !(std.string.is_match "\x00" value)
+    )
+    | optional,
   cpu_affinity
     | std.contract.from_predicate (fun value =>
       std.is_string value
