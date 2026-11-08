@@ -29,6 +29,24 @@ let Nonempty =
     && std.array.length value <= 4096
   )
 in
+let Nonempty256 =
+  std.contract.from_predicate (fun value =>
+    std.is_array value
+    && std.array.length value > 0
+    && std.array.length value <= 256
+  )
+in
+let UniqueProjects =
+  std.contract.from_predicate (fun projects =>
+    let check = fun state project =>
+      if std.array.elem project.project_id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [project.project_id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } projects).duplicate
+  )
+in
 let Identifier =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -49,12 +67,13 @@ fun input =>
         projects
           | Array {
             project_id | Identifier,
-            producers | Array Text | Nonempty,
-            toolchains | Array Text | Nonempty,
-            platforms | Array Text | Nonempty,
+            producers | Array Text | Nonempty256,
+            toolchains | Array Text | Nonempty256,
+            platforms | Array Text | Nonempty256,
             paths | Array Relative | Nonempty,
           }
-          | Nonempty,
+          | Nonempty256
+          | UniqueProjects,
       }
       | std.contract.from_predicate (fun value =>
         value.maximum_total_bytes >= value.maximum_entry_bytes
