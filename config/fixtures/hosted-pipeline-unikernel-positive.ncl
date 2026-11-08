@@ -7,7 +7,10 @@
     unikernel = {
       binary = { path = "bin/test", blake3 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
       argv = ["pass"],
-      fixtures = [{ path = "data/input", blake3 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }],
+      fixtures = [
+        { path = "data/input", blake3 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { path = "docs/readme", blake3 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+      ],
     },
   },
 }
