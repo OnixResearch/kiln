@@ -28,6 +28,9 @@
    nix flake check path:$PWD --no-write-lock-file -L
    ```
 
+   `scripts/check-nickel-fixtures.sh` exports every positive fixture and
+   asserts every negative fixture is rejected; the same script runs inside
+   `checks.x86_64-linux.nickel`.
    `cairn release-readiness` consumes two checked-in gate fixtures.
    `fixtures/agent-completion/` binds the maintained repository gate commands
    to the current generated policy hash; regenerate its command and selection
