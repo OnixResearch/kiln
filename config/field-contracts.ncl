@@ -142,19 +142,26 @@
     let parts = std.array.filter (fun part => part != "") (std.string.split ":" host) in
     let compressed = std.string.is_match "::" host in
     let dotted = std.array.filter (fun part => std.string.is_match "\\." part) parts in
+    let hex = std.array.filter (fun part => !(std.string.is_match "\\." part)) parts in
+    let hex_ok =
+      std.array.all (fun part => std.string.is_match "^[0-9a-fA-F]{1,4}$" part) hex
+    in
     let groups = std.array.length parts in
-    if !(std.array.length dotted == 0) then
-      std.array.length dotted == 1
-      && std.array.last parts == std.array.first dotted
-      && Ipv4Group (std.array.last parts)
-      && (
-        if compressed then
-          groups <= 6
-        else
-          groups == 7
-      )
-    else if compressed then
-      groups <= 7
-    else
-      groups == 8,
+    hex_ok
+    && (
+      if !(std.array.length dotted == 0) then
+        std.array.length dotted == 1
+        && std.array.last parts == std.array.first dotted
+        && Ipv4Group (std.array.last parts)
+        && (
+          if compressed then
+            groups <= 6
+          else
+            groups == 7
+        )
+      else if compressed then
+        groups <= 7
+      else
+        groups == 8
+    ),
 }
