@@ -47,10 +47,19 @@ let UniqueProjects =
     !(std.array.fold_left check { seen = [], duplicate = false } projects).duplicate
   )
 in
-let UniquePaths =
+let NonOverlappingPaths =
   std.contract.from_predicate (fun values =>
+    let components = fun path => std.string.split "/" path in
+    let under = fun root path =>
+      let root_parts = components root in
+      let path_parts = components path in
+      std.array.length path_parts >= std.array.length root_parts
+      && std.string.join "/" (std.array.slice 0 (std.array.length root_parts) path_parts) == root
+    in
     let check = fun state value =>
-      if std.array.elem value state.seen then
+      if std.array.any
+        (fun prior => under prior value || under value prior)
+        state.seen then
         { seen = state.seen, duplicate = true }
       else
         { seen = state.seen @ [value], duplicate = false }
@@ -81,7 +90,7 @@ fun input =>
             producers | Array Text | Nonempty256,
             toolchains | Array Text | Nonempty256,
             platforms | Array Text | Nonempty256,
-            paths | Array Relative | Nonempty | UniquePaths,
+            paths | Array Relative | Nonempty | NonOverlappingPaths,
           }
           | Nonempty256
           | UniqueProjects,
