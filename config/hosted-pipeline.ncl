@@ -1,7 +1,12 @@
 # Repository-owned hosted pipeline authoring. Export JSON with Nickel, then pass
 # that JSON to pipeline.compile / pipeline.review through the hosted Iroh CLI.
 # Rust admission enforces named expansion, byte, graph and deadline bounds.
-let TextMap = { _ : String } in
+let TextValue =
+  std.contract.from_predicate (fun value =>
+    std.is_string value && std.string.length value <= 4096
+  )
+in
+let TextMap = { _ | TextValue } in
 let BoundedText = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -141,7 +146,11 @@ in
 let Matrix =
   std.contract.from_predicate (fun value =>
     std.array.all
-      (fun values => std.array.length values >= 1 && std.array.length values <= 32)
+      (fun values =>
+        std.array.length values >= 1
+        && std.array.length values <= 32
+        && std.array.all (fun item => std.string.length item <= 4096) values
+      )
       (std.record.values value)
   )
 in
@@ -155,11 +164,11 @@ let Timeout =
 in
 let Shell = std.contract.from_predicate (fun value => value == "bash" || value == "sh") in
 let Run = {
-  name | String | default = "",
+  name | TextValue | default = "",
   run | Command,
   shell | Shell | default = "bash",
   env | TextMap | default = {},
-  working_directory | String | default = ".",
+  working_directory | TextValue | default = ".",
 }
 in
 let Step =
@@ -192,7 +201,7 @@ let Nullable = fun Contract =>
     if value == null then 'Ok value else std.contract.check Contract label value
   )
 in
-let TestFile = { path | String, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-f]{64}$" v) } in
+let TestFile = { path | TextValue, blake3 | std.contract.from_predicate (fun v => std.is_string v && std.string.is_match "^[0-9a-f]{64}$" v) } in
 let TestSpec = { binary | TestFile, argv | Array String | default = [], fixtures | Array TestFile | default = [] } in
 let Job = {
   kind | std.contract.from_predicate (fun v => v == "unikernel-test") | optional,
@@ -237,7 +246,7 @@ let TriggerObject = {
   tags | Patterns | Array Pattern | optional,
   types | Array PullRequestType | optional,
   paths | Patterns | Array Pattern | optional,
-  schedule | String | optional,
+  schedule | BoundedText 128 | optional,
 }
 in
 let Trigger =
