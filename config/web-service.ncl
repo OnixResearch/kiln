@@ -76,16 +76,16 @@ let Workflow = {
   adapter_limits | { maximum_request_bytes | c.Positive, maximum_response_bytes | c.Positive },
   policy_id | BoundedText 128,
   provider_profile_id | BoundedText 128,
-  platform | c.NonEmpty,
+  platform | BoundedText 128,
   nodes
     | Array {
-      id | c.NonEmpty,
-      kind | c.NonEmpty,
+      id | BoundedText 128,
+      kind | BoundedText 128,
       effect_class | std.contract.from_predicate (fun value => value == "build" || value == "test" || value == "custom"),
-      adapter_kind | c.NonEmpty,
+      adapter_kind | BoundedText 128,
       operation_identity | c.Blake3,
     },
-  edges | Array { source | c.NonEmpty, target | c.NonEmpty },
+  edges | Array { source | BoundedText 128, target | BoundedText 128 },
   controls
     | {
       cancel | Bool,
