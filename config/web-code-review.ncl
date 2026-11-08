@@ -146,6 +146,52 @@ let SpeculativeCapability =
     || std.array.elem "speculative_integration" profile.provider.capabilities
   )
 in
+let Unique = fun values =>
+  std.array.length values == std.array.length (
+    std.array.fold_left
+      (fun seen value => if std.array.elem value seen then seen else seen @ [value])
+      []
+      values
+  )
+in
+let SignatureName =
+  std.contract.from_predicate (fun value => !(std.string.is_match "[<>]" value))
+in
+let SignatureEmail =
+  std.contract.from_predicate (fun value =>
+    std.string.is_match "^[^<>\\x00-\\x1f\\x7f]+@[^<>\\x00-\\x1f\\x7f]+$" value
+  )
+in
+let ReviewRelations =
+  std.contract.from_predicate (fun profile =>
+    let readers = profile.read_principals in
+    let writers = profile.write_principals in
+    Unique readers
+    && Unique writers
+    && std.array.all (fun principal => std.array.elem principal readers) writers
+    && (
+      !(std.record.has_field "agent_principals" profile)
+      || (
+        Unique profile.agent_principals
+        && std.array.all (fun principal => std.array.elem principal writers) profile.agent_principals
+        && (
+          !(std.record.has_field "agent_metadata" profile)
+          || std.array.all
+            (fun principal => std.array.elem principal profile.agent_principals)
+            (std.record.fields profile.agent_metadata)
+        )
+      )
+    )
+    && std.array.all
+      (fun principal => std.array.elem principal readers && std.array.elem principal writers)
+      profile.policy.eligible_reviewers
+    && std.array.all
+      (fun principal => std.array.elem principal readers && std.array.elem principal writers)
+      profile.policy.submitters
+    && std.array.elem "inspect" profile.provider.capabilities
+    && std.array.elem "compare" profile.provider.capabilities
+  )
+in
 let Delivery = {
   schema | std.contract.from_predicate (fun value => value == "kiln.review-delivery-profile.v1"),
   destinations
@@ -260,14 +306,15 @@ fun input =>
         agent_principals | Array Principal | PrincipalBound | optional,
         agent_metadata | { _ | AgentIdentity } | optional,
         write_principals | Array Principal | PrincipalBound,
-        signature_name | Text 128,
-        signature_email | Text 254,
+        signature_name | Text 128 | SignatureName,
+        signature_email | Text 254 | SignatureEmail,
         intake | c.Nullable Intake,
         delivery | c.Nullable Delivery,
         queue | c.Nullable Queue | QueueMode,
         review | Review | optional,
       }
       | SpeculativeCapability
+      | ReviewRelations
   in
   {
     schema = "kiln.code-review-profile.v1",
