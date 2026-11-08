@@ -132,6 +132,11 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
+let RecordAtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_record value && std.array.length (std.record.fields value) <= maximum
+  )
+in
 let ExactFields = (import "field-contracts.ncl").ExactFields in
 let ExactSourceProfiles =
   std.contract.from_predicate (fun rows =>
@@ -589,7 +594,7 @@ let Execution =
               = [],
             env | Executable,
             work_root | c.AbsolutePath,
-            runners | { _ : Backend } | NonEmptyRecord,
+            runners | { _ : Backend } | NonEmptyRecord | RecordAtMost 32,
             maximum_concurrent | c.BoundedInteger 1 128,
             memory_bytes | c.BoundedInteger 67108864 68719476736,
             processes | c.BoundedInteger 8 1024,
