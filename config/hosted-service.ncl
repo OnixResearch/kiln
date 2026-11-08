@@ -32,13 +32,19 @@ let Https =
         else
           std.string.is_match ":" authority
       in
+      let valid_colons =
+        bracketed || std.array.length (std.string.split ":" authority) <= 2
+      in
       let port = std.array.last (std.string.split ":" authority) in
-      !has_port
-      || (
-        std.string.is_match "^[0-9]+$" port
-        && (
-          let number = std.string.to_number port in
-          std.is_number number && number >= 0 && number <= 65535
+      valid_colons
+      && (
+        !has_port
+        || (
+          std.string.is_match "^[0-9]+$" port
+          && (
+            let number = std.string.to_number port in
+            std.is_number number && number >= 0 && number <= 65535
+          )
         )
       )
     )
@@ -61,13 +67,19 @@ let Origin =
         else
           std.string.is_match ":" authority
       in
+      let valid_colons =
+        bracketed || std.array.length (std.string.split ":" authority) <= 2
+      in
       let port = std.array.last (std.string.split ":" authority) in
-      !has_port
-      || (
-        std.string.is_match "^[0-9]+$" port
-        && (
-          let number = std.string.to_number port in
-          std.is_number number && number >= 0 && number <= 65535
+      valid_colons
+      && (
+        !has_port
+        || (
+          std.string.is_match "^[0-9]+$" port
+          && (
+            let number = std.string.to_number port in
+            std.is_number number && number >= 0 && number <= 65535
+          )
         )
       )
     )
