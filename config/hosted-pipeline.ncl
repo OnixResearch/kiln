@@ -194,13 +194,23 @@ let Timeout =
     && std.number.floor value == value
   )
 in
+let WorkingDirectory =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value > 0
+    && std.string.length value <= 4096
+    && !(std.string.is_match "^/" value)
+    && !(std.string.is_match "\\\\" value)
+    && !(std.string.is_match "(^|/)\\.\\.(/|$)" value)
+  )
+in
 let Shell = std.contract.from_predicate (fun value => value == "bash" || value == "sh") in
 let Run = {
   name | TextValue | default = "",
   run | Command,
   shell | Shell | default = "bash",
   env | TextMap | default = {},
-  working_directory | TextValue | default = ".",
+  working_directory | WorkingDirectory | default = ".",
 }
 in
 let Step =
