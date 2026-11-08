@@ -731,7 +731,10 @@ let Execution =
             (fun runner =>
               !(std.record.has_field "warm_pool" runner)
               || runner.warm_pool == null
-              || runner.warm_pool.slots <= admitted.maximum_concurrent
+              || (
+                runner.warm_pool.slots <= admitted.maximum_concurrent
+                && !(std.string.is_match "^/nix/store(/|$)" runner.warm_pool.directory)
+              )
             )
             (std.record.values admitted.runners)
           && std.array.all
