@@ -41,6 +41,8 @@ for fixture in config/fixtures/*positive*.ncl; do
   fi
 done
 
+# deployment/fixtures/module-positive.ncl imports a generated onix.ncl that is
+# not part of the source tree, so only the source-complete positive is checked.
 for fixture in deployment/fixtures/positive.ncl; do
   positive_count=$((positive_count + 1))
   if ! nickel export "$fixture" >/dev/null; then
