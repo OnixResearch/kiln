@@ -29,6 +29,9 @@ fun input =>
         maximum_request_bytes | Integer 16777216 | default = 1048576,
         maximum_response_bytes | Integer 16777216 | default = 1048576,
       }
+      | std.contract.from_predicate (fun value =>
+        value.poll_interval_ms <= value.watch_timeout_ms
+      )
   in
   {
     schema = "kiln.web-developer.v1",
