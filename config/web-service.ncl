@@ -172,6 +172,17 @@ let ProfileRelations =
     std.array.length settings.projects >= 1
     && std.array.length settings.projects <= bounds.max_projects
     && Unique (std.array.map (fun project => project.id) settings.projects)
+    && settings.operator_token_file != settings.worker_token_file
+    && (
+      !(std.record.has_field "feeds" settings)
+      || (
+        settings.feeds.token_file != settings.operator_token_file
+        && settings.feeds.token_file != settings.worker_token_file
+      )
+    )
+    && std.array.all
+      (fun project => project.workflow.bounds.max_log_read_bytes <= bounds.max_log_read_bytes)
+      settings.projects
     && bounds.max_requests >= bounds.max_runs
     && bounds.max_artifact_bytes <= bounds.max_run_artifact_bytes
     && bounds.max_run_artifact_bytes <= bounds.max_total_artifact_bytes
