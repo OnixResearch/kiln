@@ -57,7 +57,7 @@ if ! nickel export config/hosted-pipeline-example.ncl >/dev/null; then
   exit 1
 fi
 
-for profile in config/hosted-execution.ncl config/github-ci.ncl config/gitea-ci.ncl; do
+for profile in config/hosted-service.ncl config/hosted-pipeline.ncl config/hosted-operations.ncl config/hosted-secrets.ncl config/hosted-execution.ncl config/github-ci.ncl config/gitea-ci.ncl; do
   if ! nickel typecheck "$profile" >/dev/null; then
     printf 'Nickel typecheck failed: %s\n' "$profile" >&2
     exit 1
