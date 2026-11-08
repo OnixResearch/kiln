@@ -139,7 +139,8 @@
       )
       octets,
   Ipv6GroupCount = fun host =>
-    let parts = std.array.filter (fun part => part != "") (std.string.split ":" host) in
+    let raw_parts = std.string.split ":" host in
+    let parts = std.array.filter (fun part => part != "") raw_parts in
     let compressed = std.string.is_match "::" host in
     let dotted = std.array.filter (fun part => std.string.is_match "\\." part) parts in
     let hex = std.array.filter (fun part => !(std.string.is_match "\\." part)) parts in
@@ -153,8 +154,8 @@
     && (
       if !(std.array.length dotted == 0) then
         std.array.length dotted == 1
-        && std.array.last parts == std.array.first dotted
-        && Ipv4Group (std.array.last parts)
+        && std.array.last raw_parts == std.array.first dotted
+        && Ipv4Group (std.array.last raw_parts)
         && (
           if compressed then
             groups <= 6
