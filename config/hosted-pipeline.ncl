@@ -81,6 +81,24 @@ let PipelineRelations =
       )
       steps
     && std.array.all
+      (fun trigger =>
+        if std.is_string trigger then
+          true
+        else
+          let has_schedule = std.record.has_field "schedule" trigger in
+          let schedule_names =
+            if std.record.has_field "schedules" pipeline then
+              std.record.fields pipeline.schedules
+            else
+              []
+          in
+          if trigger.event == "schedule" then
+            has_schedule && std.array.elem trigger.schedule schedule_names
+          else
+            !has_schedule
+      )
+      pipeline.triggers
+    && std.array.all
       (fun job =>
         let has_kind = std.record.has_field "kind" job in
         let has_unikernel = std.record.has_field "unikernel" job in
