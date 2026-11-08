@@ -10,11 +10,7 @@ let Positive = fun maximum =>
     std.is_number value && value >= 1 && value <= maximum && std.number.floor value == value
   )
 in
-let RecordAtMost = fun maximum =>
-  std.contract.from_predicate (fun value =>
-    std.is_record value && std.array.length (std.record.fields value) <= maximum
-  )
-in
+let RecordAtMost = (import "field-contracts.ncl").RecordAtMost in
 let Identity =
   std.contract.from_predicate (fun value =>
     std.is_string value && std.string.is_match "^[0-9a-f]{64}$" value

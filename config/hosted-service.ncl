@@ -70,11 +70,7 @@ let AtMost = fun maximum =>
     std.is_array value && std.array.length value <= maximum
   )
 in
-let RecordAtMost = fun maximum =>
-  std.contract.from_predicate (fun value =>
-    std.is_record value && std.array.length (std.record.fields value) <= maximum
-  )
-in
+let RecordAtMost = (import "field-contracts.ncl").RecordAtMost in
 let helpers = import "field-contracts.ncl" in
 let ExactFields = helpers.ExactFields in
 let CpuAffinity = helpers.CpuAffinity in
