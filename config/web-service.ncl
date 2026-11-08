@@ -38,7 +38,14 @@ let Workflow = {
       pause | std.contract.from_predicate (fun value => value == false),
       resume | std.contract.from_predicate (fun value => value == false),
     },
-  bounds | { max_nodes | c.Positive, max_edges | c.Positive, max_log_references | c.Positive, max_log_read_bytes | c.Positive, max_total_log_bytes | c.Positive },
+  bounds
+    | {
+      max_nodes | c.BoundedInteger 1 4294967295,
+      max_edges | c.BoundedInteger 1 4294967295,
+      max_log_references | c.BoundedInteger 1 4294967295,
+      max_log_read_bytes | c.Positive,
+      max_total_log_bytes | c.Positive,
+    },
 }
 in
 # Monorepo scope limits mirror Rust admission.
