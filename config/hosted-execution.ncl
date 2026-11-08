@@ -3,6 +3,7 @@
 # All executable/image paths resolve inside immutable /nix/store and are checked
 # against exact BLAKE3 immediately before use. No ambient environment is inherited.
 let c = import "github-contracts.ncl" in
+let CpuAffinity = (import "field-contracts.ncl").CpuAffinity in
 let CacheRelative =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -156,14 +157,7 @@ let Backend = {
       && !(std.string.is_match "\x00" value)
     )
     | optional,
-  cpu_affinity
-    | std.contract.from_predicate (fun value =>
-      std.is_string value
-      && std.string.length value > 0
-      && std.string.length value <= 256
-      && !(std.string.is_match "\\x00" value)
-    )
-    | optional,
+  cpu_affinity | CpuAffinity | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
   qualification_identity | Dyn | optional,
