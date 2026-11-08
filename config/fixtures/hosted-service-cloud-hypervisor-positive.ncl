@@ -22,6 +22,7 @@ let vm = base.runners.microvm in
               source_image_mib = 64,
               version = "v1.0",
               cpu_affinity = "0-1",
+              warm_pool = { directory = "/private/cloud-pool", slots = 1 },
             },
           }
       }
