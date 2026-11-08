@@ -190,6 +190,58 @@ let ReviewRelations =
       profile.policy.submitters
     && std.array.elem "inspect" profile.provider.capabilities
     && std.array.elem "compare" profile.provider.capabilities
+    && (
+      profile.delivery == null
+      || (
+        std.array.all
+          (fun recipient => std.array.elem recipient.principal readers)
+          profile.delivery.recipients
+        && std.array.all
+          (fun recipient =>
+            std.array.elem
+              recipient.destination
+              (std.array.map (fun destination => destination.id) profile.delivery.destinations)
+          )
+          profile.delivery.recipients
+      )
+    )
+  )
+in
+let AtMost = fun maximum =>
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value <= maximum
+  )
+in
+let UniqueDestinationIds =
+  std.contract.from_predicate (fun destinations =>
+    let check = fun state destination =>
+      if std.array.elem destination.id state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [destination.id], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } destinations).duplicate
+  )
+in
+let UniqueRecipientPrincipals =
+  std.contract.from_predicate (fun recipients =>
+    let check = fun state recipient =>
+      if std.array.elem recipient.principal state.seen then
+        { seen = state.seen, duplicate = true }
+      else
+        { seen = state.seen @ [recipient.principal], duplicate = false }
+    in
+    !(std.array.fold_left check { seen = [], duplicate = false } recipients).duplicate
+  )
+in
+let DestinationAddresses =
+  std.contract.from_predicate (fun destinations =>
+    std.array.all
+      (fun destination =>
+        std.array.length destination.addresses >= 1
+        && std.array.length destination.addresses <= destination.max_resolver_candidates
+      )
+      destinations
   )
 in
 let Delivery = {
@@ -213,14 +265,19 @@ let Delivery = {
       max_request_bytes | c.BoundedInteger 1 1048576,
       max_response_bytes | c.BoundedInteger 1 1048576,
       max_resolver_candidates | c.BoundedInteger 1 16,
-    },
+    }
+    | AtMost 128
+    | UniqueDestinationIds
+    | DestinationAddresses,
   recipients
     | Array {
       principal | Principal,
       destination | Text 128,
       address | Text 256,
       channel | std.contract.from_predicate (fun value => std.array.elem value ["webhook", "email_adapter"]),
-    },
+    }
+    | AtMost 128
+    | UniqueRecipientPrincipals,
   max_records | c.BoundedInteger 1 100000,
   max_attempts | c.BoundedInteger 1 4,
   retry_delay_ms | c.BoundedInteger 1000 3600000,
