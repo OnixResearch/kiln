@@ -660,6 +660,18 @@ let Execution =
               || runner.memory_mib
               * 1048576 <= admitted.memory_bytes
             )
+            (std.record.values admitted.runners)
+          && std.array.all
+            (fun runner =>
+              !(std.array.elem runner.kind ["firecracker", "cloud-hypervisor"])
+              || (
+                runner.memory_mib
+                * 1048576
+                + 67108864 <= admitted.memory_bytes
+                && runner.vcpus
+                + 4 <= admitted.processes
+              )
+            )
             (std.record.values admitted.runners) then
             'Ok admitted
           else
