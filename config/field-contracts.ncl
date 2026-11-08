@@ -74,7 +74,10 @@
     ),
   Audience =
     std.contract.from_predicate (fun value =>
-      std.is_string value && std.string.length value > 0 && std.string.length value <= 256
+      std.is_string value
+      && std.string.length value > 0
+      && std.string.length value <= 512
+      && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
     ),
   Environment =
     std.contract.from_predicate (fun value =>

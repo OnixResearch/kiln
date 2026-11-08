@@ -64,6 +64,7 @@ fun input =>
           std.is_string value
           && std.string.length value <= 512
           && std.string.is_match "^https://[^ @?#]+[^/ @?#]$" value
+          && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
         ),
       signing_key_path | c.AbsolutePath,
       audiences | Array Audience | NonEmptyAtMost 128 | UniqueStrings,
