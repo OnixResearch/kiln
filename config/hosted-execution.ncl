@@ -51,7 +51,7 @@ let Backend = {
   qemu | Immutable | optional,
   kernel | Immutable | optional,
   initramfs | Immutable | optional,
-  root_image | Dyn | optional,
+  root_image | Immutable | optional,
   guest_shell | GuestShell | optional,
   acceleration | std.contract.from_predicate (fun value => std.array.elem value ["tcg", "kvm"]) | optional,
   firecracker | Immutable | optional,
@@ -69,7 +69,12 @@ let Backend = {
   source_image_mib | Positive 1024 | optional,
   # Snapshot/restore warm pool: a private 0700 directory outside work_root and
   # at most 16 slots, never more than maximum_concurrent (checked in Rust).
-  warm_pool | Dyn | optional,
+  warm_pool
+    | {
+      directory | Absolute,
+      slots | Positive 16,
+    }
+    | optional,
   # Opt-in debug hold of failed jobs: grace at most 900 s, at most 16 held VMs
   # and never more than maximum_concurrent (checked in Rust). Omit to disable.
   debug_hold
@@ -132,7 +137,7 @@ let Backend = {
   cpu_affinity | CpuAffinity | optional,
   # Omit/null until independent adversarial VM qualification actually exists.
   # Immutable images and a running VM alone are not hostile qualification.
-  qualification_identity | Dyn | optional,
+  qualification_identity | Identity | optional,
 }
 in
 fun input =>
