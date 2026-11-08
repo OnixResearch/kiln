@@ -8,6 +8,7 @@
     { event = "schedule", schedule = "nightly" },
   ],
   schedules.nightly = { cron = "H 2 * * 1-5", timezone = "America/New_York" },
+  steps.greet = { step = { run = "printf 'hi\\n'", shell = "bash" } },
   jobs.check = {
     runner = "linux-reviewed",
     steps = [{ kind = "run", run = "printf 'checks\\n'", shell = "bash" }],

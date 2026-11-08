@@ -226,6 +226,11 @@ let Step =
       'Error { message = "Step kind must be run or use" }
   )
 in
+let StepTemplateFields =
+  std.contract.from_predicate (fun steps =>
+    std.array.all (ExactFields ["parameters", "step"]) (std.record.values steps)
+  )
+in
 let JobTemplate = {
   parameters | TextMap | RecordAtMost 64 | default = {},
   runner | BoundedText 128,
@@ -407,8 +412,10 @@ fun input =>
           }
         }
         | RecordAtMost 64
+        | StepTemplateFields
         | default
         = {},
       jobs | { _ : Job } | NonEmptyRecordAtMost 64 | JobFields,
     }
     | PipelineRelations
+    | std.contract.from_predicate (ExactFields ["schema", "name", "triggers", "schedules", "parameters", "env", "templates", "steps", "jobs"])
