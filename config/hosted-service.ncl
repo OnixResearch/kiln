@@ -28,6 +28,13 @@ let Https =
     && std.string.is_match "^https://[^ @?#]+$" value
   )
 in
+let Origin =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 2048
+    && std.string.is_match "^https://[^/?#@ ]+$" value
+  )
+in
 let SocketAddress =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -335,7 +342,7 @@ fun input =>
             operation_identity | c.Blake3,
             web_service
               | {
-                service_origin | Https,
+                service_origin | Origin,
                 tls_ca_path | c.AbsolutePath,
                 token_file | c.AbsolutePath,
                 http_timeout_ms | c.BoundedInteger 1 300000,
