@@ -78,6 +78,13 @@ let ExecutionRelations =
       (fun mount => under mount execution.probe_program)
       execution.read_only_mounts
     && std.array.all
+      (fun root =>
+        std.array.any
+          (fun family => under family root)
+          ["/srv", "/home", "/mnt", "/opt", "/var/lib/kiln"]
+      )
+      roots
+    && std.array.all
       (fun path => std.array.any (fun root => under root path) roots)
       data_mounts
   )
