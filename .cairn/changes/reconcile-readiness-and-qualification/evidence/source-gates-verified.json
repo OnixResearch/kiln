@@ -78,7 +78,9 @@
   "full_workspace_format": {
     "passed": false,
     "rerun": false,
-    "reason": "Previously observed partial vendored Cairn lacks vendor/cairn/crates/cairn-core/Cargo.toml; no snapshot reconstruction or redundant failing formatter run."
+    "reason": "Previously observed partial vendored Cairn lacks vendor/cairn/crates/cairn-core/Cargo.toml; no snapshot reconstruction or redundant failing formatter run.",
+    "superseded_by": "direct-workspace-format.json",
+    "superseded_note": "The formatter blocker was resolved after this receipt: pinned imports now load under cargo metadata and disable host formatting, and Kiln-owned sources were formatted with the workspace edition."
   },
   "origin_review": {
     "agent": "ReviewOriginAndEvidence",
