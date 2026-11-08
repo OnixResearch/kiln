@@ -108,6 +108,14 @@ let SocketAddress =
   )
 in
 let GuestShell = (import "field-contracts.ncl").GuestShell in
+let WebPath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.is_match "^/" value
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+    && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
+  )
+in
 let AtMost = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_array value && std.array.length value <= maximum
@@ -772,8 +780,8 @@ fun input =>
             web_service
               | {
                 service_origin | Origin,
-                tls_ca_path | c.AbsolutePath,
-                token_file | c.AbsolutePath,
+                tls_ca_path | WebPath,
+                token_file | WebPath,
                 http_timeout_ms | c.BoundedInteger 1 86400000,
                 maximum_response_bytes | c.BoundedInteger 1 1048576,
               },
