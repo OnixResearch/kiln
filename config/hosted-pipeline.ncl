@@ -6,7 +6,30 @@ let TextValue =
     std.is_string value && std.string.length value <= 4096
   )
 in
-let TextMap = { _ | TextValue } in
+let MapKeys = fun value =>
+  std.array.all
+    (fun key =>
+      std.string.length key > 0
+      && std.string.length key <= 64
+      && std.string.is_match "^[A-Za-z0-9_-]+$" key
+    )
+    (std.record.fields value)
+in
+let MapKeysContract = std.contract.from_predicate MapKeys in
+let TextMap =
+  std.contract.custom (fun label value =>
+    let result = std.contract.check { _ | TextValue } label value in
+    result
+    |> match {
+      'Ok fields =>
+        if MapKeys fields then
+          'Ok fields
+        else
+          'Error { message = "invalid text map key" },
+      'Error error => 'Error error,
+    }
+  )
+in
 let BoundedText = fun maximum =>
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -409,7 +432,7 @@ let Job = {
   steps | Array Step | AtMost 64 | default = [],
   env | TextMap | RecordAtMost 128 | default = {},
   needs | Array String | AtMost 64 | UniqueStrings | default = [],
-  matrix | { _ : Array String } | RecordAtMost 8 | Matrix | default = {},
+  matrix | { _ : Array String } | RecordAtMost 8 | Matrix | MapKeysContract | default = {},
   timeout_ms | Nullable Timeout | default = null,
 }
 in
@@ -487,10 +510,10 @@ fun input =>
         = "kiln.hosted.pipeline.v1",
       name | PipelineName,
       triggers | Array Trigger | NonEmptyAtMost 8,
-      schedules | { _ : ScheduleEntry } | RecordAtMost 8 | ScheduleFields | optional,
+      schedules | { _ : ScheduleEntry } | RecordAtMost 8 | ScheduleFields | MapKeysContract | optional,
       parameters | TextMap | RecordAtMost 64 | default = {},
       env | TextMap | RecordAtMost 128 | default = {},
-      templates | { _ : JobTemplate } | RecordAtMost 64 | TemplateFields | default = {},
+      templates | { _ : JobTemplate } | RecordAtMost 64 | TemplateFields | MapKeysContract | default = {},
       steps
         | {
           _ : {
@@ -500,9 +523,10 @@ fun input =>
         }
         | RecordAtMost 64
         | StepTemplateFields
+        | MapKeysContract
         | default
         = {},
-      jobs | { _ : Job } | NonEmptyRecordAtMost 64 | JobFields,
+      jobs | { _ : Job } | NonEmptyRecordAtMost 64 | JobFields | MapKeysContract,
     }
     | PipelineRelations
     | std.contract.from_predicate (ExactFields ["schema", "name", "triggers", "schedules", "parameters", "env", "templates", "steps", "jobs"])
