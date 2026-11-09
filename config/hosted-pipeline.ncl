@@ -360,6 +360,7 @@ let WorkingDirectory =
     && !(std.string.is_match "^/" value)
     && !(std.string.is_match "\\\\" value)
     && !(std.string.is_match "(^|/)\\.\\.(/|$)" value)
+    && !(std.string.is_match "\\x00" value)
   )
 in
 let Shell = std.contract.from_predicate (fun value => value == "bash" || value == "sh") in
