@@ -411,7 +411,7 @@ let Backend =
             = null,
           qualification_identity | c.Nullable HexIdentity | default = null,
           network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
-          version | Version | optional,
+          version | c.Nullable Version | optional,
           cpu_affinity | CpuAffinity | optional,
         }
         label
@@ -453,7 +453,7 @@ let Backend =
           # secrets, workload token or cache. Omitted means it may not.
           untrusted_capable | Bool | optional,
           # Reviewed VMM version; recorded in snapshot identity.
-          version | Version | optional,
+          version | c.Nullable Version | optional,
           # SMT/KSM-only operator exception. Unfixed/unknown kernel status
           # cannot be overridden. The reason is retained in the receipt.
           host_preflight_override
