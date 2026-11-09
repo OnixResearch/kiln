@@ -471,7 +471,7 @@ let TriggerObject = {
   event | Event,
   branches | Patterns | Array Pattern | UniqueStrings | optional,
   tags | Patterns | Array Pattern | UniqueStrings | optional,
-  types | Array PullRequestType | optional,
+  types | Array PullRequestType | UniqueStrings | optional,
   paths | Patterns | Array Pattern | UniqueStrings | optional,
   schedule | BoundedText 128 | optional,
 }
