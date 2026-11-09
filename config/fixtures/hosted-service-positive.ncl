@@ -125,6 +125,7 @@ let executable = { path = "/nix/store/fixture-not-a-runtime/bin/tool", blake3 = 
         guest_shell = "/bin/sh",
         acceleration = "tcg",
         qualification_identity = null,
+        network = null,
       },
       microvm = {
         kind = "firecracker",

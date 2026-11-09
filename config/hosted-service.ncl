@@ -357,7 +357,7 @@ let Backend =
           mount | Executable,
           shell | Executable,
           runtime_roots | Array RuntimeRoot | NonEmptyAtMost 6,
-          network | std.contract.from_predicate (fun v => v == "none") | optional,
+          network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
         }
         label
         value
@@ -372,7 +372,7 @@ let Backend =
           guest_shell | GuestShell,
           acceleration | std.contract.from_predicate (fun v => v == "tcg" || v == "kvm"),
           qualification_identity | c.Nullable HexIdentity | default = null,
-          network | std.contract.from_predicate (fun v => v == "none") | optional,
+          network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
         }
         label
         value
@@ -386,7 +386,7 @@ let Backend =
           version | Version,
           vcpus | c.BoundedInteger 1 1,
           memory_mib | c.BoundedInteger 32 16384,
-          network | std.contract.from_predicate (fun v => v == "none") | optional,
+          network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
         }
         label
         value
@@ -410,7 +410,7 @@ let Backend =
             | default
             = null,
           qualification_identity | c.Nullable HexIdentity | default = null,
-          network | std.contract.from_predicate (fun v => v == "none") | optional,
+          network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
           version | Version | optional,
           cpu_affinity | CpuAffinity | optional,
         }
@@ -492,7 +492,7 @@ let Backend =
           # Pin VMM and inherited vCPU threads; physical host exclusion still applies.
           cpu_affinity | CpuAffinity | optional,
           qualification_identity | c.Nullable HexIdentity | default = null,
-          network | std.contract.from_predicate (fun v => v == "none") | optional,
+          network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
         }
         label
         value
