@@ -237,6 +237,39 @@ let PipelineRelations =
       )
       pipeline.triggers
     && (
+      let field_list = fun trigger field =>
+        if std.record.has_field field trigger then
+          let value = std.record.get field trigger in
+          if std.is_array value then value else [value]
+        else
+          []
+      in
+      let key = fun trigger =>
+        if std.is_string trigger then
+          trigger
+        else
+          trigger.event
+          ++ "\u{0}"
+          ++ std.string.join "\u{1}" (field_list trigger "schedule")
+          ++ "\u{0}"
+          ++ std.string.join "\u{1}" (field_list trigger "branches")
+          ++ "\u{0}"
+          ++ std.string.join "\u{1}" (field_list trigger "tags")
+          ++ "\u{0}"
+          ++ std.string.join "\u{1}" (field_list trigger "types")
+          ++ "\u{0}"
+          ++ std.string.join "\u{1}" (field_list trigger "paths")
+      in
+      let check = fun state trigger =>
+        let identity = key trigger in
+        if std.array.elem identity state.seen then
+          { seen = state.seen, duplicate = true }
+        else
+          { seen = state.seen @ [identity], duplicate = false }
+      in
+      !(std.array.fold_left check { seen = [], duplicate = false } pipeline.triggers).duplicate
+    )
+    && (
       let schedule_names =
         if std.record.has_field "schedules" pipeline then
           std.record.fields pipeline.schedules
