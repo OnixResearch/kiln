@@ -45,6 +45,7 @@ let PipelineName =
     && std.string.length value > 0
     && std.string.length value <= 4096
     && std.string.trim value != ""
+    && !(std.string.is_match "\\x00" value)
   )
 in
 let BranchReference =
