@@ -372,7 +372,7 @@ let Run = {
   name | TextValue | default = "",
   run | Command,
   shell | Shell | default = "bash",
-  env | TextMap | default = {},
+  env | TextMap | RecordAtMost 128 | default = {},
   working_directory | WorkingDirectory | default = ".",
 }
 in
@@ -399,7 +399,7 @@ let Step =
         {
           kind | std.contract.from_predicate (fun v => v == "use"),
           step | BoundedText 128,
-          parameters | TextMap | default = {},
+          parameters | TextMap | RecordAtMost 64 | default = {},
         }
         label
         value
