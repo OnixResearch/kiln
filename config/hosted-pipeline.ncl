@@ -291,8 +291,12 @@ let PipelineRelations =
     )
     && std.array.all
       (fun job =>
-        let has_kind = std.record.has_field "kind" job in
-        let has_unikernel = std.record.has_field "unikernel" job in
+        let has_kind =
+          std.record.has_field "kind" job && job.kind != null
+        in
+        let has_unikernel =
+          std.record.has_field "unikernel" job && job.unikernel != null
+        in
         has_kind == has_unikernel
         && (!has_kind || job.kind == "unikernel-test")
         && (
@@ -485,8 +489,8 @@ let TestSpec =
   )
 in
 let Job = {
-  kind | std.contract.from_predicate (fun v => v == "unikernel-test") | optional,
-  unikernel | TestSpec | optional,
+  kind | Nullable (std.contract.from_predicate (fun v => v == "unikernel-test")) | optional,
+  unikernel | Nullable TestSpec | optional,
   template | Nullable (BoundedText 128) | default = null,
   parameters | TextMap | RecordAtMost 64 | default = {},
   runner | Nullable (BoundedText 128) | default = null,
