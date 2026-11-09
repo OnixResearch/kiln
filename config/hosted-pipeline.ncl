@@ -236,6 +236,25 @@ let PipelineRelations =
             && !has_schedule
       )
       pipeline.triggers
+    && (
+      let schedule_names =
+        if std.record.has_field "schedules" pipeline then
+          std.record.fields pipeline.schedules
+        else
+          []
+      in
+      std.array.all
+        (fun name =>
+          std.array.any
+            (fun trigger =>
+              !(std.is_string trigger)
+              && trigger.event == "schedule"
+              && trigger.schedule == name
+            )
+            pipeline.triggers
+        )
+        schedule_names
+    )
     && std.array.all
       (fun job =>
         let has_kind = std.record.has_field "kind" job in
