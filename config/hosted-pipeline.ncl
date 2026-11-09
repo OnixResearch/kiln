@@ -503,6 +503,7 @@ let Pattern =
     && std.string.length value >= 1
     && std.string.length value <= 256
     && !(std.string.is_match "^!|[\\[\\]{}+\\\\]|(^|/)\\.{0,2}(/|$)|[^/]\\*\\*|\\*\\*[^/]" value)
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
   )
 in
 let Patterns = std.contract.from_predicate (fun value => std.is_array value && std.array.length value <= 32) in
