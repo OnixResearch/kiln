@@ -3,7 +3,9 @@
 # Rust admission enforces named expansion, byte, graph and deadline bounds.
 let TextValue =
   std.contract.from_predicate (fun value =>
-    std.is_string value && std.string.length value <= 4096
+    std.is_string value
+    && std.string.length value <= 4096
+    && !(std.string.is_match "\\x00" value)
   )
 in
 let MapKeys = fun value =>
@@ -57,6 +59,7 @@ let Command =
     std.is_string value
     && std.string.length value > 0
     && std.string.length value <= 32768
+    && !(std.string.is_match "\\x00" value)
   )
 in
 let AtMost = fun maximum =>
