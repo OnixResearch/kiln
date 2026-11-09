@@ -37,6 +37,7 @@ let BoundedText = fun maximum =>
     std.is_string value
     && std.string.length value > 0
     && std.string.length value <= maximum
+    && !(std.string.is_match "\\x00" value)
   )
 in
 let PipelineName =
