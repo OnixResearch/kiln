@@ -246,7 +246,7 @@ let PipelineRelations =
       in
       let key = fun trigger =>
         if std.is_string trigger then
-          trigger
+          trigger ++ "\u{0}\u{0}\u{0}\u{0}\u{0}"
         else
           trigger.event
           ++ "\u{0}"
