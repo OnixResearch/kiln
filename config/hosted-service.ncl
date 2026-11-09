@@ -117,6 +117,16 @@ let SocketAddress =
 in
 let GuestShell = (import "field-contracts.ncl").GuestShell in
 let PathUnder = (import "field-contracts.ncl").PathUnder in
+let PoolPath =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && value != "/"
+    && std.string.length value <= 85
+    && std.string.is_match "^/" value
+    && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
+    && !(std.string.is_match "(^|/)\\.\\.?(/|$)" value)
+  )
+in
 let CleanPath =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -394,7 +404,7 @@ let Backend =
           source_image_mib | c.BoundedInteger 1 1024,
           warm_pool
             | c.Nullable {
-              directory | CleanPath,
+              directory | PoolPath,
               slots | c.BoundedInteger 1 16,
             }
             | default
