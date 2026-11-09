@@ -457,12 +457,14 @@ let Backend =
           # SMT/KSM-only operator exception. Unfixed/unknown kernel status
           # cannot be overridden. The reason is retained in the receipt.
           host_preflight_override
-            | std.contract.from_predicate (fun value =>
-              std.is_string value
-              && std.string.trim value != ""
-              && std.string.length value > 0
-              && std.string.length value <= 1024
-              && !(std.string.is_match "\\x00" value)
+            | c.Nullable (
+              std.contract.from_predicate (fun value =>
+                std.is_string value
+                && std.string.trim value != ""
+                && std.string.length value > 0
+                && std.string.length value <= 1024
+                && !(std.string.is_match "\\x00" value)
+              )
             )
             | optional,
           # Reviewed placement pool. Untrusted and workload-bearing runners must
@@ -488,7 +490,7 @@ let Backend =
             )
             | optional,
           # Existing operator-created resctrl CAT group; Rust verifies assignment.
-          cache_partition | Identifier | optional,
+          cache_partition | c.Nullable Identifier | optional,
           # Pin VMM and inherited vCPU threads; physical host exclusion still applies.
           cpu_affinity | CpuAffinity | optional,
           qualification_identity | c.Nullable HexIdentity | default = null,

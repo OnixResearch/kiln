@@ -139,6 +139,7 @@ let executable = { path = "/nix/store/fixture-not-a-runtime/bin/tool", blake3 = 
         source_image_mib = 64,
         version = "1.10.0",
         cache_partition = "ops.cache",
+        host_preflight_override = null,
         warm_pool = { directory = "/private/microvm-pool", slots = 1 },
         debug_hold = { enabled = true, grace_seconds = 300, max_concurrent = 1 },
         qualification_identity = null,
