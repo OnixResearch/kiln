@@ -412,7 +412,7 @@ let Backend =
           qualification_identity | c.Nullable HexIdentity | default = null,
           network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
           version | c.Nullable Version | optional,
-          cpu_affinity | CpuAffinity | optional,
+          cpu_affinity | c.Nullable CpuAffinity | optional,
         }
         label
         value
@@ -442,7 +442,7 @@ let Backend =
           # untrusted trust (docs/hosted-ci.md). Omitted means disabled; Rust also
           # requires max_concurrent <= maximum_concurrent.
           debug_hold
-            | {
+            | c.Nullable {
               enabled | Bool,
               grace_seconds | c.BoundedInteger 1 900,
               max_concurrent | c.BoundedInteger 1 16,
@@ -470,29 +470,33 @@ let Backend =
           # Reviewed placement pool. Untrusted and workload-bearing runners must
           # not share a domain; untrusted-capable runners require one.
           trust_domain
-            | std.contract.from_predicate (fun value =>
-              std.is_string value
-              && std.string.trim value != ""
-              && std.string.length value > 0
-              && std.string.length value <= 128
-              && !(std.string.is_match "\\x00" value)
+            | c.Nullable (
+              std.contract.from_predicate (fun value =>
+                std.is_string value
+                && std.string.trim value != ""
+                && std.string.length value > 0
+                && std.string.length value <= 128
+                && !(std.string.is_match "\\x00" value)
+              )
             )
             | optional,
           # Reviewed physical-host identity. Untrusted runners require one and
           # cannot share it with a workload-bearing runner.
           host_identity
-            | std.contract.from_predicate (fun value =>
-              std.is_string value
-              && std.string.trim value != ""
-              && std.string.length value > 0
-              && std.string.length value <= 128
-              && !(std.string.is_match "\\x00" value)
+            | c.Nullable (
+              std.contract.from_predicate (fun value =>
+                std.is_string value
+                && std.string.trim value != ""
+                && std.string.length value > 0
+                && std.string.length value <= 128
+                && !(std.string.is_match "\\x00" value)
+              )
             )
             | optional,
           # Existing operator-created resctrl CAT group; Rust verifies assignment.
           cache_partition | c.Nullable Identifier | optional,
           # Pin VMM and inherited vCPU threads; physical host exclusion still applies.
-          cpu_affinity | CpuAffinity | optional,
+          cpu_affinity | c.Nullable CpuAffinity | optional,
           qualification_identity | c.Nullable HexIdentity | default = null,
           network | c.Nullable (std.contract.from_predicate (fun v => v == "none")) | optional,
         }
@@ -570,7 +574,7 @@ let Execution =
           {
             systemd_run | Executable,
             systemctl | Executable,
-            taskset | Executable | optional,
+            taskset | c.Nullable Executable | optional,
             manager_runtime_directory | c.AbsolutePath,
             cache | c.Nullable Cache | default = null,
             trusted_projects
@@ -665,9 +669,13 @@ let Execution =
               (fun runner =>
                 runner.kind == "firecracker"
                 && std.record.has_field "cpu_affinity" runner
+                && runner.cpu_affinity != null
               )
               (std.record.values admitted.runners)
-            || std.record.has_field "taskset" admitted
+            || (
+              std.record.has_field "taskset" admitted
+              && admitted.taskset != null
+            )
           )
           && std.array.all
             (fun runner =>
@@ -678,7 +686,9 @@ let Execution =
               )
               || (
                 std.record.has_field "trust_domain" runner
+                && runner.trust_domain != null
                 && std.record.has_field "host_identity" runner
+                && runner.host_identity != null
               )
             )
             (std.record.values admitted.runners)
@@ -704,7 +714,8 @@ let Execution =
             let field = fun name label =>
               let runner = std.record.get label admitted.runners in
               if std.record.has_field name runner then
-                std.record.get name runner
+                let value = std.record.get name runner in
+                if value == null then label else value
               else
                 label
             in
@@ -736,6 +747,7 @@ let Execution =
               !(
                 runner.kind == "firecracker"
                 && std.record.has_field "debug_hold" runner
+                && runner.debug_hold != null
               )
               || runner.debug_hold.max_concurrent <= admitted.maximum_concurrent
             )
