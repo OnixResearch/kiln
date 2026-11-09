@@ -53,6 +53,8 @@ let BranchReference =
     std.is_string value
     && std.string.length value <= 512
     && std.string.is_match "^refs/heads/[^ ~^:?*\\\\]+$" value
+    && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
+    && !(std.string.is_match "\\.\\.|//|@\\{|/$" value)
   )
 in
 let Command =
