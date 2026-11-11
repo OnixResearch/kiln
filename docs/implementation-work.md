@@ -14,6 +14,8 @@ work.
 - exact source aliases and their source versions (`github` issue or `cairn`
   task), each a BLAKE3 of the bytes the adapter admitted;
 - enrolled repository, project, and actor;
+- the exact resolved target/base revision when the producer has one (absence is
+  explicit, not an inferred branch);
 - title, requested outcome, and reviewed acceptance obligations;
 - dependency identities, permitted repository-relative paths, and permitted
   effect classes;

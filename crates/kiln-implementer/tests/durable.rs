@@ -28,6 +28,7 @@ fn work() -> ImplementationWork {
         actor: "operator".to_string(),
         repository: "onix/kiln".to_string(),
         project: "kiln".to_string(),
+        base: None,
         title: "Durable implementation work".to_string(),
         requested_outcome: "implement".to_string(),
         acceptance: vec![AcceptanceObligation {

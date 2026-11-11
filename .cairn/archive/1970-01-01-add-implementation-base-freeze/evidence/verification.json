@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.implementation-base-freeze.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation",
+      "result": "15 passed; base identity and claim-freeze tests pass"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-adapter-github -p kiln-implementer --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-core -p kiln-adapter-github -p kiln-implementer",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "contract": "crates/kiln-core/src/implementation/mod.rs",
+    "attempt": "crates/kiln-core/src/implementation/attempt.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "the base is not resolved from a symbolic reference",
+    "a missing base is explicit, not default-branch evidence",
+    "claims and supersession do not verify remote target existence"
+  ]
+}

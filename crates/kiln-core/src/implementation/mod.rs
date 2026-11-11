@@ -117,6 +117,11 @@ pub struct ImplementationWork {
     pub actor: String,
     pub repository: String,
     pub project: String,
+    /// Exact resolved target/base revision frozen into an attempt, when the
+    /// producer has resolved one. Absence is explicit, not an inferred branch.
+    // r[impl kiln.implementation.base]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<ExternalRef>,
     pub title: String,
     pub requested_outcome: String,
     pub acceptance: Vec<AcceptanceObligation>,
@@ -141,6 +146,14 @@ impl ImplementationWork {
         push_str(&mut bytes, IMPLEMENTATION_WORK_SCHEMA)?;
         push_str(&mut bytes, &self.repository)?;
         push_str(&mut bytes, &self.project)?;
+        if let Some(base) = &self.base {
+            bytes.push(1);
+            push_str(&mut bytes, base.provider_namespace.as_str())?;
+            push_str(&mut bytes, base.native_kind.as_str())?;
+            push_str(&mut bytes, base.native_id.as_str())?;
+        } else {
+            bytes.push(0);
+        }
         push_str(&mut bytes, &self.title)?;
         push_str(&mut bytes, &self.requested_outcome)?;
         let mut acceptance: Vec<&AcceptanceObligation> = self.acceptance.iter().collect();
@@ -521,6 +534,9 @@ fn validate_work(
             ));
         }
     }
+    if let Some(base) = &work.base {
+        base.validate()?;
+    }
     let mut aliases = BTreeSet::new();
     for alias in &work.aliases {
         alias.source.validate()?;
@@ -641,6 +657,7 @@ mod tests {
             actor: "operator".to_string(),
             repository: "onix/kiln".to_string(),
             project: "kiln".to_string(),
+            base: None,
             title: "Admit implementation work".to_string(),
             requested_outcome: "Implement the bounded work admission".to_string(),
             acceptance: vec![AcceptanceObligation {
@@ -825,6 +842,23 @@ mod tests {
         candidate.acceptance.clear();
         assert!(ledger.admit(&candidate, None, &enrollment()).is_err());
         assert_eq!(ledger.current().count(), 0);
+    }
+
+    // r[verify kiln.implementation.base.scenario.identity]
+    #[test]
+    fn resolved_base_participates_in_work_identity() {
+        let mut candidate = work(vec![source(WorkSourceKind::GitHubIssue, "44", '1')]);
+        let absent = candidate.identity().unwrap_or_else(|_| unreachable!());
+        let revision = "a".repeat(40);
+        candidate.base =
+            Some(ExternalRef::new("git", "revision", &revision).unwrap_or_else(|_| unreachable!()));
+        let present = candidate.identity().unwrap_or_else(|_| unreachable!());
+        assert_ne!(absent, present);
+        candidate.base = None;
+        assert_eq!(
+            candidate.identity().unwrap_or_else(|_| unreachable!()),
+            absent
+        );
     }
 
     // r[verify kiln.implementation.contract] r[verify kiln.implementation.contract.scenario.admit] r[verify kiln.implementation.replay.scenario.lifecycle]

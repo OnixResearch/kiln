@@ -85,6 +85,9 @@ pub struct ImplementationAttempt {
     pub canonical_key: ContentId,
     pub work_identity: ContentId,
     pub work_revision: u64,
+    /// Exact base frozen when the claim was admitted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base: Option<ExternalRef>,
     pub ordinal: u8,
     /// Monotonic per work unit; the only accepted authority for results.
     pub fence: u64,
@@ -189,6 +192,7 @@ impl AttemptLedger {
             canonical_key: canonical_key.clone(),
             work_identity,
             work_revision: work.revision,
+            base: work.base.clone(),
             ordinal,
             fence,
             lease_until_ms: now_ms.saturating_add(lease_ms),
@@ -597,6 +601,7 @@ mod tests {
             actor: "operator".to_string(),
             repository: "onix/kiln".to_string(),
             project: "kiln".to_string(),
+            base: None,
             title: "Attempt work".to_string(),
             requested_outcome: "implement".to_string(),
             acceptance: vec![AcceptanceObligation {
@@ -827,6 +832,35 @@ mod tests {
                 .map(|attempt| attempt.ordinal),
             Ok(2)
         );
+    }
+
+    // r[verify kiln.implementation.supersession.scenario.frozen] r[verify kiln.implementation.base.scenario.freeze]
+    #[test]
+    fn claim_freezes_the_resolved_base_against_later_edits() {
+        let mut ledger = AttemptLedger::default();
+        let mut work = work();
+        let first_base = "a".repeat(40);
+        let second_base = "b".repeat(40);
+        let base =
+            ExternalRef::new("git", "revision", &first_base).unwrap_or_else(|_| unreachable!());
+        work.base = Some(base.clone());
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(attempt.base, Some(base.clone()));
+        let key = work.canonical_key().unwrap_or_else(|_| unreachable!());
+        work.revision = 2;
+        work.base = Some(
+            ExternalRef::new("git", "revision", &second_base).unwrap_or_else(|_| unreachable!()),
+        );
+        ledger
+            .supersede(&key, 2, SupersessionRule::AbortActive)
+            .unwrap_or_else(|_| unreachable!());
+        let stored = ledger
+            .get(&attempt.identity)
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(stored.base, Some(base));
+        assert_eq!(stored.work_revision, 1);
     }
 
     #[test]

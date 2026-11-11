@@ -225,6 +225,7 @@ pub(crate) fn issue_work(
         actor,
         repository: repository_key,
         project: policy.project.clone(),
+        base: None,
         title,
         requested_outcome: policy.requested_outcome.clone(),
         acceptance: policy.acceptance.clone(),
