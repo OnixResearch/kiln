@@ -1029,8 +1029,45 @@ fn status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         .attempts()
         .filter(|attempt| attempt.phase.is_active())
         .count();
+    let verified = attempts
+        .attempts()
+        .filter(|attempt| attempt.phase == kiln_core::implementation::AttemptPhase::Verified)
+        .count();
+    let published = attempts
+        .attempts()
+        .filter(|attempt| {
+            attempt.publication.as_ref().is_some_and(|publication| {
+                matches!(
+                    publication.phase,
+                    kiln_core::implementation::PublicationPhase::PullRequestPublished
+                        | kiln_core::implementation::PublicationPhase::Integrated
+                        | kiln_core::implementation::PublicationPhase::SourceReconciled
+                )
+            })
+        })
+        .count();
+    let integrated = attempts
+        .attempts()
+        .filter(|attempt| {
+            attempt.publication.as_ref().is_some_and(|publication| {
+                matches!(
+                    publication.phase,
+                    kiln_core::implementation::PublicationPhase::Integrated
+                        | kiln_core::implementation::PublicationPhase::SourceReconciled
+                )
+            })
+        })
+        .count();
+    let source_reconciled = attempts
+        .attempts()
+        .filter(|attempt| {
+            attempt.publication.as_ref().is_some_and(|publication| {
+                publication.phase == kiln_core::implementation::PublicationPhase::SourceReconciled
+            })
+        })
+        .count();
     println!(
-        "{{\"work\":{},\"attempts\":{},\"active\":{active}}}",
+        "{{\"work\":{},\"attempts\":{},\"active\":{active},\"verified\":{verified},\"published\":{published},\"integrated\":{integrated},\"source_reconciled\":{source_reconciled}}}",
         work.current().count(),
         attempts.attempts().count()
     );

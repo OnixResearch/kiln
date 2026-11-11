@@ -156,7 +156,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     assert!(output.status.success());
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
-        "{\"work\":1,\"attempts\":0,\"active\":0}"
+        "{\"work\":1,\"attempts\":0,\"active\":0,\"verified\":0,\"published\":0,\"integrated\":0,\"source_reconciled\":0}"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
@@ -550,7 +550,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     assert!(output.status.success());
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
-        "{\"work\":1,\"attempts\":1,\"active\":0}"
+        "{\"work\":1,\"attempts\":1,\"active\":0,\"verified\":0,\"published\":0,\"integrated\":0,\"source_reconciled\":0}"
     );
     let _ = ImplementationQueueConfig {
         path: queue_path,
