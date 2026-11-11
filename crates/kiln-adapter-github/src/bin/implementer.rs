@@ -19,6 +19,7 @@ use kiln_core::implementation::Enrollment;
 use kiln_implementer::Implementer;
 
 const EXIT_ERROR: i32 = 2;
+const MAX_INTERVAL_MILLISECONDS: usize = 24 * 60 * 60 * 1000;
 
 struct DrainInputs {
     database: PathBuf,
@@ -958,7 +959,7 @@ fn run_loop(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(inputs) => inputs,
         Err(error) => return fail(&error),
     };
-    let interval_ms = match required_positive(flags, "--interval-ms") {
+    let interval_ms = match bounded_interval(flags, "--interval-ms") {
         Ok(value) => value,
         Err(error) => return fail(&error),
     };
@@ -1044,7 +1045,7 @@ fn drain_inputs(flags: &BTreeMap<String, String>) -> Result<DrainInputs, String>
 
 // r[impl kiln.github.poll.transport] r[impl kiln.implementation.polling]
 fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
-    let interval_ms = match required_positive(flags, "--interval-ms") {
+    let interval_ms = match bounded_interval(flags, "--interval-ms") {
         Ok(value) => value,
         Err(error) => return fail(&error),
     };
@@ -1292,6 +1293,14 @@ fn wall_clock_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| u64::try_from(duration.as_millis()).unwrap_or(u64::MAX))
         .unwrap_or(0)
+}
+
+fn bounded_interval(flags: &BTreeMap<String, String>, key: &str) -> Result<usize, String> {
+    let value = required_positive(flags, key)?;
+    if value > MAX_INTERVAL_MILLISECONDS {
+        return Err(format!("{key} exceeds its bound"));
+    }
+    Ok(value)
 }
 
 fn required_positive(flags: &BTreeMap<String, String>, key: &str) -> Result<usize, String> {
