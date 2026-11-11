@@ -3218,6 +3218,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-implementer"
+version = "0.1.0"
+dependencies = [
+ "kiln-core",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-microvm"
 version = "0.1.0"
 dependencies = [

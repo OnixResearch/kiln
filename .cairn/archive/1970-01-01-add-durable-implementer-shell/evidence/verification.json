@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.implementer-shell.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "5 passed; concurrent claim, duplicate/restart, stale fence, dispatch reconciliation and budget persistence"
+    },
+    {
+      "command": "cargo test -p kiln-core --offline",
+      "result": "207 passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-implementer -p kiln-core --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-implementer -p kiln-core",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "shell": "crates/kiln-implementer/src/lib.rs",
+    "tests": "crates/kiln-implementer/tests/durable.rs",
+    "docs": "docs/implementer-service.md"
+  },
+  "non_claims": [
+    "the shell does not dispatch or cancel Lattice work",
+    "no worker, workspace, candidate verification, publication or release authority is added",
+    "webhook/polling wiring and Cairn intake remain unimplemented"
+  ]
+}

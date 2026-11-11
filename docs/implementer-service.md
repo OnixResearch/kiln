@@ -19,8 +19,19 @@ boundary, not an implemented service.
   policy plus exact delivery bytes, with versioned edits and an explicit closed
   observation (`crates/kiln-adapter-github/src/implementation.rs`).
 
-These are pure boundaries. Nothing claims, executes, verifies, publishes, or
-completes work yet.
+## Implemented shell
+
+`kiln-implementer` stores the work and attempt ledgers as versioned rows in one
+SQLite database and performs every mutation in an immediate transaction. It
+offers admission, deterministic `claim_next`, lease renewal, execution start,
+dispatch reconciliation, candidate/verification transitions, failure/block/
+cancel/supersede, and `recover`. Concurrent schedulers serialize on the store;
+restart preserves deduplication, consumed budget, attempt lineage and stale-fence
+refusal.
+
+The shell owns durable claims and state, but still does not execute or cancel a
+Lattice workflow, create a workspace, verify a candidate, publish, or grant
+authority. Live dispatch remains blocked on the Lattice implementation route.
 
 ## Ownership
 

@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "crates/kiln-core",
+  "crates/kiln-implementer",
   "crates/kiln-build-graph",
   "crates/kiln-provider-api",
   "crates/kiln-codec",

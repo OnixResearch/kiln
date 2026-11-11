@@ -245,7 +245,7 @@ pub enum AdmissionDecision {
 
 /// The exact admitted state. `current` holds one version per canonical key;
 /// superseded versions remain in history for audit and replay.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkLedger {
     current: BTreeMap<String, ImplementationWork>,
     superseded: Vec<ImplementationWork>,
