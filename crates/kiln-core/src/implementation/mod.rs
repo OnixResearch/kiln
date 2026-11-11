@@ -11,9 +11,11 @@
 //! same work versions and ordering.
 
 pub mod attempt;
+pub mod candidate;
 pub mod dispatch;
 
 pub use attempt::*;
+pub use candidate::*;
 pub use dispatch::*;
 
 use alloc::collections::{BTreeMap, BTreeSet};

@@ -143,6 +143,9 @@ pub struct ImplementationAttempt {
     pub dispatch: Option<DispatchReservation>,
     pub workflow: Option<ExternalRef>,
     pub candidate: Option<ExternalRef>,
+    /// Complete candidate handoff admitted from host-derived facts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handoff: Option<super::CandidateHandoff>,
     pub failure: Option<FailureClass>,
     pub cause: Option<String>,
     /// Newer work revision that superseded this attempt, if any.
@@ -248,6 +251,7 @@ impl AttemptLedger {
             dispatch: None,
             workflow: None,
             candidate: None,
+            handoff: None,
             failure: None,
             cause: None,
             superseded_by: None,
@@ -429,6 +433,58 @@ impl AttemptLedger {
                 "reconciliation observed a different workflow execution",
             )),
         }
+    }
+
+    /// Admit one complete candidate handoff and freeze it on the attempt.
+    ///
+    /// The exact work/version, attempt/fence, base, candidate/tree, paths,
+    /// acceptance digest, verification profile and evidence are checked before
+    /// the attempt becomes `candidate-produces`. Repeating the same handoff is
+    /// idempotent; a different handoff is refused.
+    // r[impl kiln.implementation.candidate_handoff]
+    pub fn admit_candidate_handoff(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        handoff: &super::CandidateHandoff,
+    ) -> CoreResult<ContentId> {
+        let existing = self.authorized(identity, fence, now_ms)?;
+        if let Some(existing) = &existing.handoff {
+            if existing == handoff {
+                let attempt = self.authorized(identity, fence, now_ms)?;
+                return super::admit_candidate_handoff(work, attempt, handoff);
+            }
+            return Err(refusal(
+                "implementation_candidate_handoff",
+                "attempt.handoff",
+                "attempt already retains a different candidate handoff",
+            ));
+        }
+        if existing.phase != AttemptPhase::Executing {
+            return Err(refusal(
+                "implementation_attempt_phase",
+                "attempt.phase",
+                "attempt phase does not admit this transition",
+            ));
+        }
+        let digest = {
+            let attempt = self.authorized(identity, fence, now_ms)?;
+            super::admit_candidate_handoff(work, attempt, handoff)?
+        };
+        let attempt = self.attempt_mut(identity)?;
+        attempt.candidate = Some(handoff.candidate.clone());
+        attempt.handoff = Some(handoff.clone());
+        attempt.phase = AttemptPhase::CandidateProduced;
+        Ok(digest)
+    }
+
+    /// Read the retained candidate handoff for one attempt.
+    #[must_use]
+    pub fn candidate_handoff(&self, identity: &ContentId) -> Option<&super::CandidateHandoff> {
+        self.get(identity)
+            .and_then(|attempt| attempt.handoff.as_ref())
     }
 
     /// Record exactly one produced candidate.

@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.implementation-candidate-handoff.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/46",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::candidate",
+      "result": "2 passed; exact/idempotent admission, binding/acceptance/path/evidence/tree refusals"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --test implementer_cli --offline",
+      "result": "handoff command retains the exact file and moves the attempt to candidate-produced"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "handoff": "crates/kiln-core/src/implementation/candidate.rs",
+    "retention": "crates/kiln-core/src/implementation/attempt.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "evidence outcomes are observations, not authoritative verification",
+    "no check, run or artifact is executed or fetched",
+    "the independent verifier, Cairn authoritative completion and publication remain external"
+  ]
+}

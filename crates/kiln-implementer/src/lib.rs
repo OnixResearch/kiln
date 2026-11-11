@@ -17,8 +17,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use kiln_core::implementation::{
-    AdmissionDecision, AttemptLedger, DispatchReservation, Enrollment, ImplementationAttempt,
-    ImplementationDispatchPlan, ImplementationWork, SourceMapping, WorkLedger,
+    AdmissionDecision, AttemptLedger, CandidateHandoff, DispatchReservation, Enrollment,
+    ImplementationAttempt, ImplementationDispatchPlan, ImplementationWork, SourceMapping,
+    WorkLedger,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -179,6 +180,26 @@ impl Implementer {
         self.with_ledgers(|_, attempts| {
             attempts.reconcile_dispatch(identity, fence, now_ms, observed)
         })
+    }
+
+    pub fn admit_candidate_handoff(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        handoff: &CandidateHandoff,
+    ) -> Result<ContentId, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.admit_candidate_handoff(work, identity, fence, now_ms, handoff)
+        })
+    }
+
+    pub fn candidate_handoff(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<CandidateHandoff>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.candidate_handoff(identity).cloned()))
     }
 
     pub fn produce_candidate(

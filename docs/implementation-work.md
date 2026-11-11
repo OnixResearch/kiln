@@ -81,6 +81,23 @@ This is the Kiln-owned state machine only. It does not execute a Lattice
 workflow, cancel a run, create a workspace, verify a candidate, or publish. The
 Lattice implementation route and worker contract remain external work.
 
+## Candidate handoff
+
+`kiln-core` admits one complete candidate handoff for an executing attempt
+before any verification. It binds the exact work identity/revision,
+attempt/fence, repository and frozen base, candidate commit and tree, sorted
+changed paths, the digest of the work's acceptance obligations, the verification
+profile, toolchain and environment identities, and retained evidence
+references. Every changed path must be inside a work-permitted path, evidence
+identities must be unique, and candidate and tree must differ. Repeating the same
+handoff is idempotent; a different handoff is refused.
+
+`kiln-implementer handoff --handoff-file FILE` admits the handoff and moves the
+attempt to `candidate-produced`. This is an envelope check only: evidence
+outcomes are observations, the worker is not trusted, and an admitted handoff is
+not an accepted candidate or a passing check. The independent verifier and Cairn
+authoritative completion evaluation remain separate work.
+
 ## GitHub issue intake
 
 `kiln-adapter-github` admits authenticated `issues` deliveries through

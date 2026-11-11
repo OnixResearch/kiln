@@ -358,6 +358,66 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     assert!(stored.dispatch.is_some());
     assert!(stored.workflow.is_some());
 
+    let handoff = kiln_core::implementation::CandidateHandoff {
+        schema: kiln_core::implementation::CANDIDATE_HANDOFF_SCHEMA.to_string(),
+        work_identity: stored.work_identity.clone(),
+        work_revision: stored.work_revision,
+        attempt_identity: stored.identity.clone(),
+        fence: stored.fence,
+        repository: work.repository.clone(),
+        base: stored.base.clone(),
+        candidate: kiln_core::types::ExternalRef::new("git", "commit", "candidate")
+            .unwrap_or_else(|_| unreachable!()),
+        tree: kiln_core::types::ExternalRef::new("git", "tree", "tree")
+            .unwrap_or_else(|_| unreachable!()),
+        changed_paths: vec!["crates/src/lib.rs".to_string()],
+        acceptance_digest: kiln_core::implementation::acceptance_digest(&work)
+            .unwrap_or_else(|_| unreachable!()),
+        verification_profile: work.verification_profile.clone(),
+        toolchain: content('7'),
+        environment: content('8'),
+        evidence: vec![kiln_core::implementation::CandidateEvidence {
+            identity: content('e'),
+            kind: kiln_core::implementation::EvidenceKind::Check,
+            outcome: kiln_core::implementation::EvidenceOutcome::Passed,
+            reference: kiln_core::types::ExternalRef::new("kiln", "run", "candidate-check")
+                .unwrap_or_else(|_| unreachable!()),
+        }],
+    };
+    let handoff_file = directory.path().join("candidate-handoff.json");
+    write(
+        &handoff_file,
+        &serde_json::to_vec(&handoff).unwrap_or_else(|_| unreachable!()),
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("handoff")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--handoff-file")
+        .arg(&handoff_file)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("\"handoff\""));
+    let retained = Implementer::open(
+        &database,
+        Enrollment {
+            repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        },
+    )
+    .unwrap_or_else(|_| unreachable!())
+    .candidate_handoff(&stored.identity)
+    .unwrap_or_else(|_| unreachable!())
+    .unwrap_or_else(|| unreachable!("retained handoff"));
+    assert_eq!(retained, handoff);
+
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("cancel")
         .arg("--database")

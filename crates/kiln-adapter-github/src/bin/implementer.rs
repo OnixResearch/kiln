@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|reserve-plan|start> --database PATH ...",
+            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|reserve-plan|start|handoff> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -57,6 +57,7 @@ fn run() -> Result<(), ()> {
         "reserve" => reserve(&flags),
         "reserve-plan" => reserve_plan(&flags),
         "start" => start(&flags),
+        "handoff" => handoff(&flags),
         _ => fail("unknown command"),
     }
 }
@@ -230,6 +231,49 @@ fn start(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     match implementer.start_execution(&identity, fence, wall_clock_ms(), &workflow) {
         Ok(()) => {
             println!("{{\"started\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.candidate_handoff]
+fn handoff(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let handoff_file = match required_path(flags, "--handoff-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let handoff: kiln_core::implementation::CandidateHandoff = match read_json(&handoff_file) {
+        Ok(handoff) => handoff,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == handoff.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("candidate handoff work identity is not current");
+    };
+    match implementer.admit_candidate_handoff(
+        &work,
+        &handoff.attempt_identity,
+        handoff.fence,
+        wall_clock_ms(),
+        &handoff,
+    ) {
+        Ok(identity) => {
+            println!("{{\"handoff\":\"{}\"}}", identity.as_str());
             Ok(())
         }
         Err(error) => fail(&error),

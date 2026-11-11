@@ -74,7 +74,9 @@ durable dispatch reservation before transport; repeating it is idempotent.
 work and attempt, then records the same reservation from its canonical digest.
 `start --attempt ID --fence N --workflow-kind KIND --workflow-id ID
 [--namespace lattice]` records the provider workflow after an externally
-observed dispatch and requires that reservation. Claims and reservations are an
+observed dispatch and requires that reservation. `handoff --handoff-file FILE`
+admits a complete candidate handoff and moves the attempt to
+`candidate-produced`; it does not verify or accept the candidate. Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice
 route.
