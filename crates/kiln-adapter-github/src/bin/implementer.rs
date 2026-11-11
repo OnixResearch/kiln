@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -63,6 +63,7 @@ fn run() -> Result<(), ()> {
         "verify" => verify(&flags),
         "prepare-publication" => prepare_publication(&flags),
         "publish" => publish(&flags),
+        "land" => land(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
@@ -378,6 +379,130 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         serde_json::to_string(&outcome.html_url).unwrap_or_else(|_| "\"\"".to_string())
     );
     Ok(())
+}
+
+// r[impl kiln.implementation.integration] r[impl kiln.github.landing.merge]
+fn land(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let publication_file = match required_path(flags, "--publication-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let landing_file = match required_path(flags, "--landing-plan") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let plan: kiln_core::implementation::PublicationPlan = match read_json(&publication_file) {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let landing: kiln_adapter_github::landing::LandingPlan = match read_json(&landing_file) {
+        Ok(landing) => landing,
+        Err(error) => return fail(&error),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let token = match std::fs::read(&secret_file) {
+        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
+            Ok(token) => token,
+            Err(_) => return fail("secret file is not a valid GitHub token"),
+        },
+        Err(_) => return fail("secret file is unreadable"),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let record = match implementer.publication_record(&plan.attempt) {
+        Ok(Some(record)) => record,
+        Ok(None) => return fail("publication is not prepared"),
+        Err(error) => return fail(&error),
+    };
+    if record.plan != plan {
+        return fail("publication file differs from the prepared plan");
+    }
+    if record.phase == kiln_core::implementation::PublicationPhase::Integrated {
+        let receipt = match implementer.integration_receipt(&plan.attempt) {
+            Ok(Some(receipt)) => receipt,
+            _ => return fail("integration receipt is missing"),
+        };
+        println!(
+            "{{\"merge_commit\":\"{}\"}}",
+            receipt.merge_commit.native_id.as_str()
+        );
+        return Ok(());
+    }
+    if record.phase != kiln_core::implementation::PublicationPhase::PullRequestPublished {
+        return fail("publication does not have a pull request");
+    }
+    let Some(pull_request) = &record.pull_request else {
+        return fail("publication pull request identity is missing");
+    };
+    let Some((_, owner)) = plan.repository.split_once('/') else {
+        return fail("publication repository is malformed");
+    };
+    if landing.repository != plan.repository
+        || landing.owner != owner
+        || landing.head_sha != plan.candidate.native_id.as_str()
+        || landing.base_ref != plan.base_branch
+        || !pull_request
+            .native_id
+            .as_str()
+            .ends_with(&format!("#{}", landing.pull_number))
+    {
+        return fail("landing plan does not match the prepared publication");
+    }
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("publication work identity is not current");
+    };
+    let client = match kiln_adapter_github::landing::GithubLandingClient::new(token, timeout_ms) {
+        Ok(client) => client,
+        Err(_) => return fail("landing transport configuration is invalid"),
+    };
+    let landed = match client.land(&landing) {
+        Ok(landed) => landed,
+        Err(error) => return fail(&format!("{error:?}")),
+    };
+    let receipt = kiln_core::implementation::IntegrationReceipt {
+        schema: kiln_core::implementation::INTEGRATION_SCHEMA.to_string(),
+        work_identity: plan.work_identity.clone(),
+        work_revision: plan.work_revision,
+        attempt: plan.attempt.clone(),
+        fence: plan.fence,
+        handoff: plan.handoff.clone(),
+        verification: plan.verification.clone(),
+        candidate: plan.candidate.clone(),
+        pull_request: landed.pull_request.clone(),
+        merge_commit: kiln_core::types::ExternalRef::new("git", "commit", &landed.merge_commit)
+            .unwrap_or_else(|_| unreachable!()),
+        base_ref: landed.base_ref.clone(),
+        base_head: kiln_core::types::ExternalRef::new("git", "commit", &landed.base_head)
+            .unwrap_or_else(|_| unreachable!()),
+    };
+    match implementer.record_integration(&work, &plan.attempt, plan.fence, &receipt) {
+        Ok(identity) => {
+            println!("{{\"integration\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
 }
 
 // r[impl kiln.implementation.metrics]

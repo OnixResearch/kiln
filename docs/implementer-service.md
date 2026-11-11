@@ -97,6 +97,11 @@ branch/PR plan; it creates no remote branch or pull request.
 `publish --publication-file FILE --secret-file FILE [--timeout-ms N]` reconciles
 the exact verified branch and creates/reuses one matching PR. It never force
 pushes, updates an existing branch, merges or lands.
+`land --publication-file FILE --landing-plan FILE --secret-file FILE
+[--timeout-ms N]` requires an exact matching published PR, re-admits checks,
+reviews and base evidence, performs one guarded merge-commit landing, reads back
+the merge commit/base head, and records the exact integration receipt. It does
+not close the source issue or update source status.
 Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice

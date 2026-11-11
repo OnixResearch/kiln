@@ -627,6 +627,7 @@ impl AttemptLedger {
             phase: super::PublicationPhase::Prepared,
             remote_head: None,
             pull_request: None,
+            integration: None,
         });
         Ok(digest)
     }
@@ -721,6 +722,49 @@ impl AttemptLedger {
     pub fn publication_record(&self, identity: &ContentId) -> Option<&super::PublicationRecord> {
         self.get(identity)
             .and_then(|attempt| attempt.publication.as_ref())
+    }
+
+    /// Record one independently observed integration for the published PR.
+    // r[impl kiln.implementation.integration]
+    pub fn record_integration(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        receipt: &super::IntegrationReceipt,
+    ) -> CoreResult<ContentId> {
+        let attempt = self.authorized_fence(identity, fence)?;
+        let record = attempt.publication.as_ref().ok_or_else(|| {
+            refusal(
+                "implementation_integration_missing",
+                "attempt.publication",
+                "integration requires a prepared publication",
+            )
+        })?;
+        if record.phase == super::PublicationPhase::Integrated {
+            if record.integration.as_ref() == Some(receipt) {
+                return super::admit_integration(work, attempt, record, receipt);
+            }
+            return Err(refusal(
+                "implementation_integration_conflict",
+                "attempt.publication.integration",
+                "attempt already retains different integration evidence",
+            ));
+        }
+        let digest = super::admit_integration(work, attempt, record, receipt)?;
+        let attempt = self.attempt_mut(identity)?;
+        if let Some(publication) = &mut attempt.publication {
+            publication.integration = Some(receipt.clone());
+            publication.phase = super::PublicationPhase::Integrated;
+        }
+        Ok(digest)
+    }
+
+    /// Read the retained integration receipt.
+    #[must_use]
+    pub fn integration_receipt(&self, identity: &ContentId) -> Option<&super::IntegrationReceipt> {
+        self.publication_record(identity)
+            .and_then(|record| record.integration.as_ref())
     }
 
     /// Record independent verification evidence and complete the attempt.

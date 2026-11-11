@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.integration-receipt.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/47",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::publication",
+      "result": "3 passed; exact integration admission and mismatched base refusal"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "integration": "crates/kiln-core/src/implementation/publication.rs",
+    "attempt": "crates/kiln-core/src/implementation/attempt.rs",
+    "shell": "crates/kiln-implementer/src/lib.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "integration is not source-status closure or release eligibility",
+    "no atomic base or merge-queue qualification",
+    "no Cairn lifecycle mutation"
+  ]
+}

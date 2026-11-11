@@ -94,8 +94,10 @@ effect.
 
 `PublicationRecord` then records observed branch and pull-request identities in
 order. The branch head and PR head must remain the exact verified candidate; a
-different or out-of-order observation is refused. Remote publication itself is a
-separate provider effect and is not implemented here.
+different or out-of-order observation is refused. Remote publication itself is a separate provider effect. `IntegrationReceipt`
+records the independently read-back merge commit and base head for an exact
+published PR, moving the publication record to `integrated`. Source-status
+reconciliation remains a separate effect.
 
 ## Candidate verification
 

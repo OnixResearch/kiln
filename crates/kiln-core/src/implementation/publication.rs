@@ -21,6 +21,7 @@ pub const PUBLICATION_SCHEMA: &str = "kiln.implementation-publication.v1";
 pub const MAX_BRANCH_BYTES: usize = 128;
 pub const MAX_TITLE_BYTES: usize = 256;
 pub const MAX_BODY_BYTES: usize = 16_384;
+pub const INTEGRATION_SCHEMA: &str = "kiln.implementation-integration.v1";
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -49,6 +50,7 @@ pub enum PublicationPhase {
     Prepared,
     BranchPublished,
     PullRequestPublished,
+    Integrated,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -61,6 +63,25 @@ pub struct PublicationRecord {
     pub remote_head: Option<ExternalRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pull_request: Option<ExternalRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub integration: Option<IntegrationReceipt>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntegrationReceipt {
+    pub schema: String,
+    pub work_identity: ContentId,
+    pub work_revision: u64,
+    pub attempt: ContentId,
+    pub fence: u64,
+    pub handoff: ContentId,
+    pub verification: ContentId,
+    pub candidate: ExternalRef,
+    pub pull_request: ExternalRef,
+    pub merge_commit: ExternalRef,
+    pub base_ref: String,
+    pub base_head: ExternalRef,
 }
 
 /// Deterministic implementation branch name for one work/attempt pair.
@@ -142,6 +163,78 @@ pub fn admit_publication_plan(
     push_str(&mut bytes, &plan.title)?;
     push_str(&mut bytes, &plan.body)?;
     content_identity(&bytes)
+}
+
+/// Admit one independently observed integration receipt for a published PR.
+// r[impl kiln.implementation.integration]
+pub fn admit_integration(
+    work: &ImplementationWork,
+    attempt: &super::ImplementationAttempt,
+    record: &PublicationRecord,
+    receipt: &IntegrationReceipt,
+) -> CoreResult<ContentId> {
+    let publication = &record.plan;
+    let pull_request = record.pull_request.as_ref().ok_or_else(|| {
+        refusal(
+            "implementation_integration_pr",
+            "integration.pull_request",
+            "integration requires a retained pull request identity",
+        )
+    })?;
+    if attempt.phase != super::AttemptPhase::Verified
+        || record.phase != PublicationPhase::PullRequestPublished
+        || receipt.schema != INTEGRATION_SCHEMA
+        || receipt.work_identity != work.identity()?
+        || receipt.work_revision != work.revision
+        || receipt.attempt != attempt.identity
+        || receipt.fence != attempt.fence
+        || receipt.handoff != publication.handoff
+        || receipt.verification != publication.verification
+        || receipt.candidate != publication.candidate
+        || receipt.pull_request != *pull_request
+        || receipt.base_ref != publication.base_branch
+        || !commit_identity(&receipt.merge_commit)
+        || !commit_identity(&receipt.base_head)
+    {
+        return Err(refusal(
+            "implementation_integration_binding",
+            "integration.receipt",
+            "integration receipt does not bind the exact published candidate",
+        ));
+    }
+    let mut bytes = Vec::new();
+    push_str(&mut bytes, INTEGRATION_SCHEMA)?;
+    for value in [
+        receipt.work_identity.as_str(),
+        receipt.attempt.as_str(),
+        receipt.handoff.as_str(),
+        receipt.verification.as_str(),
+        &receipt.base_ref,
+    ] {
+        push_str(&mut bytes, value)?;
+    }
+    bytes.extend_from_slice(&receipt.work_revision.to_be_bytes());
+    bytes.extend_from_slice(&receipt.fence.to_be_bytes());
+    for reference in [
+        &receipt.candidate,
+        &receipt.pull_request,
+        &receipt.merge_commit,
+        &receipt.base_head,
+    ] {
+        push_external(&mut bytes, reference)?;
+    }
+    content_identity(&bytes)
+}
+
+fn commit_identity(reference: &ExternalRef) -> bool {
+    reference.provider_namespace.as_str() == "git"
+        && reference.native_kind.as_str() == "commit"
+        && matches!(reference.native_id.as_str().len(), 40 | 64)
+        && reference
+            .native_id
+            .as_str()
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn push_external(bytes: &mut Vec<u8>, external: &ExternalRef) -> CoreResult<()> {
@@ -446,6 +539,44 @@ mod tests {
             )
             .unwrap_or_else(|_| unreachable!())
         );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.integration] r[verify kiln.implementation.integration.scenario.exact] r[verify kiln.implementation.integration.scenario.refused]
+    fn admits_exact_integration_for_the_published_candidate() {
+        let work = work();
+        let attempt = make_attempt(&work);
+        let plan = make_plan(&work, &attempt);
+        let pull_request = ExternalRef::new("github", "pull_request", "octocat/hello-world#9")
+            .unwrap_or_else(|_| unreachable!());
+        let record = PublicationRecord {
+            schema: PUBLICATION_SCHEMA.to_string(),
+            plan: plan.clone(),
+            phase: PublicationPhase::PullRequestPublished,
+            remote_head: Some(plan.candidate.clone()),
+            pull_request: Some(pull_request.clone()),
+            integration: None,
+        };
+        let receipt = IntegrationReceipt {
+            schema: INTEGRATION_SCHEMA.to_string(),
+            work_identity: plan.work_identity.clone(),
+            work_revision: plan.work_revision,
+            attempt: plan.attempt.clone(),
+            fence: plan.fence,
+            handoff: plan.handoff.clone(),
+            verification: plan.verification.clone(),
+            candidate: plan.candidate.clone(),
+            pull_request: pull_request.clone(),
+            merge_commit: ExternalRef::new("git", "commit", &"c".repeat(40))
+                .unwrap_or_else(|_| unreachable!()),
+            base_ref: plan.base_branch.clone(),
+            base_head: ExternalRef::new("git", "commit", &"c".repeat(40))
+                .unwrap_or_else(|_| unreachable!()),
+        };
+        assert!(admit_integration(&work, &attempt, &record, &receipt).is_ok());
+        let mut wrong = receipt.clone();
+        wrong.base_ref = "other".to_string();
+        assert!(admit_integration(&work, &attempt, &record, &wrong).is_err());
     }
 
     #[test]
