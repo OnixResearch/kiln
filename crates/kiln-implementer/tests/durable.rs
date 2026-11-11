@@ -571,6 +571,12 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
     let integration_identity = implementer
         .record_integration(&work, &attempt.identity, attempt.fence, &integration)
         .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        implementer
+            .record_integration(&work, &attempt.identity, attempt.fence, &integration)
+            .unwrap_or_else(|_| unreachable!()),
+        integration_identity
+    );
     let source = work
         .aliases
         .first()
