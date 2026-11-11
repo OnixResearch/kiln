@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|source-status|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|source-status|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -52,6 +52,7 @@ fn run() -> Result<(), ()> {
         "drain" => drain(&flags),
         "run" => run_loop(&flags),
         "poll" => poll(&flags),
+        "poll-run" => poll_run(&flags),
         "status" => status(&flags),
         "claim" => claim(&flags),
         "cancel" => cancel(&flags),
@@ -1039,6 +1040,41 @@ fn drain_inputs(flags: &BTreeMap<String, String>) -> Result<DrainInputs, String>
         maximum_deliveries,
         limit,
     })
+}
+
+// r[impl kiln.github.poll.transport] r[impl kiln.implementation.polling]
+fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let interval_ms = match required_positive(flags, "--interval-ms") {
+        Ok(value) => value,
+        Err(error) => return fail(&error),
+    };
+    let iterations = match optional_positive(flags, "--iterations") {
+        Ok(value) => value,
+        Err(error) => return fail(&error),
+    };
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    for signal in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
+        if signal_hook::flag::register(signal, std::sync::Arc::clone(&stop)).is_err() {
+            return fail("shutdown signal registration failed");
+        }
+    }
+    let mut done = 0usize;
+    loop {
+        if let Err(error) = poll(flags) {
+            return Err(error);
+        }
+        done += 1;
+        if iterations.is_some_and(|limit| done >= limit)
+            || stop.load(std::sync::atomic::Ordering::Acquire)
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(
+            u64::try_from(interval_ms).unwrap_or(u64::MAX),
+        ));
+    }
+    println!("{{\"iterations\":{done}}}");
+    Ok(())
 }
 
 // r[impl kiln.github.poll.transport] r[impl kiln.implementation.polling]

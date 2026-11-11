@@ -16,6 +16,9 @@ kiln-implementer poll \
   --max-pages 5
 ```
 
+Use `poll-run` with `--interval-ms` and optional `--iterations` for an
+operator-driven interval; SIGTERM/SIGINT stop it cleanly.
+
 Admit a Cairn implementation-ready snapshot with `kiln-cairn-intake`:
 
 ```console
