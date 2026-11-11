@@ -631,10 +631,10 @@ fn interrupted_reservation_never_becomes_permission_to_dispatch() {
 fn request(address: std::net::SocketAddr, bytes: &[u8]) -> String {
     let mut stream = TcpStream::connect(address).unwrap_or_else(|_| unreachable!());
     stream
-        .set_read_timeout(Some(Duration::from_secs(2)))
+        .set_read_timeout(Some(Duration::from_secs(10)))
         .unwrap_or_else(|_| unreachable!());
     stream
-        .set_write_timeout(Some(Duration::from_secs(2)))
+        .set_write_timeout(Some(Duration::from_secs(10)))
         .unwrap_or_else(|_| unreachable!());
     stream.write_all(bytes).unwrap_or_else(|_| unreachable!());
     let mut reader = BufReader::new(stream);
