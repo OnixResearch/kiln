@@ -1,0 +1,46 @@
+{
+  "schema": "kiln.microvm.guest-surface.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/40",
+  "commands": [
+    {
+      "command": "nix build .#checks.x86_64-linux.microvm-guest-surface --no-link",
+      "result": "pass; measured the pinned guest kernel and closure, matched fixtures/microvm/guest-driver-surface.json"
+    },
+    {
+      "command": "KILN_MICROVM_GUEST=/nix/store/qs7vq5xnw1gaws650fh0nrxwnb84lwp8-kiln-microvm-guest KILN_MICROVM_REQUIRED=1 cargo test -p kiln-hosted --test microvm same_pipeline_matches_on_namespaces_and_firecracker_and_the_guest_denies_escape",
+      "result": "1 passed; escape probe reported denied deny-listed class /sys/class/bluetooth, /sys/class/sound, /sys/bus/firewire, /sys/bus/thunderbolt, /sys/class/infiniband, /sys/class/ieee80211 and /sys/bus/usb/drivers/xhci_hcd"
+    },
+    {
+      "command": "cargo test -p kiln-hosted --test microvm --no-run --offline",
+      "result": "pass"
+    }
+  ],
+  "cohort": {
+    "kernel_version": "6.18.60",
+    "kernel_config_blake3": "421514dc1e119754227a903f6aefd35dea6f7124bf3b7f77b1496a55efa71595",
+    "guest_nixpkgs_revision": "1d060086d60cb76a40cf37109f979d88a5bd6396",
+    "closure_module_count": 9
+  },
+  "verdicts": {
+    "absent_enforced": [
+      "bluetooth",
+      "wireless",
+      "firewire",
+      "thunderbolt",
+      "infiniband",
+      "sound",
+      "usb_host_controllers"
+    ],
+    "builtin_measured_only": [
+      "usb_core",
+      "display"
+    ]
+  },
+  "non_claims": [
+    "the inventory measures one pinned image, not isolation or hostile resistance",
+    "USB core and display support remain compiled in and are recorded misses requiring a reviewed slimmed-kernel redesign",
+    "host covert channels remain issue #28 scope",
+    "hostile_isolation_claim remains false"
+  ]
+}

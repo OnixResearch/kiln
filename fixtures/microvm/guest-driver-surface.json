@@ -1,0 +1,120 @@
+{
+  "classes": [
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_BT"
+      ],
+      "name": "bluetooth",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_CFG80211",
+        "CONFIG_MAC80211"
+      ],
+      "name": "wireless",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_FIREWIRE"
+      ],
+      "name": "firewire",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_USB4"
+      ],
+      "name": "thunderbolt",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_INFINIBAND"
+      ],
+      "name": "infiniband",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_SND",
+        "CONFIG_SOUND"
+      ],
+      "name": "sound",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [],
+      "closure_modules": [],
+      "enforce": true,
+      "kernel_module_symbols": [
+        "CONFIG_USB_EHCI_HCD",
+        "CONFIG_USB_HID",
+        "CONFIG_USB_OHCI_HCD",
+        "CONFIG_USB_STORAGE",
+        "CONFIG_USB_UHCI_HCD",
+        "CONFIG_USB_XHCI_HCD"
+      ],
+      "name": "usb_host_controllers",
+      "verdict": "absent"
+    },
+    {
+      "builtin_symbols": [
+        "CONFIG_USB"
+      ],
+      "closure_modules": [],
+      "enforce": false,
+      "kernel_module_symbols": [],
+      "name": "usb_core",
+      "verdict": "builtin"
+    },
+    {
+      "builtin_symbols": [
+        "CONFIG_BACKLIGHT_CLASS_DEVICE",
+        "CONFIG_DRM",
+        "CONFIG_FB",
+        "CONFIG_FRAMEBUFFER_CONSOLE"
+      ],
+      "closure_modules": [],
+      "enforce": false,
+      "kernel_module_symbols": [
+        "CONFIG_LCD_CLASS_DEVICE"
+      ],
+      "name": "display",
+      "verdict": "builtin"
+    }
+  ],
+  "closure_module_count": 9,
+  "deny_list_verdict": "pass",
+  "kernel_config_blake3": "421514dc1e119754227a903f6aefd35dea6f7124bf3b7f77b1496a55efa71595",
+  "kernel_version": "6.18.60",
+  "nixpkgs_revision": "1d060086d60cb76a40cf37109f979d88a5bd6396",
+  "non_claims": [
+    "an absent class means the guest image neither compiles it in nor ships a loadable module",
+    "the measurement does not prove isolation, confinement, or release readiness",
+    "runtime module loading remains denied by modules_disabled=1; this inventory is about the image",
+    "builtin measured-only classes are recorded misses, not accepted decisions"
+  ],
+  "schema": "kiln.microvm.guest-surface.v1",
+  "violations": [],
+  "vmm": "firecracker"
+}

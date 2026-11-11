@@ -346,6 +346,10 @@ grep -q hypervisor /proc/cpuinfo; echo 'guest cpu reports hypervisor'
 [[ "$(ls /sys/block)" == vda ]]; echo 'denied host block devices: sysfs lists only the source drive'
 [[ ! -e /sys/fs/cgroup/cgroup.procs ]]; echo 'denied host cgroups: no cgroupfs'
 [[ "$(</proc/sys/kernel/modules_disabled)" == 1 ]]; echo 'denied module loading: modules_disabled=1'
+for path in /sys/class/bluetooth /sys/class/sound /sys/bus/firewire /sys/bus/thunderbolt /sys/class/infiniband /sys/class/ieee80211 /sys/bus/usb/drivers/xhci_hcd; do
+  if [[ -e "$path" ]]; then printf 'ESCAPED deny-listed class %s\n' "$path"; exit 1; fi
+  printf 'denied deny-listed class: %s\n' "$path"
+done
 if dmesg >/dev/null 2>&1; then echo 'ESCAPED dmesg'; exit 1; fi; echo 'denied kernel log: dmesg_restrict'"#;
     let network = r#"command -v kiln-microvm-guest >/dev/null
 [[ "$(ls /sys/class/net)" == lo ]]
@@ -527,6 +531,7 @@ fn evidence(label: &str, receipt: &Value) {
 // r[verify kiln.hosted.microvm.claims]
 // r[verify kiln.hosted.microvm.warm_pool]
 // r[verify kiln.hosted.microvm.lifecycle.scenario.journal]
+// r[verify kiln.hosted.microvm.guest_surface.scenario.escape]
 #[test]
 fn same_pipeline_matches_on_namespaces_and_firecracker_and_the_guest_denies_escape() {
     let host = match prerequisites() {

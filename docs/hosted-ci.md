@@ -607,6 +607,32 @@ Reference-host observation, **2026-11-05**: booted kernel **6.18.50**, package
 This host is therefore not admitted for untrusted-capable execution. The guest
 kernel's separately pinned fixed-series gate does not patch the host.
 
+**Guest kernel driver surface.** The guest uses the pinned NixOS-default
+kernel. `nix build .#microvm-guest-surface` measures that image against the
+reviewed class list in `config/microvm-guest-surface.ncl` and writes
+`inventory.json`; the checked-in
+[inventory](../fixtures/microvm/guest-driver-surface.json) pins the current
+cohort (kernel version, configuration BLAKE3, guest nixpkgs revision, class
+verdicts). The check fails when an enforced class is compiled in (`=y`) or the
+guest module closure ships a loadable module for it.
+
+Measured verdicts for the current cohort: Bluetooth, wireless, FireWire,
+Thunderbolt/USB4, InfiniBand, sound and USB host-controller drivers are
+**absent** from the image (the kernel builds them as modules, but the guest
+module closure ships only the nine virtio/vsock modules and
+`modules_disabled=1` denies loading). USB core and display/DRM/framebuffer
+support are **builtin** and are measured only, not denied: the current
+NixOS-default kernel compiles them in. Those are recorded misses that require a
+separately reviewed slimmed-kernel redesign; the check does not pretend they
+are absent.
+
+The guest escape suite also requires the enforced classes' sysfs entries to be
+absent. This measurement is about the guest image, not a hostile-isolation
+claim: it does not prove the kernel is vulnerability-free, does not cover host
+covert channels (issue #28), and keeps `hostile_isolation_claim: false`.
+Refresh the inventory with the reviewed nixpkgs pin and rerun the guest build;
+never update one surface alone.
+
 Firecracker runners carry reviewed `trust_domain` and `host_identity` labels;
 untrusted-capable runners require both. Static validation forbids combining
 untrusted-capable and workload-bearing runners in one declared pool/host. At

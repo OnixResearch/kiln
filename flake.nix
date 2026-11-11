@@ -412,6 +412,62 @@
             {"schema":"kiln.microvm.guest-image.v2","kernel_version":"${kernel.version}","vmm":{"kind":"${vmm}","version":"${vmmPackage.version}","binary":$(entry ${vmmBinary})},$vmm_entry,"guest_shell":"/bin/bash","kernel":$(entry ${vmlinux}),"initrd":$(entry "$(readlink -f ${initrd}/initrd)")}
             EOF
           '';
+      # r[impl kiln.hosted.microvm.guest_surface]
+      # Measure the pinned guest kernel's compiled-in driver surface against the
+      # reviewed deny list. The checked-in inventory pins the current cohort;
+      # refresh it together with the guest nixpkgs pin.
+      microvmGuestSurfaceFor =
+        system: vmm:
+        let
+          pkgs = import guest-nixpkgs { inherit system; };
+          kernel = pkgs.linuxPackages.kernel;
+          rootModules =
+            if vmm == "firecracker" then
+              [
+                "virtio_mmio"
+                "virtio_blk"
+                "vmw_vsock_virtio_transport"
+                "virtio_rng"
+                "vmgenid"
+              ]
+            else
+              [
+                "virtio_pci"
+                "virtio_blk"
+                "vmw_vsock_virtio_transport"
+                "virtio_rng"
+                "vmgenid"
+              ];
+          modulesClosure = pkgs.makeModulesClosure {
+            kernel = kernel.modules;
+            firmware = kernel.modules;
+            inherit rootModules;
+            allowMissing = false;
+          };
+        in
+        pkgs.runCommand "kiln-microvm-guest-surface-${vmm}"
+          {
+            nativeBuildInputs = [
+              pkgs.nickel
+              pkgs.python3
+              pkgs.b3sum
+            ];
+            meta.description = "Measured guest kernel driver surface and deny-list verdict for the pinned guest image";
+          }
+          ''
+            mkdir -p "$out"
+            nickel export --format json ${./config/microvm-guest-surface.ncl} > denylist.json
+            python3 ${./scripts/microvm-guest-surface.py} \
+              --denylist denylist.json \
+              --config ${kernel.configfile} \
+              --config-blake3 "$(b3sum --no-names ${kernel.configfile})" \
+              --modules ${modulesClosure}/lib/modules \
+              --kernel-version ${kernel.version} \
+              --nixpkgs-revision ${guest-nixpkgs.rev} \
+              --vmm ${vmm} \
+              --out "$out/inventory.json"
+            cmp "$out/inventory.json" ${./fixtures/microvm/guest-driver-surface.json}
+          '';
       kilnAspenHostPackageFor =
         system:
         let
@@ -613,6 +669,7 @@
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           microvm-guest = microvmGuestFor system "firecracker";
           microvm-guest-ch = microvmGuestFor system "cloud-hypervisor";
+          microvm-guest-surface = microvmGuestSurfaceFor system "firecracker";
           unikernel-guest = (unikernelFor system).guest;
           unikernel-rust-image = (unikernelFor system).rustImage;
           unikernel-go-image = (unikernelFor system).goImage;
@@ -818,6 +875,13 @@
         in
         {
           inherit package;
+          # The checked-in inventory is x86_64 guest-cohort evidence.
+        }
+        // pkgs.lib.optionalAttrs (system == "x86_64-linux") {
+          # r[verify kiln.hosted.microvm.guest_surface.scenario.absent] r[verify kiln.hosted.microvm.guest_surface.scenario.violation]
+          microvm-guest-surface = microvmGuestSurfaceFor system "firecracker";
+        }
+        // {
           tests = package;
           boundaries = package;
           runtime-independence = package;
