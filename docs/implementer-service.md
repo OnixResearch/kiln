@@ -107,6 +107,9 @@ other issue fields or run Cairn lifecycle operations. The plan is re-admitted
 before the remote call, so a source cannot be re-closed after reconciliation
 under the same plan; an already source-reconciled attempt returns the retained
 state without another remote call.
+`source-status --source-plan FILE --secret-file FILE [--timeout-ms N]` performs
+a read-only state comparison and prints `retained`, `observed` and `match`; it
+does not reopen, close or edit the issue.
 Claim and reservation commands are an operator/worker handoff only. `verify`,
 `prepare-publication`, `publish`, `land` and `close-source` perform only their
 named evidence admission or external effects; none dispatches an implementation

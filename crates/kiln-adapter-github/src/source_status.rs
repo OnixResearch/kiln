@@ -99,6 +99,24 @@ impl GithubSourceStatusClient {
         })
     }
 
+    /// Read the current exact source issue state without mutation.
+    // r[impl kiln.github.source_status]
+    pub fn observe(&self, plan: &SourceStatusPlan) -> PortResult<String> {
+        let (owner, repository, number) = issue_parts(plan)?;
+        let issue: RawIssue = self.get(&format!(
+            "{}/repos/{owner}/{repository}/issues/{number}",
+            self.endpoint
+        ))?;
+        if !matches!(issue.state.as_str(), "open" | "closed") {
+            return Err(domain(
+                "github_source_state",
+                "source.state",
+                "source issue state is unsupported",
+            ));
+        }
+        Ok(issue.state)
+    }
+
     /// Close the exact source issue if it is open; re-read the final state.
     // r[impl kiln.github.source_status]
     pub fn close(&self, plan: &SourceStatusPlan) -> PortResult<String> {
@@ -387,6 +405,23 @@ mod tests {
         assert!(requests.get(1).is_some_and(|request| {
             request.starts_with("PATCH /repos/octocat/hello-world/issues/7")
         }));
+    }
+
+    #[test]
+    // r[verify kiln.github.source_status]
+    fn observes_source_state_without_mutation() {
+        let (endpoint, server) = serve(vec![("200 OK", "{\"state\":\"open\"}".to_string())]);
+        let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            client
+                .observe(&plan())
+                .unwrap_or_else(|error| unreachable!("{error:?}")),
+            "open"
+        );
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert_eq!(requests.len(), 1);
+        assert!(requests[0].starts_with("GET "));
     }
 
     #[test]

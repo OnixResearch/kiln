@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|source-status|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -65,6 +65,7 @@ fn run() -> Result<(), ()> {
         "publish" => publish(&flags),
         "land" => land(&flags),
         "close-source" => close_source(&flags),
+        "source-status" => source_status(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
@@ -609,6 +610,69 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         }
         Err(error) => fail(&error),
     }
+}
+
+// r[impl kiln.implementation.source_status] r[impl kiln.github.source_status]
+fn source_status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let plan_file = match required_path(flags, "--source-plan") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let plan: kiln_core::implementation::SourceStatusPlan = match read_json(&plan_file) {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let token = match std::fs::read(&secret_file) {
+        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
+            Ok(token) => token,
+            Err(_) => return fail("secret file is not a valid GitHub token"),
+        },
+        Err(_) => return fail("secret file is unreadable"),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let receipt = match implementer.source_status_receipt(&plan.attempt) {
+        Ok(Some(receipt)) => receipt,
+        Ok(None) => return fail("source status has not been reconciled"),
+        Err(error) => return fail(&error),
+    };
+    if receipt.work_identity != plan.work_identity
+        || receipt.work_revision != plan.work_revision
+        || receipt.attempt != plan.attempt
+        || receipt.fence != plan.fence
+        || receipt.integration != plan.integration
+        || receipt.source != plan.source
+    {
+        return fail("source-status plan differs from the reconciled receipt");
+    }
+    let client = match kiln_adapter_github::source_status::GithubSourceStatusClient::new(
+        token, timeout_ms,
+    ) {
+        Ok(client) => client,
+        Err(_) => return fail("source-status transport configuration is invalid"),
+    };
+    let observed = match client.observe(&plan) {
+        Ok(state) => state,
+        Err(error) => return fail(&format!("{error:?}")),
+    };
+    let matches = observed == receipt.state;
+    println!(
+        "{{\"retained\":{},\"observed\":{},\"match\":{matches}}}",
+        serde_json::to_string(&receipt.state).unwrap_or_else(|_| "\"\"".to_string()),
+        serde_json::to_string(&observed).unwrap_or_else(|_| "\"\"".to_string())
+    );
+    Ok(())
 }
 
 // r[impl kiln.implementation.metrics]
