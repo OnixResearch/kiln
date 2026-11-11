@@ -119,7 +119,24 @@ whose digest/readiness/gates/requirement references disagree with the change, or
 an already archive-ready selection fail admission. The `kiln-cairn-intake`
 binary admits the resulting units into the durable ledger; repeating a snapshot
 at the same sequence is a duplicate, while a higher sequence with a changed
-digest supersedes the previous work.
+digest supersedes the previous work. Its `--policy` file is a
+`CairnImplementationPolicy`:
+
+```json
+{
+  "repository": "onix/cairn",
+  "project": "cairn",
+  "actor": "operator",
+  "requested_outcome": "implement",
+  "acceptance": [{"id": "accepted", "statement": "reviewed acceptance verified"}],
+  "permitted_paths": ["crates/cairn-cli"],
+  "permitted_effects": ["write_source"],
+  "verification_profile": "<64 lowercase hex>",
+  "budget": {"attempts": 2, "minutes_per_attempt": 60},
+  "terminal_policy": "verified_pull_request",
+  "priority": 1
+}
+```
 
 ## What is not implemented yet
 
