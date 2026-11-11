@@ -47,7 +47,7 @@ fn write(path: &Path, bytes: &[u8]) {
     std::fs::write(path, bytes).unwrap_or_else(|_| unreachable!());
 }
 
-// r[verify kiln.implementation.operator_cli.scenario.drain] r[verify kiln.implementation.operator_cli.scenario.status] r[verify kiln.implementation.drain_loop.scenario.bounded]
+// r[verify kiln.implementation.operator_cli.scenario.drain] r[verify kiln.implementation.operator_cli.scenario.status] r[verify kiln.implementation.drain_loop.scenario.bounded] r[verify kiln.implementation.operator_claim.scenario.roundtrip] r[verify kiln.implementation.operator_claim.scenario.stale]
 #[test]
 fn drain_binary_admits_queued_issue_and_reports_status() {
     let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
@@ -186,6 +186,85 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
         "{\"iterations\":2,\"drained\":0}"
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("claim")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--lease-ms")
+        .arg("60000")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let attempt: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or_else(|_| unreachable!());
+    let identity = attempt
+        .get("identity")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_else(|| unreachable!())
+        .to_string();
+    let fence = attempt
+        .get("fence")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(
+        attempt.get("phase").and_then(serde_json::Value::as_str),
+        Some("claimed")
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("cancel")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--fence")
+        .arg(fence.to_string())
+        .arg("--cause")
+        .arg("operator-test")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stale = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("cancel")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--fence")
+        .arg(fence.to_string())
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!stale.status.success());
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("status")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "{\"work\":1,\"attempts\":1,\"active\":0}"
     );
     let _ = ImplementationQueueConfig {
         path: queue_path,

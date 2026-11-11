@@ -38,7 +38,7 @@ fn main() {
 fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
-        return fail("usage: kiln-implementer <drain|run|status> --database PATH ...");
+        return fail("usage: kiln-implementer <drain|run|status|claim|cancel> --database PATH ...");
     };
     let flags = match parse_flags(arguments.collect()) {
         Ok(flags) => flags,
@@ -48,8 +48,73 @@ fn run() -> Result<(), ()> {
         "drain" => drain(&flags),
         "run" => run_loop(&flags),
         "status" => status(&flags),
+        "claim" => claim(&flags),
+        "cancel" => cancel(&flags),
         _ => fail("unknown command"),
     }
+}
+
+// r[impl kiln.implementation.operator_claim]
+fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let lease_ms = match optional_positive(flags, "--lease-ms") {
+        Ok(value) => value.map_or(3_600_000, |value| u64::try_from(value).unwrap_or(u64::MAX)),
+        Err(error) => return fail(&error),
+    };
+    match implementer.claim_next(wall_clock_ms(), lease_ms) {
+        Ok(Some(attempt)) => match serde_json::to_string(&attempt) {
+            Ok(document) => {
+                println!("{document}");
+                Ok(())
+            }
+            Err(_) => fail("attempt could not be encoded"),
+        },
+        Ok(None) => {
+            println!("null");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.operator_claim]
+fn cancel(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let attempt = match required_value(flags, "--attempt") {
+        Ok(value) => value,
+        Err(error) => return fail(&error),
+    };
+    let identity = match kiln_core::types::ContentId::from_blake3_hex(attempt) {
+        Ok(identity) => identity,
+        Err(_) => return fail("--attempt must be one BLAKE3 identity"),
+    };
+    let fence = match required_positive_u64(flags, "--fence") {
+        Ok(fence) => fence,
+        Err(error) => return fail(&error),
+    };
+    let cause = flags
+        .get("--cause")
+        .map_or("operator cancelled".to_string(), Clone::clone);
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    match implementer.cancel(&identity, fence, wall_clock_ms(), &cause) {
+        Ok(()) => {
+            println!("{{\"cancelled\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn open_implementer(flags: &BTreeMap<String, String>) -> Result<Implementer, String> {
+    let database = required_path(flags, "--database")?;
+    let enrollment_file = required_path(flags, "--enrollment")?;
+    let enrollment: Enrollment = read_json(&enrollment_file)?;
+    Implementer::open(&database, enrollment).map_err(|error| error.to_string())
 }
 
 fn drain(flags: &BTreeMap<String, String>) -> Result<(), ()> {
@@ -217,6 +282,29 @@ fn required_path(flags: &BTreeMap<String, String>, key: &str) -> Result<PathBuf,
         return Err(format!("{key} must be absolute"));
     }
     Ok(path)
+}
+
+fn required_value(flags: &BTreeMap<String, String>, key: &str) -> Result<String, String> {
+    flags
+        .get(key)
+        .cloned()
+        .ok_or_else(|| format!("{key} is required"))
+}
+
+fn required_positive_u64(flags: &BTreeMap<String, String>, key: &str) -> Result<u64, String> {
+    let value = flags.get(key).ok_or_else(|| format!("{key} is required"))?;
+    value
+        .parse::<u64>()
+        .ok()
+        .filter(|value| *value > 0)
+        .ok_or_else(|| format!("{key} must be positive"))
+}
+
+fn wall_clock_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| u64::try_from(duration.as_millis()).unwrap_or(u64::MAX))
+        .unwrap_or(0)
 }
 
 fn required_positive(flags: &BTreeMap<String, String>, key: &str) -> Result<usize, String> {
