@@ -688,6 +688,11 @@
           program = "${packageFor system}/bin/kiln-adapter-github";
           meta.description = "Run the Kiln GitHub webhook and recovery service";
         };
+        kiln-implementer = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-implementer";
+          meta.description = "Drain authenticated GitHub issues into admitted implementation work";
+        };
         kiln-adapter-gitea = {
           type = "app";
           program = "${packageFor system}/bin/kiln-adapter-gitea";

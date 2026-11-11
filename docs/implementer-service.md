@@ -36,7 +36,7 @@ authority. Live dispatch remains blocked on the Lattice implementation route.
 ### Operator commands
 
 ```console
-kiln-implementer drain --database /var/lib/kiln/work.sqlite \
+nix run .#kiln-implementer -- drain --database /var/lib/kiln/work.sqlite \
   --queue /var/lib/kiln/github-issues.sqlite --maximum-deliveries 1024 \
   --secret-file /run/secrets/github-webhook \
   --policy /etc/kiln/implementer-policy.json \
