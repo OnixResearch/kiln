@@ -92,6 +92,8 @@ admits a complete candidate handoff and moves the attempt to
 the default-off attempt metrics receipt; missing usage stays explicitly absent.
 `verify --verification-file FILE` admits retained canonical CI evidence for the
 exact candidate handoff and moves the attempt to `verified`; it does not run CI.
+`prepare-publication --publication-file FILE` prepares the deterministic verified
+branch/PR plan; it creates no remote branch or pull request.
 Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice

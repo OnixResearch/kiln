@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -61,6 +61,7 @@ fn run() -> Result<(), ()> {
         "reconcile" => reconcile(&flags),
         "handoff" => handoff(&flags),
         "verify" => verify(&flags),
+        "prepare-publication" => prepare_publication(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
@@ -235,6 +236,60 @@ fn start(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     match implementer.start_execution(&identity, fence, wall_clock_ms(), &workflow) {
         Ok(()) => {
             println!("{{\"started\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.publication]
+fn prepare_publication(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let file = match required_path(flags, "--publication-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let plan: kiln_core::implementation::PublicationPlan = match read_json(&file) {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("publication work identity is not current");
+    };
+    let handoff = match implementer.candidate_handoff(&plan.attempt) {
+        Ok(Some(handoff)) => handoff,
+        Ok(None) => return fail("candidate handoff is not retained"),
+        Err(error) => return fail(&error),
+    };
+    let verification = match implementer.verification_receipt(&plan.attempt) {
+        Ok(Some(verification)) => verification,
+        Ok(None) => return fail("verification receipt is not retained"),
+        Err(error) => return fail(&error),
+    };
+    match implementer.prepare_publication(
+        &work,
+        &plan.attempt,
+        plan.fence,
+        &handoff,
+        &verification,
+        &plan,
+    ) {
+        Ok(identity) => {
+            println!("{{\"publication\":\"{}\"}}", identity.as_str());
             Ok(())
         }
         Err(error) => fail(&error),
