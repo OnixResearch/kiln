@@ -366,11 +366,11 @@ impl GithubLandingClient {
             "{}/repos/{}/{}/pulls/{}",
             self.endpoint, plan.owner, plan.repository, plan.pull_number
         ))?;
-        let checks: RawChecks = self.get_json(&format!(
+        let checks: RawChecks = self.get_json_without_next(&format!(
             "{}/repos/{}/{}/commits/{}/check-runs?per_page={MAX_CHECKS}",
             self.endpoint, plan.owner, plan.repository, plan.head_sha
         ))?;
-        let reviews: Vec<RawReview> = self.get_json(&format!(
+        let reviews: Vec<RawReview> = self.get_json_without_next(&format!(
             "{}/repos/{}/{}/pulls/{}/reviews?per_page={MAX_CHECKS}",
             self.endpoint, plan.owner, plan.repository, plan.pull_number
         ))?;
@@ -597,6 +597,17 @@ impl GithubLandingClient {
         })
     }
 
+    fn get_json_without_next<T: serde::de::DeserializeOwned>(&self, url: &str) -> PortResult<T> {
+        let response = self.get(url)?;
+        if has_next_link(response.header("link"))? {
+            return Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_landing_pagination".to_string(),
+                message: "landing evidence is incomplete across pages".to_string(),
+            }));
+        }
+        self.decode(response)
+    }
+
     fn get_json<T: serde::de::DeserializeOwned>(&self, url: &str) -> PortResult<T> {
         let response = self.get(url)?;
         let mut bytes = Vec::new();
@@ -718,6 +729,20 @@ fn landing_repository(plan: &LandingPlan) -> PortResult<(&str, &str)> {
     Ok((&plan.owner, &plan.repository))
 }
 
+fn has_next_link(link: Option<&str>) -> PortResult<bool> {
+    let Some(link) = link else {
+        return Ok(false);
+    };
+    if link.len() > 2048 || link.chars().any(char::is_control) {
+        return Err(domain(
+            "github_landing_link",
+            "landing.link",
+            "GitHub landing Link header is malformed or oversized",
+        ));
+    }
+    Ok(link.contains("rel=\"next\""))
+}
+
 fn refusal(code: &str, field: &str, message: &str) -> Diagnostic {
     Diagnostic::new(code, field, message)
 }
@@ -808,6 +833,19 @@ mod tests {
             ]
         })
         .to_string()
+    }
+
+    #[test]
+    fn detects_incomplete_landing_pagination() {
+        assert!(
+            has_next_link(Some("<https://api.github.com/x?page=2>; rel=\"next\""))
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(
+            !has_next_link(Some("<https://api.github.com/x?page=1>; rel=\"prev\""))
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(has_next_link(Some(&"x".repeat(2049))).is_err());
     }
 
     #[test]
