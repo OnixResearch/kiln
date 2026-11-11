@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.implementation-work-admission.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline",
+      "result": "200 passed; six implementation-work admission tests pass"
+    },
+    {
+      "command": "cargo test -p kiln-core --offline implementation",
+      "result": "6 passed; duplicate/out-of-order, mapping/forgery, blocked dependency/cycle, supersession/replay, refusal and lifecycle-boundary cases"
+    },
+    {
+      "command": "cargo clippy -p kiln-core --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-core",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "contract": "crates/kiln-core/src/implementation.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "admission does not claim, execute, verify, publish or complete work",
+    "GitHub issue webhook admission and bounded polling are not wired",
+    "Cairn intake awaits the unimplemented OnixResearch/cairn#1 snapshot producer",
+    "Mneme OpenSpec consumer qualification is not performed",
+    "archive readiness is intentionally absent and never proves completion"
+  ]
+}
