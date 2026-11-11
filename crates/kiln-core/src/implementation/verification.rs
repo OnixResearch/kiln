@@ -288,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.implementation.verification.scenario.admit]
+    // r[verify kiln.implementation.verification.scenario.admit] r[verify kiln.implementation.verified_claim] r[verify kiln.implementation.verified_claim.scenario.refused]
     fn admits_and_retains_canonical_verification_once() {
         let work = work();
         let mut ledger = AttemptLedger::default();
@@ -349,6 +349,11 @@ mod tests {
         assert_eq!(stored.phase, AttemptPhase::Verified);
         assert!(stored.verification.is_some());
         assert!(ledger.current(&attempt.canonical_key).is_none());
+        let error = ledger
+            .claim(&work, 6, DEFAULT_LEASE_MS)
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(error.code.as_str(), "implementation_already_verified");
     }
 
     #[test]

@@ -225,6 +225,17 @@ impl AttemptLedger {
                 "work already has a current implementation claim",
             ));
         }
+        if self.attempts.values().any(|attempt| {
+            attempt.canonical_key == canonical_key
+                && attempt.work_identity == work_identity
+                && attempt.phase == AttemptPhase::Verified
+        }) {
+            return Err(refusal(
+                "implementation_already_verified",
+                "attempt.claim",
+                "work version already has a verified implementation attempt",
+            ));
+        }
         let consumed = self
             .consumed
             .get(canonical_key.as_str())

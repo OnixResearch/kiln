@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.prevent-verified-reclaim.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::verification",
+      "result": "2 passed; same-version reclaim refused after verification"
+    },
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "2 unit and 8 durable tests pass"
+    }
+  ],
+  "artifacts": {
+    "attempt": "crates/kiln-core/src/implementation/attempt.rs",
+    "shell": "crates/kiln-implementer/src/lib.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "refusal does not publish, land or close the source",
+    "a new source version remains separately claimable"
+  ]
+}

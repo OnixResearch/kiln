@@ -109,8 +109,10 @@ candidate and tree, base, verification profile and the exact run revision.
 Admission requires a terminal, successful, clean full run with no untrusted
 projection and nonempty unique checks that all pass. Repeating an equal receipt
 is idempotent; partial, failed, stale or differently bound evidence is refused.
-Acceptance moves the attempt to the terminal `verified` state; it does not
-execute checks, create CI facts or publish anything.
+Acceptance moves the attempt to the terminal `verified` state. A verified work
+version cannot be claimed again; a new source version remains separately
+claimable. Verification does not execute checks, create CI facts or publish
+anything.
 
 `kiln-implementer verify --verification-file FILE` records the receipt against
 the retained handoff and current work/attempt.

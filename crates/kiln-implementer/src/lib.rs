@@ -109,7 +109,9 @@ impl Implementer {
                     Err(error)
                         if matches!(
                             error.code.as_str(),
-                            "implementation_already_claimed" | "implementation_budget_exhausted"
+                            "implementation_already_claimed"
+                                | "implementation_budget_exhausted"
+                                | "implementation_already_verified"
                         ) => {}
                     Err(error) => return Err(error),
                 }
