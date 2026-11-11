@@ -784,7 +784,7 @@ isolation proof. No second physical host was allocated. Native space-padded
 still refused. This does not broaden the `hostile_isolation_claim:false` boundary.
 
 
-### Cloud Hypervisor (phase 1, plan only)
+### Cloud Hypervisor (per-job profile)
 
 Cloud Hypervisor cold boot is wired through the hosted shell. A host run on the
 reference host now matches the namespace/Firecracker canonical outcome, and the
@@ -795,7 +795,7 @@ ready time was about 1.0 s and restored ready time about 0.8 s in this
 single-host run. CET handling across a Cloud Hypervisor snapshot remains
 unverified and is recorded as a non-claim.
 
-Intended phase-1 shape:
+Implemented per-job profile:
 
 - cold boot with `--kernel`, `--initramfs`, `--cmdline`, `--cpus`, `--memory`,
   a read-only `--disk` source image, `--vsock`, `--seccomp true` and no
@@ -809,7 +809,7 @@ source disk, the shared vsock protocol, `CapEff 0`, `NoNewPrivs 1`, and at least
 one seccomp-filtered worker thread. The control thread itself reports
 `Seccomp 0`; that is an explicit non-claim.
 
-Non-claims: no warm-restore result, no measured cold/restore latency, no CET
+Non-claims: no retained or migratable session, no cross-host migration, no CET
 snapshot handling, and no claim that its larger device model (PCI, hotplug,
 VFIO) is as small as Firecracker's.
 

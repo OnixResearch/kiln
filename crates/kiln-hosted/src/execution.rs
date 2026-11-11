@@ -121,8 +121,8 @@ pub enum Backend {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         network: Option<String>,
     },
-    /// One Cloud Hypervisor microVM per job. Cold boot only in phase 1; the
-    /// same guest agent, read-only source drive and vsock protocol apply.
+    /// One Cloud Hypervisor microVM per job. Cold boot and warm restore use the
+    /// same guest agent, read-only source drive and vsock protocol.
     #[serde(rename = "cloud-hypervisor")]
     CloudHypervisor {
         cloud_hypervisor: Executable,
