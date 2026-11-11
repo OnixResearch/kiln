@@ -120,6 +120,15 @@ named evidence admission or external effects; none dispatches an implementation
 worker, and a claimed attempt must still be executed by an admitted Lattice
 route.
 
+## systemd deployment
+
+`deployment/kiln-implementer-poll.service.in` runs the bounded `poll-run` loop
+as a dedicated non-root account with a read-only system, an explicit state
+directory, a root-private GitHub token credential, and one-day-capped polling
+intervals. Provision `/etc/kiln-implementer/{enrollment,policy}.json` and the
+credential file before installing the substituted unit. Stopping the unit sends
+SIGTERM; the loop finishes its current bounded pass and exits.
+
 ## Ownership
 
 | Concern | Owner | Status |
