@@ -38,6 +38,10 @@ unwrap_used = "deny"
 
 [dependencies]
 blake3 = "=1.8.5"
+futures-util = "0.3.34"
+iroh = "=1.1.0"
+iroh-gossip = "=0.101.0"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 durable-file-publication = { git = "https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git", rev = "8e05e74e24b45f752d77145c4455385daaf6d6ab" }
 kiln-adapter-aspen = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }
 kiln-adapter-lattice = { git = "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git", rev = "69afc2697f4330005797256135ae81b2722a125c" }

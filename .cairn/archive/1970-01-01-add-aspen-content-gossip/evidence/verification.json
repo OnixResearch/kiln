@@ -1,0 +1,36 @@
+{
+  "schema": "kiln.aspen-content-gossip.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/54",
+  "toolchain": "nightly-2026-05-26",
+  "commands": [
+    {
+      "command": "cargo +nightly-2026-05-26 test --lib content",
+      "result": "7 passed; exact round trip/reopen/bounds/live Iroh publication and transfer"
+    },
+    {
+      "command": "cargo +nightly-2026-05-26 test --test gossip_live",
+      "result": "2 passed; loopback Iroh hint delivery and listener dedupe"
+    },
+    {
+      "command": "cargo +nightly-2026-05-26 clippy --lib --tests -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo +nightly-2026-05-26 fmt --check",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "content": "runtime/kiln-aspen-host/src/content.rs",
+    "gossip": "runtime/kiln-aspen-host/src/gossip.rs",
+    "effect_publication": "runtime/kiln-aspen-host/src/effect/port.rs",
+    "startup": "runtime/kiln-aspen-host/src/main.rs",
+    "docs": "runtime/kiln-aspen-host/README.md"
+  },
+  "non_claims": [
+    "a gossip hint is not a reservation, authority grant, delivery proof or execution request",
+    "content publication is not retention, confidentiality or independent verification",
+    "no VM migration or host-control channel is added"
+  ]
+}

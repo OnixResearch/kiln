@@ -3585,6 +3585,9 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "durable-file-publication",
+ "futures-util",
+ "iroh",
+ "iroh-gossip",
  "kiln-adapter-aspen",
  "kiln-adapter-lattice",
  "kiln-adapter-radicle",
@@ -3601,6 +3604,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tokio",
 ]
 
 [[package]]

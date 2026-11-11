@@ -10,8 +10,10 @@
 )]
 
 pub mod cohort;
+pub mod content;
 pub mod durability;
 pub mod effect;
 pub mod error;
+pub mod gossip;
 pub mod runtime;
 pub mod server;

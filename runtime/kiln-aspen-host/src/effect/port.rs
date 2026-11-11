@@ -1,3 +1,4 @@
+use kiln_adapter_aspen::AspenContentPort;
 use kiln_adapter_aspen::profile::AspenPortPurpose;
 use kiln_adapter_aspen::protocol::{
     HOSTED_PROVIDER_COMPLETION_SCHEMA, HostedProviderCompletion, encode_hosted_provider_completion,
@@ -63,6 +64,19 @@ impl FabricEffectPort for LatticeEffectPort {
             FabricPortError::malformed(error.to_string())
         })?;
         let output_ref = molten::preserves_rail::content_ref_from_bytes(&bytes);
+        // r[impl kiln.aspen_runtime.content_publication]
+        if let Some(content) = self.content.as_mut() {
+            let digest = blake3::hash(&bytes).to_hex().to_string();
+            let reference = kiln_core::types::ExternalRef::new(
+                "molten",
+                kiln_adapter_aspen::CONTENT_REFERENCE_KIND,
+                &digest,
+            )
+            .map_err(|error| FabricPortError::malformed(format!("{error:?}")))?;
+            content.put_exact(&reference, &bytes).map_err(|error| {
+                FabricPortError::storage(format!("content publication failed: {error:?}"))
+            })?;
+        }
         Ok(PortEffectOutput {
             output_schema_ref: effect.output_schema_ref.clone(),
             output_ref: output_ref.clone(),

@@ -57,6 +57,7 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: observation_pacer.clone(),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
@@ -149,6 +150,7 @@ fn real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("recovered Lattice effect port"));
     let mut recovered_runtime = KilnAspenHostRuntime::start(recovered_cohort, recovered_effects)

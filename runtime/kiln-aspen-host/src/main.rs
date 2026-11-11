@@ -17,6 +17,7 @@ use kiln_adapter_aspen::profile::{
 use kiln_adapter_lattice::{LatticeAdapter, UnixWorkflowExchange};
 use kiln_adapter_radicle::{RadicleShellConfig, admit_config};
 use kiln_aspen_host::cohort::{HostCohort, HostPaths};
+use kiln_aspen_host::content::MoltenContentPort;
 use kiln_aspen_host::effect::{
     LatticeEffectPort, LatticeEffectPortOptions, ThreadObservationPacer,
 };
@@ -32,6 +33,7 @@ use arguments::parse_arguments;
 const PROFILE_MAXIMUM_BYTES: u64 = 1_048_576;
 const PROFILE_OVERFLOW_SENTINEL_BYTES: u64 = 1;
 const INPUT_OUTPUT_EXIT_CODE: i32 = 1;
+const CONTENT_CHUNK_BYTES: u64 = 1_048_576;
 
 #[derive(Debug)]
 struct RuntimeProfileBinding {
@@ -73,6 +75,13 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             "state root must be an existing directory".to_string(),
         ));
     }
+    let state_name = state_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("kiln-aspen");
+    let content_root = state_root.with_file_name(format!("{state_name}-content"));
+    let content = MoltenContentPort::open(&content_root, CONTENT_CHUNK_BYTES)
+        .map_err(|error| HostBridgeError::Admission(format!("content store: {error:?}")))?;
     let maximum_records = radicle.shell.maximum_replay_records;
     let lattice_transport = UnixWorkflowExchange::new(
         radicle.shell.socket_path.clone(),
@@ -101,6 +110,7 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             arguments.poll_interval_milliseconds,
         ),
         observation_pacer: std::sync::Arc::new(ThreadObservationPacer),
+        content: Some(content),
     })?;
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)?;
     let maximum_frame_bytes = profile

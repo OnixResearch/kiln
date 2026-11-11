@@ -39,6 +39,7 @@ fn unavailable_lattice_is_retained_as_unknown_without_redispatch() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
@@ -95,6 +96,7 @@ fn post_reservation_profile_drift_is_unknown_and_never_dispatches() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)
@@ -162,6 +164,7 @@ fn post_reservation_profile_drift_is_unknown_and_never_dispatches() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("recovered Lattice effect port"));
     assert!(KilnAspenHostRuntime::start(recovered_cohort, recovered_effects).is_err());
@@ -216,6 +219,7 @@ fn nonterminal_poll_exhaustion_remains_unknown_without_redispatch() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: observation_pacer.clone(),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)

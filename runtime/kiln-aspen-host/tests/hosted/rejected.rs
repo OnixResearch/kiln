@@ -35,6 +35,7 @@ fn denied_trigger_releases_no_lattice_connection() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("Lattice effect port"));
     let mut runtime = KilnAspenHostRuntime::start(cohort, effects)

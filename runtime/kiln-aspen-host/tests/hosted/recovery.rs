@@ -76,6 +76,7 @@ fn accepted_but_unacknowledged_lattice_work_recovers_without_dispatch() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("first effect port"));
     let mut first_runtime = KilnAspenHostRuntime::start(first_cohort, first_effects)
@@ -128,6 +129,7 @@ fn accepted_but_unacknowledged_lattice_work_recovers_without_dispatch() {
             TEST_OBSERVATION_POLL_INTERVAL_MILLISECONDS,
         ),
         observation_pacer: Arc::new(ThreadObservationPacer),
+        content: None,
     })
     .unwrap_or_else(|_| unreachable!("second effect port"));
     let mut second_runtime = KilnAspenHostRuntime::start(second_cohort, second_effects)

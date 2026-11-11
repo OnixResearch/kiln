@@ -69,6 +69,23 @@ The host performs this sequence:
 
 A provider disconnect after request write remains `Unknown`. Repeated submit never dispatches again. Recovery uses only Lattice `RecoverDispatch` and `Observe` operations for the persisted effect. The host does not retry through normal dispatch or select a fallback.
 
+## Content and gossip
+
+Startup opens a bounded Molten content store beside the state root at
+`<state-name>-content`. When the effect port is configured with that store,
+each successful effect output is written as exact bytes under its BLAKE3
+reference before the port returns; publication failure is a storage failure, not
+a successful effect. The store verifies reads and supports exact-content
+round trips across reopen and live Iroh publication.
+
+`gossip` defines bounded, non-authoritative hints: a hint names a kind, scope,
+sender, epoch, expiry and optional content reference. Messages, content size,
+lifetime, event count, recent-hint count and join time are bounded; duplicate
+hints are suppressed. A hint is not a reservation, authority grant, delivery
+proof or execution request. Topic ids are derived from public scope text and are
+not confidential without a secret scope distributed over an authenticated
+channel.
+
 ## Validation
 
 Run the local gates:

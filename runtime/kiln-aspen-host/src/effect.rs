@@ -38,6 +38,7 @@ pub struct LatticeEffectPortOptions {
     pub ledger: Arc<Mutex<OperationLedger>>,
     pub observation_poll_interval: Duration,
     pub observation_pacer: Arc<dyn ObservationPacer>,
+    pub content: Option<crate::content::MoltenContentPort>,
 }
 
 impl std::fmt::Debug for LatticeEffectPortOptions {
@@ -60,6 +61,7 @@ pub struct LatticeEffectPort {
     maximum_polls: usize,
     observation_poll_interval: Duration,
     observation_pacer: Arc<dyn ObservationPacer>,
+    content: Option<crate::content::MoltenContentPort>,
 }
 
 impl std::fmt::Debug for LatticeEffectPort {
@@ -86,6 +88,7 @@ impl LatticeEffectPort {
             ledger,
             observation_poll_interval,
             observation_pacer,
+            content,
         } = options;
         if radicle.maximum_replay_records == 0
             || radicle.maximum_polls == 0
@@ -110,6 +113,7 @@ impl LatticeEffectPort {
             ledger,
             observation_poll_interval,
             observation_pacer,
+            content,
         })
     }
 
