@@ -400,6 +400,12 @@ mod tests {
             .get(&attempt.identity)
             .unwrap_or_else(|| unreachable!());
         assert_eq!(attempt.phase, super::super::AttemptPhase::CandidateProduced);
+        let mut forged = handoff.clone();
+        forged.candidate = reference("commit", "other");
+        assert!(
+            admit_candidate_handoff(&work, attempt, &forged).is_err(),
+            "a substituted candidate cannot reuse the retained handoff"
+        );
     }
 
     #[test]
