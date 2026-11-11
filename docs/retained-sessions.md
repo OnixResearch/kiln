@@ -7,7 +7,9 @@ resume, migration or retirement.
 
 A session binds a logical session identity, work/version, attempt/fence,
 placement host and monotonic generation, and bounded CPU/memory/slot
-reservations. Every command carries an owner token with the exact session,
+reservations. `admit_retained_backend` checks only declared planning
+capabilities: snapshot/restore, no guest network, seccomp/no-new-privs
+confinement and x86_64. It does not qualify a live VMM or host. Every command carries an owner token with the exact session,
 fence, host and generation; stale owners are refused.
 
 The lifecycle admits receiving, restoring, paused, running, migrating,

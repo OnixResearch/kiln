@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 
 use kiln_core::types::{ContentId, Diagnostic};
 
+use crate::backend::{Capabilities, NetworkCapability};
+
 pub const RETAINED_SESSION_SCHEMA: &str = "kiln.retained-session.v1";
 pub const MAX_HOST_BYTES: usize = 256;
 pub const MAX_CAUSE_BYTES: usize = 512;
@@ -97,8 +99,28 @@ pub struct RetainedSession {
     pub cause: Option<String>,
 }
 
+/// Admit a backend for the retained-session planning surface.
+///
+/// This checks declared planning capabilities only: snapshot/restore support,
+/// no guest network, seccomp and no-new-privs confinement, and x86_64. It does
+/// not qualify a live VMM, migration transport or host.
+pub fn admit_retained_backend(capabilities: &Capabilities) -> Result<(), Diagnostic> {
+    if !capabilities.snapshot
+        || capabilities.network != NetworkCapability::NoDevice
+        || !capabilities.confinement.seccomp
+        || !capabilities.confinement.no_new_privs
+        || !capabilities.admits_arch("x86_64")
+    {
+        return Err(refusal(
+            "retained_backend_capabilities",
+            "retained.backend",
+            "backend does not declare the retained-session planning capabilities",
+        ));
+    }
+    Ok(())
+}
+
 impl RetainedSession {
-    /// Admit one retained session owned by the exact placement.
     // r[impl kiln.hosted.retained.lifecycle]
     pub fn admit(
         identity: SessionIdentity,
@@ -450,6 +472,21 @@ mod tests {
         assert_eq!(session.state, RetainedState::Retired);
         assert!(!session.occupies_capacity());
         assert!(session.retire(&token).is_err());
+    }
+
+    #[test]
+    // r[verify kiln.hosted.retained.lifecycle]
+    fn retained_backend_requires_snapshot_network_and_confinement_facts() {
+        use crate::backend::{CloudHypervisor, Firecracker, VmmBackend};
+        let mut capabilities = Firecracker.capabilities();
+        assert!(admit_retained_backend(&capabilities).is_ok());
+        capabilities = CloudHypervisor.capabilities();
+        assert!(admit_retained_backend(&capabilities).is_ok());
+        capabilities.confinement.seccomp = false;
+        assert!(admit_retained_backend(&capabilities).is_err());
+        capabilities = Firecracker.capabilities();
+        capabilities.snapshot = false;
+        assert!(admit_retained_backend(&capabilities).is_err());
     }
 
     #[test]

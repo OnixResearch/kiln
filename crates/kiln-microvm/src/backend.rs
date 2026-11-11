@@ -104,8 +104,9 @@ impl VmmBackend for Firecracker {
     }
 }
 
-/// Cloud Hypervisor phase-1 plan surface. Execution remains Firecracker-only
-/// until the host/escape-suite work lands.
+/// Cloud Hypervisor planning surface used by the hosted shell. Capabilities here
+/// declare reviewed planning facts only; they do not qualify a retained or
+/// migratable session on a particular host.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CloudHypervisor;
 
