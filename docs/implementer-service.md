@@ -56,6 +56,11 @@ positive fixtures), then export JSON for the commands. The builders bound
 acceptance obligations, paths, effects, budget, terminal policy, and unique
 non-empty repositories/actors.
 
+`run` repeats the drain on `--interval-ms`, stopping on SIGTERM/SIGINT or after
+an optional positive `--iterations` bound. It reports the number of iterations
+and drained deliveries. It never claims or dispatches; a scheduler that creates
+attempts must wait for the Lattice implementation route.
+
 ## Ownership
 
 | Concern | Owner | Status |

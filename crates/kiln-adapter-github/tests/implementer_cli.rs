@@ -47,7 +47,7 @@ fn write(path: &Path, bytes: &[u8]) {
     std::fs::write(path, bytes).unwrap_or_else(|_| unreachable!());
 }
 
-// r[verify kiln.implementation.operator_cli.scenario.drain] r[verify kiln.implementation.operator_cli.scenario.status]
+// r[verify kiln.implementation.operator_cli.scenario.drain] r[verify kiln.implementation.operator_cli.scenario.status] r[verify kiln.implementation.drain_loop.scenario.bounded]
 #[test]
 fn drain_binary_admits_queued_issue_and_reports_status() {
     let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
@@ -154,6 +154,38 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
         "{\"work\":1,\"attempts\":0,\"active\":0}"
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("run")
+        .arg("--database")
+        .arg(&database)
+        .arg("--queue")
+        .arg(&queue_path)
+        .arg("--maximum-deliveries")
+        .arg("8")
+        .arg("--secret-file")
+        .arg(&secret_file)
+        .arg("--policy")
+        .arg(&policy_file)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--limit")
+        .arg("8")
+        .arg("--interval-ms")
+        .arg("1")
+        .arg("--iterations")
+        .arg("2")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "{\"iterations\":2,\"drained\":0}"
     );
     let _ = ImplementationQueueConfig {
         path: queue_path,

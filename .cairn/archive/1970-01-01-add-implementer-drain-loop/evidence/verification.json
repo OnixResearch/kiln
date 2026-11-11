@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.implementer-drain-loop.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --test implementer_cli --offline",
+      "result": "1 passed; drain, status and bounded two-iteration run"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-adapter-github",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "binary": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "test": "crates/kiln-adapter-github/tests/implementer_cli.rs",
+    "docs": "docs/implementer-service.md"
+  },
+  "non_claims": [
+    "the loop admits deliveries only and never claims or dispatches",
+    "signal shutdown does not imply in-flight drain cancellation",
+    "a claim scheduler remains blocked on the Lattice implementation route"
+  ]
+}
