@@ -192,19 +192,39 @@ pub fn admit_implementation_issue(
     if envelope.issue.state != "open" {
         return Err(invalid_issue());
     }
+    Ok(Some(IssueAdmission::Work(Box::new(issue_work(
+        policy,
+        envelope.sender.login,
+        repository_key,
+        native_id,
+        envelope.issue.title,
+        sequence,
+        source_version,
+    )?))))
+}
+
+pub(crate) fn issue_work(
+    policy: &ImplementationIssuePolicy,
+    actor: String,
+    repository_key: String,
+    native_id: String,
+    title: String,
+    sequence: u64,
+    source_version: ContentId,
+) -> PortResult<ImplementationWork> {
     let alias = SourceRef {
         kind: WorkSourceKind::GitHubIssue,
         source: ExternalRef::new("github", "issue", &native_id).map_err(|_| invalid_issue())?,
-        native_id: native_id.clone(),
+        native_id,
         version: source_version,
     };
-    Ok(Some(IssueAdmission::Work(Box::new(ImplementationWork {
+    Ok(ImplementationWork {
         schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
         revision: sequence,
-        actor: envelope.sender.login,
+        actor,
         repository: repository_key,
         project: policy.project.clone(),
-        title: envelope.issue.title,
+        title,
         requested_outcome: policy.requested_outcome.clone(),
         acceptance: policy.acceptance.clone(),
         dependencies: policy.dependencies.clone(),
@@ -215,7 +235,7 @@ pub fn admit_implementation_issue(
         terminal_policy: policy.terminal_policy,
         priority: policy.priority,
         aliases: vec![alias],
-    }))))
+    })
 }
 
 fn invalid_issue() -> kiln_provider_api::PortFailure {

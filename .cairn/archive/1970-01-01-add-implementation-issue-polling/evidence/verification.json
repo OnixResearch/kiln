@@ -1,0 +1,28 @@
+{
+  "schema": "kiln.implementation-issue-polling.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --offline poll",
+      "result": "4 passed; two-page normalization, duplicate sequence, bounds and identity tests"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-adapter-github",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "polling": "crates/kiln-adapter-github/src/poll.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "no HTTP transport, schedule or server wiring is added",
+    "polling produces observations only; ledger admission and claims still decide",
+    "closed issues are recovery observations, not completion"
+  ]
+}
