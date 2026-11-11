@@ -63,7 +63,8 @@ attempts must wait for the Lattice implementation route.
 
 `kiln-cairn-intake --database PATH --enrollment FILE --snapshot FILE --policy FILE --sequence N`
 admits one complete `cairn.implementation-ready.v1` snapshot into the same
-ledger, reporting selected/admitted/duplicate/superseded counts.
+ledger, reporting selected/admitted/duplicate/superseded counts. It is
+available as `nix run .#kiln-cairn-intake -- ...`.
 
 `poll --database PATH --enrollment FILE --policy FILE --secret-file FILE
 --max-pages N [--since-ms N] [--timeout-ms N]` performs one authenticated GitHub

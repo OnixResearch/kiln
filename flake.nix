@@ -251,6 +251,25 @@
           '';
           meta.description = "Authenticated single-tenant Kiln web service with supervised deployment assets";
         });
+      # Standalone Cairn intake binary from the adapter package.
+      kilnCairnIntakePackageFor =
+        system:
+        (packageFor system).overrideAttrs (_: {
+          pname = "kiln-cairn-intake";
+          cargoBuildFlags = [
+            "-p"
+            "kiln-adapter-cairn"
+            "--bin"
+            "kiln-cairn-intake"
+          ];
+          cargoTestFlags = [
+            "-p"
+            "kiln-adapter-cairn"
+            "--bin"
+            "kiln-cairn-intake"
+          ];
+          meta.description = "Admit complete Cairn implementation-ready snapshots into the durable Kiln work ledger";
+        });
       # Hosted Firecracker backend guest: the pinned nixpkgs (NixOS) kernel, a
       # makeInitrdNG initramfs rootfs and the guest agent. Not a full NixOS system.
       # r[impl kiln.hosted.microvm.protocol]
@@ -655,6 +674,7 @@
         system:
         {
           kiln = packageFor system;
+          kiln-cairn-intake = kilnCairnIntakePackageFor system;
           web-service = webServicePackageFor system;
           kiln-aspen-host = kilnAspenHostPackageFor system;
           kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
@@ -692,6 +712,11 @@
           type = "app";
           program = "${packageFor system}/bin/kiln-implementer";
           meta.description = "Drain authenticated GitHub issues into admitted implementation work";
+        };
+        kiln-cairn-intake = {
+          type = "app";
+          program = "${kilnCairnIntakePackageFor system}/bin/kiln-cairn-intake";
+          meta.description = "Admit complete Cairn implementation-ready snapshots into the durable Kiln work ledger";
         };
         kiln-adapter-gitea = {
           type = "app";
