@@ -563,6 +563,19 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     if attempt.publication.as_ref().is_some_and(|publication| {
         publication.phase == kiln_core::implementation::PublicationPhase::SourceReconciled
     }) {
+        let retained = match implementer.source_status_receipt(&plan.attempt) {
+            Ok(Some(receipt)) => receipt,
+            _ => return fail("source-status receipt is missing"),
+        };
+        if retained.work_identity != plan.work_identity
+            || retained.work_revision != plan.work_revision
+            || retained.attempt != plan.attempt
+            || retained.fence != plan.fence
+            || retained.integration != plan.integration
+            || retained.source != plan.source
+        {
+            return fail("source-status plan differs from the reconciled receipt");
+        }
         println!("{{\"source_status\":\"retained\"}}");
         return Ok(());
     }
