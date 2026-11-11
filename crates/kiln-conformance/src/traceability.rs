@@ -302,3 +302,178 @@
 // r[verify kiln.source.tree_identity.scenario.mismatch]
 // r[verify kiln.source.trigger_security]
 // r[verify kiln.source.trigger_security.scenario.github]
+
+//
+// Accepted change anchors. Each block names the implementation or conformance
+// surface recorded in that completed change package's verification evidence,
+// which was synced and archived into the accepted specifications.
+
+// Agent access declarations and derived review agents:
+// crates/kiln-web-service/src/access.rs, crates/kiln-web-service/src/code_review.rs.
+// r[impl kiln.access.agent.declaration]
+// r[verify kiln.access.agent.declaration.scenario.invalid]
+// r[impl kiln.access.agent.derivation]
+// r[verify kiln.access.agent.derivation.scenario.merge]
+// r[verify kiln.access.agent.derivation.scenario.non_writer]
+
+// Agent attribution on audited admission denials:
+// crates/kiln-web-service/src/engine/admission.rs, crates/kiln-web-service/tests/engine.rs.
+// r[impl kiln.access.agent.audit]
+// r[verify kiln.access.agent.audit.scenario.denial]
+// r[verify kiln.access.agent.audit.scenario.human]
+// r[verify kiln.access.agent.audit.scenario.surface]
+
+// Attested agent submissions in review-friction observation:
+// crates/kiln-observe-core/src/review.rs, crates/kiln-dashboard/src/render.rs.
+// r[impl kiln.observe.review.agent]
+// r[impl kiln.observe.review.agent.boundary]
+// r[verify kiln.observe.review.agent.boundary.scenario.authority]
+// r[verify kiln.observe.review.agent.scenario.count]
+// r[verify kiln.observe.review.agent.scenario.unattested]
+
+// Declared agent harness aggregation in review friction:
+// crates/kiln-observe-core/src/review.rs, crates/kiln-dashboard/src/render.rs.
+// r[impl kiln.observe.review.agent.harness]
+// r[impl kiln.observe.review.agent.harness.boundary]
+// r[verify kiln.observe.review.agent.harness.boundary.scenario.authority]
+// r[verify kiln.observe.review.agent.harness.scenario.count]
+// r[verify kiln.observe.review.agent.harness.scenario.missing]
+
+// Agent declaration on the admitted session principal:
+// crates/kiln-web-service/src/access.rs, crates/kiln-web-service/src/server.rs.
+// r[impl kiln.access.agent.session]
+// r[verify kiln.access.agent.session.scenario.agent]
+// r[verify kiln.access.agent.session.scenario.human]
+// r[impl kiln.access.agent.session.surface]
+// r[verify kiln.access.agent.session.surface.scenario.label]
+
+// Anchored agent-thread outcomes:
+// crates/kiln-core/src/change_review.rs, crates/kiln-web-service/src/code_review/outcome_tests.rs.
+// r[impl kiln.review.agent.outcomes]
+
+// Agent vote policy admission and effect:
+// crates/kiln-core/src/change_review.rs, crates/kiln-web-service/tests/code_review.rs.
+// r[impl kiln.review.agent.profile]
+// r[verify kiln.review.agent.profile.scenario.unknown]
+// r[impl kiln.review.agent.votes]
+// r[verify kiln.review.agent.votes.scenario.advisory]
+// r[verify kiln.review.agent.votes.scenario.binding]
+// r[verify kiln.review.agent.votes.scenario.veto]
+
+// Attested agent metadata on revisions and review surfaces:
+// crates/kiln-core/src/change_review.rs, crates/kiln-web-service/src/code_review/commands.rs.
+// r[impl kiln.review.agent.metadata]
+// r[verify kiln.review.agent.metadata.scenario.attest]
+// r[verify kiln.review.agent.metadata.scenario.conflict]
+// r[verify kiln.review.agent.metadata.scenario.invalid]
+// r[impl kiln.review.agent.metadata.surface]
+// r[verify kiln.review.agent.metadata.surface.scenario.display]
+
+// Advisory agent objections:
+// crates/kiln-core/src/change_review.rs, crates/kiln-web-service/tests/code_review.rs.
+// r[impl kiln.review.agent.objections]
+
+// Firecracker cache-partition declaration:
+// crates/kiln-hosted/src/execution.rs, crates/kiln-hosted/src/microvm.rs.
+// r[impl kiln.hosted.microvm.cache_partition]
+
+// Firecracker CPU affinity declaration:
+// crates/kiln-hosted/src/execution.rs, crates/kiln-hosted/src/microvm.rs.
+// r[impl kiln.hosted.microvm.cpu_affinity]
+
+// Firecracker host preflight facts:
+// crates/kiln-microvm/src, crates/kiln-hosted/src/microvm.rs.
+// r[impl kiln.hosted.microvm.host_facts]
+
+// Firecracker trust-domain placement:
+// crates/kiln-hosted/src/execution.rs, crates/kiln-hosted/src/microvm.rs.
+// r[impl kiln.hosted.microvm.trust_domain]
+
+// Host preflight receipt integration:
+// crates/kiln-hosted/src/microvm.rs, crates/kiln-hosted/src/execution.rs.
+// r[impl kiln.hosted.microvm.host_receipt]
+
+// Change-class ownership policy and classification:
+// crates/kiln-core/src/change_review.rs, crates/kiln-core/src/change_review_advisory_tests.rs.
+// r[impl kiln.review.class.authority]
+// r[verify kiln.review.class.authority.scenario.docs]
+// r[verify kiln.review.class.authority.scenario.logic]
+// r[impl kiln.review.class.policy]
+// r[verify kiln.review.class.policy.scenario.explicit]
+// r[verify kiln.review.class.policy.scenario.missing_evidence]
+// r[impl kiln.review.class.select]
+// r[verify kiln.review.class.select.scenario.rename]
+
+// Typed check evidence:
+// crates/kiln-core/src/change_review.rs, crates/kiln-web-service/src/engine/change_review.rs.
+// r[impl kiln.review.checks]
+
+// Repository feed and OPML fuzz rails:
+// crates/kiln-web-service/fuzz, crates/kiln-highlight/fuzz.
+// r[impl kiln.fuzz.feeds]
+// r[verify kiln.fuzz.feeds.smoke]
+// r[impl kiln.fuzz.highlight]
+// r[verify kiln.fuzz.highlight.smoke]
+// r[impl kiln.fuzz.nonclaims]
+
+// Patchgate atomic run receipt:
+// crates/kiln-adapter-patchgate/src/bin/kiln-patchgate-review.rs.
+// r[impl kiln.patchgate.receipt.publication]
+
+// Patchgate worker job:
+// config/patchgate-review-job.ncl, scripts/patchgate-review-job.py.
+// r[impl kiln.patchgate.worker.job]
+
+// Radicle broker patch identity:
+// crates/kiln-adapter-radicle/src/defelo.rs.
+// r[impl kiln.radicle.broker_031_wire.patch]
+
+// Lattice review workflow node:
+// crates/kiln-adapter-lattice/src/profile.rs, crates/kiln-adapter-github/src/profile.rs.
+// r[impl kiln.lattice.review_node]
+
+// Structural corpus line baseline:
+// crates/kiln-highlight/src/structural_tests.rs, crates/kiln-web-service/src/code_review/structural.rs.
+// r[impl kiln.review.structural.corpus]
+
+// Tag-bound triggers:
+// crates/kiln-core/src/trigger.rs, crates/kiln-web-service/src/engine/triggers.rs.
+// r[impl kiln.triggers.tag]
+// r[impl kiln.triggers.tag.boundary]
+// r[verify kiln.triggers.tag.boundary.scenario.bounded]
+// r[impl kiln.triggers.tag.filter]
+// r[verify kiln.triggers.tag.filter.scenario.invalid]
+// r[verify kiln.triggers.tag.scenario.dispatch]
+
+// VMM backend seam:
+// crates/kiln-microvm/src/backend.rs, crates/kiln-hosted/src/microvm.rs.
+// r[impl kiln.microvm.backend.seam]
+
+// Developer-loop worker data mount roots and read-only mounts:
+// crates/kiln-web-service/src/execution.rs, config/web-worker.ncl.
+// r[impl kiln.web.developer_loop.data_mount_roots]
+// r[impl kiln.web.developer_loop.data_mounts]
+
+// Admitted journal proof:
+// crates/kiln-dashboard/src/journal.rs, crates/kiln-dashboard/src/report.rs.
+// r[impl kiln.observe.dashboard.proof]
+// r[verify kiln.observe.dashboard.proof.scenario.construct]
+// r[verify kiln.observe.dashboard.proof.scenario.read]
+
+// Admitted Aspen profile proof:
+// crates/kiln-adapter-aspen/src/profile/mod.rs, crates/kiln-adapter-aspen/src/tests/contracts.rs.
+// r[impl kiln.aspen.proof]
+// r[verify kiln.aspen.proof.scenario.construct]
+// r[verify kiln.aspen.proof.scenario.read]
+
+// Admitted GitHub profile proof:
+// crates/kiln-adapter-github/src/profile.rs, crates/kiln-adapter-github/src/export.rs.
+// r[impl kiln.github.profile.proof]
+// r[verify kiln.github.profile.proof.scenario.construct]
+// r[verify kiln.github.profile.proof.scenario.read]
+
+// Admitted Radicle configuration proof:
+// crates/kiln-adapter-radicle/src/source/shell.rs, crates/kiln-adapter-radicle/src/profile.rs.
+// r[impl kiln.radicle.proof]
+// r[verify kiln.radicle.proof.scenario.construct]
+// r[verify kiln.radicle.proof.scenario.read]

@@ -1,0 +1,43 @@
+{
+  "schema": "kiln.web.retry-failed.verification.v1",
+  "date": "2026-11-10",
+  "issue": "https://github.com/OnixResearch/kiln/issues/43",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-web-service --test engine --offline",
+      "result": "95 passed; automatic retry pass, bound, disabled and profile-bound cases pass"
+    },
+    {
+      "command": "cargo test -p kiln-web-service --lib --offline",
+      "result": "184 passed; 1 ignored"
+    },
+    {
+      "command": "nickel typecheck config/web-service.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/web-service-retry-positive.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/negative-web-service-retry-bound.ncl",
+      "result": "rejected (retry_failed = 4 exceeds the reviewed maximum)"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/web.js",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "policy": "crates/kiln-web-service/src/profile.rs",
+    "engine": "crates/kiln-web-service/src/engine.rs, crates/kiln-web-service/src/engine/queue.rs",
+    "surface": "crates/kiln-web-service/src/engine/dashboard.rs, crates/kiln-web-service/src/web.js",
+    "tests": "crates/kiln-web-service/tests/engine/dashboard.rs"
+  },
+  "non_claims": [
+    "automatic retry does not quarantine or skip tests",
+    "a partial-node retry is not a full clean run and cannot satisfy required CI",
+    "a passing retry child never rewrites the parent outcome or grants gate, merge or release authority",
+    "cancelled, unknown and superseded runs are never retried"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "kiln.nix-build.rebuild-check.verification.v1",
+  "date": "2026-11-10",
+  "issue": "https://github.com/OnixResearch/kiln/issues/42",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-nix --offline",
+      "result": "20 passed; matched, retained difference, not-checkable, disabled-by-default and admission tests pass"
+    },
+    {
+      "command": "cargo test -p kiln-core --offline",
+      "result": "194 passed"
+    },
+    {
+      "command": "nickel typecheck config/nix-build-profile.ncl",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "observation": "crates/kiln-core/src/build.rs",
+    "adapter": "crates/kiln-adapter-nix/src/adapter.rs",
+    "profile": "crates/kiln-adapter-nix/src/profile.rs",
+    "docs": "docs/nix-build-adapter.md"
+  },
+  "non_claims": [
+    "the check means rebuilt once on this host and compared, not reproducibility",
+    "a matched check is not product correctness and a differed check is not a build failure",
+    "no other builder, host or independent rebuilder is observed",
+    "the option is not a CI gate or required check"
+  ]
+}

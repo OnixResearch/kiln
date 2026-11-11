@@ -100,3 +100,68 @@ r[kiln.dashboard.reviews.view.scenario.absent]
 - GIVEN no configured receipt directory, a run with no retained Patchgate receipt, or a directory entry that is not a valid receipt
 - WHEN an admitted reader opens the Reviews page or tab
 - THEN the view MUST report the absence or skip reason explicitly rather than implying a clean review, and unrelated reports MUST remain under the existing structured-report view
+
+### Requirement: Atomic retained receipt publication
+
+r[kiln.patchgate.receipt.publication] The operator shell MUST provide one
+reviewed `run` command that admits the exact intent, performs the isolated
+review and publishes exactly one `kiln.patchgate.review.v1` receipt at the
+declared output path without a shell redirect. Publication MUST stage in the
+destination directory, synchronize the staged bytes, rename into place and
+synchronize the directory. A symlink or non-regular destination MUST be
+rejected before staging. Command output MUST be a bounded summary and MUST NOT
+copy the private native report.
+
+#### Scenario: Receipt publication succeeds
+
+- GIVEN one admitted profile and intent and one exact isolated review result
+- WHEN `run` completes
+- THEN exactly one receipt MUST be readable at the declared output path and
+  MUST preserve the request identity, normalized decisions and verbatim native
+  report.
+
+#### Scenario: Destination is not a regular file
+
+- GIVEN a symlink or non-regular output destination
+- WHEN `run` attempts publication
+- THEN no staged receipt MAY replace that destination and the command MUST fail
+  explicitly.
+
+#### Scenario: Command output is inspected
+
+- GIVEN a successful `run`
+- WHEN its standard output is retained as worker logs
+- THEN it MUST contain only the bounded summary and MUST NOT contain the
+  private native report body.
+
+### Requirement: Run-bound reviewed worker job
+
+r[kiln.patchgate.worker.job] A reviewed worker step MUST build the review intent
+from the exact pending native inbox in its operator-provisioned local Pijul repository, invoke one atomic adapter
+`run` operation, and declare the published receipt as a `review` report for the
+run. The step MUST fail closed when the inbox is behind main, has no pending
+change, native state is unavailable, or receipt publication fails. The step MUST
+NOT accept, merge, revert, watch, or otherwise mutate source, and a missing
+report MUST remain unavailable rather than become a clean review.
+
+#### Scenario: Pending inbox change is reviewed
+
+- GIVEN a reviewed worker checkout with the job script, an accessible target
+  repository with `patchgate.json`, its policy, and one pending inbox change
+- WHEN the worker step runs
+- THEN it MUST invoke the adapter once, publish one receipt, and declare that
+  exact receipt as the run's `review` report.
+
+#### Scenario: No eligible change or broken inputs
+
+- GIVEN an inaccessible target, an inbox behind main, an empty inbox, unavailable
+  native state, a failed adapter process, or a rejected output destination
+- WHEN the worker step runs
+- THEN it MUST exit nonzero and MUST NOT upload an approving or empty report.
+
+#### Scenario: Uploaded receipt is inspected
+
+- GIVEN a run with the declared receipt uploaded
+- WHEN the Reviews surface admits it
+- THEN the receipt MUST retain its exact request, decisions, and native report
+  identity while granting no review, merge, gate, or release authority.

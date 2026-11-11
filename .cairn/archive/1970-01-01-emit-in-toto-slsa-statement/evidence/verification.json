@@ -1,0 +1,32 @@
+{
+  "schema": "kiln.in-toto-slsa.statement.verification.v1",
+  "date": "2026-11-10",
+  "issue": "https://github.com/OnixResearch/kiln/issues/41",
+  "commands": [
+    {
+      "command": "cargo check -p kiln-core --offline",
+      "result": "pass"
+    },
+    {
+      "command": "cargo test -p kiln-core --offline",
+      "result": "194 passed; golden statement, attempt refusal, order independence, empty subjects, digest-key collision and role separation tests pass"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/web.js",
+      "result": "pass"
+    },
+    {
+      "command": "cairn traceability coverage --root .",
+      "result": "1576/1576 referenced (profile cairn-default)"
+    }
+  ],
+  "artifacts": {
+    "golden_statement": "crates/kiln-core/testdata/slsa-provenance-statement.json",
+    "mapping": "crates/kiln-core/src/interchange.rs"
+  },
+  "non_claims": [
+    "an emitted statement is unsigned identity evidence, not a SLSA build level",
+    "schema validity and any later signature are not builder, signer, gate, merge or release authority",
+    "DSSE signing with an operator key is not implemented by this change"
+  ]
+}
