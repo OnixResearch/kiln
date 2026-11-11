@@ -555,6 +555,14 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     else {
         return fail("source-status work identity is not current");
     };
+    let attempt = match implementer.attempt(&plan.attempt) {
+        Ok(Some(attempt)) => attempt,
+        Ok(None) => return fail("source-status attempt is not retained"),
+        Err(error) => return fail(&error),
+    };
+    if kiln_core::implementation::admit_source_status_plan(&work, &attempt, &plan).is_err() {
+        return fail("source-status plan is not admissible for the current publication state");
+    }
     let client = match kiln_adapter_github::source_status::GithubSourceStatusClient::new(
         token, timeout_ms,
     ) {

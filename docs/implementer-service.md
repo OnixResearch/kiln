@@ -103,7 +103,9 @@ reviews and base evidence, performs one guarded merge-commit landing, reads back
 the merge commit/base head, and records the exact integration receipt.
 `close-source --source-plan FILE --secret-file FILE [--timeout-ms N]` closes the
 exact integrated issue and records the observed closed state; it does not edit
-other issue fields or run Cairn lifecycle operations.
+other issue fields or run Cairn lifecycle operations. The plan is re-admitted
+before the remote call, so a source cannot be re-closed after reconciliation
+under the same plan.
 Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice
