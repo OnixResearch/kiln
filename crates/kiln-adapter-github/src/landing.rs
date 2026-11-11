@@ -370,6 +370,12 @@ impl GithubLandingClient {
             "{}/repos/{}/{}/commits/{}/check-runs?per_page={MAX_CHECKS}",
             self.endpoint, plan.owner, plan.repository, plan.head_sha
         ))?;
+        if checks.total_count != checks.check_runs.len() || checks.total_count > MAX_CHECKS {
+            return Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_landing_checks_pagination".to_string(),
+                message: "landing check evidence is incomplete across pages".to_string(),
+            }));
+        }
         let reviews: Vec<RawReview> = self.get_json_without_next(&format!(
             "{}/repos/{}/{}/pulls/{}/reviews?per_page={MAX_CHECKS}",
             self.endpoint, plan.owner, plan.repository, plan.pull_number
@@ -966,6 +972,23 @@ mod tests {
         assert_eq!(receipt.merge_commit, "c".repeat(40));
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert!(requests.iter().all(|request| request.starts_with("GET ")));
+    }
+
+    #[test]
+    // r[verify kiln.github.landing]
+    fn refuses_incomplete_check_counts() {
+        let incomplete = serde_json::json!({
+            "total_count": 3,
+            "check_runs": [
+                {"name": "build", "head_sha": "a".repeat(40), "status": "completed", "conclusion": "success"},
+                {"name": "test", "head_sha": "a".repeat(40), "status": "completed", "conclusion": "success"}
+            ]
+        })
+        .to_string();
+        let (endpoint, _server) = serve(vec![("200 OK", pull_body()), ("200 OK", incomplete)]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.observe(&plan()).is_err());
     }
 
     #[test]
