@@ -46,6 +46,8 @@ let Profile = {
     | Exact [
       { name = "out", path = "/nix/store/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-example" },
     ],
+  # Opt-in bounded `nix-store --realise --check`; omitted means disabled.
+  rebuild_check | Bool | optional,
   limits
     | {
       max_required_products | Positive,

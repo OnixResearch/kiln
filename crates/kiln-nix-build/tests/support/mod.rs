@@ -130,5 +130,6 @@ pub fn config() -> NixBuildProfileConfig {
         expected_outputs: profile.runtime.expected_outputs.clone(),
         limits: profile.limits,
         required_non_claims: profile.required_non_claims.clone(),
+        rebuild_check: false,
     }
 }

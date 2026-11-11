@@ -702,6 +702,7 @@ mod observation_tests {
             cache_source_identity: None,
             log_identities: Vec::new(),
             metrics: Vec::new(),
+            rebuild: Vec::new(),
             receipt_identity: Some(content('9')),
         };
         let paths = BTreeMap::from([("out".to_owned(), path)]);

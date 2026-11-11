@@ -90,6 +90,13 @@ pub trait NixBuildRuntime {
     ) -> PortResult<Option<BuildInputObservation>> {
         Ok(None)
     }
+
+    /// Whether an exact path entry exists, without following it. The default
+    /// reports absence so runtimes that cannot observe paths never claim a
+    /// retained rebuild output.
+    fn path_exists(&self, _path: &Path) -> PortResult<bool> {
+        Ok(false)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -148,6 +155,24 @@ impl NixBuildRuntime for BoundedNixBuildRuntime {
         kiln_nix_store::nar::input_facts(path, bounds)
             .map(Some)
             .map_err(PortFailure::Domain)
+    }
+
+    fn path_exists(&self, path: &Path) -> PortResult<bool> {
+        if !path.is_absolute() {
+            return Err(domain(
+                "nix_path_bound",
+                "nix.path",
+                "Nix path observation needs an absolute path",
+            ));
+        }
+        match fs::symlink_metadata(path) {
+            Ok(_) => Ok(true),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(_) => Err(infrastructure(
+                "nix_path_observation",
+                "Nix path existence could not be observed",
+            )),
+        }
     }
 }
 

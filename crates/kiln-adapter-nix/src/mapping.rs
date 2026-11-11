@@ -262,6 +262,7 @@ fn observation(
         cache_source_identity: None,
         log_identities: vec![log_identity],
         metrics: Vec::new(),
+        rebuild: Vec::new(),
         receipt_identity,
     };
     admit_build_evaluation(plan, &observation)?;

@@ -774,6 +774,7 @@ pub(crate) mod tests {
             cache_source_identity: None,
             log_identities: Vec::new(),
             metrics: Vec::new(),
+            rebuild: Vec::new(),
             receipt_identity: Some(content('a')),
         };
         let worker = WorkerResult {

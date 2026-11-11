@@ -111,6 +111,9 @@ pub struct NixBuildProfileConfig {
     pub store_identity: ContentId,
     pub expected_outputs: Vec<NixOutputBinding>,
     pub limits: NixBuildLimits,
+    /// Opt-in bounded `nix-store --realise --check` after a successful build.
+    #[serde(default)]
+    pub rebuild_check: bool,
     pub required_non_claims: Vec<String>,
 }
 
@@ -164,6 +167,7 @@ impl NixBuildProfileConfig {
         profile.native_report_schema = self.native_report_schema;
         profile.command = self.command;
         profile.platform = self.platform;
+        profile.rebuild_check = self.rebuild_check;
         profile.required_non_claims = self.required_non_claims;
         admit_profile(&profile)?;
         Ok(profile)
@@ -189,6 +193,8 @@ pub struct NixBuildProfile {
     pub provider: CapabilityProfile,
     pub runtime: NixRuntimeBinding,
     pub limits: NixBuildLimits,
+    /// Opt-in bounded rebuild check after a successful realisation.
+    pub rebuild_check: bool,
     pub required_non_claims: Vec<String>,
 }
 
@@ -225,6 +231,7 @@ impl NixBuildProfile {
             },
             runtime,
             limits,
+            rebuild_check: false,
             required_non_claims: REQUIRED_NON_CLAIMS
                 .iter()
                 .map(|value| (*value).to_string())

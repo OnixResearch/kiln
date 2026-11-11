@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
 #[cfg(feature = "nix-live")]
 use std::sync::Arc;
@@ -9,7 +9,8 @@ use std::thread;
 use std::time::Duration;
 
 use kiln_core::build::{
-    BuildEffectPlan, BuildEvaluationOutcome, BuildLogReadRequest, admit_build_evaluation,
+    BuildEffectPlan, BuildEvaluationOutcome, BuildLogReadRequest, RebuildCheck,
+    admit_build_evaluation,
 };
 use kiln_core::types::{
     Alias, AttemptId, CandidateId, ContentId, Diagnostic, EffectId, PipelineRevisionId,
@@ -176,6 +177,7 @@ struct FakeRuntime {
     runs: usize,
     derivation_bytes: Option<Vec<u8>>,
     store_facts: bool,
+    retained: BTreeSet<PathBuf>,
 }
 
 impl FakeRuntime {
@@ -195,6 +197,7 @@ impl FakeRuntime {
             runs: 0,
             derivation_bytes: None,
             store_facts: false,
+            retained: BTreeSet::new(),
         }
     }
 
@@ -261,6 +264,10 @@ impl NixBuildRuntime for FakeRuntime {
         _bounds: NarBounds,
     ) -> PortResult<Option<kiln_core::build::BuildInputObservation>> {
         Ok(None)
+    }
+
+    fn path_exists(&self, path: &Path) -> PortResult<bool> {
+        Ok(self.retained.contains(path))
     }
 
     fn read_link(&self, path: &Path) -> PortResult<PathBuf> {
@@ -348,6 +355,7 @@ fn flat_profile_config_is_admitted() {
         store_identity: profile.runtime.store_identity.clone(),
         expected_outputs: profile.runtime.expected_outputs.clone(),
         limits: profile.limits,
+        rebuild_check: false,
         required_non_claims: profile.required_non_claims.clone(),
     };
     let built = config.into_profile().unwrap_or_else(|_| unreachable!());
@@ -1062,4 +1070,147 @@ fn successful_build_attaches_exact_nar_facts_when_the_runtime_observes_them() {
     assert_eq!(store.nar_sha256, "a".repeat(64));
     assert_eq!(store.nar_size, 7);
     assert_eq!(observation.constraints, None);
+}
+
+fn rebuild_profile() -> NixBuildProfile {
+    let mut profile = profile();
+    profile.rebuild_check = true;
+    profile
+}
+
+fn rebuild_adapter(
+    plan: &BuildEffectPlan,
+    check: NixBuildProcessOutput,
+    retained: bool,
+) -> NixBuildAdapter<FakeRuntime> {
+    let (stdout, roots) = realisation_output(&plan.effect_id, &[("out", OUT_PATH)]);
+    let mut runtime =
+        FakeRuntime::with_outputs([exited(Some(0), stdout, Vec::new()), check], roots);
+    if retained {
+        runtime
+            .retained
+            .insert(PathBuf::from(format!("{OUT_PATH}.check")));
+    }
+    adapter_with_profile_and_runtime(rebuild_profile(), runtime)
+}
+
+// r[verify kiln.nix_build.execution]
+#[test]
+fn rebuild_check_is_off_by_default_and_does_not_run_a_second_command() {
+    let plan = plan();
+    let (stdout, roots) = realisation_output(&plan.effect_id, &[("out", OUT_PATH)]);
+    let mut adapter = adapter_with_runtime(FakeRuntime::with_roots(stdout, roots));
+    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
+    assert!(observation.rebuild.is_empty());
+    assert_eq!(adapter.runtime().runs, 1);
+}
+
+// r[verify kiln.nix_build.execution]
+// r[verify kiln.nix_build.rebuild_check.scenario.matched]
+#[test]
+fn rebuild_check_records_a_matched_output_and_bounded_invocation() {
+    let plan = plan();
+    let mut adapter = rebuild_adapter(&plan, exited(Some(0), Vec::new(), Vec::new()), false);
+    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.rebuild.len(), 1);
+    let entry = observation
+        .rebuild
+        .first()
+        .unwrap_or_else(|| unreachable!("rebuild observation absent"));
+    assert_eq!(entry.output.as_str(), "out");
+    assert_eq!(entry.path, OUT_PATH);
+    assert_eq!(entry.check, RebuildCheck::Matched);
+    assert_eq!(entry.retained_path, None);
+    let check = adapter
+        .runtime()
+        .invocations
+        .last()
+        .unwrap_or_else(|| unreachable!("check invocation absent"));
+    let args: Vec<_> = check
+        .args
+        .iter()
+        .map(|arg| arg.to_str().unwrap_or_default())
+        .collect();
+    assert_eq!(args, vec!["--realise", "--check", "-K", DRV_PATH]);
+    assert_eq!(check.limits.timeout_ms, TIMEOUT_MILLISECONDS);
+    assert_eq!(check.limits.stdout_max_bytes, MAX_RESULT_BYTES);
+    assert_eq!(check.limits.stderr_max_bytes, MAX_STDERR_BYTES);
+}
+
+// r[verify kiln.nix_build.execution]
+// r[verify kiln.nix_build.rebuild_check.scenario.differed]
+#[test]
+fn rebuild_check_records_a_retained_difference_without_replacing_the_product() {
+    let plan = plan();
+    let mut adapter = rebuild_adapter(
+        &plan,
+        exited(Some(1), Vec::new(), b"output differs\n".to_vec()),
+        true,
+    );
+    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
+    let entry = observation
+        .rebuild
+        .first()
+        .unwrap_or_else(|| unreachable!("rebuild observation absent"));
+    assert_eq!(entry.check, RebuildCheck::Differed);
+    assert_eq!(
+        entry.retained_path.as_deref(),
+        Some(format!("{OUT_PATH}.check").as_str())
+    );
+    assert_eq!(
+        observation
+            .products
+            .first()
+            .map(|product| product.name.as_str()),
+        Some("out")
+    );
+}
+
+// r[verify kiln.nix_build.execution]
+// r[verify kiln.nix_build.rebuild_check.scenario.not_checkable]
+#[test]
+fn rebuild_check_without_a_retained_output_is_not_checkable() {
+    let plan = plan();
+    let mut adapter = rebuild_adapter(
+        &plan,
+        exited(
+            Some(1),
+            Vec::new(),
+            b"cannot check substituted path\n".to_vec(),
+        ),
+        false,
+    );
+    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    let entry = observation
+        .rebuild
+        .first()
+        .unwrap_or_else(|| unreachable!("rebuild observation absent"));
+    assert_eq!(entry.check, RebuildCheck::NotCheckable);
+    assert_eq!(entry.retained_path, None);
+}
+
+// r[verify kiln.nix_build.execution]
+// r[verify kiln.nix_build.rebuild_check.scenario.admission]
+#[test]
+fn rebuild_check_observation_is_admitted_only_for_exact_success_products() {
+    let plan = plan();
+    let mut adapter = rebuild_adapter(&plan, exited(Some(0), Vec::new(), Vec::new()), false);
+    let mut observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    let entry = observation
+        .rebuild
+        .first()
+        .cloned()
+        .unwrap_or_else(|| unreachable!("rebuild observation absent"));
+    let mut stale = observation.clone();
+    stale.products.clear();
+    assert!(admit_build_evaluation(&plan, &stale).is_err());
+    let mut retained = entry.clone();
+    retained.check = RebuildCheck::Matched;
+    retained.retained_path = Some(format!("{OUT_PATH}.check"));
+    observation.rebuild = vec![retained];
+    assert!(admit_build_evaluation(&plan, &observation).is_err());
+    observation.rebuild = vec![entry];
+    assert!(admit_build_evaluation(&plan, &observation).is_ok());
 }

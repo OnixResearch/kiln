@@ -6,7 +6,8 @@ use std::sync::atomic::AtomicBool;
 use bounded_exec::ExecutionLimits;
 use kiln_core::build::{
     BuildEffectPlan, BuildEvaluationObservation, BuildEvaluationOutcome, BuildInputObservation,
-    BuildLogChunk, BuildLogReadRequest, BuildStoreObjectObservation, admit_build_evaluation,
+    BuildLogChunk, BuildLogReadRequest, BuildRebuildObservation, BuildStoreObjectObservation,
+    RebuildCheck, admit_build_evaluation,
 };
 use kiln_core::types::{ContentId, Diagnostic, EffectId};
 use kiln_nix_store::derivation::{DerivationBounds, ExpectedOutput, admit};
@@ -233,7 +234,7 @@ impl<R: NixBuildRuntime> NixBuildAdapter<R> {
             &request,
             output,
             &gc_root,
-            &self.runtime,
+            &mut self.runtime,
         )?;
         admit_build_evaluation(plan, &normalized.observation)?;
         let observation = normalized.observation.clone();
@@ -499,7 +500,7 @@ fn interpret_output<R: NixBuildRuntime>(
     request: &BuildRequest,
     output: NixBuildProcessOutput,
     gc_root: &std::path::Path,
-    runtime: &R,
+    runtime: &mut R,
 ) -> PortResult<NormalizedBuild> {
     match output {
         NixBuildProcessOutput::Exited {
@@ -556,6 +557,9 @@ fn interpret_output<R: NixBuildRuntime>(
                 &realisations,
                 &mut normalized.observation,
             )?;
+            if profile.rebuild_check {
+                attach_rebuild_check(profile, runtime, &mut normalized.observation);
+            }
             admit_build_evaluation(plan, &normalized.observation)?;
             Ok(normalized)
         }
@@ -746,6 +750,97 @@ fn invocation(profile: &NixBuildProfile, gc_root: &std::path::Path) -> ProcessIn
             poll_interval_ms: profile.limits.poll_interval_milliseconds,
             teardown_timeout_ms: profile.limits.teardown_timeout_milliseconds,
         },
+    }
+}
+
+fn check_invocation(profile: &NixBuildProfile) -> ProcessInvocation {
+    ProcessInvocation {
+        program: profile.runtime.nix_store_executable_path.clone(),
+        args: vec![
+            OsString::from("--realise"),
+            OsString::from("--check"),
+            // Keep a differing rebuild beside the realised output instead of
+            // discarding it; the build's own roots and outputs are untouched.
+            OsString::from("-K"),
+            profile.runtime.derivation_path.clone().into_os_string(),
+        ],
+        current_dir: profile.runtime.home_base.clone(),
+        environment: vec![
+            (
+                OsString::from("HOME"),
+                profile.runtime.home_base.clone().into_os_string(),
+            ),
+            (
+                OsString::from("NIX_CONF_DIR"),
+                profile.runtime.home_base.clone().into_os_string(),
+            ),
+            (
+                OsString::from("NIX_CONFIG"),
+                OsString::from(PINNED_NIX_CONFIG),
+            ),
+        ],
+        limits: ExecutionLimits {
+            timeout_ms: profile.limits.timeout_milliseconds,
+            stdin_max_bytes: profile.limits.stdin_max_bytes,
+            stdout_max_bytes: profile.limits.max_result_bytes,
+            stderr_max_bytes: profile.limits.max_stderr_bytes,
+            poll_interval_ms: profile.limits.poll_interval_milliseconds,
+            teardown_timeout_ms: profile.limits.teardown_timeout_milliseconds,
+        },
+    }
+}
+
+/// Observe one bounded `--check` comparison per realised output.
+///
+/// This is an observation over an already successful build. A refused,
+/// timed-out, cancelled, output-limited or ambiguous check is `not_checkable`;
+/// it never rewrites the build outcome, products, or GC roots.
+// r[impl kiln.nix_build.rebuild_check]
+fn attach_rebuild_check<R: NixBuildRuntime>(
+    profile: &NixBuildProfile,
+    runtime: &mut R,
+    observation: &mut BuildEvaluationObservation,
+) {
+    let (status, log) = match runtime.run(&check_invocation(profile)) {
+        Ok(NixBuildProcessOutput::Exited {
+            process_status,
+            stdout,
+            stderr,
+        }) => (process_status, [stdout, stderr].concat()),
+        Ok(NixBuildProcessOutput::TimedOut { stdout, stderr })
+        | Ok(NixBuildProcessOutput::Cancelled { stdout, stderr })
+        | Ok(NixBuildProcessOutput::OutputLimitExceeded { stdout, stderr }) => {
+            (None, [stdout, stderr].concat())
+        }
+        Ok(NixBuildProcessOutput::Unknown) | Err(_) => (None, Vec::new()),
+    };
+    let log_identity = match log_identity(&log) {
+        Ok(identity) => identity,
+        Err(_) => return,
+    };
+    for expected in &profile.runtime.expected_outputs {
+        let Some(path) = expected.path.to_str() else {
+            observation.rebuild.clear();
+            return;
+        };
+        let retained = format!("{path}.check");
+        let (check, retained_path) = if status == Some(0) {
+            (RebuildCheck::Matched, None)
+        } else if matches!(
+            runtime.path_exists(std::path::Path::new(&retained)),
+            Ok(true)
+        ) {
+            (RebuildCheck::Differed, Some(retained))
+        } else {
+            (RebuildCheck::NotCheckable, None)
+        };
+        observation.rebuild.push(BuildRebuildObservation {
+            output: expected.name.clone(),
+            path: path.to_owned(),
+            check,
+            retained_path,
+            log_identity: log_identity.clone(),
+        });
     }
 }
 

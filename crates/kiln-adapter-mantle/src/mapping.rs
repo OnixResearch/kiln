@@ -1021,6 +1021,7 @@ fn core_observation(
                 })
             })
             .collect::<PortResult<Vec<_>>>()?,
+        rebuild: Vec::new(),
         receipt_identity: contract
             .receipt_identity
             .as_ref()

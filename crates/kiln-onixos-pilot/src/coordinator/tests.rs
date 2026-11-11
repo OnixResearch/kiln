@@ -183,6 +183,7 @@ fn fixture() -> Result<(PilotProfile, SignedRequest, WorkerResult)> {
         cache_source_identity: None,
         log_identities: Vec::new(),
         metrics: Vec::new(),
+        rebuild: Vec::new(),
         receipt_identity: Some(content("receipt")?),
     };
     let worker = WorkerResult {

@@ -243,6 +243,38 @@ longer match `pkgs.nix`. Refresh the Rust constants, the Nickel profile, the
 documentation, and the evidence together; never update only one surface. The
 cohort check is the guard, and the live rail must be rerun after the refresh.
 
+## Rebuild check
+
+`rebuild_check = true` is an explicitly reviewed, off-by-default profile option.
+After the exact admitted `.drv` is realised and its outputs are rooted, the
+adapter runs one more bounded command:
+
+```text
+nix-store --realise --check -K DERIVATION
+```
+
+The check uses the build's timeout, stdin, stdout, stderr, poll-interval and
+teardown limits. `-K` keeps a differing rebuild beside the realised output; the
+observation never replaces the build's products or GC roots.
+
+Each expected output gets one typed observation:
+
+- `matched` — the rebuild compared equal to the stored output;
+- `differed` — the rebuild differed and Nix retained `<path>.check`, which is
+  recorded as `retained_path`;
+- `not_checkable` — no comparison was possible, for example a substituted or
+  fixed-output path, or a refused, timed-out, cancelled, output-limited or
+  ambiguous check. This is neither a match nor a difference.
+
+Every observation carries the exact output name and path plus the BLAKE3
+identity of the bounded check log. A check failure never rewrites the successful
+build outcome, and a check that cannot run is not reported as a difference.
+
+The honest wording is: **rebuilt once on this host, matched or differed**. This
+is not a reproducibility claim, a gate, required CI, or a statement about other
+builders, hosts, or independent rebuilders. Diffoscope integration is not part
+of this option; retain a differing output and compare it outside Kiln.
+
 ## Non-claims
 
 Passing these checks proves only that this adapter, exact executable, exact

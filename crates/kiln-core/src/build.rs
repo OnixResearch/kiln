@@ -105,6 +105,36 @@ pub enum BuildCacheKind {
     Substitution,
 }
 
+/// Result of one reviewed rebuild check against a realised output.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RebuildCheck {
+    /// The check rebuilt the output and compared it equal to the stored copy.
+    Matched,
+    /// The check produced a different output; no product or root is replaced.
+    Differed,
+    /// The check could not compare this output, for example a substituted or
+    /// fixed-output path. This is not a match and not a difference.
+    NotCheckable,
+}
+
+/// Bounded per-output rebuild observation. It proves only that this host
+/// rebuilt the exact output once and compared it; it is not a reproducibility,
+/// builder-independence or release claim.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BuildRebuildObservation {
+    pub output: Alias,
+    /// Exact realised output path that was checked.
+    pub path: String,
+    pub check: RebuildCheck,
+    /// Differing output retained by `nix-store --realise --check -K`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retained_path: Option<String>,
+    /// BLAKE3 over the bounded check log for this attempt.
+    pub log_identity: ContentId,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BuildMetricObservation {
     pub name: Alias,
@@ -146,6 +176,9 @@ pub struct BuildEvaluationObservation {
     pub cache_source_identity: Option<ContentId>,
     pub log_identities: Vec<ContentId>,
     pub metrics: Vec<BuildMetricObservation>,
+    /// Reviewed `--check` rebuild observations; absent when the option is off.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rebuild: Vec<BuildRebuildObservation>,
     pub receipt_identity: Option<ContentId>,
 }
 
@@ -358,6 +391,59 @@ fn validate_inputs(observation: &BuildEvaluationObservation) -> CoreResult<()> {
 }
 
 // r[impl kiln.mantle.completion]
+fn validate_rebuild(observation: &BuildEvaluationObservation) -> CoreResult<()> {
+    if observation.rebuild.is_empty() {
+        return Ok(());
+    }
+    if observation.outcome != BuildEvaluationOutcome::Success {
+        return Err(Diagnostic::new(
+            "build_rebuild_outcome",
+            "build.observation.rebuild",
+            "rebuild observations require a successful build",
+        ));
+    }
+    if observation.rebuild.len() > observation.products.len() {
+        return Err(Diagnostic::new(
+            "build_rebuild_bound",
+            "build.observation.rebuild",
+            "rebuild observations exceed the product bound",
+        ));
+    }
+    let mut outputs = alloc::collections::BTreeSet::new();
+    for entry in &observation.rebuild {
+        if !absolute_path_text(&entry.path)
+            || !observation
+                .products
+                .iter()
+                .any(|product| product.name == entry.output)
+            || !outputs.insert(entry.output.as_str())
+        {
+            return Err(Diagnostic::new(
+                "build_rebuild_identity",
+                "build.observation.rebuild",
+                "rebuild observation does not name one exact product path",
+            ));
+        }
+        match (entry.check, entry.retained_path.as_deref()) {
+            (RebuildCheck::Differed, Some(retained)) if absolute_path_text(retained) => {}
+            (RebuildCheck::Differed, None)
+            | (RebuildCheck::Matched | RebuildCheck::NotCheckable, None) => {}
+            _ => {
+                return Err(Diagnostic::new(
+                    "build_rebuild_retained_path",
+                    "build.observation.rebuild",
+                    "only a differing rebuild may retain an exact output path",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn absolute_path_text(path: &str) -> bool {
+    path.starts_with('/') && !path.chars().any(char::is_control)
+}
+
 pub fn admit_build_evaluation(
     plan: &BuildEffectPlan,
     observation: &BuildEvaluationObservation,
@@ -388,6 +474,7 @@ pub fn admit_build_evaluation(
     if let Some(constraints) = &observation.constraints {
         validate_build_constraints(constraints)?;
     }
+    validate_rebuild(observation)?;
     validate_inputs(observation)?;
     for product in &observation.products {
         if let Some(store) = &product.store {
@@ -501,6 +588,7 @@ mod tests {
             cache_source_identity: None,
             log_identities: Vec::new(),
             metrics: Vec::new(),
+            rebuild: Vec::new(),
             receipt_identity: Some(content('9')),
         }
     }
