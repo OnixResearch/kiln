@@ -145,6 +145,49 @@ fn concurrent_schedulers_obtain_one_claim() {
     assert_eq!(outcomes.iter().filter(|claimed| **claimed).count(), 1);
 }
 
+// r[verify kiln.implementation.durable_store.scenario.concurrent]
+#[test]
+fn concurrent_schedulers_claim_independent_work() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = Arc::new(directory.path().join("implementation.db"));
+    let first = work();
+    let mut second = work();
+    second.title = "Second durable implementation work".to_string();
+    second.priority = 2;
+    second.aliases[0].source =
+        ExternalRef::new("github", "issue", "onix/kiln#46").unwrap_or_else(|_| unreachable!());
+    second.aliases[0].native_id = "onix/kiln#46".to_string();
+    second.aliases[0].version = content('2');
+    let mut implementer = open(path.as_path());
+    implementer
+        .admit(&first, None)
+        .unwrap_or_else(|_| unreachable!());
+    implementer
+        .admit(&second, None)
+        .unwrap_or_else(|_| unreachable!());
+    drop(implementer);
+    let outcomes: Vec<Option<ContentId>> = std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..2)
+            .map(|_| {
+                let path = Arc::clone(&path);
+                scope.spawn(move || {
+                    let mut implementer = open(path.as_path());
+                    implementer
+                        .claim_next(0, LEASE)
+                        .unwrap_or_else(|_| unreachable!())
+                        .map(|attempt| attempt.work_identity)
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap_or_else(|_| unreachable!()))
+            .collect()
+    });
+    assert!(outcomes.iter().all(Option::is_some));
+    assert_ne!(outcomes[0], outcomes[1]);
+}
+
 // r[verify kiln.implementation.recovery.scenario.restart]
 #[test]
 fn stale_fence_is_refused_after_restart_and_replacement() {
