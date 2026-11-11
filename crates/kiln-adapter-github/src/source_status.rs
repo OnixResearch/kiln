@@ -429,6 +429,22 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.github.source_status]
+    fn observes_a_closed_source_without_mutation() {
+        let (endpoint, server) = serve(vec![("200 OK", "{\"state\":\"closed\"}".to_string())]);
+        let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            client
+                .observe(&plan())
+                .unwrap_or_else(|error| unreachable!("{error:?}")),
+            "closed"
+        );
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert_eq!(requests.len(), 1);
+    }
+
+    #[test]
     // r[verify kiln.github.source_status] r[verify kiln.github.source_status.scenario.closed]
     fn already_closed_issue_is_idempotent() {
         let (endpoint, server) = serve(vec![("200 OK", "{\"state\":\"closed\"}".to_string())]);
