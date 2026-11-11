@@ -41,15 +41,21 @@ kiln-implementer reserve-plan --database /var/lib/kiln/work.sqlite \
   --enrollment /etc/kiln/enrollment.json \
   --plan-file /etc/kiln/dispatch-plan.json
 
-kiln-implementer start --database /var/lib/kiln/work.sqlite \
+kiln-lattice-dispatch \
+  --database /var/lib/kiln/work.sqlite \
   --enrollment /etc/kiln/enrollment.json \
-  --attempt ATTEMPT_ID --fence FENCE \
-  --workflow-kind run --workflow-id RUN_ID
+  --dispatch-plan /etc/kiln/dispatch-plan.json \
+  --request /etc/kiln/lattice-request.json \
+  --lattice-profile /etc/kiln/lattice-profile.json \
+  --transport-profile /etc/kiln/lattice-transport.json \
+  --socket /run/lattice/workflow.sock \
+  --maximum-records 8
 ```
 
-`start` records an externally observed Lattice workflow. For an ambiguous
-dispatch, use `reconcile` with the same workflow identity; do not submit a
-second execution.
+The request/profile are operator-admitted Lattice inputs; Kiln binds them to the
+reservation and records the accepted execution. For an external or ambiguous
+dispatch, use `kiln-implementer start`/`reconcile` with the observed workflow
+identity; do not submit a second execution.
 
 ## 3. Candidate handoff and verification
 

@@ -713,6 +713,11 @@
           program = "${packageFor system}/bin/kiln-implementer";
           meta.description = "Drain authenticated GitHub issues into admitted implementation work";
         };
+        kiln-lattice-dispatch = {
+          type = "app";
+          program = "${packageFor system}/bin/kiln-lattice-dispatch";
+          meta.description = "Dispatch one reserved implementation attempt to an admitted Lattice request";
+        };
         kiln-cairn-intake = {
           type = "app";
           program = "${kilnCairnIntakePackageFor system}/bin/kiln-cairn-intake";
