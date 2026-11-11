@@ -105,7 +105,8 @@ the merge commit/base head, and records the exact integration receipt.
 exact integrated issue and records the observed closed state; it does not edit
 other issue fields or run Cairn lifecycle operations. The plan is re-admitted
 before the remote call, so a source cannot be re-closed after reconciliation
-under the same plan.
+under the same plan; an already source-reconciled attempt returns the retained
+state without another remote call.
 Claim and reservation commands are an operator/worker handoff only. `verify`,
 `prepare-publication`, `publish`, `land` and `close-source` perform only their
 named evidence admission or external effects; none dispatches an implementation

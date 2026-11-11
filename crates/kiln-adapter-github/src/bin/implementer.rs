@@ -560,6 +560,12 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(None) => return fail("source-status attempt is not retained"),
         Err(error) => return fail(&error),
     };
+    if attempt.publication.as_ref().is_some_and(|publication| {
+        publication.phase == kiln_core::implementation::PublicationPhase::SourceReconciled
+    }) {
+        println!("{{\"source_status\":\"retained\"}}");
+        return Ok(());
+    }
     if kiln_core::implementation::admit_source_status_plan(&work, &attempt, &plan).is_err() {
         return fail("source-status plan is not admissible for the current publication state");
     }
