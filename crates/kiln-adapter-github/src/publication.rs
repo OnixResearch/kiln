@@ -461,10 +461,6 @@ struct RawHead {
     sha: String,
 }
 #[derive(Deserialize)]
-struct RawUser {
-    login: String,
-}
-#[derive(Deserialize)]
 struct RawBase {
     #[serde(rename = "ref")]
     r#ref: String,
