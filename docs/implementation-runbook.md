@@ -105,7 +105,8 @@ kiln-implementer close-source --database /var/lib/kiln/work.sqlite \
 Only an integrated, exact GitHub issue may be closed. Already closed or
 source-reconciled work is idempotent; no issue comments or Cairn lifecycle
 operations are performed. Use `source-status` with the same plan for a read-only
-comparison of retained and observed issue state.
+comparison of retained and observed issue state; `--require-match true` makes a
+mismatch an error.
 
 ## Boundaries
 

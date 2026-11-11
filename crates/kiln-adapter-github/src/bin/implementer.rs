@@ -673,6 +673,13 @@ fn source_status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         serde_json::to_string(&receipt.state).unwrap_or_else(|_| "\"\"".to_string()),
         serde_json::to_string(&observed).unwrap_or_else(|_| "\"\"".to_string())
     );
+    if !matches
+        && flags
+            .get("--require-match")
+            .is_some_and(|value| matches!(value.as_str(), "true" | "1"))
+    {
+        return fail("source state differs from the reconciled receipt");
+    }
     Ok(())
 }
 
