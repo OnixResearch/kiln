@@ -628,4 +628,11 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         .unwrap_or_else(|_| unreachable!())
         .unwrap_or_else(|| unreachable!("publication"));
     assert_eq!(stored.phase, PublicationPhase::SourceReconciled);
+    assert!(
+        implementer
+            .claim_next(11, LEASE)
+            .unwrap_or_else(|_| unreachable!())
+            .is_none(),
+        "verified work must not be reclaimed"
+    );
 }
