@@ -1,0 +1,37 @@
+{
+  "schema": "kiln.implementer-nickel-config.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "nickel typecheck config/implementer-policy.ncl config/implementer-enrollment.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/implementer-policy-positive.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/implementer-enrollment-positive.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "nickel export config/fixtures/negative-implementer-policy-absolute.ncl",
+      "result": "rejected"
+    },
+    {
+      "command": "nickel export config/fixtures/negative-implementer-enrollment-empty.ncl",
+      "result": "rejected"
+    }
+  ],
+  "artifacts": {
+    "policy": "config/implementer-policy.ncl",
+    "enrollment": "config/implementer-enrollment.ncl",
+    "fixtures": "config/fixtures/implementer-*.ncl",
+    "docs": "docs/implementer-service.md"
+  },
+  "non_claims": [
+    "configuration export does not admit or execute work",
+    "Rust admission remains authoritative over exported JSON"
+  ]
+}

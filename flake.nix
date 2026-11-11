@@ -1601,6 +1601,17 @@
             nickel typecheck config/github-contracts.ncl
             nickel typecheck config/github-ci.ncl
             nickel typecheck config/github-job.ncl
+            # r[impl kiln.implementation.nickel_config] r[verify kiln.implementation.nickel_config.scenario.export] r[verify kiln.implementation.nickel_config.scenario.reject]
+            nickel typecheck config/implementer-policy.ncl
+            nickel typecheck config/implementer-enrollment.ncl
+            nickel export config/fixtures/implementer-policy-positive.ncl >/dev/null
+            nickel export config/fixtures/implementer-enrollment-positive.ncl >/dev/null
+            for fixture in config/fixtures/negative-implementer-*.ncl; do
+              if nickel export "$fixture" >/dev/null 2>&1; then
+                echo "negative implementer policy fixture passed: $fixture" >&2
+                exit 1
+              fi
+            done
             nickel typecheck config/gitea-contracts.ncl
             nickel typecheck config/gitea-ci.ncl
             nickel typecheck config/gitea-job.ncl

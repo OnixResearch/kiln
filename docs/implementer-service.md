@@ -50,6 +50,12 @@ kiln-implementer status --database /var/lib/kiln/work.sqlite \
 attempt and active counts. Both require absolute paths. The secret file is read
 as exact bytes. Neither command claims or dispatches.
 
+Author the policy and enrollment with the typed Nickel builders
+`config/implementer-policy.ncl` and `config/implementer-enrollment.ncl` (see the
+positive fixtures), then export JSON for the commands. The builders bound
+acceptance obligations, paths, effects, budget, terminal policy, and unique
+non-empty repositories/actors.
+
 ## Ownership
 
 | Concern | Owner | Status |
