@@ -10,6 +10,10 @@
 //! pure deterministic function of the admitted ledger, so replay produces the
 //! same work versions and ordering.
 
+pub mod attempt;
+
+pub use attempt::*;
+
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;

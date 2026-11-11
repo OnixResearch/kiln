@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.implementation-attempt-state.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline",
+      "result": "207 passed; thirteen implementation-work and attempt tests pass"
+    },
+    {
+      "command": "cargo test -p kiln-core --offline implementation::attempt",
+      "result": "7 passed; racing claim, stale fence, lease expiry, dispatch reconciliation, restart budget, cancellation and supersession"
+    },
+    {
+      "command": "cargo clippy -p kiln-core --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-core",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "state_machine": "crates/kiln-core/src/implementation/attempt.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "the ledger does not execute or cancel a Lattice workflow",
+    "no worker route, workspace, candidate acceptance or publication is added",
+    "persistence is serializable state only; a durable shell still needs wiring",
+    "Lattice attempt/cancellation routes (#6-#8) remain prerequisites for live dispatch"
+  ]
+}

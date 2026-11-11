@@ -43,6 +43,32 @@ Archive readiness is deliberately absent. An implementation-ready Cairn task
 can be admitted while archive readiness is false, and an archived or deleted
 change never proves implementation completion.
 
+## Implementation attempts
+
+`kiln-core` also owns the global claim over admitted work. `AttemptLedger`
+admits at most one current attempt per canonical work key, freezes the work
+identity/revision/ordinal and reviewed budget, and assigns a monotonic fence.
+Every candidate and later request must present the current unexpired fence; a
+stale worker cannot register or publish after a lease expires and a replacement
+claims the work.
+
+Claims carry bounded leases. Expiry blocks the attempt with `lease_expired`,
+revokes its fence and consumes the budget; a replacement may claim only while
+the lineage still has attempts. Dispatch reconciliation accepts exactly one
+observed workflow run: an absent record is filled, an equal observation is
+idempotent, and a conflicting run is refused instead of redispatched.
+
+States are persisted with structured causes: claimed, executing,
+candidate-produced, verifying, blocked, failed, cancelled and superseded.
+Implementation, infrastructure and unknown failure classes stay distinct.
+Supersession applies `AbortActive` (revoke the attempt) or `FinishActive` (let it
+finish and record the newer revision) without mutating the frozen contract. The
+ledger serializes, so attempt lineage and consumed budget survive restart.
+
+This is the Kiln-owned state machine only. It does not execute a Lattice
+workflow, cancel a run, create a workspace, verify a candidate, or publish. The
+Lattice implementation route and worker contract remain external work.
+
 ## GitHub issue intake
 
 `kiln-adapter-github` admits authenticated `issues` deliveries through
