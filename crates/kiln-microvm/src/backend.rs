@@ -156,7 +156,7 @@ pub struct ColdBootPaths<'a> {
     pub vsock: &'a str,
 }
 
-/// Exact phase-1 Cloud Hypervisor argv. No `--net`, no API socket, and the
+/// Exact per-job Cloud Hypervisor argv. No `--net`, no API socket, and the
 /// source disk is read-only. The caller supplies the reviewed binary path.
 pub fn cloud_hypervisor_cold_boot(
     binary: &str,
@@ -212,7 +212,7 @@ pub fn cloud_hypervisor_snapshot_requests(state: &str) -> Vec<ApiRequest> {
     ]
 }
 
-/// Exact phase-1 Cloud Hypervisor restore argv. Restores paused; the caller
+/// Exact per-job Cloud Hypervisor restore argv. Restores paused; the caller
 /// resumes only after the confinement observation.
 pub fn cloud_hypervisor_restore(binary: &str, state: &str, api_socket: &str) -> Vec<String> {
     vec![
