@@ -27,6 +27,7 @@ pub struct PublicationOutcome {
     pub pull_request: ExternalRef,
     pub number: u64,
     pub html_url: String,
+    pub merged: bool,
 }
 
 pub struct GithubPublicationClient {
@@ -198,19 +199,27 @@ impl GithubPublicationClient {
             }));
         }
         let mut pulls: Vec<RawPull> = self.decode(response)?;
-        pulls.retain(|pull| {
-            pull.head.r#ref == plan.branch
-                && pull.base.r#ref == plan.base_branch
-                && pull.state == "open"
-        });
-        if pulls.len() > 1 {
+        pulls.retain(|pull| pull.head.r#ref == plan.branch && pull.base.r#ref == plan.base_branch);
+        let mut open: Vec<&RawPull> = pulls
+            .iter()
+            .filter(|pull| pull.state == "open" && !pull.merged)
+            .collect();
+        let mut merged: Vec<&RawPull> = pulls.iter().filter(|pull| pull.merged).collect();
+        if open.len() > 1 || merged.len() > 1 {
             return Err(PortFailure::Unknown(InfrastructureFailure {
                 code: "github_publication_ambiguous".to_string(),
                 message: "more than one matching pull request exists".to_string(),
             }));
         }
-        if let Some(pull) = pulls.first() {
+        if let Some(pull) = open.pop().or_else(|| merged.pop()) {
             return outcome(plan, pull);
+        }
+        if pulls.iter().any(|pull| pull.state == "closed") {
+            return Err(domain(
+                "github_publication_pr_closed",
+                "publication.pull_request",
+                "an unmerged closed pull request already exists for this candidate",
+            ));
         }
         let body = serde_json::json!({
             "title": plan.title,
@@ -360,7 +369,7 @@ fn has_next_link(link: Option<&str>) -> PortResult<bool> {
 fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutcome> {
     if pull.head.sha != plan.candidate.native_id.as_str()
         || pull.base.r#ref != plan.base_branch
-        || pull.state != "open"
+        || !(pull.state == "open" || (pull.state == "closed" && pull.merged))
     {
         return Err(domain(
             "github_publication_pr_conflict",
@@ -377,6 +386,7 @@ fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutc
         )?,
         number: pull.number,
         html_url: pull.html_url.clone(),
+        merged: pull.merged,
     })
 }
 
@@ -450,6 +460,7 @@ struct RawObject {
 struct RawPull {
     number: u64,
     state: String,
+    merged: bool,
     html_url: String,
     head: RawHead,
     base: RawBase,
@@ -568,6 +579,7 @@ mod tests {
         serde_json::json!({
             "number": number,
             "state": "open",
+            "merged": false,
             "html_url": format!("https://github.com/octocat/hello-world/pull/{number}"),
             "head": {"ref": "kiln/impl-demo", "sha": head, "user": {"login": "octocat"}},
             "base": {"ref": "main"}
@@ -630,6 +642,44 @@ mod tests {
         assert_eq!(outcome.number, 9);
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert!(requests.iter().all(|request| request.starts_with("GET ")));
+    }
+
+    #[test]
+    // r[verify kiln.github.publication.scenario.existing]
+    fn reuses_a_merged_pull_request_and_refuses_a_closed_unmerged_one() {
+        let merged = serde_json::json!([{
+            "number": 9,
+            "state": "closed",
+            "merged": true,
+            "html_url": "https://github.com/octocat/hello-world/pull/9",
+            "head": {"ref": "kiln/impl-demo", "sha": "a".repeat(40)},
+            "base": {"ref": "main"}
+        }])
+        .to_string();
+        let (endpoint, server) = serve(vec![("200 OK", merged)]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        let outcome = client
+            .ensure_pull_request(&plan())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(outcome.merged);
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert_eq!(requests.len(), 1);
+
+        let closed = serde_json::json!([{
+            "number": 9,
+            "state": "closed",
+            "merged": false,
+            "html_url": "https://github.com/octocat/hello-world/pull/9",
+            "head": {"ref": "kiln/impl-demo", "sha": "a".repeat(40)},
+            "base": {"ref": "main"}
+        }])
+        .to_string();
+        let (endpoint, server) = serve(vec![("200 OK", closed)]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.ensure_pull_request(&plan()).is_err());
+        let _ = server.join();
     }
 
     #[test]

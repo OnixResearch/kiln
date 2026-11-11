@@ -13,9 +13,9 @@ for an already prepared publication plan.
   candidate head; ambiguous matches are refused.
 - A candidate branch is read first. If it is absent it is created at the exact
   verified candidate; if present it must already point at that candidate.
-- Pull requests are reconciled by exact head branch, base branch and open state.
-  Zero matches creates one; one exact match is reused; more than one or a
-  different head is refused.
+- Pull requests are reconciled across open and closed states by exact head/base.
+  Zero matches creates one; one open or merged match is reused; more than one
+  match or a closed-unmerged match is refused rather than creating a duplicate.
 - The operator shell records the observed branch/PR identities in order on the
   verified attempt.
 

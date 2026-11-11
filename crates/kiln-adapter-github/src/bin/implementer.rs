@@ -379,10 +379,11 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         return fail(&error);
     }
     println!(
-        "{{\"branch_head\":\"{}\",\"pull_request\":\"{}\",\"number\":{},\"html_url\":{}}}",
+        "{{\"branch_head\":\"{}\",\"pull_request\":\"{}\",\"number\":{},\"merged\":{},\"html_url\":{}}}",
         outcome.branch_head.native_id.as_str(),
         outcome.pull_request.native_id.as_str(),
         outcome.number,
+        outcome.merged,
         serde_json::to_string(&outcome.html_url).unwrap_or_else(|_| "\"\"".to_string())
     );
     Ok(())
