@@ -184,8 +184,10 @@ fn concurrent_schedulers_claim_independent_work() {
             .map(|handle| handle.join().unwrap_or_else(|_| unreachable!()))
             .collect()
     });
-    assert!(outcomes.iter().all(Option::is_some));
-    assert_ne!(outcomes[0], outcomes[1]);
+    assert!(matches!(
+        outcomes.as_slice(),
+        [Some(first), Some(second)] if first != second
+    ));
 }
 
 // r[verify kiln.implementation.recovery.scenario.restart]
