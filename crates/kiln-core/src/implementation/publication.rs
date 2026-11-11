@@ -68,8 +68,8 @@ pub struct PublicationRecord {
 pub fn branch_for(work: &ContentId, attempt: &ContentId) -> String {
     format!(
         "kiln/impl-{}-{}",
-        work.as_str().chars().take(12).collect::<String>(),
-        attempt.as_str().chars().take(12).collect::<String>()
+        work.as_str().chars().take(16).collect::<String>(),
+        attempt.as_str().chars().take(16).collect::<String>()
     )
 }
 

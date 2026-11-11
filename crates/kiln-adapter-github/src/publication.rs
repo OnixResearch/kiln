@@ -112,6 +112,10 @@ impl GithubPublicationClient {
     /// Ensure the exact candidate branch exists at the candidate commit.
     // r[impl kiln.github.publication]
     pub fn ensure_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
+        self.ensure_branch_at(plan, 0)
+    }
+
+    fn ensure_branch_at(&self, plan: &PublicationPlan, retries: u8) -> PortResult<ExternalRef> {
         let (owner, repository) = repository_parts(&plan.repository)?;
         let path = format!(
             "{}/repos/{owner}/{repository}/git/ref/heads/{}",
@@ -130,12 +134,12 @@ impl GithubPublicationClient {
                 }
                 commit_ref(&raw.object.sha)
             }
-            Err(HttpError::Status(404)) => self.create_branch(plan),
+            Err(HttpError::Status(404)) => self.create_branch(plan, retries),
             Err(error) => Err(error.into_failure()),
         }
     }
 
-    fn create_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
+    fn create_branch(&self, plan: &PublicationPlan, retries: u8) -> PortResult<ExternalRef> {
         let (owner, repository) = repository_parts(&plan.repository)?;
         let body = serde_json::json!({
             "ref": format!("refs/heads/{}", plan.branch),
@@ -156,7 +160,11 @@ impl GithubPublicationClient {
                 }
                 commit_ref(&raw.object.sha)
             }
-            Err(HttpError::Status(422 | 409)) => self.ensure_branch(plan),
+            Err(HttpError::Status(422 | 409)) if retries == 0 => self.ensure_branch_at(plan, 1),
+            Err(HttpError::Status(422 | 409)) => Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_publication_branch_race".to_string(),
+                message: "branch creation raced and remained unreconciled".to_string(),
+            })),
             Err(error) => Err(error.into_failure()),
         }
     }
@@ -164,6 +172,14 @@ impl GithubPublicationClient {
     /// Ensure exactly one open PR exists for the candidate branch and base.
     // r[impl kiln.github.publication]
     pub fn ensure_pull_request(&self, plan: &PublicationPlan) -> PortResult<PublicationOutcome> {
+        self.ensure_pull_request_at(plan, 0)
+    }
+
+    fn ensure_pull_request_at(
+        &self,
+        plan: &PublicationPlan,
+        retries: u8,
+    ) -> PortResult<PublicationOutcome> {
         let (owner, repository) = repository_parts(&plan.repository)?;
         let list = format!(
             "{}/repos/{owner}/{repository}/pulls?state=open&head={}:{}&base={}&per_page=100",
@@ -173,6 +189,12 @@ impl GithubPublicationClient {
             encode(&plan.base_branch)
         );
         let response = self.get(&list).map_err(HttpError::into_failure)?;
+        if has_next_link(response.header("link"))? {
+            return Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_publication_pr_pagination".to_string(),
+                message: "pull request reconciliation is incomplete across pages".to_string(),
+            }));
+        }
         let mut pulls: Vec<RawPull> = self.decode(response)?;
         pulls.retain(|pull| {
             pull.head.r#ref == plan.branch
@@ -203,7 +225,13 @@ impl GithubPublicationClient {
                 let pull: RawPull = self.decode(response)?;
                 outcome(plan, &pull)
             }
-            Err(HttpError::Status(422 | 409)) => self.ensure_pull_request(plan),
+            Err(HttpError::Status(422 | 409)) if retries == 0 => {
+                self.ensure_pull_request_at(plan, 1)
+            }
+            Err(HttpError::Status(422 | 409)) => Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_publication_pr_race".to_string(),
+                message: "pull request creation raced and remained unreconciled".to_string(),
+            })),
             Err(error) => Err(error.into_failure()),
         }
     }
@@ -282,10 +310,33 @@ fn repository_parts(repository: &str) -> PortResult<(&str, &str)> {
     Ok((owner, name))
 }
 
+fn has_next_link(link: Option<&str>) -> PortResult<bool> {
+    let Some(link) = link else {
+        return Ok(false);
+    };
+    if link.len() > 2048 || link.chars().any(char::is_control) {
+        return Err(domain(
+            "github_publication_link",
+            "publication.link",
+            "GitHub publication Link header is malformed or oversized",
+        ));
+    }
+    if link.contains("rel=\"next\"") {
+        return Ok(true);
+    }
+    Ok(false)
+}
+
 fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutcome> {
     if pull.head.sha != plan.candidate.native_id.as_str()
         || pull.base.r#ref != plan.base_branch
         || pull.state != "open"
+        || !pull.head.user.login.eq_ignore_ascii_case(
+            plan.repository
+                .split_once('/')
+                .map(|(owner, _)| owner)
+                .unwrap_or(&plan.repository),
+        )
     {
         return Err(domain(
             "github_publication_pr_conflict",
@@ -384,6 +435,11 @@ struct RawHead {
     #[serde(rename = "ref")]
     r#ref: String,
     sha: String,
+    user: RawUser,
+}
+#[derive(Deserialize)]
+struct RawUser {
+    login: String,
 }
 #[derive(Deserialize)]
 struct RawBase {
@@ -494,7 +550,7 @@ mod tests {
             "number": number,
             "state": "open",
             "html_url": format!("https://github.com/octocat/hello-world/pull/{number}"),
-            "head": {"ref": "kiln/impl-demo", "sha": head},
+            "head": {"ref": "kiln/impl-demo", "sha": head, "user": {"login": "octocat"}},
             "base": {"ref": "main"}
         })
     }
