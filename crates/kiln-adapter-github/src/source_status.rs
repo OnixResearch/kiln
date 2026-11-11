@@ -234,7 +234,9 @@ impl GithubSourceStatusClient {
 }
 
 fn issue_parts(plan: &SourceStatusPlan) -> PortResult<(&str, &str, u64)> {
-    if plan.source.source.provider_namespace.as_str() != "github" {
+    if plan.source.source.provider_namespace.as_str() != "github"
+        || plan.source.source.native_kind.as_str() != "issue"
+    {
         return Err(domain(
             "github_source_namespace",
             "source.namespace",

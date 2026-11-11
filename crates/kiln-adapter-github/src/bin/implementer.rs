@@ -337,7 +337,12 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     if record.plan != plan {
         return fail("publication file differs from the prepared plan");
     }
-    if record.phase == kiln_core::implementation::PublicationPhase::PullRequestPublished {
+    if matches!(
+        record.phase,
+        kiln_core::implementation::PublicationPhase::PullRequestPublished
+            | kiln_core::implementation::PublicationPhase::Integrated
+            | kiln_core::implementation::PublicationPhase::SourceReconciled
+    ) {
         println!(
             "{{\"pull_request\":\"{}\"}}",
             record

@@ -20,7 +20,8 @@ for an already prepared publication plan.
   verified attempt.
 
 The client never force-pushes, updates an existing branch, merges, lands,
-approves or mutates issue/PR status.
+approves or mutates issue/PR status. A rerun after integration or source
+reconciliation returns the retained PR instead of creating a second one.
 
 ## Non-claims
 

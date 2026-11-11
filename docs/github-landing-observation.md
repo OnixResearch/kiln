@@ -23,7 +23,8 @@ merged at the exact head/base and the base head equals the merge commit. A
 timeout or ambiguous response is reconciled by the same read-back; a lost effect
 with no observable merge commit remains `Unknown`. A rerun first checks whether
 the PR is already merged at the exact candidate/base and, when it is, returns the
-existing receipt without another merge request. The method is not exposed as
+existing receipt without another merge request. A rerun after source
+reconciliation returns the retained integration receipt. The method is not exposed as
 an operator command and does not close issues or mutate source status.
 
 This strategy uses GitHub's head SHA condition only. It does **not** make the
