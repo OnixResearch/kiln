@@ -72,7 +72,8 @@ require the reservation, fill the single observed workflow run, accept an equal
 observation idempotently, and refuse a conflicting run instead of redispatching.
 
 States are persisted with structured causes: claimed, executing,
-candidate-produced, verifying, blocked, failed, cancelled and superseded.
+candidate-produced, verifying, verified, blocked, failed, cancelled and
+superseded.
 Implementation, infrastructure and unknown failure classes stay distinct.
 Supersession applies `AbortActive` (revoke the attempt) or `FinishActive` (let it
 finish and record the newer revision) without mutating the frozen contract. The
@@ -81,6 +82,20 @@ ledger serializes, so attempt lineage and consumed budget survive restart.
 This is the Kiln-owned state machine only. It does not execute a Lattice
 workflow, cancel a run, create a workspace, verify a candidate, or publish. The
 Lattice implementation route and worker contract remain external work.
+
+## Candidate verification
+
+`CandidateVerification` admits a retained canonical `CiFact` for the exact
+candidate handoff. It binds the handoff identity, work/version, attempt/fence,
+candidate and tree, base, verification profile and the exact run revision.
+Admission requires a terminal, successful, clean full run with no untrusted
+projection and nonempty unique checks that all pass. Repeating an equal receipt
+is idempotent; partial, failed, stale or differently bound evidence is refused.
+Acceptance moves the attempt to the terminal `verified` state; it does not
+execute checks, create CI facts or publish anything.
+
+`kiln-implementer verify --verification-file FILE` records the receipt against
+the retained handoff and current work/attempt.
 
 ## Candidate handoff
 

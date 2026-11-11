@@ -90,6 +90,8 @@ admits a complete candidate handoff and moves the attempt to
 `candidate-produced`; it does not verify or accept the candidate.
 `metrics --attempt ID [--usage-file FILE] [--record true]` previews or retains
 the default-off attempt metrics receipt; missing usage stays explicitly absent.
+`verify --verification-file FILE` admits retained canonical CI evidence for the
+exact candidate handoff and moves the attempt to `verified`; it does not run CI.
 Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice

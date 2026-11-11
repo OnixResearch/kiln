@@ -18,8 +18,8 @@ use std::time::Duration;
 
 use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
-    DispatchReservation, Enrollment, ImplementationAttempt, ImplementationDispatchPlan,
-    ImplementationWork, SourceMapping, WorkLedger,
+    CandidateVerification, DispatchReservation, Enrollment, ImplementationAttempt,
+    ImplementationDispatchPlan, ImplementationWork, SourceMapping, WorkLedger,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -223,6 +223,27 @@ impl Implementer {
         self.with_ledgers(|_, attempts| {
             attempts.admit_candidate_handoff(work, identity, fence, now_ms, handoff)
         })
+    }
+
+    pub fn record_verification(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        handoff: &CandidateHandoff,
+        verification: &CandidateVerification,
+    ) -> Result<ContentId, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_verification(work, identity, fence, now_ms, handoff, verification)
+        })
+    }
+
+    pub fn verification_receipt(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<CandidateVerification>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.verification_receipt(identity).cloned()))
     }
 
     pub fn candidate_handoff(

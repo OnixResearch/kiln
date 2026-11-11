@@ -32,6 +32,7 @@ pub enum AttemptPhase {
     Executing,
     CandidateProduced,
     Verifying,
+    Verified,
     Blocked,
     Failed,
     Cancelled,
@@ -51,7 +52,7 @@ impl AttemptPhase {
     pub const fn is_terminal(self) -> bool {
         matches!(
             self,
-            Self::Blocked | Self::Failed | Self::Cancelled | Self::Superseded
+            Self::Verified | Self::Blocked | Self::Failed | Self::Cancelled | Self::Superseded
         )
     }
 }
@@ -152,6 +153,9 @@ pub struct ImplementationAttempt {
     /// Complete candidate handoff admitted from host-derived facts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handoff: Option<super::CandidateHandoff>,
+    /// Admitted independent verification evidence for the candidate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verification: Option<super::CandidateVerification>,
     /// Opt-in metrics receipt; absent unless explicitly recorded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metrics: Option<super::AttemptMetrics>,
@@ -263,6 +267,7 @@ impl AttemptLedger {
             workflow: None,
             candidate: None,
             handoff: None,
+            verification: None,
             metrics: None,
             failure: None,
             cause: None,
@@ -583,6 +588,72 @@ impl AttemptLedger {
         attempt.candidate = Some(candidate.clone());
         attempt.phase = AttemptPhase::CandidateProduced;
         Ok(())
+    }
+
+    /// Record independent verification evidence and complete the attempt.
+    ///
+    /// The receipt must bind the retained handoff and exact canonical CI run.
+    /// Repeating an equal receipt is idempotent; a different receipt is refused.
+    // r[impl kiln.implementation.verification]
+    pub fn record_verification(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        handoff: &super::CandidateHandoff,
+        verification: &super::CandidateVerification,
+    ) -> CoreResult<ContentId> {
+        let existing = self.authorized(identity, fence, now_ms)?;
+        if let Some(existing) = &existing.verification {
+            if existing == verification {
+                let attempt = self.authorized(identity, fence, now_ms)?;
+                return super::admit_candidate_verification(work, attempt, handoff, verification);
+            }
+            return Err(refusal(
+                "implementation_verification_conflict",
+                "attempt.verification",
+                "attempt already retains different verification evidence",
+            ));
+        }
+        self.require_phase(identity, fence, now_ms, &[AttemptPhase::Verifying])?;
+        let stored = self.candidate_handoff(identity).ok_or_else(|| {
+            refusal(
+                "implementation_candidate_handoff_missing",
+                "attempt.handoff",
+                "verification requires the retained candidate handoff",
+            )
+        })?;
+        if stored != handoff {
+            return Err(refusal(
+                "implementation_candidate_handoff",
+                "attempt.handoff",
+                "verification handoff differs from the retained handoff",
+            ));
+        }
+        let digest = {
+            let attempt = self.authorized(identity, fence, now_ms)?;
+            super::admit_candidate_verification(work, attempt, handoff, verification)?
+        };
+        let canonical_key = {
+            let attempt = self.attempt_mut(identity)?;
+            attempt.verification = Some(verification.clone());
+            attempt.phase = AttemptPhase::Verified;
+            attempt.ended_at_ms = Some(now_ms);
+            attempt.canonical_key.clone()
+        };
+        self.clear_current(&canonical_key);
+        Ok(digest)
+    }
+
+    /// Read the retained verification evidence for one attempt.
+    #[must_use]
+    pub fn verification_receipt(
+        &self,
+        identity: &ContentId,
+    ) -> Option<&super::CandidateVerification> {
+        self.get(identity)
+            .and_then(|attempt| attempt.verification.as_ref())
     }
 
     /// Begin independent verification of the produced candidate.

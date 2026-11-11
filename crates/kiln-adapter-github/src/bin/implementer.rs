@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -60,6 +60,7 @@ fn run() -> Result<(), ()> {
         "start" => start(&flags),
         "reconcile" => reconcile(&flags),
         "handoff" => handoff(&flags),
+        "verify" => verify(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
@@ -349,6 +350,56 @@ fn reconcile(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     match implementer.reconcile_dispatch(&identity, fence, wall_clock_ms(), &workflow) {
         Ok(()) => {
             println!("{{\"reconciled\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.verification]
+fn verify(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let verification_file = match required_path(flags, "--verification-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let verification: kiln_core::implementation::CandidateVerification =
+        match read_json(&verification_file) {
+            Ok(verification) => verification,
+            Err(error) => return fail(&error),
+        };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == verification.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("verification work identity is not current");
+    };
+    let handoff = match implementer.candidate_handoff(&verification.attempt) {
+        Ok(Some(handoff)) => handoff,
+        Ok(None) => return fail("candidate handoff is not retained"),
+        Err(error) => return fail(&error),
+    };
+    match implementer.record_verification(
+        &work,
+        &verification.attempt,
+        verification.fence,
+        wall_clock_ms(),
+        &handoff,
+        &verification,
+    ) {
+        Ok(identity) => {
+            println!("{{\"verified\":\"{}\"}}", identity.as_str());
             Ok(())
         }
         Err(error) => fail(&error),
