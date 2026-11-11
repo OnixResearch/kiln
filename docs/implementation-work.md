@@ -97,7 +97,9 @@ order. The branch head and PR head must remain the exact verified candidate; a
 different or out-of-order observation is refused. Remote publication itself is a separate provider effect. `IntegrationReceipt`
 records the independently read-back merge commit and base head for an exact
 published PR, moving the publication record to `integrated`. Source-status
-reconciliation remains a separate effect.
+reconciliation is a separate effect: a `SourceStatusPlan` may close the exact
+GitHub issue only after an integrated publication, and a `SourceStatusReceipt`
+retains the observed closed state.
 
 ## Candidate verification
 

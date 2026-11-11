@@ -100,8 +100,10 @@ pushes, updates an existing branch, merges or lands.
 `land --publication-file FILE --landing-plan FILE --secret-file FILE
 [--timeout-ms N]` requires an exact matching published PR, re-admits checks,
 reviews and base evidence, performs one guarded merge-commit landing, reads back
-the merge commit/base head, and records the exact integration receipt. It does
-not close the source issue or update source status.
+the merge commit/base head, and records the exact integration receipt.
+`close-source --source-plan FILE --secret-file FILE [--timeout-ms N]` closes the
+exact integrated issue and records the observed closed state; it does not edit
+other issue fields or run Cairn lifecycle operations.
 Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice

@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -64,6 +64,7 @@ fn run() -> Result<(), ()> {
         "prepare-publication" => prepare_publication(&flags),
         "publish" => publish(&flags),
         "land" => land(&flags),
+        "close-source" => close_source(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
@@ -499,6 +500,79 @@ fn land(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     match implementer.record_integration(&work, &plan.attempt, plan.fence, &receipt) {
         Ok(identity) => {
             println!("{{\"integration\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.source_status] r[impl kiln.github.source_status]
+fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let plan_file = match required_path(flags, "--source-plan") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let plan: kiln_core::implementation::SourceStatusPlan = match read_json(&plan_file) {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let token = match std::fs::read(&secret_file) {
+        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
+            Ok(token) => token,
+            Err(_) => return fail("secret file is not a valid GitHub token"),
+        },
+        Err(_) => return fail("secret file is unreadable"),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("source-status work identity is not current");
+    };
+    let client = match kiln_adapter_github::source_status::GithubSourceStatusClient::new(
+        token, timeout_ms,
+    ) {
+        Ok(client) => client,
+        Err(_) => return fail("source-status transport configuration is invalid"),
+    };
+    let state = match client.close(&plan) {
+        Ok(state) => state,
+        Err(error) => return fail(&format!("{error:?}")),
+    };
+    let receipt = kiln_core::implementation::SourceStatusReceipt {
+        schema: kiln_core::implementation::SOURCE_STATUS_SCHEMA.to_string(),
+        work_identity: plan.work_identity.clone(),
+        work_revision: plan.work_revision,
+        attempt: plan.attempt.clone(),
+        fence: plan.fence,
+        integration: plan.integration.clone(),
+        source: plan.source.clone(),
+        state,
+    };
+    match implementer.record_source_status(&work, &plan.attempt, plan.fence, &plan, &receipt) {
+        Ok(identity) => {
+            println!("{{\"source_status\":\"{}\"}}", identity.as_str());
             Ok(())
         }
         Err(error) => fail(&error),

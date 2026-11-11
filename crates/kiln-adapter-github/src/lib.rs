@@ -11,6 +11,7 @@ pub mod replay;
 pub mod secret;
 pub mod server;
 pub mod service;
+pub mod source_status;
 pub mod status;
 
 use kiln_core::types::Diagnostic;

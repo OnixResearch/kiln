@@ -20,7 +20,7 @@ use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
     CandidateVerification, DispatchReservation, Enrollment, ImplementationAttempt,
     ImplementationDispatchPlan, ImplementationWork, IntegrationReceipt, PublicationPlan,
-    PublicationRecord, SourceMapping, WorkLedger,
+    PublicationRecord, SourceMapping, SourceStatusPlan, SourceStatusReceipt, WorkLedger,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -262,6 +262,26 @@ impl Implementer {
         identity: &ContentId,
     ) -> Result<Option<IntegrationReceipt>, String> {
         self.with_ledgers(|_, attempts| Ok(attempts.integration_receipt(identity).cloned()))
+    }
+
+    pub fn record_source_status(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        plan: &SourceStatusPlan,
+        receipt: &SourceStatusReceipt,
+    ) -> Result<ContentId, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_source_status(work, identity, fence, plan, receipt)
+        })
+    }
+
+    pub fn source_status_receipt(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<SourceStatusReceipt>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.source_status_receipt(identity).cloned()))
     }
 
     pub fn record_branch_published(

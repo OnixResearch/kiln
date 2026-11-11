@@ -22,6 +22,7 @@ pub const MAX_BRANCH_BYTES: usize = 128;
 pub const MAX_TITLE_BYTES: usize = 256;
 pub const MAX_BODY_BYTES: usize = 16_384;
 pub const INTEGRATION_SCHEMA: &str = "kiln.implementation-integration.v1";
+pub const SOURCE_STATUS_SCHEMA: &str = "kiln.implementation-source-status.v1";
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -51,6 +52,7 @@ pub enum PublicationPhase {
     BranchPublished,
     PullRequestPublished,
     Integrated,
+    SourceReconciled,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -65,6 +67,40 @@ pub struct PublicationRecord {
     pub pull_request: Option<ExternalRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub integration: Option<IntegrationReceipt>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_status: Option<SourceStatusReceipt>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceAction {
+    Close,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourceStatusPlan {
+    pub schema: String,
+    pub work_identity: ContentId,
+    pub work_revision: u64,
+    pub attempt: ContentId,
+    pub fence: u64,
+    pub integration: ContentId,
+    pub source: super::SourceRef,
+    pub action: SourceAction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourceStatusReceipt {
+    pub schema: String,
+    pub work_identity: ContentId,
+    pub work_revision: u64,
+    pub attempt: ContentId,
+    pub fence: u64,
+    pub integration: ContentId,
+    pub source: super::SourceRef,
+    pub state: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -182,7 +218,12 @@ pub fn admit_integration(
         )
     })?;
     if attempt.phase != super::AttemptPhase::Verified
-        || record.phase != PublicationPhase::PullRequestPublished
+        || !matches!(
+            record.phase,
+            PublicationPhase::PullRequestPublished | PublicationPhase::Integrated
+        )
+        || (record.phase == PublicationPhase::Integrated
+            && record.integration.as_ref() != Some(receipt))
         || receipt.schema != INTEGRATION_SCHEMA
         || receipt.work_identity != work.identity()?
         || receipt.work_revision != work.revision
@@ -235,6 +276,107 @@ fn commit_identity(reference: &ExternalRef) -> bool {
             .as_str()
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Admit a source-status close plan for an exactly integrated publication.
+// r[impl kiln.implementation.source_status]
+pub fn admit_source_status_plan(
+    work: &ImplementationWork,
+    attempt: &super::ImplementationAttempt,
+    plan: &SourceStatusPlan,
+) -> CoreResult<ContentId> {
+    let record = attempt.publication.as_ref().ok_or_else(|| {
+        refusal(
+            "implementation_source_status_publication",
+            "source.plan",
+            "source status requires a retained publication",
+        )
+    })?;
+    let integration = record.integration.as_ref().ok_or_else(|| {
+        refusal(
+            "implementation_source_status_integration",
+            "source.plan",
+            "source status requires a retained integration receipt",
+        )
+    })?;
+    let integration_identity = admit_integration(work, attempt, record, integration)?;
+    if record.phase != PublicationPhase::Integrated
+        || plan.schema != SOURCE_STATUS_SCHEMA
+        || plan.work_identity != work.identity()?
+        || plan.work_revision != work.revision
+        || plan.attempt != attempt.identity
+        || plan.fence != attempt.fence
+        || plan.integration != integration_identity
+        || plan.action != SourceAction::Close
+        || !work.aliases.iter().any(|alias| alias == &plan.source)
+        || plan.source.kind != super::WorkSourceKind::GitHubIssue
+    {
+        return Err(refusal(
+            "implementation_source_status_plan",
+            "source.plan",
+            "source status plan does not bind the exact integrated work and source",
+        ));
+    }
+    let mut bytes = Vec::new();
+    push_str(&mut bytes, SOURCE_STATUS_SCHEMA)?;
+    for value in [
+        plan.work_identity.as_str(),
+        plan.attempt.as_str(),
+        plan.integration.as_str(),
+    ] {
+        push_str(&mut bytes, value)?;
+    }
+    bytes.extend_from_slice(&plan.work_revision.to_be_bytes());
+    bytes.extend_from_slice(&plan.fence.to_be_bytes());
+    push_str(&mut bytes, plan.source.kind.as_str())?;
+    push_external(&mut bytes, &plan.source.source)?;
+    push_str(&mut bytes, &plan.source.native_id)?;
+    push_str(&mut bytes, plan.source.version.as_str())?;
+    content_identity(&bytes)
+}
+
+/// Admit the independently observed closed source state.
+// r[impl kiln.implementation.source_status]
+pub fn admit_source_status_receipt(
+    work: &ImplementationWork,
+    attempt: &super::ImplementationAttempt,
+    plan: &SourceStatusPlan,
+    receipt: &SourceStatusReceipt,
+) -> CoreResult<ContentId> {
+    let plan_identity = admit_source_status_plan(work, attempt, plan)?;
+    if receipt.schema != SOURCE_STATUS_SCHEMA
+        || receipt.work_identity != plan.work_identity
+        || receipt.work_revision != plan.work_revision
+        || receipt.attempt != plan.attempt
+        || receipt.fence != plan.fence
+        || receipt.integration != plan.integration
+        || receipt.source != plan.source
+        || receipt.state != "closed"
+    {
+        return Err(refusal(
+            "implementation_source_status_receipt",
+            "source.receipt",
+            "source status receipt does not bind the exact close plan",
+        ));
+    }
+    let mut bytes = Vec::new();
+    push_str(&mut bytes, SOURCE_STATUS_SCHEMA)?;
+    for value in [
+        plan_identity.as_str(),
+        receipt.work_identity.as_str(),
+        receipt.attempt.as_str(),
+        receipt.integration.as_str(),
+        receipt.state.as_str(),
+    ] {
+        push_str(&mut bytes, value)?;
+    }
+    bytes.extend_from_slice(&receipt.work_revision.to_be_bytes());
+    bytes.extend_from_slice(&receipt.fence.to_be_bytes());
+    push_str(&mut bytes, receipt.source.kind.as_str())?;
+    push_external(&mut bytes, &receipt.source.source)?;
+    push_str(&mut bytes, &receipt.source.native_id)?;
+    push_str(&mut bytes, receipt.source.version.as_str())?;
+    content_identity(&bytes)
 }
 
 fn push_external(bytes: &mut Vec<u8>, external: &ExternalRef) -> CoreResult<()> {
@@ -542,6 +684,85 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.source_status] r[verify kiln.implementation.source_status.scenario.close] r[verify kiln.implementation.source_status.scenario.refused]
+    fn admits_source_close_only_after_integration() {
+        let work = work();
+        let mut attempt = make_attempt(&work);
+        let plan = make_plan(&work, &attempt);
+        let pull_request = ExternalRef::new("github", "pull_request", "octocat/hello-world#9")
+            .unwrap_or_else(|_| unreachable!());
+        let merge_commit =
+            ExternalRef::new("git", "commit", &"c".repeat(40)).unwrap_or_else(|_| unreachable!());
+        let integration = IntegrationReceipt {
+            schema: INTEGRATION_SCHEMA.to_string(),
+            work_identity: plan.work_identity.clone(),
+            work_revision: plan.work_revision,
+            attempt: plan.attempt.clone(),
+            fence: plan.fence,
+            handoff: plan.handoff.clone(),
+            verification: plan.verification.clone(),
+            candidate: plan.candidate.clone(),
+            pull_request: pull_request.clone(),
+            merge_commit: merge_commit.clone(),
+            base_ref: plan.base_branch.clone(),
+            base_head: merge_commit,
+        };
+        attempt.publication = Some(PublicationRecord {
+            schema: PUBLICATION_SCHEMA.to_string(),
+            plan: plan.clone(),
+            phase: PublicationPhase::Integrated,
+            remote_head: Some(plan.candidate.clone()),
+            pull_request: Some(pull_request),
+            integration: Some(integration.clone()),
+            source_status: None,
+        });
+        let integration_identity = admit_integration(
+            &work,
+            &attempt,
+            attempt
+                .publication
+                .as_ref()
+                .unwrap_or_else(|| unreachable!()),
+            &integration,
+        )
+        .unwrap_or_else(|_| unreachable!());
+        let source = work
+            .aliases
+            .first()
+            .cloned()
+            .unwrap_or_else(|| unreachable!());
+        let source_plan = SourceStatusPlan {
+            schema: SOURCE_STATUS_SCHEMA.to_string(),
+            work_identity: plan.work_identity,
+            work_revision: plan.work_revision,
+            attempt: plan.attempt,
+            fence: plan.fence,
+            integration: integration_identity,
+            source: source.clone(),
+            action: SourceAction::Close,
+        };
+        assert!(admit_source_status_plan(&work, &attempt, &source_plan).is_ok());
+        let receipt = SourceStatusReceipt {
+            schema: SOURCE_STATUS_SCHEMA.to_string(),
+            work_identity: source_plan.work_identity.clone(),
+            work_revision: source_plan.work_revision,
+            attempt: source_plan.attempt.clone(),
+            fence: source_plan.fence,
+            integration: source_plan.integration.clone(),
+            source,
+            state: "closed".to_string(),
+        };
+        assert!(admit_source_status_receipt(&work, &attempt, &source_plan, &receipt).is_ok());
+        let mut wrong = receipt;
+        wrong.state = "open".to_string();
+        assert!(admit_source_status_receipt(&work, &attempt, &source_plan, &wrong).is_err());
+        if let Some(publication) = &mut attempt.publication {
+            publication.phase = PublicationPhase::PullRequestPublished;
+        }
+        assert!(admit_source_status_plan(&work, &attempt, &source_plan).is_err());
+    }
+
+    #[test]
     // r[verify kiln.implementation.integration] r[verify kiln.implementation.integration.scenario.exact] r[verify kiln.implementation.integration.scenario.refused]
     fn admits_exact_integration_for_the_published_candidate() {
         let work = work();
@@ -556,6 +777,7 @@ mod tests {
             remote_head: Some(plan.candidate.clone()),
             pull_request: Some(pull_request.clone()),
             integration: None,
+            source_status: None,
         };
         let receipt = IntegrationReceipt {
             schema: INTEGRATION_SCHEMA.to_string(),

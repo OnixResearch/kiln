@@ -628,6 +628,7 @@ impl AttemptLedger {
             remote_head: None,
             pull_request: None,
             integration: None,
+            source_status: None,
         });
         Ok(digest)
     }
@@ -765,6 +766,60 @@ impl AttemptLedger {
     pub fn integration_receipt(&self, identity: &ContentId) -> Option<&super::IntegrationReceipt> {
         self.publication_record(identity)
             .and_then(|record| record.integration.as_ref())
+    }
+
+    /// Record the independently observed closed source state.
+    // r[impl kiln.implementation.source_status]
+    pub fn record_source_status(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        plan: &super::SourceStatusPlan,
+        receipt: &super::SourceStatusReceipt,
+    ) -> CoreResult<ContentId> {
+        let attempt = self.authorized_fence(identity, fence)?;
+        let record = attempt.publication.as_ref().ok_or_else(|| {
+            refusal(
+                "implementation_source_status_publication",
+                "attempt.publication",
+                "source status requires a retained publication",
+            )
+        })?;
+        if record.phase == super::PublicationPhase::SourceReconciled {
+            if record.source_status.as_ref() == Some(receipt) {
+                return super::admit_source_status_receipt(work, attempt, plan, receipt);
+            }
+            return Err(refusal(
+                "implementation_source_status_conflict",
+                "attempt.publication.source_status",
+                "attempt already retains different source-status evidence",
+            ));
+        }
+        if record.phase != super::PublicationPhase::Integrated {
+            return Err(refusal(
+                "implementation_source_status_phase",
+                "attempt.publication",
+                "source status requires an integrated publication",
+            ));
+        }
+        let digest = super::admit_source_status_receipt(work, attempt, plan, receipt)?;
+        let attempt = self.attempt_mut(identity)?;
+        if let Some(publication) = &mut attempt.publication {
+            publication.source_status = Some(receipt.clone());
+            publication.phase = super::PublicationPhase::SourceReconciled;
+        }
+        Ok(digest)
+    }
+
+    /// Read the retained source-status receipt.
+    #[must_use]
+    pub fn source_status_receipt(
+        &self,
+        identity: &ContentId,
+    ) -> Option<&super::SourceStatusReceipt> {
+        self.publication_record(identity)
+            .and_then(|record| record.source_status.as_ref())
     }
 
     /// Record independent verification evidence and complete the attempt.

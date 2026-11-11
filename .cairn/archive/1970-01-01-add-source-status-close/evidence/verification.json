@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.source-status-close.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/47",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::publication",
+      "result": "4 passed; close after integration, wrong-state and pre-integration refusal"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --lib source_status --offline",
+      "result": "2 passed; open-close-readback and already-closed idempotence"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "core": "crates/kiln-core/src/implementation/publication.rs",
+    "provider": "crates/kiln-adapter-github/src/source_status.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "issue closure is not release eligibility or Cairn lifecycle completion",
+    "no comments, reopen, labels, pull-request or other issue mutations"
+  ]
+}
