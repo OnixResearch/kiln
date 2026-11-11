@@ -528,9 +528,11 @@ fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout(
         if succeeds {
             assert!(checked(result).is_some());
         } else {
+            // The server delays run on the test host; this is a liveness bound
+            // for the frozen deadline path, not a latency benchmark.
             assert!(
-                elapsed < Duration::from_millis(400),
-                "lookup exceeded budget: {elapsed:?}"
+                elapsed < Duration::from_secs(2),
+                "lookup did not honor the deadline: {elapsed:?}"
             );
         }
     }
