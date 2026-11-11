@@ -81,7 +81,10 @@ durable dispatch reservation before transport; repeating it is idempotent.
 work and attempt, then records the same reservation from its canonical digest.
 `start --attempt ID --fence N --workflow-kind KIND --workflow-id ID
 [--namespace lattice]` records the provider workflow after an externally
-observed dispatch and requires that reservation. `handoff --handoff-file FILE`
+observed dispatch and requires that reservation. `reconcile --attempt ID --fence N
+--workflow-kind KIND --workflow-id ID [--namespace lattice]` records the one
+observed run for an ambiguous dispatch; an equal observation is idempotent and a
+different one is refused. `handoff --handoff-file FILE`
 admits a complete candidate handoff and moves the attempt to
 `candidate-produced`; it does not verify or accept the candidate.
 `metrics --attempt ID [--usage-file FILE] [--record true]` previews or retains

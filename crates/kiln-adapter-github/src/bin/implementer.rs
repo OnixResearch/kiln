@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|handoff|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -58,6 +58,7 @@ fn run() -> Result<(), ()> {
         "reserve" => reserve(&flags),
         "reserve-plan" => reserve_plan(&flags),
         "start" => start(&flags),
+        "reconcile" => reconcile(&flags),
         "handoff" => handoff(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
@@ -316,6 +317,42 @@ struct MetricsInput {
     auxiliary_calls: Option<kiln_core::implementation::AuxiliaryCallObservation>,
     #[serde(default)]
     traces: Vec<kiln_core::types::ExternalRef>,
+}
+
+// r[impl kiln.implementation.dispatch]
+fn reconcile(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let identity = match required_identity(flags, "--attempt") {
+        Ok(identity) => identity,
+        Err(error) => return fail(&error),
+    };
+    let fence = match required_positive_u64(flags, "--fence") {
+        Ok(fence) => fence,
+        Err(error) => return fail(&error),
+    };
+    let namespace = flags.get("--namespace").map_or("lattice", String::as_str);
+    let kind = match required_value(flags, "--workflow-kind") {
+        Ok(kind) => kind,
+        Err(error) => return fail(&error),
+    };
+    let id = match required_value(flags, "--workflow-id") {
+        Ok(id) => id,
+        Err(error) => return fail(&error),
+    };
+    let workflow = match kiln_core::types::ExternalRef::new(namespace, &kind, &id) {
+        Ok(workflow) => workflow,
+        Err(_) => return fail("--workflow-kind or --workflow-id is malformed"),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    match implementer.reconcile_dispatch(&identity, fence, wall_clock_ms(), &workflow) {
+        Ok(()) => {
+            println!("{{\"reconciled\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
 }
 
 // r[impl kiln.implementation.candidate_handoff]

@@ -344,6 +344,27 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
+    let reconcile = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("reconcile")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--fence")
+        .arg(fence.to_string())
+        .arg("--workflow-kind")
+        .arg("run")
+        .arg("--workflow-id")
+        .arg("one")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        reconcile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&reconcile.stderr)
+    );
     let stored = Implementer::open(
         &database,
         Enrollment {
