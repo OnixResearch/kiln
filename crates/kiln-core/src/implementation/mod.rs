@@ -34,6 +34,7 @@ pub const MAX_ALIASES: usize = 16;
 pub const MAX_ACTOR_BYTES: usize = 128;
 pub const MAX_REPOSITORY_BYTES: usize = 256;
 pub const MAX_PATH_BYTES: usize = 512;
+pub const MAX_MINUTES_PER_ATTEMPT: u32 = 1_440;
 pub const MAX_ATTEMPTS_BOUND: u8 = 10;
 
 /// Where one exact work unit was observed.
@@ -508,6 +509,7 @@ fn validate_work(
     if work.budget.attempts == 0
         || work.budget.attempts > MAX_ATTEMPTS_BOUND
         || work.budget.minutes_per_attempt == 0
+        || work.budget.minutes_per_attempt > MAX_MINUTES_PER_ATTEMPT
     {
         return Err(refusal(
             "implementation_budget",
@@ -682,6 +684,19 @@ mod tests {
             repositories: BTreeSet::from(["onix/kiln".to_string()]),
             actors: BTreeSet::from(["operator".to_string()]),
         }
+    }
+
+    // r[verify kiln.implementation.contract]
+    #[test]
+    fn budget_minutes_above_the_reviewed_bound_fail() {
+        let mut ledger = WorkLedger::default();
+        let mut candidate = work(vec![source(WorkSourceKind::GitHubIssue, "44", '1')]);
+        candidate.budget.minutes_per_attempt = MAX_MINUTES_PER_ATTEMPT + 1;
+        let error = ledger
+            .admit(&candidate, None, &enrollment())
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(error.code.as_str(), "implementation_budget");
     }
 
     // r[verify kiln.implementation.replay] r[verify kiln.implementation.replay.scenario.duplicate]

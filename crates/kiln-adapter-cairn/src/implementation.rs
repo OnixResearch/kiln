@@ -6,8 +6,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use kiln_core::implementation::{
-    AcceptanceObligation, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, SourceRef,
-    TerminalPolicy, WorkBudget, WorkSourceKind,
+    AcceptanceObligation, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, MAX_MINUTES_PER_ATTEMPT,
+    SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
 };
 use kiln_core::types::{ContentId, DEFAULT_MAX_ID_BYTES, Diagnostic, ExternalRef};
 use kiln_provider_api::{PortFailure, PortResult};
@@ -152,15 +152,35 @@ pub fn admit_cairn_snapshot(
             "non-ready Cairn snapshot selected work",
         ));
     }
-    let change_index: BTreeMap<&str, &Value> = changes
-        .iter()
-        .filter_map(|change| {
-            change
-                .get("name")
+    let mut change_index: BTreeMap<&str, &Value> = BTreeMap::new();
+    for change in changes {
+        let name = change
+            .get("name")
+            .and_then(Value::as_str)
+            .ok_or_else(|| invalid_selection("Cairn change name is missing"))?;
+        if !identifier(name, DEFAULT_MAX_ID_BYTES) || change_index.insert(name, change).is_some() {
+            return Err(invalid_selection(
+                "Cairn change name is malformed or duplicated",
+            ));
+        }
+        let mut units = BTreeSet::new();
+        for unit in change
+            .get("units")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            let name = unit
+                .get("unit")
                 .and_then(Value::as_str)
-                .map(|name| (name, change))
-        })
-        .collect();
+                .ok_or_else(|| invalid_selection("Cairn unit name is missing"))?;
+            if !valid_unit(name) || !units.insert(name) {
+                return Err(invalid_selection(
+                    "Cairn unit name is malformed or duplicated",
+                ));
+            }
+        }
+    }
     let mut works = Vec::with_capacity(selection.len());
     for selected in selection {
         works.push(selected_work(policy, sequence, selected, &change_index)?);
@@ -185,6 +205,9 @@ fn selected_work(
         .get("unit")
         .and_then(Value::as_str)
         .ok_or_else(|| invalid_selection("selected unit is missing"))?;
+    if !valid_unit(unit) {
+        return Err(invalid_selection("selected unit name is malformed"));
+    }
     let digest = selected
         .get("snapshot_digest")
         .and_then(Value::as_str)
@@ -298,6 +321,7 @@ fn admit_policy(policy: &CairnImplementationPolicy) -> PortResult<()> {
         || policy.budget.attempts == 0
         || policy.budget.attempts > 10
         || policy.budget.minutes_per_attempt == 0
+        || policy.budget.minutes_per_attempt > MAX_MINUTES_PER_ATTEMPT
     {
         return Err(refusal(
             "cairn_implementation_policy",
@@ -337,6 +361,13 @@ fn admit_policy(policy: &CairnImplementationPolicy) -> PortResult<()> {
 
 fn identifier(value: &str, max: usize) -> bool {
     !value.is_empty() && value.len() <= max && !value.chars().any(char::is_control)
+}
+
+fn valid_unit(value: &str) -> bool {
+    value
+        .strip_prefix("task:")
+        .or_else(|| value.strip_prefix("change:"))
+        .is_some_and(|name| identifier(name, DEFAULT_MAX_ID_BYTES))
 }
 
 fn invalid_selection(message: &str) -> PortFailure {
@@ -519,6 +550,47 @@ mod tests {
     }
 
     // r[verify kiln.implementation.cairn_intake.scenario.policy]
+    // r[verify kiln.implementation.cairn_intake.scenario.refused]
+    #[test]
+    fn malformed_changes_units_and_policy_budgets_fail() {
+        let digest = digest();
+        let selected = json!([{
+            "change": "demo",
+            "unit": "task:build",
+            "requirement_references": ["demo.behavior"],
+            "snapshot_digest": digest,
+            "archive_ready": false
+        }]);
+        let duplicate_changes = snapshot(
+            "ready",
+            selected.clone(),
+            json!([
+                change("demo", &digest, "task:build", "demo.behavior"),
+                change("demo", &digest, "task:build", "demo.behavior")
+            ]),
+        );
+        assert!(admit_cairn_snapshot(&policy(), 1, &duplicate_changes).is_err());
+
+        let unknown_unit = snapshot(
+            "ready",
+            json!([{
+                "change": "demo",
+                "unit": "bogus",
+                "requirement_references": ["demo.behavior"],
+                "snapshot_digest": digest,
+                "archive_ready": false
+            }]),
+            json!([change("demo", &digest, "bogus", "demo.behavior")]),
+        );
+        assert!(admit_cairn_snapshot(&policy(), 1, &unknown_unit).is_err());
+
+        let mut oversized = policy();
+        oversized.budget.minutes_per_attempt = MAX_MINUTES_PER_ATTEMPT + 1;
+        assert!(
+            admit_cairn_snapshot(&oversized, 1, &snapshot("empty", json!([]), json!([]))).is_err()
+        );
+    }
+
     #[test]
     fn invalid_policy_is_refused() {
         let mut policy = policy();
