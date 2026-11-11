@@ -95,6 +95,12 @@ observations deterministically, and fails rather than truncating when more
 records remain beyond the page bound. The authenticated HTTP transport and
 schedule are not implemented.
 
+`drain_implementation_queue` consumes a bounded queue batch: it re-verifies each
+stored signature, normalizes through operator policy, admits into the durable
+`kiln-implementer` ledger, and removes the record only after a terminal decision.
+A forged or unverifiable record fails the drain and stays queued. Scheduling and
+claim/dispatch remain operator shells.
+
 ## What is not implemented yet
 
 The adapters that produce these records are separate work:

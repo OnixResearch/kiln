@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.implementation-queue-drain.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --lib --offline",
+      "result": "63 passed; drain-once duplicate and forged-record retention pass"
+    },
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "7 passed; durable ledger and queue tests"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github -p kiln-implementer --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "consumer": "crates/kiln-adapter-github/src/implementation.rs",
+    "tests": "crates/kiln-adapter-github/src/tests.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "draining is admission only; claims and dispatch remain separate",
+    "a schedule and daemon are not implemented",
+    "no candidate acceptance, publication or release authority is added"
+  ]
+}

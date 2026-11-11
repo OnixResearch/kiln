@@ -308,6 +308,61 @@ fn timestamp_millis(value: &str) -> Option<u64> {
     u64::try_from(seconds).ok().map(|seconds| seconds * 1_000)
 }
 
+/// Drain up to `limit` authenticated issue deliveries into the implementer
+/// ledger. Each record is re-authenticated and re-normalized; a delivery is
+/// removed only after admission or an explicit closed/ignored decision.
+// r[impl kiln.implementation.delivery_queue] r[impl kiln.implementation.contract] r[impl kiln.implementation.queue_drain]
+pub fn drain_implementation_queue(
+    config: &crate::profile::GithubConfig,
+    secret: &[u8],
+    policy: &ImplementationIssuePolicy,
+    enrolled: &std::collections::BTreeSet<String>,
+    implementer: &mut kiln_implementer::Implementer,
+    limit: usize,
+) -> PortResult<usize> {
+    let Some(queue_config) = &config.implementation_queue else {
+        return Ok(0);
+    };
+    let mut queue =
+        kiln_implementer::DeliveryQueue::open(&queue_config.path, queue_config.maximum_deliveries)
+            .map_err(|_| {
+                crate::infrastructure(
+                    "github_implementation_queue",
+                    "implementation delivery queue is unavailable",
+                )
+            })?;
+    let deliveries = queue.list(limit).map_err(|_| {
+        crate::infrastructure(
+            "github_implementation_queue",
+            "implementation delivery queue could not be read",
+        )
+    })?;
+    let mut drained = 0;
+    for delivery in deliveries {
+        let headers = DeliveryHeaders {
+            delivery: delivery.delivery_id.clone(),
+            event: delivery.event.clone(),
+            signature: delivery.signature.clone(),
+        };
+        match admit_implementation_issue(policy, enrolled, &headers, &delivery.body, secret)? {
+            Some(IssueAdmission::Work(work)) => {
+                implementer
+                    .admit(&work, None)
+                    .map_err(|error| domain("github_implementation_admission", "work", &error))?;
+            }
+            Some(IssueAdmission::Closed { .. }) | None => {}
+        }
+        queue.remove(&delivery.delivery_id).map_err(|_| {
+            crate::infrastructure(
+                "github_implementation_queue",
+                "admitted delivery could not be removed from the queue",
+            )
+        })?;
+        drained += 1;
+    }
+    Ok(drained)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

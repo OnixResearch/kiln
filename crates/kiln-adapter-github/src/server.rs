@@ -408,7 +408,13 @@ pub(crate) fn store_issue_delivery(
             )
         })?;
     queue
-        .record(&headers.delivery, body, now_ms)
+        .record(
+            &headers.delivery,
+            &headers.event,
+            &headers.signature,
+            body,
+            now_ms,
+        )
         .map(Some)
         .map_err(|_| {
             kiln_provider_api::PortFailure::Retryable(kiln_provider_api::InfrastructureFailure {

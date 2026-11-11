@@ -8,15 +8,17 @@ use std::time::{Duration, Instant};
 
 use hmac::{Hmac, Mac};
 use kiln_core::domain::Outcome;
+use kiln_core::implementation::{AcceptanceObligation, Enrollment, TerminalPolicy, WorkBudget};
 use kiln_core::provider::CapabilityProfile;
 use kiln_core::types::{ContentId, EffectId, ExternalRef};
 use kiln_core::workflow::*;
-use kiln_implementer::DeliveryQueue;
+use kiln_implementer::{DeliveryQueue, Implementer};
 use kiln_provider_api::{PortResult, WorkflowPort};
 use sha2::Sha256;
 use tempfile::TempDir;
 
 use crate::events::{DeliveryHeaders, EventPolicy, VerifiedEvent, admit_event};
+use crate::implementation::ImplementationIssuePolicy;
 use crate::profile::*;
 use crate::secret::{ResolvedSecret, SecretReference};
 use crate::server::open_store;
@@ -965,4 +967,130 @@ fn authenticated_issue_deliveries_are_queued_idempotently() {
             .unwrap_or_else(|_| unreachable!()),
         None
     );
+}
+
+// r[verify kiln.implementation.queue_drain.scenario.once] r[verify kiln.implementation.queue_drain.scenario.forged]
+#[test]
+fn queued_issue_deliveries_drain_into_admitted_work_once() {
+    let root = TempDir::new().unwrap_or_else(|_| unreachable!());
+    let mut config = config(&root);
+    let queue_path = root.path().join("implementation.sqlite");
+    config.implementation_queue = Some(ImplementationQueueConfig {
+        path: queue_path.clone(),
+        maximum_deliveries: 4,
+    });
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "action": "opened",
+        "repository": {"id": 1296269, "name": "Hello-World", "owner": {"login": "octocat"}},
+        "sender": {"login": "operator"},
+        "issue": {
+            "number": 44,
+            "title": "drain work",
+            "state": "open",
+            "updated_at": "2026-11-11T10:00:00Z"
+        }
+    }))
+    .unwrap_or_else(|_| unreachable!());
+    let mut headers = headers(&bytes, 1);
+    headers.event = "issues".into();
+    assert_eq!(
+        crate::server::store_issue_delivery(&config, &headers, &bytes, SECRET, 1)
+            .unwrap_or_else(|_| unreachable!()),
+        Some(true)
+    );
+    let enrollment = Enrollment {
+        repositories: ["octocat/hello-world".to_string()].into_iter().collect(),
+        actors: ["operator".to_string()].into_iter().collect(),
+    };
+    let mut implementer = Implementer::open(&root.path().join("work.sqlite"), enrollment)
+        .unwrap_or_else(|_| unreachable!());
+    let policy = ImplementationIssuePolicy {
+        repository: config.event_policy.clone(),
+        project: "kiln".to_string(),
+        requested_outcome: "implement".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: std::iter::once("write_source".to_string()).collect(),
+        verification_profile: hash('a'),
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+    };
+    let enrolled = ["operator".to_string()].into_iter().collect();
+    assert_eq!(
+        crate::implementation::drain_implementation_queue(
+            &config,
+            SECRET,
+            &policy,
+            &enrolled,
+            &mut implementer,
+            4
+        )
+        .unwrap_or_else(|_| unreachable!()),
+        1
+    );
+    assert_eq!(
+        implementer
+            .work()
+            .unwrap_or_else(|_| unreachable!())
+            .current()
+            .count(),
+        1
+    );
+    // Repeating the same delivery is admitted as a duplicate, not a new version.
+    assert_eq!(
+        crate::server::store_issue_delivery(&config, &headers, &bytes, SECRET, 2)
+            .unwrap_or_else(|_| unreachable!()),
+        Some(true)
+    );
+    assert_eq!(
+        crate::implementation::drain_implementation_queue(
+            &config,
+            SECRET,
+            &policy,
+            &enrolled,
+            &mut implementer,
+            4
+        )
+        .unwrap_or_else(|_| unreachable!()),
+        1
+    );
+    assert_eq!(
+        implementer
+            .work()
+            .unwrap_or_else(|_| unreachable!())
+            .current()
+            .count(),
+        1
+    );
+    // A row with an invalid signature is never admitted and stays queued.
+    let mut forged = DeliveryQueue::open(&queue_path, 4).unwrap_or_else(|_| unreachable!());
+    forged
+        .record(
+            "00000000-0000-0000-0000-000000000009",
+            "issues",
+            "sha256=00",
+            &bytes,
+            3,
+        )
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        crate::implementation::drain_implementation_queue(
+            &config,
+            SECRET,
+            &policy,
+            &enrolled,
+            &mut implementer,
+            4
+        )
+        .is_err()
+    );
+    assert_eq!(forged.len().unwrap_or_else(|_| unreachable!()), 1);
 }

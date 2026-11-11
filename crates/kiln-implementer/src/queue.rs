@@ -17,6 +17,8 @@ const MAX_DELIVERY_ID_BYTES: usize = 64;
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS implementation_deliveries (
     delivery_id TEXT PRIMARY KEY,
+    event TEXT NOT NULL,
+    signature TEXT NOT NULL,
     body BLOB NOT NULL,
     recorded_at_ms INTEGER NOT NULL
 );";
@@ -24,6 +26,8 @@ CREATE TABLE IF NOT EXISTS implementation_deliveries (
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueuedDelivery {
     pub delivery_id: String,
+    pub event: String,
+    pub signature: String,
     pub body: Vec<u8>,
     pub recorded_at_ms: u64,
 }
@@ -55,10 +59,19 @@ impl DeliveryQueue {
     pub fn record(
         &mut self,
         delivery_id: &str,
+        event: &str,
+        signature: &str,
         body: &[u8],
         recorded_at_ms: u64,
     ) -> Result<bool, String> {
-        if !valid_delivery_id(delivery_id) || body.is_empty() || body.len() > MAX_BODY_BYTES {
+        if !valid_delivery_id(delivery_id)
+            || event.is_empty()
+            || event.len() > 64
+            || signature.is_empty()
+            || signature.len() > 128
+            || body.is_empty()
+            || body.len() > MAX_BODY_BYTES
+        {
             return Err("delivery is malformed or exceeds its byte bound".to_string());
         }
         let transaction = self
@@ -87,10 +100,13 @@ impl DeliveryQueue {
         }
         transaction
             .execute(
-                "INSERT INTO implementation_deliveries (delivery_id, body, recorded_at_ms)
-                 VALUES (?1, ?2, ?3)",
+                "INSERT INTO implementation_deliveries
+                 (delivery_id, event, signature, body, recorded_at_ms)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
                 params![
                     delivery_id,
+                    event,
+                    signature,
                     body,
                     i64::try_from(recorded_at_ms).map_err(text)?
                 ],
@@ -108,7 +124,8 @@ impl DeliveryQueue {
         let mut statement = self
             .connection
             .prepare(
-                "SELECT delivery_id, body, recorded_at_ms FROM implementation_deliveries
+                "SELECT delivery_id, event, signature, body, recorded_at_ms
+                 FROM implementation_deliveries
                  ORDER BY recorded_at_ms ASC, delivery_id ASC LIMIT ?1",
             )
             .map_err(text)?;
@@ -116,8 +133,10 @@ impl DeliveryQueue {
             .query_map(params![i64::try_from(limit).map_err(text)?], |row| {
                 Ok(QueuedDelivery {
                     delivery_id: row.get(0)?,
-                    body: row.get(1)?,
-                    recorded_at_ms: u64::try_from(row.get::<_, i64>(2)?).unwrap_or(0),
+                    event: row.get(1)?,
+                    signature: row.get(2)?,
+                    body: row.get(3)?,
+                    recorded_at_ms: u64::try_from(row.get::<_, i64>(4)?).unwrap_or(0),
                 })
             })
             .map_err(text)?;
@@ -185,12 +204,12 @@ mod tests {
         let id = "00000000-0000-0000-0000-000000000001";
         assert!(
             queue
-                .record(id, b"body", 1)
+                .record(id, "issues", "sha256=00", b"body", 1)
                 .unwrap_or_else(|_| unreachable!())
         );
         assert!(
             !queue
-                .record(id, b"body", 1)
+                .record(id, "issues", "sha256=00", b"body", 1)
                 .unwrap_or_else(|_| unreachable!())
         );
         assert_eq!(queue.len().unwrap_or_else(|_| unreachable!()), 1);
@@ -208,23 +227,51 @@ mod tests {
         let (_directory, mut queue) = queue();
         assert!(
             queue
-                .record("00000000-0000-0000-0000-000000000001", b"a", 1)
+                .record(
+                    "00000000-0000-0000-0000-000000000001",
+                    "issues",
+                    "sha256=00",
+                    b"a",
+                    1
+                )
                 .unwrap_or_else(|_| unreachable!())
         );
         assert!(
             queue
-                .record("00000000-0000-0000-0000-000000000002", b"b", 2)
+                .record(
+                    "00000000-0000-0000-0000-000000000002",
+                    "issues",
+                    "sha256=00",
+                    b"b",
+                    2
+                )
                 .unwrap_or_else(|_| unreachable!())
         );
         assert!(
             queue
-                .record("00000000-0000-0000-0000-000000000003", b"c", 3)
+                .record(
+                    "00000000-0000-0000-0000-000000000003",
+                    "issues",
+                    "sha256=00",
+                    b"c",
+                    3
+                )
                 .is_err()
         );
-        assert!(queue.record("not-a-delivery", b"body", 4).is_err());
         assert!(
             queue
-                .record("00000000-0000-0000-0000-000000000004", b"", 4)
+                .record("not-a-delivery", "issues", "sha256=00", b"body", 4)
+                .is_err()
+        );
+        assert!(
+            queue
+                .record(
+                    "00000000-0000-0000-0000-000000000004",
+                    "issues",
+                    "sha256=00",
+                    b"",
+                    4
+                )
                 .is_err()
         );
     }
