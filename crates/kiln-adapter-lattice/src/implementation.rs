@@ -331,8 +331,34 @@ mod tests {
         assert_eq!(request.graph.identity, graph_identity(&request.graph));
         let admitted = admit_implementation_request(&dispatch, &reservation, &attempt, &request);
         assert!(admitted.is_ok(), "{admitted:?}");
-        let mut wrong = request;
+        let mut wrong = request.clone();
         wrong.kiln.attempt_identity = identity(&content('a'));
         assert!(admit_implementation_request(&dispatch, &reservation, &attempt, &wrong).is_err());
+
+        let mut paused = request.clone();
+        paused.controls.pause = true;
+        paused.identity = request_identity(&paused);
+        assert!(admit_implementation_request(&dispatch, &reservation, &attempt, &paused).is_err());
+
+        let mut source = request.clone();
+        source
+            .source
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .repository =
+            SourceValue::new("other/repo".to_string()).unwrap_or_else(|_| unreachable!());
+        source.identity = request_identity(&source);
+        assert!(admit_implementation_request(&dispatch, &reservation, &attempt, &source).is_err());
+
+        let mut route = request;
+        route
+            .graph
+            .nodes
+            .first_mut()
+            .unwrap_or_else(|| unreachable!())
+            .kind = Label::new("build".to_string()).unwrap_or_else(|_| unreachable!());
+        route.graph.identity = graph_identity(&route.graph);
+        route.identity = request_identity(&route);
+        assert!(admit_implementation_request(&dispatch, &reservation, &attempt, &route).is_err());
     }
 }
