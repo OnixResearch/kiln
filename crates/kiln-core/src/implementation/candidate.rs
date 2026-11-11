@@ -154,7 +154,7 @@ pub fn admit_candidate_handoff(
     let mut evidence = BTreeSet::new();
     for item in &handoff.evidence {
         item.reference.validate()?;
-        if !evidence.insert((&item.identity, &item.reference)) {
+        if !evidence.insert(&item.identity) {
             return Err(refusal(
                 "implementation_candidate_evidence",
                 "candidate.evidence",
@@ -428,13 +428,14 @@ mod tests {
             }),
             ("evidence", {
                 let mut handoff = good.clone();
-                handoff.evidence.push(
-                    handoff
-                        .evidence
-                        .first()
-                        .cloned()
-                        .unwrap_or_else(|| unreachable!()),
-                );
+                let mut duplicate = handoff
+                    .evidence
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| unreachable!());
+                duplicate.reference =
+                    ExternalRef::new("kiln", "run", "other").unwrap_or_else(|_| unreachable!());
+                handoff.evidence.push(duplicate);
                 handoff
             }),
             ("bounds", {
