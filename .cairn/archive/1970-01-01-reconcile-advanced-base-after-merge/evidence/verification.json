@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.reconcile-advanced-base-after-merge.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/48",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --lib landing --offline",
+      "result": "6 passed; base-advanced recovery plus exact/no-second-merge and refusal paths"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "landing": "crates/kiln-adapter-github/src/landing.rs",
+    "docs": "docs/github-landing-observation.md"
+  },
+  "non_claims": [
+    "point-in-time ancestry evidence only",
+    "not atomic base protection or merge-queue qualification"
+  ]
+}

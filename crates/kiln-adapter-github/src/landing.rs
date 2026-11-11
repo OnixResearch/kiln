@@ -530,10 +530,18 @@ impl GithubLandingClient {
             encode(&plan.base_ref)
         ))?;
         if base.object.sha != merge_commit {
-            return Err(PortFailure::Unknown(InfrastructureFailure {
-                code: "github_landing_base_unknown".to_string(),
-                message: "landed base head does not yet match the merge commit".to_string(),
-            }));
+            let compare: RawCompare = self.get_json(&format!(
+                "{}/repos/{owner}/{repository}/compare/{merge_commit}...{}",
+                self.endpoint, base.object.sha
+            ))?;
+            if !matches!(compare.status.as_str(), "ahead" | "identical")
+                || compare.merge_base_commit.sha != merge_commit
+            {
+                return Err(PortFailure::Unknown(InfrastructureFailure {
+                    code: "github_landing_base_unknown".to_string(),
+                    message: "landed base head does not descend from the merge commit".to_string(),
+                }));
+            }
         }
         Ok(Some(LandingReceipt {
             pull_request: ExternalRef::new(
@@ -650,6 +658,11 @@ struct RawRefObject {
 #[derive(Deserialize)]
 struct RawMerge {
     merged: bool,
+}
+#[derive(Deserialize)]
+struct RawCompare {
+    status: String,
+    merge_base_commit: RawRefObject,
 }
 #[derive(Deserialize)]
 struct RawChecks {
@@ -943,6 +956,45 @@ mod tests {
         assert!(requests.get(5).is_some_and(|request| {
             request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
         }));
+    }
+
+    #[test]
+    // r[verify kiln.github.landing.merge_ancestry] r[verify kiln.github.landing.merge_ancestry.scenario.advanced]
+    fn recovers_a_landed_result_after_the_base_advances() {
+        let merged = serde_json::json!({
+            "number": 7,
+            "user": {"login": "author"},
+            "state": "closed",
+            "merged": true,
+            "merge_commit_sha": "c".repeat(40),
+            "mergeable": false,
+            "head": {"sha": "a".repeat(40)},
+            "base": {"ref": "main"}
+        })
+        .to_string();
+        let (endpoint, server) = serve(vec![
+            ("200 OK", merged),
+            (
+                "200 OK",
+                serde_json::json!({"object": {"sha": "d".repeat(40)}}).to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({
+                    "status": "ahead",
+                    "merge_base_commit": {"sha": "c".repeat(40)}
+                })
+                .to_string(),
+            ),
+        ]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        let receipt = client
+            .land(&plan())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(receipt.merge_commit, "c".repeat(40));
+        assert_eq!(receipt.base_head, "d".repeat(40));
+        let _ = server.join();
     }
 
     #[test]
