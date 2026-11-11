@@ -1054,6 +1054,10 @@ fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(value) => value,
         Err(error) => return fail(&error),
     };
+    let mut poll_flags = flags.clone();
+    poll_flags
+        .entry("--since-ms".to_string())
+        .or_insert_with(|| wall_clock_ms().to_string());
     let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
         if signal_hook::flag::register(signal, std::sync::Arc::clone(&stop)).is_err() {
@@ -1065,7 +1069,7 @@ fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         if stop.load(std::sync::atomic::Ordering::Acquire) {
             break;
         }
-        poll(flags)?;
+        poll(&poll_flags)?;
         done += 1;
         if iterations.is_some_and(|limit| done >= limit) {
             break;

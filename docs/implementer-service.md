@@ -70,8 +70,10 @@ available as `nix run .#kiln-cairn-intake -- ...`.
 --max-pages N [--since-ms N] [--timeout-ms N]` performs one authenticated GitHub
 issue-polling recovery pass. `poll-run` performs the same pass on an operator
 interval up to one day, with optional `--iterations` and SIGTERM/SIGINT
-shutdown; it is not a daemon or cron replacement. Polling uses the bounded
-HTTP transport and admits normalized work into the ledger. Repeated polling is deduplicated by the work
+shutdown; it is not a daemon or cron replacement. When `--since-ms` is omitted,
+`poll-run` starts from the loop start time instead of rescanning oldest history;
+pass it explicitly for recovery. Polling uses the bounded HTTP transport and
+admits normalized work into the ledger. Repeated polling is deduplicated by the work
 ledger; closed issues are observed but not treated as completion. It does not
 schedule itself or dispatch work.
 
