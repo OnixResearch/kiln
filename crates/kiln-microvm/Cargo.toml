@@ -10,6 +10,7 @@ description = "Pure Firecracker microVM plan, lifecycle, guest protocol and sour
 [dependencies]
 libc = "0.2"
 blake3.workspace = true
+kiln-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 # Guest agent shell only: vsock connect, no_new_privs, clock and process-group signals.

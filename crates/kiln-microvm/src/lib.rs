@@ -16,6 +16,7 @@ pub mod host;
 pub mod lifecycle;
 pub mod plan;
 pub mod protocol;
+pub mod retained;
 
 /// One mebibyte; machine memory and source images are whole MiB.
 pub const MIB: u64 = 1_048_576;

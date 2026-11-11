@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.retained-session-lifecycle.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/52",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-microvm --offline retained",
+      "result": "5 passed; restore, confinement refusal, stale owner/generation, migration/retirement and JSON round trip"
+    },
+    {
+      "command": "cargo clippy -p kiln-microvm --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "lifecycle": "crates/kiln-microvm/src/retained.rs",
+    "manifest": "crates/kiln-microvm/Cargo.toml",
+    "docs": "docs/retained-sessions.md"
+  },
+  "non_claims": [
+    "no VMM is launched, restored or migrated",
+    "no memory, workspace or network transfer is implemented",
+    "target placement, volume fencing, cleanup and distributed ownership remain external"
+  ]
+}
