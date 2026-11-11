@@ -150,6 +150,8 @@ pub fn admit_publication_plan(
         )
     })?;
     if attempt.phase != super::AttemptPhase::Verified
+        || attempt.handoff.as_ref() != Some(handoff)
+        || attempt.candidate.as_ref() != Some(&handoff.candidate)
         || stored != verification
         || plan.schema != PUBLICATION_SCHEMA
         || plan.work_identity != work.identity()?
@@ -863,6 +865,22 @@ mod tests {
                     .as_ref()
                     .unwrap_or_else(|| unreachable!()),
                 &invalid_base
+            )
+            .is_err()
+        );
+        let mut substituted = make_attempt(&work);
+        substituted.candidate =
+            Some(ExternalRef::new("git", "commit", "other").unwrap_or_else(|_| unreachable!()));
+        assert!(
+            admit_publication_plan(
+                &work,
+                &substituted,
+                attempt.handoff.as_ref().unwrap_or_else(|| unreachable!()),
+                attempt
+                    .verification
+                    .as_ref()
+                    .unwrap_or_else(|| unreachable!()),
+                &make_plan(&work, &substituted)
             )
             .is_err()
         );
