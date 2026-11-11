@@ -127,7 +127,7 @@ as a dedicated non-root account with a read-only system, an explicit state
 directory, a root-private GitHub token credential, and one-day-capped polling
 intervals. Provision `/etc/kiln-implementer/{enrollment,policy}.json` and the
 credential file before installing the substituted unit. Stopping the unit sends
-SIGTERM; the loop finishes its current bounded pass and exits.
+SIGTERM; the loop stops between polls without waiting out the full interval.
 
 ## Ownership
 

@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use kiln_adapter_github::implementation::{ImplementationIssuePolicy, drain_issue_queue};
 use kiln_adapter_github::profile::ImplementationQueueConfig;
@@ -1061,19 +1061,30 @@ fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
     let mut done = 0usize;
     loop {
-        poll(flags)?;
-        done += 1;
-        if iterations.is_some_and(|limit| done >= limit)
-            || stop.load(std::sync::atomic::Ordering::Acquire)
-        {
+        if stop.load(std::sync::atomic::Ordering::Acquire) {
             break;
         }
-        std::thread::sleep(Duration::from_millis(
-            u64::try_from(interval_ms).unwrap_or(u64::MAX),
-        ));
+        poll(flags)?;
+        done += 1;
+        if iterations.is_some_and(|limit| done >= limit) {
+            break;
+        }
+        wait_for_interval(interval_ms, &stop);
     }
     println!("{{\"iterations\":{done}}}");
     Ok(())
+}
+
+fn wait_for_interval(interval_ms: usize, stop: &std::sync::atomic::AtomicBool) {
+    let deadline =
+        Instant::now() + Duration::from_millis(u64::try_from(interval_ms).unwrap_or(u64::MAX));
+    while !stop.load(std::sync::atomic::Ordering::Acquire) {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            break;
+        }
+        std::thread::sleep(remaining.min(Duration::from_millis(250)));
+    }
 }
 
 // r[impl kiln.github.poll.transport] r[impl kiln.implementation.polling]
