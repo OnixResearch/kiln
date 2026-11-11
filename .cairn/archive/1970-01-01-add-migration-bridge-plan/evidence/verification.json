@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.migration-bridge-plan.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/54",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-microvm --offline bridge",
+      "result": "3 passed; exact admission, wrong peers/sockets/protocol/stale placement/escaping path and zero endpoint"
+    },
+    {
+      "command": "cargo clippy -p kiln-microvm --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "bridge": "crates/kiln-microvm/src/bridge.rs",
+    "docs": "docs/migration-bridge.md"
+  },
+  "non_claims": [
+    "no Iroh stream or Unix socket is opened",
+    "no migration byte is transferred or verified",
+    "no placement commit, resume or cleanup is performed"
+  ]
+}
