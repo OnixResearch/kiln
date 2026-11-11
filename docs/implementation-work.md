@@ -180,3 +180,16 @@ The adapters that produce these records are separate work:
 
 The core admission modules remain pure, tested boundaries with no dispatch
 authority.
+
+## Attempt metrics
+
+`AttemptMetrics` is an opt-in, default-off receipt for one claimed attempt. It
+binds the attempt/fence/work identity and revision, claim and terminal times,
+elapsed milliseconds, an `open` flag, optional trace references, and token or
+auxiliary-call observations. Missing usage is serialized as an explicit
+`absent` observation with a reason, never as zero.
+
+Observation never records or gates anything. `kiln-implementer metrics
+--attempt ID [--usage-file FILE] [--record true]` previews the receipt; only
+explicit recording retains the first receipt on the attempt. Metrics are not an
+admission, verification, publication or incident-scoring condition.

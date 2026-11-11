@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.attempt-metrics.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/56",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation",
+      "result": "25 passed; open/terminal metrics, absent usage, default-off observation, binding and malformed-trace refusals"
+    },
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "2 unit and 6 durable tests pass with additively timestamped attempts"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --test implementer_cli --offline",
+      "result": "metrics command previews/records the cancelled attempt receipt with observed and absent usage"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "receipt": "crates/kiln-core/src/implementation/metrics.rs",
+    "timestamps": "crates/kiln-core/src/implementation/attempt.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "no token or cost attribution is imported or measured by Kiln",
+    "absent usage is not zero",
+    "no dashboard, incident score or admission/landing condition is added"
+  ]
+}

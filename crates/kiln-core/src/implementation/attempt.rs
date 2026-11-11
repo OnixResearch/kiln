@@ -137,6 +137,12 @@ pub struct ImplementationAttempt {
     /// Monotonic per work unit; the only accepted authority for results.
     pub fence: u64,
     pub lease_until_ms: u64,
+    /// Host-clock claim time, preserved across restart.
+    #[serde(default)]
+    pub claimed_at_ms: u64,
+    /// Host-clock terminal time, absent while the attempt is active.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ended_at_ms: Option<u64>,
     pub phase: AttemptPhase,
     /// Dispatch reservation recorded before provider transport.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -146,6 +152,9 @@ pub struct ImplementationAttempt {
     /// Complete candidate handoff admitted from host-derived facts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub handoff: Option<super::CandidateHandoff>,
+    /// Opt-in metrics receipt; absent unless explicitly recorded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<super::AttemptMetrics>,
     pub failure: Option<FailureClass>,
     pub cause: Option<String>,
     /// Newer work revision that superseded this attempt, if any.
@@ -247,11 +256,14 @@ impl AttemptLedger {
             ordinal,
             fence,
             lease_until_ms: now_ms.saturating_add(lease_ms),
+            claimed_at_ms: now_ms,
+            ended_at_ms: None,
             phase: AttemptPhase::Claimed,
             dispatch: None,
             workflow: None,
             candidate: None,
             handoff: None,
+            metrics: None,
             failure: None,
             cause: None,
             superseded_by: None,
@@ -345,6 +357,75 @@ impl AttemptLedger {
             super::admit_dispatch_plan(work, attempt, plan)?
         };
         self.reserve_dispatch(identity, fence, now_ms, &digest, &plan.provider_profile)
+    }
+
+    /// Opt-in observation of one attempt without retaining it.
+    ///
+    /// The caller decides whether to record the receipt. Observation never
+    /// gates admission, verification or publication.
+    // r[impl kiln.implementation.metrics]
+    pub fn observe_metrics(
+        &self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        usage: super::AttemptUsage,
+        traces: Vec<ExternalRef>,
+    ) -> CoreResult<super::AttemptMetrics> {
+        let attempt = self.get(identity).ok_or_else(|| {
+            refusal(
+                "implementation_attempt_missing",
+                "attempt.identity",
+                "attempt identity is not retained",
+            )
+        })?;
+        if attempt.fence != fence {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt fence is stale",
+            ));
+        }
+        super::AttemptMetrics::observe(attempt, now_ms, usage, traces)
+    }
+
+    /// Record the first opt-in metrics receipt for an attempt.
+    ///
+    /// Repeating the call returns the retained receipt; it never overwrites
+    /// history or changes attempt state.
+    // r[impl kiln.implementation.metrics]
+    pub fn record_metrics(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        usage: super::AttemptUsage,
+        traces: Vec<ExternalRef>,
+    ) -> CoreResult<super::AttemptMetrics> {
+        if let Some(existing) = self
+            .get(identity)
+            .and_then(|attempt| attempt.metrics.clone())
+        {
+            if existing.fence != fence {
+                return Err(refusal(
+                    "implementation_fence_stale",
+                    "attempt.fence",
+                    "attempt fence is stale",
+                ));
+            }
+            return Ok(existing);
+        }
+        let metrics = self.observe_metrics(identity, fence, now_ms, usage, traces)?;
+        let attempt = self.attempt_mut(identity)?;
+        attempt.metrics = Some(metrics.clone());
+        Ok(metrics)
+    }
+
+    /// Read the retained metrics receipt for one attempt.
+    #[must_use]
+    pub fn metrics(&self, identity: &ContentId) -> Option<&super::AttemptMetrics> {
+        self.get(identity)
+            .and_then(|attempt| attempt.metrics.as_ref())
     }
 
     /// Read the durable dispatch reservation for one attempt.
@@ -532,6 +613,7 @@ impl AttemptLedger {
         let canonical_key = {
             let attempt = self.attempt_mut(identity)?;
             attempt.phase = AttemptPhase::Failed;
+            attempt.ended_at_ms = Some(now_ms);
             attempt.failure = Some(class);
             attempt.cause = Some(bounded_cause(cause)?);
             attempt.canonical_key.clone()
@@ -554,6 +636,7 @@ impl AttemptLedger {
         let canonical_key = {
             let attempt = self.attempt_mut(identity)?;
             attempt.phase = AttemptPhase::Blocked;
+            attempt.ended_at_ms = Some(now_ms);
             attempt.cause = Some(bounded_cause(cause)?);
             attempt.canonical_key.clone()
         };
@@ -574,6 +657,7 @@ impl AttemptLedger {
         let canonical_key = {
             let attempt = self.attempt_mut(identity)?;
             attempt.phase = AttemptPhase::Cancelled;
+            attempt.ended_at_ms = Some(now_ms);
             attempt.cause = Some(bounded_cause(cause)?);
             attempt.canonical_key.clone()
         };
@@ -599,6 +683,7 @@ impl AttemptLedger {
             let canonical_key = {
                 let attempt = self.attempt_mut(&identity)?;
                 attempt.phase = AttemptPhase::Blocked;
+                attempt.ended_at_ms = Some(now_ms);
                 attempt.cause = Some("lease_expired".to_string());
                 attempt.canonical_key.clone()
             };
@@ -619,6 +704,7 @@ impl AttemptLedger {
         canonical_key: &ContentId,
         new_revision: u64,
         rule: SupersessionRule,
+        now_ms: u64,
     ) -> CoreResult<Option<ContentId>> {
         let Some(active) = self.current(canonical_key).cloned() else {
             return Ok(None);
@@ -630,6 +716,7 @@ impl AttemptLedger {
             SupersessionRule::AbortActive => {
                 let attempt = self.attempt_mut(&active.identity)?;
                 attempt.phase = AttemptPhase::Superseded;
+                attempt.ended_at_ms = Some(now_ms);
                 attempt.superseded_by = Some(new_revision);
                 self.clear_current(canonical_key);
             }
@@ -1045,7 +1132,7 @@ mod tests {
             .unwrap_or_else(|_| unreachable!());
         let key = work.canonical_key().unwrap_or_else(|_| unreachable!());
         ledger
-            .supersede(&key, 2, SupersessionRule::AbortActive)
+            .supersede(&key, 2, SupersessionRule::AbortActive, 1)
             .unwrap_or_else(|_| unreachable!());
         let stored = ledger
             .get(&attempt.identity)
@@ -1064,7 +1151,7 @@ mod tests {
             .claim(&work, 2, DEFAULT_LEASE_MS)
             .unwrap_or_else(|_| unreachable!());
         ledger
-            .supersede(&key, 3, SupersessionRule::FinishActive)
+            .supersede(&key, 3, SupersessionRule::FinishActive, 3)
             .unwrap_or_else(|_| unreachable!());
         let stored = ledger.get(&next.identity).unwrap_or_else(|| unreachable!());
         assert_eq!(stored.phase, AttemptPhase::Claimed);
@@ -1132,7 +1219,7 @@ mod tests {
             ExternalRef::new("git", "revision", &second_base).unwrap_or_else(|_| unreachable!()),
         );
         ledger
-            .supersede(&key, 2, SupersessionRule::AbortActive)
+            .supersede(&key, 2, SupersessionRule::AbortActive, 1)
             .unwrap_or_else(|_| unreachable!());
         let stored = ledger
             .get(&attempt.identity)

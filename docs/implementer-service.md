@@ -76,7 +76,10 @@ work and attempt, then records the same reservation from its canonical digest.
 [--namespace lattice]` records the provider workflow after an externally
 observed dispatch and requires that reservation. `handoff --handoff-file FILE`
 admits a complete candidate handoff and moves the attempt to
-`candidate-produced`; it does not verify or accept the candidate. Claims and reservations are an
+`candidate-produced`; it does not verify or accept the candidate.
+`metrics --attempt ID [--usage-file FILE] [--record true]` previews or retains
+the default-off attempt metrics receipt; missing usage stays explicitly absent.
+Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice
 route.

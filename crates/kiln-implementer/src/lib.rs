@@ -17,9 +17,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use kiln_core::implementation::{
-    AdmissionDecision, AttemptLedger, CandidateHandoff, DispatchReservation, Enrollment,
-    ImplementationAttempt, ImplementationDispatchPlan, ImplementationWork, SourceMapping,
-    WorkLedger,
+    AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
+    DispatchReservation, Enrollment, ImplementationAttempt, ImplementationDispatchPlan,
+    ImplementationWork, SourceMapping, WorkLedger,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -182,6 +182,36 @@ impl Implementer {
         })
     }
 
+    pub fn observe_metrics(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        usage: AttemptUsage,
+        traces: Vec<kiln_core::types::ExternalRef>,
+    ) -> Result<AttemptMetrics, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.observe_metrics(identity, fence, now_ms, usage, traces)
+        })
+    }
+
+    pub fn record_metrics(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        usage: AttemptUsage,
+        traces: Vec<kiln_core::types::ExternalRef>,
+    ) -> Result<AttemptMetrics, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_metrics(identity, fence, now_ms, usage, traces)
+        })
+    }
+
+    pub fn metrics(&mut self, identity: &ContentId) -> Result<Option<AttemptMetrics>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.metrics(identity).cloned()))
+    }
+
     pub fn admit_candidate_handoff(
         &mut self,
         work: &ImplementationWork,
@@ -259,8 +289,11 @@ impl Implementer {
         canonical_key: &ContentId,
         new_revision: u64,
         rule: kiln_core::implementation::SupersessionRule,
+        now_ms: u64,
     ) -> Result<Option<ContentId>, String> {
-        self.with_ledgers(|_, attempts| attempts.supersede(canonical_key, new_revision, rule))
+        self.with_ledgers(|_, attempts| {
+            attempts.supersede(canonical_key, new_revision, rule, now_ms)
+        })
     }
 
     /// Expire ended leases and return the active/reconciliation set.

@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|reserve-plan|start|handoff> --database PATH ...",
+            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|reserve-plan|start|handoff|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -58,6 +58,7 @@ fn run() -> Result<(), ()> {
         "reserve-plan" => reserve_plan(&flags),
         "start" => start(&flags),
         "handoff" => handoff(&flags),
+        "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
 }
@@ -235,6 +236,85 @@ fn start(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         }
         Err(error) => fail(&error),
     }
+}
+
+// r[impl kiln.implementation.metrics]
+fn metrics(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let identity = match required_identity(flags, "--attempt") {
+        Ok(identity) => identity,
+        Err(error) => return fail(&error),
+    };
+    let mut input = MetricsInput::default();
+    if let Some(path) = flags.get("--usage-file") {
+        let path = PathBuf::from(path);
+        if !path.is_absolute() {
+            return fail("--usage-file must be absolute");
+        }
+        input = match read_json(&path) {
+            Ok(input) => input,
+            Err(error) => return fail(&error),
+        };
+    }
+    if input.traces.len() > 8 {
+        return fail("--usage-file has too many trace references");
+    }
+    let usage = kiln_core::implementation::AttemptUsage {
+        tokens: input
+            .tokens
+            .unwrap_or(kiln_core::implementation::TokenObservation::Absent {
+                reason: kiln_core::implementation::AbsenceReason::NotReported,
+            }),
+        auxiliary_calls: input.auxiliary_calls.unwrap_or(
+            kiln_core::implementation::AuxiliaryCallObservation::Absent {
+                reason: kiln_core::implementation::AbsenceReason::NotReported,
+            },
+        ),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let stored = match implementer.attempt(&identity) {
+        Ok(Some(attempt)) => attempt,
+        Ok(None) => return fail("attempt is not retained"),
+        Err(error) => return fail(&error),
+    };
+    let fence = match flags.get("--fence") {
+        Some(value) => match value.parse::<u64>() {
+            Ok(fence) if fence > 0 => fence,
+            _ => return fail("--fence must be positive"),
+        },
+        None => stored.fence,
+    };
+    let record = flags
+        .get("--record")
+        .is_some_and(|value| matches!(value.as_str(), "true" | "1"));
+    let metrics = if record {
+        implementer.record_metrics(&identity, fence, wall_clock_ms(), usage, input.traces)
+    } else {
+        implementer.observe_metrics(&identity, fence, wall_clock_ms(), usage, input.traces)
+    };
+    match metrics {
+        Ok(metrics) => match serde_json::to_string(&metrics) {
+            Ok(document) => {
+                println!("{document}");
+                Ok(())
+            }
+            Err(_) => fail("metrics receipt could not be encoded"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+#[derive(Default, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MetricsInput {
+    #[serde(default)]
+    tokens: Option<kiln_core::implementation::TokenObservation>,
+    #[serde(default)]
+    auxiliary_calls: Option<kiln_core::implementation::AuxiliaryCallObservation>,
+    #[serde(default)]
+    traces: Vec<kiln_core::types::ExternalRef>,
 }
 
 // r[impl kiln.implementation.candidate_handoff]

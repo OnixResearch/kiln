@@ -13,10 +13,12 @@
 pub mod attempt;
 pub mod candidate;
 pub mod dispatch;
+pub mod metrics;
 
 pub use attempt::*;
 pub use candidate::*;
 pub use dispatch::*;
+pub use metrics::*;
 
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::string::{String, ToString};

@@ -452,6 +452,68 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         .unwrap_or_else(|_| unreachable!());
     assert!(!stale.status.success());
 
+    let usage_file = directory.path().join("usage.json");
+    write(
+        &usage_file,
+        br#"{"tokens":{"status":"observed","tokens":42},"auxiliary_calls":{"status":"absent","reason":"not_instrumented"}}"#,
+    );
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("metrics")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--usage-file")
+        .arg(&usage_file)
+        .arg("--record")
+        .arg("true")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let metrics: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        metrics.get("phase").and_then(serde_json::Value::as_str),
+        Some("cancelled")
+    );
+    assert_eq!(metrics.get("open"), Some(&serde_json::Value::Bool(false)));
+    assert_eq!(
+        metrics
+            .pointer("/usage/tokens/tokens")
+            .and_then(serde_json::Value::as_u64),
+        Some(42)
+    );
+    assert_eq!(
+        metrics
+            .pointer("/usage/auxiliary_calls/status")
+            .and_then(serde_json::Value::as_str),
+        Some("absent")
+    );
+    let retained = Implementer::open(
+        &database,
+        Enrollment {
+            repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        },
+    )
+    .unwrap_or_else(|_| unreachable!())
+    .metrics(&ContentId::from_blake3_hex(identity.clone()).unwrap_or_else(|_| unreachable!()))
+    .unwrap_or_else(|_| unreachable!())
+    .unwrap_or_else(|| unreachable!("retained metrics"));
+    assert_eq!(
+        retained.elapsed_ms,
+        metrics
+            .get("elapsed_ms")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_else(|| unreachable!())
+    );
+
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("status")
         .arg("--database")
