@@ -433,6 +433,9 @@ impl GithubLandingClient {
     /// observation-only code.
     // r[impl kiln.github.landing.merge]
     pub fn land(&self, plan: &LandingPlan) -> PortResult<LandingReceipt> {
+        if let Some(receipt) = self.recover_landed(plan)? {
+            return Ok(receipt);
+        }
         let _observation = self.observe(plan)?;
         let (owner, repository) = landing_repository(plan)?;
         let body = serde_json::json!({
@@ -478,18 +481,43 @@ impl GithubLandingClient {
     }
 
     fn verify_merged(&self, plan: &LandingPlan) -> PortResult<LandingReceipt> {
+        self.recover_landed(plan)?.ok_or_else(|| {
+            PortFailure::Unknown(InfrastructureFailure {
+                code: "github_landing_merge_unknown".to_string(),
+                message: "merge response is unknown and no merged result is observable".to_string(),
+            })
+        })
+    }
+
+    /// Recover an already landed result without issuing another merge.
+    ///
+    /// Returns `None` when the PR is open and unmerged. A merged result is
+    /// accepted only at the exact candidate head/base with a matching base
+    /// read-back.
+    // r[impl kiln.github.landing.merge]
+    pub fn recover_landed(&self, plan: &LandingPlan) -> PortResult<Option<LandingReceipt>> {
         let (owner, repository) = landing_repository(plan)?;
         let pull: RawPull = self.get_json(&format!(
             "{}/repos/{owner}/{repository}/pulls/{}",
             self.endpoint, plan.pull_number
         ))?;
+        if !pull.merged {
+            if pull.state != "open" {
+                return Err(domain(
+                    "github_landing_merge_mismatch",
+                    "landing.merge",
+                    "pull request is closed unmerged",
+                ));
+            }
+            return Ok(None);
+        }
         let Some(merge_commit) = pull.merge_commit_sha.as_deref() else {
             return Err(PortFailure::Unknown(InfrastructureFailure {
                 code: "github_landing_merge_unknown".to_string(),
-                message: "merge response is unknown and no merge commit is observable".to_string(),
+                message: "merged pull request has no observable merge commit".to_string(),
             }));
         };
-        if !pull.merged || pull.head.sha != plan.head_sha || pull.base.r#ref != plan.base_ref {
+        if pull.head.sha != plan.head_sha || pull.base.r#ref != plan.base_ref {
             return Err(domain(
                 "github_landing_merge_mismatch",
                 "landing.merge",
@@ -507,7 +535,7 @@ impl GithubLandingClient {
                 message: "landed base head does not yet match the merge commit".to_string(),
             }));
         }
-        Ok(LandingReceipt {
+        Ok(Some(LandingReceipt {
             pull_request: ExternalRef::new(
                 "github",
                 "pull_request",
@@ -517,7 +545,7 @@ impl GithubLandingClient {
             merge_commit: merge_commit.to_string(),
             base_ref: plan.base_ref.clone(),
             base_head: base.object.sha,
-        })
+        }))
     }
 
     fn post(&self, url: &str, body: &str) -> Result<ureq::Response, HttpError> {
@@ -808,6 +836,7 @@ mod tests {
     fn lands_one_exact_pull_request_and_reads_back_the_merge() {
         let (endpoint, server) = serve(vec![
             ("200 OK", pull_body()),
+            ("200 OK", pull_body()),
             ("200 OK", checks_body()),
             (
                 "200 OK",
@@ -850,7 +879,7 @@ mod tests {
         assert_eq!(receipt.base_head, "c".repeat(40));
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert!(
-            requests.get(4).is_some_and(|request| {
+            requests.get(5).is_some_and(|request| {
                 request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
             }),
             "{requests:?}"
@@ -858,9 +887,41 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.github.landing.merge.scenario.landed]
+    fn recovers_an_already_landed_result_without_a_second_merge() {
+        let merged = serde_json::json!({
+            "number": 7,
+            "user": {"login": "author"},
+            "state": "closed",
+            "merged": true,
+            "merge_commit_sha": "c".repeat(40),
+            "mergeable": false,
+            "head": {"sha": "a".repeat(40)},
+            "base": {"ref": "main"}
+        })
+        .to_string();
+        let (endpoint, server) = serve(vec![
+            ("200 OK", merged),
+            (
+                "200 OK",
+                serde_json::json!({"object": {"sha": "c".repeat(40)}}).to_string(),
+            ),
+        ]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        let receipt = client
+            .land(&plan())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(receipt.merge_commit, "c".repeat(40));
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert!(requests.iter().all(|request| request.starts_with("GET ")));
+    }
+
+    #[test]
     // r[verify kiln.github.landing.merge.scenario.refused]
     fn refuses_or_reconciles_a_merge_that_does_not_land() {
         let (endpoint, server) = serve(vec![
+            ("200 OK", pull_body()),
             ("200 OK", pull_body()),
             ("200 OK", checks_body()),
             (
@@ -879,7 +940,7 @@ mod tests {
             .unwrap_or_else(|_| unreachable!());
         assert!(client.land(&plan()).is_err());
         let requests = server.join().unwrap_or_else(|_| unreachable!());
-        assert!(requests.get(4).is_some_and(|request| {
+        assert!(requests.get(5).is_some_and(|request| {
             request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
         }));
     }
