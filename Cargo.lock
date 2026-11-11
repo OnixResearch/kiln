@@ -2802,6 +2802,7 @@ dependencies = [
  "kiln-adapter-lattice",
  "kiln-codec",
  "kiln-core",
+ "kiln-implementer",
  "kiln-provider-api",
  "lattice-workflow-contract",
  "lattice-workflow-transport",

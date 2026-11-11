@@ -81,12 +81,19 @@ observation. Acceptance obligations, outcomes, paths, effects, verification
 profile, budget, terminal policy and priority come from operator policy, not
 issue text. Duplicate and out-of-order deliveries are resolved by `WorkLedger`.
 
-The HTTP server is not yet wired to this function. Bounded polling recovery is
-implemented behind `IssuePollTransport`: `poll_implementation_issues` limits
-pages and records, enforces enrollment and text bounds, selects the highest
-update sequence for duplicate records, orders observations deterministically,
-and fails rather than truncating when more records remain beyond the page bound.
-The authenticated HTTP transport and schedule are not implemented.
+The HTTP server is not yet wired to admit these functions directly. When
+`implementation_queue` is configured, the GitHub webhook service authenticates
+`issues` deliveries and stores their exact bytes in a bounded durable queue
+(`kiln_implementer::DeliveryQueue`) for a separate scheduler; repeated delivery
+IDs are idempotent, and a full queue refuses rather than evicting. Absence of the
+queue keeps all prior behavior.
+
+Bounded polling recovery is implemented behind `IssuePollTransport`:
+`poll_implementation_issues` limits pages and records, enforces enrollment and
+text bounds, selects the highest update sequence for duplicate records, orders
+observations deterministically, and fails rather than truncating when more
+records remain beyond the page bound. The authenticated HTTP transport and
+schedule are not implemented.
 
 ## What is not implemented yet
 

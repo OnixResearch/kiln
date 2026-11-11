@@ -93,12 +93,24 @@ pub struct WorkflowConfig {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ImplementationQueueConfig {
+    pub path: PathBuf,
+    pub maximum_deliveries: usize,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GithubConfig {
     pub schema: String,
     pub event_policy: EventPolicy,
     pub listen_address: SocketAddr,
     pub webhook_path: String,
     pub replay_database_path: PathBuf,
+    /// Optional authenticated issue-delivery queue. Absence keeps all prior
+    /// behavior; presence stores exact `issues` deliveries for a separate
+    /// implementation scheduler.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_queue: Option<ImplementationQueueConfig>,
     pub maximum_run_records: usize,
     pub maximum_delivery_records: usize,
     pub maximum_record_bytes: usize,
@@ -232,6 +244,11 @@ pub fn admit_config(config: GithubConfig) -> PortResult<AdmittedGithubConfig> {
             .repository
             .eq_ignore_ascii_case(&config.event_policy.repository)
         || config.non_claims != REQUIRED_NON_CLAIMS
+        || config.implementation_queue.as_ref().is_some_and(|queue| {
+            !queue.path.is_absolute()
+                || queue.maximum_deliveries == 0
+                || queue.maximum_deliveries > 65_536
+        })
     {
         return Err(domain(
             "github_profile",

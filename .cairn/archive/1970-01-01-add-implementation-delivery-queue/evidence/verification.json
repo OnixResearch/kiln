@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.implementation-delivery-queue.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --lib --offline",
+      "result": "62 passed; authenticated issue queueing, forged refusal, non-issue pass-through, idempotence and queue bounds"
+    },
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "7 passed; queue idempotence, removal and full/bad delivery refusal"
+    },
+    {
+      "command": "nickel typecheck config/github-ci.ncl config/github-contracts.ncl",
+      "result": "pass"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github -p kiln-implementer --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "queue": "crates/kiln-implementer/src/queue.rs",
+    "webhook": "crates/kiln-adapter-github/src/server.rs",
+    "config": "crates/kiln-adapter-github/src/profile.rs, config/github-ci.ncl"
+  },
+  "non_claims": [
+    "queueing is not admission or execution",
+    "the scheduler consumer and Lattice implementation route are not wired",
+    "no claim, candidate acceptance, publication or release authority is added"
+  ]
+}

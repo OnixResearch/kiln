@@ -23,6 +23,7 @@ lattice-workflow-contract.workspace = true
 
 [dependencies]
 kiln-core.workspace = true
+kiln-implementer.workspace = true
 kiln-provider-api.workspace = true
 kiln-codec.workspace = true
 kiln-adapter-git.workspace = true

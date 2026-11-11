@@ -126,6 +126,12 @@ let ServiceProfileContract = {
   listen_address | std.contract.from_predicate (fun value => value == "127.0.0.1:8787"),
   webhook_path | std.contract.from_predicate (fun value => value == "/github/webhook"),
   replay_database_path | AbsolutePathContract,
+  implementation_queue
+    | {
+      path | AbsolutePathContract,
+      maximum_deliveries | BoundedIntegerContract 1 65536,
+    }
+    | optional,
   maximum_run_records | PositiveContract,
   maximum_delivery_records | PositiveContract,
   maximum_record_bytes | PositiveContract,

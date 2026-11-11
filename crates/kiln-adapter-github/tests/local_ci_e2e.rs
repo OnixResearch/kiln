@@ -581,6 +581,7 @@ impl Fixture {
             listen_address,
             webhook_path: "/github/webhook".to_string(),
             replay_database_path: root.path().join("github.sqlite"),
+            implementation_queue: None,
             maximum_run_records: 8,
             maximum_delivery_records: 8,
             maximum_record_bytes: 65_536,

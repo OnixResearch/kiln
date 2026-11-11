@@ -11,6 +11,7 @@ use kiln_core::domain::Outcome;
 use kiln_core::provider::CapabilityProfile;
 use kiln_core::types::{ContentId, EffectId, ExternalRef};
 use kiln_core::workflow::*;
+use kiln_implementer::DeliveryQueue;
 use kiln_provider_api::{PortResult, WorkflowPort};
 use sha2::Sha256;
 use tempfile::TempDir;
@@ -49,6 +50,7 @@ fn config(root: &TempDir) -> GithubConfig {
         listen_address: "127.0.0.1:19091".parse().unwrap_or_else(|_| unreachable!()),
         webhook_path: "/github/webhook".into(),
         replay_database_path: root.path().join("github.sqlite"),
+        implementation_queue: None,
         maximum_run_records: 4,
         maximum_delivery_records: 8,
         maximum_record_bytes: 65536,
@@ -913,5 +915,54 @@ fn custom_effect_class_maps_to_the_custom_workflow_class() {
     assert_eq!(
         WorkflowEffectClass::from(ConfigEffectClass::Custom),
         WorkflowEffectClass::Custom
+    );
+}
+
+// r[verify kiln.implementation.delivery_queue.scenario.idempotent] r[verify kiln.implementation.delivery_queue.scenario.forged]
+#[test]
+fn authenticated_issue_deliveries_are_queued_idempotently() {
+    let root = TempDir::new().unwrap_or_else(|_| unreachable!());
+    let mut config = config(&root);
+    let path = root.path().join("implementation.sqlite");
+    config.implementation_queue = Some(ImplementationQueueConfig {
+        path: path.clone(),
+        maximum_deliveries: 2,
+    });
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "action": "opened",
+        "repository": {"id": 1296269, "name": "Hello-World", "owner": {"login": "octocat"}},
+        "sender": {"login": "operator"},
+        "issue": {"number": 44, "title": "work", "state": "open", "updated_at": "2026-11-11T10:00:00Z"}
+    }))
+    .unwrap_or_else(|_| unreachable!());
+    let mut headers = headers(&bytes, 1);
+    headers.event = "issues".into();
+    assert_eq!(
+        crate::server::store_issue_delivery(&config, &headers, &bytes, SECRET, 1)
+            .unwrap_or_else(|_| unreachable!()),
+        Some(true)
+    );
+    assert_eq!(
+        crate::server::store_issue_delivery(&config, &headers, &bytes, SECRET, 2)
+            .unwrap_or_else(|_| unreachable!()),
+        Some(false)
+    );
+    let queue = DeliveryQueue::open(&path, 2).unwrap_or_else(|_| unreachable!());
+    let listed = queue.list(2).unwrap_or_else(|_| unreachable!());
+    assert_eq!(listed.len(), 1);
+    assert_eq!(
+        listed.first().map(|row| row.body.as_slice()),
+        Some(bytes.as_slice())
+    );
+
+    let mut forged = headers.clone();
+    forged.signature = format!("sha256={}", "0".repeat(64));
+    assert!(crate::server::store_issue_delivery(&config, &forged, &bytes, SECRET, 3).is_err());
+    let mut push = headers;
+    push.event = "push".into();
+    assert_eq!(
+        crate::server::store_issue_delivery(&config, &push, &bytes, SECRET, 3)
+            .unwrap_or_else(|_| unreachable!()),
+        None
     );
 }

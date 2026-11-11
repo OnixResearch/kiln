@@ -128,6 +128,7 @@ bounded-exec-core = { path = "vendor/bounded-exec/crates/bounded-exec-core" }
 kiln-core = { path = "crates/kiln-core" }
 kiln-build-graph = { path = "crates/kiln-build-graph" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
+kiln-implementer = { path = "crates/kiln-implementer" }
 kiln-codec = { path = "crates/kiln-codec" }
 kiln-observe-core = { path = "crates/kiln-observe-core" }
 kiln-dashboard = { path = "crates/kiln-dashboard" }

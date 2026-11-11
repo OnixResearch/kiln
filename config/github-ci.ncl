@@ -25,6 +25,12 @@ fun input =>
         repository | c.Component,
         repository_id | c.Positive,
         replay_database_path | c.AbsolutePath,
+        implementation_queue
+          | {
+            path | c.AbsolutePath,
+            maximum_deliveries | c.Positive,
+          }
+          | optional,
         webhook_secret | c.SecretReference,
         status_secret | c.SecretReference,
         workflow | c.Workflow,
@@ -64,4 +70,10 @@ fun input =>
     },
     workflow = settings.workflow,
     non_claims = c.NonClaims,
-  } | c.ServiceProfile
+  }
+  & (
+    if std.record.has_field "implementation_queue" settings then
+      { implementation_queue = settings.implementation_queue }
+    else {}
+  )
+  | c.ServiceProfile

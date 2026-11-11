@@ -9,6 +9,10 @@
 //! This crate never runs a worker, verifies a candidate, publishes a pull
 //! request, or grants release authority.
 
+pub mod queue;
+
+pub use queue::{DeliveryQueue, QueuedDelivery};
+
 use std::path::Path;
 use std::time::Duration;
 
