@@ -75,7 +75,8 @@ schedule itself or dispatch work.
 
 `claim` creates one current attempt (default lease one hour, `--lease-ms` to
 override) and prints its canonical JSON including frozen work identity, base and
-fence; `cancel --attempt ID --fence N [--cause TEXT]` revokes it.
+fence; `renew --attempt ID --fence N [--lease-ms N]` extends a live lease;
+`cancel --attempt ID --fence N [--cause TEXT]` revokes it.
 `reserve --attempt ID --fence N --plan HEX --provider PROFILE` records the one
 durable dispatch reservation before transport; repeating it is idempotent.
 `reserve-plan --plan-file FILE` admits the exact JSON plan against the current

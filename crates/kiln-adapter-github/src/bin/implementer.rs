@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|source-status|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|source-status|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -55,6 +55,7 @@ fn run() -> Result<(), ()> {
         "status" => status(&flags),
         "claim" => claim(&flags),
         "cancel" => cancel(&flags),
+        "renew" => renew(&flags),
         "reserve" => reserve(&flags),
         "reserve-plan" => reserve_plan(&flags),
         "start" => start(&flags),
@@ -121,6 +122,34 @@ fn cancel(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     match implementer.cancel(&identity, fence, wall_clock_ms(), &cause) {
         Ok(()) => {
             println!("{{\"cancelled\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.fencing]
+fn renew(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let identity = match required_identity(flags, "--attempt") {
+        Ok(identity) => identity,
+        Err(error) => return fail(&error),
+    };
+    let fence = match required_positive_u64(flags, "--fence") {
+        Ok(fence) => fence,
+        Err(error) => return fail(&error),
+    };
+    let lease_ms = match optional_positive(flags, "--lease-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 3_600_000,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    match implementer.renew(&identity, fence, wall_clock_ms(), lease_ms) {
+        Ok(until) => {
+            println!("{{\"lease_until_ms\":{until}}}");
             Ok(())
         }
         Err(error) => fail(&error),
