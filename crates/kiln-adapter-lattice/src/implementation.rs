@@ -498,11 +498,20 @@ mod tests {
             accepted
         );
         let mut disconnected = FakeTransport {
-            accepted,
+            accepted: accepted.clone(),
             disconnect: true,
             operation: WorkflowExchangeOperation::Dispatch,
         };
         assert!(dispatch_implementation_request(&mut disconnected, &profile, &request).is_err());
+        let mut unsupported = profile;
+        unsupported.node_kinds =
+            vec![Label::new("build".to_string()).unwrap_or_else(|_| unreachable!())];
+        let mut transport = FakeTransport {
+            accepted,
+            disconnect: false,
+            operation: WorkflowExchangeOperation::Dispatch,
+        };
+        assert!(dispatch_implementation_request(&mut transport, &unsupported, &request).is_err());
     }
 
     #[test]
