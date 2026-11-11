@@ -596,7 +596,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         source,
         state: "closed".to_string(),
     };
-    implementer
+    let source_identity = implementer
         .record_source_status(
             &work,
             &attempt.identity,
@@ -605,6 +605,18 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
             &source_receipt,
         )
         .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        implementer
+            .record_source_status(
+                &work,
+                &attempt.identity,
+                attempt.fence,
+                &source_plan,
+                &source_receipt,
+            )
+            .unwrap_or_else(|_| unreachable!()),
+        source_identity
+    );
     let stored = implementer
         .publication_record(&attempt.identity)
         .unwrap_or_else(|_| unreachable!())

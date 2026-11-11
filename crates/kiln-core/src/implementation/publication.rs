@@ -220,9 +220,11 @@ pub fn admit_integration(
     if attempt.phase != super::AttemptPhase::Verified
         || !matches!(
             record.phase,
-            PublicationPhase::PullRequestPublished | PublicationPhase::Integrated
+            PublicationPhase::PullRequestPublished
+                | PublicationPhase::Integrated
+                | PublicationPhase::SourceReconciled
         )
-        || (record.phase == PublicationPhase::Integrated
+        || (record.phase != PublicationPhase::PullRequestPublished
             && record.integration.as_ref() != Some(receipt))
         || receipt.schema != INTEGRATION_SCHEMA
         || receipt.work_identity != work.identity()?
@@ -285,6 +287,15 @@ pub fn admit_source_status_plan(
     attempt: &super::ImplementationAttempt,
     plan: &SourceStatusPlan,
 ) -> CoreResult<ContentId> {
+    admit_source_status_plan_with(work, attempt, plan, false)
+}
+
+fn admit_source_status_plan_with(
+    work: &ImplementationWork,
+    attempt: &super::ImplementationAttempt,
+    plan: &SourceStatusPlan,
+    allow_reconciled: bool,
+) -> CoreResult<ContentId> {
     let record = attempt.publication.as_ref().ok_or_else(|| {
         refusal(
             "implementation_source_status_publication",
@@ -300,7 +311,7 @@ pub fn admit_source_status_plan(
         )
     })?;
     let integration_identity = admit_integration(work, attempt, record, integration)?;
-    if record.phase != PublicationPhase::Integrated
+    if (!allow_reconciled && record.phase != PublicationPhase::Integrated)
         || plan.schema != SOURCE_STATUS_SCHEMA
         || plan.work_identity != work.identity()?
         || plan.work_revision != work.revision
@@ -343,7 +354,11 @@ pub fn admit_source_status_receipt(
     plan: &SourceStatusPlan,
     receipt: &SourceStatusReceipt,
 ) -> CoreResult<ContentId> {
-    let plan_identity = admit_source_status_plan(work, attempt, plan)?;
+    let replay = attempt.publication.as_ref().is_some_and(|record| {
+        record.phase == PublicationPhase::SourceReconciled
+            && record.source_status.as_ref() == Some(receipt)
+    });
+    let plan_identity = admit_source_status_plan_with(work, attempt, plan, replay)?;
     if receipt.schema != SOURCE_STATUS_SCHEMA
         || receipt.work_identity != plan.work_identity
         || receipt.work_revision != plan.work_revision
