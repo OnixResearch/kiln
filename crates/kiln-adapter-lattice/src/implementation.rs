@@ -172,6 +172,11 @@ mod tests {
         WorkspaceIsolation,
     };
     use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_provider_api::WorkflowExchangeResponse;
+    use lattice_workflow_contract::{
+        ACCEPTED_SCHEMA, ContractLimits, ControlCapabilities, PROFILE_SCHEMA, REQUIRED_NON_CLAIMS,
+        profile_identity, validate_request,
+    };
     use lattice_workflow_contract::{
         EffectClass, GRAPH_SCHEMA, KilnLinkage, Label, ObservationPolicy, REQUEST_SCHEMA,
         RequestedControls, SourceContext, SourceValue, WorkflowEdge, WorkflowGraph, WorkflowNode,
@@ -302,6 +307,154 @@ mod tests {
         };
         request.identity = request_identity(&request);
         request
+    }
+
+    struct FakeTransport {
+        accepted: WorkflowAccepted,
+        disconnect: bool,
+    }
+
+    impl WorkflowExchangePort for FakeTransport {
+        fn exchange(
+            &mut self,
+            request: WorkflowExchangeRequest,
+        ) -> PortResult<WorkflowExchangeResponse> {
+            assert_eq!(request.operation, WorkflowExchangeOperation::Dispatch);
+            Ok(WorkflowExchangeResponse {
+                body: serde_json::to_vec(&self.accepted).unwrap_or_else(|_| unreachable!()),
+                log_bytes: Vec::new(),
+                disconnected_after_acceptance: self.disconnect,
+            })
+        }
+    }
+
+    fn profile() -> lattice_workflow_contract::CapabilityProfile {
+        lattice_workflow_contract::CapabilityProfile {
+            schema: PROFILE_SCHEMA.to_string(),
+            graph_schema: GRAPH_SCHEMA.to_string(),
+            platforms: vec![
+                Label::new("linux-x86_64".to_string()).unwrap_or_else(|_| unreachable!()),
+            ],
+            node_kinds: vec![Label::new("agent".to_string()).unwrap_or_else(|_| unreachable!())],
+            effect_classes: vec![EffectClass::Custom],
+            adapter_kinds: vec![Label::new("local".to_string()).unwrap_or_else(|_| unreachable!())],
+            controls: ControlCapabilities {
+                cancel: true,
+                pause: false,
+                resume: false,
+            },
+            limits: ContractLimits {
+                maximum_nodes: 4,
+                maximum_edges: 4,
+                maximum_log_references: 4,
+                maximum_log_read_bytes: 1024,
+                maximum_total_log_bytes: 1024,
+            },
+            non_claims: REQUIRED_NON_CLAIMS
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+        }
+    }
+
+    #[test]
+    // r[verify kiln.implementation.lattice_dispatch.scenario.admit]
+    fn dispatches_an_accepted_request_and_keeps_disconnect_unknown() {
+        let profile = profile();
+        let request = request(
+            &kiln_core::implementation::ImplementationAttempt {
+                schema: kiln_core::implementation::ATTEMPT_SCHEMA.to_string(),
+                identity: content('a'),
+                canonical_key: content('b'),
+                work_identity: content('c'),
+                work_revision: 1,
+                base: Some(
+                    ExternalRef::new("git", "commit", "base").unwrap_or_else(|_| unreachable!()),
+                ),
+                ordinal: 1,
+                fence: 4,
+                lease_until_ms: 100,
+                claimed_at_ms: 0,
+                ended_at_ms: None,
+                phase: kiln_core::implementation::AttemptPhase::Claimed,
+                dispatch: None,
+                workflow: None,
+                candidate: None,
+                handoff: None,
+                verification: None,
+                publication: None,
+                metrics: None,
+                failure: None,
+                cause: None,
+                superseded_by: None,
+            },
+            &ImplementationDispatchPlan {
+                schema: kiln_core::implementation::DISPATCH_PLAN_SCHEMA.to_string(),
+                work_identity: content('c'),
+                work_revision: 1,
+                attempt_identity: content('a'),
+                fence: 4,
+                repository: "onix/kiln".to_string(),
+                base: Some(
+                    ExternalRef::new("git", "commit", "base").unwrap_or_else(|_| unreachable!()),
+                ),
+                workspace: DispatchWorkspace {
+                    identity: content('d'),
+                    isolation: WorkspaceIsolation::IsolatedSnapshot,
+                    network: false,
+                    credentials: false,
+                },
+                provider_profile: ProviderProfileId::new("lattice")
+                    .unwrap_or_else(|_| unreachable!()),
+                permitted_paths: vec!["crates".to_string()],
+                permitted_effects: std::collections::BTreeSet::from(["write_source".to_string()]),
+                controls: DispatchControls {
+                    cancel: true,
+                    pause: false,
+                    resume: false,
+                },
+                deadline_minutes: 60,
+                token_budget: 1000,
+                invocation_budget: 10,
+                expected_output: content('e'),
+            },
+            &DispatchReservation {
+                schema: kiln_core::implementation::DISPATCH_SCHEMA.to_string(),
+                provider_profile: ProviderProfileId::new("lattice")
+                    .unwrap_or_else(|_| unreachable!()),
+                plan: content('f'),
+                effect_id: kiln_core::types::EffectId::new("dispatch")
+                    .unwrap_or_else(|_| unreachable!()),
+                idempotency_key: ExternalRef::new("kiln", "implementation-dispatch", "id")
+                    .unwrap_or_else(|_| unreachable!()),
+                reserved_at_ms: 0,
+            },
+        );
+        let mut request = request;
+        request.profile_identity = profile_identity(&profile);
+        request.identity = request_identity(&request);
+        assert_eq!(validate_request(&profile, &request), Ok(()));
+        let accepted = WorkflowAccepted {
+            schema: ACCEPTED_SCHEMA.to_string(),
+            request_identity: request.identity.clone(),
+            idempotency_key: request.idempotency_key.clone(),
+            workflow_identity: identity(&content('1')),
+            execution_identity: identity(&content('2')),
+        };
+        let mut transport = FakeTransport {
+            accepted: accepted.clone(),
+            disconnect: false,
+        };
+        assert_eq!(
+            dispatch_implementation_request(&mut transport, &profile, &request)
+                .unwrap_or_else(|_| unreachable!()),
+            accepted
+        );
+        let mut disconnected = FakeTransport {
+            accepted,
+            disconnect: true,
+        };
+        assert!(dispatch_implementation_request(&mut disconnected, &profile, &request).is_err());
     }
 
     #[test]
