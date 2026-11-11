@@ -447,6 +447,25 @@ mod tests {
 
     #[test]
     // r[verify kiln.github.source_status]
+    fn refuses_to_observe_a_pull_request_number() {
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            serde_json::json!({"state": "open", "pull_request": {}}).to_string(),
+        )]);
+        let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.observe(&plan()).is_err());
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert_eq!(requests.len(), 1);
+        assert!(
+            requests
+                .first()
+                .is_some_and(|request| request.starts_with("GET "))
+        );
+    }
+
+    #[test]
+    // r[verify kiln.github.source_status]
     fn refuses_to_close_a_pull_request_number() {
         let (endpoint, server) = serve(vec![(
             "200 OK",
