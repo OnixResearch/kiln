@@ -1,6 +1,6 @@
 use kiln_core::implementation::{
-    AcceptanceObligation, Enrollment, FailureClass, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork,
-    SourceMapping, SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
+    AcceptanceObligation, AttemptUsage, Enrollment, FailureClass, IMPLEMENTATION_WORK_SCHEMA,
+    ImplementationWork, SourceMapping, SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
 };
 use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
 use kiln_implementer::Implementer;
@@ -251,6 +251,54 @@ fn dispatch_reservation_survives_restart_before_transport() {
                 &reference("run", "after-restart")
             )
             .is_ok()
+    );
+}
+
+// r[verify kiln.implementation.metrics.scenario.retained]
+#[test]
+fn metrics_receipt_survives_restart_without_being_rewritten() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = directory.path().join("implementation.db");
+    let mut implementer = open(path.as_path());
+    implementer
+        .admit(&work(), None)
+        .unwrap_or_else(|_| unreachable!());
+    let attempt = implementer
+        .claim_next(10, LEASE)
+        .unwrap_or_else(|_| unreachable!())
+        .unwrap_or_else(|| unreachable!("claim"));
+    implementer
+        .cancel(&attempt.identity, attempt.fence, 20, "operator cancelled")
+        .unwrap_or_else(|_| unreachable!());
+    let recorded = implementer
+        .record_metrics(
+            &attempt.identity,
+            attempt.fence,
+            30,
+            AttemptUsage::default(),
+            Vec::new(),
+        )
+        .unwrap_or_else(|_| unreachable!());
+    drop(implementer);
+
+    let mut reopened = open(path.as_path());
+    assert_eq!(
+        reopened
+            .metrics(&attempt.identity)
+            .unwrap_or_else(|_| unreachable!()),
+        Some(recorded.clone())
+    );
+    assert_eq!(
+        reopened
+            .record_metrics(
+                &attempt.identity,
+                attempt.fence,
+                40,
+                AttemptUsage::default(),
+                Vec::new(),
+            )
+            .unwrap_or_else(|_| unreachable!()),
+        recorded
     );
 }
 
