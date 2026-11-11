@@ -65,6 +65,13 @@ attempts must wait for the Lattice implementation route.
 admits one complete `cairn.implementation-ready.v1` snapshot into the same
 ledger, reporting selected/admitted/duplicate/superseded counts.
 
+`poll --database PATH --enrollment FILE --policy FILE --secret-file FILE
+--max-pages N [--since-ms N] [--timeout-ms N]` performs one authenticated GitHub
+issue-polling recovery pass through the bounded HTTP transport and admits the
+normalized work into the ledger. Repeated polling is deduplicated by the work
+ledger; closed issues are observed but not treated as completion. It does not
+schedule itself or dispatch work.
+
 `claim` creates one current attempt (default lease one hour, `--lease-ms` to
 override) and prints its canonical JSON including frozen work identity, base and
 fence; `cancel --attempt ID --fence N [--cause TEXT]` revokes it.

@@ -7,12 +7,15 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use kiln_core::implementation::IMPLEMENTATION_WORK_SCHEMA;
+use kiln_core::implementation::{AdmissionDecision, IMPLEMENTATION_WORK_SCHEMA};
 use kiln_core::types::ContentId;
+use kiln_implementer::Implementer;
 use kiln_provider_api::{PortFailure, PortResult};
+use serde::Serialize;
 
 use crate::domain;
 use crate::implementation::{ImplementationIssuePolicy, IssueAdmission, issue_work};
+use crate::infrastructure;
 
 pub const MAX_POLL_PAGES: u32 = 20;
 pub const MAX_POLL_RECORDS: usize = 200;
@@ -152,6 +155,52 @@ pub fn poll_implementation_issues(
         }
     }
     Ok(admissions)
+}
+
+/// Poll and admit one bounded recovery pass into the durable work ledger.
+///
+/// Repeated polling is idempotent through the work ledger. Closed issues are
+/// observed but never cancel or complete work; cancellation remains a separate
+/// consumer.
+// r[impl kiln.implementation.polling]
+pub fn poll_into_implementer(
+    policy: &ImplementationIssuePolicy,
+    enrolled_actors: &BTreeSet<String>,
+    transport: &mut impl IssuePollTransport,
+    since_ms: u64,
+    max_pages: u32,
+    implementer: &mut Implementer,
+) -> PortResult<PollSummary> {
+    let admissions =
+        poll_implementation_issues(policy, enrolled_actors, transport, since_ms, max_pages)?;
+    let mut summary = PollSummary::default();
+    for admission in admissions {
+        match admission {
+            IssueAdmission::Work(work) => match implementer.admit(&work, None) {
+                Ok(AdmissionDecision::Admitted { .. }) => summary.admitted += 1,
+                Ok(AdmissionDecision::Duplicate { .. }) => summary.duplicate += 1,
+                Ok(AdmissionDecision::Superseded { .. }) => summary.superseded += 1,
+                Ok(AdmissionDecision::Stale { .. }) => summary.stale += 1,
+                Err(error) => {
+                    return Err(infrastructure(
+                        "github_poll_ledger",
+                        &format!("polled work could not be admitted: {error}"),
+                    ));
+                }
+            },
+            IssueAdmission::Closed { .. } => summary.closed += 1,
+        }
+    }
+    Ok(summary)
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
+pub struct PollSummary {
+    pub admitted: usize,
+    pub duplicate: usize,
+    pub superseded: usize,
+    pub stale: usize,
+    pub closed: usize,
 }
 
 fn validate_record(record: &IssuePollRecord, enrolled_actors: &BTreeSet<String>) -> PortResult<()> {
@@ -377,6 +426,100 @@ mod tests {
                 0,
             )
             .is_err()
+        );
+    }
+
+    struct Repeat {
+        page: IssuePollPage,
+    }
+
+    impl IssuePollTransport for Repeat {
+        fn list_issues(&mut self, _request: &IssuePollRequest) -> PortResult<IssuePollPage> {
+            Ok(self.page.clone())
+        }
+    }
+
+    // r[verify kiln.github.poll.admission] r[verify kiln.github.poll.admission.scenario.repeat]
+    #[test]
+    fn repeated_polling_admits_one_canonical_work_version() {
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let database = directory.path().join("work.sqlite");
+        let enrollment = kiln_core::implementation::Enrollment {
+            repositories: BTreeSet::from(["onixresearch/kiln".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        };
+        let mut implementer =
+            Implementer::open(&database, enrollment.clone()).unwrap_or_else(|_| unreachable!());
+        let mut transport = Repeat {
+            page: IssuePollPage {
+                records: vec![record(7, 100, "open")],
+                next_page: None,
+            },
+        };
+        let first = poll_into_implementer(
+            &policy(),
+            &enrollment.actors,
+            &mut transport,
+            0,
+            1,
+            &mut implementer,
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(first.admitted, 1);
+        let second = poll_into_implementer(
+            &policy(),
+            &enrollment.actors,
+            &mut transport,
+            0,
+            1,
+            &mut implementer,
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(second.duplicate, 1);
+        assert_eq!(
+            implementer
+                .work()
+                .unwrap_or_else(|_| unreachable!())
+                .current()
+                .count(),
+            1
+        );
+    }
+
+    // r[verify kiln.github.poll.admission.scenario.closed]
+    #[test]
+    fn closed_poll_observation_does_not_complete_or_cancel_work() {
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let database = directory.path().join("work.sqlite");
+        let enrollment = kiln_core::implementation::Enrollment {
+            repositories: BTreeSet::from(["onixresearch/kiln".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        };
+        let mut implementer =
+            Implementer::open(&database, enrollment.clone()).unwrap_or_else(|_| unreachable!());
+        let mut transport = Repeat {
+            page: IssuePollPage {
+                records: vec![record(8, 100, "closed")],
+                next_page: None,
+            },
+        };
+        let summary = poll_into_implementer(
+            &policy(),
+            &enrollment.actors,
+            &mut transport,
+            0,
+            1,
+            &mut implementer,
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(summary.closed, 1);
+        assert_eq!(
+            implementer
+                .work()
+                .unwrap_or_else(|_| unreachable!())
+                .current()
+                .count(),
+            0
         );
     }
 

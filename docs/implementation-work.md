@@ -127,7 +127,8 @@ records remain beyond the page bound.
 `api.github.com` origin, bearer token, no redirects or environment proxy,
 bounded response bytes, pull-request filtering, strict timestamps and a bounded
 `Link` next-page parser. Authentication, repository and rate-limit failures are
-distinct; retries and the polling schedule are not implemented.
+distinct; `kiln-implementer poll` runs one explicit bounded pass and retries and
+the polling schedule remain separate.
 
 `drain_implementation_queue` consumes a bounded queue batch: it re-verifies each
 stored signature, normalizes through operator policy, admits into the durable

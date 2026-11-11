@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|reserve-plan|start|handoff|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|handoff|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -51,6 +51,7 @@ fn run() -> Result<(), ()> {
     match command.as_str() {
         "drain" => drain(&flags),
         "run" => run_loop(&flags),
+        "poll" => poll(&flags),
         "status" => status(&flags),
         "claim" => claim(&flags),
         "cancel" => cancel(&flags),
@@ -478,6 +479,86 @@ fn drain_inputs(flags: &BTreeMap<String, String>) -> Result<DrainInputs, String>
         maximum_deliveries,
         limit,
     })
+}
+
+// r[impl kiln.github.poll.transport] r[impl kiln.implementation.polling]
+fn poll(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let database = match required_path(flags, "--database") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let enrollment_file = match required_path(flags, "--enrollment") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let policy_file = match required_path(flags, "--policy") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let max_pages = match required_positive(flags, "--max-pages") {
+        Ok(pages) => match u32::try_from(pages) {
+            Ok(pages) => pages,
+            Err(_) => return fail("--max-pages exceeds its bound"),
+        },
+        Err(error) => return fail(&error),
+    };
+    let since_ms = match flags.get("--since-ms") {
+        Some(value) => match value.parse::<u64>() {
+            Ok(value) => value,
+            Err(_) => return fail("--since-ms must be a non-negative integer"),
+        },
+        None => 0,
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let enrollment: Enrollment = match read_json(&enrollment_file) {
+        Ok(enrollment) => enrollment,
+        Err(error) => return fail(&error),
+    };
+    let policy = match read_json(&policy_file) {
+        Ok(policy) => policy,
+        Err(error) => return fail(&error),
+    };
+    let token = match std::fs::read(&secret_file) {
+        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
+            Ok(token) => token,
+            Err(_) => return fail("secret file is not a valid GitHub token"),
+        },
+        Err(_) => return fail("secret file is unreadable"),
+    };
+    let mut implementer = match Implementer::open(&database, enrollment.clone()) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let mut transport =
+        match kiln_adapter_github::poll_http::GithubIssuePollClient::new(token, timeout_ms) {
+            Ok(transport) => transport,
+            Err(_) => return fail("poll transport configuration is invalid"),
+        };
+    match kiln_adapter_github::poll::poll_into_implementer(
+        &policy,
+        &enrollment.actors,
+        &mut transport,
+        since_ms,
+        max_pages,
+        &mut implementer,
+    ) {
+        Ok(summary) => match serde_json::to_string(&summary) {
+            Ok(document) => {
+                println!("{document}");
+                Ok(())
+            }
+            Err(_) => fail("poll summary could not be encoded"),
+        },
+        Err(error) => fail(&format!("{error:?}")),
+    }
 }
 
 fn status(flags: &BTreeMap<String, String>) -> Result<(), ()> {

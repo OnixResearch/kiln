@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.github-poll-admission.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --lib poll:: --offline",
+      "result": "6 passed; repeated pass admits one version/reports duplicate and closed observation creates no work"
+    },
+    {
+      "command": "cargo check -p kiln-adapter-github --offline --bin kiln-implementer",
+      "result": "operator poll command compiles"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "admission": "crates/kiln-adapter-github/src/poll.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "a polling pass is not a scheduler, retry loop, claim or dispatch",
+    "closed observations do not complete or cancel work",
+    "polled text is not execution permission"
+  ]
+}
