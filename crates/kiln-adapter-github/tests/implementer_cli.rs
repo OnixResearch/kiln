@@ -141,7 +141,6 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
             .count(),
         1
     );
-
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("status")
         .arg("--database")
@@ -218,6 +217,68 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         attempt.get("phase").and_then(serde_json::Value::as_str),
         Some("claimed")
     );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("reserve")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--fence")
+        .arg(fence.to_string())
+        .arg("--plan")
+        .arg(content('d').as_str())
+        .arg("--provider")
+        .arg("lattice-implementation")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("kiln.implementation-dispatch.v1"));
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("start")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--fence")
+        .arg(fence.to_string())
+        .arg("--workflow-kind")
+        .arg("run")
+        .arg("--workflow-id")
+        .arg("one")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stored = Implementer::open(
+        &database,
+        Enrollment {
+            repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        },
+    )
+    .unwrap_or_else(|_| unreachable!())
+    .attempt(&ContentId::from_blake3_hex(identity.clone()).unwrap_or_else(|_| unreachable!()))
+    .unwrap_or_else(|_| unreachable!())
+    .unwrap_or_else(|| unreachable!("stored attempt"));
+    assert_eq!(
+        stored.phase,
+        kiln_core::implementation::AttemptPhase::Executing
+    );
+    assert!(stored.dispatch.is_some());
+    assert!(stored.workflow.is_some());
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("cancel")

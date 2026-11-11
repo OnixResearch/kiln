@@ -67,17 +67,23 @@ ledger, reporting selected/admitted/duplicate/superseded counts.
 
 `claim` creates one current attempt (default lease one hour, `--lease-ms` to
 override) and prints its canonical JSON including frozen work identity, base and
-fence; `cancel --attempt ID --fence N [--cause TEXT]` revokes it. Claims are an
-operator/worker handoff only: the command does not dispatch, verify or publish,
-and a claimed attempt must still be executed by an admitted Lattice route.
+fence; `cancel --attempt ID --fence N [--cause TEXT]` revokes it.
+`reserve --attempt ID --fence N --plan HEX --provider PROFILE` records the one
+durable dispatch reservation before transport; repeating it is idempotent.
+`start --attempt ID --fence N --workflow-kind KIND --workflow-id ID
+[--namespace lattice]` records the provider workflow after an externally
+observed dispatch and requires that reservation. Claims and reservations are an
+operator/worker handoff only: no command performs transport, verification or
+publication, and a claimed attempt must still be executed by an admitted Lattice
+route.
 
 ## Ownership
 
 | Concern | Owner | Status |
 |---|---|---|
-| Work admission, global claims, fences, budgets, disposition | Kiln | core implemented; durable shell not wired |
-| Versioned implementation-ready Cairn snapshots | Cairn `#1` | unimplemented in the Cairn repository |
-| One owned attempt workflow, worker route, cancellation | Lattice `#6–#8` | open |
+| Work admission, global claims, fences, reservations, budgets, disposition | Kiln | core and durable operator shell implemented |
+| Versioned implementation-ready Cairn snapshots | Cairn `#1` | implemented; consumed by `kiln-cairn-intake` |
+| One owned attempt workflow, worker route, cancellation | Lattice `#6–#8` | `#8` closed; `#6/#7` open |
 | Relocatable VM sessions | Lattice `#9–#11`, Aspen | open |
 | Candidate acceptance using the authoritative Cairn checker | Kiln `#46`, Cairn | blocked by candidate producer |
 | Forge publication and reconciliation | Kiln `#47` | blocked by #45–#46 |

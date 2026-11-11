@@ -17,8 +17,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use kiln_core::implementation::{
-    AdmissionDecision, AttemptLedger, Enrollment, ImplementationAttempt, ImplementationWork,
-    SourceMapping, WorkLedger,
+    AdmissionDecision, AttemptLedger, DispatchReservation, Enrollment, ImplementationAttempt,
+    ImplementationWork, SourceMapping, WorkLedger,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -124,6 +124,26 @@ impl Implementer {
         lease_ms: u64,
     ) -> Result<u64, String> {
         self.with_ledgers(|_, attempts| attempts.renew(identity, fence, now_ms, lease_ms))
+    }
+
+    pub fn reserve_dispatch(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ContentId,
+        provider_profile: &kiln_core::types::ProviderProfileId,
+    ) -> Result<DispatchReservation, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.reserve_dispatch(identity, fence, now_ms, plan, provider_profile)
+        })
+    }
+
+    pub fn dispatch_reservation(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<DispatchReservation>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.dispatch_reservation(identity).cloned()))
     }
 
     pub fn start_execution(

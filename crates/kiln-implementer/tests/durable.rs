@@ -2,7 +2,7 @@ use kiln_core::implementation::{
     AcceptanceObligation, Enrollment, FailureClass, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork,
     SourceMapping, SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
 };
-use kiln_core::types::{ContentId, ExternalRef};
+use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
 use kiln_implementer::Implementer;
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -57,6 +57,10 @@ fn work() -> ImplementationWork {
 
 fn reference(kind: &str, id: &str) -> ExternalRef {
     ExternalRef::new("lattice", kind, id).unwrap_or_else(|_| unreachable!())
+}
+
+fn provider() -> ProviderProfileId {
+    ProviderProfileId::new("lattice-implementation").unwrap_or_else(|_| unreachable!())
 }
 
 fn open(path: &Path) -> Implementer {
@@ -171,6 +175,15 @@ fn stale_fence_is_refused_after_restart_and_replacement() {
             .is_err()
     );
     reopened
+        .reserve_dispatch(
+            &replacement.identity,
+            replacement.fence,
+            200,
+            &content('d'),
+            &provider(),
+        )
+        .unwrap_or_else(|_| unreachable!());
+    reopened
         .start_execution(
             &replacement.identity,
             replacement.fence,
@@ -198,6 +211,49 @@ fn stale_fence_is_refused_after_restart_and_replacement() {
     );
 }
 
+// r[verify kiln.implementation.dispatch_reservation.scenario.restart]
+#[test]
+fn dispatch_reservation_survives_restart_before_transport() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = directory.path().join("implementation.db");
+    let mut implementer = open(path.as_path());
+    implementer
+        .admit(&work(), None)
+        .unwrap_or_else(|_| unreachable!());
+    let attempt = implementer
+        .claim_next(0, LEASE)
+        .unwrap_or_else(|_| unreachable!())
+        .unwrap_or_else(|| unreachable!("claim"));
+    let reserved = implementer
+        .reserve_dispatch(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &content('d'),
+            &provider(),
+        )
+        .unwrap_or_else(|_| unreachable!());
+    drop(implementer);
+
+    let mut reopened = open(path.as_path());
+    assert_eq!(
+        reopened
+            .dispatch_reservation(&attempt.identity)
+            .unwrap_or_else(|_| unreachable!()),
+        Some(reserved.clone())
+    );
+    assert!(
+        reopened
+            .start_execution(
+                &attempt.identity,
+                attempt.fence,
+                2,
+                &reference("run", "after-restart")
+            )
+            .is_ok()
+    );
+}
+
 // r[verify kiln.implementation.recovery.scenario.restart]
 #[test]
 fn dispatch_reconciliation_survives_restart_without_duplicate_execution() {
@@ -212,6 +268,15 @@ fn dispatch_reconciliation_survives_restart_without_duplicate_execution() {
         .claim_next(0, LEASE)
         .unwrap_or_else(|_| unreachable!())
         .unwrap_or_else(|| unreachable!("claim"));
+    implementer
+        .reserve_dispatch(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &content('d'),
+            &provider(),
+        )
+        .unwrap_or_else(|_| unreachable!());
     drop(implementer);
 
     let run = reference("run", "one");

@@ -11,15 +11,17 @@
 //! process still runs.
 
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use serde::{Deserialize, Serialize};
 
 use super::ImplementationWork;
-use crate::types::{ContentId, CoreResult, Diagnostic, ExternalRef};
+use crate::types::{ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, ProviderProfileId};
 
 pub const ATTEMPT_SCHEMA: &str = "kiln.implementation-attempt.v1";
+pub const DISPATCH_SCHEMA: &str = "kiln.implementation-dispatch.v1";
 pub const MAX_LEASE_MS: u64 = 24 * 60 * 60 * 1_000;
 pub const DEFAULT_LEASE_MS: u64 = 60 * 60 * 1_000;
 
@@ -75,6 +77,49 @@ pub enum SupersessionRule {
     FinishActive,
 }
 
+/// Durable intent to dispatch one admitted attempt exactly once.
+///
+/// The reservation is created before provider transport. Repeating the same
+/// reservation is idempotent; a different plan or profile for the same live
+/// attempt is refused. The effect and idempotency identities are deterministic
+/// over the attempt, fence, plan and provider profile.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchReservation {
+    pub schema: String,
+    pub provider_profile: ProviderProfileId,
+    /// Caller-admitted provider plan identity.
+    pub plan: ContentId,
+    pub effect_id: EffectId,
+    pub idempotency_key: ExternalRef,
+    pub reserved_at_ms: u64,
+}
+
+impl DispatchReservation {
+    fn new(
+        attempt: &ImplementationAttempt,
+        plan: &ContentId,
+        provider_profile: &ProviderProfileId,
+        now_ms: u64,
+    ) -> CoreResult<Self> {
+        let mut bytes = Vec::new();
+        push(&mut bytes, DISPATCH_SCHEMA)?;
+        push(&mut bytes, attempt.identity.as_str())?;
+        bytes.extend_from_slice(&attempt.fence.to_be_bytes());
+        push(&mut bytes, plan.as_str())?;
+        push(&mut bytes, provider_profile.as_str())?;
+        let digest = ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string())?;
+        Ok(Self {
+            schema: DISPATCH_SCHEMA.to_string(),
+            provider_profile: provider_profile.clone(),
+            plan: plan.clone(),
+            effect_id: EffectId::new(format!("dispatch-{}", digest.as_str()))?,
+            idempotency_key: ExternalRef::new("kiln", "implementation-dispatch", digest.as_str())?,
+            reserved_at_ms: now_ms,
+        })
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ImplementationAttempt {
@@ -93,6 +138,9 @@ pub struct ImplementationAttempt {
     pub fence: u64,
     pub lease_until_ms: u64,
     pub phase: AttemptPhase,
+    /// Dispatch reservation recorded before provider transport.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dispatch: Option<DispatchReservation>,
     pub workflow: Option<ExternalRef>,
     pub candidate: Option<ExternalRef>,
     pub failure: Option<FailureClass>,
@@ -197,6 +245,7 @@ impl AttemptLedger {
             fence,
             lease_until_ms: now_ms.saturating_add(lease_ms),
             phase: AttemptPhase::Claimed,
+            dispatch: None,
             workflow: None,
             candidate: None,
             failure: None,
@@ -244,11 +293,49 @@ impl AttemptLedger {
         Ok(lease_until_ms)
     }
 
+    /// Reserve one provider dispatch before transport.
+    ///
+    /// The same plan and profile are idempotent. A different plan or profile
+    /// for the current attempt, a stale fence, or an expired lease is refused.
+    // r[impl kiln.implementation.dispatch_reservation]
+    pub fn reserve_dispatch(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ContentId,
+        provider_profile: &ProviderProfileId,
+    ) -> CoreResult<DispatchReservation> {
+        self.require_phase(identity, fence, now_ms, &[AttemptPhase::Claimed])?;
+        let attempt = self.attempt_mut(identity)?;
+        if let Some(existing) = &attempt.dispatch {
+            if &existing.plan == plan && &existing.provider_profile == provider_profile {
+                return Ok(existing.clone());
+            }
+            return Err(refusal(
+                "implementation_dispatch_reserved",
+                "attempt.dispatch",
+                "attempt already reserved a different provider dispatch",
+            ));
+        }
+        let reservation = DispatchReservation::new(attempt, plan, provider_profile, now_ms)?;
+        attempt.dispatch = Some(reservation.clone());
+        Ok(reservation)
+    }
+
+    /// Read the durable dispatch reservation for one attempt.
+    #[must_use]
+    pub fn dispatch_reservation(&self, identity: &ContentId) -> Option<&DispatchReservation> {
+        self.get(identity)
+            .and_then(|attempt| attempt.dispatch.as_ref())
+    }
+
     /// Mark dispatch executed and record the provider workflow run.
     ///
-    /// Repeating the exact same observation is idempotent. A conflicting run
-    /// identity is refused rather than silently replaced.
-    // r[impl kiln.implementation.dispatch]
+    /// A reservation MUST exist first. Repeating the exact same observation is
+    /// idempotent. A conflicting run identity is refused rather than silently
+    /// replaced.
+    // r[impl kiln.implementation.dispatch] r[impl kiln.implementation.dispatch_reservation]
     pub fn start_execution(
         &mut self,
         identity: &ContentId,
@@ -259,6 +346,24 @@ impl AttemptLedger {
         self.require_phase(identity, fence, now_ms, &[AttemptPhase::Claimed])?;
         workflow.validate()?;
         let attempt = self.attempt_mut(identity)?;
+        if attempt.dispatch.is_none() {
+            return Err(refusal(
+                "implementation_dispatch_reservation_missing",
+                "attempt.dispatch",
+                "dispatch requires a durable reservation before transport",
+            ));
+        }
+        match &attempt.workflow {
+            Some(existing) if existing == workflow => return Ok(()),
+            Some(_) => {
+                return Err(refusal(
+                    "implementation_dispatch_conflict",
+                    "attempt.workflow",
+                    "attempt already records a different workflow execution",
+                ));
+            }
+            None => {}
+        }
         attempt.workflow = Some(workflow.clone());
         attempt.phase = AttemptPhase::Executing;
         Ok(())
@@ -284,6 +389,13 @@ impl AttemptLedger {
         )?;
         observed.validate()?;
         let attempt = self.attempt_mut(identity)?;
+        if attempt.dispatch.is_none() {
+            return Err(refusal(
+                "implementation_dispatch_reservation_missing",
+                "attempt.dispatch",
+                "dispatch reconciliation requires a durable reservation",
+            ));
+        }
         match &attempt.workflow {
             None => {
                 attempt.workflow = Some(observed.clone());
@@ -594,6 +706,14 @@ mod tests {
             .unwrap_or_else(|_| unreachable!())
     }
 
+    fn plan() -> ContentId {
+        content('d')
+    }
+
+    fn provider() -> ProviderProfileId {
+        ProviderProfileId::new("lattice-implementation").unwrap_or_else(|_| unreachable!())
+    }
+
     fn work() -> ImplementationWork {
         ImplementationWork {
             schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
@@ -684,6 +804,82 @@ mod tests {
         assert!(ledger.is_current(&replacement.identity, replacement.fence, 1_200));
     }
 
+    // r[verify kiln.implementation.dispatch_reservation] r[verify kiln.implementation.dispatch_reservation.scenario.idempotent] r[verify kiln.implementation.dispatch_reservation.scenario.conflict] r[verify kiln.implementation.dispatch_reservation.scenario.missing]
+    #[test]
+    fn dispatch_reservation_is_durable_idempotent_and_fenced() {
+        let mut ledger = AttemptLedger::default();
+        let work = work();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let missing = ledger
+            .start_execution(
+                &attempt.identity,
+                attempt.fence,
+                1,
+                &reference("run", "early"),
+            )
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(
+            missing.code.as_str(),
+            "implementation_dispatch_reservation_missing"
+        );
+        let first = ledger
+            .reserve_dispatch(&attempt.identity, attempt.fence, 1, &plan(), &provider())
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(first.plan, plan());
+        let repeated = ledger
+            .reserve_dispatch(&attempt.identity, attempt.fence, 2, &plan(), &provider())
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(repeated.reserved_at_ms, first.reserved_at_ms);
+        assert_eq!(
+            ledger
+                .dispatch_reservation(&attempt.identity)
+                .cloned()
+                .unwrap_or_else(|| unreachable!()),
+            first
+        );
+
+        let conflict = ledger
+            .reserve_dispatch(
+                &attempt.identity,
+                attempt.fence,
+                2,
+                &content('e'),
+                &provider(),
+            )
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(conflict.code.as_str(), "implementation_dispatch_reserved");
+
+        let stale = ledger
+            .reserve_dispatch(
+                &attempt.identity,
+                attempt.fence + 1,
+                2,
+                &plan(),
+                &provider(),
+            )
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(stale.code.as_str(), "implementation_fence_stale");
+
+        ledger
+            .start_execution(
+                &attempt.identity,
+                attempt.fence,
+                2,
+                &reference("run", "one"),
+            )
+            .unwrap_or_else(|_| unreachable!());
+        let stored = ledger
+            .get(&attempt.identity)
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(stored.phase, AttemptPhase::Executing);
+        assert_eq!(stored.dispatch, Some(first));
+    }
+
     // r[verify kiln.implementation.dispatch.scenario.reconcile]
     #[test]
     fn ambiguous_dispatch_reconciles_one_execution_without_redispatch() {
@@ -693,6 +889,9 @@ mod tests {
             .claim(&work, 0, DEFAULT_LEASE_MS)
             .unwrap_or_else(|_| unreachable!());
         let run = reference("run", "one");
+        ledger
+            .reserve_dispatch(&attempt.identity, attempt.fence, 0, &plan(), &provider())
+            .unwrap_or_else(|_| unreachable!());
         ledger
             .reconcile_dispatch(&attempt.identity, attempt.fence, 0, &run)
             .unwrap_or_else(|_| unreachable!());
@@ -794,6 +993,9 @@ mod tests {
         let stored = ledger.get(&next.identity).unwrap_or_else(|| unreachable!());
         assert_eq!(stored.phase, AttemptPhase::Claimed);
         assert_eq!(stored.superseded_by, Some(3));
+        ledger
+            .reserve_dispatch(&next.identity, next.fence, 3, &plan(), &provider())
+            .unwrap_or_else(|_| unreachable!());
         ledger
             .start_execution(&next.identity, next.fence, 3, &reference("run", "next"))
             .unwrap_or_else(|_| unreachable!());

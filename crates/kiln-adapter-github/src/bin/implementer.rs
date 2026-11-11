@@ -3,7 +3,9 @@
 //! `drain` moves authenticated queued GitHub issue deliveries into admitted
 //! work once. `run` repeats that drain on a bounded interval until a stop signal
 //! or an explicit iteration count. `status` reports retained work and attempt
-//! counts. None of the commands claim, dispatch, verify or publish work.
+//! counts. `claim`, `cancel`, `reserve` and `start` own the durable attempt and
+//! dispatch-reservation transitions. No command performs provider transport,
+//! verification or publication.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -38,7 +40,9 @@ fn main() {
 fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
-        return fail("usage: kiln-implementer <drain|run|status|claim|cancel> --database PATH ...");
+        return fail(
+            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|start> --database PATH ...",
+        );
     };
     let flags = match parse_flags(arguments.collect()) {
         Ok(flags) => flags,
@@ -50,6 +54,8 @@ fn run() -> Result<(), ()> {
         "status" => status(&flags),
         "claim" => claim(&flags),
         "cancel" => cancel(&flags),
+        "reserve" => reserve(&flags),
+        "start" => start(&flags),
         _ => fail("unknown command"),
     }
 }
@@ -108,6 +114,88 @@ fn cancel(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         }
         Err(error) => fail(&error),
     }
+}
+
+// r[impl kiln.implementation.dispatch_reservation]
+fn reserve(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let identity = match required_identity(flags, "--attempt") {
+        Ok(identity) => identity,
+        Err(error) => return fail(&error),
+    };
+    let fence = match required_positive_u64(flags, "--fence") {
+        Ok(fence) => fence,
+        Err(error) => return fail(&error),
+    };
+    let plan = match required_identity(flags, "--plan") {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let provider = match required_value(flags, "--provider") {
+        Ok(value) => match kiln_core::types::ProviderProfileId::new(value) {
+            Ok(provider) => provider,
+            Err(_) => return fail("--provider must be a bounded profile identity"),
+        },
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    match implementer.reserve_dispatch(&identity, fence, wall_clock_ms(), &plan, &provider) {
+        Ok(reservation) => match serde_json::to_string(&reservation) {
+            Ok(document) => {
+                println!("{document}");
+                Ok(())
+            }
+            Err(_) => fail("dispatch reservation could not be encoded"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.dispatch] r[impl kiln.implementation.dispatch_reservation]
+fn start(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let identity = match required_identity(flags, "--attempt") {
+        Ok(identity) => identity,
+        Err(error) => return fail(&error),
+    };
+    let fence = match required_positive_u64(flags, "--fence") {
+        Ok(fence) => fence,
+        Err(error) => return fail(&error),
+    };
+    let namespace = flags.get("--namespace").map_or("lattice", String::as_str);
+    let kind = match required_value(flags, "--workflow-kind") {
+        Ok(kind) => kind,
+        Err(error) => return fail(&error),
+    };
+    let id = match required_value(flags, "--workflow-id") {
+        Ok(id) => id,
+        Err(error) => return fail(&error),
+    };
+    let workflow = match kiln_core::types::ExternalRef::new(namespace, &kind, &id) {
+        Ok(workflow) => workflow,
+        Err(_) => return fail("--workflow-kind or --workflow-id is malformed"),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    match implementer.start_execution(&identity, fence, wall_clock_ms(), &workflow) {
+        Ok(()) => {
+            println!("{{\"started\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn required_identity(
+    flags: &BTreeMap<String, String>,
+    key: &str,
+) -> Result<kiln_core::types::ContentId, String> {
+    let value = required_value(flags, key)?;
+    kiln_core::types::ContentId::from_blake3_hex(value)
+        .map_err(|_| format!("{key} must be one BLAKE3 identity"))
 }
 
 fn open_implementer(flags: &BTreeMap<String, String>) -> Result<Implementer, String> {

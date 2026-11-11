@@ -56,9 +56,15 @@ claims the work.
 
 Claims carry bounded leases. Expiry blocks the attempt with `lease_expired`,
 revokes its fence and consumes the budget; a replacement may claim only while
-the lineage still has attempts. Dispatch reconciliation accepts exactly one
-observed workflow run: an absent record is filled, an equal observation is
-idempotent, and a conflicting run is refused instead of redispatched.
+the lineage still has attempts.
+
+Before transport, an attempt reserves exactly one dispatch binding: provider
+profile, admitted plan identity, deterministic effect identity and idempotency
+key. Repeating the same reservation is idempotent; a different plan or profile
+for the live attempt, a stale fence, or an expired lease is refused. The
+reservation survives restart. Dispatch acknowledgement and reconciliation
+require the reservation, fill the single observed workflow run, accept an equal
+observation idempotently, and refuse a conflicting run instead of redispatching.
 
 States are persisted with structured causes: claimed, executing,
 candidate-produced, verifying, blocked, failed, cancelled and superseded.

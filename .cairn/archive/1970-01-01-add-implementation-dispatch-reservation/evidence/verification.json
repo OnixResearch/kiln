@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.implementation-dispatch-reservation.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::attempt",
+      "result": "9 passed; reservation idempotence, conflict, stale fence, missing reservation, acknowledgement and reconciliation"
+    },
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "2 unit and 6 durable tests pass; reservation survives restart before transport"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --test implementer_cli --offline",
+      "result": "reserve/start commands record one dispatch and the workflow under the claim fence"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "reservation": "crates/kiln-core/src/implementation/attempt.rs",
+    "shell": "crates/kiln-implementer/src/lib.rs",
+    "operator_cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "a reservation is not proof of dispatch or provider authority",
+    "no provider transport, workspace execution or candidate verification is added",
+    "Lattice #6/#7 remain the owned attempt workflow and worker route"
+  ]
+}
