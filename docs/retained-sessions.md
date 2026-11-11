@@ -17,6 +17,22 @@ source is the only migration start point; migration success moves the source to
 `migrated-away` but does not prove target placement, cleanup or capacity release.
 Only an observed retirement releases capacity.
 
+## Paused handoff
+
+`kiln-microvm::handoff` admits a checkpoint manifest binding the session,
+work/version, attempt/fence, execution, source and target placement, operation,
+image/kernel/hypervisor/CPU profile, exact disk generation and distinct
+RAM/device-state/disk/workspace objects. A manifest is refused when its disk
+identity or generation differs from the independently resolved volume facts, so
+old memory cannot be paired with a newer disk.
+
+`PausedHandoff` orders intent, quiescence, source pause, object verification,
+target admission, resume and source retirement. Object verification requires the
+source to remain paused; target admission requires the admitted target owner and
+a validated receipt; resume requires that target placement; reconciliation keeps
+source capacity and never claims target placement or retirement. These are
+ordering checks, not proof that bytes were copied, verified, or durably stored.
+
 ## Non-claims
 
 This module performs no I/O, starts no VMM, transfers no memory or workspace,

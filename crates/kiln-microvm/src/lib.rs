@@ -12,6 +12,7 @@ pub mod archive;
 pub mod backend;
 pub mod confinement;
 pub mod debug_hold;
+pub mod handoff;
 pub mod host;
 pub mod lifecycle;
 pub mod plan;

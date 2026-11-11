@@ -140,7 +140,7 @@ impl RetainedSession {
         self.state != RetainedState::Retired
     }
 
-    fn authorize(&self, owner: &OwnerToken) -> Result<(), Diagnostic> {
+    pub(crate) fn authorize(&self, owner: &OwnerToken) -> Result<(), Diagnostic> {
         owner.session.validate()?;
         validate_host(&owner.host, "retained.owner.host")?;
         if self.schema != RETAINED_SESSION_SCHEMA

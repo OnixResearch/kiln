@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.paused-handoff.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/53",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-microvm --offline handoff",
+      "result": "4 passed; ordered handoff, out-of-order/stale target, disk generation/object mismatch and reconciliation retention"
+    },
+    {
+      "command": "cargo clippy -p kiln-microvm --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "manifest": "crates/kiln-microvm/src/handoff.rs",
+    "retained_session": "crates/kiln-microvm/src/retained.rs",
+    "docs": "docs/retained-sessions.md"
+  },
+  "non_claims": [
+    "no bytes are copied, transferred or durably verified",
+    "no VMM is paused, resumed or retired",
+    "target placement, ownership commit and source cleanup remain external"
+  ]
+}
