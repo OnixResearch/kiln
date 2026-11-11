@@ -361,12 +361,6 @@ fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutc
     if pull.head.sha != plan.candidate.native_id.as_str()
         || pull.base.r#ref != plan.base_branch
         || pull.state != "open"
-        || !pull.head.user.login.eq_ignore_ascii_case(
-            plan.repository
-                .split_once('/')
-                .map(|(owner, _)| owner)
-                .unwrap_or(&plan.repository),
-        )
     {
         return Err(domain(
             "github_publication_pr_conflict",
@@ -465,7 +459,6 @@ struct RawHead {
     #[serde(rename = "ref")]
     r#ref: String,
     sha: String,
-    user: RawUser,
 }
 #[derive(Deserialize)]
 struct RawUser {

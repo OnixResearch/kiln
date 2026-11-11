@@ -9,8 +9,8 @@ for an already prepared publication plan.
   shape and PR text before any request.
 - Branch/PR creation races are reconciled at most once; a second race remains
   `Unknown`. Incomplete PR pagination is refused rather than treated as absence.
-- A matching PR must belong to the repository owner; a same-named head branch
-  from another owner is refused.
+- Matching PRs are selected by the exact open head branch, base branch and
+  candidate head; ambiguous matches are refused.
 - A candidate branch is read first. If it is absent it is created at the exact
   verified candidate; if present it must already point at that candidate.
 - Pull requests are reconciled by exact head branch, base branch and open state.
