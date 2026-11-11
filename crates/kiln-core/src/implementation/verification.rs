@@ -354,6 +354,17 @@ mod tests {
             .err()
             .unwrap_or_else(|| unreachable!());
         assert_eq!(error.code.as_str(), "implementation_already_verified");
+        let mut next = work.clone();
+        next.revision = work.revision + 1;
+        next.aliases
+            .first_mut()
+            .unwrap_or_else(|| unreachable!())
+            .version = content('f');
+        let next_claim = ledger.claim(&next, 7, DEFAULT_LEASE_MS);
+        assert!(
+            next_claim.is_ok(),
+            "a new source version remains separately claimable: {next_claim:?}"
+        );
     }
 
     #[test]
