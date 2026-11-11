@@ -94,7 +94,15 @@ pub fn admit_candidate_handoff(
     attempt: &super::ImplementationAttempt,
     handoff: &CandidateHandoff,
 ) -> CoreResult<ContentId> {
-    if handoff.schema != CANDIDATE_HANDOFF_SCHEMA
+    if attempt
+        .handoff
+        .as_ref()
+        .is_some_and(|stored| stored != handoff)
+        || attempt
+            .candidate
+            .as_ref()
+            .is_some_and(|candidate| candidate != &handoff.candidate)
+        || handoff.schema != CANDIDATE_HANDOFF_SCHEMA
         || handoff.work_identity != work.identity()?
         || handoff.work_revision != work.revision
         || handoff.work_identity != attempt.work_identity

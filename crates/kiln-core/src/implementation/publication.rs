@@ -880,7 +880,7 @@ mod tests {
                     .verification
                     .as_ref()
                     .unwrap_or_else(|| unreachable!()),
-                &make_plan(&work, &substituted)
+                &make_plan(&work, &attempt)
             )
             .is_err()
         );
