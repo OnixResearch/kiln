@@ -154,10 +154,11 @@ fn concurrent_schedulers_claim_independent_work() {
     let mut second = work();
     second.title = "Second durable implementation work".to_string();
     second.priority = 2;
-    second.aliases[0].source =
+    let alias = second.aliases.first_mut().unwrap_or_else(|| unreachable!());
+    alias.source =
         ExternalRef::new("github", "issue", "onix/kiln#46").unwrap_or_else(|_| unreachable!());
-    second.aliases[0].native_id = "onix/kiln#46".to_string();
-    second.aliases[0].version = content('2');
+    alias.native_id = "onix/kiln#46".to_string();
+    alias.version = content('2');
     let mut implementer = open(path.as_path());
     implementer
         .admit(&first, None)
