@@ -1060,9 +1060,7 @@ fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
     let mut done = 0usize;
     loop {
-        if let Err(error) = poll(flags) {
-            return Err(error);
-        }
+        poll(flags)?;
         done += 1;
         if iterations.is_some_and(|limit| done >= limit)
             || stop.load(std::sync::atomic::Ordering::Acquire)
