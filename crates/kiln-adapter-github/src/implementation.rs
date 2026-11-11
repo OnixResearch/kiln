@@ -27,7 +27,8 @@ const MAX_ISSUE_BODY_BYTES: usize = 262_144;
 const MAX_ISSUE_TITLE_BYTES: usize = 512;
 const MAX_ACTOR_BYTES: usize = 128;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ImplementationIssuePolicy {
     pub repository: EventPolicy,
     pub project: String,
@@ -323,6 +324,19 @@ pub fn drain_implementation_queue(
     let Some(queue_config) = &config.implementation_queue else {
         return Ok(0);
     };
+    drain_issue_queue(queue_config, secret, policy, enrolled, implementer, limit)
+}
+
+/// Drain one configured queue path. Shared by the service shell and the
+/// operator binary.
+pub fn drain_issue_queue(
+    queue_config: &crate::profile::ImplementationQueueConfig,
+    secret: &[u8],
+    policy: &ImplementationIssuePolicy,
+    enrolled: &std::collections::BTreeSet<String>,
+    implementer: &mut kiln_implementer::Implementer,
+    limit: usize,
+) -> PortResult<usize> {
     let mut queue =
         kiln_implementer::DeliveryQueue::open(&queue_config.path, queue_config.maximum_deliveries)
             .map_err(|_| {

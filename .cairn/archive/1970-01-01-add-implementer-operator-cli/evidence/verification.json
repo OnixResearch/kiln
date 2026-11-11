@@ -1,0 +1,33 @@
+{
+  "schema": "kiln.implementer-operator-cli.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --test implementer_cli --offline",
+      "result": "1 passed; signed queue drain admits one work record and status reports work/attempt counts"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --lib --offline",
+      "result": "63 passed"
+    },
+    {
+      "command": "cargo test -p kiln-implementer --offline",
+      "result": "7 passed"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github -p kiln-implementer --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "binary": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "test": "crates/kiln-adapter-github/tests/implementer_cli.rs",
+    "docs": "docs/implementer-service.md"
+  },
+  "non_claims": [
+    "the tool does not claim, dispatch, verify or publish",
+    "status is read-only over retained state",
+    "a scheduler and Lattice route remain external work"
+  ]
+}

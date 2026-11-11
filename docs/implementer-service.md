@@ -33,6 +33,23 @@ The shell owns durable claims and state, but still does not execute or cancel a
 Lattice workflow, create a workspace, verify a candidate, publish, or grant
 authority. Live dispatch remains blocked on the Lattice implementation route.
 
+### Operator commands
+
+```console
+kiln-implementer drain --database /var/lib/kiln/work.sqlite \
+  --queue /var/lib/kiln/github-issues.sqlite --maximum-deliveries 1024 \
+  --secret-file /run/secrets/github-webhook \
+  --policy /etc/kiln/implementer-policy.json \
+  --enrollment /etc/kiln/implementer-enrollment.json --limit 64
+
+kiln-implementer status --database /var/lib/kiln/work.sqlite \
+  --enrollment /etc/kiln/implementer-enrollment.json
+```
+
+`drain` re-verifies and admits queued deliveries; `status` reports retained work,
+attempt and active counts. Both require absolute paths. The secret file is read
+as exact bytes. Neither command claims or dispatches.
+
 ## Ownership
 
 | Concern | Owner | Status |

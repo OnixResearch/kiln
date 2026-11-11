@@ -18,6 +18,10 @@ path = "src/main.rs"
 name = "kiln-github-job"
 path = "src/bin/github-job.rs"
 
+[[bin]]
+name = "kiln-implementer"
+path = "src/bin/implementer.rs"
+
 [dev-dependencies]
 lattice-workflow-contract.workspace = true
 

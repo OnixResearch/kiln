@@ -227,6 +227,10 @@ impl Implementer {
         self.with_ledgers(|ledger, _| Ok(ledger.clone()))
     }
 
+    pub fn attempts(&mut self) -> Result<AttemptLedger, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.clone()))
+    }
+
     pub fn attempt(
         &mut self,
         identity: &ContentId,
