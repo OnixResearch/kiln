@@ -33,6 +33,7 @@ pub struct LandingPlan {
     pub base_ref: String,
     pub head_sha: String,
     pub required_checks: Vec<String>,
+    pub required_approvals: u32,
     pub operation: ContentId,
 }
 
@@ -40,11 +41,19 @@ pub struct LandingPlan {
 #[serde(deny_unknown_fields)]
 pub struct PullObservation {
     pub number: u64,
+    pub author: String,
     pub state: String,
     pub merged: bool,
     pub mergeable: Option<bool>,
     pub head_sha: String,
     pub base_ref: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewObservation {
+    pub actor: String,
+    pub state: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -61,6 +70,7 @@ pub struct CheckObservation {
 pub struct LandingObservation {
     pub pull: PullObservation,
     pub checks: Vec<CheckObservation>,
+    pub reviews: Vec<ReviewObservation>,
 }
 
 /// Admit a read-only observation as exact landing evidence.
@@ -117,6 +127,37 @@ pub fn admit_landing(
             ));
         }
     }
+    let mut latest = std::collections::BTreeMap::new();
+    for review in &observation.reviews {
+        if !bounded_name(&review.actor) || !bounded_name(&review.state) {
+            return Err(refusal(
+                "github_landing_review",
+                "landing.reviews",
+                "landing review actor or state is malformed",
+            ));
+        }
+        latest.insert(review.actor.as_str(), review.state.as_str());
+    }
+    let mut approvals = 0_u32;
+    for (actor, state) in latest {
+        if state == "CHANGES_REQUESTED" {
+            return Err(refusal(
+                "github_landing_changes_requested",
+                "landing.reviews",
+                "a reviewer requested changes",
+            ));
+        }
+        if state == "APPROVED" && actor != observation.pull.author {
+            approvals = approvals.saturating_add(1);
+        }
+    }
+    if approvals < plan.required_approvals {
+        return Err(refusal(
+            "github_landing_approvals",
+            "landing.reviews",
+            "landing does not have the required independent approvals",
+        ));
+    }
     Ok(())
 }
 
@@ -129,6 +170,7 @@ fn admit_plan(plan: &LandingPlan) -> Result<(), Diagnostic> {
         || !commit(&plan.head_sha)
         || plan.required_checks.is_empty()
         || plan.required_checks.len() > MAX_CHECKS_REQUIRED
+        || plan.required_approvals > 16
         || plan.operation.validate().is_err()
     {
         return Err(refusal(
@@ -301,6 +343,17 @@ impl GithubLandingClient {
             "{}/repos/{}/{}/commits/{}/check-runs?per_page={MAX_CHECKS}",
             self.endpoint, plan.owner, plan.repository, plan.head_sha
         ))?;
+        let reviews: Vec<RawReview> = self.get_json(&format!(
+            "{}/repos/{}/{}/pulls/{}/reviews?per_page={MAX_CHECKS}",
+            self.endpoint, plan.owner, plan.repository, plan.pull_number
+        ))?;
+        if reviews.len() > MAX_CHECKS {
+            return Err(domain(
+                "github_landing_reviews_bound",
+                "landing.reviews",
+                "review pagination is incomplete or exceeds its bound",
+            ));
+        }
         if checks.total_count > MAX_CHECKS || checks.check_runs.len() > MAX_CHECKS {
             return Err(domain(
                 "github_landing_checks_bound",
@@ -311,6 +364,7 @@ impl GithubLandingClient {
         let observation = LandingObservation {
             pull: PullObservation {
                 number: pull.number,
+                author: pull.user.login,
                 state: pull.state,
                 merged: pull.merged,
                 mergeable: pull.mergeable,
@@ -325,6 +379,13 @@ impl GithubLandingClient {
                     head_sha: check.head_sha,
                     status: check.status,
                     conclusion: check.conclusion,
+                })
+                .collect(),
+            reviews: reviews
+                .into_iter()
+                .map(|review| ReviewObservation {
+                    actor: review.user.login,
+                    state: review.state,
                 })
                 .collect(),
         };
@@ -365,6 +426,7 @@ impl GithubLandingClient {
 #[derive(Deserialize)]
 struct RawPull {
     number: u64,
+    user: RawUser,
     state: String,
     merged: bool,
     mergeable: Option<bool>,
@@ -384,6 +446,15 @@ struct RawBase {
 struct RawChecks {
     total_count: usize,
     check_runs: Vec<RawCheck>,
+}
+#[derive(Deserialize)]
+struct RawReview {
+    user: RawUser,
+    state: String,
+}
+#[derive(Deserialize)]
+struct RawUser {
+    login: String,
 }
 #[derive(Deserialize)]
 struct RawCheck {
@@ -416,6 +487,7 @@ mod tests {
             base_ref: "main".to_string(),
             head_sha: "a".repeat(40),
             required_checks: vec!["build".to_string(), "test".to_string()],
+            required_approvals: 1,
             operation: ContentId::from_blake3_hex("b".repeat(64))
                 .unwrap_or_else(|_| unreachable!()),
         }
@@ -462,6 +534,7 @@ mod tests {
     fn pull_body() -> String {
         serde_json::json!({
             "number": 7,
+            "user": {"login": "author"},
             "state": "open",
             "merged": false,
             "mergeable": true,
@@ -485,7 +558,15 @@ mod tests {
     #[test]
     // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.ready]
     fn observes_an_exact_ready_pull_request() {
-        let (endpoint, server) = serve(vec![("200 OK", pull_body()), ("200 OK", checks_body())]);
+        let (endpoint, server) = serve(vec![
+            ("200 OK", pull_body()),
+            ("200 OK", checks_body()),
+            (
+                "200 OK",
+                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
+                    .to_string(),
+            ),
+        ]);
         let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
         let observation = client
@@ -505,12 +586,13 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.refused]
+    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.approvals] r[verify kiln.github.landing.approvals.scenario.distinct]
     fn refuses_stale_or_incomplete_observations() {
         let plan = plan();
         let mut observation = LandingObservation {
             pull: PullObservation {
                 number: 7,
+                author: "author".to_string(),
                 state: "open".to_string(),
                 merged: false,
                 mergeable: Some(true),
@@ -523,10 +605,20 @@ mod tests {
                 status: "completed".to_string(),
                 conclusion: Some("success".to_string()),
             }],
+            reviews: vec![ReviewObservation {
+                actor: "reviewer".to_string(),
+                state: "APPROVED".to_string(),
+            }],
         };
         assert!(admit_landing(&plan, &observation).is_err());
         observation.pull.head_sha = "c".repeat(40);
         assert!(admit_landing(&plan, &observation).is_err());
+        observation.reviews.clear();
+        assert!(admit_landing(&plan, &observation).is_err());
+        observation.reviews.push(ReviewObservation {
+            actor: "reviewer".to_string(),
+            state: "APPROVED".to_string(),
+        });
         observation.pull.head_sha = plan.head_sha.clone();
         observation.checks.push(CheckObservation {
             name: "build".to_string(),

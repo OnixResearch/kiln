@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.landing-approvals.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/48",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --lib landing --offline",
+      "result": "2 passed; exact ready observation with independent approval and missing-approval refusal"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "observer": "crates/kiln-adapter-github/src/landing.rs",
+    "docs": "docs/github-landing-observation.md"
+  },
+  "non_claims": [
+    "review state is not merge authority",
+    "no approval, dismissal, merge or landing mutation occurs"
+  ]
+}
