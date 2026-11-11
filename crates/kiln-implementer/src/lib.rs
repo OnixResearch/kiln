@@ -18,7 +18,7 @@ use std::time::Duration;
 
 use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, DispatchReservation, Enrollment, ImplementationAttempt,
-    ImplementationWork, SourceMapping, WorkLedger,
+    ImplementationDispatchPlan, ImplementationWork, SourceMapping, WorkLedger,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -136,6 +136,19 @@ impl Implementer {
     ) -> Result<DispatchReservation, String> {
         self.with_ledgers(|_, attempts| {
             attempts.reserve_dispatch(identity, fence, now_ms, plan, provider_profile)
+        })
+    }
+
+    pub fn reserve_dispatch_plan(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ImplementationDispatchPlan,
+    ) -> Result<DispatchReservation, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.reserve_dispatch_plan(work, identity, fence, now_ms, plan)
         })
     }
 

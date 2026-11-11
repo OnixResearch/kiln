@@ -70,6 +70,8 @@ override) and prints its canonical JSON including frozen work identity, base and
 fence; `cancel --attempt ID --fence N [--cause TEXT]` revokes it.
 `reserve --attempt ID --fence N --plan HEX --provider PROFILE` records the one
 durable dispatch reservation before transport; repeating it is idempotent.
+`reserve-plan --plan-file FILE` admits the exact JSON plan against the current
+work and attempt, then records the same reservation from its canonical digest.
 `start --attempt ID --fence N --workflow-kind KIND --workflow-id ID
 [--namespace lattice]` records the provider workflow after an externally
 observed dispatch and requires that reservation. Claims and reservations are an

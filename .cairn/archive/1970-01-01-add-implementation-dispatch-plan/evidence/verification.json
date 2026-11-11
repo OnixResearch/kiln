@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.implementation-dispatch-plan.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::dispatch",
+      "result": "2 passed; exact plan admission/reservation and refusal of mismatched bindings, controls, workspace, budget, path and effect"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --test implementer_cli --offline",
+      "result": "reserve-plan admits the exact plan file and the deterministic digest is reserved"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "plan": "crates/kiln-core/src/implementation/dispatch.rs",
+    "reservation": "crates/kiln-core/src/implementation/attempt.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/implementation-work.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "plan admission is not provider capability evidence or dispatch",
+    "no Lattice transport, workspace provider or worker is added",
+    "network and credential access are refused, not granted"
+  ]
+}

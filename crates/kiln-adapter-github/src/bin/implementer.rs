@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|start> --database PATH ...",
+            "usage: kiln-implementer <drain|run|status|claim|cancel|reserve|reserve-plan|start> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -55,6 +55,7 @@ fn run() -> Result<(), ()> {
         "claim" => claim(&flags),
         "cancel" => cancel(&flags),
         "reserve" => reserve(&flags),
+        "reserve-plan" => reserve_plan(&flags),
         "start" => start(&flags),
         _ => fail("unknown command"),
     }
@@ -142,6 +143,52 @@ fn reserve(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Err(error) => return fail(&error),
     };
     match implementer.reserve_dispatch(&identity, fence, wall_clock_ms(), &plan, &provider) {
+        Ok(reservation) => match serde_json::to_string(&reservation) {
+            Ok(document) => {
+                println!("{document}");
+                Ok(())
+            }
+            Err(_) => fail("dispatch reservation could not be encoded"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+// r[impl kiln.implementation.dispatch_plan] r[impl kiln.implementation.dispatch_reservation]
+fn reserve_plan(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let plan_file = match required_path(flags, "--plan-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let plan: kiln_core::implementation::ImplementationDispatchPlan = match read_json(&plan_file) {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let work = match implementer.work() {
+        Ok(work) => work,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = work
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("dispatch plan work identity is not current");
+    };
+    match implementer.reserve_dispatch_plan(
+        &work,
+        &plan.attempt_identity,
+        plan.fence,
+        wall_clock_ms(),
+        &plan,
+    ) {
         Ok(reservation) => match serde_json::to_string(&reservation) {
             Ok(document) => {
                 println!("{document}");

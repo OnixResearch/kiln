@@ -60,7 +60,11 @@ the lineage still has attempts.
 
 Before transport, an attempt reserves exactly one dispatch binding: provider
 profile, admitted plan identity, deterministic effect identity and idempotency
-key. Repeating the same reservation is idempotent; a different plan or profile
+key. A dispatch plan binds the work identity/revision, attempt/fence,
+repository/base, isolated workspace, provider profile, admitted paths/effects,
+cancellation-only controls, deadline, token/invocation budgets and expected
+output contract. Work must admit every path and effect, the deadline must fit
+the attempt budget, and network or credential access is refused. Repeating the same reservation is idempotent; a different plan or profile
 for the live attempt, a stale fence, or an expired lease is refused. The
 reservation survives restart. Dispatch acknowledgement and reconciliation
 require the reservation, fill the single observed workflow run, accept an equal

@@ -218,6 +218,84 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         Some("claimed")
     );
 
+    let attempt_identity =
+        ContentId::from_blake3_hex(identity.clone()).unwrap_or_else(|_| unreachable!());
+    let mut implementer = Implementer::open(
+        &database,
+        Enrollment {
+            repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        },
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let stored_attempt = implementer
+        .attempt(&attempt_identity)
+        .unwrap_or_else(|_| unreachable!())
+        .unwrap_or_else(|| unreachable!("stored attempt"));
+    let work = implementer
+        .work()
+        .unwrap_or_else(|_| unreachable!())
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == stored_attempt.work_identity)
+        })
+        .cloned()
+        .unwrap_or_else(|| unreachable!("work"));
+    drop(implementer);
+    let plan = kiln_core::implementation::ImplementationDispatchPlan {
+        schema: kiln_core::implementation::DISPATCH_PLAN_SCHEMA.to_string(),
+        work_identity: stored_attempt.work_identity.clone(),
+        work_revision: stored_attempt.work_revision,
+        attempt_identity: attempt_identity.clone(),
+        fence: stored_attempt.fence,
+        repository: work.repository.clone(),
+        base: None,
+        workspace: kiln_core::implementation::DispatchWorkspace {
+            identity: content('d'),
+            isolation: kiln_core::implementation::WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+        },
+        provider_profile: kiln_core::types::ProviderProfileId::new("lattice-implementation")
+            .unwrap_or_else(|_| unreachable!()),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        controls: kiln_core::implementation::DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 60,
+        token_budget: 10_000,
+        invocation_budget: 10,
+        expected_output: content('e'),
+    };
+    let plan_digest = kiln_core::implementation::admit_dispatch_plan(&work, &stored_attempt, &plan)
+        .unwrap_or_else(|_| unreachable!());
+    let plan_file = directory.path().join("dispatch-plan.json");
+    write(
+        &plan_file,
+        &serde_json::to_vec(&plan).unwrap_or_else(|_| unreachable!()),
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("reserve-plan")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--plan-file")
+        .arg(&plan_file)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).contains("kiln.implementation-dispatch.v1"));
+
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("reserve")
         .arg("--database")
@@ -229,7 +307,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         .arg("--fence")
         .arg(fence.to_string())
         .arg("--plan")
-        .arg(content('d').as_str())
+        .arg(plan_digest.as_str())
         .arg("--provider")
         .arg("lattice-implementation")
         .output()

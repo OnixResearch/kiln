@@ -323,6 +323,26 @@ impl AttemptLedger {
         Ok(reservation)
     }
 
+    /// Admit and reserve one bounded dispatch plan against this attempt.
+    ///
+    /// The plan identity is computed from the exact work/attempt bindings and
+    /// the admitted path, effect, control and budget facts before reservation.
+    // r[impl kiln.implementation.dispatch_plan] r[impl kiln.implementation.dispatch_reservation]
+    pub fn reserve_dispatch_plan(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &super::ImplementationDispatchPlan,
+    ) -> CoreResult<DispatchReservation> {
+        let digest = {
+            let attempt = self.authorized(identity, fence, now_ms)?;
+            super::admit_dispatch_plan(work, attempt, plan)?
+        };
+        self.reserve_dispatch(identity, fence, now_ms, &digest, &plan.provider_profile)
+    }
+
     /// Read the durable dispatch reservation for one attempt.
     #[must_use]
     pub fn dispatch_reservation(&self, identity: &ContentId) -> Option<&DispatchReservation> {
