@@ -36,6 +36,37 @@ fn failed(outcome: Outcome) -> bool {
     )
 }
 impl Engine {
+    /// Direct retry children of one run, oldest first. Recorded run outcome
+    /// only: a passing child never rewrites the parent's failed outcome.
+    fn retry_children(&self, id: &str) -> serde_json::Value {
+        let mut children: Vec<_> = self
+            .state
+            .runs
+            .values()
+            .filter(|run| run.parent_run_id.as_deref() == Some(id))
+            .collect();
+        children.sort_by_key(|run| run.ordinal);
+        json!(
+            children
+                .iter()
+                .map(|run| json!({
+                    "run_id": run.id,
+                    "outcome": run.outcome(),
+                    "automatic": run.auto_retry.is_some(),
+                    "selected_nodes": run.selected_nodes.len(),
+                }))
+                .collect::<Vec<_>>()
+        )
+    }
+    /// Exact run view plus its retry children.
+    pub(super) fn run_view_with_retries(&self, id: &str) -> Result<ApiResponse, String> {
+        let run = self.state.runs.get(id).ok_or("run missing")?;
+        let mut value = serde_json::to_value(run.view()).map_err(|_| "run view encoding failed")?;
+        if let Some(object) = value.as_object_mut() {
+            object.insert("retries".into(), self.retry_children(id));
+        }
+        json_response(200, value)
+    }
     pub(super) fn run_list(
         &self,
         params: &BTreeMap<&str, &str>,
@@ -200,9 +231,20 @@ impl Engine {
         } else {
             None
         };
+        let rows: Vec<_> = runs
+            .iter()
+            .map(|run| {
+                let mut value =
+                    serde_json::to_value(run.view()).map_err(|_| "run view encoding failed")?;
+                if let Some(object) = value.as_object_mut() {
+                    object.insert("retries".into(), self.retry_children(&run.id));
+                }
+                Ok(value)
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         json_response(
             200,
-            json!({"runs":runs.iter().map(|r|r.view()).collect::<Vec<_>>(),"next_cursor":next_cursor,"total":total,"bounded":true}),
+            json!({"runs":rows,"next_cursor":next_cursor,"total":total,"bounded":true}),
         )
     }
     pub(super) fn dashboard_route(

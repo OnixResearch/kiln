@@ -196,6 +196,23 @@ impl Engine {
             self.refresh(&id)?;
         }
         self.dispatch_queued()?;
+        let failed: Vec<String> = self
+            .state
+            .runs
+            .values()
+            .filter(|run| run.outcome().is_terminal())
+            .filter(|run| {
+                self.profile
+                    .projects
+                    .iter()
+                    .find(|project| project.id == run.project_id)
+                    .is_some_and(|project| project.retry_failed > 0)
+            })
+            .map(|run| run.id.clone())
+            .collect();
+        for id in failed {
+            self.auto_retry_failed(&id)?;
+        }
         self.tick_automation()
     }
     // r[impl kiln.web.lifecycle]

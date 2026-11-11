@@ -2881,6 +2881,19 @@ credential provisioning and worker isolation remain operator responsibilities.
   the failed/downstream subgraph and requires an exact registered provider route;
   missing subset support is rejection, never a full-graph fallback or success.
   Actions require explicit confirmation and fresh selected-run facts.
+- **Automatic failed-node retry:** a project may set `retry_failed` (0–3, default
+  0). When a run ends `DomainFailure`, `Denied`, `TimedOut` or `ProviderError`,
+  the service issues the same `failed` rerun on the exact same source, with the
+  deterministic request identity `auto-retry-<ordinal>-<parent run>`. Each retry
+  child stays untrusted when the parent was untrusted, keeps the parent link,
+  and never rewrites the parent's failed outcome. Unknown node states, unknown
+  or superseded untrusted gates, unresolved dirty snapshots and request/run
+  retention limits refuse creation without changing the parent. The chain stops
+  after `retry_failed` automatic attempts. Because the child is a partial-node
+  run, it is never a full clean run and cannot satisfy required CI for the
+  revision; the Tests & flaky view counts its per-test pass/fail observations.
+  A passing child is labelled "failed, then passed on retry" and never shown as
+  a green parent.
 - **Tests & coverage:** reviewed worker steps may declare relative `reports`
   with `kind` `junit`, `cobertura`, `lcov`, `gate`, `review` or `provenance` and a
   `path`. Original profile bytes remain pinned; adding declarations requires a

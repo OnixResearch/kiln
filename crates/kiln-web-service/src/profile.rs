@@ -50,6 +50,11 @@ pub struct ProjectProfile {
     pub admitted_references: Vec<String>,
     pub source_limits: GitSnapshotLimits,
     pub workflow: WorkflowConfig,
+    /// Automatic failed-node retries on the exact same source. `0` (the
+    /// default) keeps automatic retries disabled; the reviewed upper bound is
+    /// [`MAX_RETRY_FAILED`].
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub retry_failed: usize,
     /// Optional monorepo path scope; absent keeps repository-wide behaviour.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scope: Option<ProjectScope>,
@@ -58,6 +63,13 @@ pub struct ProjectProfile {
     /// untrusted pull-request runs dispatch only to declared projects.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub untrusted_capable: bool,
+}
+
+/// Largest admitted automatic failed-node retry count per run lineage.
+pub const MAX_RETRY_FAILED: usize = 3;
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
 }
 
 // r[impl kiln.web.feeds.config]
@@ -410,6 +422,7 @@ impl ServiceProfile {
                 || project.reference.len() > 1024
                 || !absolute(&project.workflow.socket_path)
                 || project.workflow.bounds.max_log_read_bytes > b.max_log_read_bytes
+                || project.retry_failed > MAX_RETRY_FAILED
                 || [
                     project.source_limits.max_entries,
                     project.source_limits.max_path_bytes,

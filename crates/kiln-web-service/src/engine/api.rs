@@ -411,7 +411,9 @@ impl Engine {
                 return error(404, "run_missing");
             };
             match (method, resource, artifact) {
-                ("GET", None, None) if params.is_empty() => return json_response(200, run.view()),
+                ("GET", None, None) if params.is_empty() => {
+                    return self.run_view_with_retries(id);
+                }
                 ("GET", Some("execution-binding"), None) if params.is_empty() => {
                     let cancel_requested = run.events.iter().any(|event| {
                         matches!(

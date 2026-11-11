@@ -339,7 +339,10 @@
     if (run.id === state.selected) row.setAttribute("aria-current", "true");
     const label = text(projectLabel(run.project_id));
     const cell = (key, content, className = "") => { const node = element("td", undefined, `run-col-${key} ${className}`.trim()); node.dataset.label = RUN_SORTS[key]?.label || "Actions"; node.append(...content); row.append(node); return node; };
-    cell("status", [livePill(run.outcome, run.phase)]);
+    const status = [livePill(run.outcome, run.phase)];
+    const retry = retryBadge(run);
+    if (retry) status.push(retry);
+    cell("status", status);
     const name = element("div", undefined, "run-project");
     name.append(projectLink(run.project_id, label, "run-project-link"), element("span", shortIdentity(run.id), "run-id mono"));
     cell("project", [name]);
@@ -484,6 +487,25 @@
     if (pill.dataset.status === "running") pill.classList.add("is-live");
     return pill;
   }
+  // r[impl kiln.web.retry_failed]
+  // A passing retry child never turns the failed parent green; it is shown as a
+  // separate recorded observation and never a clean pass for required CI.
+  function retryBadge(run) {
+    const retries = Array.isArray(run.retries) ? run.retries : [];
+    if (!retries.length || !isFailedRun(run)) return null;
+    const badge = element("span", undefined, "state-badge");
+    const passed = retries.some((child) => child?.outcome === "Success");
+    if (passed) {
+      badge.textContent = "Failed, then passed on retry";
+      badge.dataset.tone = "warning";
+      badge.title = "The parent run remains failed. A retry child passed on the exact same source; a partial-node retry is not a clean full run.";
+    } else {
+      badge.textContent = `Retried ${retries.length} time${retries.length === 1 ? "" : "s"}; not passed`;
+      badge.dataset.tone = "failure";
+      badge.title = "The parent run remains failed and no retry child passed.";
+    }
+    return badge;
+  }
   // r[impl kiln.web.failure_first_run] r[impl kiln.web.failure_first_run.scenario.failed] A failed run opened without node/stream parameters defaults once to its
   // first failed node and to stderr; URL-named node and stream always win and are never rewritten.
   function failureDefaults(run) {
@@ -537,7 +559,10 @@
     $("empty-run").hidden = true;
     $("run-detail").hidden = false;
     $("run-title").textContent = text(projectLabel(run.project_id));
-    $("run-badges").replaceChildren(livePill(run.outcome, run.phase), phaseChip(run.phase));
+    const badges = [livePill(run.outcome, run.phase), phaseChip(run.phase)];
+    const retry = retryBadge(run);
+    if (retry) badges.push(retry);
+    $("run-badges").replaceChildren(...badges);
     const warnings = [];
     if (run.error_code) warnings.push(`Service diagnostic: ${text(run.error_code)}.`);
     if (run.outcome === "Unknown" || /unknown|recover|unavailable/i.test(text(run.phase))) warnings.push("Execution state is uncertain or recovering. This is not a successful run; do not assume provider effects completed.");
@@ -2882,6 +2907,78 @@
     for (const row of result.test_changes || []) { const card = section(`${text(row.suite)} / ${text(row.class_name)} / ${text(row.name)}`, changes, "record-card"); const metadata = element("dl", undefined, "facts"); addFacts(metadata, [["Node", row.node_id], ["Report", row.report_name], ["Current status", row.current], ["Other status", row.other]]); card.append(metadata); }
     renderFlaky(parent, result.flaky_history || []);
   }
+  // r[impl kiln.interchange.provenance] r[impl kiln.interchange.builder] r[impl kiln.interchange.statement.scenario.evidence]
+  function isInTotoStatement(value) {
+    return Boolean(value) && typeof value === "object" && value._type === "https://in-toto.io/Statement/v1" && typeof value.predicateType === "string";
+  }
+  // An unsigned identity projection is evidence; it is not a builder, signer, build-level or gate claim.
+  function renderInTotoStatement(parent, statement) {
+    parent.append(element("p", "Unsigned in-toto statement retained as evidence. Schema validity, product digests and any later signature do not establish builder identity, signer trust, a SLSA build level, gate acceptance or release authority.", "boundary"));
+    const predicate = statement.predicate || {};
+    const definition = predicate.buildDefinition || {};
+    const run = predicate.runDetails || {};
+    const external = definition.externalParameters || {};
+    const internal = definition.internalParameters || {};
+    const facts = element("dl", undefined, "facts");
+    addFacts(facts, [
+      ["Statement type", statement._type],
+      ["Predicate type", statement.predicateType],
+      ["Build type", definition.buildType],
+      ["Builder identity", run.builder?.id],
+      ["Invocation (producing attempt)", run.metadata?.invocationId],
+      ["Kiln control plane", external.kilnControlPlane],
+      ["Interchange profile", external.interchangeProfile],
+      ["Pipeline revision", external.pipelineRevision],
+      ["Source or candidate", external.sourceOrCandidate],
+      ["Provider", internal.provider],
+      ["Worker", internal.worker]
+    ]);
+    parent.append(facts);
+    const subjects = Array.isArray(statement.subject) ? statement.subject : [];
+    const subjectGroup = section(`Subjects · ${subjects.length}`, parent, "record-card");
+    if (!subjects.length) subjectGroup.append(element("p", "No subject product is recorded.", "warning"));
+    else {
+      const table = element("table", undefined, "review-table");
+      const head = element("tr");
+      for (const heading of ["Product", "Digest"]) head.append(element("th", heading));
+      const thead = element("thead");
+      thead.append(head);
+      table.append(thead);
+      const body = element("tbody");
+      for (const subject of subjects) {
+        const row = element("tr");
+        const digests = subject?.digest && typeof subject.digest === "object" ? Object.entries(subject.digest) : [];
+        row.append(element("td", text(subject?.name), "mono"), element("td", digests.map(([algorithm, value]) => `${text(algorithm)}:${text(value)}`).join(" · ") || "Unavailable", "mono"));
+        body.append(row);
+      }
+      table.append(body);
+      subjectGroup.append(table);
+    }
+    const dependencies = Array.isArray(definition.resolvedDependencies) ? definition.resolvedDependencies : [];
+    const dependencyGroup = section(`Resolved dependencies · ${dependencies.length}`, parent, "record-card");
+    if (!dependencies.length) dependencyGroup.append(element("p", "No resolved dependency is recorded. Missing dependencies are unavailable, not empty.", "small"));
+    else {
+      const table = element("table", undefined, "review-table");
+      const head = element("tr");
+      for (const heading of ["Dependency", "Digest"]) head.append(element("th", heading));
+      const thead = element("thead");
+      thead.append(head);
+      table.append(thead);
+      const body = element("tbody");
+      for (const dependency of dependencies) {
+        const row = element("tr");
+        const digests = dependency?.digest && typeof dependency.digest === "object" ? Object.entries(dependency.digest) : [];
+        row.append(element("td", text(dependency?.uri ?? dependency?.name), "mono"), element("td", digests.map(([algorithm, value]) => `${text(algorithm)}:${text(value)}`).join(" · ") || "Unavailable", "mono"));
+        body.append(row);
+      }
+      table.append(body);
+      dependencyGroup.append(table);
+    }
+    const details = element("details");
+    details.append(element("summary", "Retained canonical statement"));
+    details.append(element("pre", JSON.stringify(statement), "identity"));
+    parent.append(details);
+  }
   function renderReports(parent, result) {
     const records = result.reports;
     const runId = result.run_id || state.route.run;
@@ -2915,7 +3012,10 @@
         const summary = element("dl", undefined, "facts"); addFacts(summary, [["Format", coverage.format], ["Lines hit / found", coverage.lines_hit === null || coverage.lines_found === null ? null : `${coverage.lines_hit} / ${coverage.lines_found}`], ["Line rate", coverage.line_rate === null ? null : `${(coverage.line_rate * 100).toFixed(2)}%`], ["Branches hit / found", coverage.branches_hit === null || coverage.branches_found === null ? null : `${coverage.branches_hit} / ${coverage.branches_found}`], ["Branch rate", coverage.branch_rate === null ? null : `${(coverage.branch_rate * 100).toFixed(2)}%`]]); card.append(summary);
         for (const file of coverage.files || []) { const details = element("details"); details.append(element("summary", text(file.path))); renderRecorded(details, file); card.append(details); }
       }
-      if (report.evidence) renderEvidence(card, report.evidence);
+      if (report.evidence) {
+        if (report.kind === "provenance" && isInTotoStatement(report.evidence.document)) renderInTotoStatement(card, report.evidence.document);
+        else renderEvidence(card, report.evidence);
+      }
     }
   }
   // r[impl kiln.dashboard.reviews.view]

@@ -1491,6 +1491,7 @@
             nickel export config/fixtures/web-service-feeds-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-monorepo-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-untrusted-positive.ncl >/dev/null
+            nickel export config/fixtures/web-service-retry-positive.ncl >/dev/null
             nickel export config/fixtures/web-service-patchgate.ncl >/dev/null
             for fixture in config/fixtures/negative-web-service-*.ncl config/fixtures/web-service-pause-negative.ncl config/fixtures/web-service-resume-negative.ncl; do
               if nickel export "$fixture" >/dev/null 2>&1; then

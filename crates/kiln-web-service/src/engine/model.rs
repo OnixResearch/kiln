@@ -174,6 +174,10 @@ pub struct RunRecord {
     pub completed_at_ms: Option<u64>,
     #[serde(default)]
     pub parent_run_id: Option<String>,
+    /// Automatic failed-node retry ordinal for this run, absent for the first
+    /// attempt and for manual reruns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_retry: Option<u32>,
     #[serde(default)]
     pub selected_nodes: Vec<String>,
     #[serde(default)]
@@ -228,6 +232,10 @@ pub struct RunView {
     pub log_bounds: LogBounds,
     pub ordinal: u64,
     pub parent_run_id: Option<String>,
+    /// Automatic failed-node retry ordinal; omitted for first attempts and
+    /// manual reruns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_retry: Option<u32>,
     pub selected_nodes: Vec<String>,
     pub edges: Vec<WorkflowEdge>,
     pub created_at_ms: Option<u64>,
@@ -422,6 +430,7 @@ impl RunRecord {
             superseded_revision: self.superseded_revision.clone(),
             ordinal: self.ordinal,
             parent_run_id: self.parent_run_id.clone(),
+            auto_retry: self.auto_retry,
             selected_nodes: self.selected_nodes.clone(),
             edges: self.plan.edges.clone(),
             created_at_ms: self.created_at_ms,

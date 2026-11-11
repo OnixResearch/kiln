@@ -148,6 +148,7 @@ impl Engine {
             None,
             None,
             None,
+            None,
         )
     }
 
@@ -230,6 +231,7 @@ impl Engine {
             req.reference.clone(),
             req.pull_request,
             req.source_registration.clone(),
+            None,
         )
     }
     pub(super) fn rerun(&mut self, id: &str, body: &[u8]) -> Result<ApiResponse, String> {
@@ -259,36 +261,9 @@ impl Engine {
             .ok_or("project missing")?;
         let mut selected = BTreeSet::new();
         if req.mode == "failed" {
-            let Some(observation) = &prior.observation else {
-                return error(409, "failed_nodes_unavailable");
-            };
-            if observation
-                .nodes
-                .iter()
-                .any(|n| n.state == WorkflowNodeState::Unknown)
-            {
-                return error(409, "failed_nodes_unknown");
-            }
-            selected.extend(
-                observation
-                    .nodes
-                    .iter()
-                    .filter(|n| n.state == WorkflowNodeState::Failed)
-                    .map(|n| n.node_id.as_str().to_owned()),
-            );
-            if selected.is_empty() {
-                return error(409, "failed_nodes_unavailable");
-            }
-            loop {
-                let before = selected.len();
-                for edge in &project.workflow.edges {
-                    if selected.contains(&edge.source) {
-                        selected.insert(edge.target.clone());
-                    }
-                }
-                if before == selected.len() {
-                    break;
-                }
+            match failed_selection(&project, prior) {
+                Ok(nodes) => selected = nodes,
+                Err(code) => return error(409, code),
             }
         }
         if req.mode == "latest" && prior.dirty_snapshot.is_some() {
@@ -348,9 +323,119 @@ impl Engine {
             None,
             None,
             None,
+            None,
         );
         self.pending_untrusted = None;
         result
+    }
+    /// Enqueue at most one automatic failed-node retry per terminal failed run.
+    ///
+    /// The retry uses the existing `failed` mode: exact source, failed/downstream
+    /// subgraph, same untrusted gate and the parent run link. Every existing
+    /// refusal (unknown node states, unresolved snapshots, superseded untrusted
+    /// runs, retention bounds) leaves the parent unchanged and creates no run.
+    // The bounded chain is `retry_failed` automatic attempts per lineage; a
+    // partial-node child is never a full clean run, so it cannot satisfy
+    // required CI for the exact revision.
+    // r[impl kiln.dashboard.complete.reruns] r[impl kiln.web.retry_failed]
+    pub(super) fn auto_retry_failed(&mut self, id: &str) -> Result<(), String> {
+        let Some(project) = self
+            .state
+            .runs
+            .get(id)
+            .and_then(|run| {
+                self.profile
+                    .projects
+                    .iter()
+                    .find(|project| project.id == run.project_id)
+            })
+            .cloned()
+        else {
+            return Ok(());
+        };
+        if project.retry_failed == 0 {
+            return Ok(());
+        }
+        let Some((outcome, ordinal, source, dirty_snapshot, affected, untrusted)) =
+            self.state.runs.get(id).map(|run| {
+                (
+                    run.outcome(),
+                    run.auto_retry.unwrap_or(0),
+                    run.source.clone(),
+                    run.dirty_snapshot.clone(),
+                    run.affected.clone(),
+                    run.untrusted.clone(),
+                )
+            })
+        else {
+            return Ok(());
+        };
+        if !outcome.is_terminal() || !failed_outcome(outcome) {
+            return Ok(());
+        }
+        if ordinal as usize >= project.retry_failed {
+            return Ok(());
+        }
+        if untrusted
+            .as_ref()
+            .is_some_and(|gate| gate.state() == kiln_core::untrusted::UntrustedState::Superseded)
+        {
+            return Ok(());
+        }
+        let Some(run) = self.state.runs.get(id) else {
+            return Ok(());
+        };
+        let Ok(selected) = failed_selection(&project, run) else {
+            return Ok(());
+        };
+        let next = ordinal.saturating_add(1);
+        if self
+            .state
+            .runs
+            .values()
+            .any(|run| run.parent_run_id.as_deref() == Some(id) && run.auto_retry == Some(next))
+        {
+            return Ok(());
+        }
+        if let Some(provenance) = &dirty_snapshot {
+            let Some(record) = self.state.snapshots.get(&provenance.manifest_id) else {
+                return Ok(());
+            };
+            match super::snapshots::resolve_snapshot(&project, record) {
+                Ok(resolved) if resolved == source => {}
+                _ => return Ok(()),
+            }
+        }
+        let request_id = format!("auto-retry-{next}-{id}");
+        if !crate::profile::identifier(&request_id) {
+            return Ok(());
+        }
+        let fingerprint = identity(&("auto-retry", id, next))?;
+        if self.request_replay(&request_id, &fingerprint)?.is_some() {
+            return Ok(());
+        }
+        self.pending_untrusted = untrusted;
+        let result = self.enqueue(
+            &project,
+            &request_id,
+            fingerprint,
+            CandidateSource {
+                resolution: source,
+                dirty_snapshot,
+            },
+            Some(id.to_owned()),
+            selected.into_iter().collect(),
+            affected,
+            None,
+            None,
+            None,
+            Some(next),
+        );
+        self.pending_untrusted = None;
+        // Retention and other bounded refusals are not poll failures: the
+        // parent keeps its failed outcome and the next poll may retry.
+        let _ = result;
+        Ok(())
     }
     #[allow(clippy::too_many_arguments)]
     fn enqueue(
@@ -365,6 +450,7 @@ impl Engine {
         requested_reference: Option<String>,
         requested_pull_request: Option<u64>,
         requested_trigger: Option<String>,
+        auto_retry: Option<u32>,
     ) -> Result<ApiResponse, String> {
         let CandidateSource {
             resolution: source,
@@ -440,6 +526,7 @@ impl Engine {
             started_at_ms: None,
             completed_at_ms: None,
             parent_run_id: parent,
+            auto_retry,
             selected_nodes: selected,
             node_timing: BTreeMap::new(),
             reports: Vec::new(),
@@ -567,4 +654,52 @@ impl Engine {
             .map_err(|_| "run view encoding failed")?;
         self.finish_request(&req.request_id, 200, value)
     }
+}
+
+/// Failed outcomes eligible for an automatic retry. Cancelled, pending and
+/// unknown outcomes are never retried, and success has nothing to retry.
+fn failed_outcome(outcome: Outcome) -> bool {
+    matches!(
+        outcome,
+        Outcome::DomainFailure | Outcome::Denied | Outcome::TimedOut | Outcome::ProviderError
+    )
+}
+
+/// Exact failed/downstream node set for one prior run, mirroring manual
+/// `mode = "failed"` admission. Unknown node state is refused, never guessed.
+fn failed_selection(
+    project: &ProjectProfile,
+    prior: &RunRecord,
+) -> Result<BTreeSet<String>, &'static str> {
+    let Some(observation) = &prior.observation else {
+        return Err("failed_nodes_unavailable");
+    };
+    if observation
+        .nodes
+        .iter()
+        .any(|node| node.state == WorkflowNodeState::Unknown)
+    {
+        return Err("failed_nodes_unknown");
+    }
+    let mut selected: BTreeSet<String> = observation
+        .nodes
+        .iter()
+        .filter(|node| node.state == WorkflowNodeState::Failed)
+        .map(|node| node.node_id.as_str().to_owned())
+        .collect();
+    if selected.is_empty() {
+        return Err("failed_nodes_unavailable");
+    }
+    loop {
+        let before = selected.len();
+        for edge in &project.workflow.edges {
+            if selected.contains(&edge.source) {
+                selected.insert(edge.target.clone());
+            }
+        }
+        if before == selected.len() {
+            break;
+        }
+    }
+    Ok(selected)
 }

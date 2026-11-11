@@ -36,6 +36,10 @@ The core imports no generated Remote Execution API types. The standalone profile
 
 SLSA and in-toto projections bind the exact producing attempt. Builder, signer, provider, worker, and Kiln identities stay separate.
 
+`slsa_provenance_statement` maps one admitted, attempt-validated `ProvenanceProjection` to canonical unsigned JSON: an in-toto Statement `v1` with predicate type `https://slsa.dev/provenance/v1.1` and build type `urn:kiln:provenance:ci-run:v1`. Subjects list each product's BLAKE3 digest; resolved dependencies carry the source or candidate plus each provider-native digest; builder, invocation, provider, worker and control-plane identities occupy distinct fields. Products and native digests are ordered before encoding, so equal projections produce equal bytes. A statement bound to another attempt, missing products, or colliding native digest keys is refused before serialization.
+
+Statements are retained under the existing `provenance` report kind and the run Evidence view renders their subjects, dependencies and identities with an explicit non-claim. Emission is unsigned: it makes no SLSA build-level claim and creates no builder, signer, gate or release authority. A DSSE envelope with an operator key remains separate work.
+
 `kiln-adapter-cdevents` pins CDEvents `0.5.1` at revision `df02ce0b6563a13bf35cc109993b03b18da8a14a`. It pins CloudEvents `1.0.2` with context version `1.0`.
 
 The initial registry supports task-run started and finished events. The pure codec preserves envelope, subject, correlation, and causation facts.

@@ -27,6 +27,8 @@ struct Backend {
     failed_nodes: std::collections::BTreeSet<String>,
     skipped_nodes: std::collections::BTreeSet<String>,
     registered_node_sets: Option<std::collections::BTreeSet<Vec<String>>>,
+    /// Fail only the first N dispatch attempts, then observe success.
+    fail_first_dispatches: Option<usize>,
 }
 struct Port {
     profile: CapabilityProfile,
@@ -113,6 +115,12 @@ impl WorkflowPort for Port {
         let mut state = self.backend.lock();
         state.dispatches += 1;
         state.plan = Some(plan.clone());
+        if state
+            .fail_first_dispatches
+            .is_some_and(|limit| state.dispatches > limit)
+        {
+            state.failed_nodes.clear();
+        }
         let selected: Vec<_> = plan
             .nodes
             .iter()

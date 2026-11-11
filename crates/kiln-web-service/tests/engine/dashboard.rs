@@ -798,3 +798,142 @@ fn overview_records_observed_timing_and_operations_warns_before_admission_exhaus
         200
     );
 }
+
+fn set_retry_failed(profile: &mut ServiceProfile, count: usize) {
+    checked(profile.projects.first_mut().ok_or("project")).retry_failed = count;
+}
+
+fn runs(engine: &mut Engine) -> Vec<Value> {
+    let response = get(engine, "/api/runs", Role::Operator);
+    assert_eq!(response.status, 200);
+    checked(
+        value(&response)
+            .pointer("/runs")
+            .and_then(Value::as_array)
+            .ok_or("runs"),
+    )
+    .clone()
+}
+
+// r[verify kiln.web.retry_failed.scenario.pass]
+#[test]
+fn automatic_retry_records_a_passing_child_without_rewriting_the_failed_parent() {
+    let (_root, mut profile, _) = fixture();
+    set_retry_failed(&mut profile, 2);
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    {
+        let mut state = backend.lock();
+        state.terminal = true;
+        state.sequence = 1;
+        state.failed_nodes.insert("job".into());
+        state.fail_first_dispatches = Some(1);
+    }
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    let original = value(&start(&mut engine, "auto-retry"));
+    assert_eq!(
+        checked(field(&original, "outcome").as_str().ok_or("outcome")),
+        "DomainFailure"
+    );
+    poll(&mut engine);
+    let recorded = runs(&mut engine);
+    assert_eq!(recorded.len(), 2, "one bounded automatic retry");
+    let child = checked(
+        recorded
+            .iter()
+            .find(|run| field(run, "parent_run_id").as_str() == Some(id(&original)))
+            .ok_or("retry child"),
+    );
+    assert_eq!(
+        checked(field(child, "outcome").as_str().ok_or("outcome")),
+        "Success"
+    );
+    assert_eq!(field(child, "auto_retry"), &json!(1));
+    assert!(
+        !checked(field(child, "selected_nodes").as_array().ok_or("nodes")).is_empty(),
+        "an automatic retry is a partial-node run"
+    );
+    let parent = value(&get(
+        &mut engine,
+        &format!("/api/runs/{}", id(&original)),
+        Role::Operator,
+    ));
+    assert_eq!(
+        checked(field(&parent, "outcome").as_str().ok_or("outcome")),
+        "DomainFailure",
+        "a passing retry never turns the parent green"
+    );
+    let retries = checked(field(&parent, "retries").as_array().ok_or("retries"));
+    assert_eq!(retries.len(), 1);
+    let retry = retries
+        .first()
+        .unwrap_or_else(|| unreachable!("retry child"));
+    assert_eq!(field(retry, "outcome"), &json!("Success"));
+    assert_eq!(field(retry, "automatic"), &json!(true));
+}
+
+// r[verify kiln.web.retry_failed.scenario.bound]
+// r[verify kiln.web.retry_failed.scenario.disabled]
+// r[verify kiln.web.retry_failed.scenario.refused]
+#[test]
+fn automatic_retry_stops_at_the_reviewed_bound_and_can_be_disabled() {
+    let (_root, mut profile, _) = fixture();
+    set_retry_failed(&mut profile, 2);
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    {
+        let mut state = backend.lock();
+        state.terminal = true;
+        state.sequence = 1;
+        state.failed_nodes.insert("job".into());
+    }
+    let mut engine = open(profile.clone(), backend.clone());
+    enroll(&mut engine);
+    let original = value(&start(&mut engine, "bounded-retry"));
+    assert_eq!(
+        checked(field(&original, "outcome").as_str().ok_or("outcome")),
+        "DomainFailure"
+    );
+    let mut observed = Vec::new();
+    for _ in 0..4 {
+        poll(&mut engine);
+        observed.push(runs(&mut engine).len());
+    }
+    assert_eq!(observed, vec![2, 3, 3, 3]);
+    assert!(
+        runs(&mut engine)
+            .iter()
+            .all(|run| field(run, "outcome") == &json!("DomainFailure"))
+    );
+    drop(engine);
+
+    let (_root, mut profile, _) = fixture();
+    set_retry_failed(&mut profile, 0);
+    let backend = Arc::new(Mutex::new(Backend::default()));
+    {
+        let mut state = backend.lock();
+        state.terminal = true;
+        state.sequence = 1;
+        state.failed_nodes.insert("job".into());
+    }
+    let mut engine = open(profile, backend);
+    enroll(&mut engine);
+    let _ = value(&start(&mut engine, "no-retry"));
+    poll(&mut engine);
+    assert_eq!(
+        runs(&mut engine).len(),
+        1,
+        "zero keeps automatic retries disabled"
+    );
+}
+
+#[test]
+fn retry_failed_exceeds_the_reviewed_maximum() {
+    let (_root, mut profile, _) = fixture();
+    set_retry_failed(
+        &mut profile,
+        kiln_web_service::profile::MAX_RETRY_FAILED + 1,
+    );
+    assert!(profile.admit().is_err());
+    set_retry_failed(&mut profile, kiln_web_service::profile::MAX_RETRY_FAILED);
+    assert!(profile.admit().is_ok());
+}
