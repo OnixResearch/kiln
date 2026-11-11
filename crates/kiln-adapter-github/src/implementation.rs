@@ -32,6 +32,9 @@ const MAX_ACTOR_BYTES: usize = 128;
 pub struct ImplementationIssuePolicy {
     pub repository: EventPolicy,
     pub project: String,
+    /// Exact resolved base revision for dispatch, when the policy supplies one.
+    #[serde(default)]
+    pub base: Option<ExternalRef>,
     /// Operator-supplied outcome. Issue text is not execution permission.
     pub requested_outcome: String,
     pub acceptance: Vec<AcceptanceObligation>,
@@ -100,6 +103,9 @@ pub fn admit_implementation_issue(
     secret: &[u8],
 ) -> PortResult<Option<IssueAdmission>> {
     admit_event_policy(&policy.repository)?;
+    if let Some(base) = &policy.base {
+        base.validate()?;
+    }
     if body.is_empty() || body.len() > MAX_BODY_BYTES {
         return Err(domain(
             "github_body_bound",
@@ -225,7 +231,7 @@ pub(crate) fn issue_work(
         actor,
         repository: repository_key,
         project: policy.project.clone(),
-        base: None,
+        base: policy.base.clone(),
         title,
         requested_outcome: policy.requested_outcome.clone(),
         acceptance: policy.acceptance.clone(),
@@ -394,6 +400,7 @@ mod tests {
                 untrusted_pull_requests: Default::default(),
             },
             project: "kiln".to_string(),
+            base: None,
             requested_outcome: "implement the admitted work".to_string(),
             acceptance: vec![AcceptanceObligation {
                 id: "accepted".to_string(),
@@ -411,6 +418,25 @@ mod tests {
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 7,
         }
+    }
+
+    // r[verify kiln.implementation.dispatch_base] r[verify kiln.implementation.dispatch_base.scenario.supplied]
+    #[test]
+    fn operator_policy_supplies_the_exact_work_base() {
+        let mut policy = policy();
+        policy.base =
+            Some(ExternalRef::new("git", "commit", "base").unwrap_or_else(|_| unreachable!()));
+        let work = issue_work(
+            &policy,
+            "operator".to_string(),
+            "onixresearch/kiln".to_string(),
+            "onixresearch/kiln#1".to_string(),
+            "exact base".to_string(),
+            10,
+            ContentId::from_blake3_hex("b".repeat(64)).unwrap_or_else(|_| unreachable!()),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert_eq!(work.base, policy.base);
     }
 
     fn headers(body: &[u8], secret: &[u8]) -> DeliveryHeaders {

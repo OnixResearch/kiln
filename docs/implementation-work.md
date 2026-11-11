@@ -60,7 +60,8 @@ the lineage still has attempts.
 
 Before transport, an attempt reserves exactly one dispatch binding: provider
 profile, admitted plan identity, deterministic effect identity and idempotency
-key. A dispatch plan binds the work identity/revision, attempt/fence,
+key. The intake policy MAY supply an exact resolved `base`; dispatch requires it.
+A dispatch plan binds the work identity/revision, attempt/fence,
 repository/base, isolated workspace, provider profile, admitted paths/effects,
 cancellation-only controls, deadline, token/invocation budgets and expected
 output contract. Work must admit every path and effect, the deadline must fit

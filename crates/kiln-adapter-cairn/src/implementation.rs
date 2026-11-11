@@ -23,6 +23,9 @@ const MAXIMUM_SELECTION: usize = 1_000;
 pub struct CairnImplementationPolicy {
     pub repository: String,
     pub project: String,
+    /// Exact resolved base revision for dispatch, when the policy supplies one.
+    #[serde(default)]
+    pub base: Option<ExternalRef>,
     pub actor: String,
     pub requested_outcome: String,
     pub acceptance: Vec<AcceptanceObligation>,
@@ -293,7 +296,7 @@ fn selected_work(
         actor: policy.actor.clone(),
         repository: policy.repository.clone(),
         project: policy.project.clone(),
-        base: None,
+        base: policy.base.clone(),
         title: format!("{change}: {unit}"),
         requested_outcome: policy.requested_outcome.clone(),
         acceptance,
@@ -309,6 +312,9 @@ fn selected_work(
 }
 
 fn admit_policy(policy: &CairnImplementationPolicy) -> PortResult<()> {
+    if let Some(base) = &policy.base {
+        base.validate()?;
+    }
     if !identifier(&policy.repository, 256)
         || !identifier(&policy.project, 100)
         || !identifier(&policy.actor, DEFAULT_MAX_ID_BYTES)
@@ -387,6 +393,7 @@ mod tests {
         CairnImplementationPolicy {
             repository: "onix/cairn".to_string(),
             project: "cairn".to_string(),
+            base: None,
             actor: "operator".to_string(),
             requested_outcome: "implement".to_string(),
             acceptance: vec![AcceptanceObligation {
@@ -443,7 +450,7 @@ mod tests {
         .unwrap_or_else(|_| unreachable!())
     }
 
-    // r[verify kiln.implementation.cairn_intake] r[verify kiln.implementation.cairn_intake.scenario.ready]
+    // r[verify kiln.implementation.cairn_intake] r[verify kiln.implementation.cairn_intake.scenario.ready] r[verify kiln.implementation.dispatch_base] r[verify kiln.implementation.dispatch_base.scenario.supplied]
     #[test]
     fn ready_selection_becomes_versioned_work() {
         let digest = digest();
@@ -458,7 +465,10 @@ mod tests {
             }]),
             json!([change("demo", &digest, "task:build", "demo.behavior")]),
         );
-        let admission = admit_cairn_snapshot(&policy(), 7, &bytes)
+        let mut policy = policy();
+        policy.base =
+            Some(ExternalRef::new("git", "commit", "base").unwrap_or_else(|_| unreachable!()));
+        let admission = admit_cairn_snapshot(&policy, 7, &bytes)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(admission.outcome, "ready");
         let work = admission.works.first().unwrap_or_else(|| unreachable!());
@@ -469,6 +479,7 @@ mod tests {
         assert_eq!(alias.native_id, "demo/task:build");
         assert_eq!(alias.version.as_str(), digest);
         assert_eq!(work.title, "demo: task:build");
+        assert_eq!(work.base, policy.base);
         assert!(
             work.acceptance
                 .iter()

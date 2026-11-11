@@ -1007,6 +1007,7 @@ fn queued_issue_deliveries_drain_into_admitted_work_once() {
     let policy = ImplementationIssuePolicy {
         repository: config.event_policy.clone(),
         project: "kiln".to_string(),
+        base: None,
         requested_outcome: "implement".to_string(),
         acceptance: vec![AcceptanceObligation {
             id: "accepted".to_string(),

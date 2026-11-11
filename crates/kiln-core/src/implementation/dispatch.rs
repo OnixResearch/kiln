@@ -93,6 +93,7 @@ pub fn admit_dispatch_plan(
         || plan.attempt_identity != attempt.identity
         || plan.fence != attempt.fence
         || plan.repository != work.repository
+        || plan.base.is_none()
         || plan.base != work.base
         || plan.base != attempt.base
     {
@@ -214,7 +215,9 @@ mod tests {
             actor: "operator".to_string(),
             repository: "onix/kiln".to_string(),
             project: "kiln".to_string(),
-            base: None,
+            base: Some(
+                ExternalRef::new("git", "commit", "base").unwrap_or_else(|_| unreachable!()),
+            ),
             title: "Dispatch work".to_string(),
             requested_outcome: "implement".to_string(),
             acceptance: vec![AcceptanceObligation {
@@ -252,7 +255,7 @@ mod tests {
             attempt_identity: attempt.identity.clone(),
             fence: attempt.fence,
             repository: work.repository.clone(),
-            base: None,
+            base: work.base.clone(),
             workspace: DispatchWorkspace {
                 identity: content('d'),
                 isolation: WorkspaceIsolation::IsolatedSnapshot,
@@ -276,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.implementation.dispatch_plan.scenario.admit]
+    // r[verify kiln.implementation.dispatch_plan.scenario.admit] r[verify kiln.implementation.dispatch_base.scenario.required]
     fn admits_an_exact_plan_and_reserves_it() {
         let work = work();
         let mut ledger = AttemptLedger::default();
@@ -301,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.implementation.dispatch_plan.scenario.refused]
+    // r[verify kiln.implementation.dispatch_plan.scenario.refused] r[verify kiln.implementation.dispatch_base.scenario.required]
     fn refuses_broader_or_mismatched_plans() {
         let work = work();
         let mut ledger = AttemptLedger::default();
@@ -313,6 +316,11 @@ mod tests {
             ("binding", {
                 let mut plan = good.clone();
                 plan.work_revision = 2;
+                plan
+            }),
+            ("binding", {
+                let mut plan = good.clone();
+                plan.base = None;
                 plan
             }),
             ("controls", {

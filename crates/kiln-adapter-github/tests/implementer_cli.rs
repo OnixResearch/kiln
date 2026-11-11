@@ -25,6 +25,10 @@ fn policy() -> ImplementationIssuePolicy {
             untrusted_pull_requests: Default::default(),
         },
         project: "kiln".to_string(),
+        base: Some(
+            kiln_core::types::ExternalRef::new("git", "commit", "base")
+                .unwrap_or_else(|_| unreachable!()),
+        ),
         requested_outcome: "implement".to_string(),
         acceptance: vec![AcceptanceObligation {
             id: "accepted".to_string(),
@@ -250,7 +254,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         attempt_identity: attempt_identity.clone(),
         fence: stored_attempt.fence,
         repository: work.repository.clone(),
-        base: None,
+        base: stored_attempt.base.clone(),
         workspace: kiln_core::implementation::DispatchWorkspace {
             identity: content('d'),
             isolation: kiln_core::implementation::WorkspaceIsolation::IsolatedSnapshot,

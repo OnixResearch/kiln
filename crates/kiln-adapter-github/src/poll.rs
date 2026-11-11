@@ -284,6 +284,7 @@ mod tests {
                 untrusted_pull_requests: Default::default(),
             },
             project: "kiln".to_string(),
+            base: None,
             requested_outcome: "implement".to_string(),
             acceptance: vec![AcceptanceObligation {
                 id: "accepted".to_string(),

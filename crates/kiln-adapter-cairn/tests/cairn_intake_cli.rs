@@ -30,6 +30,7 @@ fn intake_binary_admits_one_cairn_unit_and_deduplicates_replay() {
     let policy = CairnImplementationPolicy {
         repository: "onix/cairn".to_string(),
         project: "cairn".to_string(),
+        base: None,
         actor: "operator".to_string(),
         requested_outcome: "implement".to_string(),
         acceptance: vec![AcceptanceObligation {

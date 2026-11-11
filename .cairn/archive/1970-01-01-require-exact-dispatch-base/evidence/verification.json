@@ -1,0 +1,28 @@
+{
+  "schema": "kiln.exact-dispatch-base.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::dispatch",
+      "result": "2 passed; exact present base admitted, absent/different base refused"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --lib implementation::tests::operator_policy --offline",
+      "result": "GitHub policy base carried into work"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-cairn --lib --offline ready_selection_becomes_versioned_work",
+      "result": "Cairn policy base carried into work"
+    }
+  ],
+  "artifacts": {
+    "intake": "crates/kiln-adapter-github/src/implementation.rs, crates/kiln-adapter-cairn/src/implementation.rs",
+    "dispatch": "crates/kiln-core/src/implementation/dispatch.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "no base is inferred from a branch or provider",
+    "no dispatch transport or verification is added"
+  ]
+}
