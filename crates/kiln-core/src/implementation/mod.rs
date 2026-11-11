@@ -206,7 +206,6 @@ impl ImplementationWork {
             push_str(&mut bytes, alias.source.native_kind.as_str())?;
             push_str(&mut bytes, alias.source.native_id.as_str())?;
             push_str(&mut bytes, &alias.native_id)?;
-            push_str(&mut bytes, alias.version.as_str())?;
         }
         content_identity(&bytes)
     }
@@ -858,6 +857,35 @@ mod tests {
         assert_eq!(
             candidate.identity().unwrap_or_else(|_| unreachable!()),
             absent
+        );
+    }
+
+    // r[verify kiln.implementation.replay.scenario.edit]
+    #[test]
+    fn source_version_changes_supersede_without_changing_the_canonical_key() {
+        let mut ledger = WorkLedger::default();
+        let mut candidate = work(vec![source(WorkSourceKind::GitHubIssue, "44", '1')]);
+        let key = candidate.canonical_key().unwrap_or_else(|_| unreachable!());
+        let first = candidate.identity().unwrap_or_else(|_| unreachable!());
+        assert!(ledger.admit(&candidate, None, &enrollment()).is_ok());
+        candidate.revision = 2;
+        candidate
+            .aliases
+            .first_mut()
+            .unwrap_or_else(|| unreachable!())
+            .version = content('2');
+        assert_eq!(
+            candidate.canonical_key().unwrap_or_else(|_| unreachable!()),
+            key
+        );
+        let second = candidate.identity().unwrap_or_else(|_| unreachable!());
+        assert_ne!(first, second);
+        assert_eq!(
+            ledger.admit(&candidate, None, &enrollment()),
+            Ok(AdmissionDecision::Superseded {
+                previous: first,
+                identity: second,
+            })
         );
     }
 

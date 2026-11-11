@@ -13,8 +13,13 @@ cairn-gate-contract.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
+kiln-implementer.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+[[bin]]
+name = "kiln-cairn-intake"
+path = "src/bin/cairn-intake.rs"
 
 [dev-dependencies]
 tempfile = "3.27.0"

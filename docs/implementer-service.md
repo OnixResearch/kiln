@@ -61,6 +61,10 @@ an optional positive `--iterations` bound. It reports the number of iterations
 and drained deliveries. It never claims or dispatches; a scheduler that creates
 attempts must wait for the Lattice implementation route.
 
+`kiln-cairn-intake --database PATH --enrollment FILE --snapshot FILE --policy FILE --sequence N`
+admits one complete `cairn.implementation-ready.v1` snapshot into the same
+ledger, reporting selected/admitted/duplicate/superseded counts.
+
 `claim` creates one current attempt (default lease one hour, `--lease-ms` to
 override) and prints its canonical JSON including frozen work identity, base and
 fence; `cancel --attempt ID --fence N [--cause TEXT]` revokes it. Claims are an

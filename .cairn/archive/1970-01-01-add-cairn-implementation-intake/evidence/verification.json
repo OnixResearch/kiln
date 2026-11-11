@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.cairn-implementation-intake.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation",
+      "result": "16 passed; canonical-key supersession across source versions"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-cairn --offline",
+      "result": "18 unit tests and 1 intake CLI test pass; ready, non-ready, forged/incomplete and policy refusal paths"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-adapter-cairn --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "intake": "crates/kiln-adapter-cairn/src/implementation.rs",
+    "binary": "crates/kiln-adapter-cairn/src/bin/cairn-intake.rs",
+    "key": "crates/kiln-core/src/implementation/mod.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "Cairn eligibility is not execution permission, acceptance or completion",
+    "the caller supplies the monotonic sequence; Cairn carries a digest, not an ordered revision",
+    "intake does not claim, dispatch, verify, publish or mutate Cairn"
+  ]
+}

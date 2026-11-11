@@ -103,6 +103,24 @@ stored signature, normalizes through operator policy, admits into the durable
 A forged or unverifiable record fails the drain and stays queued. Scheduling and
 claim/dispatch remain operator shells.
 
+## Cairn intake
+
+`kiln-adapter-cairn` consumes `cairn.implementation-ready.v1` read-only
+snapshots. `admit_cairn_snapshot` accepts only `complete: true` snapshots and a
+caller-supplied monotonic sequence. A `ready` selection becomes one work record
+per stable `task:<id>` or legacy `change:<name>` unit: the alias carries the
+change/unit identity and the change snapshot digest as its source version, and
+the unit's requirement references become explicit acceptance obligations beside
+the operator policy's own obligations.
+
+Non-ready outcomes (`blocked`, `empty`, `completion_only`) produce no work.
+`incomplete_limit`, an incomplete snapshot, an unknown schema, a selected unit
+whose digest/readiness/gates/requirement references disagree with the change, or
+an already archive-ready selection fail admission. The `kiln-cairn-intake`
+binary admits the resulting units into the durable ledger; repeating a snapshot
+at the same sequence is a duplicate, while a higher sequence with a changed
+digest supersedes the previous work.
+
 ## What is not implemented yet
 
 The adapters that produce these records are separate work:

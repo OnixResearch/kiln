@@ -1,4 +1,5 @@
 mod adapter;
+pub mod implementation;
 mod machine;
 mod mapping;
 mod profile;
