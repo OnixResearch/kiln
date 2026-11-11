@@ -222,6 +222,26 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         Some("claimed")
     );
 
+    let renewed = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("renew")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--attempt")
+        .arg(&identity)
+        .arg("--fence")
+        .arg(fence.to_string())
+        .arg("--lease-ms")
+        .arg("600000")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        renewed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&renewed.stderr)
+    );
+
     let attempt_identity =
         ContentId::from_blake3_hex(identity.clone()).unwrap_or_else(|_| unreachable!());
     let mut implementer = Implementer::open(
