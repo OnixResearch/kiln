@@ -590,6 +590,19 @@ fn failure(code: &str, message: &str) -> InfrastructureFailure {
         message: message.into(),
     }
 }
+fn has_next_link(link: Option<&str>) -> PortResult<bool> {
+    let Some(link) = link else {
+        return Ok(false);
+    };
+    if link.len() > 2048 || link.chars().any(char::is_control) {
+        return Err(unknown(
+            "github_status_link",
+            "GitHub status Link header is malformed or oversized",
+        ));
+    }
+    Ok(link.contains("rel=\"next\""))
+}
+
 fn unknown(code: &str, message: &str) -> PortFailure {
     PortFailure::Unknown(failure(code, message))
 }
@@ -698,9 +711,7 @@ impl StatusPort for GithubStatusClient {
                 plan.owner, plan.repository, plan.revision
             );
             let response = self.response(self.request("GET", &path)?.call(), false, 200)?;
-            let next_link = response
-                .header("Link")
-                .is_some_and(|value| value.contains("rel=\"next\""));
+            let next_link = has_next_link(response.header("Link"))?;
             let statuses: Vec<RemoteStatus> = serde_json::from_slice(&self.body(response, false)?)
                 .map_err(|_| {
                     unknown(
@@ -751,6 +762,19 @@ mod tests {
     use std::net::TcpListener;
     use std::thread;
     use std::time::Instant;
+
+    #[test]
+    fn validates_status_pagination_links() {
+        assert!(
+            has_next_link(Some("<https://api.github.com/x?page=2>; rel=\"next\""))
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(
+            !has_next_link(Some("<https://api.github.com/x?page=1>; rel=\"prev\""))
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(has_next_link(Some(&"x".repeat(2049))).is_err());
+    }
 
     fn config() -> StatusConfig {
         StatusConfig {
