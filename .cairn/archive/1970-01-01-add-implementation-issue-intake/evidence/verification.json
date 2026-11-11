@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.implementation-issue-intake.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --offline",
+      "result": "57 passed; four implementation issue-intake tests pass"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --check -p kiln-adapter-github",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "adapter": "crates/kiln-adapter-github/src/implementation.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "intake authenticates and normalizes one delivery; it does not poll GitHub",
+    "the webhook server is not yet wired to persist or dispatch admitted work",
+    "closing or reopening an issue never proves implementation completion",
+    "acceptance and permissions come only from operator policy"
+  ]
+}

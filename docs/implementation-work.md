@@ -43,13 +43,27 @@ Archive readiness is deliberately absent. An implementation-ready Cairn task
 can be admitted while archive readiness is false, and an archived or deleted
 change never proves implementation completion.
 
+## GitHub issue intake
+
+`kiln-adapter-github` admits authenticated `issues` deliveries through
+`admit_implementation_issue`. It bounds the body, validates delivery and event
+headers, verifies the exact bytes with HMAC-SHA256, enforces the configured
+repository and enrolled sender, and parses the strict UTC `updated_at` sequence.
+Opened, reopened and edited issues produce one contract record whose source
+version is the BLAKE3 of the delivery bytes; closing produces an explicit closed
+observation. Acceptance obligations, outcomes, paths, effects, verification
+profile, budget, terminal policy and priority come from operator policy, not
+issue text. Duplicate and out-of-order deliveries are resolved by `WorkLedger`.
+
+The HTTP server is not yet wired to this function, and bounded polling recovery
+is not implemented.
+
 ## What is not implemented yet
 
 The adapters that produce these records are separate work:
 
-- GitHub issue webhook admission and bounded polling recovery. The existing
-  GitHub adapter authenticates push and pull-request events; issue events are
-  not yet admitted or wired to this contract.
+- GitHub polling recovery and server wiring. The admission function above is
+  implemented; the long-running webhook service does not yet persist or poll it.
 - Cairn intake. It must consume Cairn `OnixResearch/cairn#1`'s versioned
   implementation-ready snapshot; that producer is unimplemented. This contract
   intentionally does not fork Cairn lifecycle or readiness semantics.

@@ -438,7 +438,7 @@ pub fn admit_event_with(
     }))
 }
 
-fn authenticate(signature: &str, body: &[u8], secret: &[u8]) -> PortResult<()> {
+pub(crate) fn authenticate(signature: &str, body: &[u8], secret: &[u8]) -> PortResult<()> {
     let failure = || {
         domain(
             "github_authentication",
@@ -476,7 +476,7 @@ fn hex_digit(byte: u8) -> Option<u8> {
     }
 }
 
-fn valid_delivery(value: &str) -> bool {
+pub(crate) fn valid_delivery(value: &str) -> bool {
     value.len() == 36
         && value.bytes().enumerate().all(|(index, byte)| {
             if matches!(index, 8 | 13 | 18 | 23) {
@@ -487,7 +487,7 @@ fn valid_delivery(value: &str) -> bool {
         })
 }
 
-fn valid_event_name(value: &str) -> bool {
+pub(crate) fn valid_event_name(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_HEADER_BYTES
         && value.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
