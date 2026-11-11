@@ -56,6 +56,10 @@ impl BoundedText {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    fn bounded(&self, max_bytes: usize) -> bool {
+        !self.0.is_empty() && self.0.len() <= max_bytes && !self.0.chars().any(char::is_control)
+    }
 }
 
 macro_rules! id_type {
@@ -120,6 +124,20 @@ impl ContentId {
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
+
+    /// Revalidate an identity that may have arrived through serde.
+    pub fn validate(&self) -> CoreResult<()> {
+        if self.0.as_str().len() != BLAKE3_HEX_BYTES
+            || !self.0.as_str().bytes().all(|byte| byte.is_ascii_hexdigit())
+        {
+            return Err(Diagnostic::new(
+                "invalid_blake3_identity",
+                "content_id",
+                "BLAKE3 identity must be 64 hexadecimal characters",
+            ));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -170,6 +188,16 @@ impl ExternalRef {
                 "external reference version is unsupported",
             ));
         }
+        if !self.provider_namespace.bounded(DEFAULT_MAX_ID_BYTES)
+            || !self.native_kind.bounded(DEFAULT_MAX_ID_BYTES)
+            || !self.native_id.bounded(DEFAULT_MAX_ID_BYTES)
+        {
+            return Err(Diagnostic::new(
+                "invalid_external_ref",
+                "external_ref",
+                "external reference fields are empty, oversized or contain control characters",
+            ));
+        }
         Ok(())
     }
 }
@@ -194,6 +222,7 @@ impl Default for Limits {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::format;
 
     const TOO_LONG_ID_BYTES: usize = DEFAULT_MAX_ID_BYTES + 1;
 
@@ -201,6 +230,21 @@ mod tests {
     fn accepts_namespaced_external_identity() {
         let external = ExternalRef::new("provider-a", "run", "same-text");
         assert!(external.is_ok());
+    }
+
+    #[test]
+    fn revalidates_identities_after_deserialization() {
+        let forged: ContentId =
+            serde_json::from_str("\"not-a-blake3-identity\"").unwrap_or_else(|_| unreachable!());
+        assert!(forged.validate().is_err());
+        let valid: ContentId = serde_json::from_str(&format!("\"{}\"", "a".repeat(64)))
+            .unwrap_or_else(|_| unreachable!());
+        assert!(valid.validate().is_ok());
+        let forged_ref: ExternalRef = serde_json::from_str(
+            "{\"contract_version\":1,\"provider_namespace\":\"\",\"native_kind\":\"run\",\"native_id\":\"id\"}",
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(forged_ref.validate().is_err());
     }
 
     #[test]

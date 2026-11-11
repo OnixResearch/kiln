@@ -89,6 +89,8 @@ impl AttemptMetrics {
         usage: AttemptUsage,
         traces: Vec<ExternalRef>,
     ) -> CoreResult<Self> {
+        attempt.identity.validate()?;
+        attempt.work_identity.validate()?;
         if traces.len() > MAX_METRIC_TRACES {
             return Err(refusal(
                 "implementation_metrics_traces",
@@ -137,6 +139,9 @@ impl AttemptMetrics {
     // r[impl kiln.implementation.metrics]
     pub fn validate_for(&self, attempt: &super::ImplementationAttempt) -> CoreResult<()> {
         if self.schema != METRICS_SCHEMA
+            || self.attempt_identity.validate().is_err()
+            || self.work_identity.validate().is_err()
+            || self.traces.iter().any(|trace| trace.validate().is_err())
             || self.attempt_identity != attempt.identity
             || self.fence != attempt.fence
             || self.work_identity != attempt.work_identity

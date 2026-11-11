@@ -80,6 +80,12 @@ pub fn admit_dispatch_plan(
     plan: &ImplementationDispatchPlan,
 ) -> CoreResult<ContentId> {
     if plan.schema != DISPATCH_PLAN_SCHEMA
+        || plan.work_identity.validate().is_err()
+        || plan.attempt_identity.validate().is_err()
+        || plan.workspace.identity.validate().is_err()
+        || plan.expected_output.validate().is_err()
+        || plan.provider_profile.as_str().is_empty()
+        || plan.provider_profile.as_str().chars().any(char::is_control)
         || plan.work_identity != work.identity()?
         || plan.work_revision != work.revision
         || plan.work_identity != attempt.work_identity
