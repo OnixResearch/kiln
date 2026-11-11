@@ -1054,10 +1054,7 @@ fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(value) => value,
         Err(error) => return fail(&error),
     };
-    let mut poll_flags = flags.clone();
-    poll_flags
-        .entry("--since-ms".to_string())
-        .or_insert_with(|| wall_clock_ms().to_string());
+    let poll_flags = poll_loop_flags(flags);
     let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     for signal in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
         if signal_hook::flag::register(signal, std::sync::Arc::clone(&stop)).is_err() {
@@ -1078,6 +1075,14 @@ fn poll_run(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
     println!("{{\"iterations\":{done}}}");
     Ok(())
+}
+
+fn poll_loop_flags(flags: &BTreeMap<String, String>) -> BTreeMap<String, String> {
+    let mut poll_flags = flags.clone();
+    poll_flags
+        .entry("--since-ms".to_string())
+        .or_insert_with(|| wall_clock_ms().to_string());
+    poll_flags
 }
 
 fn wait_for_interval(interval_ms: usize, stop: &std::sync::atomic::AtomicBool) {
@@ -1348,4 +1353,26 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T
 fn fail(message: &str) -> Result<(), ()> {
     eprintln!("kiln-implementer: {message}");
     Err(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn polling_loop_defaults_to_its_start_time() {
+        let mut flags = BTreeMap::new();
+        flags.insert("--since-ms".to_string(), "7".to_string());
+        assert_eq!(
+            poll_loop_flags(&flags)
+                .get("--since-ms")
+                .map(String::as_str),
+            Some("7")
+        );
+        let since = poll_loop_flags(&BTreeMap::new())
+            .get("--since-ms")
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(0);
+        assert!(since > 0);
+    }
 }
