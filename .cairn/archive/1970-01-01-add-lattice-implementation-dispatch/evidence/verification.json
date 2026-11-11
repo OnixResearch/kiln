@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.lattice-implementation-dispatch.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-lattice --offline implementation",
+      "result": "1 passed; exact reserved attempt/request binding and mismatched attempt refusal"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-lattice --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "adapter": "crates/kiln-adapter-lattice/src/implementation.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "no workflow is created and no worker is selected",
+    "disconnected acceptance remains unknown",
+    "transport acceptance is not completion"
+  ]
+}

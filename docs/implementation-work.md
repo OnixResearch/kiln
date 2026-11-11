@@ -83,6 +83,16 @@ This is the Kiln-owned state machine only. It does not execute a Lattice
 workflow, cancel a run, create a workspace, verify a candidate, or publish. The
 Lattice implementation route and worker contract remain external work.
 
+## Lattice request dispatch
+
+`kiln-adapter-lattice` can bind an operator-supplied `lattice.workflow-request`
+to the reserved implementation attempt. The request must carry the reservation
+plan as effect/idempotency identity, the attempt/fence, expected output, exact
+repository/base, cancel-only controls, and an agent/local/custom graph. The
+selected Lattice capability profile is validated before transport. A disconnected
+acceptance remains unknown; an equal accepted execution can be reconciled before
+retry. Kiln does not create the implementation workflow or choose a worker.
+
 ## Verified-PR publication
 
 `PublicationPlan` prepares delivery only for a terminal `verified` attempt. It

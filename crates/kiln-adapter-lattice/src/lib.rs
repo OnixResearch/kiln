@@ -1,10 +1,12 @@
 mod adapter;
+mod implementation;
 mod mapping;
 mod profile;
 #[cfg(target_os = "linux")]
 mod unix;
 
 pub use adapter::LatticeAdapter;
+pub use implementation::{admit_implementation_request, dispatch_implementation_request};
 pub use mapping::{accepted_observation, admitted_observation, lower_request};
 pub use profile::{
     LatticeAdapterLimits, LatticeProfile, PINNED_LATTICE_CONTRACT_LICENSE,
