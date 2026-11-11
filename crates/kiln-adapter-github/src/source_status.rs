@@ -421,7 +421,11 @@ mod tests {
         );
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert_eq!(requests.len(), 1);
-        assert!(requests[0].starts_with("GET "));
+        assert!(
+            requests
+                .first()
+                .is_some_and(|request| request.starts_with("GET "))
+        );
     }
 
     #[test]
