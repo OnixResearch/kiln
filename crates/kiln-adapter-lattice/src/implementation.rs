@@ -95,6 +95,41 @@ pub fn dispatch_implementation_request<T: WorkflowExchangePort>(
     profile: &lattice_workflow_contract::CapabilityProfile,
     request: &WorkflowRequest,
 ) -> PortResult<WorkflowAccepted> {
+    exchange_implementation_request(
+        transport,
+        profile,
+        request,
+        WorkflowExchangeOperation::Dispatch,
+        "dispatch",
+    )
+}
+
+/// Reconcile an ambiguous implementation dispatch through Lattice recovery.
+///
+/// This MUST NOT create a new execution; it accepts only the linked accepted
+/// response for the supplied request.
+// r[impl kiln.implementation.lattice_dispatch]
+pub fn recover_implementation_request<T: WorkflowExchangePort>(
+    transport: &mut T,
+    profile: &lattice_workflow_contract::CapabilityProfile,
+    request: &WorkflowRequest,
+) -> PortResult<WorkflowAccepted> {
+    exchange_implementation_request(
+        transport,
+        profile,
+        request,
+        WorkflowExchangeOperation::RecoverDispatch,
+        "recover",
+    )
+}
+
+fn exchange_implementation_request<T: WorkflowExchangePort>(
+    transport: &mut T,
+    profile: &lattice_workflow_contract::CapabilityProfile,
+    request: &WorkflowRequest,
+    operation: WorkflowExchangeOperation,
+    label: &str,
+) -> PortResult<WorkflowAccepted> {
     validate_request(profile, request).map_err(|_| {
         domain(
             "implementation_lattice_profile",
@@ -115,15 +150,15 @@ pub fn dispatch_implementation_request<T: WorkflowExchangePort>(
         )
     })?;
     let response = transport.exchange(WorkflowExchangeRequest {
-        operation: WorkflowExchangeOperation::Dispatch,
+        operation,
         body_identity,
         body,
         max_response_bytes: 4 * 1024 * 1024,
     })?;
     if response.disconnected_after_acceptance {
         return Err(PortFailure::Unknown(InfrastructureFailure {
-            code: "implementation_lattice_disconnect".to_string(),
-            message: "Lattice disconnected after accepting the implementation request".to_string(),
+            code: format!("implementation_lattice_{label}_disconnect"),
+            message: format!("Lattice disconnected after {label} of the implementation request"),
         }));
     }
     let accepted: WorkflowAccepted = serde_json::from_slice(&response.body).map_err(|_| {
@@ -312,6 +347,7 @@ mod tests {
     struct FakeTransport {
         accepted: WorkflowAccepted,
         disconnect: bool,
+        operation: WorkflowExchangeOperation,
     }
 
     impl WorkflowExchangePort for FakeTransport {
@@ -319,7 +355,7 @@ mod tests {
             &mut self,
             request: WorkflowExchangeRequest,
         ) -> PortResult<WorkflowExchangeResponse> {
-            assert_eq!(request.operation, WorkflowExchangeOperation::Dispatch);
+            assert_eq!(request.operation, self.operation);
             Ok(WorkflowExchangeResponse {
                 body: serde_json::to_vec(&self.accepted).unwrap_or_else(|_| unreachable!()),
                 log_bytes: Vec::new(),
@@ -444,15 +480,27 @@ mod tests {
         let mut transport = FakeTransport {
             accepted: accepted.clone(),
             disconnect: false,
+            operation: WorkflowExchangeOperation::Dispatch,
         };
         assert_eq!(
             dispatch_implementation_request(&mut transport, &profile, &request)
                 .unwrap_or_else(|_| unreachable!()),
             accepted
         );
+        let mut recovery = FakeTransport {
+            accepted: accepted.clone(),
+            disconnect: false,
+            operation: WorkflowExchangeOperation::RecoverDispatch,
+        };
+        assert_eq!(
+            recover_implementation_request(&mut recovery, &profile, &request)
+                .unwrap_or_else(|_| unreachable!()),
+            accepted
+        );
         let mut disconnected = FakeTransport {
             accepted,
             disconnect: true,
+            operation: WorkflowExchangeOperation::Dispatch,
         };
         assert!(dispatch_implementation_request(&mut disconnected, &profile, &request).is_err());
     }

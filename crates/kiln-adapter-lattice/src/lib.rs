@@ -6,7 +6,9 @@ mod profile;
 mod unix;
 
 pub use adapter::LatticeAdapter;
-pub use implementation::{admit_implementation_request, dispatch_implementation_request};
+pub use implementation::{
+    admit_implementation_request, dispatch_implementation_request, recover_implementation_request,
+};
 pub use mapping::{accepted_observation, admitted_observation, lower_request};
 pub use profile::{
     LatticeAdapterLimits, LatticeProfile, PINNED_LATTICE_CONTRACT_LICENSE,

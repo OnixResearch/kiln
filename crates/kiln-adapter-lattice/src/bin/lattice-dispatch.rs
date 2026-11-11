@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 #[cfg(target_os = "linux")]
 use kiln_adapter_lattice::{
     UnixWorkflowExchange, admit_implementation_request, dispatch_implementation_request,
+    recover_implementation_request,
 };
 #[cfg(target_os = "linux")]
 use kiln_core::implementation::{AttemptPhase, Enrollment, ImplementationDispatchPlan};
@@ -140,7 +141,15 @@ fn run() -> Result<(), ()> {
             Ok(exchange) => exchange,
             Err(error) => return fail(&format!("{error:?}")),
         };
-    let accepted = match dispatch_implementation_request(&mut exchange, &profile, &request) {
+    let recover = flags
+        .get("--recover")
+        .is_some_and(|value| matches!(value.as_str(), "true" | "1"));
+    let accepted = if recover {
+        recover_implementation_request(&mut exchange, &profile, &request)
+    } else {
+        dispatch_implementation_request(&mut exchange, &profile, &request)
+    };
+    let accepted = match accepted {
         Ok(accepted) => accepted,
         Err(error) => return fail(&format!("{error:?}")),
     };

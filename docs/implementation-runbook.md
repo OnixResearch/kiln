@@ -53,7 +53,8 @@ kiln-lattice-dispatch \
 ```
 
 The request/profile are operator-admitted Lattice inputs; Kiln binds them to the
-reservation and records the accepted execution. For an external or ambiguous
+reservation and records the accepted execution. Add `--recover true` after an
+ambiguous dispatch to use Lattice `RecoverDispatch` instead of a new dispatch. For an external or ambiguous
 dispatch, use `kiln-implementer start`/`reconcile` with the observed workflow
 identity; do not submit a second execution.
 
