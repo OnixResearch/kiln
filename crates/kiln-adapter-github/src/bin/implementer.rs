@@ -980,17 +980,18 @@ fn run_loop(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let mut done = 0usize;
     let mut drained = 0usize;
     loop {
+        if stop.load(Ordering::Acquire) {
+            break;
+        }
         match drain_into(&inputs, &mut implementer) {
             Ok(count) => drained = drained.saturating_add(count),
             Err(error) => return fail(&error),
         }
         done += 1;
-        if iterations.is_some_and(|limit| done >= limit) || stop.load(Ordering::Acquire) {
+        if iterations.is_some_and(|limit| done >= limit) {
             break;
         }
-        std::thread::sleep(Duration::from_millis(
-            u64::try_from(interval_ms).unwrap_or(u64::MAX),
-        ));
+        wait_for_interval(interval_ms, &stop);
     }
     println!("{{\"iterations\":{done},\"drained\":{drained}}}");
     Ok(())
