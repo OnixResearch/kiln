@@ -648,7 +648,8 @@ fn source_status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(None) => return fail("source status has not been reconciled"),
         Err(error) => return fail(&error),
     };
-    if receipt.work_identity != plan.work_identity
+    if receipt.state != "closed"
+        || receipt.work_identity != plan.work_identity
         || receipt.work_revision != plan.work_revision
         || receipt.attempt != plan.attempt
         || receipt.fence != plan.fence
