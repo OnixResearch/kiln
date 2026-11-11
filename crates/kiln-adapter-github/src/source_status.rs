@@ -107,6 +107,7 @@ impl GithubSourceStatusClient {
             "{}/repos/{owner}/{repository}/issues/{number}",
             self.endpoint
         ))?;
+        reject_pull_request(&issue)?;
         if !matches!(issue.state.as_str(), "open" | "closed") {
             return Err(domain(
                 "github_source_state",
@@ -126,6 +127,7 @@ impl GithubSourceStatusClient {
             self.endpoint
         );
         let current: RawIssue = self.get(&url)?;
+        reject_pull_request(&current)?;
         if current.state == "closed" {
             return Ok(current.state);
         }
@@ -138,6 +140,7 @@ impl GithubSourceStatusClient {
         }
         let body = serde_json::json!({"state": "closed"}).to_string();
         let closed: RawIssue = self.patch(&url, &body)?;
+        reject_pull_request(&closed)?;
         if closed.state != "closed" {
             return Err(PortFailure::Unknown(InfrastructureFailure {
                 code: "github_source_close_unknown".to_string(),
@@ -145,6 +148,7 @@ impl GithubSourceStatusClient {
             }));
         }
         let observed: RawIssue = self.get(&url)?;
+        reject_pull_request(&observed)?;
         if observed.state != "closed" {
             return Err(PortFailure::Unknown(InfrastructureFailure {
                 code: "github_source_close_unknown".to_string(),
@@ -251,6 +255,17 @@ impl GithubSourceStatusClient {
     }
 }
 
+fn reject_pull_request(issue: &RawIssue) -> PortResult<()> {
+    if issue.pull_request.is_some() {
+        return Err(domain(
+            "github_source_pull_request",
+            "source.native_kind",
+            "source issue number identifies a pull request",
+        ));
+    }
+    Ok(())
+}
+
 fn issue_parts(plan: &SourceStatusPlan) -> PortResult<(&str, &str, u64)> {
     if plan.source.source.provider_namespace.as_str() != "github"
         || plan.source.source.native_kind.as_str() != "issue"
@@ -302,6 +317,8 @@ fn issue_parts(plan: &SourceStatusPlan) -> PortResult<(&str, &str, u64)> {
 #[derive(Deserialize)]
 struct RawIssue {
     state: String,
+    #[serde(default)]
+    pull_request: Option<serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -419,6 +436,25 @@ mod tests {
                 .unwrap_or_else(|error| unreachable!("{error:?}")),
             "open"
         );
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert_eq!(requests.len(), 1);
+        assert!(
+            requests
+                .first()
+                .is_some_and(|request| request.starts_with("GET "))
+        );
+    }
+
+    #[test]
+    // r[verify kiln.github.source_status]
+    fn refuses_to_close_a_pull_request_number() {
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            serde_json::json!({"state": "open", "pull_request": {}}).to_string(),
+        )]);
+        let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.close(&plan()).is_err());
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert_eq!(requests.len(), 1);
         assert!(
