@@ -116,6 +116,7 @@ impl GithubPublicationClient {
     }
 
     fn ensure_branch_at(&self, plan: &PublicationPlan, retries: u8) -> PortResult<ExternalRef> {
+        validate_plan(plan)?;
         let (owner, repository) = repository_parts(&plan.repository)?;
         let path = format!(
             "{}/repos/{owner}/{repository}/git/ref/heads/{}",
@@ -180,6 +181,7 @@ impl GithubPublicationClient {
         plan: &PublicationPlan,
         retries: u8,
     ) -> PortResult<PublicationOutcome> {
+        validate_plan(plan)?;
         let (owner, repository) = repository_parts(&plan.repository)?;
         let list = format!(
             "{}/repos/{owner}/{repository}/pulls?state=open&head={}:{}&base={}&per_page=100",
@@ -283,6 +285,34 @@ impl GithubPublicationClient {
             )
         })
     }
+}
+
+fn validate_plan(plan: &PublicationPlan) -> PortResult<()> {
+    let safe_branch = |value: &str| {
+        !value.is_empty()
+            && value.len() <= 128
+            && !value.starts_with('/')
+            && !value.ends_with('/')
+            && !value.contains("..")
+            && !value.chars().any(char::is_control)
+    };
+    let commit = plan.candidate.native_id.as_str();
+    if plan.schema != kiln_core::implementation::PUBLICATION_SCHEMA
+        || !safe_branch(&plan.branch)
+        || !safe_branch(&plan.base_branch)
+        || plan.title.trim().is_empty()
+        || plan.title.len() > 256
+        || plan.body.len() > 16_384
+        || !matches!(commit.len(), 40 | 64)
+        || !commit.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err(domain(
+            "github_publication_plan",
+            "publication.plan",
+            "publication plan has malformed branch, commit or text",
+        ));
+    }
+    Ok(())
 }
 
 fn repository_parts(repository: &str) -> PortResult<(&str, &str)> {
@@ -618,6 +648,13 @@ mod tests {
     fn refuses_conflicting_branch_and_ambiguous_pull_request() {
         let mut malformed = plan();
         malformed.repository = "owner/repo/extra".to_string();
+        let (endpoint, server) = serve(vec![]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.ensure_branch(&malformed).is_err());
+        let _ = server.join();
+        let mut malformed = plan();
+        malformed.branch = "".to_string();
         let (endpoint, server) = serve(vec![]);
         let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());

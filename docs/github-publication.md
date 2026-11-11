@@ -5,6 +5,8 @@ for an already prepared publication plan.
 
 - The repository MUST be exactly `owner/name` using bounded GitHub-safe
   characters; malformed paths are refused before any request.
+- The client revalidates the plan's repository, branch names, candidate commit
+  shape and PR text before any request.
 - Branch/PR creation races are reconciled at most once; a second race remains
   `Unknown`. Incomplete PR pagination is refused rather than treated as absence.
 - A matching PR must belong to the repository owner; a same-named head branch
