@@ -1,0 +1,30 @@
+{
+  "schema": "kiln.github-publication-provider.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/47",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation::publication",
+      "result": "2 passed; verified plan/target base branch and arbitrary branch/unverified refusal"
+    },
+    {
+      "command": "cargo test -p kiln-adapter-github --lib publication --offline",
+      "result": "3 passed; missing branch/PR creation, exact reuse, conflicting branch and ambiguous PR"
+    },
+    {
+      "command": "cargo clippy -p kiln-core -p kiln-implementer -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "publisher": "crates/kiln-adapter-github/src/publication.rs",
+    "plan": "crates/kiln-core/src/implementation/publication.rs",
+    "cli": "crates/kiln-adapter-github/src/bin/implementer.rs",
+    "docs": "docs/github-publication.md, docs/implementer-service.md"
+  },
+  "non_claims": [
+    "publication is not integration, landing or release eligibility",
+    "no force push, branch update, merge, approval or source-status mutation",
+    "remote ambiguity remains unknown until reconciled"
+  ]
+}

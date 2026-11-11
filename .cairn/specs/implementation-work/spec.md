@@ -780,3 +780,17 @@ r[kiln.implementation.publication.scenario.refused]
 - GIVEN an unverified attempt or an arbitrary branch/title/base/candidate binding
 - WHEN publication preparation runs
 - THEN it MUST fail without a remote effect
+
+### Requirement: Publication target base branch
+
+r[kiln.implementation.publication_target] A publication plan MUST bind a
+nonempty, bounded, non-escaping target base branch in addition to the frozen
+base revision. An invalid target branch MUST fail preparation before any remote
+effect.
+
+#### Scenario: Invalid target branch
+
+r[kiln.implementation.publication_target.scenario.refused]
+- GIVEN a publication plan with an empty, absolute or escaping target branch
+- WHEN preparation runs
+- THEN it MUST fail

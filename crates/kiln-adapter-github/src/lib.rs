@@ -6,6 +6,7 @@ pub mod landing;
 pub mod poll;
 pub mod poll_http;
 pub mod profile;
+pub mod publication;
 pub mod replay;
 pub mod secret;
 pub mod server;

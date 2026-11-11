@@ -34,6 +34,8 @@ pub struct PublicationPlan {
     pub verification: ContentId,
     pub repository: String,
     pub base: ExternalRef,
+    /// Target branch name for the pull request.
+    pub base_branch: String,
     pub candidate: ExternalRef,
     pub tree: ExternalRef,
     pub branch: String,
@@ -100,6 +102,7 @@ pub fn admit_publication_plan(
         || plan.handoff != handoff_identity
         || plan.verification != verification_identity
         || plan.repository != work.repository
+        || !bounded_branch(&plan.base_branch)
         || Some(&plan.base) != handoff.base.as_ref()
         || plan.candidate != handoff.candidate
         || plan.tree != handoff.tree
@@ -131,6 +134,7 @@ pub fn admit_publication_plan(
     }
     bytes.extend_from_slice(&plan.work_revision.to_be_bytes());
     bytes.extend_from_slice(&plan.fence.to_be_bytes());
+    push_str(&mut bytes, &plan.base_branch)?;
     push_external(&mut bytes, &plan.base)?;
     push_external(&mut bytes, &plan.candidate)?;
     push_external(&mut bytes, &plan.tree)?;
@@ -143,6 +147,15 @@ fn push_external(bytes: &mut Vec<u8>, external: &ExternalRef) -> CoreResult<()> 
     push_str(bytes, external.provider_namespace.as_str())?;
     push_str(bytes, external.native_kind.as_str())?;
     push_str(bytes, external.native_id.as_str())
+}
+
+fn bounded_branch(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_BRANCH_BYTES
+        && !value.starts_with('/')
+        && !value.ends_with('/')
+        && !value.contains("..")
+        && !value.chars().any(char::is_control)
 }
 
 fn bounded(value: &str, max: usize) -> bool {
@@ -367,6 +380,7 @@ mod tests {
             .unwrap_or_else(|_| unreachable!()),
             repository: work.repository.clone(),
             base: work.base.clone().unwrap_or_else(|| unreachable!()),
+            base_branch: "main".to_string(),
             candidate: attempt.candidate.clone().unwrap_or_else(|| unreachable!()),
             tree: attempt
                 .handoff
@@ -417,7 +431,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.implementation.publication] r[verify kiln.implementation.publication.scenario.refused]
+    // r[verify kiln.implementation.publication] r[verify kiln.implementation.publication.scenario.refused] r[verify kiln.implementation.publication_target] r[verify kiln.implementation.publication_target.scenario.refused]
     fn refuses_unverified_or_wrong_branch_publication_plans() {
         let work = work();
         let attempt = make_attempt(&work);
@@ -433,6 +447,21 @@ mod tests {
                     .as_ref()
                     .unwrap_or_else(|| unreachable!()),
                 &plan
+            )
+            .is_err()
+        );
+        let mut invalid_base = make_plan(&work, &attempt);
+        invalid_base.base_branch = "../main".to_string();
+        assert!(
+            admit_publication_plan(
+                &work,
+                &attempt,
+                attempt.handoff.as_ref().unwrap_or_else(|| unreachable!()),
+                attempt
+                    .verification
+                    .as_ref()
+                    .unwrap_or_else(|| unreachable!()),
+                &invalid_base
             )
             .is_err()
         );

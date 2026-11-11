@@ -41,7 +41,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|status|claim|cancel|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -62,6 +62,7 @@ fn run() -> Result<(), ()> {
         "handoff" => handoff(&flags),
         "verify" => verify(&flags),
         "prepare-publication" => prepare_publication(&flags),
+        "publish" => publish(&flags),
         "metrics" => metrics(&flags),
         _ => fail("unknown command"),
     }
@@ -294,6 +295,89 @@ fn prepare_publication(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         }
         Err(error) => fail(&error),
     }
+}
+
+// r[impl kiln.implementation.publication] r[impl kiln.github.publication]
+fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let file = match required_path(flags, "--publication-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let secret_file = match required_path(flags, "--secret-file") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let plan: kiln_core::implementation::PublicationPlan = match read_json(&file) {
+        Ok(plan) => plan,
+        Err(error) => return fail(&error),
+    };
+    let timeout_ms = match optional_positive(flags, "--timeout-ms") {
+        Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
+        Ok(None) => 30_000,
+        Err(error) => return fail(&error),
+    };
+    let token = match std::fs::read(&secret_file) {
+        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
+            Ok(token) => token,
+            Err(_) => return fail("secret file is not a valid GitHub token"),
+        },
+        Err(_) => return fail("secret file is unreadable"),
+    };
+    let mut implementer = match open_implementer(flags) {
+        Ok(implementer) => implementer,
+        Err(error) => return fail(&error),
+    };
+    let record = match implementer.publication_record(&plan.attempt) {
+        Ok(Some(record)) => record,
+        Ok(None) => return fail("publication is not prepared"),
+        Err(error) => return fail(&error),
+    };
+    if record.plan != plan {
+        return fail("publication file differs from the prepared plan");
+    }
+    if record.phase == kiln_core::implementation::PublicationPhase::PullRequestPublished {
+        println!(
+            "{{\"pull_request\":\"{}\"}}",
+            record
+                .pull_request
+                .as_ref()
+                .map(|reference| reference.native_id.as_str())
+                .unwrap_or("")
+        );
+        return Ok(());
+    }
+    let client =
+        match kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms) {
+            Ok(client) => client,
+            Err(_) => return fail("publication transport configuration is invalid"),
+        };
+    let branch = match client.ensure_branch(&plan) {
+        Ok(branch) => branch,
+        Err(error) => return fail(&format!("{error:?}")),
+    };
+    if let Err(error) = implementer.record_branch_published(&plan.attempt, plan.fence, &branch) {
+        return fail(&error);
+    }
+    let outcome = match client.ensure_pull_request(&plan) {
+        Ok(outcome) => outcome,
+        Err(error) => return fail(&format!("{error:?}")),
+    };
+    if let Err(error) = implementer.record_pull_request_published(
+        &plan.attempt,
+        plan.fence,
+        &outcome.pull_request,
+        &outcome.branch_head,
+    ) {
+        return fail(&error);
+    }
+    println!(
+        "{{\"branch_head\":\"{}\",\"pull_request\":\"{}\",\"number\":{},\"html_url\":{}}}",
+        outcome.branch_head.native_id.as_str(),
+        outcome.pull_request.native_id.as_str(),
+        outcome.number,
+        serde_json::to_string(&outcome.html_url).unwrap_or_else(|_| "\"\"".to_string())
+    );
+    Ok(())
 }
 
 // r[impl kiln.implementation.metrics]

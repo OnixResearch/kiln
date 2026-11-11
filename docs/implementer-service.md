@@ -94,6 +94,9 @@ the default-off attempt metrics receipt; missing usage stays explicitly absent.
 exact candidate handoff and moves the attempt to `verified`; it does not run CI.
 `prepare-publication --publication-file FILE` prepares the deterministic verified
 branch/PR plan; it creates no remote branch or pull request.
+`publish --publication-file FILE --secret-file FILE [--timeout-ms N]` reconciles
+the exact verified branch and creates/reuses one matching PR. It never force
+pushes, updates an existing branch, merges or lands.
 Claims and reservations are an
 operator/worker handoff only: no command performs transport, verification or
 publication, and a claimed attempt must still be executed by an admitted Lattice

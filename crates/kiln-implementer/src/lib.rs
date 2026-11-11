@@ -247,6 +247,29 @@ impl Implementer {
         self.with_ledgers(|_, attempts| Ok(attempts.publication_record(identity).cloned()))
     }
 
+    pub fn record_branch_published(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        remote_head: &kiln_core::types::ExternalRef,
+    ) -> Result<(), String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_branch_published(identity, fence, remote_head)
+        })
+    }
+
+    pub fn record_pull_request_published(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        pull_request: &kiln_core::types::ExternalRef,
+        head: &kiln_core::types::ExternalRef,
+    ) -> Result<(), String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_pull_request_published(identity, fence, pull_request, head)
+        })
+    }
+
     pub fn record_verification(
         &mut self,
         work: &ImplementationWork,

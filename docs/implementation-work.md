@@ -87,8 +87,8 @@ Lattice implementation route and worker contract remain external work.
 
 `PublicationPlan` prepares delivery only for a terminal `verified` attempt. It
 binds the exact candidate handoff and verification receipt, work/version,
-attempt/fence, repository, frozen base, candidate/tree, a deterministic
-`kiln/impl-<work>-<attempt>` branch, and bounded PR title/body. The work must use
+attempt/fence, repository, frozen base, target base branch, candidate/tree, a
+deterministic `kiln/impl-<work>-<attempt>` branch, and bounded PR title/body. The work must use
 the verified-pull-request terminal policy. Preparation performs no remote
 effect.
 
