@@ -31,6 +31,7 @@ pub struct LandingPlan {
     pub repository: String,
     pub pull_number: u64,
     pub base_ref: String,
+    pub base_head: String,
     pub head_sha: String,
     pub required_checks: Vec<String>,
     pub required_approvals: u32,
@@ -71,6 +72,7 @@ pub struct LandingObservation {
     pub pull: PullObservation,
     pub checks: Vec<CheckObservation>,
     pub reviews: Vec<ReviewObservation>,
+    pub base_head: String,
 }
 
 /// Admit a read-only observation as exact landing evidence.
@@ -91,6 +93,8 @@ pub fn admit_landing(
         || pull.mergeable != Some(true)
         || pull.head_sha != plan.head_sha
         || pull.base_ref != plan.base_ref
+        || observation.base_head != plan.base_head
+        || !commit(&observation.base_head)
     {
         return Err(refusal(
             "github_landing_pull",
@@ -168,6 +172,7 @@ fn admit_plan(plan: &LandingPlan) -> Result<(), Diagnostic> {
         || plan.pull_number == 0
         || !branch(&plan.base_ref)
         || !commit(&plan.head_sha)
+        || !commit(&plan.base_head)
         || plan.required_checks.is_empty()
         || plan.required_checks.len() > MAX_CHECKS_REQUIRED
         || plan.required_approvals > 16
@@ -211,6 +216,18 @@ fn branch(value: &str) -> bool {
 
 fn bounded_name(value: &str) -> bool {
     !value.is_empty() && value.len() <= MAX_NAME_BYTES && !value.chars().any(char::is_control)
+}
+
+fn encode(value: &str) -> String {
+    let mut encoded = String::new();
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    encoded
 }
 
 fn commit(value: &str) -> bool {
@@ -354,6 +371,13 @@ impl GithubLandingClient {
                 "review pagination is incomplete or exceeds its bound",
             ));
         }
+        let base: RawRef = self.get_json(&format!(
+            "{}/repos/{}/{}/git/ref/heads/{}",
+            self.endpoint,
+            plan.owner,
+            plan.repository,
+            encode(&plan.base_ref)
+        ))?;
         if checks.total_count > MAX_CHECKS || checks.check_runs.len() > MAX_CHECKS {
             return Err(domain(
                 "github_landing_checks_bound",
@@ -388,6 +412,7 @@ impl GithubLandingClient {
                     state: review.state,
                 })
                 .collect(),
+            base_head: base.object.sha,
         };
         admit_landing(plan, &observation)?;
         Ok(observation)
@@ -443,6 +468,14 @@ struct RawBase {
     r#ref: String,
 }
 #[derive(Deserialize)]
+struct RawRef {
+    object: RawRefObject,
+}
+#[derive(Deserialize)]
+struct RawRefObject {
+    sha: String,
+}
+#[derive(Deserialize)]
 struct RawChecks {
     total_count: usize,
     check_runs: Vec<RawCheck>,
@@ -485,6 +518,7 @@ mod tests {
             repository: "hello-world".to_string(),
             pull_number: 7,
             base_ref: "main".to_string(),
+            base_head: "b".repeat(40),
             head_sha: "a".repeat(40),
             required_checks: vec!["build".to_string(), "test".to_string()],
             required_approvals: 1,
@@ -556,7 +590,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.ready]
+    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.ready] r[verify kiln.github.landing.base] r[verify kiln.github.landing.base.scenario.exact]
     fn observes_an_exact_ready_pull_request() {
         let (endpoint, server) = serve(vec![
             ("200 OK", pull_body()),
@@ -565,6 +599,10 @@ mod tests {
                 "200 OK",
                 serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
                     .to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string(),
             ),
         ]);
         let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
@@ -586,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.approvals] r[verify kiln.github.landing.approvals.scenario.distinct]
+    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.base.scenario.moved] r[verify kiln.github.landing.approvals] r[verify kiln.github.landing.approvals.scenario.distinct]
     fn refuses_stale_or_incomplete_observations() {
         let plan = plan();
         let mut observation = LandingObservation {
@@ -609,10 +647,14 @@ mod tests {
                 actor: "reviewer".to_string(),
                 state: "APPROVED".to_string(),
             }],
+            base_head: "b".repeat(40),
         };
         assert!(admit_landing(&plan, &observation).is_err());
         observation.pull.head_sha = "c".repeat(40);
         assert!(admit_landing(&plan, &observation).is_err());
+        observation.base_head = "c".repeat(40);
+        assert!(admit_landing(&plan, &observation).is_err());
+        observation.base_head = "b".repeat(40);
         observation.reviews.clear();
         assert!(admit_landing(&plan, &observation).is_err());
         observation.reviews.push(ReviewObservation {

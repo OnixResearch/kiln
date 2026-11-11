@@ -6,7 +6,8 @@ branch, label or comment mutation exists in this module.
 
 A `LandingPlan` binds the repository, PR number, base ref, exact head commit,
 required check names and operation identity. An observation is admitted only
-when the PR is open, unmerged, mergeable, and at the exact head/base, every
+when the PR is open, unmerged, mergeable, at the exact head/base, and the
+observed base branch head equals the expected base commit, every
 required check is unique, completed successfully on that head, and the latest
 review per actor has no changes requested. Required approvals count distinct
 reviewers excluding the PR author. Missing, stale, duplicate or failed checks
