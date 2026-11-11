@@ -257,7 +257,7 @@ fn valid_actor(value: &str) -> bool {
 }
 
 /// Strict `YYYY-MM-DDTHH:MM:SSZ` to Unix milliseconds.
-fn timestamp_millis(value: &str) -> Option<u64> {
+pub(crate) fn timestamp_millis(value: &str) -> Option<u64> {
     let bytes = value.as_bytes();
     if bytes.len() != 20
         || bytes.get(4) != Some(&b'-')

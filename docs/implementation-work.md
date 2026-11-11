@@ -121,8 +121,13 @@ Bounded polling recovery is implemented behind `IssuePollTransport`:
 `poll_implementation_issues` limits pages and records, enforces enrollment and
 text bounds, selects the highest update sequence for duplicate records, orders
 observations deterministically, and fails rather than truncating when more
-records remain beyond the page bound. The authenticated HTTP transport and
-schedule are not implemented.
+records remain beyond the page bound.
+
+`GithubIssuePollClient` supplies the authenticated transport: fixed
+`api.github.com` origin, bearer token, no redirects or environment proxy,
+bounded response bytes, pull-request filtering, strict timestamps and a bounded
+`Link` next-page parser. Authentication, repository and rate-limit failures are
+distinct; retries and the polling schedule are not implemented.
 
 `drain_implementation_queue` consumes a bounded queue batch: it re-verifies each
 stored signature, normalizes through operator policy, admits into the durable
@@ -169,7 +174,7 @@ digest supersedes the previous work. Its `--policy` file is a
 
 The adapters that produce these records are separate work:
 
-- The GitHub polling transport/schedule and webhook service wiring. Normalization
+- The GitHub polling schedule and webhook service wiring. Normalization
   and admission are implemented; the service does not yet receive, persist or
   poll them.
 - Cairn intake. It must consume Cairn `OnixResearch/cairn#1`'s versioned

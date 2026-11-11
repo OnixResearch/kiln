@@ -3,6 +3,7 @@ pub mod export;
 pub mod implementation;
 pub mod job;
 pub mod poll;
+pub mod poll_http;
 pub mod profile;
 pub mod replay;
 pub mod secret;

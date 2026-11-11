@@ -75,14 +75,14 @@ pub fn run_dns_child(parent_pid: u32) -> i32 {
     }
 }
 
-struct BoundedGithubResolver {
+pub(crate) struct BoundedGithubResolver {
     program: PathBuf,
     args: Vec<OsString>,
     timeout_ms: u64,
 }
 
 impl BoundedGithubResolver {
-    fn current_executable(timeout_ms: u64) -> PortResult<Self> {
+    pub(crate) fn current_executable(timeout_ms: u64) -> PortResult<Self> {
         let program = std::env::current_exe().map_err(|_| {
             infrastructure(
                 "github_status_dns_executable",
@@ -99,7 +99,7 @@ impl BoundedGithubResolver {
         })
     }
 
-    fn resolve(&self, netloc: &str) -> std::io::Result<Vec<SocketAddr>> {
+    pub(crate) fn resolve(&self, netloc: &str) -> std::io::Result<Vec<SocketAddr>> {
         use std::io::{Error, ErrorKind};
         if netloc != DNS_DESTINATION {
             return Err(Error::new(

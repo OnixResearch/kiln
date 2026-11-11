@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.github-poll-transport.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/44",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-adapter-github --lib poll_http --offline",
+      "result": "4 passed; authenticated paged fetch, PR filtering, timestamp round trip, refused credentials/payload and Link bounds"
+    },
+    {
+      "command": "cargo clippy -p kiln-adapter-github --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "transport": "crates/kiln-adapter-github/src/poll_http.rs",
+    "normalizer": "crates/kiln-adapter-github/src/poll.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "a successful page is not admission, scheduling or dispatch",
+    "no retry loop is added",
+    "webhook authentication and the polling schedule remain separate"
+  ]
+}
