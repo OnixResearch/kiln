@@ -14,6 +14,20 @@ reviewers excluding the PR author. Missing, stale, duplicate or failed checks
 and insufficient approvals are refused. Check pagination beyond the bounded page
 is refused rather than treated as absence of failures.
 
+## Guarded merge
+
+`GithubLandingClient::land` first admits the full read-only observation, then
+POSTs a merge-commit request bound to the exact head SHA. It reads the PR and
+target base ref back after the request and returns a receipt only when the PR is
+merged at the exact head/base and the base head equals the merge commit. A
+timeout or ambiguous response is reconciled by the same read-back; a lost effect
+with no observable merge commit remains `Unknown`. The method is not exposed as
+an operator command and does not close issues or mutate source status.
+
+This strategy uses GitHub's head SHA condition only. It does **not** make the
+base-head check atomic with the merge, and it does not prove branch-protection
+or merge-queue semantics. Those remain qualification requirements.
+
 ## Non-claims
 
 The observation is not merge authority, approval authority, integration proof or

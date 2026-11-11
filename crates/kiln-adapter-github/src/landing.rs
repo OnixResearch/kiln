@@ -7,8 +7,8 @@
 use std::io::Read;
 use std::time::Duration;
 
-use kiln_core::types::{ContentId, Diagnostic};
-use kiln_provider_api::PortResult;
+use kiln_core::types::{ContentId, Diagnostic, ExternalRef};
+use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 use serde::{Deserialize, Serialize};
 
 use crate::secret::ResolvedSecret;
@@ -72,6 +72,16 @@ pub struct LandingObservation {
     pub pull: PullObservation,
     pub checks: Vec<CheckObservation>,
     pub reviews: Vec<ReviewObservation>,
+    pub base_head: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LandingReceipt {
+    pub pull_request: ExternalRef,
+    pub candidate_head: String,
+    pub merge_commit: String,
+    pub base_ref: String,
     pub base_head: String,
 }
 
@@ -418,6 +428,139 @@ impl GithubLandingClient {
         Ok(observation)
     }
 
+    /// Merge one exact ready pull request using a merge commit and read back
+    /// the landed result. This is a high-impact effect and is not called by
+    /// observation-only code.
+    // r[impl kiln.github.landing.merge]
+    pub fn land(&self, plan: &LandingPlan) -> PortResult<LandingReceipt> {
+        let _observation = self.observe(plan)?;
+        let (owner, repository) = landing_repository(plan)?;
+        let body = serde_json::json!({
+            "sha": plan.head_sha,
+            "merge_method": "merge",
+        })
+        .to_string();
+        let response = self.post(
+            &format!(
+                "{}/repos/{owner}/{repository}/pulls/{}/merge",
+                self.endpoint, plan.pull_number
+            ),
+            &body,
+        );
+        match response {
+            Ok(response) => {
+                let merged: RawMerge = self.decode(response)?;
+                if !merged.merged {
+                    return Err(domain(
+                        "github_landing_not_merged",
+                        "landing.merge",
+                        "GitHub did not merge the pull request",
+                    ));
+                }
+                self.verify_merged(plan)
+            }
+            Err(HttpError::Status(405 | 409 | 422)) => {
+                // The head or mergeability changed; do not blindly retry.
+                self.verify_merged(plan)
+            }
+            Err(HttpError::Status(401 | 403)) => Err(domain(
+                "github_landing_unauthorized",
+                "landing.merge",
+                "GitHub landing credentials were refused",
+            )),
+            Err(HttpError::Status(404)) => Err(domain(
+                "github_landing_not_found",
+                "landing.merge",
+                "GitHub pull request was not found",
+            )),
+            Err(_) => self.verify_merged(plan),
+        }
+    }
+
+    fn verify_merged(&self, plan: &LandingPlan) -> PortResult<LandingReceipt> {
+        let (owner, repository) = landing_repository(plan)?;
+        let pull: RawPull = self.get_json(&format!(
+            "{}/repos/{owner}/{repository}/pulls/{}",
+            self.endpoint, plan.pull_number
+        ))?;
+        let Some(merge_commit) = pull.merge_commit_sha.as_deref() else {
+            return Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_landing_merge_unknown".to_string(),
+                message: "merge response is unknown and no merge commit is observable".to_string(),
+            }));
+        };
+        if !pull.merged || pull.head.sha != plan.head_sha || pull.base.r#ref != plan.base_ref {
+            return Err(domain(
+                "github_landing_merge_mismatch",
+                "landing.merge",
+                "observed merged pull request does not match the exact candidate/base",
+            ));
+        }
+        let base: RawRef = self.get_json(&format!(
+            "{}/repos/{owner}/{repository}/git/ref/heads/{}",
+            self.endpoint,
+            encode(&plan.base_ref)
+        ))?;
+        if base.object.sha != merge_commit {
+            return Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_landing_base_unknown".to_string(),
+                message: "landed base head does not yet match the merge commit".to_string(),
+            }));
+        }
+        Ok(LandingReceipt {
+            pull_request: ExternalRef::new(
+                "github",
+                "pull_request",
+                &format!("{owner}/{repository}#{}", plan.pull_number),
+            )?,
+            candidate_head: plan.head_sha.clone(),
+            merge_commit: merge_commit.to_string(),
+            base_ref: plan.base_ref.clone(),
+            base_head: base.object.sha,
+        })
+    }
+
+    fn post(&self, url: &str, body: &str) -> Result<ureq::Response, HttpError> {
+        let token = self.token.as_str().map_err(|_| HttpError::Other)?;
+        self.agent
+            .post(url)
+            .set("Authorization", &format!("Bearer {token}"))
+            .set("Accept", "application/vnd.github+json")
+            .set("X-GitHub-Api-Version", API_VERSION)
+            .set("Content-Type", "application/json")
+            .set("User-Agent", "kiln")
+            .send_string(body)
+            .map_err(HttpError::from_ureq)
+    }
+
+    fn decode<T: serde::de::DeserializeOwned>(&self, response: ureq::Response) -> PortResult<T> {
+        let mut bytes = Vec::new();
+        response
+            .into_reader()
+            .take(u64::try_from(MAX_RESPONSE_BYTES + 1).unwrap_or(u64::MAX))
+            .read_to_end(&mut bytes)
+            .map_err(|_| {
+                infrastructure(
+                    "github_landing_body",
+                    "GitHub landing observation body could not be read",
+                )
+            })?;
+        if bytes.len() > MAX_RESPONSE_BYTES {
+            return Err(domain(
+                "github_landing_bound",
+                "landing.response",
+                "GitHub landing observation exceeds its byte bound",
+            ));
+        }
+        serde_json::from_slice(&bytes).map_err(|_| {
+            domain(
+                "github_landing_payload",
+                "landing.response",
+                "GitHub landing observation payload is malformed",
+            )
+        })
+    }
+
     fn get_json<T: serde::de::DeserializeOwned>(&self, url: &str) -> PortResult<T> {
         let response = self.get(url)?;
         let mut bytes = Vec::new();
@@ -454,6 +597,7 @@ struct RawPull {
     user: RawUser,
     state: String,
     merged: bool,
+    merge_commit_sha: Option<String>,
     mergeable: Option<bool>,
     head: RawHead,
     base: RawBase,
@@ -476,6 +620,10 @@ struct RawRefObject {
     sha: String,
 }
 #[derive(Deserialize)]
+struct RawMerge {
+    merged: bool,
+}
+#[derive(Deserialize)]
 struct RawChecks {
     total_count: usize,
     check_runs: Vec<RawCheck>,
@@ -495,6 +643,38 @@ struct RawCheck {
     head_sha: String,
     status: String,
     conclusion: Option<String>,
+}
+
+enum HttpError {
+    Status(u16),
+    Other,
+}
+
+impl HttpError {
+    fn from_ureq(error: ureq::Error) -> Self {
+        match error {
+            ureq::Error::Status(status, _) => Self::Status(status),
+            _ => Self::Other,
+        }
+    }
+}
+
+fn landing_repository(plan: &LandingPlan) -> PortResult<(&str, &str)> {
+    let valid = |value: &str| {
+        !value.is_empty()
+            && value.len() <= 128
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+    };
+    if !valid(&plan.owner) || !valid(&plan.repository) {
+        return Err(domain(
+            "github_landing_repository",
+            "landing.repository",
+            "landing repository identifiers are malformed",
+        ));
+    }
+    Ok((&plan.owner, &plan.repository))
 }
 
 fn refusal(code: &str, field: &str, message: &str) -> Diagnostic {
@@ -620,6 +800,87 @@ mod tests {
         assert!(requests.get(1).is_some_and(|request| {
             request.contains("/commits/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/check-runs")
                 && request.contains("per_page=100")
+        }));
+    }
+
+    #[test]
+    // r[verify kiln.github.landing.merge] r[verify kiln.github.landing.merge.scenario.landed]
+    fn lands_one_exact_pull_request_and_reads_back_the_merge() {
+        let (endpoint, server) = serve(vec![
+            ("200 OK", pull_body()),
+            ("200 OK", checks_body()),
+            (
+                "200 OK",
+                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
+                    .to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({"merged": true, "sha": "c".repeat(40)}).to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({
+                    "number": 7,
+                    "user": {"login": "author"},
+                    "state": "closed",
+                    "merged": true,
+                    "merge_commit_sha": "c".repeat(40),
+                    "mergeable": false,
+                    "head": {"sha": "a".repeat(40)},
+                    "base": {"ref": "main"}
+                })
+                .to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({"object": {"sha": "c".repeat(40)}}).to_string(),
+            ),
+        ]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        let receipt = client
+            .land(&plan())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(receipt.merge_commit, "c".repeat(40));
+        assert_eq!(receipt.base_head, "c".repeat(40));
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert!(
+            requests.get(4).is_some_and(|request| {
+                request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
+            }),
+            "{requests:?}"
+        );
+    }
+
+    #[test]
+    // r[verify kiln.github.landing.merge.scenario.refused]
+    fn refuses_or_reconciles_a_merge_that_does_not_land() {
+        let (endpoint, server) = serve(vec![
+            ("200 OK", pull_body()),
+            ("200 OK", checks_body()),
+            (
+                "200 OK",
+                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
+                    .to_string(),
+            ),
+            (
+                "200 OK",
+                serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string(),
+            ),
+            ("405 Method Not Allowed", "{}".to_string()),
+            ("200 OK", pull_body()),
+        ]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.land(&plan()).is_err());
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert!(requests.get(4).is_some_and(|request| {
+            request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
         }));
     }
 
