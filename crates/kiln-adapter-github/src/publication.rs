@@ -112,17 +112,10 @@ impl GithubPublicationClient {
     /// Ensure the exact candidate branch exists at the candidate commit.
     // r[impl kiln.github.publication]
     pub fn ensure_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
+        let (owner, repository) = repository_parts(&plan.repository)?;
         let path = format!(
-            "{}/repos/{}/{}/git/ref/heads/{}",
+            "{}/repos/{owner}/{repository}/git/ref/heads/{}",
             self.endpoint,
-            plan.repository
-                .split_once('/')
-                .map(|(owner, _)| owner)
-                .unwrap_or(&plan.repository),
-            plan.repository
-                .split_once('/')
-                .map(|(_, repository)| repository)
-                .unwrap_or(&plan.repository),
             encode(&plan.branch)
         );
         match self.get(&path) {
@@ -143,16 +136,7 @@ impl GithubPublicationClient {
     }
 
     fn create_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
-        let owner = plan
-            .repository
-            .split_once('/')
-            .map(|(owner, _)| owner)
-            .unwrap_or(&plan.repository);
-        let repository = plan
-            .repository
-            .split_once('/')
-            .map(|(_, repository)| repository)
-            .unwrap_or(&plan.repository);
+        let (owner, repository) = repository_parts(&plan.repository)?;
         let body = serde_json::json!({
             "ref": format!("refs/heads/{}", plan.branch),
             "sha": plan.candidate.native_id.as_str(),
@@ -180,16 +164,7 @@ impl GithubPublicationClient {
     /// Ensure exactly one open PR exists for the candidate branch and base.
     // r[impl kiln.github.publication]
     pub fn ensure_pull_request(&self, plan: &PublicationPlan) -> PortResult<PublicationOutcome> {
-        let owner = plan
-            .repository
-            .split_once('/')
-            .map(|(owner, _)| owner)
-            .unwrap_or(&plan.repository);
-        let repository = plan
-            .repository
-            .split_once('/')
-            .map(|(_, repository)| repository)
-            .unwrap_or(&plan.repository);
+        let (owner, repository) = repository_parts(&plan.repository)?;
         let list = format!(
             "{}/repos/{owner}/{repository}/pulls?state=open&head={}:{}&base={}&per_page=100",
             self.endpoint,
@@ -280,6 +255,31 @@ impl GithubPublicationClient {
             )
         })
     }
+}
+
+fn repository_parts(repository: &str) -> PortResult<(&str, &str)> {
+    let Some((owner, name)) = repository.split_once('/') else {
+        return Err(domain(
+            "github_publication_repository",
+            "publication.repository",
+            "publication repository must be exactly owner/name",
+        ));
+    };
+    let valid = |value: &str| {
+        !value.is_empty()
+            && value.len() <= 100
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+    };
+    if !valid(owner) || !valid(name) || name.contains('/') {
+        return Err(domain(
+            "github_publication_repository",
+            "publication.repository",
+            "publication repository identifiers are malformed",
+        ));
+    }
+    Ok((owner, name))
 }
 
 fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutcome> {
@@ -560,6 +560,13 @@ mod tests {
     #[test]
     // r[verify kiln.github.publication] r[verify kiln.github.publication.scenario.refused]
     fn refuses_conflicting_branch_and_ambiguous_pull_request() {
+        let mut malformed = plan();
+        malformed.repository = "owner/repo/extra".to_string();
+        let (endpoint, server) = serve(vec![]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(client.ensure_branch(&malformed).is_err());
+        let _ = server.join();
         let conflict = serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string();
         let (endpoint, server) = serve(vec![("200 OK", conflict)]);
         let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)

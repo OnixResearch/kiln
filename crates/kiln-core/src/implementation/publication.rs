@@ -102,6 +102,7 @@ pub fn admit_publication_plan(
         || plan.handoff != handoff_identity
         || plan.verification != verification_identity
         || plan.repository != work.repository
+        || !github_repository(&plan.repository)
         || !bounded_branch(&plan.base_branch)
         || Some(&plan.base) != handoff.base.as_ref()
         || plan.candidate != handoff.candidate
@@ -147,6 +148,23 @@ fn push_external(bytes: &mut Vec<u8>, external: &ExternalRef) -> CoreResult<()> 
     push_str(bytes, external.provider_namespace.as_str())?;
     push_str(bytes, external.native_kind.as_str())?;
     push_str(bytes, external.native_id.as_str())
+}
+
+fn github_repository(value: &str) -> bool {
+    let Some((owner, repository)) = value.split_once('/') else {
+        return false;
+    };
+    owner.len() <= 100
+        && repository.len() <= 100
+        && !owner.is_empty()
+        && !repository.is_empty()
+        && !repository.contains('/')
+        && owner
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
+        && repository
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
 fn bounded_branch(value: &str) -> bool {
@@ -447,6 +465,21 @@ mod tests {
                     .as_ref()
                     .unwrap_or_else(|| unreachable!()),
                 &plan
+            )
+            .is_err()
+        );
+        let mut invalid_repository = make_plan(&work, &attempt);
+        invalid_repository.repository = "owner/repo/extra".to_string();
+        assert!(
+            admit_publication_plan(
+                &work,
+                &attempt,
+                attempt.handoff.as_ref().unwrap_or_else(|| unreachable!()),
+                attempt
+                    .verification
+                    .as_ref()
+                    .unwrap_or_else(|| unreachable!()),
+                &invalid_repository
             )
             .is_err()
         );

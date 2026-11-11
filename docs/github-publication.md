@@ -3,6 +3,8 @@
 `kiln-adapter-github::publication` implements idempotent verified-PR delivery
 for an already prepared publication plan.
 
+- The repository MUST be exactly `owner/name` using bounded GitHub-safe
+  characters; malformed paths are refused before any request.
 - A candidate branch is read first. If it is absent it is created at the exact
   verified candidate; if present it must already point at that candidate.
 - Pull requests are reconciled by exact head branch, base branch and open state.
