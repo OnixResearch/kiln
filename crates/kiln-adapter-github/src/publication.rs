@@ -484,6 +484,19 @@ mod tests {
     use std::io::Write as _;
     use std::net::TcpListener;
 
+    #[test]
+    fn detects_incomplete_publication_pagination() {
+        assert!(
+            has_next_link(Some("<https://api.github.com/x?page=2>; rel=\"next\""))
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(
+            !has_next_link(Some("<https://api.github.com/x?page=1>; rel=\"prev\""))
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(has_next_link(Some(&"x".repeat(2049))).is_err());
+    }
+
     fn token() -> ResolvedSecret {
         ResolvedSecret::from_bytes(b"fixture-token".to_vec()).unwrap_or_else(|_| unreachable!())
     }
