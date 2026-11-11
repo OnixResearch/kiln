@@ -104,6 +104,20 @@ Log reads bind one execution, node, stream, cursor, and byte bound.
 
 The returned bytes must match one admitted Lattice log reference. Gaps, truncation, retention, and cursor values remain explicit.
 
+## Implementation dispatch
+
+`kiln-lattice-dispatch` binds one operator-supplied Lattice workflow request to a
+reserved implementation attempt. The request must carry the reservation plan as
+effect and idempotency identity, the exact attempt/fence, expected output,
+repository/base, cancel-only controls, and an agent/local/custom graph. Kiln
+validates the selected capability profile before transport and records the
+accepted execution on the attempt.
+
+After an ambiguous dispatch, `--recover true` uses Lattice `RecoverDispatch`
+instead of submitting a new execution. A disconnected acceptance remains
+unknown. Transport acceptance is not a candidate, verification, integration or
+completion result; the implementation workflow and worker remain Lattice-owned.
+
 ## Non-claims
 
 Passing adapter checks does not prove:
