@@ -89,6 +89,9 @@ pub struct PausedHandoff {
     pub phase: HandoffPhase,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manifest: Option<CheckpointManifest>,
+    /// Exact independently observed target-admission receipt.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_receipt: Option<ExternalRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cause: Option<String>,
 }
@@ -124,6 +127,7 @@ impl PausedHandoff {
             target,
             phase: HandoffPhase::Intent,
             manifest: None,
+            target_receipt: None,
             cause: None,
         })
     }
@@ -221,6 +225,7 @@ impl PausedHandoff {
                 "target owner does not hold the manifest target placement and fence",
             ));
         }
+        self.target_receipt = Some(receipt.clone());
         self.phase = HandoffPhase::TargetAdmitted;
         Ok(())
     }
@@ -575,6 +580,7 @@ mod tests {
             .record_target_admitted(&session, &owner, &target_owner, &receipt)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(handoff.phase, HandoffPhase::TargetAdmitted);
+        assert_eq!(handoff.target_receipt.as_ref(), Some(&receipt));
         handoff
             .record_resumed(&session, &owner, &target_owner)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
