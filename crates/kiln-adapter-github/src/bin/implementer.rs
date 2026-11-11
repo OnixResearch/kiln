@@ -1157,8 +1157,24 @@ fn status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             })
         })
         .count();
+    let failed = attempts
+        .attempts()
+        .filter(|attempt| attempt.phase == kiln_core::implementation::AttemptPhase::Failed)
+        .count();
+    let blocked = attempts
+        .attempts()
+        .filter(|attempt| attempt.phase == kiln_core::implementation::AttemptPhase::Blocked)
+        .count();
+    let cancelled = attempts
+        .attempts()
+        .filter(|attempt| attempt.phase == kiln_core::implementation::AttemptPhase::Cancelled)
+        .count();
+    let superseded = attempts
+        .attempts()
+        .filter(|attempt| attempt.phase == kiln_core::implementation::AttemptPhase::Superseded)
+        .count();
     println!(
-        "{{\"work\":{},\"attempts\":{},\"active\":{active},\"verified\":{verified},\"published\":{published},\"integrated\":{integrated},\"source_reconciled\":{source_reconciled}}}",
+        "{{\"work\":{},\"attempts\":{},\"active\":{active},\"verified\":{verified},\"published\":{published},\"integrated\":{integrated},\"source_reconciled\":{source_reconciled},\"failed\":{failed},\"blocked\":{blocked},\"cancelled\":{cancelled},\"superseded\":{superseded}}}",
         work.current().count(),
         attempts.attempts().count()
     );
