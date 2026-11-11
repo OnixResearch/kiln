@@ -156,6 +156,9 @@ pub struct ImplementationAttempt {
     /// Admitted independent verification evidence for the candidate.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub verification: Option<super::CandidateVerification>,
+    /// Prepared publication and remote branch/PR identities, once verified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub publication: Option<super::PublicationRecord>,
     /// Opt-in metrics receipt; absent unless explicitly recorded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metrics: Option<super::AttemptMetrics>,
@@ -268,6 +271,7 @@ impl AttemptLedger {
             candidate: None,
             handoff: None,
             verification: None,
+            publication: None,
             metrics: None,
             failure: None,
             cause: None,
@@ -590,6 +594,135 @@ impl AttemptLedger {
         Ok(())
     }
 
+    /// Prepare one publication plan for a verified attempt.
+    ///
+    /// The plan binds the exact handoff, verification receipt, candidate and
+    /// deterministic branch. Preparing does not perform a remote effect.
+    // r[impl kiln.implementation.publication]
+    pub fn prepare_publication(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        handoff: &super::CandidateHandoff,
+        verification: &super::CandidateVerification,
+        plan: &super::PublicationPlan,
+    ) -> CoreResult<ContentId> {
+        let attempt = self.authorized_fence(identity, fence)?;
+        if let Some(existing) = &attempt.publication {
+            if &existing.plan == plan {
+                return super::admit_publication_plan(work, attempt, handoff, verification, plan);
+            }
+            return Err(refusal(
+                "implementation_publication_conflict",
+                "attempt.publication",
+                "attempt already retains a different publication plan",
+            ));
+        }
+        let digest = super::admit_publication_plan(work, attempt, handoff, verification, plan)?;
+        let attempt = self.attempt_mut(identity)?;
+        attempt.publication = Some(super::PublicationRecord {
+            schema: super::PUBLICATION_SCHEMA.to_string(),
+            plan: plan.clone(),
+            phase: super::PublicationPhase::Prepared,
+            remote_head: None,
+            pull_request: None,
+        });
+        Ok(digest)
+    }
+
+    /// Record the observed candidate branch head.
+    // r[impl kiln.implementation.publication]
+    pub fn record_branch_published(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        remote_head: &ExternalRef,
+    ) -> CoreResult<()> {
+        let attempt = self.authorized_fence(identity, fence)?;
+        let publication = attempt.publication.as_ref().ok_or_else(|| {
+            refusal(
+                "implementation_publication_missing",
+                "attempt.publication",
+                "branch publication requires a prepared publication plan",
+            )
+        })?;
+        if publication.phase != super::PublicationPhase::Prepared {
+            if publication.remote_head.as_ref() == Some(remote_head)
+                && publication.phase == super::PublicationPhase::BranchPublished
+            {
+                return Ok(());
+            }
+            return Err(refusal(
+                "implementation_publication_phase",
+                "attempt.publication",
+                "publication phase does not admit branch publication",
+            ));
+        }
+        if remote_head != &publication.plan.candidate {
+            return Err(refusal(
+                "implementation_publication_head",
+                "attempt.publication.remote_head",
+                "remote branch head differs from the verified candidate",
+            ));
+        }
+        let attempt = self.attempt_mut(identity)?;
+        if let Some(publication) = &mut attempt.publication {
+            publication.remote_head = Some(remote_head.clone());
+            publication.phase = super::PublicationPhase::BranchPublished;
+        }
+        Ok(())
+    }
+
+    /// Record the observed pull request for the published branch.
+    // r[impl kiln.implementation.publication]
+    pub fn record_pull_request_published(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        pull_request: &ExternalRef,
+        head: &ExternalRef,
+    ) -> CoreResult<()> {
+        let attempt = self.authorized_fence(identity, fence)?;
+        let publication = attempt.publication.as_ref().ok_or_else(|| {
+            refusal(
+                "implementation_publication_missing",
+                "attempt.publication",
+                "pull request publication requires a prepared publication plan",
+            )
+        })?;
+        if publication.phase == super::PublicationPhase::PullRequestPublished
+            && publication.pull_request.as_ref() == Some(pull_request)
+            && publication.remote_head.as_ref() == Some(head)
+        {
+            return Ok(());
+        }
+        if publication.phase != super::PublicationPhase::BranchPublished
+            || publication.remote_head.as_ref() != Some(head)
+            || head != &publication.plan.candidate
+        {
+            return Err(refusal(
+                "implementation_publication_pr",
+                "attempt.publication.pull_request",
+                "pull request head or phase differs from the verified candidate branch",
+            ));
+        }
+        pull_request.validate()?;
+        let attempt = self.attempt_mut(identity)?;
+        if let Some(publication) = &mut attempt.publication {
+            publication.pull_request = Some(pull_request.clone());
+            publication.phase = super::PublicationPhase::PullRequestPublished;
+        }
+        Ok(())
+    }
+
+    /// Read the retained publication record for one attempt.
+    #[must_use]
+    pub fn publication_record(&self, identity: &ContentId) -> Option<&super::PublicationRecord> {
+        self.get(identity)
+            .and_then(|attempt| attempt.publication.as_ref())
+    }
+
     /// Record independent verification evidence and complete the attempt.
     ///
     /// The receipt must bind the retained handoff and exact canonical CI run.
@@ -811,6 +944,28 @@ impl AttemptLedger {
                     .get(attempt.canonical_key.as_str())
                     .is_some_and(|current| current == identity.as_str())
         })
+    }
+
+    fn authorized_fence(
+        &self,
+        identity: &ContentId,
+        fence: u64,
+    ) -> CoreResult<&ImplementationAttempt> {
+        let attempt = self.get(identity).ok_or_else(|| {
+            refusal(
+                "implementation_attempt_missing",
+                "attempt.identity",
+                "attempt identity is not retained",
+            )
+        })?;
+        if attempt.fence != fence {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt fence is stale",
+            ));
+        }
+        Ok(attempt)
     }
 
     fn authorized(

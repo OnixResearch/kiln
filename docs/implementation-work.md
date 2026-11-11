@@ -83,6 +83,20 @@ This is the Kiln-owned state machine only. It does not execute a Lattice
 workflow, cancel a run, create a workspace, verify a candidate, or publish. The
 Lattice implementation route and worker contract remain external work.
 
+## Verified-PR publication
+
+`PublicationPlan` prepares delivery only for a terminal `verified` attempt. It
+binds the exact candidate handoff and verification receipt, work/version,
+attempt/fence, repository, frozen base, candidate/tree, a deterministic
+`kiln/impl-<work>-<attempt>` branch, and bounded PR title/body. The work must use
+the verified-pull-request terminal policy. Preparation performs no remote
+effect.
+
+`PublicationRecord` then records observed branch and pull-request identities in
+order. The branch head and PR head must remain the exact verified candidate; a
+different or out-of-order observation is refused. Remote publication itself is a
+separate provider effect and is not implemented here.
+
 ## Candidate verification
 
 `CandidateVerification` admits a retained canonical `CiFact` for the exact

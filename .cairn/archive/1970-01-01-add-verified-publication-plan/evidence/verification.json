@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.verified-publication-plan.verification.v1",
+  "date": "2026-11-11",
+  "issue": "https://github.com/OnixResearch/kiln/issues/47",
+  "commands": [
+    {
+      "command": "cargo test -p kiln-core --offline implementation",
+      "result": "29 passed; verified plan preparation, deterministic branch, arbitrary branch and unverified attempt refusal"
+    },
+    {
+      "command": "cargo clippy -p kiln-core --all-targets --offline -- -D warnings",
+      "result": "pass"
+    }
+  ],
+  "artifacts": {
+    "publication": "crates/kiln-core/src/implementation/publication.rs",
+    "attempt": "crates/kiln-core/src/implementation/attempt.rs",
+    "docs": "docs/implementation-work.md"
+  },
+  "non_claims": [
+    "no branch, commit or pull request is created or pushed",
+    "no remote publication or landing occurs",
+    "recorded remote identities are local observations until an independent provider read"
+  ]
+}

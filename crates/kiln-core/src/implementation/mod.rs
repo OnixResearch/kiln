@@ -14,12 +14,14 @@ pub mod attempt;
 pub mod candidate;
 pub mod dispatch;
 pub mod metrics;
+pub mod publication;
 pub mod verification;
 
 pub use attempt::*;
 pub use candidate::*;
 pub use dispatch::*;
 pub use metrics::*;
+pub use publication::*;
 pub use verification::*;
 
 use alloc::collections::{BTreeMap, BTreeSet};
