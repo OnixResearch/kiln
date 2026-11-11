@@ -106,9 +106,10 @@ exact integrated issue and records the observed closed state; it does not edit
 other issue fields or run Cairn lifecycle operations. The plan is re-admitted
 before the remote call, so a source cannot be re-closed after reconciliation
 under the same plan.
-Claims and reservations are an
-operator/worker handoff only: no command performs transport, verification or
-publication, and a claimed attempt must still be executed by an admitted Lattice
+Claim and reservation commands are an operator/worker handoff only. `verify`,
+`prepare-publication`, `publish`, `land` and `close-source` perform only their
+named evidence admission or external effects; none dispatches an implementation
+worker, and a claimed attempt must still be executed by an admitted Lattice
 route.
 
 ## Ownership
@@ -119,8 +120,8 @@ route.
 | Versioned implementation-ready Cairn snapshots | Cairn `#1` | implemented; consumed by `kiln-cairn-intake` |
 | One owned attempt workflow, worker route, cancellation | Lattice `#6–#8` | `#8` closed; `#6/#7` open |
 | Relocatable VM sessions | Lattice `#9–#11`, Aspen | open |
-| Candidate acceptance using the authoritative Cairn checker | Kiln `#46`, Cairn | blocked by candidate producer |
-| Forge publication and reconciliation | Kiln `#47` | blocked by #45–#46 |
+| Candidate acceptance from retained canonical CI facts | Kiln `#46` | implemented; authoritative Cairn completion remains external |
+| Forge publication, guarded landing, integration and source status | Kiln `#47/#48` | implemented locally; live qualification and policy deployment remain external |
 | Deployment packaging | onix-core | repository absent locally |
 | Live migration qualification | Kiln `#55`, physical hosts | unavailable |
 
