@@ -14,19 +14,47 @@ const COMMAND_DEMO: &str = "demo";
 const COMMAND_EVIDENCE: &str = "evidence";
 const COMMAND_HOST_QUALIFY: &str = "host-qualify";
 const COMMAND_DASHBOARD: &str = "dashboard";
+const COMMAND_HELP: &str = "help";
+const FLAG_HELP: &str = "--help";
+const FLAG_HELP_SHORT: &str = "-h";
+/// The usage text of the operator CLI. It names every accepted command.
+const USAGE: &str = "\
+usage: kiln <command> [arguments]
+
+commands:
+  demo
+      commit one StartRun command to an in-memory journal and print the state;
+      contacts no provider
+  evidence INPUT OUTPUT
+      write the JSON object INPUT to OUTPUT with its BLAKE3 receipt_hash and
+      print the hash
+  host-qualify COHORT RECEIPT ARTIFACT_ROOT
+      check a host qualification receipt and its retained artifacts against
+      the expected cohort
+  dashboard --journal PATH --profile PATH
+      render the read-only dashboard; `kiln dashboard --help` lists every option
+  help, --help, -h
+      print this text";
 const QUALIFICATION_USAGE: &str = "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT";
 const EXIT_FAILURE: i32 = 1;
 const EXIT_USAGE: i32 = 2;
 
+// r[impl kiln.cli.help]
+// r[impl kiln.cli.help.scenario.help]
+// r[impl kiln.cli.help.scenario.refused]
 fn main() {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
-        fail(
-            "usage: kiln demo | kiln evidence INPUT OUTPUT | kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT | kiln dashboard --journal PATH --profile PATH",
-            EXIT_USAGE,
-        );
+        fail(USAGE, EXIT_USAGE);
     };
     let result = match command.as_str() {
+        COMMAND_HELP | FLAG_HELP | FLAG_HELP_SHORT => {
+            if arguments.next().is_some() {
+                fail(USAGE, EXIT_USAGE);
+            }
+            println!("{USAGE}");
+            return;
+        }
         COMMAND_DEMO => demo(),
         COMMAND_EVIDENCE => {
             let Some(input) = arguments.next() else {

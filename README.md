@@ -102,6 +102,9 @@ state. It contacts no provider:
 {"revision":1,"runs":{"demo-run":{"active_attempt":"demo-attempt","outcome":"Pending"}},"attempts":{"demo-attempt":{"run_id":"demo-run","provider_profile":"standalone-build-v1","outcome":"Pending","external_reference":null,"products":[],"metrics":[]}},"holds":[],"seen_commands":["demo-start"]}
 ```
 
+`cargo run --locked -p onix-kiln-cli -- --help` lists the operator command's
+other commands.
+
 Render the local dashboard over synthetic sample data, then open the printed
 `dashboard.html` in a browser:
 

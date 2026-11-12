@@ -17,9 +17,9 @@ nix develop path:$PWD
 Run each step once beforehand so the audience does not wait for the compiler.
 A cold build compiles the workspace from source.
 
-Do not run `kiln --help` or `kiln --version` on screen. The `kiln` binary
-prints `unsupported command` for both; running `kiln` with no argument prints
-its usage line.
+`kiln --help` prints the command list. Do not run `kiln --version` on screen:
+no shipped program has a version flag, and `kiln` answers
+`unsupported command: --version`.
 
 ## 1. One command, one state (2 minutes)
 

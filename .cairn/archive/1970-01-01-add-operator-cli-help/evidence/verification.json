@@ -1,0 +1,132 @@
+{
+  "schema": "kiln.operator-cli-help.verification.v1",
+  "scope": "Help and refusal surface of the kiln operator CLI, observed at the process boundary. Not a claim about any command's behavior beyond routing, stream and exit status",
+  "owner": "Kiln maintainers",
+  "observed_on": "2026-11-12",
+  "source": {
+    "published_base": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+    "state": "published base plus the unpublished launch changes, including the onix- package rename"
+  },
+  "environment": {
+    "shell": "nix develop path:$PWD",
+    "rustc": "1.88.0",
+    "platform": "x86_64-linux, one host"
+  },
+  "defect": {
+    "statement": "kiln --help printed 'unsupported command: --help' on standard error and exited 1; no accepted requirement covered the operator CLI's help or refusal surface",
+    "found_by": "first-run review during launch preparation"
+  },
+  "commands": [
+    {
+      "command": "cargo test --locked -p onix-kiln-cli",
+      "exit_code": 0,
+      "result": "unit tests: 2 passed; tests/cli.rs: 2 passed"
+    },
+    {
+      "command": "cargo clippy --locked -p onix-kiln-cli --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0
+    }
+  ],
+  "negative_control": {
+    "method": "tests/cli.rs run against crates/kiln-cli/src/main.rs from the parent revision, then the changed file restored byte-identically",
+    "command": "cargo test --locked -p onix-kiln-cli --test cli",
+    "exit_code": 101,
+    "result": "0 passed; 2 failed: the help test saw exit status 1 where 0 is required; the refusal test saw exit status 1 where 2 is required for a help request with a trailing argument"
+  },
+  "binary_observations": [
+    { "arguments": ["--help"], "exit_code": 0, "stdout_bytes": 589, "stderr_bytes": 0, "stdout": "usage text naming demo, evidence, host-qualify, dashboard and help" },
+    { "arguments": ["-h"], "exit_code": 0, "stdout_bytes": 589, "stderr_bytes": 0 },
+    { "arguments": ["help"], "exit_code": 0, "stdout_bytes": 589, "stderr_bytes": 0 },
+    { "arguments": [], "exit_code": 2, "stdout_bytes": 0, "stderr_bytes": 590, "stderr": "the usage text" },
+    { "arguments": ["--helpx"], "exit_code": 1, "stdout_bytes": 0, "stderr_bytes": 29, "stderr": "unsupported command: --helpx" },
+    { "arguments": ["--help", "demo"], "exit_code": 2, "stdout_bytes": 0, "stderr_bytes": 590, "stderr": "the usage text" },
+    { "arguments": ["--version"], "exit_code": 1, "stdout_bytes": 0, "stderr_bytes": 31, "stderr": "unsupported command: --version" },
+    { "arguments": ["dashboard", "--help"], "exit_code": 0, "stdout_bytes": 1680, "stderr_bytes": 0, "stdout": "the dashboard shell's usage" },
+    { "arguments": ["demo"], "exit_code": 0, "stdout_bytes": 294, "stderr_bytes": 0, "stdout": "the one-line demo state" }
+  ],
+  "artifacts": {
+    "implementation": {
+      "path": "crates/kiln-cli/src/main.rs",
+      "blake3": "5762d262c9f0d2b5151160179abf53792c79a7cd04db2859880b58809ef78ee9"
+    },
+    "test": {
+      "path": "crates/kiln-cli/tests/cli.rs",
+      "blake3": "0207e2122bba044ab4ebb9adf6f3ec7ffd1044ef104bf2f88af39b3e73717fdb"
+    },
+    "accepted_spec": {
+      "path": ".cairn/specs/operator-cli/spec.md",
+      "blake3": "f4a6077f3aff80b24bb3b7f867f8769bd3ffb81882e8e554dc07f702dc666428"
+    }
+  },
+  "traceability": {
+    "command": [
+      "cairn",
+      "traceability",
+      "coverage",
+      "--root",
+      ".",
+      "--policy",
+      "$PWD/cairn-policy/generated/cairn-policy.json",
+      "--json"
+    ],
+    "before_synchronization": {
+      "exit_code": 1,
+      "verdict": "fail",
+      "requirements": 1742,
+      "referenced": 1742,
+      "missing": 0,
+      "dangling": [
+        "kiln.cli.help",
+        "kiln.cli.help.scenario.help",
+        "kiln.cli.help.scenario.refused"
+      ]
+    },
+    "after_synchronization": {
+      "exit_code": 0,
+      "verdict": "pass",
+      "requirements": 1745,
+      "referenced": 1745,
+      "missing": 0,
+      "dangling": 0,
+      "receipt_hash": "132f185c247dc8b392fc35edc47c9c1960a21254afe26ddf10ef9be1467f306d"
+    }
+  },
+  "lifecycle": {
+    "profile": "spec-driven",
+    "planning_gates": {
+      "before_implementation": "proposal, design and tasks gates passed",
+      "final_receipts": {
+        "proposal": "2f37d168c36f278555350380769d8936f34a66accd14a716d1614e106d12a1b9",
+        "design": "e7e79f8c4e810f73776276206e4ccabc96767b25043716f23afb14e1ddaea6eb",
+        "tasks": "fbe5871c77af7424624b49f571e9fb0615c0a03c433912d81171b56b581e3e5c"
+      }
+    },
+    "synchronization": {
+      "command": "cairn sync add-operator-cli-help --root . --policy $PWD/cairn-policy/generated/cairn-policy.json --execute",
+      "preview_first": true,
+      "action": "merge delta spec into main specs: specs/operator-cli/spec.md",
+      "receipt_hash": "283a763d565b634b13204378baf43eee376ab51747c504c7771c13b577cd62bd"
+    },
+    "archive": {
+      "command": "cairn archive add-operator-cli-help --root . --policy $PWD/cairn-policy/generated/cairn-policy.json --execute",
+      "preview_first": true,
+      "action": "move active change to archive: add-operator-cli-help",
+      "receipt_hash": "d4b8d95d065d6c5e6c37cd968e001b5b574dd012de01aa775b18009b617e3b00"
+    },
+    "review_is_independent": false
+  },
+  "not_exercised": [
+    "The property-based terminal rail (flake check using bombadil): it drives the demo and evidence surfaces and was not run; it does not drive help",
+    "The packaged output of nix build path:$PWD#kiln",
+    "aarch64-linux"
+  ],
+  "non_claims": [
+    "Help performs no file, network, VCS or provider access; this is by construction and is not separately measured",
+    "The usage text is prose; it does not validate the arguments each command accepts",
+    "No shipped program provides --version"
+  ]
+}

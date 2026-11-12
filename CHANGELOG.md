@@ -113,6 +113,9 @@ entry describes the source tree prepared for the first tagged release.
   `kiln-gitea-job`, `kiln-adapter-iroh`, `kiln-radicle-ci`, `kiln-implementer`,
   `kiln-lattice-dispatch`, `kiln-cairn-intake`, `kiln-patchgate-review`,
   `kiln-nix-cache`, `kiln-dashboard-refresh` and `kiln-dashboard-publish`.
+- `kiln --help`, `kiln -h` and `kiln help` print the operator command's usage
+  and exit 0; a missing or unsupported command is refused on standard error.
+  (workspace tests)
 - Enter the development shell with `nix develop path:$PWD`.
 - No crates.io publication, binary release, container image or
   package-manager entry is prepared; 36 of the 46 workspace crates set
