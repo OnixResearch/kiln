@@ -1,0 +1,278 @@
+{
+  "schema": "kiln.go-to-market.preparation-evidence.v1",
+  "scope": "Preparation of the repository's public surface and launch kit. Not a release, tag, publication, announcement, repository-setting change, hosted-service activation or commercial approval",
+  "owner": "Kiln maintainers; the operator retains tag, publication, repository-setting, outreach and commercial authority",
+  "observed_on": "2026-11-12",
+  "environment": "one x86_64-linux host; nix develop path:$PWD; rustc 1.88.0; Nickel 1.17.0; jj 0.47.1",
+  "source": {
+    "parent_revision": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+    "state": "parent revision plus the unpublished preparation changes"
+  },
+  "document_checks": {
+    "method": "Throwaway checker: every relative link target must exist inside the repository and every heading anchor must match a GitHub-style slug in the target document",
+    "relative_links": {
+      "files": 59,
+      "relative_links": 514,
+      "broken": 0,
+      "broken_list": []
+    },
+    "previous_readme_link_targets": {
+      "count": 77,
+      "unreachable_from_readme_or_status": [
+        "../choregraph"
+      ],
+      "note": "../choregraph pointed outside the repository and is replaced by the public HTTPS projection of that repository"
+    },
+    "verbatim_relocation": {
+      "relocated_lines": 205,
+      "found_in_order_in_docs_status_md": true,
+      "transformation": "relative link prefixes only",
+      "not_relocated": "one navigation paragraph listing documents to read; docs/README.md supersedes it"
+    },
+    "broken_links_repaired_in_existing_documents": [
+      "README.md: Choregraph reference escaped the repository",
+      "docs/hosted-ci.md: anchor #explicit-web-approval-to-hosted-execution did not exist",
+      "docs/operator.md: evidence path under .cairn/changes/add-web-hosted-approval-bridge moved to the archive",
+      "LICENSES.md: two license-text links had no target; repaired by the package retain-heartwood-license-texts"
+    ]
+  },
+  "exercised_commands": [
+    {
+      "command": "cargo run --locked -p kiln-cli -- demo",
+      "exit_code": 0,
+      "stdout": "{\"revision\":1,\"runs\":{\"demo-run\":{\"active_attempt\":\"demo-attempt\",\"outcome\":\"Pending\"}},\"attempts\":{\"demo-attempt\":{\"run_id\":\"demo-run\",\"provider_profile\":\"standalone-build-v1\",\"outcome\":\"Pending\",\"external_reference\":null,\"products\":[],\"metrics\":[]}},\"holds\":[],\"seen_commands\":[\"demo-start\"]}"
+    },
+    {
+      "command": "cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview",
+      "exit_code": 0,
+      "stdout": [
+        "Synthetic local preview; no provider was contacted.",
+        "Journal: /tmp/kiln-dashboard-preview/journal.json",
+        "Open: /tmp/kiln-dashboard-preview/dashboard.html"
+      ],
+      "rendered": "headless Chromium, title 'Kiln dashboard dashboard-v1': 6 runs, 7 attempts; run outcomes Success 2, Pending 1, DomainFailure 1, Cancelled 1, Unknown 1"
+    },
+    {
+      "command": "cargo test --locked --workspace",
+      "exit_code": 0,
+      "result_lines": 160,
+      "passed": 1608,
+      "failed": 0,
+      "ignored": 5,
+      "wall_time": "3m36s with a warm build cache",
+      "side_effect": "left untracked vendor/artifact/Cargo.lock and vendor/valence/Cargo.lock; both removed, not part of this change"
+    },
+    {
+      "command": "cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e",
+      "exit_code": 0,
+      "passed": 17,
+      "failed": 0,
+      "bound": "isolated source/status fixtures; not a live GitHub run"
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "at_parent_revision": {
+        "exit_code": 1,
+        "reason": "format check rejected config/github-ci.ncl and config/microvm-guest-surface.ncl before any fixture ran"
+      },
+      "after_nickel_format_of_those_two_files": {
+        "exit_code": 0,
+        "stdout": "Nickel fixture gate passed (78 positive, 567 negative)"
+      }
+    },
+    {
+      "command": "cairn validate --root . --policy \"$PWD/cairn-policy/generated/cairn-policy.json\"",
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "exit_code": 0,
+      "verdict": "pass",
+      "valid": true,
+      "referenced": 1742,
+      "missing": 0,
+      "dangling": 0,
+      "receipt_hash": "be3b42308047e10d2f02eacea234512f7d1da806aad1ba1621bcd724b3b44b30"
+    },
+    {
+      "command": [
+        "cairn",
+        "release-readiness",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "pass",
+      "onix_release_ready": false,
+      "receipt_hash": "b278de0e803f92d55e1ec774570672cd20d365865a88d42ad878beb6256e2efa"
+    }
+  ],
+  "observations": {
+    "acquisition": {
+      "method": "anonymous git ls-remote with the credential helper disabled",
+      "garden_https_projection_main": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "github_projection_main": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+    },
+    "radicle_seed_api": {
+      "host": "seed.radicle.garden",
+      "name": "Kiln",
+      "description": "Provider-neutral CI control plane",
+      "default_branch": "main",
+      "head": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "visibility": "public",
+      "delegates": 1,
+      "threshold": 1,
+      "issues": 0,
+      "patches": 0
+    },
+    "github_projection": {
+      "repository": "OnixResearch/kiln",
+      "visibility": "public",
+      "description": "",
+      "topics": [],
+      "homepage": "",
+      "releases": 0,
+      "tags": 0,
+      "open_issues": 12,
+      "open_pull_requests": 1,
+      "issues_enabled": true,
+      "discussions_enabled": false,
+      "private_vulnerability_reporting": "disabled",
+      "secret_scanning": "disabled",
+      "secret_scanning_push_protection": "disabled",
+      "dependabot_security_updates": "disabled",
+      "main_branch_protection": "none",
+      "detected_license": "AGPL-3.0",
+      "community_profile": {
+        "code_of_conduct": false,
+        "security_policy": false,
+        "contributing": "organization default",
+        "pull_request_template": "organization default"
+      }
+    },
+    "second_public_repository": {
+      "repository": "OnixResearch/kiln-public",
+      "description": "Source projection of kiln; private development history is not included.",
+      "last_pushed": "2026-10-18T00:56:44Z",
+      "archived": false
+    },
+    "organization_profile_lists_kiln": false,
+    "crates_io": {
+      "workspace_crates": 46,
+      "with_publish_false": 36,
+      "unrelated_same_name_crates": {
+        "kiln": "0.0.0, a library-only relational database",
+        "kiln-core": "0.1.1, repository github.com/nebucloud/kiln",
+        "kiln-cli": "0.1.1, repository github.com/nebucloud/kiln"
+      },
+      "not_found": [
+        "kiln-nix-store",
+        "kiln-adapter-sqlite",
+        "kiln-adapter-pijul",
+        "kiln-codec"
+      ]
+    },
+    "mutation": "none; every observation was read-only"
+  },
+  "claim_review": {
+    "method": "Parent-agent review of every document against its cited repository source, a forbidden-phrase scan, and three delegated read-only audits against a written facts contract",
+    "drafting": "Delegated model drafts for the community files, changelog, release notes, documentation index, announcement, outreach copy and design-partner guide; the parent agent wrote the README, status relocation, positioning, launch plan, checklist, demo script and kit index. Model output is not evidence",
+    "positive_cases": [
+      "A reader reaches clone, development shell, tests, demo output and dashboard preview from the README top",
+      "A reader finds the license map, the security reporting route, the contribution route and the hosted-CI status from the README",
+      "Every capability row carries an evidence word and links its procedure"
+    ],
+    "negative_cases": [
+      "No document claims production readiness, a sandbox, hostile isolation, an SLA or a support response time",
+      "No document presents hosted CI as available, priced, in beta or open for signup",
+      "No document claims permissive-only licensing, GitHub Actions compatibility, exactly-once behavior or a SLSA level",
+      "Gitea, Forgejo and Tangled are named fixture-tested wherever they appear",
+      "No historical receipt is presented as validation of the current revision",
+      "No invented domain, email, handle, customer, price or benchmark appears"
+    ],
+    "audit_findings": [
+      {
+        "finding": "Changelog bullet on typed provider failures is absent from the status ledger",
+        "disposition": "retained; docs/architecture.md states it"
+      },
+      {
+        "finding": "Launch-feedback issue prompt carries no license and non-claim line",
+        "disposition": "unchanged; it is an issue prompt, not promotional copy"
+      },
+      {
+        "finding": "Positioning said every differentiation cell restates a README reference; two rows describe a category and the Hydra cell added a word",
+        "disposition": "corrected"
+      },
+      {
+        "finding": "Checklist cited retained outputs before this evidence existed",
+        "disposition": "resolved by this evidence"
+      },
+      {
+        "finding": "Demo script quoted the fixture-rail sentence inexactly",
+        "disposition": "corrected to the exact sentence"
+      },
+      {
+        "finding": "Design-partner guide and outreach disagreed on conversation length",
+        "disposition": "unified at 30 minutes"
+      },
+      {
+        "finding": "Parent review: three documents said every crate sets publish = false; 36 of 46 do",
+        "disposition": "corrected"
+      },
+      {
+        "finding": "Parent review: the checklist counted 13 open GitHub issues; 12 issues and one pull request are open",
+        "disposition": "corrected"
+      }
+    ],
+    "review_is_independent": false
+  },
+  "findings_recorded_not_changed": [
+    "kiln --help prints 'unsupported command: --help' and exits 1; kiln has no --version",
+    "cargo test --locked --workspace leaves two untracked lock files under vendor/",
+    "The development shell does not provide cairn",
+    "OnixResearch/kiln-public is a second, stale public entry point",
+    "GitHub's license detector displays AGPL-3.0 for a mixed-license tree",
+    "Unrelated crates named kiln, kiln-core and kiln-cli exist on crates.io; name clearance is an operator gate"
+  ],
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "profile": "no-spec-delta",
+    "all_exercised_checks_passed": true,
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "not_exercised": [
+    "nix build path:$PWD#kiln and nix run of the flake: each attempt stalled before building while another long-running Nix operation on the host held store locks; cancelled without a result",
+    "nix build path:$PWD#checks.x86_64-linux.octet",
+    "nix flake check (45 checks)",
+    "Credential-isolated acquisition and build from the public route",
+    "aarch64-linux",
+    "Any live provider, webhook, status write, hosted composition or payment path",
+    "Independent, legal, security or release review"
+  ],
+  "non_claims": [
+    "Recorded gate results describe the preparation tree on one host; they are not release qualification",
+    "Document checks establish link integrity and source correspondence, not product correctness",
+    "Observed remote state can change after the recorded date",
+    "Nothing here authorizes a tag, publication, repository setting, announcement, offer or charge"
+  ]
+}

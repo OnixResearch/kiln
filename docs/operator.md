@@ -3832,7 +3832,7 @@ Actual authenticated hosted `execution.run` succeeded on exact source
 was refused without reserving its negative attempt. This was operator-authorized
 **caller-supplied untrusted provenance**, not a production Web exact-commit
 approval or a verified Web-to-hosted approval handoff. The subsequent direct
-bridge's [retained receipts](../.cairn/changes/add-web-hosted-approval-bridge/evidence/runtime-final.json)
+bridge's [retained receipts](../.cairn/archive/1970-01-01-add-web-hosted-approval-bridge/evidence/runtime-final.json)
 are now **superseded topology history**, not evidence of native Lattice routing.
 The supported [Web → Lattice → hosted route](hosted-ci.md#web-approval-through-lattice-to-hosted-execution)
 uses ordinary `kiln-web-service`, genuine saved native workflows and a

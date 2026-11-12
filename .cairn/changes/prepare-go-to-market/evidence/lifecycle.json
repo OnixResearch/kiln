@@ -1,0 +1,97 @@
+{
+  "scope": "Launch-surface documentation, community files, launch kit, three link repairs and whitespace-only Nickel formatting; no runtime, deployment, remote, publication or financial effect",
+  "review": "Agentic self-review, not independent approval",
+  "results": [
+    {
+      "label": "classification",
+      "command": [
+        "cairn",
+        "review",
+        "validate",
+        ".cairn/changes/prepare-go-to-market/reviews/no-spec-classification.json",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "verdict": "PASS",
+      "valid": true
+    },
+    {
+      "label": "proposal",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "prepare-go-to-market",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "69f80b694ff111d061b94a7babd10c839543383760df7d450cccd634e78f1fd3",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "aae40ca9969ff325fe2a39ca3cc099dc276829dff6882dcc7ae8418ec1ecfe5e"
+    },
+    {
+      "label": "design",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "prepare-go-to-market",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "79c6b0566c8b2c6b25a26ae329a888999a78efa06a367e71cd1e19a18e03cfed",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "9c983793da22cdc90d52bb242445e968dd49a993ca768f0c5308ec9bf00417a7"
+    },
+    {
+      "label": "tasks",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "prepare-go-to-market",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "ef2a8c8db2f96da6a922cc95e3156fe2e1bd899a7fb2f8f610b6398631d46279",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b5d480d79b55b35f18e8c40adce3b8c7d94aef12b702aeb26c7d9f40868717fe"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": ""
+    }
+  ]
+}

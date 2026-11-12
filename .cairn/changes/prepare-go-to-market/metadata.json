@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Documentation, community files, launch copy, three repaired documentation links and whitespace-only canonical formatting of two Nickel configuration files. No runtime code, configuration meaning, accepted specification, license, lock file, deployment, remote setting, tag, release or payment state changes. Hosted-CI, isolation, metering and release gates keep their existing owners, specifications and evidence.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

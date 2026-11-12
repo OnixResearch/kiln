@@ -858,7 +858,7 @@ outcome `disabled_untrusted`, so no restore or publication receipt exists.
 There is no per-run override, and debug holds are never offered. Hosted GitHub
 connections admit only `untrusted_pull_requests = "deny"`. Generic
 `execution.run` checks caller-supplied provenance, not a Web approval. The
-[explicit Web bridge](#explicit-web-approval-to-hosted-execution) separately
+[explicit Web bridge](#web-approval-through-lattice-to-hosted-execution) separately
 verifies the configured approval issuer and exact stored source/gate binding.
 
 **Debug hold.** With `debug_hold.enabled`, a job is held only when all of the

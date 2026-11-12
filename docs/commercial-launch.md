@@ -56,7 +56,7 @@ The journey below combines implemented operator-assisted mechanisms with still-o
 
 The separate single-tenant web service's `ProjectProfile.repository_path` and enrollment API still refer to an operator-allowlisted **local** Git checkout. They are not the hosted account/remote-connection APIs above. Use the hosted composition for that bounded onboarding path; registering a local mirror, exposing its files or adding a source-hosting UI does not complete commercial qualification.
 
-Before building a broad commercial platform, the operator should interview three candidate design partners. Three is a proposed small-cohort discovery gate, not an existing customer count: retain each partner's real workload, expected monthly usage, acceptable price/cap, privacy requirements and written willingness to join a paid pilot. If demand or contribution margin fails, revise the offer before buying capacity or building public self-service. Keep customer identities and agreements in private business records, not this repository.
+Before building a broad commercial platform, the operator should interview three candidate design partners. Three is a proposed small-cohort discovery gate, not an existing customer count: retain each partner's real workload, expected monthly usage, acceptable price/cap, privacy requirements and written willingness to join a paid pilot. If demand or contribution margin fails, revise the offer before buying capacity or building public self-service. Keep customer identities and agreements in private business records, not this repository. The [design-partner discovery guide](gtm/design-partners.md) structures those interviews; it authorizes no offer.
 
 ## 2. What exists, and what does not
 

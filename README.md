@@ -2,285 +2,41 @@
 
 Kiln is a provider-neutral control plane for continuous integration. It owns CI meaning and delegates external effects to replaceable adapters.
 
-## Status
+**Exact-revision CI with replayable state and replaceable providers.** A pure
+core turns each command into events and requested effects. Adapters for Git,
+Jujutsu, Pijul, Radicle, GitHub, Gitea/Forgejo, Lattice and Nix perform those
+effects. Every result binds to an exact revision, unknown outcomes stay
+explicit, and recorded state can be replayed.
 
-Kiln has an initial functional core and standalone reference shell. The implementation includes these areas:
+| Item | State |
+| --- | --- |
+| Version | `0.1.0`; no tagged release yet |
+| Status | Self-hosted and under active development. No production or hostile-isolation qualification is claimed |
+| Install | From source with the Nix flake; exercised on `x86_64-linux` |
+| License | Mixed. Kiln-owned packages default to `MIT OR Apache-2.0`; see the [license map](LICENSES.md) |
+| Source | Canonical on Radicle at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`, with read-only HTTPS and GitHub projections |
 
-- deterministic CI commands, events, effects, and replay;
-- versioned provider capability admission;
-- bounded read-only source snapshots from local Git and Pijul repositories,
-  including a pinned native Pijul source-to-CI E2E rail;
-- versioned Lattice workflow dispatch, lifecycle, controls, logs, and reconciliation;
-- authenticated Iroh workflow transport through a private local Unix proxy and worker-local Lattice endpoint;
-- exact Cairn gate request, process, result, and reconciliation admission;
-- bounded isolated Patchgate review evidence with exact candidate/configuration admission, one-command atomic receipt production, a run-bound worker step, and retained-report reconciliation, separate from acceptance authority; see the [operator procedure](docs/operator.md#isolated-patchgate-review);
-- exact Mantle build request, bounded process, product, log, and reconciliation admission;
-- exact stock and separately selected Onix Nix job discovery, bounded stream admission, task mapping, and GC-root handoff;
-- bounded local `xyz.radworks.job` publication for one exact commit, with deterministic run UUID replay, start/finish actions, and multi-writer extension of an existing job; see [job publication](docs/radicle-jobs.md);
-- source, gating, fairness, task-operation, hosting, remote, interchange, and COB decisions;
-- optional repository Atom feeds plus operator-managed external RSS/Atom subscriptions with a dedicated read-only token, DNS-pinned bounded HTTPS, and a console Feeds page; see [repository feeds](docs/repository-feeds.md);
-- packed Preserves and BLAKE3 canonical identity;
-- bounded, deterministic, read-only observation projection over admitted state with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities, including review-friction and suggestion-anchor views over self-declared, unverified change authorship;
-- a bounded HTTPS observation shell with canonical JSON views, a bounded SSE event leg, Ed25519 or UCAN holder-invocation authentication, TLS, and no control surface;
-- a bounded iroh observation shell for allowlisted peers with BLAKE3-verified payloads and maintained HTTP/iroh view equivalence;
-- a local operator dashboard over a canonical Kiln journal or SQLite event store with recomputed event identities, canonical replay, bounded paged views, a SaaS-style offline workspace with overview/projects/runs/activity/evidence/settings, metadata search, per-history run filters and inspection, URL-restored navigation and appearance, a pinned Rats/Ratzilla repository/history index with accessible HTML navigation, read-only GitHub observation export, separately configured atomic HTML delivery, a source-reloading developer preview, and property-based terminal/browser rails without provider effects or hosted accounts;
-- an independently packaged single-tenant HTTPS web workspace with run search and stable paging, URL-restored navigation, overview/timing, configured worker-target inventory and slot availability, dependency-graph inspection, continuous bounded worker logs and full-stream download, exact/latest/subgraph reruns, structured test/coverage/comparison and evidence views, durable queue/capacity/retention observations, signed branch- or tag-bound triggers, branch-bound schedules, configurable branch/tag/type/changed-path filters and calendar expressions in explicit time zones with hashed spreading, HTTPS notifications, operator-approved untrusted pull-request runs held in a durable blocked state and confined to declared untrusted-capable runners without secrets, workload token or cache, attributable viewer/operator access, and supervised deployment; see the [operator procedure](docs/operator.md#single-tenant-live-web-service) for exact-profile, authority and evidence boundaries;
-- a [Web → native Lattice → hosted execution route](docs/hosted-ci.md#web-approval-through-lattice-to-hosted-execution), carrying persisted exact-source approvals through genuine saved workflows and a fixed hosted task, with independent Web-authority/Git verification and once-only backend recovery;
-- an optional [internal developer loop](docs/operator.md#internal-developer-loop) with source-bound per-step timing and resource observations, expiring authenticated worker capacity, fail-closed reviewed namespace isolation, verified shared cache transfers, and an HTTPS submit/watch/logs/cancel/retry CLI with explicitly selected content-addressed dirty inputs;
-- an explicit offline [append-only project-registry extension](docs/operator.md#extend-an-existing-project-registry) that preserves existing history and authority, plus a typed catalog of reviewed OnixResearch committed-ref CI commands;
-- optional [monorepo project scopes](docs/operator.md#monorepo-projects) for several projects on one repository, with a deterministic affected-project decision over exact tree diffs, declared dependencies and Cargo/Nix path graphs, conservative fallbacks, affected-only push/pull-request dispatch from each project root, and scope-bound run identities and per-project required CI in change review;
-- an optional separately admitted [read-only COB browser](docs/operator.md#optional-read-only-cob-browser) in the live workspace, with explicit local Git stores, six Cairn decision types plus three native Radicle observation types, typed list metadata, bounded inventory and exact raw-history inspection, without signature verification, lifecycle reduction or Radicle mutation;
-- an optional [signed COB work workspace](docs/operator.md#optional-signed-cob-workspace) with issues, planning, discussion, triage, principal-owned attention, durable private/shared views with Kanban boards that move only canonical issue status, monorepo-aware exact CI-project and repository filters, CI-project grouping and lanes, keyboard search/preview/bulk interaction and exact source/CI evidence joins; application collaboration is separately admitted and grants no CI operator or release authority;
-- an optional [interactive change-review workspace](docs/operator.md#optional-interactive-change-review) with stable branch, Jujutsu change-ID and stack contribution intake, patch sets, syntax-highlighted exact diffs with rebase-aware interdiff and hunk-level viewed markers, a syntax-aware structural mode, safe Markdown, whitespace comparisons, display-only noise globs for generated, vendored and lock files, keyboard navigation and actions with a help overlay, private atomic publication, immutable anchored suggestions, path/team ownership, revision-bound approvals, non-binding advisory approvals that never count, personal attention and bounded external HTTPS delivery; exact-candidate required-CI merge automation, including a separate speculative merge queue, uses durable provider journals and target CAS, independently of retained Patchgate receipts and deployment-level branch protection;
+[Quick start](#quick-start) · [What runs today](#what-runs-today) ·
+[Documentation](docs/README.md) · [Detailed status](docs/status.md) ·
+[Claim boundary](#claim-boundary)
 
-- optional review ownership evidence with project-CI binding, ordered change classes and explicit evidence-only approval, interface-scoped dependent CI and owner acknowledgement with policy-declared dependents, advisory or binding agent vote policy, attested agent submissions with declared harness/model metadata, agent identity in sessions and audit records, and read-only agent-attestation, declared-harness and declared-model review search;
-- an exact Aspen/Molten runtime profile, atomic event-store mapping, bounded content and callback contracts, and fail-closed ingress;
-- a standalone `kiln-aspen-host` composition shell that runs the real Aspen native service and concrete Lattice effect adapter;
-- exact-cohort host qualification receipt admission, retained-artifact identity checks, and stronger-claim rejection;
-- a standalone `kiln-radicle-nix-provider` shell for bounded checks and durable reports under Lattice;
-- an exact local Nix derivation build provider with discovery-task composition, pre-dispatch derivation admission, typed constraints, NAR/reference and input-closure facts, durable state, rooted outputs, bounded logs, reconciliation, and a read-only cache projection;
-- an isolated signed-operator OnixOS pilot joining the maintained Aspen/Lattice runtime to source-bound discovery, rooted application builds, canonical journal replay and UCAN-authenticated observation;
-- Radicle broker compatibility, exact signed-reference source acquisition, bounded CI status publication, and native multi-writer patch reviews through an isolated pinned upstream helper;
-- a fixed-profile Radicle source-event composition with verified materialization, real Nix discovery/build, canonical recovery and exact-revision status reconciliation, including exact branch or canonical tag sources and tag-triggered CI; plus separately selected revision-bound patch approval/journals and authenticated hosted execution without privileged untrusted grants;
-- authenticated GitHub push/PR intake with bounded single-pass or interval polling recovery, exact HTTPS source jobs through reviewed Lattice workflows, durable lifecycle recovery, and bounded commit-status publication;
-- a bounded GitHub/Cairn implementation-work ledger with claims, fences, dispatch reservations/plans, candidate handoff, canonical CI verification, metrics, verified branch/PR publication, read-only landing evidence with approvals and exact base state, guarded merge-commit landing with read-back recovery, integration receipts, and idempotent integrated-source closure; see the [implementation runbook](docs/implementation-runbook.md);
-- authenticated Gitea/Forgejo push/PR intake, exact HTTPS source jobs, durable replay, and bounded commit-status publication through the separate `kiln-adapter-gitea` shell;
-- a [Tangled spindle-compatible service](docs/tangled-integration.md) with service-auth-verified knot pushes, exact-commit acquisition, a reviewed `.tangled/workflows` subset, untrusted pull request approval and signed status projection; live knot interoperability is not yet established;
-- an optional [Iroh-connected hosted CI composition](docs/hosted-ci.md) with scoped accounts, upstream repository connections, financial admission, reviewed pipelines, explicit execution/fleet backends (including a [per-job Firecracker microVM backend](docs/hosted-ci.md#6-explicit-isolation-resource-limits-and-execution-recovery) that moves jobs off the host kernel, an opt-in bounded debug hold for failed jobs, and operator-declared untrusted-capable runners), workload identity and local recovery; this is not production or hostile-isolation qualification;
-- typed Nickel configuration and Nix checks.
+## Why Kiln
 
-Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. The historical operator-authorized publication receipt covers commit `36984e367eafd44c22d2b4f4f47121deb51eece3`; it does not validate a later branch tip or changed local source. The later source-only cutover to `f748acd0cc239f48bf3565ccb89d46ce88cbee2f` and its candidate-bound checks, including the optional runtime attributes that were not exercised, are recorded in [`.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/`](.cairn/archive/1970-01-01-prepare-public-release/evidence/public-cutover-2026-10-18/publication.json). See `docs/hosting-and-recovery.md` for candidate and acquisition boundaries.
+- **CI meaning outlives providers.** Projects, runs, attempts, gates and
+  status belong to Kiln. Source hosts, forges, executors and build systems sit
+  behind versioned ports.
+- **Results name their exact source.** Every gate result binds to one exact
+  candidate identity. A moved target or failed dependency needs a new
+  candidate and evaluation.
+- **Unknown is not failure.** A transport failure after a provider accepted
+  work produces `Unknown`. Reconciliation or operator policy resolves it.
+- **History is decisions, not only logs.** Shells persist canonical events
+  with BLAKE3 identities. Replay folds them back into state without returning
+  provider effects.
+- **Claims stay bounded.** Each surface states what a passing check does not
+  prove.
 
-The subsequent operator-authorized main cutover to
-`6c6e4f220fe0234ce607085fa622b580fd1cd016` has its own
-[source/acquisition receipt](.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/main-cutover/receipt.json).
-The pilot's frozen-cohort qualification is independent of later source
-publication; publishing these sources does not qualify changed executables.
-
-The operator-authorized [pilot source publication](.cairn/archive/1970-01-01-prepare-public-release/evidence/maintained-pilot-publication-2026-10-20/publication.json)
-records source `f09aa7187dff390272b9a8bcca3a9be90f71e6b9`, matching native and
-anonymous HTTPS acquisitions, unchanged governance and its exact archive.
-The publication receipt is a later evidence-only descendant, not a new runtime
-qualification.
-
-The operator-authorized [qualified-source publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/publication.json)
-fast-forwarded canonical Radicle `main` from `305f85d80b9ea05fbd91db73de8a6662a55650ee`
-to the self-CI-qualified source `c955334f54bdfe6e155e56c00573ca7ba77c4fb1` with
-no force push, history rewrite, governance change, or mirror mutation. Its
-deterministic source archive is BLAKE3
-`28fec0fa2b3a71c4c4e725d4640080a07d18d4a5929ada05d7cd9b81eff38004`
-(60,989,440 bytes, 4,439 tracked members) and its sorted path manifest is
-`8001e6b5cbc334cdb1d46611e71d824a4deee82d399937983a19743c75a45383`. Native
-Radicle and anonymous Garden HTTPS acquisitions both reproduced that revision,
-path manifest and archive, the delegate set and threshold one were unchanged,
-and the GitHub projection was observed but not mutated. The receipt is a later
-evidence-only descendant of the published source.
-
-The subsequent operator-authorized
-[evidence-revision publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/evidence-revision-publication-2026-10-21/publication.json)
-fast-forwarded canonical Radicle `main` to the evidence revision
-`acc359e769bb3a056279bf5db8ba21e95c294a4c` and advanced the read-only GitHub
-projection to the same revision, with no force push, history rewrite, governance
-change, or deployment. Its source archive is BLAKE3
-`1f72af29b005a7162c45b4fbd60ba94c19698451663e1285c91f6b2496e69a9a`
-(61,480,960 bytes, 4,457 tracked members) and its sorted path manifest is
-`e97163d1367f5c76e6541683f06266f9866f28b2261ecb9ee204e19f4a4e7a83`. Native
-Radicle, anonymous Garden HTTPS, and anonymous GitHub HTTPS all reproduced that
-revision, path manifest and archive, and a credential-isolated anonymous clone
-passed the workspace suite. The delegate set, threshold one, and public
-visibility were unchanged.
-
-The subsequent operator-authorized
-[evidence-commit publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/evidence-commit-publication-2026-10-21/publication.json)
-fast-forwarded canonical Radicle `main` and the read-only GitHub projection to
-the evidence commit `acacf2b38f04f462f588215aa7e314e3cdc4ca04`, which carries
-the `acc359e7` publication receipt, with no force push, history rewrite,
-governance change, or deployment. Its source archive is BLAKE3
-`840226ed3bcdd9671d26cb5f5e334c49be7270e6ba5fe47040d87e81d7225513`
-(61,890,560 bytes, 4,465 tracked members) and its sorted path manifest is
-`6342b8de98a20f992673272f40ca275ed0af5ab91cc339c5223811c68db4badc`. Native
-Radicle, anonymous Garden HTTPS, and anonymous GitHub HTTPS all reproduced that
-revision, path manifest and archive, the Rosa repository API reported the same
-`refs/heads/main`, and a credential-isolated anonymous clone passed the
-workspace suite with 527 tests and no failures. The delegate set, threshold
-one, and public visibility were unchanged.
-
-The further operator-authorized
-[final-evidence publication](.cairn/archive/1970-01-01-publish-qualified-source-20261021/evidence/final-evidence-publication-2026-10-21/publication.json)
-fast-forwarded both remotes to `0019ff3cbe1abbc2cca1b109b539be719629cd15`,
-which carries the `acacf2b3` receipt, with the same unchanged governance and
-deployment boundary. Its source archive is BLAKE3
-`720a251e64e75e0e3606d55574745346801f7b14b2caa13ac438dbfbdacd6eaa`
-(62,300,160 bytes, 4,473 tracked members) and its sorted path manifest is
-`dc9695653796cfb5905a437506eab9b90fe4205309abd8f237e64e83cd6b8752`. All three
-required routes reproduced that revision, path manifest and archive, and a
-credential-isolated anonymous clone passed the workspace suite with 527 tests
-and no failures. Each publication receipt is carried by the revision that
-follows it, so the receipt for the current tip lands in the next revision.
-
-## Quick start
-
-Acquire the read-only HTTPS projection without a Radicle node:
-
-```console
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 \
-  jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln
-cd kiln
-```
-
-This selects Git smart-HTTP protocol v0 for the Garden endpoint. Default negotiation returned HTTP 500 in the fresh-client check; the command above acquired the published source without credentials. These settings apply only to this clone, not global Git configuration.
-
-Select and verify the intended exact revision before building; `main` is a moving reference.
-
-```console
-nix develop path:$PWD
-cargo test --locked --workspace
-cargo run --locked -p kiln-cli -- demo
-```
-
-For dashboard development, the [offline preview workflow](docs/observation-dashboard.md#developer-preview)
-generates representative admitted sample data and supports source rebuilds with browser reload.
-
-The full local release gate list, including `cairn release-readiness`, is in
-[the operator guide](docs/operator.md#local-reference-run).
-
-The committed, revision-verified imports cover direct and transitive workspace Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal workspace builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports. Standalone runtime products retain their separately reviewed source cohorts and acquisition boundaries.
-
-The [fresh standalone contributor check](.cairn/archive/1970-01-01-prepare-public-release/evidence/verification.md#current-standalone-contributor-recheck) records the exact public revision, acquisition environment, test/demo results, and bounded source-hygiene review.
-
-Onix Nickel/WASM discovery is an explicit optional profile, not the stock default.
-Provision its separate pinned cohort and run the real discovery rail using the
-[Onix procedure](docs/nix-eval-jobs-adapter.md#explicit-optional-onix-profile). The
-[immutable fixture receipt](runtime/onix-eval-cohort/jobset.source.json) records
-the imported OnixOS source. Core and stock-only builds do not acquire the Onix
-evaluator or plugin; passing discovery does not prove a build or deployment.
-
-The [isolated maintained-cohort OnixOS pilot](docs/operator.md#isolated-maintained-cohort-onixos-pilot)
-exercises authenticated construction of the real launcher, activation script
-and generated home files, duplicate delivery, host restart/reconciliation and
-genuine evaluation/home-file build failures. Only external tools are prepared
-separately; all three consumer outputs must be absent before dispatch. The pilot
-neither executes activation nor establishes autonomous forge delivery,
-production cutover or release authority. The
-[full-closure qualification](.cairn/archive/1970-01-01-build-authenticated-onixos-home-closure/evidence/verification.json)
-retains the measured construction boundary and repeatability evidence.
-The [historical launcher-only qualification](.cairn/archive/1970-01-01-qualify-maintained-onixos-ci-pilot/evidence/verification.json)
-retains its original narrower claim and does not qualify the new construction rail.
-
-The [Radicle source-to-build composition](docs/operator.md#radicle-source-to-build-composition)
-accepts an admitted push without fabricating an operator-signed pilot request.
-Its fixed reviewed workflow builds the verified event source and retains a
-revision-bound status intent. The native proof uses the real `cibtool` producer
-against isolated signed-source and status fixtures; it is not a live remote
-Radicle delivery or production rollout.
-The [retained qualification receipts](.cairn/archive/1970-01-01-compose-radicle-source-to-build-ci/evidence/verification.json)
-bind the exercised source, tools, recovery, status and retirement observations.
-
-Read `docs/architecture.md` for crate boundaries. Read `docs/implementer-service.md` for the implementation-work service boundary and its exact prerequisites. Read `docs/observation-projection.md` for the bounded read-only observation model. Read `docs/http-observation.md` for the HTTPS view and SSE transport contract. Read `docs/iroh-observation.md` for the peer-verified iroh transport and equivalence contract. Read `docs/observation-dashboard.md` for the local operator dashboard over a canonical journal. Read `docs/nix-build-adapter.md` for the exact local Nix derivation build provider. Read `runtime/kiln-aspen-host/README.md` for the deployable Aspen host composition and its bounded claims. Read `docs/operator.md` for operator behavior. Read `docs/radicle-source-contract.md` for exact signed-reference and snapshot evidence. Read `docs/radicle-source-shell.md` for bounded local acquisition. Read `docs/radicle-workflow-shell.md` for source-bound Radicle trigger dispatch through Lattice. Read `docs/radicle-nix-provider.md` for bounded hosted Nix checks and durable reports. Read `docs/radicle-status.md` for SecretSpec-resolved, single-writer CI status publication. Read `docs/radicle-mutation.md` for declared patch review mutation. Read `docs/cairn-gate.md` for exact lifecycle-gate evaluation. Read `docs/nix-eval-jobs-adapter.md` for bounded stock Nix job discovery. Read `docs/pijul-source-adapter.md` for the Pijul compatibility cohort and claim boundary. Read `docs/semantic-merge-orchestration.md` for the opt-in four-version semantic merge check contract, its outcome lattice and non-claims. Read `docs/aspen-runtime-backend.md` for Aspen setup, ownership, recovery, status, and rollout gates.
-
-The status and patch-review shells use the separately pinned v0.2.0 shared Git COB store imported into this repository, not a sibling checkout. See `docs/radicle-status.md` for its immutable source digest and drift-refusing import procedure.
-
-For GitHub CI, use the typed builders `config/github-ci.ncl` and
-`config/github-job.ncl` with real operator-supplied repository IDs, SecretSpec
-references, executable/profile inputs, and exact reviewed workflow identities.
-The default package installs `kiln-adapter-github` and `kiln-github-job`, also
-available as Nix apps. Follow the [end-to-end operator setup](docs/operator.md#github-ci-adapter)
-for HTTPS webhook ingress, Lattice `route_exact`/`shell_environment` routing,
-job JSON byte pinning, permissions, status, and recovery. `fixtures/github/`
-contains isolated synthetic conformance inputs, not production configuration.
-Kiln maintainers own this integration's repeatability rail; operators retain
-deployment, credential, worker isolation, and repository authority. Local checks
-do not prove live deployment, remote status writes, source trust, or confinement.
-Recorded local outcomes, executable identities, and scoped producer-gate results are in
-the [scoped GitHub CI evidence](evidence/github-ci-local-runtime.ncl).
-
-For Gitea and Forgejo CI, use `config/gitea-ci.ncl` and `config/gitea-job.ncl`
-with the normalized instance API and Git bases, numeric repository id,
-SecretSpec references, and a reviewed workflow identity. The default package
-installs `kiln-adapter-gitea` and `kiln-gitea-job`, also available as Nix apps.
-Follow [the Gitea/Forgejo procedure](docs/gitea-ci.md) for webhook headers,
-status permissions, exact-source jobs, recovery, and the explicit scope
-boundary. The optional `kiln-hosted` connection composition remains
-GitHub-only in this change.
-
-For remote workflow execution over Iroh, use `kiln-adapter-iroh` with the existing
-consumer's Lattice socket setting. Follow [peer enrollment, private keys, profiles,
-startup, and recovery](docs/operator.md#iroh-remote-workflow-execution). The
-[change-local evidence](.cairn/archive/1970-01-01-add-iroh-workflow-transport/evidence/verification.json)
-records actual local execution and exact recovery after both bridges restart,
-not WAN/relay availability or deployment authority.
-
-The [combined live CI proof](.cairn/archive/1970-01-01-qualify-live-github-iroh-ci/evidence/verification.json)
-joins genuine GitHub deliveries to exact-source compile/test jobs on a separate
-Iroh worker, canonical passing/failing results, and matching Published GitHub
-statuses. It also records controller/bridge restart recovery of the original
-still-running execution and genuine redelivery suppression. Follow the
-[bounded live exercise](docs/operator.md#bounded-combined-live-ci-exercise) for
-the recorded cohort, repetition, credential retirement, and claim limits.
-
-The [live Radicle CI canary](.cairn/archive/1970-01-01-qualify-live-radicle-ci/evidence/verification.json)
-starts at a genuine native peer update, lets the installed broker's event
-subscription invoke the unchanged controller/worker, and independently reads the
-dedicated exact-revision status from observer storage. It records canonical
-`Success` and source-controlled `DomainFailure`, an in-flight execution surviving
-host kill and reconciliation without redispatch, duplicate-fetch suppression, and
-bounded nonterminal uncertainty when the provider is unavailable. Follow the
-[native Radicle peer and broker canary](docs/operator.md#native-radicle-peer-and-broker-canary)
-for the recorded cohort, repeat command, retirement, and claim limits.
-
-The [distinct-host Radicle canary](.cairn/archive/1970-01-01-qualify-distinct-host-radicle-ci/evidence/verification.json)
-moves only the publisher node and source worktree to a second owned host while
-the CI node, broker, controller, worker and observer stay local. Source delivery
-crossed a direct private-tailnet TCP connection; success, genuine failure,
-controller host-kill recovery, remote publisher restart and unavailable-provider
-uncertainty all passed. Status dissemination remained same-host; the run is not
-WAN, hostile-network or production qualification. See the
-[distinct-host procedure](docs/operator.md#distinct-host-publisher-canary).
-
-The [distinct-host status canary](.cairn/archive/1970-01-01-qualify-distinct-host-radicle-status/evidence/verification.json)
-moves the observer node and status storage to the second host while status
-creation and signing stay local. The remote observer fetched and reduced the
-exact success/failure statuses with the pinned read path, and the unavailable
-case retained no status. This is private-tailnet dissemination and readback,
-not WAN, hostile-node isolation or production qualification. See the
-[status observer procedure](docs/operator.md#distinct-host-status-observer).
-
-## Licensing
-
-Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.
-
-## Hosted compute direction
-
-The commercial plan keeps Kiln free/open source and proposes paid hosted CI
-connected to customers' existing remote repositories, plus separately enabled
-inference. It does not propose source hosting, repository migration, or a software
-license/seat paywall. This is planning, not an available paid service. See the
-[hosted compute launch plan](docs/commercial-launch.md) for remote-source onboarding,
-accounting/payment architecture, company prerequisites and launch gates.
-
-## Owned boundary
-
-Kiln owns these functions:
-
-- projects, pipeline revisions, triggers, and evaluations
-- runs, tasks, attempts, products, and metrics
-- deterministic CI state transitions
-- typed effect requests
-- stable CI identities and canonical event records
-- tenant admission, resource-accounting inputs, and fairness policy
-- provider capability admission and adapter conformance contracts
-- CI status, cancellation, retry, and notification meaning
-
-Kiln does not own these functions:
-
-- source-control history or forge authority
-- workflow execution or build realization
-- worker placement
-- artifact truth or release authority
-- runtime transport or deployment
-- success of an external effect
-
-## Architecture
+## How it works
 
 The pure core uses these transitions:
 
@@ -304,7 +60,153 @@ Imperative shells persist events. They interpret requested effects through versi
 
 Core crates must not import provider implementations. Provider identities remain explicit facts and never replace Kiln identities.
 
+Read [the architecture](docs/architecture.md) for crate boundaries and
+[provider authoring](docs/provider-authoring.md) for the port rules.
+
+## Quick start
+
+Acquire the read-only HTTPS projection without a Radicle node:
+
+```console
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 \
+  jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln
+cd kiln
+```
+
+This selects Git smart-HTTP protocol v0 for the Garden endpoint. Default negotiation returned HTTP 500 in the fresh-client check; the command above acquired the published source without credentials. These settings apply only to this clone, not global Git configuration.
+
+The read-only GitHub projection needs only Git:
+
+```console
+git clone https://github.com/OnixResearch/kiln.git
+cd kiln
+```
+
+Select and verify the intended exact revision before building; `main` is a moving reference.
+
+```console
+nix develop path:$PWD
+cargo test --locked --workspace
+cargo run --locked -p kiln-cli -- demo
+```
+
+The first build compiles the workspace from source; no binary is published.
+Kiln is not published to crates.io: the `kiln-cli` and `kiln-core` crates
+there belong to an unrelated project.
+
+`demo` commits one command to an in-memory journal and prints the resulting
+state. It contacts no provider:
+
+```json
+{"revision":1,"runs":{"demo-run":{"active_attempt":"demo-attempt","outcome":"Pending"}},"attempts":{"demo-attempt":{"run_id":"demo-run","provider_profile":"standalone-build-v1","outcome":"Pending","external_reference":null,"products":[],"metrics":[]}},"holds":[],"seen_commands":["demo-start"]}
+```
+
+Render the local dashboard over synthetic sample data, then open the printed
+`dashboard.html` in a browser:
+
+```console
+cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview
+```
+
+The sample is developer rehearsal, not evidence of real CI execution. The
+[offline preview workflow](docs/observation-dashboard.md#developer-preview)
+also supports source rebuilds with browser reload.
+
+The full local release gate list, including `cairn release-readiness`, is in
+[the operator guide](docs/operator.md#local-reference-run).
+
+The committed, revision-verified imports cover direct and transitive workspace Cargo producer dependencies and Cairn/Mantle fixture inputs. Normal workspace builds require neither sibling checkouts nor operator Git credentials. See [build source acquisition](docs/reference-pins.md#build-source-acquisition) for exact pins and drift-refusing imports. Standalone runtime products retain their separately reviewed source cohorts and acquisition boundaries.
+
+The [fresh standalone contributor check](.cairn/archive/1970-01-01-prepare-public-release/evidence/verification.md#current-standalone-contributor-recheck) records the exact public revision, acquisition environment, test/demo results, and bounded source-hygiene review.
+
+To connect real sources, start with the [GitHub CI adapter](docs/operator.md#github-ci-adapter),
+the [Gitea and Forgejo adapter](docs/gitea-ci.md), the
+[Radicle source-to-build composition](docs/operator.md#radicle-source-to-build-composition)
+or the [single-tenant web service](docs/operator.md#single-tenant-live-web-service).
+
+## What runs today
+
+Evidence words: **exercised live** means a retained receipt records a real
+remote exercise for one recorded cohort; **exercised locally** means real
+tools on one host; **fixture-tested** means tests and fixtures only. None is
+a production claim, and no receipt validates later source.
+
+| Area | What exists | Evidence | Start here |
+| --- | --- | --- | --- |
+| Deterministic core | Commands, events, requested effects and replay in a pure `no_std + alloc` crate; packed Preserves and BLAKE3 identities | Workspace tests | [Architecture](docs/architecture.md) |
+| Sources | Bounded read-only snapshots from local Git, Pijul and Jujutsu repositories; exact Radicle signed-reference acquisition | Fixture-tested, with native Pijul, Jujutsu and Radicle tool rails | [Git](docs/git-source.md), [Pijul](docs/pijul-source-adapter.md), [Radicle](docs/radicle-source-shell.md) |
+| GitHub CI | Authenticated push and pull-request intake, polling recovery, exact-source jobs through reviewed Lattice workflows, commit statuses | Exercised live for one recorded cohort | [Operator guide](docs/operator.md#github-ci-adapter) |
+| Gitea and Forgejo CI | Signed webhooks, exact-source jobs, durable replay, commit statuses | Fixture-tested | [Procedure](docs/gitea-ci.md) |
+| Radicle CI | Broker compatibility, source-to-build with Nix, exact-revision status, patch reviews, tag-triggered CI | Exercised live on one host and across two owned hosts on a private tailnet | [Operator guide](docs/operator.md#radicle-source-to-build-composition) |
+| Tangled | Spindle-compatible service | Fixture-tested; no live knot has called it | [Integration notes](docs/tangled-integration.md) |
+| Workflow execution | Lattice dispatch, lifecycle, logs and reconciliation; authenticated Iroh transport to a remote worker | Exercised live with the GitHub cohort | [Lattice](docs/lattice-workflow.md), [Iroh](docs/operator.md#iroh-remote-workflow-execution) |
+| Nix | `nix-eval-jobs` job discovery; exact local derivation builds with rooted outputs and a read-only cache projection | Exercised locally | [Discovery](docs/nix-eval-jobs-adapter.md), [Build](docs/nix-build-adapter.md) |
+| Gates and evidence | Cairn gates, Mantle builds, unsigned in-toto/SLSA statements, CDEvents, OpenTelemetry, Valence evidence | Fixture-tested | [Integration contracts](docs/integrations.md) |
+| Web workspace | Single-tenant HTTPS service: run search, logs, reruns, signed triggers, schedules, notifications, operator-approved untrusted pull-request runs | Exercised locally | [Operator guide](docs/operator.md#single-tenant-live-web-service) |
+| Change review | Patch sets, exact diffs with interdiff, Jujutsu change-ID and stack intake, revision-bound approvals, exact-candidate required-CI merge automation | Exercised locally | [Operator guide](docs/operator.md#optional-interactive-change-review) |
+| Observation | Bounded read-only views over HTTPS or iroh; local terminal and HTML dashboard | Fixture-tested and exercised locally | [Projection](docs/observation-projection.md), [Dashboard](docs/observation-dashboard.md) |
+| Hosted composition (optional) | Scoped accounts, GitHub repository connections, reviewed pipelines, spend admission, per-job microVM execution profiles | Exercised locally; not a qualified service | [Operator procedure](docs/hosted-ci.md) |
+| Implementation work | GitHub issue and Cairn intake, claims, candidate verification, pull-request publication, guarded landing | Fixture-tested | [Runbook](docs/implementation-runbook.md) |
+
+[Detailed status](docs/status.md) keeps the complete ledger: every implemented
+area, each integration procedure with its retained receipt, and the
+publication record.
+
+## Hosted CI direction
+
+The commercial plan keeps Kiln free/open source and proposes paid hosted CI
+connected to customers' existing remote repositories, plus separately enabled
+inference. It does not propose source hosting, repository migration, or a software
+license/seat paywall. This is planning, not an available paid service. See the
+[hosted compute launch plan](docs/commercial-launch.md) for remote-source onboarding,
+accounting/payment architecture, company prerequisites and launch gates.
+
+[Design-partner discovery](docs/gtm/design-partners.md) for the proposed pilot
+is preparation for that plan's first gate, not an offer.
+
+## Claim boundary
+
+A passing Kiln decision proves only the checked relation between these values:
+
+- admitted CI state
+- one command
+- emitted events
+- requested effects
+
+The decision does not prove that a provider performed an effect. It also does not prove source trust, build correctness, or release eligibility.
+
+Kiln is not a sandbox, and local qualification is not production
+qualification. See [security and non-claims](docs/security-and-non-claims.md).
+
+## Owned boundary
+
+Kiln owns these functions:
+
+- projects, pipeline revisions, triggers, and evaluations
+- runs, tasks, attempts, products, and metrics
+- deterministic CI state transitions
+- typed effect requests
+- stable CI identities and canonical event records
+- tenant admission, resource-accounting inputs, and fairness policy
+- provider capability admission and adapter conformance contracts
+- CI status, cancellation, retry, and notification meaning
+
+Kiln does not own these functions:
+
+- source-control history or forge authority
+- workflow execution or build realization
+- worker placement
+- artifact truth or release authority
+- runtime transport or deployment
+- success of an external effect
+
+## Licensing
+
+Kiln-owned packages generally declare `MIT OR Apache-2.0`, except `kiln-adapter-pijul` (`GPL-2.0-only`). Linked AGPL/MPL dependencies and imported components retain their own terms; combined artifacts are not necessarily permissive-only. See the [license map and third-party notices](LICENSES.md). Owner-specific reuse grants do not extend to public recipients.
+
 ## Repository hosting
+
+Kiln is published at `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE`. Use its signed Radicle refs for current branch identities. Historical publication receipts do not validate a later branch tip or changed local source; the [publication record](docs/status.md#publication-record) keeps each receipt with its boundary, and `docs/hosting-and-recovery.md` states candidate and acquisition boundaries.
 
 Radicle is the canonical source and collaboration host. The operator-authorized publication receipt is `evidence/publication-receipt.ncl`.
 
@@ -326,16 +228,18 @@ Human-authored configuration uses typed Nickel contracts.
 
 Kiln uses BLAKE3 for its content identities, event fingerprints, and deterministic identifiers. Interoperability protocols retain their required algorithms and native identities.
 
-## Claim boundary
+## Contributing, security and support
 
-A passing Kiln decision proves only the checked relation between these values:
-
-- admitted CI state
-- one command
-- emitted events
-- requested effects
-
-The decision does not prove that a provider performed an effect. It also does not prove source trust, build correctness, or release eligibility.
+- [Contributing](CONTRIBUTING.md): where work happens, checks, lifecycle and
+  licensing of contributions.
+- [Security policy](SECURITY.md): private vulnerability reporting and the
+  security-relevant surface.
+- [Code of conduct](CODE_OF_CONDUCT.md) and [changelog](CHANGELOG.md).
+- Support: use the issue tracker on the
+  [GitHub projection](https://github.com/OnixResearch/kiln/issues). No
+  response time or support commitment is offered.
+- [Launch kit](docs/gtm/README.md): positioning, release notes and the launch
+  checklist.
 
 ## Lifecycle
 
@@ -352,7 +256,7 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [Cairn](https://github.com/OnixResearch/cairn) — lifecycle and gate-interchange producer at revision `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`. Kiln retains CI identity, process policy, gate composition, and state authority.
 - [Mantle](https://github.com/OnixResearch/mantle) — build-interchange producer at revision `d75158b00b080535f2ffea12430665ca3d57ea82`. Kiln retains candidate truth, required-product meaning, CI state, retry policy, and release authority.
 - [Bounded Exec](https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git) — bounded process mechanism at revision `29dac88ecded94457572db3fdfaaaab95fa91525`. Kiln retains executable authorization, output meaning, evidence, and retry policy.
-- [Choregraph](../choregraph) — bounded execution-graph and pure transition reference.
+- [Choregraph](https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git) — bounded execution-graph and pure transition reference.
 - [Zuul](https://zuul-ci.org/) — exact candidate sets, speculative gates, dependency queues, and frozen repository state.
 - [Concourse](https://concourse-ci.org/) — versioned resource discovery, pinning, acquisition, and mutation separation.
 - [Bazel Remote Execution API](https://github.com/bazelbuild/remote-apis) — content, action, operation, cache, capability, and log-stream boundaries.
