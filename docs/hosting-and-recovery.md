@@ -271,6 +271,22 @@ The GitHub repository metadata declares a noncanonical source view; its canonica
 Radicle identity and immutable Radicle release-channel contract remain unchanged.
 This is not authorization to substitute GitHub objects in dependency admission.
 
+### Withdrawal of the historyless projection
+
+On 2026-11-12 the operator directed the removal of `OnixResearch/kiln-public`
+as a public entry point. `OnixResearch/kiln` has been public since the
+`f748acd0` cutover below and carries current `main`, while `kiln-public` still
+presented the frozen candidate `db552f50` and its earlier README. Its
+visibility was changed from public to private at 2026-11-12T16:07Z. An
+anonymous page request now returns HTTP 404 and an anonymous clone asks for
+credentials. The repository had no stars, forks or watchers.
+
+Nothing was deleted: the repository, its single commit and the receipts above
+are retained. No other repository, ref, governance setting or consumer pin
+changed. The preceding section describes the projection as observed on
+2026-10-17. Changing visibility cannot retract copies that were already
+fetched.
+
 ## Source-only publication of candidate `f748acd0`
 
 The operator authorized one exact source-only cutover

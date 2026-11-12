@@ -29,21 +29,31 @@ missing documents:
 - the launch preparation is not published; the public tree still shows the
   previous README and has no security policy;
 - no `v0.1.0` tag or release exists on either remote;
-- private vulnerability reporting is disabled on the GitHub projection, so
-  the route in `SECURITY.md` is not yet a working private channel;
-- secret scanning and push protection are disabled and `main` is unprotected
-  on the projection;
+- the private reporting form was not exercised as an outside reporter;
+- secret-scanning push protection is disabled and `main` is unprotected on
+  the projection;
 - the projection has no description and no topics, and the organization
   profile does not list Kiln;
-- a second public repository, `OnixResearch/kiln-public`, holds a stale
-  parentless projection with the previous README;
-- the Octet check and the full `nix flake check` were not run, and the
-  packaged `nix build path:$PWD#kiln` output was not exercised;
+- the Octet check and the full `nix flake check` were not run, including the
+  checks whose package selectors the rename changed, and the packaged
+  `nix build path:$PWD#kiln` output was not exercised;
+- the workspace catalog outside this repository still names `kiln-public`
+  as Kiln's GitHub source;
 - the quick start was not repeated from a credential-isolated checkout at
   this revision;
-- the product name is not cleared: unrelated crates named `kiln`,
-  `kiln-core` and `kiln-cli` exist on crates.io;
+- the product name and domain are not cleared: an unrelated `kiln` crate
+  exists on crates.io;
 - no approver is named for the release notes and the announcement.
+
+Resolved on 2026-11-12 at the operator's direction:
+
+- private vulnerability reporting and secret scanning are enabled on the
+  GitHub projection;
+- `OnixResearch/kiln-public`, a stale second public repository, is private
+  and no longer an entry point;
+- the two packages whose names collided with crates.io are `onix-kiln-core`
+  and `onix-kiln-cli`;
+- `kiln --help` prints usage.
 
 Hosted CI has its own blockers and stays out of the release: every gate
 L0 through L7 is open, no price is approved, and no service exists.

@@ -113,13 +113,13 @@ publishing.
 | --- | --- |
 | `cargo run --locked -p onix-kiln-cli -- demo` | Printed the one-line state above; no network, VCS or filesystem write and no dispatch |
 | `cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview` | Wrote a synthetic journal and an offline HTML dashboard |
-| `cargo test --locked --workspace` | Exit 0: 1608 passed, 0 failed, 5 ignored across 160 result lines; 3m36s wall time with a warm cache |
+| `cargo test --locked --workspace` | Exit 0: 1610 passed, 0 failed, 5 ignored across 161 result lines; 1m13s wall time with a warm cache |
 | `cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e` | 17 passed against isolated fixtures; not a live GitHub run |
 | `cargo clippy --locked --workspace --all-targets -- -D warnings` | Pass |
 | `cargo fmt --all --check` | Pass |
 | `scripts/check-nickel-fixtures.sh` | Pass with 78 positive and 567 negative fixtures, after canonical formatting of two configuration files that failed its format check |
 | `cairn validate` | Pass |
-| `cairn traceability coverage` | Pass: 1742 referenced, none missing, none dangling; declared linkage, not execution truth |
+| `cairn traceability coverage` | Pass: 1745 requirements, all referenced, none missing, none dangling; declared linkage, not execution truth |
 | `cairn release-readiness --root .` | `valid: true`, `verdict: pass`, `onix_release_ready: false` |
 
 Not run: the Octet check and `nix flake check` with its 45 checks. The

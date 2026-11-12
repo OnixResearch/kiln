@@ -12,9 +12,11 @@ every hard gate in [section 10](#10-gono-go-review) is `[x]`.
 
 Unless a row says otherwise, local results were observed on 2026-11-12 on one
 `x86_64-linux` host, inside `nix develop path:$PWD`, at source revision
-`428d03fcfb02478ed79d38453fb44f82c6a2bdd5` plus the uncommitted changes that
+`428d03fcfb02478ed79d38453fb44f82c6a2bdd5` plus the unpublished changes that
 prepare this launch. The exact commands and outputs are retained in the
-lifecycle packages `prepare-go-to-market` and `retain-heartwood-license-texts`.
+lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
+`adopt-onix-package-prefix` and `resolve-launch-channel-blockers`, and in the
+archived package `add-operator-cli-help`.
 
 ## 1. Release identity and legal
 
@@ -35,11 +37,19 @@ lifecycle packages `prepare-go-to-market` and `retain-heartwood-license-texts`.
 - [ ] Release owner: decide source-only or source plus binaries. No binary,
       container image or crates.io publication is prepared; 36 of the 46
       workspace crates set `publish = false`. Recommendation: source only.
-- [ ] Owner: clear the product name. crates.io already carries unrelated
-      crates named `kiln`, `kiln-core` and `kiln-cli`, so `cargo install`
-      installs a different project, and the commercial plan lists name and
-      domain clearance as an open gate. Launch copy must show no
-      `cargo install` command.
+- [x] The two packages that collided with crates.io are renamed: package
+      `onix-kiln-core` in `crates/kiln-core` and package `onix-kiln-cli` in
+      `crates/kiln-cli`. The library `kiln_core`, the binary `kiln` and both
+      directories keep their names. On 2026-11-12 crates.io returned not
+      found for all 54 first-party package names and still carried unrelated
+      `kiln` 0.0.0, `kiln-core` 0.1.1 and `kiln-cli` 0.1.1.
+- [ ] Owner: clear the product name and domain. The unrelated `kiln` crate
+      remains, and the commercial plan lists name and domain clearance as an
+      open gate. Launch copy must show no `cargo install` command.
+- [ ] Owner: when Cairn, OnixOS or the Kiln Aspen host move their pinned
+      Kiln revision past the rename, declare
+      `kiln-core = { package = "onix-kiln-core", ... }`. Their current pins
+      predate it and need no change.
 
 ## 2. Public channels
 
@@ -57,19 +67,35 @@ lifecycle packages `prepare-go-to-market` and `retain-heartwood-license-texts`.
       previous README and no security policy.
 - [ ] Owner: tag `v0.1.0` on the verified commit. No tag and no release exist
       on either remote.
-- [ ] Owner: resolve `OnixResearch/kiln-public`. It is a second public
-      repository holding a parentless projection of an older candidate, last
-      pushed 2026-10-18, whose README is the previous status ledger. Archive
-      it or point its README at the projection so that one entry point
-      remains.
+- [x] `OnixResearch/kiln-public` no longer competes as an entry point. It
+      held a parentless projection of an older candidate with the previous
+      README. Its visibility was changed to private on 2026-11-12; an
+      anonymous page request returns HTTP 404 and an anonymous clone asks for
+      credentials. It had no stars, forks or watchers. See
+      [the withdrawal record](../hosting-and-recovery.md#withdrawal-of-the-historyless-projection).
+- [ ] Owner: decide whether to delete `kiln-public`. Deletion is irreversible
+      and needs the `delete_repo` token scope; it was not attempted.
+- [ ] Owner: correct the workspace catalog. `docs/catalog.ncl` in the
+      workspace repository still names `kiln-public` as Kiln's GitHub source,
+      so the workspace wiki links a private repository. Set `github_url` to
+      `https://github.com/OnixResearch/kiln` and run `nix run .#generate-docs`
+      there. Not done: the Nix store on the preparation host was not
+      accepting writes.
 - [ ] Owner: add Kiln to the organization profile README. It is not listed.
 - [ ] Owner: set the GitHub description and topics. Both are empty. The
       Radicle project description is a ready description. Set a homepage only
       if it is an owned URL.
-- [ ] Owner: enable private vulnerability reporting. It is disabled, so the
-      link in `SECURITY.md` and the conduct-report route in
-      `CODE_OF_CONDUCT.md` are not yet working private channels.
-- [ ] Owner: enable secret scanning and push protection. Both are disabled.
+- [x] Private vulnerability reporting is enabled on the GitHub projection;
+      the API read back `enabled: true` on 2026-11-12. The advisory form
+      redirects an anonymous visitor to sign in. `SECURITY.md` and
+      `CODE_OF_CONDUCT.md` name that form.
+- [x] Secret scanning is enabled on the projection. It listed no alert at
+      2026-11-12T16:50Z, 43 minutes after it was enabled; the first scan of
+      existing history may not have finished, so read the alert list again
+      before launch.
+- [ ] Owner: decide push protection. It is still disabled. It rejects a push
+      that contains a detected secret pattern, which can block a projection
+      push that carries secret-shaped test fixtures.
 - [ ] Owner: decide branch protection for the projection's `main`. It is
       unprotected. A rule must still admit the maintainer's fast-forward
       projection push.
@@ -85,8 +111,9 @@ lifecycle packages `prepare-go-to-market` and `retain-heartwood-license-texts`.
 - [x] `cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview`
       wrote `journal.json` and `dashboard.html`. The page rendered in
       headless Chromium with six runs and seven attempts.
-- [x] `cargo test --locked --workspace` exited 0: 1608 passed, 0 failed,
-      5 ignored across 160 result lines, in 3m36s with a warm build cache.
+- [x] `cargo test --locked --workspace` exited 0: 1610 passed, 0 failed,
+      5 ignored across 161 result lines, in 1m13s with a warm build cache,
+      after the package rename and the `kiln --help` change.
 - [x] `cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e`
       passed 17 tests against isolated fixtures. It is not a live GitHub run.
 - [ ] Release owner: build the packaged flake output with
@@ -97,13 +124,15 @@ lifecycle packages `prepare-go-to-market` and `retain-heartwood-license-texts`.
       checkout of the public route, with an empty `HOME` and no Git or SSH
       credentials. The retained contributor check covers an earlier revision.
 - [ ] `aarch64-linux` is declared by the flake and was not checked.
-- [ ] Soft: `kiln --help` prints `unsupported command: --help` and exits 1,
-      while the other shipped programs accept `--help`; `kiln` has no
-      `--version`. Fixing it needs a specification-bearing change. Launch
-      copy must not tell a reader to run either.
-- [ ] Soft: `cargo test --locked --workspace` left untracked
+- [x] `kiln --help`, `kiln -h` and `kiln help` print the usage text and exit
+      0; a missing command, an unsupported command and a help request with a
+      trailing argument are refused on standard error. Requirement
+      `kiln.cli.help` and `crates/kiln-cli/tests/cli.rs` cover it. No shipped
+      program has `--version`; launch copy must not tell a reader to run it.
+- [ ] Soft: an earlier `cargo test --locked --workspace` run left untracked
       `vendor/artifact/Cargo.lock` and `vendor/valence/Cargo.lock` in the
-      working tree. Decide whether to ignore, track or stop generating them.
+      working tree. Two later runs on 2026-11-12 did not; the cause is not
+      established. Decide whether to ignore them if they reappear.
 
 ## 4. Repository gates
 
@@ -117,8 +146,9 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
       before running any fixture. `nickel format` was applied to those two
       files; the change is whitespace only.
 - [x] `cairn validate`: pass.
-- [x] `cairn traceability coverage`: pass, 1742 referenced, none missing,
-      none dangling. This is declared linkage, not execution truth.
+- [x] `cairn traceability coverage`: pass, 1745 requirements, all
+      referenced, none missing, none dangling. This is declared linkage, not
+      execution truth.
 - [x] `cairn release-readiness --root .`: `valid: true`, `verdict: pass`,
       `onix_release_ready: false`. Skipped or absent inputs: release-evidence
       index freshness, semantic review ledger, stack provenance, function
@@ -126,7 +156,11 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
 - [ ] `nix build path:$PWD#checks.x86_64-linux.octet`: not run.
 - [ ] `nix flake check path:$PWD --no-write-lock-file -L`: not run. It has 45
       checks. Record its result on the release commit or state that it was
-      not run.
+      not run. The package rename changed the package selectors of the
+      `no-std`, `radicle-status-boundaries` and `celld-boundaries` checks and
+      the lock files of both Octet check workspaces. The same Cargo commands
+      passed in the development shell. The Nix checks did not start: on
+      2026-11-12 the Nix store on this host was not accepting writes.
 - [ ] Open qualification items in the retained 2026-11-08 readiness record
       remain open: the combined Web approval handoff and distinct-physical-host
       measurements. They bound hosted and isolation claims, not the source
@@ -183,7 +217,8 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
       name, price or credential.
 - [ ] Confirm that demo recordings and issue templates contain no credential
       or private host detail.
-- [ ] Test the private reporting link after enabling it.
+- [ ] Test the private reporting form as an outside reporter. Reporting is
+      enabled; the form itself was not exercised.
 
 ## 8. Community and support
 
@@ -222,8 +257,9 @@ Hard gates:
       each result is recorded, including failures and gates not run.
 - [ ] The quick start and the demo pass on the release commit from a
       credential-isolated checkout.
-- [ ] Private vulnerability reporting is enabled and its link was tested.
-- [ ] `OnixResearch/kiln-public` no longer competes as an entry point.
+- [~] Private vulnerability reporting is enabled. Its form was not tested as
+      an outside reporter.
+- [x] `OnixResearch/kiln-public` no longer competes as an entry point.
 - [ ] The release notes carry the tagged revision's results and have a named
       approver; the announcement has a named approver.
 - [ ] A review confirms that no asset presents hosted CI as available or
@@ -237,7 +273,7 @@ Soft gates:
 - [ ] The contribution route is confirmed.
 - [ ] `nix build path:$PWD#kiln` and the full flake check passed on the
       release commit.
-- [ ] `kiln --help` prints usage.
+- [x] `kiln --help` prints usage.
 - [ ] A second person reproduced the quick start.
 - [ ] A demo recording exists.
 
@@ -262,19 +298,20 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 \
 git ls-remote https://github.com/OnixResearch/kiln.git \
   refs/heads/main refs/tags/v0.1.0
 
-# 3. Set projection metadata and security settings.
+# 3. Set projection metadata. Private vulnerability reporting and secret
+#    scanning are already enabled. Run the second command only if push
+#    protection is decided.
 gh repo edit OnixResearch/kiln \
   --description "Provider-neutral CI control plane" \
   --add-topic ci --add-topic continuous-integration --add-topic nix \
   --add-topic rust --add-topic radicle --add-topic jujutsu \
   --add-topic self-hosted
-gh api --method PUT repos/OnixResearch/kiln/private-vulnerability-reporting
 gh api --method PATCH repos/OnixResearch/kiln \
-  -f 'security_and_analysis[secret_scanning][status]=enabled' \
   -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
 
 # 4. Read the settings back.
 gh api repos/OnixResearch/kiln/private-vulnerability-reporting
+gh api repos/OnixResearch/kiln --jq .security_and_analysis
 gh repo view OnixResearch/kiln --json description,repositoryTopics
 
 # 5. Create the release from the reviewed notes. Replace relative links in
@@ -283,5 +320,7 @@ gh release create v0.1.0 --repo OnixResearch/kiln --verify-tag \
   --title "Kiln 0.1.0" --notes-file docs/gtm/release-notes-0.1.0.md
 ```
 
-Configure branch protection in the repository settings. None of these
-commands was run during preparation.
+Configure branch protection in the repository settings. On 2026-11-12, at the
+operator's direction, private vulnerability reporting and secret scanning were
+enabled on the projection and `kiln-public` was made private. None of the
+commands above was run during preparation.

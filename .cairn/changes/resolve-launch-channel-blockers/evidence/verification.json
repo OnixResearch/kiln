@@ -1,0 +1,236 @@
+{
+  "schema": "kiln.launch-channel-blockers.resolution-evidence.v1",
+  "scope": "Two GitHub repository setting changes, one repository visibility change, a dated withdrawal record and refreshed launch documents. Not a push, tag, release, announcement, branch-protection, push-protection, description, topic or payment action",
+  "owner": "The operator owns both repositories and every remaining setting; Kiln maintainers own the launch kit and the withdrawal record",
+  "observed_on": "2026-11-12",
+  "authority": {
+    "source": "operator instruction in the working session, given after the launch-preparation report listed its open blockers",
+    "instruction": "1- use onix prefix. 2. enable. 3. remove stale. 4. fix.",
+    "mapping": {
+      "1": "package rename; separate package adopt-onix-package-prefix",
+      "2": "enable private vulnerability reporting and secret scanning on OnixResearch/kiln",
+      "3": "remove OnixResearch/kiln-public as a stale second public entry point",
+      "4": "kiln --help; archived package add-operator-cli-help"
+    },
+    "session": "the maintainer's authenticated gh session; token scopes admin:public_key, gist, read:org, repo"
+  },
+  "github_projection": {
+    "repository": "OnixResearch/kiln",
+    "before": {
+      "private_vulnerability_reporting": false,
+      "secret_scanning": "disabled",
+      "secret_scanning_push_protection": "disabled"
+    },
+    "actions": [
+      {
+        "request": "PUT repos/OnixResearch/kiln/private-vulnerability-reporting",
+        "response": "HTTP 204 No Content"
+      },
+      {
+        "request": "PATCH repos/OnixResearch/kiln with security_and_analysis.secret_scanning.status=enabled",
+        "response": "secret_scanning enabled; secret_scanning_push_protection disabled"
+      }
+    ],
+    "applied_by": "2026-11-12T16:06:40Z",
+    "after": {
+      "observed_at": "2026-11-12T16:50:01Z",
+      "private_vulnerability_reporting": true,
+      "secret_scanning": "enabled",
+      "secret_scanning_push_protection": "disabled",
+      "dependabot_security_updates": "disabled",
+      "secret_scanning_alerts": 0,
+      "visibility": "public",
+      "description": null,
+      "topics": [],
+      "main_protected": false,
+      "main": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+    },
+    "advisory_form": {
+      "url": "https://github.com/OnixResearch/kiln/security/advisories/new",
+      "observed_at": "2026-11-12T16:39:11Z",
+      "anonymous_http_status": 302,
+      "anonymous_redirect": "GitHub sign-in with a return to the form",
+      "exercised_as_outside_reporter": false
+    },
+    "unchanged": [
+      "secret-scanning push protection",
+      "Dependabot security updates",
+      "branch protection",
+      "description, topics and homepage",
+      "refs, tags and releases"
+    ]
+  },
+  "stale_repository": {
+    "repository": "OnixResearch/kiln-public",
+    "before": {
+      "visibility": "public",
+      "archived": false,
+      "last_pushed": "2026-10-18T00:56:44Z",
+      "head": "35d10f2ebb3a6901d2aab273a467940ad8581bf6",
+      "head_parents": 0,
+      "stargazers": 0,
+      "forks": 0,
+      "watchers": 0,
+      "pages": false
+    },
+    "action": {
+      "command": "gh repo edit OnixResearch/kiln-public --visibility private --accept-visibility-change-consequences",
+      "exit_code": 0,
+      "applied_by": "2026-11-12T16:07:45Z"
+    },
+    "after": {
+      "observed_at": "2026-11-12T16:50:01Z",
+      "visibility": "private",
+      "archived": false,
+      "anonymous_page_http_status": 404,
+      "anonymous_api_http_status": 404,
+      "anonymous_ls_remote": "exit 128; credentials requested with prompts disabled"
+    },
+    "canonical_projection_still_reachable": {
+      "anonymous_page_http_status": 200,
+      "anonymous_ls_remote_main": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "garden_https_main": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+    },
+    "deleted": false,
+    "deletion_not_attempted_because": "irreversible; it would remove the object the 2026-10-17 publication receipts describe; the session token has no delete_repo scope",
+    "dependents_in_workspace": "none found: sibling manifests pin github.com/OnixResearch/kiln.git or the Radicle HTTPS projection",
+    "record": "docs/hosting-and-recovery.md#withdrawal-of-the-historyless-projection"
+  },
+  "kit_refresh": {
+    "source_state": "published base 428d03fcfb02478ed79d38453fb44f82c6a2bdd5 plus the unpublished launch changes, including the package rename and the help fix",
+    "environment": "one x86_64-linux host; nix develop path:$PWD; rustc 1.88.0",
+    "exercised_commands": [
+      {
+        "command": "cargo run --locked -p onix-kiln-cli -- demo",
+        "exit_code": 0,
+        "result": "printed the one-line state shown in the README"
+      },
+      {
+        "command": "cargo run --locked -p onix-kiln-cli -- --help",
+        "exit_code": 0,
+        "result": "usage text on standard output; observed through the built binary"
+      },
+      {
+        "command": "cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview",
+        "exit_code": 0,
+        "result": "wrote journal.json and dashboard.html; the page was not rendered in a browser again"
+      },
+      {
+        "command": "cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e",
+        "exit_code": 0,
+        "result": "17 passed, 0 failed"
+      },
+      {
+        "command": "cargo test --locked --workspace",
+        "exit_code": 0,
+        "result_lines": 161,
+        "passed": 1610,
+        "failed": 0,
+        "ignored": 5,
+        "wall_seconds": 73,
+        "cache": "warm"
+      },
+      {
+        "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+        "exit_code": 0
+      },
+      {
+        "command": "cargo fmt --all -- --check",
+        "exit_code": 0
+      }
+    ],
+    "figures_replaced": {
+      "workspace_tests": "1608 passed across 160 result lines became 1610 passed across 161: the help fix adds two binary tests",
+      "traceability": "1742 referenced became 1745 requirements, all referenced: the help fix adds one requirement and two scenarios"
+    },
+    "byproducts": "no untracked vendor/artifact/Cargo.lock or vendor/valence/Cargo.lock appeared in either workspace test run"
+  },
+  "document_checks": {
+    "method": "relative link targets and GitHub-style heading anchors resolved for every tracked Markdown document outside lifecycle, vendored, crate, check, fixture, web, tool and test directories",
+    "documents": 63,
+    "relative_links": 517,
+    "broken": 0,
+    "broken_list": [],
+    "negative_control": {
+      "synthetic_links": 3,
+      "flagged": 2,
+      "kinds": [
+        "missing anchor",
+        "missing path"
+      ]
+    }
+  },
+  "repository_gates": [
+    {
+      "command": [
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "exit_code": 0,
+      "verdict": "pass",
+      "valid": true,
+      "requirements": 1745,
+      "referenced": 1745,
+      "missing": 0,
+      "dangling": 0
+    },
+    {
+      "command": [
+        "cairn",
+        "release-readiness",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "pass",
+      "onix_release_ready": false,
+      "skipped_or_absent": [
+        "release_evidence_index_freshness",
+        "semantic_review_ledger",
+        "stack_provenance",
+        "function_address",
+        "stack-provenance_authentication",
+        "function-address_authentication",
+        "workspace_contract_matrix"
+      ],
+      "note": "it reported valid false while the two new packages had no current review receipt; the result above is after their receipts were generated"
+    }
+  ],
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "profile": "no-spec-delta",
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "not_exercised": [
+    "The private reporting form as an outside reporter",
+    "A completed first secret-scanning pass over existing history: the alert list was empty 43 minutes after enabling",
+    "scripts/check-nickel-fixtures.sh: its inputs did not change after the retained run",
+    "The workspace catalog correction: the generator could not run",
+    "The Octet check, the full nix flake check and the packaged nix build path:$PWD#kiln output",
+    "The quick start from a credential-isolated checkout",
+    "Any push, tag, release or announcement"
+  ],
+  "non_claims": [
+    "Enabled settings are repository configuration; they do not establish that a report will be handled or that no secret exists in history",
+    "Changing visibility cannot retract copies that were already fetched",
+    "Launch documents are copy and procedure, not evidence of release readiness; onix_release_ready is false",
+    "Test and coverage figures describe one host and one unpublished tree; they do not validate a tagged revision"
+  ],
+  "workspace_catalog": {
+    "repository": "the workspace repository that contains this checkout; it has its own history",
+    "file": "docs/catalog.ncl",
+    "state": "still names https://github.com/OnixResearch/kiln-public as Kiln's GitHub source; its generated wiki links that repository",
+    "attempt": "github_url was changed to https://github.com/OnixResearch/kiln and nix run .#generate-docs was started twice; it did not start generating; the catalog line was restored byte-identically and no file in that repository differs from before",
+    "blocked_by": "68 nix-daemon workers, the oldest 2 h 38 min old; the store database had not been written for 36 minutes; 88 GiB free against a 100 GiB min-free setting",
+    "open_row": "docs/gtm/launch-checklist.md, section 2"
+  }
+}

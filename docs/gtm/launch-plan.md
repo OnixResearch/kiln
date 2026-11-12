@@ -176,9 +176,9 @@ tracker, not in this document.
 | Setup needs Nix, a reviewed Lattice runtime, SecretSpec and typed profiles | Low activation beyond the demo | Lead with `demo` and the dashboard; ask evaluators for one adapter only; record the stopping step |
 | First build compiles the workspace from source | Slow first impression | State it in the quick start; decide on a published build cache only from recorded demand |
 | License misread as permissive-only or as AGPL-only | Wrong adoption decision | License row in the README table; link the license map in every asset |
-| Two public GitHub repositories | Evaluators land on a stale tree | Resolve `kiln-public` before launch |
-| The name collides with unrelated `kiln` crates on crates.io | A reader installs a different project; name clearance is an open commercial gate | Show no `cargo install` command; send readers to the repository; the operator clears the name |
-| Vulnerability reported in a public issue | Disclosure risk | Enable and test private vulnerability reporting first |
+| Two public GitHub repositories | Evaluators land on a stale tree | `kiln-public` was made private on 2026-11-12; keep one public GitHub entry point |
+| Unrelated `kiln`, `kiln-core` and `kiln-cli` crates exist on crates.io | A reader installs a different project; name and domain clearance is an open commercial gate | Kiln's packages are `onix-kiln-core` and `onix-kiln-cli`; show no `cargo install` command; send readers to the repository; the operator clears the name |
+| Vulnerability reported in a public issue | Disclosure risk | Private vulnerability reporting is enabled; test the form as an outside reporter before launch |
 | Garden HTTPS clone fails for a client | Broken first command | Quick start also gives the GitHub projection |
 | Projections disagree on `main` | Evaluators test different source | Read back both routes before announcing |
 | A fixture-tested integration is assumed live | Failed evaluation, lost trust | Evidence words beside Gitea, Forgejo and Tangled in every asset |

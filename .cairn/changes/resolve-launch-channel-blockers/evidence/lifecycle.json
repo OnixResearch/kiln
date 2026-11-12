@@ -1,0 +1,99 @@
+{
+  "scope": "Two operator-directed GitHub setting changes, one visibility change, a withdrawal record and refreshed launch documents; no push, tag, release or publication",
+  "review": "Agentic self-review, not independent approval",
+  "results": [
+    {
+      "label": "classification",
+      "command": [
+        "cairn",
+        "review",
+        "validate",
+        ".cairn/changes/resolve-launch-channel-blockers/reviews/no-spec-classification.json",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "verdict": "PASS",
+      "valid": true
+    },
+    {
+      "label": "proposal",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "resolve-launch-channel-blockers",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "c1ce9b418f19839d746503ef5e9e26fe8522133f81142013bcfe2e14dfd127e6",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "78af8a622c037a113169856314033fd26263d0d74ec4a4c52e277dcee9df6082"
+    },
+    {
+      "label": "design",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "resolve-launch-channel-blockers",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "dcaae556e32bfca11fcfa5b583a88123a037ccdfe3fd4bd8392954a8e96e99f2",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "849400b016453be5e1463d8ffe4ae8919fb5a489dab12edcb939674c59bbfaaf"
+    },
+    {
+      "label": "tasks",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "resolve-launch-channel-blockers",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "2feed353a922cb58163e99ef21bf8ba9c6ab0a01f5d27c4d226ffe5a2a8ae164",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "64ed31af1b3320eaa52d17058a7252d4154c26df7353ee713515988826d6d0ef"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "issues": [],
+      "change_issues": []
+    }
+  ]
+}

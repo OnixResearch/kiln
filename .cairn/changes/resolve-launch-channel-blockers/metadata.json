@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Two operator-directed GitHub repository setting changes, one repository visibility change, a dated withdrawal record and refreshed launch documents. No runtime code, configuration meaning, accepted specification, license, lock file, deployment, push, tag, release or payment state changes.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}
