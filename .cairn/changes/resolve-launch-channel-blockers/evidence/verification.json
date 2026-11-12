@@ -1,7 +1,7 @@
 {
   "schema": "kiln.launch-channel-blockers.resolution-evidence.v1",
-  "scope": "Two GitHub repository setting changes, one repository visibility change, a dated withdrawal record and refreshed launch documents. Not a push, tag, release, announcement, branch-protection, push-protection, description, topic or payment action",
-  "owner": "The operator owns both repositories and every remaining setting; Kiln maintainers own the launch kit and the withdrawal record",
+  "scope": "GitHub repository setting changes named by the operator, one repository ruleset, one repository visibility change, one row in the organization profile, a dated withdrawal record, a workspace catalog correction, refreshed launch documents and the Nix gates run at the local revisions. Not a push to a Kiln remote, tag, release, announcement, homepage or payment action",
+  "owner": "The operator owns the three GitHub repositories and every remaining setting; Kiln maintainers own the launch kit and the hosting record",
   "observed_on": "2026-11-12",
   "authority": {
     "source": "operator instruction in the working session, given after the launch-preparation report listed its open blockers",
@@ -12,7 +12,33 @@
       "3": "remove OnixResearch/kiln-public as a stale second public entry point",
       "4": "kiln --help; archived package add-operator-cli-help"
     },
-    "session": "the maintainer's authenticated gh session; token scopes admin:public_key, gist, read:org, repo"
+    "session": "the maintainer's authenticated gh session; token scopes admin:public_key, gist, read:org, repo",
+    "second_instruction": {
+      "instruction": "finish the job",
+      "form": "the operator was shown the exact description, the seven topics and the push-protection setting as unticked choices and ticked both; nothing was preselected for a remote change",
+      "answer": {
+        "remote": [
+          "metadata",
+          "push_protection"
+        ]
+      }
+    },
+    "third_instruction": {
+      "form": "at close-out the operator was shown the two remote changes still within reach of the session, with the exact ruleset effect, the exact profile row and the trade-off of each, as unticked choices, and ticked both; nothing was preselected",
+      "answer": {
+        "remote": [
+          "branch_rule",
+          "org_profile"
+        ]
+      },
+      "not_offered": [
+        "publishing the local commits",
+        "the v0.1.0 tag",
+        "the release",
+        "deleting kiln-public"
+      ],
+      "not_offered_reason": "canonical publication signs with the operator's hardware key, and the session token has no delete_repo scope"
+    }
   },
   "github_projection": {
     "repository": "OnixResearch/kiln",
@@ -53,12 +79,172 @@
       "exercised_as_outside_reporter": false
     },
     "unchanged": [
-      "secret-scanning push protection",
       "Dependabot security updates",
       "branch protection",
-      "description, topics and homepage",
+      "homepage",
       "refs, tags and releases"
-    ]
+    ],
+    "second_change": {
+      "before": {
+        "observed_at": "2026-11-12T20:23:22Z",
+        "description": null,
+        "topics": [],
+        "homepage": null,
+        "secret_scanning": "enabled",
+        "secret_scanning_push_protection": "disabled"
+      },
+      "actions": [
+        {
+          "command": "gh repo edit OnixResearch/kiln --description \"Provider-neutral CI control plane\" --add-topic ci --add-topic continuous-integration --add-topic nix --add-topic rust --add-topic radicle --add-topic jujutsu --add-topic self-hosted",
+          "exit_code": 0
+        },
+        {
+          "request": "PATCH repos/OnixResearch/kiln with security_and_analysis.secret_scanning_push_protection.status=enabled",
+          "response": "secret_scanning enabled; secret_scanning_push_protection enabled"
+        }
+      ],
+      "after": {
+        "observed_at": "2026-11-12T20:23:25Z",
+        "description": "Provider-neutral CI control plane",
+        "topics": [
+          "ci",
+          "continuous-integration",
+          "jujutsu",
+          "nix",
+          "radicle",
+          "rust",
+          "self-hosted"
+        ],
+        "homepage": null,
+        "visibility": "public",
+        "private_vulnerability_reporting": true,
+        "secret_scanning": "enabled",
+        "secret_scanning_push_protection": "enabled",
+        "dependabot_security_updates": "disabled",
+        "main_protected": false,
+        "main": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+      }
+    },
+    "secret_scanning_alerts": {
+      "observed_at": "2026-11-12T20:13:11Z",
+      "count": 0,
+      "hours_after_enabling": 4
+    },
+    "security_advisories": {
+      "observed_at": "2026-11-12T20:13:11Z",
+      "count": 0
+    },
+    "reobserved": {
+      "observed_at": "2026-11-12T21:09:25Z",
+      "main": {
+        "radicle_garden_https": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+        "github": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+      },
+      "tags_on_github": 0,
+      "main_protected": false,
+      "rulesets": 0,
+      "description": "Provider-neutral CI control plane",
+      "topics": [
+        "ci",
+        "continuous-integration",
+        "jujutsu",
+        "nix",
+        "radicle",
+        "rust",
+        "self-hosted"
+      ],
+      "homepage": null,
+      "secret_scanning": "enabled",
+      "secret_scanning_push_protection": "enabled",
+      "organization_profile": "OnixResearch/.github profile/README.md lists Mantle, Noble, Octet, Cairn, Terrane and Nickel Export; Kiln is not listed",
+      "note": "observed before the third authorization; third_change and organization_profile hold the later state"
+    },
+    "third_change": {
+      "before": {
+        "observed_at": "2026-11-12T21:20:59Z",
+        "rulesets": 0,
+        "active_rules_on_main": 0,
+        "main": {
+          "protected": false,
+          "sha": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+        }
+      },
+      "action": {
+        "request": "POST repos/OnixResearch/kiln/rulesets",
+        "body": {
+          "name": "main: no deletion or force push",
+          "target": "branch",
+          "enforcement": "active",
+          "conditions": {
+            "ref_name": {
+              "include": [
+                "refs/heads/main"
+              ],
+              "exclude": []
+            }
+          },
+          "rules": [
+            {
+              "type": "deletion"
+            },
+            {
+              "type": "non_fast_forward"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "completed_by": "2026-11-12T21:21:22Z",
+        "ruleset_id": 27157794
+      },
+      "after": {
+        "observed_at": "2026-11-12T21:21:43Z",
+        "rulesets": [
+          {
+            "id": 27157794,
+            "name": "main: no deletion or force push",
+            "enforcement": "active",
+            "target": "branch"
+          }
+        ],
+        "ruleset": {
+          "id": 27157794,
+          "enforcement": "active",
+          "conditions": {
+            "ref_name": {
+              "exclude": [],
+              "include": [
+                "refs/heads/main"
+              ]
+            }
+          },
+          "rules": [
+            {
+              "type": "deletion"
+            },
+            {
+              "type": "non_fast_forward"
+            }
+          ],
+          "bypass_actors": [],
+          "current_user_can_bypass": "never"
+        },
+        "active_rules_on_main": [
+          {
+            "type": "deletion",
+            "ruleset_id": 27157794
+          },
+          {
+            "type": "non_fast_forward",
+            "ruleset_id": 27157794
+          }
+        ],
+        "main": {
+          "protected": true,
+          "sha": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+        }
+      },
+      "unchanged": "main still names 428d03fcfb02478ed79d38453fb44f82c6a2bdd5 anonymously; no review, status-check or signature requirement was added"
+    }
   },
   "stale_repository": {
     "repository": "OnixResearch/kiln-public",
@@ -97,7 +283,7 @@
     "record": "docs/hosting-and-recovery.md#withdrawal-of-the-historyless-projection"
   },
   "kit_refresh": {
-    "source_state": "published base 428d03fcfb02478ed79d38453fb44f82c6a2bdd5 plus the unpublished launch changes, including the package rename and the help fix",
+    "source_state": "local revisions, not published: 95668b0bf0400b3137d4288bc58b6b010f2bf13b holds published base 428d03fc plus the launch changes, the package rename and both operator CLI changes; 0495510a4a2fd981fba091350759b1c13ccaf3c6 adds the Aspen host conformance change, which touches only runtime/kiln-aspen-host and its lifecycle package, outside the root Cargo workspace",
     "environment": "one x86_64-linux host; nix develop path:$PWD; rustc 1.88.0",
     "exercised_commands": [
       {
@@ -108,7 +294,12 @@
       {
         "command": "cargo run --locked -p onix-kiln-cli -- --help",
         "exit_code": 0,
-        "result": "usage text on standard output; observed through the built binary"
+        "result": "usage text on standard output; observed through the built binary and through the packaged Nix output"
+      },
+      {
+        "command": "cargo run --locked -p onix-kiln-cli -- --version",
+        "exit_code": 0,
+        "result": "kiln 0.1.0; observed through the built binary and through the packaged Nix output"
       },
       {
         "command": "cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview",
@@ -124,10 +315,10 @@
         "command": "cargo test --locked --workspace",
         "exit_code": 0,
         "result_lines": 161,
-        "passed": 1610,
+        "passed": 1612,
         "failed": 0,
         "ignored": 5,
-        "wall_seconds": 73,
+        "wall_seconds": 76,
         "cache": "warm"
       },
       {
@@ -140,15 +331,15 @@
       }
     ],
     "figures_replaced": {
-      "workspace_tests": "1608 passed across 160 result lines became 1610 passed across 161: the help fix adds two binary tests",
-      "traceability": "1742 referenced became 1745 requirements, all referenced: the help fix adds one requirement and two scenarios"
+      "workspace_tests": "1608 passed across 160 result lines became 1612 passed across 161: the help and version changes add four binary tests",
+      "traceability": "1742 referenced became 1748 requirements, all referenced: the help and version changes add two requirements and four scenarios"
     },
     "byproducts": "no untracked vendor/artifact/Cargo.lock or vendor/valence/Cargo.lock appeared in either workspace test run"
   },
   "document_checks": {
     "method": "relative link targets and GitHub-style heading anchors resolved for every tracked Markdown document outside lifecycle, vendored, crate, check, fixture, web, tool and test directories",
     "documents": 63,
-    "relative_links": 517,
+    "relative_links": 519,
     "broken": 0,
     "broken_list": [],
     "negative_control": {
@@ -175,10 +366,11 @@
       "exit_code": 0,
       "verdict": "pass",
       "valid": true,
-      "requirements": 1745,
-      "referenced": 1745,
+      "requirements": 1748,
+      "referenced": 1748,
       "missing": 0,
-      "dangling": 0
+      "dangling": 0,
+      "note": "rerun on the tree that holds the host conformance change and the close-out documents; the earlier run in this package counted 1745 before the version flag added three"
     },
     {
       "command": [
@@ -200,7 +392,7 @@
         "function-address_authentication",
         "workspace_contract_matrix"
       ],
-      "note": "it reported valid false while the two new packages had no current review receipt; the result above is after their receipts were generated"
+      "note": "it reported valid false while the two new packages had no current review receipt; the result above is after their receipts were generated; rerun after the host conformance change and the close-out documents with the same result"
     }
   ],
   "lifecycle": {
@@ -211,26 +403,204 @@
     "synchronized_or_archived": false
   },
   "not_exercised": [
-    "The private reporting form as an outside reporter",
-    "A completed first secret-scanning pass over existing history: the alert list was empty 43 minutes after enabling",
+    "The private reporting form as an outside reporter: it needs a second GitHub account",
+    "A deletion or non-fast-forward push against the ruleset: the rule was read back, not provoked",
+    "Disabling or deleting the ruleset, which a projection rollback would need",
     "scripts/check-nickel-fixtures.sh: its inputs did not change after the retained run",
-    "The workspace catalog correction: the generator could not run",
-    "The Octet check, the full nix flake check and the packaged nix build path:$PWD#kiln output",
-    "The quick start from a credential-isolated checkout",
-    "Any push, tag, release or announcement"
+    "The quick start from a credential-isolated checkout of the public route: nothing is published yet",
+    "Any push to a Kiln remote, tag, release or announcement: canonical publication signs with the operator's hardware key"
   ],
   "non_claims": [
     "Enabled settings are repository configuration; they do not establish that a report will be handled or that no secret exists in history",
+    "The ruleset is projection configuration; it is not Radicle governance and does not protect canonical main",
+    "A row in the organization profile is a link; it does not publish the launch preparation",
     "Changing visibility cannot retract copies that were already fetched",
     "Launch documents are copy and procedure, not evidence of release readiness; onix_release_ready is false",
     "Test and coverage figures describe one host and one unpublished tree; they do not validate a tagged revision"
   ],
   "workspace_catalog": {
     "repository": "the workspace repository that contains this checkout; it has its own history",
-    "file": "docs/catalog.ncl",
-    "state": "still names https://github.com/OnixResearch/kiln-public as Kiln's GitHub source; its generated wiki links that repository",
-    "attempt": "github_url was changed to https://github.com/OnixResearch/kiln and nix run .#generate-docs was started twice; it did not start generating; the catalog line was restored byte-identically and no file in that repository differs from before",
-    "blocked_by": "68 nix-daemon workers, the oldest 2 h 38 min old; the store database had not been written for 36 minutes; 88 GiB free against a 100 GiB min-free setting",
-    "open_row": "docs/gtm/launch-checklist.md, section 2"
+    "commit": "6cd7a3076fbb903339a1d9b71f92b01821475fb0",
+    "commit_scope": "local; two files; unrelated uncommitted changes in that repository were left untouched",
+    "change": "docs/catalog.ncl names https://github.com/OnixResearch/kiln as Kiln's GitHub source; the generated guide WIKI.adoc follows: 3 insertions, 3 deletions",
+    "generator": {
+      "documented_command": "nix run .#generate-docs",
+      "documented_command_result": "did not run: evaluation blocked on a store path lock held by a stalled daemon worker from an earlier cancelled attempt",
+      "steps_run_instead": [
+        {
+          "step": "nickel export --format json docs/catalog.ncl",
+          "tool": "nickel 1.17.0, the store path the workspace flake pins",
+          "exit_code": 0
+        },
+        {
+          "step": "workspace-docs-renderer --check before regeneration",
+          "tool": "built with cargo --locked --release from tools/generate-workspace-docs",
+          "exit_code": 1,
+          "result": "generated AsciiDoc is stale: WIKI.adoc"
+        },
+        {
+          "step": "workspace-docs-renderer",
+          "exit_code": 0,
+          "result": "regenerated workspace AsciiDoc: WIKI.adoc"
+        },
+        {
+          "step": "workspace-docs-renderer --check after regeneration",
+          "exit_code": 0,
+          "result": "workspace AsciiDoc is fresh"
+        },
+        {
+          "step": "asciidoctor --failure-level WARN to a temporary directory",
+          "tool": "asciidoctor 2.0.26 on ruby 3.4.9, an existing store build of the pinned version, not the pinned store path",
+          "exit_code": 0,
+          "result": "no warning; rendered guide carries one Kiln GitHub link, to OnixResearch/kiln"
+        },
+        {
+          "step": "asciidoctor negative control",
+          "exit_code": 1,
+          "result": "a missing include fails at --failure-level WARN"
+        },
+        {
+          "step": "asciidoctor in place",
+          "exit_code": 0,
+          "result": "ignored WIKI.html and VOCABULARY.html refreshed"
+        }
+      ],
+      "not_run": "render-workspace-docs: the rendered site under public/ in that repository, which git ignores, still carries the old link"
+    }
+  },
+  "nix_checks_after_host_conformance": {
+    "observed_on": "2026-11-12, between 20:55Z and 21:20Z",
+    "revision": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
+    "revision_note": "local revision that holds the Aspen host conformance change; not published",
+    "flake_reference": "git+file://$PWD?rev=<revision>",
+    "invocation": "nix build --no-write-lock-file --no-link -L --keep-going <reference>#checks.x86_64-linux.<name> --option min-free 0, with substituters limited to cache.nixos.org and no remote builders",
+    "host_note": "auto-GC was disabled for these invocations only: the store was below its 100 GiB min-free setting and the garbage-collector lock had been held since 16:25Z, so any store write that triggered auto-GC blocked; a watchdog stopped a build if free space on the store fell below 18 GiB, or 16 GiB for the host package check; no persistent setting changed",
+    "results": [
+      {
+        "check": "octet",
+        "exit_code": 0,
+        "observation": "aggregate over the four consumer checks below"
+      },
+      {
+        "check": "kiln-aspen-host-octet-deny-all",
+        "exit_code": 0,
+        "derivation": "/nix/store/8smkacy5y4n0kgxrddaj76am823n8vbn-octet-consumer-check.drv",
+        "observation": "Octet status clean; the same derivation as the run on the working tree retained in conform-aspen-host-to-octet"
+      },
+      {
+        "check": "aspen-runtime-octet-deny-all",
+        "exit_code": 0,
+        "observation": "Octet status clean"
+      },
+      {
+        "check": "radicle-broker-wire-octet-deny-all",
+        "exit_code": 0,
+        "observation": "Octet status clean"
+      },
+      {
+        "check": "kiln-radicle-nix-provider-octet-deny-all",
+        "exit_code": 0,
+        "observation": "Octet status clean"
+      },
+      {
+        "check": "kiln-aspen-host-package",
+        "exit_code": 0,
+        "wall_seconds": 735,
+        "output": "/nix/store/iq6017nqfvpirfp9bifjmv07vzkd18a7-kiln-aspen-host-0.1.0",
+        "build": "cargoBuildHook --profile release --bin kiln-aspen-host, then cargoCheckHook --profile release --workspace --all-targets --all-features",
+        "sandbox_tests": {
+          "result_lines": 8,
+          "passed": 46,
+          "failed": 0,
+          "ignored": 0,
+          "per_target": {
+            "lib": 19,
+            "bin kiln-aspen-host": 3,
+            "bin extension fixture": 0,
+            "tests/admission.rs": 3,
+            "tests/docssynclive.rs": 1,
+            "tests/durability.rs": 5,
+            "tests/gossiplive.rs": 2,
+            "tests/hosted.rs": 13
+          }
+        },
+        "observation": "the hosted target launched its child hosts and finished in 2.43s in the optimized profile; the development-shell run of the same tests uses the unoptimized profile and took 458s"
+      }
+    ],
+    "at_published_base": {
+      "revision": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "check": "kiln-aspen-host-octet-deny-all",
+      "exit_code": 1,
+      "result": "14 findings in the library; the aggregate octet check fails with it",
+      "detail": "../../conform-aspen-host-to-octet/evidence/verification.json"
+    }
+  },
+  "organization_profile": {
+    "repository": "OnixResearch/.github",
+    "path": "profile/README.md",
+    "before": {
+      "observed_at": "2026-11-12T21:20:59Z",
+      "head": "323cee11b6cdaef21f1aafeffbb950593d0da6ac",
+      "blob": "8142d1c3fea6d8c6074a69d5eb37e6ab40100c6a",
+      "size": 1667,
+      "branch": {
+        "protected": false,
+        "sha": "323cee11b6cdaef21f1aafeffbb950593d0da6ac"
+      },
+      "active_rules_on_main": 0,
+      "projects_listed": [
+        "Mantle",
+        "Noble",
+        "Octet",
+        "Cairn",
+        "Terrane",
+        "Nickel Export"
+      ]
+    },
+    "action": {
+      "request": "PUT repos/OnixResearch/.github/contents/profile/README.md with the prepared content, the observed blob sha and branch main",
+      "message": "Add Kiln to the organization profile",
+      "exit_code": 0,
+      "completed_by": "2026-11-12T21:21:23Z",
+      "row": "| [Kiln](https://github.com/OnixResearch/kiln) | A provider-neutral CI control plane with exact-revision results, replayable state, and replaceable providers. |",
+      "placement": "appended to the Projects table, after the Nickel Export row",
+      "local_diff": "one line added at line 15; nothing removed"
+    },
+    "after": {
+      "observed_at": "2026-11-12T21:21:43Z",
+      "commit": "a8a543138196fe20533b95048b3be284a1fe443a",
+      "parents": [
+        "323cee11b6cdaef21f1aafeffbb950593d0da6ac"
+      ],
+      "stats": {
+        "total": 1,
+        "additions": 1,
+        "deletions": 0
+      },
+      "files": [
+        {
+          "filename": "profile/README.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0
+        }
+      ],
+      "signature": {
+        "verified": false,
+        "reason": "unsigned"
+      },
+      "blob": "1e074ceeef15abe5a93cf6eb6406f5b5d77d4a85",
+      "size": 1828,
+      "read_back": "the decoded file equals the prepared content byte for byte",
+      "branch": {
+        "protected": false,
+        "sha": "a8a543138196fe20533b95048b3be284a1fe443a"
+      },
+      "anonymous": {
+        "organization_page": "https://github.com/OnixResearch returned HTTP 200 and carries one link to https://github.com/OnixResearch/kiln",
+        "raw_at_commit": "HTTP 200; the Kiln row is present"
+      }
+    },
+    "note": "the linked repository shows the previous README until the launch preparation is published"
   }
 }

@@ -287,6 +287,21 @@ changed. The preceding section describes the projection as observed on
 2026-10-17. Changing visibility cannot retract copies that were already
 fetched.
 
+### Projection branch rule
+
+On 2026-11-12 the operator directed a repository ruleset on the GitHub
+projection `OnixResearch/kiln`. Ruleset `27157794` is active on
+`refs/heads/main`. It blocks deletion and non-fast-forward updates and has no
+bypass actor. It requires no review, status check or signature, so a
+fast-forward projection push is unaffected. The rule was read back through
+the API; it was not provoked with a refused push.
+
+The ruleset is projection configuration, not governance. Radicle delegates
+and the threshold still decide canonical `main`. A recovery that must move
+the projection's `main` backwards needs the ruleset disabled or deleted
+first, as an explicit operator action in the repository's ruleset settings or
+through the rulesets API. Neither was exercised.
+
 ## Source-only publication of candidate `f748acd0`
 
 The operator authorized one exact source-only cutover

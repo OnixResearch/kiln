@@ -5,19 +5,19 @@
   "reviewed_inputs": [
     {
       "path": "proposal.md",
-      "hash": "25255daee1d0c4bcfa4cc348eefa13f1797152b7340015ea9943213f15cf24e4"
+      "hash": "bcf947406d7f136794db07dd2ba723d21d9cf97780fcd606257e4a923ad27134"
     },
     {
       "path": "design.md",
-      "hash": "357f7f468444ad21539ec1ff42c206daca31fc8c6f30a30f87a8a5a200bad578"
+      "hash": "becc6653f28917cb94a39e509d659e06a26c9611fb6cbf38b0d30b79ba83b996"
     },
     {
       "path": "acceptance.md",
-      "hash": "03c3a84d21940c4488b13f7ea0640e8999351646c96691bf56aac74249f504c3"
+      "hash": "11823354dc80d5c456dccdea0cb6a683d12b7314f0c79771be17537f73c9219f"
     },
     {
       "path": "tasks.md",
-      "hash": "defd46cc5945d360abb30214d2b600bb6e957332fc90065b6da7e17efe6faa8c"
+      "hash": "f185567826e6b35d007650888ebe0a146caca1e96e54422e8ef1f0fe28017da2"
     }
   ],
   "reviewer": {

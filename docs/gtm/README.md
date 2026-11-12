@@ -19,7 +19,7 @@ with a canonical source below, the source wins.
 | Exercised platform | `x86_64-linux`; `aarch64-linux` is declared and unchecked |
 | License | Mixed; see the [license map](../../LICENSES.md) |
 | Hosted service | None. Planned; every gate in [the commercial plan](../commercial-launch.md) is open |
-| Launch status | Prepared in the working tree, not published. Publish only after [the checklist](launch-checklist.md) is green |
+| Launch status | Prepared in local commits, not published. Publish only after [the checklist](launch-checklist.md) is green |
 
 ## Open launch blockers
 
@@ -30,15 +30,13 @@ missing documents:
   previous README and has no security policy;
 - no `v0.1.0` tag or release exists on either remote;
 - the private reporting form was not exercised as an outside reporter;
-- secret-scanning push protection is disabled and `main` is unprotected on
-  the projection;
-- the projection has no description and no topics, and the organization
-  profile does not list Kiln;
-- the Octet check and the full `nix flake check` were not run, including the
-  checks whose package selectors the rename changed, and the packaged
-  `nix build path:$PWD#kiln` output was not exercised;
-- the workspace catalog outside this repository still names `kiln-public`
-  as Kiln's GitHub source;
+- the organization profile now links Kiln, and until publication that link
+  reaches the previous README;
+- published `main` fails the Octet check; the change that makes it pass is
+  one of the local commits;
+- the full `nix flake check` was not run and `nix run` itself was not
+  exercised; [the checklist](launch-checklist.md#4-repository-gates) lists
+  the Nix checks that ran;
 - the quick start was not repeated from a credential-isolated checkout at
   this revision;
 - the product name and domain are not cleared: an unrelated `kiln` crate
@@ -47,13 +45,20 @@ missing documents:
 
 Resolved on 2026-11-12 at the operator's direction:
 
-- private vulnerability reporting and secret scanning are enabled on the
-  GitHub projection;
+- private vulnerability reporting, secret scanning and push protection are
+  enabled on the GitHub projection, and its description and topics are set;
+- the projection's `main` has a ruleset that blocks deletion and
+  non-fast-forward pushes, and the organization profile lists Kiln;
 - `OnixResearch/kiln-public`, a stale second public repository, is private
   and no longer an entry point;
+- the workspace catalog names `OnixResearch/kiln` as Kiln's GitHub source,
+  in a local commit of the workspace repository;
 - the two packages whose names collided with crates.io are `onix-kiln-core`
   and `onix-kiln-cli`;
-- `kiln --help` prints usage.
+- `kiln --help` prints usage and `kiln --version` prints the version;
+- the packaged `kiln` flake output builds and runs;
+- the Aspen host conforms to the Octet policy, so the Octet check passes on
+  the local commits.
 
 Hosted CI has its own blockers and stays out of the release: every gate
 L0 through L7 is open, no price is approved, and no service exists.

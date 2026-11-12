@@ -160,12 +160,7 @@
     "synchronized_or_archived": false
   },
   "not_exercised": [
-    "nix build path:$PWD#checks.x86_64-linux.no-std",
-    "nix build path:$PWD#checks.x86_64-linux.radicle-status-boundaries",
-    "nix build path:$PWD#checks.x86_64-linux.celld-boundaries",
-    "nix build path:$PWD#checks.x86_64-linux.aspen-runtime-octet-deny-all",
-    "nix build path:$PWD#checks.x86_64-linux.radicle-broker-wire-octet-deny-all",
-    "The full nix flake check and the packaged nix build path:$PWD#kiln output",
+    "The full nix flake check: 1224 derivations would be rebuilt, including Nix from source, two Rust toolchains and a NixOS VM test, on a store with about 40 GiB free; it was not started",
     "A build of Cairn, OnixOS or the Kiln Aspen host against a revision that includes the rename",
     "aarch64-linux"
   ],
@@ -174,11 +169,105 @@
     "first_attempt": "nix build of three checks waited about 20 minutes on the garbage-collector lock and was cancelled",
     "second_attempt": "the same build with auto-GC disabled for that invocation printed nothing for about five minutes; client and daemon worker used no CPU; cancelled",
     "host_state": "68 nix-daemon workers, the oldest 2 h 38 min old; the store database had not been written for 36 minutes; 88 GiB free against a 100 GiB min-free setting",
-    "persistent_change": "none"
+    "persistent_change": "none",
+    "resolved_by": "a later run at a pinned local revision with auto-GC disabled per invocation; see nix_checks"
   },
   "non_claims": [
-    "Cargo commands in the development shell are not the Nix checks: sandboxing, vendoring and release profiles differ",
+    "The Nix checks ran at one unpublished local revision on one host; they do not validate a tagged revision",
     "A registry name being free on one date does not reserve it",
     "The product name Kiln and its domain are not cleared by this change"
-  ]
+  ],
+  "nix_checks": {
+    "observed_on": "2026-11-12, between 20:05Z and 20:25Z",
+    "revision": "95668b0bf0400b3137d4288bc58b6b010f2bf13b",
+    "revision_note": "local revision that holds the rename and both operator CLI changes; not published",
+    "flake_reference": "git+file://$PWD?rev=<revision>",
+    "invocation": "nix build --no-write-lock-file --no-link -L --keep-going <reference>#checks.x86_64-linux.<name> --option min-free 0, with substituters limited to cache.nixos.org and no remote builders",
+    "host_note": "auto-GC was disabled for these invocations only: the store was below its 100 GiB min-free setting and the garbage-collector lock had been held since 16:25Z, so any store write that triggered auto-GC blocked; a watchdog stopped a build if free space on the store fell below 25 GiB; no persistent setting changed",
+    "results": [
+      {
+        "check": "no-std",
+        "exit_code": 0,
+        "observation": "cargoBuildHook flags: --offline --profile release -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target=wasm32-unknown-unknown; release build finished"
+      },
+      {
+        "check": "radicle-status-boundaries",
+        "exit_code": 0,
+        "observation": "cargo tree -p onix-kiln-core and the two grep refusals ran in the build phase"
+      },
+      {
+        "check": "celld-boundaries",
+        "exit_code": 0,
+        "observation": "library tests passed: 2, 9 and 226; the injected edge was reported as 'onix-kiln-core: forbidden runtime dependency edge' naming celld-forbidden-runtime"
+      },
+      {
+        "check": "aspen-runtime-octet-deny-all",
+        "exit_code": 0,
+        "observation": "Octet status clean, with the regenerated lock file"
+      },
+      {
+        "check": "radicle-broker-wire-octet-deny-all",
+        "exit_code": 0,
+        "observation": "Octet status clean, with the regenerated lock file"
+      }
+    ],
+    "packaged_output": {
+      "installable": "<reference>#kiln",
+      "exit_code": 0,
+      "wall_seconds": 615,
+      "build": "cargoBuildHook --profile release --workspace --all-targets, then the check phase",
+      "sandbox_tests": {
+        "result_lines": 161,
+        "passed": 1612,
+        "failed": 0,
+        "ignored": 5
+      },
+      "binaries": 21,
+      "kiln_binary": [
+        {
+          "arguments": [
+            "demo"
+          ],
+          "exit_code": 0,
+          "stdout": "the one-line demo state"
+        },
+        {
+          "arguments": [
+            "--help"
+          ],
+          "exit_code": 0,
+          "stdout": "usage text"
+        },
+        {
+          "arguments": [
+            "--version"
+          ],
+          "exit_code": 0,
+          "stdout": "kiln 0.1.0"
+        },
+        {
+          "arguments": [
+            "-V"
+          ],
+          "exit_code": 0,
+          "stdout": "kiln 0.1.0"
+        },
+        {
+          "arguments": [
+            "--version",
+            "extra"
+          ],
+          "exit_code": 2,
+          "stderr": "usage text"
+        },
+        {
+          "arguments": [
+            "frobnicate"
+          ],
+          "exit_code": 1,
+          "stderr": "unsupported command: frobnicate"
+        }
+      ]
+    }
+  }
 }

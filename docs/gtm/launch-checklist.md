@@ -15,8 +15,9 @@ Unless a row says otherwise, local results were observed on 2026-11-12 on one
 `428d03fcfb02478ed79d38453fb44f82c6a2bdd5` plus the unpublished changes that
 prepare this launch. The exact commands and outputs are retained in the
 lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
-`adopt-onix-package-prefix` and `resolve-launch-channel-blockers`, and in the
-archived package `add-operator-cli-help`.
+`adopt-onix-package-prefix`, `resolve-launch-channel-blockers` and
+`conform-aspen-host-to-octet`, and in the archived packages
+`add-operator-cli-help` and `add-operator-cli-version`.
 
 ## 1. Release identity and legal
 
@@ -75,30 +76,40 @@ archived package `add-operator-cli-help`.
       [the withdrawal record](../hosting-and-recovery.md#withdrawal-of-the-historyless-projection).
 - [ ] Owner: decide whether to delete `kiln-public`. Deletion is irreversible
       and needs the `delete_repo` token scope; it was not attempted.
-- [ ] Owner: correct the workspace catalog. `docs/catalog.ncl` in the
-      workspace repository still names `kiln-public` as Kiln's GitHub source,
-      so the workspace wiki links a private repository. Set `github_url` to
-      `https://github.com/OnixResearch/kiln` and run `nix run .#generate-docs`
-      there. Not done: the Nix store on the preparation host was not
-      accepting writes.
-- [ ] Owner: add Kiln to the organization profile README. It is not listed.
-- [ ] Owner: set the GitHub description and topics. Both are empty. The
-      Radicle project description is a ready description. Set a homepage only
-      if it is an owned URL.
+- [x] The workspace catalog names `https://github.com/OnixResearch/kiln` as
+      Kiln's GitHub source. `docs/catalog.ncl` and the generated guide in the
+      workspace repository were corrected in its local commit `6cd7a307`.
+      The guide was regenerated with the workspace's own renderer and checked
+      with asciidoctor 2.0.26; the rendered site under `public/` there was
+      not refreshed.
+- [x] The organization profile lists Kiln. One row was appended to the
+      Projects table of `profile/README.md` in `OnixResearch/.github`, commit
+      `a8a54313`, on 2026-11-12 at the operator's direction, and read back.
+      The anonymous organization page shows the link. Until the launch
+      preparation is published, the link reaches the previous README.
+- [x] The GitHub description is `Provider-neutral CI control plane`, the
+      Radicle project description, and the topics are `ci`,
+      `continuous-integration`, `jujutsu`, `nix`, `radicle`, `rust` and
+      `self-hosted`. Both were set on 2026-11-12 at the operator's direction
+      and read back. No homepage is set.
 - [x] Private vulnerability reporting is enabled on the GitHub projection;
       the API read back `enabled: true` on 2026-11-12. The advisory form
       redirects an anonymous visitor to sign in. `SECURITY.md` and
       `CODE_OF_CONDUCT.md` name that form.
 - [x] Secret scanning is enabled on the projection. It listed no alert at
-      2026-11-12T16:50Z, 43 minutes after it was enabled; the first scan of
-      existing history may not have finished, so read the alert list again
-      before launch.
-- [ ] Owner: decide push protection. It is still disabled. It rejects a push
-      that contains a detected secret pattern, which can block a projection
-      push that carries secret-shaped test fixtures.
-- [ ] Owner: decide branch protection for the projection's `main`. It is
-      unprotected. A rule must still admit the maintainer's fast-forward
-      projection push.
+      2026-11-12T20:13Z, four hours after it was enabled. Read the alert list
+      again before launch.
+- [x] Secret-scanning push protection is enabled, set on 2026-11-12 at the
+      operator's direction and read back. It rejects a push that carries a
+      detected secret pattern; GitHub prints a bypass link for a reviewed
+      false positive.
+- [x] The projection's `main` has a branch rule. Repository ruleset
+      `27157794` was created on 2026-11-12 at the operator's direction and
+      read back as active. It blocks deletion and non-fast-forward pushes and
+      has no bypass actor. It requires no review, status check or signature,
+      so a fast-forward projection push passes. The rule was not provoked
+      with a refused push. A projection rollback needs the ruleset disabled
+      first; see [the hosting record](../hosting-and-recovery.md#projection-branch-rule).
 - [x] The README states the mixed license in its first table. GitHub's
       detector displays `AGPL-3.0` for the repository; the license map is
       the authority.
@@ -111,15 +122,19 @@ archived package `add-operator-cli-help`.
 - [x] `cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview`
       wrote `journal.json` and `dashboard.html`. The page rendered in
       headless Chromium with six runs and seven attempts.
-- [x] `cargo test --locked --workspace` exited 0: 1610 passed, 0 failed,
-      5 ignored across 161 result lines, in 1m13s with a warm build cache,
-      after the package rename and the `kiln --help` change.
+- [x] `cargo test --locked --workspace` exited 0: 1612 passed, 0 failed,
+      5 ignored across 161 result lines, in 1m16s with a warm build cache,
+      at local revision `95668b0b`, which holds the package rename and both
+      operator CLI changes.
 - [x] `cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e`
       passed 17 tests against isolated fixtures. It is not a live GitHub run.
-- [ ] Release owner: build the packaged flake output with
-      `nix build path:$PWD#kiln` and run `result/bin/kiln demo`. Not completed
-      for this preparation; do not document `nix run` as exercised until it
-      is.
+- [x] The packaged flake output builds and runs. `nix build` of the `kiln`
+      package at local revision `95668b0b` exited 0 in 10m15s. Its check phase
+      ran the workspace tests in the sandbox: 1612 passed, 0 failed,
+      5 ignored. The output holds 21 programs; `kiln demo`, `kiln --help` and
+      `kiln --version` from it behave as documented.
+- [ ] Release owner: repeat the packaged build on the release commit. `nix
+      run` itself was not exercised.
 - [ ] Release owner: repeat the quick start from a credential-isolated
       checkout of the public route, with an empty `HOME` and no Git or SSH
       credentials. The retained contributor check covers an earlier revision.
@@ -149,21 +164,44 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
       before running any fixture. `nickel format` was applied to those two
       files; the change is whitespace only.
 - [x] `cairn validate`: pass.
-- [x] `cairn traceability coverage`: pass, 1745 requirements, all
+- [x] `cairn traceability coverage`: pass, 1748 requirements, all
       referenced, none missing, none dangling. This is declared linkage, not
       execution truth.
 - [x] `cairn release-readiness --root .`: `valid: true`, `verdict: pass`,
       `onix_release_ready: false`. Skipped or absent inputs: release-evidence
       index freshness, semantic review ledger, stack provenance, function
       address and the workspace contract matrix.
-- [ ] `nix build path:$PWD#checks.x86_64-linux.octet`: not run.
+- [x] The aggregate Octet check, `checks.x86_64-linux.octet`, and its four
+      consumer checks pass at local revision `0495510a`, each with exit
+      status 0. At published `main` the aggregate fails: the Aspen host check
+      reported 14 findings in three library modules added on 2026-11-11 and
+      2026-11-12, and a further 71 appeared in the binary and two live tests
+      once the library compiled. The local change
+      `conform-aspen-host-to-octet` resolves them by layout and code changes.
+      It adds one reasoned clock allowance at the host's shell boundary; the
+      two live tests carry the allowances the host's other integration tests
+      already carry. The host's 46 tests pass before and after, and its 52
+      requirement markers are unchanged.
+- [x] `checks.x86_64-linux.kiln-aspen-host-package` passes at local revision
+      `0495510a`: exit status 0 in 12m15s, with the host's 46 tests passing
+      in the sandbox.
+- [x] Nix checks run at local revision `95668b0b`, each with exit status 0:
+      `no-std`, `radicle-status-boundaries`, `celld-boundaries`,
+      `aspen-runtime-octet-deny-all`, `radicle-broker-wire-octet-deny-all` and
+      `kiln-radicle-nix-provider-octet-deny-all`. The first five are the
+      checks the package rename touched.
 - [ ] `nix flake check path:$PWD --no-write-lock-file -L`: not run. It has 45
-      checks. Record its result on the release commit or state that it was
-      not run. The package rename changed the package selectors of the
-      `no-std`, `radicle-status-boundaries` and `celld-boundaries` checks and
-      the lock files of both Octet check workspaces. The same Cargo commands
-      passed in the development shell. The Nix checks did not start: on
-      2026-11-12 the Nix store on this host was not accepting writes.
+      checks. On 2026-11-12 it would have rebuilt 1224 derivations, including
+      Nix from source, two Rust toolchains and a NixOS VM test, on a store
+      with about 40 GiB free. Record its result on the release commit or
+      state that it was not run.
+- [ ] Operator: the Nix store on the preparation host needs attention. It
+      was below its 100 GiB `min-free` setting, so every store write started
+      an automatic garbage collection, and one collection held the collector
+      lock for hours while about fifty daemon workers queued behind it. The
+      Nix runs recorded here used a pinned `git+file` revision and
+      `--option min-free 0` for those invocations only, under a watchdog that
+      stops a build before free space falls below a floor.
 - [ ] Open qualification items in the retained 2026-11-08 readiness record
       remain open: the combined Web approval handoff and distinct-physical-host
       measurements. They bound hosted and isolation claims, not the source
@@ -271,8 +309,8 @@ Hard gates:
 
 Soft gates:
 
-- [ ] GitHub description and topics are set; the organization profile lists
-      Kiln.
+- [x] GitHub description and topics are set, and the organization profile
+      lists Kiln.
 - [ ] The contribution route is confirmed.
 - [ ] `nix build path:$PWD#kiln` and the full flake check passed on the
       release commit.
@@ -301,29 +339,22 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 \
 git ls-remote https://github.com/OnixResearch/kiln.git \
   refs/heads/main refs/tags/v0.1.0
 
-# 3. Set projection metadata. Private vulnerability reporting and secret
-#    scanning are already enabled. Run the second command only if push
-#    protection is decided.
-gh repo edit OnixResearch/kiln \
-  --description "Provider-neutral CI control plane" \
-  --add-topic ci --add-topic continuous-integration --add-topic nix \
-  --add-topic rust --add-topic radicle --add-topic jujutsu \
-  --add-topic self-hosted
-gh api --method PATCH repos/OnixResearch/kiln \
-  -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
-
-# 4. Read the settings back.
+# 3. Read the projection settings back. Description, topics, private
+#    vulnerability reporting, secret scanning, push protection and the main
+#    ruleset are already set.
 gh api repos/OnixResearch/kiln/private-vulnerability-reporting
 gh api repos/OnixResearch/kiln --jq .security_and_analysis
 gh repo view OnixResearch/kiln --json description,repositoryTopics
+gh api repos/OnixResearch/kiln/rules/branches/main
 
-# 5. Create the release from the reviewed notes. Replace relative links in
+# 4. Create the release from the reviewed notes. Replace relative links in
 #    the notes first, as the notes describe.
 gh release create v0.1.0 --repo OnixResearch/kiln --verify-tag \
   --title "Kiln 0.1.0" --notes-file docs/gtm/release-notes-0.1.0.md
 ```
 
-Configure branch protection in the repository settings. On 2026-11-12, at the
-operator's direction, private vulnerability reporting and secret scanning were
-enabled on the projection and `kiln-public` was made private. None of the
-commands above was run during preparation.
+On 2026-11-12, at the operator's direction, the projection's description,
+topics, private vulnerability reporting, secret scanning, push protection and
+`main` ruleset were set, Kiln was added to the organization profile, and
+`kiln-public` was made private. No tag, publication or release command above
+was run during preparation.

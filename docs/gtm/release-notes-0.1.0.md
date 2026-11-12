@@ -113,18 +113,24 @@ publishing.
 | --- | --- |
 | `cargo run --locked -p onix-kiln-cli -- demo` | Printed the one-line state above; no network, VCS or filesystem write and no dispatch |
 | `cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview` | Wrote a synthetic journal and an offline HTML dashboard |
-| `cargo test --locked --workspace` | Exit 0: 1610 passed, 0 failed, 5 ignored across 161 result lines; 1m13s wall time with a warm cache |
+| `cargo test --locked --workspace` | Exit 0: 1612 passed, 0 failed, 5 ignored across 161 result lines; 1m16s wall time with a warm cache |
 | `cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e` | 17 passed against isolated fixtures; not a live GitHub run |
 | `cargo clippy --locked --workspace --all-targets -- -D warnings` | Pass |
 | `cargo fmt --all --check` | Pass |
 | `scripts/check-nickel-fixtures.sh` | Pass with 78 positive and 567 negative fixtures, after canonical formatting of two configuration files that failed its format check |
 | `cairn validate` | Pass |
-| `cairn traceability coverage` | Pass: 1745 requirements, all referenced, none missing, none dangling; declared linkage, not execution truth |
+| `cairn traceability coverage` | Pass: 1748 requirements, all referenced, none missing, none dangling; declared linkage, not execution truth |
 | `cairn release-readiness --root .` | `valid: true`, `verdict: pass`, `onix_release_ready: false` |
 
-Not run: the Octet check and `nix flake check` with its 45 checks. The
-packaged `nix build path:$PWD#kiln` output was not exercised, so `nix run` is
-unverified.
+Nix results on the same host, at local revisions that are not published:
+
+| Check | Outcome |
+| --- | --- |
+| `nix build` of the `kiln` package | Exit 0 at `95668b0b`; the check phase ran the workspace tests in the sandbox with 1612 passed, 0 failed, 5 ignored; `kiln demo`, `kiln --help` and `kiln --version` ran from the output |
+| `nix build` of `checks.x86_64-linux.octet` and its four consumer checks | Exit 0 at `0495510a`, after the Aspen host was brought under the Octet policy; the check fails at `428d03fc` |
+| `nix build` of the `no-std`, `radicle-status-boundaries` and `celld-boundaries` checks | Exit 0 at `95668b0b` |
+
+Not run: `nix flake check` with its 45 checks, and `nix run` itself.
 
 Retained receipts for earlier recorded cohorts. None validates this revision:
 
