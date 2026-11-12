@@ -75,13 +75,7 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             "state root must be an existing directory".to_string(),
         ));
     }
-    let state_name = state_root
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("kiln-aspen");
-    let content_root = state_root.with_file_name(format!("{state_name}-content"));
-    let content = MoltenContentPort::open(&content_root, CONTENT_CHUNK_BYTES)
-        .map_err(|error| HostBridgeError::Admission(format!("content store: {error:?}")))?;
+    let content = open_content_store(&state_root)?;
     let maximum_records = radicle.shell.maximum_replay_records;
     let lattice_transport = UnixWorkflowExchange::new(
         radicle.shell.socket_path.clone(),
@@ -128,6 +122,17 @@ fn run(arguments: impl Iterator<Item = String>) -> Result<()> {
             timeout: std::time::Duration::from_millis(arguments.timeout_milliseconds),
         },
     )
+}
+
+/// Opens the content store beside the state root, at `<state-name>-content`.
+fn open_content_store(state_root: &std::path::Path) -> Result<MoltenContentPort> {
+    let state_name = state_root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("kiln-aspen");
+    let content_root = state_root.with_file_name(format!("{state_name}-content"));
+    MoltenContentPort::open(&content_root, CONTENT_CHUNK_BYTES)
+        .map_err(|error| HostBridgeError::Admission(format!("content store: {error:?}")))
 }
 
 fn load_aspen_profile(path: &std::path::Path) -> Result<RuntimeProfileBinding> {

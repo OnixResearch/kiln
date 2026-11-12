@@ -1,0 +1,183 @@
+{
+  "schema": "kiln.aspen-host-octet-conformance.verification.v1",
+  "scope": "Layout, parameter-type, error-reporting and test-structure changes that bring runtime/kiln-aspen-host under the Octet deny-all policy. Not a behavior qualification of the host, its live transports or any deployment",
+  "owner": "Kiln maintainers",
+  "observed_on": "2026-11-12",
+  "authority": "the operator chose 'Fix now in a separate local commit' when shown the failing gate and the planned changes",
+  "source": {
+    "published_base": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+    "parent_revision": "95668b0bf0400b3137d4288bc58b6b010f2bf13b",
+    "state": "local parent revision plus this change; neither is published"
+  },
+  "environment": {
+    "toolchain": "nightly-2026-05-26 from runtime/kiln-aspen-host/rust-toolchain.toml",
+    "platform": "x86_64-linux, one host"
+  },
+  "gate_before": {
+    "check": "checks.x86_64-linux.kiln-aspen-host-octet-deny-all",
+    "at_published_base": {
+      "revision": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "exit_code": 1,
+      "status": "integration-failure",
+      "result": "could not compile kiln-aspen-host (lib) due to 14 previous errors"
+    },
+    "at_parent": {
+      "revision": "95668b0bf0400b3137d4288bc58b6b010f2bf13b",
+      "exit_code": 1,
+      "status": "integration-failure",
+      "result": "the same 14 findings"
+    },
+    "introduced_by": [
+      "ce10585e, 2026-11-11: content.rs and gossip.rs",
+      "428d03fc, 2026-11-12: docs_index.rs"
+    ],
+    "last_recorded_pass": "retained flake check of 2026-11-06",
+    "library_findings": 14,
+    "findings_hidden_behind_the_library": {
+      "total": 71,
+      "src/main.rs": 1,
+      "tests/gossip_live.rs": 40,
+      "tests/docs_sync_live.rs": 30,
+      "seen_at": "an intermediate tree with only the library fixed"
+    },
+    "aggregate": "checks.x86_64-linux.octet failed with it; the other three Octet consumer checks were clean at the parent"
+  },
+  "gate_after": {
+    "check": "checks.x86_64-linux.kiln-aspen-host-octet-deny-all",
+    "source_tree": "working-copy revision 801793619e36c230cfc830a556767a51bd9a3376, whose runtime/kiln-aspen-host subtree is the subtree of this change",
+    "derivation": "/nix/store/8smkacy5y4n0kgxrddaj76am823n8vbn-octet-consumer-check.drv",
+    "output": "/nix/store/jw3zgshmb176l6rsdkyy7s63ahcbsas3-octet-consumer-check",
+    "exit_code": 0,
+    "status": "clean",
+    "findings": 0,
+    "profile_hash": "b3:c36bdf92b60653d277cb9486fcfc6eab3e5fbeaebbde23f57c431965d1ccf01f",
+    "invocation": "nix build --no-write-lock-file --no-link -L --keep-going <git+file reference>#checks.x86_64-linux.kiln-aspen-host-octet-deny-all --option min-free 0",
+    "host_note": "auto-GC disabled for the invocation only, under a free-space watchdog; no persistent setting changed"
+  },
+  "layout": {
+    "source_files": 59,
+    "longest_file": {
+      "path": "src/cohort.rs",
+      "lines": 300
+    },
+    "files_over_300_lines": {},
+    "library_files_in_src": [
+      "src/cohort.rs",
+      "src/effect.rs",
+      "src/error.rs",
+      "src/lib.rs",
+      "src/runtime.rs",
+      "src/server.rs"
+    ],
+    "filenames_with_underscore": [],
+    "markers": {
+      "before": 52,
+      "after": 52,
+      "same_multiset": true
+    }
+  },
+  "allowances_added": [
+    {
+      "where": "src/gossip/hint.rs, now_ms",
+      "lint": "tigerstyle::ambient_clock",
+      "reason": "shell boundary: hint expiry is compared against the host wall clock"
+    },
+    {
+      "where": "tests/gossiplive.rs, crate header",
+      "lints": [
+        "tigerstyle::non_trait_imports",
+        "tigerstyle::no_panic"
+      ],
+      "note": "the allowances tests/admission.rs, tests/durability.rs and tests/hosted.rs already carry"
+    },
+    {
+      "where": "tests/docssynclive.rs, crate header",
+      "lints": [
+        "tigerstyle::non_trait_imports",
+        "tigerstyle::no_panic"
+      ],
+      "note": "as above"
+    }
+  ],
+  "allowances_not_added": [
+    "file length",
+    "module file count",
+    "module filename",
+    "function length",
+    "usize in public API",
+    "ignored result",
+    "unbounded channel",
+    "expect in production code",
+    "compound assertion",
+    "clock reads in tests"
+  ],
+  "api_changes": [
+    "kiln_aspen_host::docs_index::* is now kiln_aspen_host::docs::index::CacheIndex and kiln_aspen_host::docs::profile::{CacheIndexProfile, CacheIndexEntry, CacheIndexError}",
+    "MoltenContentPort::get_live_exact and CacheIndex::get_verified_blob take maximum_bytes: u64",
+    "CacheIndex::share takes is_writable",
+    "gossip::now_ms returns Result<u64, GossipError>; GossipError gains Clock",
+    "GossipListener::stop returns GossipError::Transport when the router shutdown fails and the task ended cleanly",
+    "test targets gossip_live and docs_sync_live are gossiplive and docssynclive"
+  ],
+  "unchanged": [
+    "hint schema kiln.gossip.hint.v1 and topic domain",
+    "hint, profile and content bounds",
+    "stored content index file and format",
+    "requirement markers: 52 before, 52 after, same multiset"
+  ],
+  "host_tests": {
+    "command": "cargo test --offline --locked --workspace --all-targets --all-features",
+    "before": {
+      "tree": "pristine export of runtime/kiln-aspen-host at the parent revision",
+      "exit_code": 0,
+      "result_lines": 8,
+      "passed": 46,
+      "failed": 0,
+      "ignored": 0
+    },
+    "after": {
+      "exit_code": 0,
+      "result_lines": 8,
+      "passed": 46,
+      "failed": 0,
+      "ignored": 0,
+      "per_target": {
+        "lib": 19,
+        "bin kiln-aspen-host": 3,
+        "tests/admission.rs": 3,
+        "tests/docssynclive.rs": 1,
+        "tests/durability.rs": 5,
+        "tests/gossiplive.rs": 2,
+        "tests/hosted.rs": 13
+      }
+    },
+    "comparison": "the same 46 test functions; 44 keep their full path and the two docs-index tests move from docs_index::tests to docs::index::tests",
+    "added_assertion": "the listener test also asserts that its bounded sink dropped no hint"
+  },
+  "other_checks": [
+    {
+      "command": "cargo clippy --offline --locked --workspace --all-targets --all-features -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0
+    }
+  ],
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "profile": "no-spec-delta",
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "not_exercised": [
+    "Relays, remote peers or any non-loopback transport: the live tests use loopback endpoints",
+    "A build of any consumer outside this repository against the changed host API",
+    "aarch64-linux"
+  ],
+  "non_claims": [
+    "A clean Octet status is a source-shape result; it does not establish behavior, isolation or release eligibility",
+    "The restructured live tests keep their assertions and order of network operations; that is a review statement, not a measured equivalence"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "reviewed_inputs": [
+    {
+      "path": "proposal.md",
+      "hash": "708895a84d9e0b78c277c5d16a2c1c05d02eab8f165912864ce0e4b4eb947676"
+    },
+    {
+      "path": "design.md",
+      "hash": "e132eade67f666d8377b61a13a409543f359aad014dc0d7b89f4719424e73bea"
+    },
+    {
+      "path": "acceptance.md",
+      "hash": "3abb7f1058b7f8042a69e2e51d018e14c52f9cdee042f9e60cb1e2a52704e146"
+    },
+    {
+      "path": "tasks.md",
+      "hash": "082908cca586ffcd767f6fb7f7057054991e2d6440fc8c5f290cf9b57f52c8b2"
+    }
+  ],
+  "reviewer": {
+    "source": "agentic",
+    "id": "omp-assistant-self-review"
+  },
+  "findings": []
+}

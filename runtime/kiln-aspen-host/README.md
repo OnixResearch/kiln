@@ -84,7 +84,12 @@ lifetime, event count, recent-hint count and join time are bounded; duplicate
 hints are suppressed. A hint is not a reservation, authority grant, delivery
 proof or execution request. Topic ids are derived from public scope text and are
 not confidential without a secret scope distributed over an authenticated
-channel.
+channel. Encoding and decoding read the host clock once; a clock that cannot
+be read as Unix milliseconds refuses the hint instead of substituting a time.
+
+`docs::index` is a bounded, advisory cache index over `iroh-docs`. It is not
+canonical Kiln state, a cache reservation or an authority grant: a consumer
+fetches the referenced blob and verifies its BLAKE3 identity.
 
 ## Validation
 

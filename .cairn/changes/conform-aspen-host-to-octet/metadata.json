@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Module layout, two parameter types, one renamed parameter, one renamed module path and error reporting in the Aspen host change to satisfy the Octet deny-all policy. Wire schemas, bounds, stored state, requirement text and requirement markers are unchanged.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}
