@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Restores conformance to accepted requirement kiln.radicle.canonical.provenance, which already requires retained licenses, recorded digests and a drift-refusing importer. No requirement, runtime behavior, canonical algorithm file, shim, manifest or lock file changes.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

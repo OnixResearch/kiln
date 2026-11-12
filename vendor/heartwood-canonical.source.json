@@ -5,6 +5,8 @@
   "source_package": "radicle 0.25.1 (crates.io)",
   "source_commit": "71a91042d96bb994c4cd4311d85f5cd1a6311b4e",
   "upstream_paths": {
+    "LICENSE-APACHE": "LICENSE-APACHE",
+    "LICENSE-MIT": "LICENSE-MIT",
     "src/git/canonical.rs": "crates/radicle/src/git/canonical.rs",
     "src/git/canonical/convergence.rs": "crates/radicle/src/git/canonical/convergence.rs",
     "src/git/canonical/effects.rs": "crates/radicle/src/git/canonical/effects.rs",
@@ -17,6 +19,8 @@
     "src/identity/did.rs": "crates/radicle/src/identity/did.rs"
   },
   "derived_files": {
+    "LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+    "LICENSE-MIT": "fff889db903497b59500b5171806c511b3c83df1100532c2f7aa8f96af46cc4d",
     "src/git/canonical.rs": "2c079f4ae01396d72a0177148176d017ae368adc776155d924980a146e2aca1e",
     "src/git/canonical/convergence.rs": "deab147731d8d96c41d6034b2e4dad39ef11ed68a48df683a98c6845961f7918",
     "src/git/canonical/effects.rs": "371db47b908bda32f3a58a76db4f0beca5adbcc52a3a3da705f390e75d0a1d24",

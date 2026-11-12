@@ -7,6 +7,8 @@ set -euo pipefail
 #  - nine canonical algorithm files and the DID wrapper, extracted verbatim from
 #    heartwood at the pinned commit (two files have fixture-dependent test
 #    modules removed; see `stripped_test_modules`);
+#  - the upstream `LICENSE-MIT` and `LICENSE-APACHE` texts, extracted verbatim
+#    from the repository root at the pinned commit;
 #  - hand-authored shim files (`src/lib.rs`, `src/git.rs`, `src/git/raw.rs`,
 #    `src/identity.rs`, `src/identity/doc.rs`) that reproduce the upstream module
 #    paths the algorithm uses without pulling the sqlite-dependent node crate.
@@ -54,6 +56,9 @@ do
   git -C "$source_root" show "${source_commit}:crates/radicle/src/git/$file" > "$temporary/src/git/$file"
 done
 git -C "$source_root" show "${source_commit}:crates/radicle/src/identity/did.rs" > "$temporary/src/identity/did.rs"
+for license in LICENSE-MIT LICENSE-APACHE; do
+  git -C "$source_root" show "${source_commit}:$license" > "$temporary/$license"
+done
 
 python3 - "$temporary" "$source_record" <<'PY'
 import hashlib

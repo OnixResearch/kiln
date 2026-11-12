@@ -1,0 +1,126 @@
+{
+  "schema": "kiln.heartwood-license-texts.repair-evidence.v1",
+  "scope": "Retention of LICENSE-MIT and LICENSE-APACHE for vendor/heartwood-canonical through the existing importer. Not a license-compatibility review",
+  "owner": "Kiln maintainers",
+  "observed_on": "2026-11-12",
+  "source": {
+    "parent_revision": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+    "state": "parent revision plus the unpublished repair"
+  },
+  "defect": {
+    "statement": "LICENSES.md linked vendor/heartwood-canonical/LICENSE-MIT and LICENSE-APACHE as retained; neither path had any history in this repository and the importer did not extract them",
+    "requirement": "kiln.radicle.canonical.provenance: \"Licenses MUST be retained.\"",
+    "found_by": "relative-link check during launch preparation"
+  },
+  "upstream": {
+    "repository": "https://github.com/radicle-dev/heartwood.git",
+    "commit": "71a91042d96bb994c4cd4311d85f5cd1a6311b4e",
+    "acquisition": "anonymous shallow fetch of the exact commit; commit object confirmed with git cat-file",
+    "files": {
+      "LICENSE-MIT": {
+        "git_blob": "68fa6d19cc9e79029a335dfd6e6535ab2e7664f0",
+        "bytes": 1079,
+        "sha256": "fff889db903497b59500b5171806c511b3c83df1100532c2f7aa8f96af46cc4d"
+      },
+      "LICENSE-APACHE": {
+        "git_blob": "1b5ec8b78e237b5c3b3d812a7c0a6589d0f7161d",
+        "bytes": 9723,
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      }
+    },
+    "crate_archive": "radicle 0.25.1 on crates.io records the same commit in .cargo_vcs_info.json and ships no license file"
+  },
+  "importer_checks": {
+    "positive": [
+      {
+        "case": "refresh against a checkout holding the pinned commit",
+        "command": "scripts/import-heartwood-canonical.sh <heartwood-checkout>",
+        "exit_code": 0,
+        "stdout": "refreshed heartwood canonical files at 71a91042d96bb994c4cd4311d85f5cd1a6311b4e",
+        "result": "both license files written; byte-identical to the pinned blobs; digest of every file under src/ unchanged"
+      },
+      {
+        "case": "second refresh",
+        "exit_code": 0,
+        "result": "no further change"
+      }
+    ],
+    "negative": [
+      {
+        "case": "LICENSE-MIT digest replaced with zeros in an isolated copy of importer, record and vendored directory",
+        "exit_code": 1,
+        "stderr": "derived file digest mismatch for LICENSE-MIT: fff889db903497b59500b5171806c511b3c83df1100532c2f7aa8f96af46cc4d",
+        "result": "isolated tree unchanged; no license file written"
+      },
+      {
+        "case": "checkout without the pinned commit",
+        "exit_code": 128,
+        "stderr": "fatal: Not a valid object name 71a91042d96bb994c4cd4311d85f5cd1a6311b4e^{commit}"
+      }
+    ]
+  },
+  "license_map_links": {
+    "files": 1,
+    "relative_links": 52,
+    "broken": 0,
+    "broken_list": []
+  },
+  "vendored_crate_tests": {
+    "command": "cargo test --locked --manifest-path vendor/heartwood-canonical/Cargo.toml",
+    "environment": "nix develop path:$PWD",
+    "exit_code": 0,
+    "passed": 7,
+    "failed": 0
+  },
+  "repository_gates": [
+    {
+      "command": [
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "exit_code": 0,
+      "verdict": "pass",
+      "valid": true,
+      "referenced": 1742,
+      "missing": 0,
+      "dangling": 0,
+      "receipt_hash": "be3b42308047e10d2f02eacea234512f7d1da806aad1ba1621bcd724b3b44b30"
+    },
+    {
+      "command": [
+        "cairn",
+        "release-readiness",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "pass",
+      "onix_release_ready": false,
+      "receipt_hash": "b278de0e803f92d55e1ec774570672cd20d365865a88d42ad878beb6256e2efa"
+    }
+  ],
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "profile": "no-spec-delta",
+    "all_exercised_checks_passed": true,
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "not_exercised": [
+    "nix build path:$PWD#checks.x86_64-linux.heartwood-canonical: each attempt stalled before building while another long-running Nix operation on the host held store locks; cancelled without a result",
+    "License-compatibility or legal review",
+    "Any publication of the repaired tree"
+  ],
+  "non_claims": [
+    "The digests identify imported bytes only; they do not establish upstream review or license compatibility of any combined artifact",
+    "Published history before this repair lacks the texts"
+  ]
+}

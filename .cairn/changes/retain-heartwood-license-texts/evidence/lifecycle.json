@@ -1,0 +1,97 @@
+{
+  "scope": "Importer and source-record repair retaining two upstream license texts; no runtime, deployment, remote or publication effect",
+  "review": "Agentic self-review, not independent approval",
+  "results": [
+    {
+      "label": "classification",
+      "command": [
+        "cairn",
+        "review",
+        "validate",
+        ".cairn/changes/retain-heartwood-license-texts/reviews/no-spec-classification.json",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "verdict": "PASS",
+      "valid": true
+    },
+    {
+      "label": "proposal",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "retain-heartwood-license-texts",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "38515ba04759b32b4e98e4a95727c96e0bc00ebf07465e8ddf4d45965618b805",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "83deecbe82a4f876bcba0610bd9eee246ab65150ee5a9cddb4c12d7d3ab09029"
+    },
+    {
+      "label": "design",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "retain-heartwood-license-texts",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "40bf35fe7d33eebcaad4c8613a65a0b8fc61b23d2d723e5f8877f9af8301dc18",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "882501dfa9b420acf57f605ed359224bb9828c1ae45c7c0eb06a9ad0aadffa1c"
+    },
+    {
+      "label": "tasks",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "retain-heartwood-license-texts",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "e3815cc81329a7d6b31dd4e2b3b31d2b1579ee3c01c3ed723f12eb5a280f0300",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "7ff066c99699c6a1506620e40bfee7facb56c8cb77488ebbd1a67fd2fdfdca0c"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": ""
+    }
+  ]
+}
