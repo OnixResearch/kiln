@@ -11,6 +11,7 @@
 
 pub mod cohort;
 pub mod content;
+pub mod docs_index;
 pub mod durability;
 pub mod effect;
 pub mod error;

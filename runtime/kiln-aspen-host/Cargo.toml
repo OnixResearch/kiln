@@ -40,6 +40,8 @@ unwrap_used = "deny"
 blake3 = "=1.8.5"
 futures-util = "0.3.34"
 iroh = "=1.1.0"
+iroh-blobs = "=0.103.0"
+iroh-docs = { version = "=0.101.0", features = ["fs-store"] }
 iroh-gossip = "=0.101.0"
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 durable-file-publication = { git = "https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git", rev = "8e05e74e24b45f752d77145c4455385daaf6d6ab" }

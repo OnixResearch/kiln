@@ -3587,6 +3587,8 @@ dependencies = [
  "durable-file-publication",
  "futures-util",
  "iroh",
+ "iroh-blobs",
+ "iroh-docs",
  "iroh-gossip",
  "kiln-adapter-aspen",
  "kiln-adapter-lattice",
