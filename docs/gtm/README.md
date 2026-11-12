@@ -16,7 +16,7 @@ with a canonical source below, the source wins.
 | Projections | `https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git` and `https://github.com/OnixResearch/kiln` |
 | Observed `main` | `428d03fcfb02478ed79d38453fb44f82c6a2bdd5` on both projections, 2026-11-12 |
 | Distribution | Source plus the Nix flake; no crates.io, binary or container publication |
-| Exercised platform | `x86_64-linux`; `aarch64-linux` is declared and unchecked |
+| Exercised platform | `x86_64-linux`; `aarch64-linux` outputs evaluate but were not built or run |
 | License | Mixed; see the [license map](../../LICENSES.md) |
 | Hosted service | None. Planned; every gate in [the commercial plan](../commercial-launch.md) is open |
 | Launch status | Prepared in local commits, not published. Publish only after [the checklist](launch-checklist.md) is green |

@@ -138,7 +138,9 @@ lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
 - [ ] Release owner: repeat the quick start from a credential-isolated
       checkout of the public route, with an empty `HOME` and no Git or SSH
       credentials. The retained contributor check covers an earlier revision.
-- [ ] `aarch64-linux` is declared by the flake and was not checked.
+- [~] `aarch64-linux`: the 44 checks and 11 packages the flake declares for
+      it evaluate to derivations at local revision `0495510a`. None was built
+      or run. `microvm-guest-surface` is declared for `x86_64-linux` only.
 - [x] `kiln --help`, `kiln -h` and `kiln help` print the usage text and exit
       0; a missing command, an unsupported command and a help request with a
       trailing argument are refused on standard error. Requirement

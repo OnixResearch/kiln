@@ -602,5 +602,35 @@
       }
     },
     "note": "the linked repository shows the previous README until the launch preparation is published"
+  },
+  "aarch64_evaluation": {
+    "observed_on": "2026-11-12",
+    "revision": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
+    "method": "nix eval --raw <reference>#<checks|packages>.aarch64-linux.<name>.drvPath for every declared name; evaluation only",
+    "checks": {
+      "declared": 44,
+      "evaluated_exit_0": 44
+    },
+    "packages": {
+      "declared": 11,
+      "evaluated_exit_0": 11,
+      "names": [
+        "celld-cohort",
+        "dashboard-index-assets",
+        "dashboard-tools",
+        "default",
+        "kiln",
+        "kiln-aspen-host",
+        "kiln-cairn-intake",
+        "kiln-radicle-nix-provider",
+        "pijul-cohort-fixture-producer",
+        "secretspec-cohort",
+        "web-service"
+      ]
+    },
+    "declared_for_x86_64_only": [
+      "microvm-guest-surface"
+    ],
+    "not_exercised": "no aarch64-linux derivation was built or run"
   }
 }

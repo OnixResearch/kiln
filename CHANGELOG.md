@@ -137,7 +137,7 @@ entry describes the source tree prepared for the first tagged release.
   `kiln-core = { package = "onix-kiln-core", ... }` once its pin includes the
   package rename. Earlier revisions keep the name `kiln-core`.
 - Retained evidence names `x86_64-linux`. The flake also declares
-  `aarch64-linux`, which was not checked.
+  `aarch64-linux`; its outputs evaluate but were not built or run.
 
 ### Non-claims
 

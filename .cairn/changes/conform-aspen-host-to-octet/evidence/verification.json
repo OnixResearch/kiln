@@ -179,5 +179,26 @@
   "non_claims": [
     "A clean Octet status is a source-shape result; it does not establish behavior, isolation or release eligibility",
     "The restructured live tests keep their assertions and order of network operations; that is a review statement, not a measured equivalence"
-  ]
+  ],
+  "committed_revision_checks": {
+    "revision": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
+    "observed_on": "2026-11-12",
+    "retained_in": "../../resolve-launch-channel-blockers/evidence/verification.json, section nix_checks_after_host_conformance",
+    "results": {
+      "octet": 0,
+      "kiln-aspen-host-octet-deny-all": 0,
+      "aspen-runtime-octet-deny-all": 0,
+      "radicle-broker-wire-octet-deny-all": 0,
+      "kiln-radicle-nix-provider-octet-deny-all": 0,
+      "kiln-aspen-host-package": 0
+    },
+    "host_package_tests_in_sandbox": {
+      "result_lines": 8,
+      "passed": 46,
+      "failed": 0,
+      "ignored": 0,
+      "profile": "release"
+    },
+    "note": "recorded after the change was committed; the host Octet check at this revision is the derivation named in gate_after"
+  }
 }

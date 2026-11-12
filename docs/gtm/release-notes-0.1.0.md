@@ -144,7 +144,8 @@ Retained receipts for earlier recorded cohorts. None validates this revision:
 ## Requirements and limits
 
 - Nix is the install path; no crates.io, binary release or container image.
-- `x86_64-linux` was exercised on one host; `aarch64-linux` is unchecked.
+- `x86_64-linux` was exercised on one host; `aarch64-linux` outputs evaluate
+  but were not built or run.
 - Workflow execution goes through the Lattice adapter; GitHub, Gitea and the web
   service need a reviewed Lattice runtime.
 - Kiln is not a sandbox and claims no hostile-code confinement.
