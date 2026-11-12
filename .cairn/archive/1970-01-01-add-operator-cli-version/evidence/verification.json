@@ -1,0 +1,132 @@
+{
+  "schema": "kiln.operator-cli-version.verification.v1",
+  "scope": "Version request of the kiln operator CLI, observed at the process boundary. Not a claim about any other program, and not a build identity",
+  "owner": "Kiln maintainers",
+  "observed_on": "2026-11-12",
+  "source": {
+    "published_base": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+    "parent_revision": "e4a4405e8c855b15cd3366c4ec2674c917d0be0e",
+    "state": "local parent revision plus this change; neither is published"
+  },
+  "environment": {
+    "shell": "nix develop path:$PWD",
+    "rustc": "1.88.0",
+    "platform": "x86_64-linux, one host"
+  },
+  "authority": "the launch follow-up report listed the missing flag under work not done; the operator's reply was \"finish the job\"",
+  "defect": {
+    "statement": "kiln --version printed 'unsupported command: --version' on standard error and exited 1; the launch demo told presenters not to run it",
+    "earlier_decision": "the archived add-operator-cli-help package chose not to add the flag because no shipped program had one"
+  },
+  "commands": [
+    {
+      "command": "cargo test --locked -p onix-kiln-cli",
+      "exit_code": 0,
+      "result": "unit tests: 2 passed; tests/cli.rs: 4 passed"
+    },
+    {
+      "command": "cargo clippy --locked -p onix-kiln-cli --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0,
+      "note": "the first run exited 1 on one over-long test case; the case was shortened and the run repeated"
+    }
+  ],
+  "negative_control": {
+    "method": "tests/cli.rs run against crates/kiln-cli/src/main.rs from the parent revision, then the changed file restored byte-identically",
+    "command": "cargo test --locked -p onix-kiln-cli --test cli",
+    "exit_code": 101,
+    "result": "2 passed; 2 failed: the version test saw exit status 1 where 0 is required; the refusal test saw exit status 1 where 2 is required for a version request with a trailing argument; both help tests passed"
+  },
+  "binary_observations": [
+    { "arguments": ["--version"], "exit_code": 0, "stdout": "kiln 0.1.0", "stderr_bytes": 0 },
+    { "arguments": ["-V"], "exit_code": 0, "stdout": "kiln 0.1.0", "stderr_bytes": 0 },
+    { "arguments": ["--version", "demo"], "exit_code": 2, "stdout_bytes": 0, "stderr": "the usage text" },
+    { "arguments": ["-v"], "exit_code": 1, "stdout_bytes": 0, "stderr": "unsupported command: -v" },
+    { "arguments": ["version"], "exit_code": 1, "stdout_bytes": 0, "stderr": "unsupported command: version" },
+    { "arguments": ["--ver"], "exit_code": 1, "stdout_bytes": 0, "stderr": "unsupported command: --ver" },
+    { "arguments": ["--help"], "exit_code": 0, "stdout": "the usage text, now naming '--version, -V'", "stderr_bytes": 0 },
+    { "arguments": [], "exit_code": 2, "stdout_bytes": 0, "stderr": "the usage text" },
+    { "arguments": ["demo"], "exit_code": 0, "stdout": "the one-line demo state", "stderr_bytes": 0 }
+  ],
+  "artifacts": {
+    "implementation": {
+      "path": "crates/kiln-cli/src/main.rs",
+      "blake3": "680b4d76f13fef3a27c2edf10c16665fba8cdb79c904be7f60de69b2852365b1"
+    },
+    "test": {
+      "path": "crates/kiln-cli/tests/cli.rs",
+      "blake3": "e113ee95f0f02d0d817e2f0ed805304fd07f802b7ca2b4949e4516e7cd52376e"
+    },
+    "accepted_spec": {
+      "path": ".cairn/specs/operator-cli/spec.md",
+      "blake3": "5d369f13abf9caffc870b22ee2aff5fedd1fa8961e26882d5ff5f17e825b2da7"
+    }
+  },
+  "traceability": {
+    "command": [
+      "cairn",
+      "traceability",
+      "coverage",
+      "--root",
+      ".",
+      "--policy",
+      "$PWD/cairn-policy/generated/cairn-policy.json",
+      "--json"
+    ],
+    "before_synchronization": {
+      "exit_code": 1,
+      "verdict": "fail",
+      "requirements": 1745,
+      "referenced": 1745,
+      "dangling": [
+        "kiln.cli.version",
+        "kiln.cli.version.scenario.refused",
+        "kiln.cli.version.scenario.version"
+      ]
+    },
+    "after_synchronization": {
+      "exit_code": 0,
+      "verdict": "pass",
+      "requirements": 1748,
+      "referenced": 1748,
+      "missing": 0,
+      "dangling": 0,
+      "receipt_hash": "a2dd06766d0fb321198473142122875d304aa12cc913a72adb15fbe49d28c755"
+    }
+  },
+  "lifecycle": {
+    "profile": "spec-driven",
+    "planning_gates": {
+      "before_implementation": "proposal, design and tasks gates passed",
+      "final_receipts": {
+        "proposal": "bb4cc3e47b2a291dc292c45bf0e47ac3e746c3c72b63c2d4787de0cd989f6ee8",
+        "design": "3a4150a4fb3e2e530640a9dd4370441a63772b2a52c59c2462c084259cedcaff",
+        "tasks": "0c54339930bf94829779b64748dbabaf1d5d559d7e0fa29927bbec669921fe77"
+      }
+    },
+    "synchronization": {
+      "command": "cairn sync add-operator-cli-version --root . --policy $PWD/cairn-policy/generated/cairn-policy.json --execute",
+      "preview_first": true,
+      "action": "merge delta spec into main specs: specs/operator-cli/spec.md",
+      "receipt_hash": "10c1b7cb8b6b68aa1ab02b025776739d605e8b9ec4c67485acd8a355f49054ba"
+    },
+    "archive": {
+      "command": "cairn archive add-operator-cli-version --root . --policy $PWD/cairn-policy/generated/cairn-policy.json --execute",
+      "preview_first": true,
+      "action": "move active change to archive: add-operator-cli-version",
+      "receipt_hash": "754c709d0bfdf88d965062746f6128ca14ced8e2d7d977e2b771bebf4c5be6e7"
+    },
+    "review_is_independent": false
+  },
+  "not_exercised": [
+    "The property-based terminal rail: it does not drive the version request",
+    "aarch64-linux"
+  ],
+  "non_claims": [
+    "The printed version is the Cargo package version; it does not identify a source revision or a build",
+    "No other shipped program has a version flag"
+  ]
+}

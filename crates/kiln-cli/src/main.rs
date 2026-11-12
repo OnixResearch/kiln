@@ -17,6 +17,10 @@ const COMMAND_DASHBOARD: &str = "dashboard";
 const COMMAND_HELP: &str = "help";
 const FLAG_HELP: &str = "--help";
 const FLAG_HELP_SHORT: &str = "-h";
+const FLAG_VERSION: &str = "--version";
+const FLAG_VERSION_SHORT: &str = "-V";
+/// The line a version request prints: the binary name and the package version.
+const VERSION: &str = concat!("kiln ", env!("CARGO_PKG_VERSION"));
 /// The usage text of the operator CLI. It names every accepted command.
 const USAGE: &str = "\
 usage: kiln <command> [arguments]
@@ -34,7 +38,9 @@ commands:
   dashboard --journal PATH --profile PATH
       render the read-only dashboard; `kiln dashboard --help` lists every option
   help, --help, -h
-      print this text";
+      print this text
+  --version, -V
+      print the version";
 const QUALIFICATION_USAGE: &str = "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT";
 const EXIT_FAILURE: i32 = 1;
 const EXIT_USAGE: i32 = 2;
@@ -42,6 +48,9 @@ const EXIT_USAGE: i32 = 2;
 // r[impl kiln.cli.help]
 // r[impl kiln.cli.help.scenario.help]
 // r[impl kiln.cli.help.scenario.refused]
+// r[impl kiln.cli.version]
+// r[impl kiln.cli.version.scenario.version]
+// r[impl kiln.cli.version.scenario.refused]
 fn main() {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
@@ -49,10 +58,11 @@ fn main() {
     };
     let result = match command.as_str() {
         COMMAND_HELP | FLAG_HELP | FLAG_HELP_SHORT => {
-            if arguments.next().is_some() {
-                fail(USAGE, EXIT_USAGE);
-            }
-            println!("{USAGE}");
+            answer(arguments, USAGE);
+            return;
+        }
+        FLAG_VERSION | FLAG_VERSION_SHORT => {
+            answer(arguments, VERSION);
             return;
         }
         COMMAND_DEMO => demo(),
@@ -100,6 +110,15 @@ fn main() {
 fn fail(message: &str, code: i32) -> ! {
     eprintln!("{message}");
     std::process::exit(code);
+}
+
+/// Answers a request that takes no argument: prints `text`, or reports a usage
+/// error when another argument follows.
+fn answer(mut rest: impl Iterator<Item = String>, text: &str) {
+    if rest.next().is_some() {
+        fail(USAGE, EXIT_USAGE);
+    }
+    println!("{text}");
 }
 
 fn demo() -> Result<String, String> {

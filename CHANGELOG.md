@@ -116,6 +116,8 @@ entry describes the source tree prepared for the first tagged release.
 - `kiln --help`, `kiln -h` and `kiln help` print the operator command's usage
   and exit 0; a missing or unsupported command is refused on standard error.
   (workspace tests)
+- `kiln --version` and `kiln -V` print `kiln` and the package version. The
+  other shipped programs have no version flag. (workspace tests)
 - Enter the development shell with `nix develop path:$PWD`.
 - No crates.io publication, binary release, container image or
   package-manager entry is prepared; 36 of the 46 workspace crates set

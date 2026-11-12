@@ -127,8 +127,11 @@ archived package `add-operator-cli-help`.
 - [x] `kiln --help`, `kiln -h` and `kiln help` print the usage text and exit
       0; a missing command, an unsupported command and a help request with a
       trailing argument are refused on standard error. Requirement
-      `kiln.cli.help` and `crates/kiln-cli/tests/cli.rs` cover it. No shipped
-      program has `--version`; launch copy must not tell a reader to run it.
+      `kiln.cli.help` and `crates/kiln-cli/tests/cli.rs` cover it.
+- [x] `kiln --version` and `kiln -V` print `kiln 0.1.0`; a trailing argument
+      is a usage error. Requirement `kiln.cli.version` covers it. The other
+      shipped programs have no version flag; launch copy must not tell a
+      reader to run one.
 - [ ] Soft: an earlier `cargo test --locked --workspace` run left untracked
       `vendor/artifact/Cargo.lock` and `vendor/valence/Cargo.lock` in the
       working tree. Two later runs on 2026-11-12 did not; the cause is not
