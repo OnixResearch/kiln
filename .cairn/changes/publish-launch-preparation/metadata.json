@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "An operator-directed fast-forward publication of main to the canonical Radicle repository and its GitHub projection, with read-backs and launch-document updates. No source behavior, schema, configuration, accepted requirement or governance setting changes.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

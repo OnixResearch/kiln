@@ -106,8 +106,8 @@ effects only after provider capability admission. Replay folds events through
 This section records preparation, not the release. It was exercised on
 2026-11-12 on one `x86_64-linux` host in the development shell, at source
 revision `428d03fcfb02478ed79d38453fb44f82c6a2bdd5` plus the launch
-preparation changes. Replace it with the tagged revision's results before
-publishing.
+preparation changes, which were published afterwards as `main` at `bd5edde8`.
+Replace it with the tagged revision's results before publishing.
 
 | Check | Outcome |
 | --- | --- |
@@ -122,14 +122,26 @@ publishing.
 | `cairn traceability coverage` | Pass: 1748 requirements, all referenced, none missing, none dangling; declared linkage, not execution truth |
 | `cairn release-readiness --root .` | `valid: true`, `verdict: pass`, `onix_release_ready: false` |
 
-Nix results on the same host, at local revisions that are not published:
+Nix results on the same host, at revisions that were local when checked and
+are now in the history of published `main`:
 
 | Check | Outcome |
 | --- | --- |
 | `nix build` of the `kiln` package | Exit 0 at `95668b0b`; the check phase ran the workspace tests in the sandbox with 1612 passed, 0 failed, 5 ignored; `kiln demo`, `kiln --help` and `kiln --version` ran from the output |
 | `nix build` of each of the 45 flake checks for `x86_64-linux` | Exit 0 for all 45 at `0495510a`, including `tests`, `package`, `clippy`, the Octet checks, the `bombadil` property rail and the `web-service-deployment` VM test |
-| `nix build` of `checks.x86_64-linux.octet` at published `main` | Fails at `428d03fc`; it passes after the Aspen host was brought under the Octet policy |
+| `nix build` of `checks.x86_64-linux.octet` at the previous `main` | Fails at `428d03fc`; it passes after the Aspen host was brought under the Octet policy |
 | `nix flake check --no-build --all-systems` | Exit 0 at `d7ea681d` on the second run; evaluation only, and nothing was built for `aarch64-linux` |
+
+From an anonymous clone of published `main` at `bd5edde8`, with an empty home
+and no Git, SSH or GitHub credentials:
+
+| Check | Outcome |
+| --- | --- |
+| Clone through both documented routes | Both hold `bd5edde8` and the same tree |
+| `cargo fetch --locked` | Exit 0; registry downloads only, no Git dependency |
+| `cargo run --locked -p onix-kiln-cli -- demo` | Printed the one-line state above, byte for byte |
+| `cargo test --locked --workspace` | Exit 0: 1612 passed, 0 failed, 5 ignored across 161 result lines |
+| Dashboard preview | Wrote the synthetic journal and the offline HTML dashboard |
 
 Not run: `nix flake check` with builds as one command, and `nix run` itself.
 The commits after `0495510a` change only documents and lifecycle evidence;

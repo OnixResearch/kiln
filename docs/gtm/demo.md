@@ -1,10 +1,10 @@
 # Ten-minute demo script
 
 Every command below was run on 2026-11-12 on one `x86_64-linux` host, inside
-the development shell, on the unpublished launch tree based on source revision
-`428d03fcfb02478ed79d38453fb44f82c6a2bdd5`. Rerun all of them on the tagged
-revision before presenting. The demo contacts no provider, uses no credential
-and writes only under `/tmp`.
+the development shell, on the launch tree before it was published, based on
+source revision `428d03fcfb02478ed79d38453fb44f82c6a2bdd5`. Rerun all of them
+on the tagged revision before presenting. The demo contacts no provider, uses
+no credential and writes only under `/tmp`.
 
 Say what each step shows and what it does not. Do not demonstrate a live
 webhook, a real token or a hosted service: none is part of this script.

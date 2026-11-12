@@ -12,11 +12,13 @@ every hard gate in [section 10](#10-gono-go-review) is `[x]`.
 
 Unless a row says otherwise, local results were observed on 2026-11-12 on one
 `x86_64-linux` host, inside `nix develop path:$PWD`, at source revision
-`428d03fcfb02478ed79d38453fb44f82c6a2bdd5` plus the unpublished changes that
-prepare this launch. The exact commands and outputs are retained in the
-lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
-`adopt-onix-package-prefix`, `resolve-launch-channel-blockers` and
-`conform-aspen-host-to-octet`, and in the archived packages
+`428d03fcfb02478ed79d38453fb44f82c6a2bdd5` plus the changes that prepare this
+launch. Those changes were local when the results were observed. They were
+published afterwards as `main` at `bd5edde8`. The exact commands and outputs
+are retained in the lifecycle packages `prepare-go-to-market`,
+`retain-heartwood-license-texts`, `adopt-onix-package-prefix`,
+`resolve-launch-channel-blockers`, `conform-aspen-host-to-octet` and
+`publish-launch-preparation`, and in the archived packages
 `add-operator-cli-help` and `add-operator-cli-version`.
 
 ## 1. Release identity and legal
@@ -55,17 +57,21 @@ lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
 ## 2. Public channels
 
 - [x] The canonical repository `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE` is public.
-      The `seed.radicle.garden` API reported project name `Kiln`, description
-      `Provider-neutral CI control plane`, one delegate, threshold one and
-      `main` at `428d03fcfb02478ed79d38453fb44f82c6a2bdd5`.
+      At 2026-11-12T22:25Z the `seed.radicle.garden` API reported one
+      delegate, threshold one and `main` at
+      `bd5edde80d03fa418219a0832114bbf3768800e2`. Its project name is `Kiln`
+      and its description `Provider-neutral CI control plane`.
 - [x] Anonymous `git ls-remote` returned the same `main`,
-      `428d03fcfb02478ed79d38453fb44f82c6a2bdd5`, from the Garden HTTPS
+      `bd5edde80d03fa418219a0832114bbf3768800e2`, from the Garden HTTPS
       projection and from `https://github.com/OnixResearch/kiln.git`.
 - [x] The GitHub projection is public with issues enabled and discussions
       disabled.
-- [ ] Owner: publish the launch preparation through the canonical procedure
-      in `docs/hosting-and-recovery.md`. Until then the public tree shows the
-      previous README and no security policy.
+- [x] The launch preparation is published. On 2026-11-12 at 22:24Z, at the
+      operator's direction, `main` was pushed as a fast-forward of eleven
+      commits from `428d03fc` to `bd5edde8`, first to canonical Radicle and
+      then to the GitHub projection. No force push, tag, release or
+      announcement was made. The public tree now shows the launch README and
+      the security policy.
 - [ ] Owner: tag `v0.1.0` on the verified commit. No tag and no release exist
       on either remote.
 - [x] `OnixResearch/kiln-public` no longer competes as an entry point. It
@@ -85,8 +91,8 @@ lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
 - [x] The organization profile lists Kiln. One row was appended to the
       Projects table of `profile/README.md` in `OnixResearch/.github`, commit
       `a8a54313`, on 2026-11-12 at the operator's direction, and read back.
-      The anonymous organization page shows the link. Until the launch
-      preparation is published, the link reaches the previous README.
+      The anonymous organization page shows the link, which now reaches the
+      published README.
 - [x] The GitHub description is `Provider-neutral CI control plane`, the
       Radicle project description, and the topics are `ci`,
       `continuous-integration`, `jujutsu`, `nix`, `radicle`, `rust` and
@@ -135,9 +141,16 @@ lifecycle packages `prepare-go-to-market`, `retain-heartwood-license-texts`,
       `kiln --version` from it behave as documented.
 - [ ] Release owner: repeat the packaged build on the release commit. `nix
       run` itself was not exercised.
-- [ ] Release owner: repeat the quick start from a credential-isolated
-      checkout of the public route, with an empty `HOME` and no Git or SSH
-      credentials. The retained contributor check covers an earlier revision.
+- [x] The quick start passes from a credential-isolated checkout of the
+      published head. At 2026-11-12T22:27Z both documented routes cloned
+      `bd5edde8` with an empty `HOME` and no Git, SSH or GitHub credentials,
+      and the two clones hold the same tree. From the GitHub clone, inside
+      `nix develop path:$PWD`: `cargo fetch --locked` downloaded from the
+      registry only; `demo` printed the README's line byte for byte;
+      `cargo test --locked --workspace` exited 0 with 1612 passed, 0 failed
+      and 5 ignored; the dashboard preview wrote both files. Host
+      accommodations: auto-GC off for the `nix` invocation, the Cargo target
+      directory outside the clone, and debug information off.
 - [~] `aarch64-linux`: the 44 checks and 11 packages the flake declares for
       it evaluate to derivations at local revision `0495510a`. None was built
       or run. `microvm-guest-surface` is declared for `x86_64-linux` only.
@@ -175,10 +188,10 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
       address and the workspace contract matrix.
 - [x] The aggregate Octet check, `checks.x86_64-linux.octet`, and its four
       consumer checks pass at local revision `0495510a`, each with exit
-      status 0. At published `main` the aggregate fails: the Aspen host check
-      reported 14 findings in three library modules added on 2026-11-11 and
-      2026-11-12, and a further 71 appeared in the binary and two live tests
-      once the library compiled. The local change
+      status 0. At `428d03fc`, the previous `main`, the aggregate fails: the
+      Aspen host check reported 14 findings in three library modules added on
+      2026-11-11 and 2026-11-12, and a further 71 appeared in the binary and
+      two live tests once the library compiled. The change
       `conform-aspen-host-to-octet` resolves them by layout and code changes.
       It adds one reasoned clock allowance at the host's shell boundary; the
       two live tests carry the allowances the host's other integration tests
@@ -326,12 +339,14 @@ present hosted CI as available, in beta, priced or open for signup.
 
 Hard gates:
 
-- [ ] The launch preparation and the license-text repair are published, and
-      both public routes resolve the release commit.
+- [~] The launch preparation and the license-text repair are published, and
+      both public routes resolve `bd5edde8`. No release commit is chosen or
+      tagged.
 - [ ] The documented repository gates were run on the release commit and
       each result is recorded, including failures and gates not run.
-- [ ] The quick start and the demo pass on the release commit from a
-      credential-isolated checkout.
+- [~] The quick start and the demo pass from a credential-isolated checkout
+      of the published head `bd5edde8`. No release commit is chosen; repeat
+      the run if that commit changes more than documents.
 - [~] Private vulnerability reporting is enabled. Its form was not tested as
       an outside reporter.
 - [x] `OnixResearch/kiln-public` no longer competes as an entry point.
@@ -389,6 +404,6 @@ gh release create v0.1.0 --repo OnixResearch/kiln --verify-tag \
 
 On 2026-11-12, at the operator's direction, the projection's description,
 topics, private vulnerability reporting, secret scanning, push protection and
-`main` ruleset were set, Kiln was added to the organization profile, and
-`kiln-public` was made private. No tag, publication or release command above
-was run during preparation.
+`main` ruleset were set, Kiln was added to the organization profile,
+`kiln-public` was made private, and `main` was pushed to both routes with
+`jj git push`. No tag or release command above was run.

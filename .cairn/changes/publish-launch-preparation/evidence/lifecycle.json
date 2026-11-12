@@ -1,0 +1,99 @@
+{
+  "scope": "One operator-directed fast-forward push of main to canonical Radicle and its GitHub projection, read-backs, anonymous clones, one credential-isolated quick start and launch-document updates; no tag, release, announcement, force push or governance effect",
+  "review": "Agentic self-review, not independent approval",
+  "results": [
+    {
+      "label": "classification",
+      "command": [
+        "cairn",
+        "review",
+        "validate",
+        ".cairn/changes/publish-launch-preparation/reviews/no-spec-classification.json",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "verdict": "PASS",
+      "valid": true
+    },
+    {
+      "label": "proposal",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "publish-launch-preparation",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "2954bcf425ff4836eb1de98f266fedd55598a64ab99de1c9e0b7dee074d36e71",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "954fc1ef7223bffc8abb1310cacbe365c238324cb7a6b339d5b59cf5f25cdcfa"
+    },
+    {
+      "label": "design",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "publish-launch-preparation",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "38ec9b673ecfeddfe8b022c739fc40b6bf2aaeab7c83c1916bf8bbe7983b655b",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "74d14b731214a8d2b5c402d5c7ef60b5218fe8c3f6b893f23800a3fbc828b3d0"
+    },
+    {
+      "label": "tasks",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "publish-launch-preparation",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "508a6d91f3510400b3228a2dc902a8df434f97a650a3f81b9376b5743611802e",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "3f50341dc5b2dff880cdc75fd1248e25d427a3815cbf3020fa547f5458c37524"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "issues": [],
+      "change_issues": []
+    }
+  ]
+}

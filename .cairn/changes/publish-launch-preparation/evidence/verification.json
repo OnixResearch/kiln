@@ -1,0 +1,225 @@
+{
+  "schema": "kiln.launch-preparation.publication-evidence.v1",
+  "scope": "One operator-directed fast-forward push of main to the canonical Radicle repository and to its GitHub projection, the read-backs, two anonymous clones, one credential-isolated quick start and launch-document updates. Not a tag, release, announcement, force push, governance change or workspace-repository push",
+  "owner": "The operator owns publication authority and the signing key; Kiln maintainers own the launch kit and this record",
+  "observed_on": "2026-11-12",
+  "authority": {
+    "source": "operator instruction in the working session, given after the close-out report listed publication as an owner action",
+    "instruction": "push",
+    "reading": "the repository's routine publication of main to remote rad and then remote github; nothing wider",
+    "not_read_as": [
+      "a v0.1.0 tag",
+      "a release",
+      "an announcement",
+      "a push of the workspace repository's catalog commit",
+      "publication of this record commit"
+    ]
+  },
+  "before": {
+    "observed_at": "2026-11-12T22:24:14Z",
+    "main": {
+      "github_anonymous": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "garden_seed_anonymous": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "local_radicle_storage": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+      "local_bookmark": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5"
+    },
+    "tags_on_github": 0,
+    "local_head": "bd5edde80d03fa418219a0832114bbf3768800e2",
+    "commits_ahead": 11,
+    "previous_head_is_ancestor": true,
+    "working_copy": "no changes"
+  },
+  "pre_push_scan": {
+    "input": "added lines of git diff 428d03fc..bd5edde8: 9081 lines in 115 files; no binary file",
+    "patterns": [
+      "private-key headers",
+      "GitHub, GitLab, Slack, AWS and OpenAI-style token shapes",
+      "JSON Web Token shapes",
+      "bearer tokens",
+      "quoted password, secret, token or API-key assignments",
+      "email addresses",
+      "home and runtime directory paths",
+      "tailnet names and private IPv4 addresses"
+    ],
+    "matches": 0,
+    "positive_control": "five synthetic lines; each pattern group matched its line",
+    "bound": "a pattern search over added lines, not a redacting scan of the tree or its history and not privacy clearance"
+  },
+  "push": [
+    {
+      "command": "jj bookmark set main -r @-",
+      "result": "moved main to bd5edde80d03fa418219a0832114bbf3768800e2"
+    },
+    {
+      "command": "jj git push --remote rad --bookmark main",
+      "started": "2026-11-12T22:24:26Z",
+      "exit_code": 0,
+      "output": [
+        "bookmark: main [move forward from 428d03fcfb02 to bd5edde80d03]",
+        "Canonical reference refs/heads/main updated to target commit bd5edde80d03fa418219a0832114bbf3768800e2",
+        "Synced with 3 seed(s)"
+      ]
+    },
+    {
+      "command": "jj git push --remote github --bookmark main",
+      "started": "2026-11-12T22:24:38Z",
+      "exit_code": 0,
+      "output": [
+        "bookmark: main [move forward from 428d03fcfb02 to bd5edde80d03]"
+      ]
+    }
+  ],
+  "read_back": {
+    "observed_at": "2026-11-12T22:25:01Z",
+    "github_anonymous_ls_remote": "bd5edde80d03fa418219a0832114bbf3768800e2",
+    "garden_seed_anonymous_ls_remote": "bd5edde80d03fa418219a0832114bbf3768800e2",
+    "second_public_seed_ls_remote": {
+      "https://iris.radicle.xyz/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git": "bd5edde80d03fa418219a0832114bbf3768800e2"
+    },
+    "garden_seed_api": {
+      "head": "bd5edde80d03fa418219a0832114bbf3768800e2",
+      "delegates": 1,
+      "threshold": 1,
+      "visibility": "public"
+    },
+    "github_compare_with_previous_head": {
+      "status": "ahead",
+      "ahead_by": 11,
+      "behind_by": 0,
+      "total_commits": 11
+    },
+    "github_rules_on_main": [
+      "deletion",
+      "non_fast_forward"
+    ],
+    "github_tags": 0,
+    "github_releases": 0,
+    "github_secret_scanning_alerts": {
+      "at_22:25Z": 0,
+      "at_22:33Z": 0
+    },
+    "github_pushed_at": "2026-11-12T22:24:39Z",
+    "anonymous_pages_http_200": [
+      "https://github.com/OnixResearch/kiln",
+      "https://github.com/OnixResearch/kiln/security/policy",
+      "https://github.com/OnixResearch/kiln/blob/main/SECURITY.md",
+      "https://github.com/OnixResearch/kiln/blob/main/docs/gtm/launch-checklist.md",
+      "https://github.com/OnixResearch"
+    ],
+    "commit_signatures": "the pushed head and the previous head both read back as unsigned on GitHub"
+  },
+  "anonymous_clones": {
+    "observed_at": "2026-11-12T22:27:08Z",
+    "environment": "env -i with an empty HOME, no SSH agent socket, no GitHub token, GIT_CONFIG_GLOBAL=/dev/null, GIT_CONFIG_NOSYSTEM=1, GIT_TERMINAL_PROMPT=0 and no credential helper",
+    "github": {
+      "command": "git clone https://github.com/OnixResearch/kiln.git",
+      "exit_code": 0,
+      "head": "bd5edde80d03fa418219a0832114bbf3768800e2",
+      "tree": "852fb3764f611fcf83989d2d7c97f22eccda01f7"
+    },
+    "garden": {
+      "command": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+      "exit_code": 0,
+      "main": "bd5edde80d03fa418219a0832114bbf3768800e2",
+      "tree": "852fb3764f611fcf83989d2d7c97f22eccda01f7"
+    },
+    "same_tree": true
+  },
+  "quick_start": {
+    "observed_on": "2026-11-12, between 22:28Z and 22:31Z",
+    "checkout": "the anonymous GitHub clone at bd5edde80d03fa418219a0832114bbf3768800e2; clean after the run",
+    "shell": "one nix develop path:$PWD invocation; rustc 1.88.0; exit 0 in 160s; no warning on standard error",
+    "accommodations": [
+      "auto-GC disabled for the nix invocation and substituters limited to cache.nixos.org, because of the host's store state",
+      "CARGO_TARGET_DIR outside the clone",
+      "CARGO_PROFILE_DEV_DEBUG=0 and CARGO_PROFILE_TEST_DEBUG=0 to fit a memory-backed directory",
+      "the dashboard preview wrote to a memory-backed directory instead of /tmp"
+    ],
+    "stages": [
+      {
+        "command": "cargo fetch --locked",
+        "exit_code": 0,
+        "wall_seconds": 10,
+        "result": "658 registry downloads; no Git repository was fetched"
+      },
+      {
+        "command": "cargo run --locked -p onix-kiln-cli -- demo",
+        "exit_code": 0,
+        "wall_seconds": 27,
+        "result": "standard output equals the README's documented line byte for byte"
+      },
+      {
+        "command": "cargo run --locked -p onix-kiln-cli -- --version",
+        "exit_code": 0,
+        "result": "kiln 0.1.0"
+      },
+      {
+        "command": "cargo run --locked -p onix-kiln-cli -- --help",
+        "exit_code": 0,
+        "result": "usage text, 18 lines"
+      },
+      {
+        "command": "cargo test --locked --workspace",
+        "exit_code": 0,
+        "wall_seconds": 115,
+        "result_lines": 161,
+        "passed": 1612,
+        "failed": 0,
+        "ignored": 5
+      },
+      {
+        "command": "cargo run --locked -p kiln-dashboard --example preview -- <directory>",
+        "exit_code": 0,
+        "result": "wrote journal.json, 9481 bytes, and dashboard.html, 56285 bytes; the page was not opened in a browser"
+      }
+    ],
+    "cleanup": "the clones, the Cargo home and the target directory were removed afterwards"
+  },
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "profile": "no-spec-delta",
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "not_exercised": [
+    "The Nix gates on the published head: they ran on local revisions before publication",
+    "The two runtime workspaces from a fresh checkout; their pinned source host returned HTTP 530 earlier the same day",
+    "The quick start through the Garden clone; it holds the same tree as the GitHub clone that was built",
+    "A refused non-fast-forward push or deletion against the projection's ruleset",
+    "A redacting secret scan of the tree and its reachable history",
+    "Any tag, release or announcement"
+  ],
+  "non_claims": [
+    "Matching references show the observed revision on the observed routes at the observed time; they do not show future availability or source correctness",
+    "A passing quick start on one host does not establish production readiness, isolation or release eligibility",
+    "A pattern scan with no match is not privacy clearance, and published history cannot be assumed removable",
+    "Publication of main is not the 0.1.0 release; onix_release_ready is false"
+  ],
+  "document_checks": {
+    "method": "relative link targets and heading anchors resolved for the same 63 tracked documents as the earlier packages",
+    "documents": 63,
+    "relative_links": 521,
+    "broken": 0,
+    "external_links_added": 0
+  },
+  "repository_gates": [
+    {
+      "command": "cairn traceability coverage --root . --policy $PWD/cairn-policy/generated/cairn-policy.json --json",
+      "exit_code": 0,
+      "verdict": "pass",
+      "requirements": 1748,
+      "referenced": 1748,
+      "missing": 0,
+      "dangling": 0
+    },
+    {
+      "command": "cairn release-readiness --root .",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "pass",
+      "onix_release_ready": false,
+      "skipped_or_absent": 7
+    }
+  ]
+}

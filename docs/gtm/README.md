@@ -14,39 +14,37 @@ with a canonical source below, the source wins.
 | Product version | `0.1.0`; no tag or release exists |
 | Canonical source | Radicle `rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE` |
 | Projections | `https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git` and `https://github.com/OnixResearch/kiln` |
-| Observed `main` | `428d03fcfb02478ed79d38453fb44f82c6a2bdd5` on both projections, 2026-11-12 |
+| Observed `main` | `bd5edde80d03fa418219a0832114bbf3768800e2` on both projections, 2026-11-12T22:25Z |
 | Distribution | Source plus the Nix flake; no crates.io, binary or container publication |
 | Exercised platform | `x86_64-linux`; `aarch64-linux` outputs evaluate but were not built or run |
 | License | Mixed; see the [license map](../../LICENSES.md) |
 | Hosted service | None. Planned; every gate in [the commercial plan](../commercial-launch.md) is open |
-| Launch status | Prepared in local commits, not published. Publish only after [the checklist](launch-checklist.md) is green |
+| Launch status | Launch preparation published on `main`; no tag, release or announcement. Release only after [the checklist](launch-checklist.md) is green |
 
 ## Open launch blockers
 
 Observed 2026-11-12. These are owner actions or release-commit checks, not
 missing documents:
 
-- the launch preparation is not published; the public tree still shows the
-  previous README and has no security policy;
 - no `v0.1.0` tag or release exists on either remote;
 - the private reporting form was not exercised as an outside reporter;
-- the organization profile now links Kiln, and until publication that link
-  reaches the previous README;
-- published `main` fails the Octet check; the change that makes it pass is
-  one of the local commits;
-- the gates ran on local revisions, not on a published release commit;
-  `nix flake check` with builds as one command and `nix run` were not run;
+- the Nix gates ran on local revisions before publication and were not rerun
+  on the published head; `nix flake check` with builds as one command and
+  `nix run` were not run;
 - `git.onix.computer`, which the two runtime workspaces name as the Bounded
   Exec source, returned HTTP 530; a fresh checkout needs that host or the
   documented seeding step to build them or to run `nix flake check`;
-- the quick start was not repeated from a credential-isolated checkout at
-  this revision;
 - the product name and domain are not cleared: an unrelated `kiln` crate
   exists on crates.io;
 - no approver is named for the release notes and the announcement.
 
 Resolved on 2026-11-12 at the operator's direction:
 
+- the launch preparation is published: `main` is `bd5edde8` on canonical
+  Radicle and on the GitHub projection, and it carries the change that makes
+  the Octet check pass;
+- the quick start, the workspace tests and the dashboard preview pass from
+  an anonymous clone of `bd5edde8` with an empty home and no credentials;
 - private vulnerability reporting, secret scanning and push protection are
   enabled on the GitHub projection, and its description and topics are set;
 - the projection's `main` has a ruleset that blocks deletion and
