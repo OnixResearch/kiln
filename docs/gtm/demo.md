@@ -24,7 +24,7 @@ its usage line.
 ## 1. One command, one state (2 minutes)
 
 ```console
-cargo run --locked -p kiln-cli -- demo
+cargo run --locked -p onix-kiln-cli -- demo
 ```
 
 Expected output, one line:

@@ -458,7 +458,7 @@ with Ctrl-C; the output remains a local file and no provider has been contacted.
 Presentation sources are `crates/kiln-dashboard/src/render/html.rs`, `html.css`
 and `html.js`. The preview generator is `crates/kiln-dashboard/examples/preview.rs`.
 Use `cargo test --locked -p kiln-dashboard` and
-`cargo clippy --locked -p kiln-dashboard -p kiln-cli --all-targets -- -D warnings`
+`cargo clippy --locked -p kiln-dashboard -p onix-kiln-cli --all-targets -- -D warnings`
 inside the dev shell for focused checks. Inspect both color schemes, a narrow
 viewport and no-script rendering in a real browser; Rust tests do not establish
 layout or keyboard usability.

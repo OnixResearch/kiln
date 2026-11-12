@@ -1,10 +1,15 @@
 [package]
-name = "kiln-core"
+# The unprefixed name belongs to an unrelated crate on crates.io. The library
+# keeps its name, so dependents and source still say `kiln_core`.
+name = "onix-kiln-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 publish = false
+
+[lib]
+name = "kiln_core"
 
 [dependencies]
 blake3 = { version = "1.8.2", default-features = false }

@@ -2691,8 +2691,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "preserves",
  "serde",
  "serde_json",
@@ -2707,9 +2707,9 @@ dependencies = [
  "bounded-exec",
  "cairn-gate-contract",
  "kiln-codec",
- "kiln-core",
  "kiln-implementer",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -2719,7 +2719,7 @@ dependencies = [
 name = "kiln-adapter-cdevents"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -2732,8 +2732,8 @@ dependencies = [
  "getrandom 0.3.4",
  "hmac 0.12.1",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "rustls",
  "rustls-pemfile",
  "serde",
@@ -2747,8 +2747,8 @@ dependencies = [
 name = "kiln-adapter-cob"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
 ]
 
@@ -2758,8 +2758,8 @@ version = "0.1.0"
 dependencies = [
  "git2 0.20.4",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
 ]
 
@@ -2775,11 +2775,11 @@ dependencies = [
  "kiln-adapter-git",
  "kiln-adapter-lattice",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
  "lattice-workflow-contract",
  "lattice-workflow-transport",
  "nix 0.30.1",
+ "onix-kiln-core",
  "rusqlite",
  "serde",
  "serde_json",
@@ -2802,12 +2802,12 @@ dependencies = [
  "kiln-adapter-git",
  "kiln-adapter-lattice",
  "kiln-codec",
- "kiln-core",
  "kiln-implementer",
  "kiln-provider-api",
  "lattice-workflow-contract",
  "lattice-workflow-transport",
  "nix 0.30.1",
+ "onix-kiln-core",
  "rusqlite",
  "serde",
  "serde_json",
@@ -2825,8 +2825,8 @@ dependencies = [
  "base64 0.22.1",
  "blake3",
  "ed25519-dalek 2.2.0",
- "kiln-core",
  "kiln-observe-core",
+ "onix-kiln-core",
  "rustls",
  "rustls-pemfile",
  "serde",
@@ -2843,11 +2843,11 @@ dependencies = [
  "iroh",
  "kiln-adapter-lattice",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
  "lattice-workflow-contract",
  "lattice-workflow-transport",
  "libc",
+ "onix-kiln-core",
  "parking_lot 0.12.5",
  "serde",
  "serde_json",
@@ -2862,8 +2862,8 @@ dependencies = [
  "blake3",
  "iroh",
  "kiln-adapter-http-observe",
- "kiln-core",
  "kiln-observe-core",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -2876,8 +2876,8 @@ version = "0.1.0"
 dependencies = [
  "bounded-exec",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -2887,11 +2887,11 @@ name = "kiln-adapter-lattice"
 version = "0.1.0"
 dependencies = [
  "kiln-codec",
- "kiln-core",
  "kiln-implementer",
  "kiln-provider-api",
  "lattice-workflow-contract",
  "lattice-workflow-transport",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -2903,9 +2903,9 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "bounded-exec",
- "kiln-core",
  "kiln-nix-store",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -2917,10 +2917,10 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "bounded-exec",
- "kiln-core",
  "kiln-nix-store",
  "kiln-provider-api",
  "nix-derivation",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -2933,10 +2933,10 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "kiln-conformance",
- "kiln-core",
  "kiln-provider-api",
  "libc",
  "nix 0.30.1",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -2947,7 +2947,7 @@ name = "kiln-adapter-opentelemetry"
 version = "0.1.0"
 dependencies = [
  "kiln-codec",
- "kiln-core",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -2959,8 +2959,8 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "signal-hook",
@@ -2974,9 +2974,9 @@ dependencies = [
  "anyhow",
  "bounded-exec",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
  "libpijul",
+ "onix-kiln-core",
  "pijul-config",
  "pijul-macros",
  "pijul-repository",
@@ -2998,11 +2998,11 @@ dependencies = [
  "kiln-adapter-cob",
  "kiln-adapter-lattice",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
  "kiln-radicle-source-contract",
  "lattice-workflow-transport",
  "nonempty",
+ "onix-kiln-core",
  "onix-radicle-cob-git-store",
  "radicle-cob",
  "radicle-core",
@@ -3021,8 +3021,8 @@ dependencies = [
 name = "kiln-adapter-remote"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
 ]
 
@@ -3031,8 +3031,8 @@ name = "kiln-adapter-sqlite"
 version = "0.1.0"
 dependencies = [
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "rusqlite",
  "serde",
  "serde_json",
@@ -3050,8 +3050,8 @@ dependencies = [
  "hmac 0.12.1",
  "k256",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "p256",
  "rusqlite",
  "serde",
@@ -3066,7 +3066,7 @@ dependencies = [
 name = "kiln-adapter-valence"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "valence-core",
@@ -3078,8 +3078,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -3090,8 +3090,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-adapter-aspen",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -3101,20 +3101,9 @@ dependencies = [
 name = "kiln-build-graph"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
+ "onix-kiln-core",
  "serde_json",
  "toml",
-]
-
-[[package]]
-name = "kiln-cli"
-version = "0.1.0"
-dependencies = [
- "kiln-codec",
- "kiln-core",
- "kiln-dashboard",
- "kiln-standalone",
- "serde_json",
 ]
 
 [[package]]
@@ -3122,7 +3111,7 @@ name = "kiln-codec"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "kiln-core",
+ "onix-kiln-core",
  "preserves",
  "serde",
  "serde_json",
@@ -3137,18 +3126,9 @@ dependencies = [
  "kiln-adapter-jj",
  "kiln-adapter-radicle",
  "kiln-adapter-remote",
- "kiln-core",
  "kiln-provider-api",
  "kiln-standalone",
-]
-
-[[package]]
-name = "kiln-core"
-version = "0.1.0"
-dependencies = [
- "blake3",
- "serde",
- "serde_json",
+ "onix-kiln-core",
 ]
 
 [[package]]
@@ -3157,9 +3137,9 @@ version = "0.1.0"
 dependencies = [
  "kiln-adapter-sqlite",
  "kiln-codec",
- "kiln-core",
  "kiln-observe-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -3203,11 +3183,11 @@ dependencies = [
  "kiln-adapter-git",
  "kiln-adapter-github",
  "kiln-codec",
- "kiln-core",
  "kiln-microvm",
  "kiln-provider-api",
  "kiln-web-service",
  "libc",
+ "onix-kiln-core",
  "rusqlite",
  "rustix 1.1.4",
  "serde",
@@ -3224,7 +3204,7 @@ dependencies = [
 name = "kiln-implementer"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
+ "onix-kiln-core",
  "rusqlite",
  "serde",
  "serde_json",
@@ -3236,9 +3216,9 @@ name = "kiln-microvm"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "kiln-core",
  "libc",
  "nix 0.30.1",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -3249,10 +3229,10 @@ version = "0.1.0"
 dependencies = [
  "kiln-adapter-nix",
  "kiln-adapter-nix-eval",
- "kiln-core",
  "kiln-nix-store",
  "kiln-provider-api",
  "nix-derivation",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -3263,10 +3243,10 @@ name = "kiln-nix-store"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "kiln-core",
  "nix-archive",
  "nix-derivation",
  "nix-narinfo",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -3278,7 +3258,7 @@ name = "kiln-observe-core"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "kiln-core",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -3296,9 +3276,9 @@ dependencies = [
  "kiln-adapter-lattice",
  "kiln-adapter-radicle",
  "kiln-codec",
- "kiln-core",
  "kiln-observe-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "rustls",
  "rustls-pemfile",
  "serde",
@@ -3317,13 +3297,13 @@ dependencies = [
  "kiln-adapter-nix",
  "kiln-adapter-nix-eval",
  "kiln-adapter-radicle",
- "kiln-core",
  "kiln-nix-build",
  "kiln-onixos-pilot",
  "kiln-provider-api",
  "kiln-radicle-ci",
  "kiln-radicle-source-contract",
  "libc",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -3332,7 +3312,7 @@ dependencies = [
 name = "kiln-provider-api"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
+ "onix-kiln-core",
  "serde",
 ]
 
@@ -3350,13 +3330,13 @@ dependencies = [
  "kiln-adapter-nix-eval",
  "kiln-adapter-radicle",
  "kiln-codec",
- "kiln-core",
  "kiln-nix-build",
  "kiln-observe-core",
  "kiln-onixos-pilot",
  "kiln-provider-api",
  "kiln-radicle-source-contract",
  "libc",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -3376,8 +3356,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
 ]
@@ -3404,7 +3384,6 @@ dependencies = [
  "kiln-adapter-webhook",
  "kiln-build-graph",
  "kiln-codec",
- "kiln-core",
  "kiln-highlight",
  "kiln-observe-core",
  "kiln-provider-api",
@@ -3412,6 +3391,7 @@ dependencies = [
  "libc",
  "nix 0.30.1",
  "nonempty",
+ "onix-kiln-core",
  "onix-radicle-cob-git-store",
  "parking_lot 0.12.5",
  "radicle-cob",
@@ -4119,6 +4099,26 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 dependencies = [
  "critical-section",
  "portable-atomic",
+]
+
+[[package]]
+name = "onix-kiln-cli"
+version = "0.1.0"
+dependencies = [
+ "kiln-codec",
+ "kiln-dashboard",
+ "kiln-standalone",
+ "onix-kiln-core",
+ "serde_json",
+]
+
+[[package]]
+name = "onix-kiln-core"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

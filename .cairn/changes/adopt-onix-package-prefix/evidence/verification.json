@@ -1,0 +1,184 @@
+{
+  "schema": "kiln.onix-package-prefix.verification.v1",
+  "scope": "Rename of two Cargo packages and every package selector that names them. Library names, binary names, directories, Rust sources, schemas and behavior are unchanged. Not a registry publication",
+  "owner": "Kiln maintainers",
+  "observed_on": "2026-11-12",
+  "source": {
+    "published_base": "428d03fcfb02478ed79d38453fb44f82c6a2bdd5",
+    "state": "published base plus the unpublished launch changes and this rename"
+  },
+  "environment": {
+    "shell": "nix develop path:$PWD",
+    "rustc": "1.88.0",
+    "cargo": "1.88.0",
+    "platform": "x86_64-linux, one host"
+  },
+  "authority": "operator instruction in the working session: \"use onix prefix\"",
+  "registry_observation": {
+    "observed_at": "2026-11-12T16:26:52Z",
+    "method": "GET https://crates.io/api/v1/crates/<name>, one request per second",
+    "names_checked": 58,
+    "first_party_package_names": 54,
+    "first_party_scope": "the [package] name of every tracked Cargo.toml outside vendor/ and .cairn/, after the rename",
+    "found": {
+      "kiln": "0.0.0, no repository recorded",
+      "kiln-cli": "0.1.1, https://github.com/nebucloud/kiln",
+      "kiln-core": "0.1.1, https://github.com/nebucloud/kiln"
+    },
+    "not_found": 55,
+    "not_found_includes": [
+      "every first-party package name, including onix-kiln-core and onix-kiln-cli",
+      "onix-kiln"
+    ]
+  },
+  "names": {
+    "command": "cargo metadata --format-version 1 --offline",
+    "packages": [
+      {
+        "package": "onix-kiln-core",
+        "directory": "crates/kiln-core",
+        "target": "lib kiln_core"
+      },
+      {
+        "package": "onix-kiln-cli",
+        "directory": "crates/kiln-cli",
+        "target": "bin kiln"
+      }
+    ],
+    "member_manifests_inheriting_the_dependency_unchanged": 43,
+    "rust_sources_changed": 0
+  },
+  "lock_files": {
+    "root": {
+      "path": "Cargo.lock",
+      "diff": "62 insertions, 62 deletions: two package entries moved and 43 dependency references renamed; no version changed",
+      "unprefixed_references_remaining": 0
+    },
+    "nested": [
+      {
+        "path": "checks/aspen-runtime-octet/Cargo.lock",
+        "at_published_base": "cargo metadata --locked --offline exit 101: the lock file needs to be updated",
+        "cause_at_published_base": "crates/kiln-core gained a serde_json dependency after this lock file was generated",
+        "regenerated": "cargo metadata --offline in a materialized copy of the check workspace; one package locked",
+        "after": "cargo metadata --locked --offline exit 0",
+        "diff": "kiln-core entry and four references renamed; serde_json edge added to the core entry; no registry version changed"
+      },
+      {
+        "path": "checks/radicle-broker-wire-octet/Cargo.lock",
+        "at_published_base": "cargo metadata --locked --offline exit 101: the lock file needs to be updated",
+        "cause_at_published_base": "crates/kiln-core gained a serde_json dependency after this lock file was generated",
+        "regenerated": "cargo metadata --offline in a materialized copy of the check workspace; one package locked",
+        "after": "cargo metadata --locked --offline exit 0",
+        "diff": "kiln-core entry and two references renamed; serde_json edge added to the core entry; no registry version changed"
+      }
+    ],
+    "materialization": "each check workspace was assembled as flake.nix assembles it, with @KILN_SOURCE@ bound to this checkout"
+  },
+  "selectors": {
+    "positive": [
+      {
+        "command": "cargo run --locked -q -p onix-kiln-cli -- demo",
+        "exit_code": 0,
+        "result": "printed the one-line demo state"
+      },
+      {
+        "command": "cargo build --locked --offline -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target=wasm32-unknown-unknown",
+        "exit_code": 0,
+        "mirrors": "flake check no-std, in the dev profile"
+      },
+      {
+        "command": "cargo tree --locked --offline -p onix-kiln-core --edges normal; the same for kiln-standalone and kiln-radicle-source-contract; then the two grep refusals from flake.nix",
+        "exit_code": 0,
+        "result": "no radicle or secretspec edge in the core and standalone trees; no provider runtime edge in the source-contract tree",
+        "mirrors": "flake check radicle-status-boundaries"
+      }
+    ],
+    "negative": [
+      {
+        "command": "cargo run --locked -q -p kiln-cli -- demo",
+        "exit_code": 101,
+        "result": "package(s) `kiln-cli` not found in workspace"
+      }
+    ],
+    "boundary_script": {
+      "command": "sh tests/celld-boundaries.sh",
+      "setup": "copy of the tracked tree (13424 files), NIX_BUILD_TOP and TMPDIR set to a disposable directory, separate CARGO_TARGET_DIR, inside the development shell",
+      "exit_code": 0,
+      "positive": "three dependency trees carry no forbidden edge; library tests passed: 2, 9 and 226",
+      "negative": "a forbidden dependency injected into a disposable copy of the core was reported as 'onix-kiln-core: forbidden runtime dependency edge' naming celld-forbidden-runtime"
+    },
+    "stale_selector_search": {
+      "pattern": "-p or --package followed by kiln-core or kiln-cli, and a manifest name line with either",
+      "scope": "tracked files outside vendor/, Cargo.lock, archived packages and retained evidence",
+      "remaining": [
+        "crates/kiln-build-graph/tests/fixtures/kiln-workspace/crates/kiln-core/Cargo.toml.fixture"
+      ],
+      "remaining_reason": "a frozen fixture workspace for the build-graph tests; it is not this package"
+    }
+  },
+  "workspace": [
+    {
+      "command": "cargo test --locked --workspace",
+      "exit_code": 0,
+      "result_lines": 160,
+      "passed": 1608,
+      "failed": 0,
+      "ignored": 5,
+      "wall_seconds": 119,
+      "note": "same counts as before the rename"
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit_code": 0,
+      "wall_seconds": 48
+    },
+    {
+      "command": "cargo fmt --all -- --check",
+      "exit_code": 0
+    }
+  ],
+  "pinned_consumers_unchanged": [
+    {
+      "consumer": "runtime/kiln-aspen-host in this repository",
+      "pin": "69afc2697f4330005797256135ae81b2722a125c"
+    },
+    {
+      "consumer": "Cairn",
+      "pin": "5d99f4e9bb954743443e340baece31256b4c53f1"
+    },
+    {
+      "consumer": "OnixOS CLI",
+      "pin": "dfbba7b94af18307be625c770a28d1dd28e134e8"
+    }
+  ],
+  "pinned_consumer_note": "each pin predates the rename and keeps the name kiln-core; a consumer declares kiln-core = { package = \"onix-kiln-core\", ... } when its pin first includes it",
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "classification": "../reviews/no-spec-classification.json",
+    "profile": "no-spec-delta",
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "not_exercised": [
+    "nix build path:$PWD#checks.x86_64-linux.no-std",
+    "nix build path:$PWD#checks.x86_64-linux.radicle-status-boundaries",
+    "nix build path:$PWD#checks.x86_64-linux.celld-boundaries",
+    "nix build path:$PWD#checks.x86_64-linux.aspen-runtime-octet-deny-all",
+    "nix build path:$PWD#checks.x86_64-linux.radicle-broker-wire-octet-deny-all",
+    "The full nix flake check and the packaged nix build path:$PWD#kiln output",
+    "A build of Cairn, OnixOS or the Kiln Aspen host against a revision that includes the rename",
+    "aarch64-linux"
+  ],
+  "nix_attempts": {
+    "observed_at": "2026-11-12T16:55Z",
+    "first_attempt": "nix build of three checks waited about 20 minutes on the garbage-collector lock and was cancelled",
+    "second_attempt": "the same build with auto-GC disabled for that invocation printed nothing for about five minutes; client and daemon worker used no CPU; cancelled",
+    "host_state": "68 nix-daemon workers, the oldest 2 h 38 min old; the store database had not been written for 36 minutes; 88 GiB free against a 100 GiB min-free setting",
+    "persistent_change": "none"
+  },
+  "non_claims": [
+    "Cargo commands in the development shell are not the Nix checks: sandboxing, vendoring and release profiles differ",
+    "A registry name being free on one date does not reserve it",
+    "The product name Kiln and its domain are not cleared by this change"
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "scope": "Rename of two Cargo packages and their selectors; no runtime, schema, deployment, remote or publication effect",
+  "review": "Agentic self-review, not independent approval",
+  "results": [
+    {
+      "label": "classification",
+      "command": [
+        "cairn",
+        "review",
+        "validate",
+        ".cairn/changes/adopt-onix-package-prefix/reviews/no-spec-classification.json",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "verdict": "PASS",
+      "valid": true
+    },
+    {
+      "label": "proposal",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "adopt-onix-package-prefix",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "8c1f7a588612784564695983704af53f8781dcce7332f8478f976301e4e51056",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "55e73ed15cb8764692c862b391b1fcf301d7c7d25af4c7eadf94c422e6cdbf98"
+    },
+    {
+      "label": "design",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "adopt-onix-package-prefix",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "b9bc5cdf853361159ac6d8189ed758e4a5745f0ea25935d42469e16e8bb7efdb",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b0f250fb9d1636d7418b634a3179310432e26aa9246ac1ed15da7a8f1050b8d9"
+    },
+    {
+      "label": "tasks",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "adopt-onix-package-prefix",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "274d7977aa562bc66e7d9e8bb1ae086fda3cdc5c35a3e8acec5f5590a4292355",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b0f0bed60f4bb97796e26d54d04ad48cea7fcbf50a6bc4ddd57406096e664f86"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "issues": [],
+      "change_issues": []
+    }
+  ]
+}

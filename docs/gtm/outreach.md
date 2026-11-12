@@ -31,7 +31,7 @@ Install from source with the Nix flake, then run the demo:
     jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln
   cd kiln
   nix develop path:$PWD
-  cargo run --locked -p kiln-cli -- demo
+  cargo run --locked -p onix-kiln-cli -- demo
 
 It is not a sandbox, and no production qualification is claimed. Hosted CI is
 planned and not available.
@@ -176,7 +176,7 @@ This is not a migration.
     jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln
   cd kiln
   nix develop path:$PWD
-  cargo run --locked -p kiln-cli -- demo
+  cargo run --locked -p onix-kiln-cli -- demo
 
 Open source, mixed license, installed from source with Nix. Not a sandbox; no
 production qualification is claimed. No commitment on either side.

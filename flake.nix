@@ -1255,7 +1255,7 @@
             };
             cargoBuildFlags = [
               "-p"
-              "kiln-core"
+              "onix-kiln-core"
               "-p"
               "kiln-observe-core"
               "-p"
@@ -2068,7 +2068,7 @@
             buildInputs = [ pkgs.zlib ];
             buildPhase = ''
               runHook preBuild
-              cargo tree -p kiln-core --edges normal > core-tree.txt
+              cargo tree -p onix-kiln-core --edges normal > core-tree.txt
               cargo tree -p kiln-standalone --edges normal > standalone-tree.txt
               cargo tree -p kiln-radicle-source-contract --edges normal | tail -n +2 > source-contract-tree.txt
               if grep -E 'radicle|secretspec' core-tree.txt standalone-tree.txt >/dev/null; then

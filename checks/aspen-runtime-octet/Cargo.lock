@@ -143,8 +143,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-codec",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "preserves",
  "serde",
  "serde_json",
@@ -157,8 +157,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "kiln-adapter-aspen",
- "kiln-core",
  "kiln-provider-api",
+ "onix-kiln-core",
  "serde",
  "serde_json",
  "tempfile",
@@ -169,25 +169,17 @@ name = "kiln-codec"
 version = "0.1.0"
 dependencies = [
  "blake3",
- "kiln-core",
+ "onix-kiln-core",
  "preserves",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "kiln-core"
-version = "0.1.0"
-dependencies = [
- "blake3",
- "serde",
-]
-
-[[package]]
 name = "kiln-provider-api"
 version = "0.1.0"
 dependencies = [
- "kiln-core",
+ "onix-kiln-core",
  "serde",
 ]
 
@@ -248,6 +240,15 @@ name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
+
+[[package]]
+name = "onix-kiln-core"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "preserves"

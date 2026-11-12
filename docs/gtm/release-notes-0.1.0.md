@@ -30,7 +30,7 @@ The read-only GitHub projection needs only Git:
 ```console
 nix develop path:$PWD
 cargo test --locked --workspace
-cargo run --locked -p kiln-cli -- demo
+cargo run --locked -p onix-kiln-cli -- demo
 ```
 
 Expected output:
@@ -111,7 +111,7 @@ publishing.
 
 | Check | Outcome |
 | --- | --- |
-| `cargo run --locked -p kiln-cli -- demo` | Printed the one-line state above; no network, VCS or filesystem write and no dispatch |
+| `cargo run --locked -p onix-kiln-cli -- demo` | Printed the one-line state above; no network, VCS or filesystem write and no dispatch |
 | `cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview` | Wrote a synthetic journal and an offline HTML dashboard |
 | `cargo test --locked --workspace` | Exit 0: 1608 passed, 0 failed, 5 ignored across 160 result lines; 3m36s wall time with a warm cache |
 | `cargo test --locked -p kiln-adapter-github --features protocol-fixtures --test local_ci_e2e` | 17 passed against isolated fixtures; not a live GitHub run |

@@ -11,7 +11,7 @@
 2. Run the standalone fixture:
 
    ```console
-   cargo run -p kiln-cli -- demo
+   cargo run -p onix-kiln-cli -- demo
    ```
 
 3. Run all checks:

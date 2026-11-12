@@ -6,7 +6,7 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 
 | Crate | Role |
 |---|---|
-| `kiln-core` | Pure `no_std + alloc` decisions, events, projections, and validation. |
+| `kiln-core` (package `onix-kiln-core`) | Pure `no_std + alloc` decisions, events, projections, and validation. |
 | `kiln-provider-api` | Narrow versioned provider ports. |
 | `kiln-codec` | Packed Preserves encoding and BLAKE3 identity. |
 | `kiln-observe-core` | Pure `no_std + alloc` bounded, deterministic, read-only observation projection with typed profiles, paging and window admission, redaction, and `kiln.observe.view.v1` identities. |
@@ -43,9 +43,11 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-sqlite` | Durable local event, outbox, lease, snapshot, migration, and backup storage. |
 | `kiln-adapter-celld` | Optional pinned Celld Worker event store with authenticated bounded HTTPS, one-object SQLite journal/outbox, and conditional lease/schema plans. |
 | `kiln-conformance` | Shared positive and negative provider gates. |
-| `kiln-cli` | Local operator shell. |
+| `kiln-cli` (package `onix-kiln-cli`) | Local operator shell. |
 | `kiln-dashboard` | Local read-only operator shell over one canonical Kiln journal: event-identity recomputation, canonical replay, and a deterministic bounded report over the accepted observation projection. |
 | `kiln-web-service` | Explicit single-tenant HTTPS application composition over existing core/Git/Lattice ports, durable intake and recovery, separate operator/worker authority, exact-source job shell, captured output and real artifact transport; not an extension of read-only observation authority. |
+
+Two packages carry the stack's `onix-` prefix because crates.io holds unrelated crates under the unprefixed names. `crates/kiln-core` is package `onix-kiln-core` with library `kiln_core`; `crates/kiln-cli` is package `onix-kiln-cli` with binary `kiln`. Cargo selects them as `-p onix-kiln-core` and `-p onix-kiln-cli`. Dependents keep the key and declare `kiln-core = { package = "onix-kiln-core", ... }`; a consumer that pins Kiln by Git revision changes its declaration when its pin first includes the rename. Every other package under `crates/` is named after its directory.
 
 The core has no filesystem, process, network, clock, credential, or provider-runtime dependency.
 

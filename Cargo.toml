@@ -125,7 +125,8 @@ lattice-workflow-transport = { path = "vendor/lattice/crates/lattice-workflow-co
 cairn-gate-contract = { path = "vendor/cairn/crates/cairn-gate-contract" }
 bounded-exec = { path = "vendor/bounded-exec/crates/bounded-exec" }
 bounded-exec-core = { path = "vendor/bounded-exec/crates/bounded-exec-core" }
-kiln-core = { path = "crates/kiln-core" }
+# Package `onix-kiln-core`; the key and the library name stay `kiln-core`/`kiln_core`.
+kiln-core = { package = "onix-kiln-core", path = "crates/kiln-core" }
 kiln-build-graph = { path = "crates/kiln-build-graph" }
 kiln-provider-api = { path = "crates/kiln-provider-api" }
 kiln-implementer = { path = "crates/kiln-implementer" }

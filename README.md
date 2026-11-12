@@ -87,12 +87,13 @@ Select and verify the intended exact revision before building; `main` is a movin
 ```console
 nix develop path:$PWD
 cargo test --locked --workspace
-cargo run --locked -p kiln-cli -- demo
+cargo run --locked -p onix-kiln-cli -- demo
 ```
 
 The first build compiles the workspace from source; no binary is published.
-Kiln is not published to crates.io: the `kiln-cli` and `kiln-core` crates
-there belong to an unrelated project.
+Kiln is not published to crates.io. Its command-line package is
+`onix-kiln-cli` and its core package is `onix-kiln-core`; the unprefixed
+`kiln`, `kiln-cli` and `kiln-core` crates there belong to unrelated projects.
 
 `demo` commits one command to an in-memory journal and prints the resulting
 state. It contacts no provider:

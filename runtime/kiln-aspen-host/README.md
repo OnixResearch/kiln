@@ -110,7 +110,7 @@ The package check runs all-target and all-feature tests. Positive tests bind the
 Kiln maintainers own the repeatable local qualification rail for the Aspen/Lattice CI host. From the Kiln repository root, the receipt consumer is:
 
 ```console
-cargo run --locked -p kiln-cli -- host-qualify COHORT_JSON RECEIPT_JSON ARTIFACT_ROOT
+cargo run --locked -p onix-kiln-cli -- host-qualify COHORT_JSON RECEIPT_JSON ARTIFACT_ROOT
 ```
 
 `COHORT_JSON` is the operator's expected `HostQualificationCohort`: the exact source revision and BLAKE3 identities of the source archive, host/extension/provider executables, runtime/collaboration/provider profiles, host identity and publication binding. Its original JSON bytes determine the cohort identity. A publication binding must distinguish a published revision from changed, unpublished candidate inputs; an older publication cannot qualify new executable bytes.

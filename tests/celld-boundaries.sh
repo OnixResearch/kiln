@@ -8,7 +8,7 @@ set -eu
 tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT
 
-for crate in kiln-core kiln-provider-api kiln-standalone; do
+for crate in onix-kiln-core kiln-provider-api kiln-standalone; do
     cargo tree -p "$crate" --edges normal --locked --offline >"$tmp/$crate.tree"
 done
 check_tree() {
@@ -19,14 +19,14 @@ check_tree() {
         return 1
     fi
 }
-check_tree kiln-core "$tmp/kiln-core.tree"
+check_tree onix-kiln-core "$tmp/onix-kiln-core.tree"
 check_tree kiln-provider-api "$tmp/kiln-provider-api.tree"
 check_tree kiln-standalone "$tmp/kiln-standalone.tree"
 
 # r[verify kiln.celld.dependency_boundary.scenario.optional]
 # Actual standalone/core/provider tests run without the Celld runtime or S3
 # credentials; the three real dependency trees above exclude Worker/V8.
-cargo test -p kiln-core -p kiln-provider-api -p kiln-standalone --lib --locked --offline
+cargo test -p onix-kiln-core -p kiln-provider-api -p kiln-standalone --lib --locked --offline
 
 # r[verify kiln.celld.dependency_boundary.scenario.import]
 # The negative case edits ONLY an independently copied disposable workspace.
@@ -48,14 +48,14 @@ sed -i '/^\[dependencies\]$/a celld-forbidden-runtime = { path = "../celld-forbi
 printf '\npub use celld_forbidden_runtime::ForbiddenRuntime;\n' >>"$tmp/workspace/crates/kiln-core/src/lib.rs"
 (
     cd "$tmp/workspace"
-    cargo check -p kiln-core --lib --offline
-    cargo tree -p kiln-core --edges normal --offline >"$tmp/injected.tree"
+    cargo check -p onix-kiln-core --lib --offline
+    cargo tree -p onix-kiln-core --edges normal --offline >"$tmp/injected.tree"
 )
-if check_tree kiln-core "$tmp/injected.tree" 2>"$tmp/injected.report"; then
+if check_tree onix-kiln-core "$tmp/injected.tree" 2>"$tmp/injected.report"; then
     echo 'Celld boundary gate accepted a real forbidden core import' >&2
     exit 1
 fi
-if ! grep -F 'kiln-core: forbidden runtime dependency edge: ' "$tmp/injected.report" >/dev/null ||
+if ! grep -F 'onix-kiln-core: forbidden runtime dependency edge: ' "$tmp/injected.report" >/dev/null ||
    ! grep -F 'celld-forbidden-runtime' "$tmp/injected.report" >/dev/null; then
     cat "$tmp/injected.report" >&2
     echo 'Celld boundary gate did not identify the forbidden dependency edge' >&2

@@ -118,7 +118,7 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=protocol.version GIT_CONFIG_VALUE_0=0 \
   jj git clone https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git kiln
 cd kiln
 nix develop path:$PWD
-cargo run --locked -p kiln-cli -- demo
+cargo run --locked -p onix-kiln-cli -- demo
 ```
 
 `demo` commits one `StartRun` command to an in-memory journal and prints the

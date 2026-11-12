@@ -116,8 +116,11 @@ entry describes the source tree prepared for the first tagged release.
 - Enter the development shell with `nix develop path:$PWD`.
 - No crates.io publication, binary release, container image or
   package-manager entry is prepared; 36 of the 46 workspace crates set
-  `publish = false`. Unrelated crates named `kiln`, `kiln-core` and `kiln-cli`
-  exist on crates.io, so `cargo install` does not install this project.
+  `publish = false`.
+- The core and command-line packages are named `onix-kiln-core` and
+  `onix-kiln-cli`; the library `kiln_core` and the binary `kiln` keep their
+  names. Unrelated crates named `kiln`, `kiln-core` and `kiln-cli` exist on
+  crates.io, so `cargo install kiln-cli` does not install this project.
 
 ### Compatibility notes
 
@@ -125,6 +128,9 @@ entry describes the source tree prepared for the first tagged release.
   profiles may change before a later release.
 - Schemas and profiles carry explicit version identifiers such as
   `kiln.observe.view.v1` and `kiln.packed-preserves.v1`.
+- A consumer that pins Kiln by Git revision declares
+  `kiln-core = { package = "onix-kiln-core", ... }` once its pin includes the
+  package rename. Earlier revisions keep the name `kiln-core`.
 - Retained evidence names `x86_64-linux`. The flake also declares
   `aarch64-linux`, which was not checked.
 

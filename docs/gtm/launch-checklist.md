@@ -80,7 +80,7 @@ lifecycle packages `prepare-go-to-market` and `retain-heartwood-license-texts`.
 ## 3. Install and demo smoke
 
 - [x] `nix develop path:$PWD` enters the shell with `rustc 1.88.0`.
-- [x] `cargo run --locked -p kiln-cli -- demo` printed the one-line state
+- [x] `cargo run --locked -p onix-kiln-cli -- demo` printed the one-line state
       shown in the README.
 - [x] `cargo run --locked -p kiln-dashboard --example preview -- /tmp/kiln-dashboard-preview`
       wrote `journal.json` and `dashboard.html`. The page rendered in

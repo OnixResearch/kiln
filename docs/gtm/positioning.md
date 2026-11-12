@@ -56,7 +56,7 @@ only current consumer.
 
 | Pillar | What the reader gets | Proof surface |
 | --- | --- | --- |
-| Deterministic core | `state + command -> events + requested effects`, then `state + event -> new state`. The core has no filesystem, process, network, clock or credential dependency, so recorded state replays | [Architecture](../architecture.md), `cargo run --locked -p kiln-cli -- demo` |
+| Deterministic core | `state + command -> events + requested effects`, then `state + event -> new state`. The core has no filesystem, process, network, clock or credential dependency, so recorded state replays | [Architecture](../architecture.md), `cargo run --locked -p onix-kiln-cli -- demo` |
 | Exact-candidate results | Every gate result binds to one exact candidate identity; a moved target or failed dependency needs a new candidate and evaluation | [Change gating](../integrations.md#change-gating) |
 | Replaceable providers | Source, collaboration, discovery, workflow, gate and trigger ports are narrow and versioned; adapters implement them and the core imports none | [Provider authoring](../provider-authoring.md), [README ports table](../../README.md#how-it-works) |
 | Explicit uncertainty | A transport failure after provider acceptance produces `Unknown`; reconciliation resolves it without a blind retry | [Provider effects](../security-and-non-claims.md#provider-effects), [Recovery](../operator.md#recovery) |
@@ -158,9 +158,10 @@ compiles a bounded subset of Actions syntax and rejects everything else.
 ### "How do I install it?"
 
 From source with the Nix flake. There is no binary release and no crates.io
-publication; the `kiln-cli` and `kiln-core` crates on crates.io belong to an
-unrelated project. The first build compiles the workspace. Start with the
-[quick start](../../README.md#quick-start).
+publication. The command-line package is `onix-kiln-cli` and the core package
+is `onix-kiln-core`; the unprefixed `kiln`, `kiln-cli` and `kiln-core` crates
+on crates.io belong to unrelated projects. The first build compiles the
+workspace. Start with the [quick start](../../README.md#quick-start).
 
 ### "Who supports it?"
 
@@ -218,9 +219,10 @@ Do not say:
 | HTTPS projection | `https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git` |
 
 Do not coin other product names. The repository records no product domain;
-do not reference one. Unrelated crates named `kiln`, `kiln-core` and
-`kiln-cli` exist on crates.io: never show a `cargo install` command, and send
-readers to the repository.
+do not reference one. The Cargo packages `onix-kiln-core` and `onix-kiln-cli`
+carry the stack's `onix-` prefix because unrelated crates named `kiln-core`
+and `kiln-cli` exist on crates.io; an unrelated `kiln` crate exists there too.
+Never show a `cargo install` command, and send readers to the repository.
 
 ## Hosted-CI track
 
