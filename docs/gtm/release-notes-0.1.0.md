@@ -127,10 +127,13 @@ Nix results on the same host, at local revisions that are not published:
 | Check | Outcome |
 | --- | --- |
 | `nix build` of the `kiln` package | Exit 0 at `95668b0b`; the check phase ran the workspace tests in the sandbox with 1612 passed, 0 failed, 5 ignored; `kiln demo`, `kiln --help` and `kiln --version` ran from the output |
-| `nix build` of `checks.x86_64-linux.octet` and its four consumer checks | Exit 0 at `0495510a`, after the Aspen host was brought under the Octet policy; the check fails at `428d03fc` |
-| `nix build` of the `no-std`, `radicle-status-boundaries` and `celld-boundaries` checks | Exit 0 at `95668b0b` |
+| `nix build` of each of the 45 flake checks for `x86_64-linux` | Exit 0 for all 45 at `0495510a`, including `tests`, `package`, `clippy`, the Octet checks, the `bombadil` property rail and the `web-service-deployment` VM test |
+| `nix build` of `checks.x86_64-linux.octet` at published `main` | Fails at `428d03fc`; it passes after the Aspen host was brought under the Octet policy |
+| `nix flake check --no-build --all-systems` | Exit 0 at `d7ea681d` on the second run; evaluation only, and nothing was built for `aarch64-linux` |
 
-Not run: `nix flake check` with its 45 checks, and `nix run` itself.
+Not run: `nix flake check` with builds as one command, and `nix run` itself.
+The commits after `0495510a` change only documents and lifecycle evidence;
+the checks were not rebuilt on them.
 
 Retained receipts for earlier recorded cohorts. None validates this revision:
 
@@ -146,6 +149,11 @@ Retained receipts for earlier recorded cohorts. None validates this revision:
 - Nix is the install path; no crates.io, binary release or container image.
 - `x86_64-linux` was exercised on one host; `aarch64-linux` outputs evaluate
   but were not built or run.
+- The separately locked workspaces under `runtime/` fetch Bounded Exec from
+  `git.onix.computer`, which returned HTTP 530 on 2026-11-12. The root
+  workspace does not use that host. [Build source acquisition](../reference-pins.md#build-source-acquisition)
+  gives the step that seeds the same revision from the public Radicle
+  projection.
 - Workflow execution goes through the Lattice adapter; GitHub, Gitea and the web
   service need a reviewed Lattice runtime.
 - Kiln is not a sandbox and claims no hostile-code confinement.

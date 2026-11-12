@@ -192,18 +192,43 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
       `aspen-runtime-octet-deny-all`, `radicle-broker-wire-octet-deny-all` and
       `kiln-radicle-nix-provider-octet-deny-all`. The first five are the
       checks the package rename touched.
-- [ ] `nix flake check path:$PWD --no-write-lock-file -L`: not run. It has 45
-      checks. On 2026-11-12 it would have rebuilt 1224 derivations, including
-      Nix from source, two Rust toolchains and a NixOS VM test, on a store
-      with about 40 GiB free. Record its result on the release commit or
-      state that it was not run.
+- [x] All 45 flake checks for `x86_64-linux` pass at local revision
+      `0495510a`. Each was built on its own with `nix build` from a pinned
+      `git+file` reference and exited 0. They include `tests`, `package`,
+      `clippy`, `format`, `nickel`, the fixture rails, the `bombadil`
+      property rail and the `web-service-deployment` NixOS VM test.
+- [~] `nix flake check` was run as an evaluation only.
+      `nix flake check --no-build --all-systems` at local revision `d7ea681d`
+      exited 0 on its second run. The first run failed with a derivation
+      path reported as not valid while a garbage collection was running. The
+      commits after `0495510a` change only documents and lifecycle evidence.
+      A search of the flake, its check scripts and the Rust tests found no
+      reader of those files. At `d7ea681d`, 10 of the 45 check derivations
+      are identical; the other 35 differ only in their copied source tree
+      and were not rebuilt.
+- [ ] Release owner: run `nix flake check path:$PWD --no-write-lock-file -L`
+      on the release commit and record its result.
+- [ ] Owner: `git.onix.computer` returned HTTP 530 with Cloudflare error
+      1033 for every path at 2026-11-12T22:05Z. The locks of
+      `runtime/kiln-aspen-host` and `runtime/kiln-radicle-nix-provider` name
+      it as the Bounded Exec source, and five typed profiles record it as the
+      source identity. The root workspace, the quick start and the `kiln`
+      package do not fetch from it. On the preparation host the two runtime
+      workspaces built from a fetch cache. A fresh checkout needs the host
+      back or the seeding step in
+      [the reference pins](../reference-pins.md#build-source-acquisition).
+      The pinned revision is public on the Radicle Garden seed.
 - [ ] Operator: the Nix store on the preparation host needs attention. It
-      was below its 100 GiB `min-free` setting, so every store write started
-      an automatic garbage collection, and one collection held the collector
-      lock for hours while about fifty daemon workers queued behind it. The
-      Nix runs recorded here used a pinned `git+file` revision and
+      is below its 100 GiB `min-free` setting, so every ordinary store write
+      starts an automatic garbage collection. One collection held the
+      collector lock for hours while about fifty daemon workers queued behind
+      it. A later one removed check outputs that had no root. The Nix runs
+      recorded here used a pinned `git+file` revision and
       `--option min-free 0` for those invocations only, under a watchdog that
-      stops a build before free space falls below a floor.
+      stops a build before free space falls below a floor. They added build
+      inputs to the store: free space was about 40 GiB before them and
+      16 GiB at its lowest. Their temporary roots are removed, and a later
+      collection brought free space back to 43 GiB.
 - [ ] Open qualification items in the retained 2026-11-08 readiness record
       remain open: the combined Web approval handoff and distinct-physical-host
       measurements. They bound hosted and isolation claims, not the source
@@ -224,6 +249,13 @@ The documented list is in [the operator guide](../operator.md#local-reference-ru
 - [x] Three broken links that predate this preparation are repaired: the
       Choregraph reference in the README, one anchor in `docs/hosted-ci.md`
       and one archived-evidence path in `docs/operator.md`.
+- [x] External links: the 69 distinct links outside code blocks in the 63
+      checked documents were requested on 2026-11-12. 68 returned HTTP 200.
+      The other is the withdrawn `kiln-public` repository named in the dated
+      hosting record. Before this check the README linked Bounded Exec and
+      Choregraph by Git URLs. The first returned HTTP 530 and the second
+      HTTP 404 to a plain request. Both now link the public Radicle
+      explorer.
 - [ ] Owner: confirm the contribution route in `CONTRIBUTING.md`. It accepts
       Radicle patches and GitHub pull requests, integrated on canonical
       `main`. Observed use: the Radicle seed lists no issues and no patches;

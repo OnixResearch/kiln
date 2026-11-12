@@ -1,5 +1,5 @@
 {
-  "scope": "GitHub repository settings, one ruleset, one repository visibility change, one organization-profile row, a workspace catalog correction and launch documents; no push to a Kiln remote, tag, release or payment effect",
+  "scope": "GitHub repository settings, one ruleset, one repository visibility change, one organization-profile row, a workspace catalog correction, repaired reference links and launch documents; no push to a Kiln remote, tag, release or payment effect",
   "review": "Agentic self-review, not independent approval",
   "results": [
     {
@@ -34,9 +34,9 @@
       "valid": true,
       "verdict": "PASS",
       "issues": [],
-      "input_hash": "5c0504df6ed0c5c575e18d64781fef3f47f4c699678cc4c68da7aeed12289440",
+      "input_hash": "ad8225adf9f12768fcb0c32ef72ed00fbc811c82b212ed71b37470b92813f525",
       "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
-      "receipt_hash": "bbcda393bc53fd880b7a00054670eb8c14f378b00c3663edc3096115db9bb707"
+      "receipt_hash": "8e002c2dd19cb0ee831b6ed4c9e39834d9d75d42c6ca7ff02f96bf27d0c655c1"
     },
     {
       "label": "design",
@@ -55,9 +55,9 @@
       "valid": true,
       "verdict": "PASS",
       "issues": [],
-      "input_hash": "ba94d78433a98796fff465ba0ddafdbd53c446459beacddc1665fe383de1b137",
+      "input_hash": "7ef1301fd598c0eedc095593d0be75933412a1a8c32e6ddeeb7beb76622ccf89",
       "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
-      "receipt_hash": "79889b8e6c933e230f1dcc7d248c5773a650d55d3888adca76cf7f85cc12e11a"
+      "receipt_hash": "975f9c413e63e383d2d0becd11048142ef23806aa422c174b35a8c4f706ea4a7"
     },
     {
       "label": "tasks",
@@ -76,9 +76,9 @@
       "valid": true,
       "verdict": "PASS",
       "issues": [],
-      "input_hash": "4dc80d01d4bfa1cea4f930dea5039af37588960534e775e70accb108941db988",
+      "input_hash": "5a2a6f33c93420b28e4efbd4d47d6558d71ae5c964a55bc4d51adf1257d2c60b",
       "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
-      "receipt_hash": "862b38fd22fc019cab201b4a1a9d13e2dfd4869571c57cebe100cc274b07a784"
+      "receipt_hash": "c780e5cfddecbf70759bee3d8d4c29a722e0c24d03802caa29d8acb3ca10b053"
     },
     {
       "label": "validate",

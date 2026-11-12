@@ -8,6 +8,7 @@
 ## Phase 2: Launch kit
 
 - [x] [serial] Move the resolved blockers out of the open lists, update the publish sequence, replace test and coverage figures with results on the current tree, and record the Nix gates that ran and those that did not. a[resolve-launch-channel-blockers.kit]
+- [x] [serial] Request every external link in the public documents, repair the two README references a reader could not open, and record the unreachable dependency host with the documented acquisition step. a[resolve-launch-channel-blockers.kit]
 
 ## Phase 3: Verification
 

@@ -1,6 +1,6 @@
 {
   "schema": "kiln.launch-channel-blockers.resolution-evidence.v1",
-  "scope": "GitHub repository setting changes named by the operator, one repository ruleset, one repository visibility change, one row in the organization profile, a dated withdrawal record, a workspace catalog correction, refreshed launch documents and the Nix gates run at the local revisions. Not a push to a Kiln remote, tag, release, announcement, homepage or payment action",
+  "scope": "GitHub repository setting changes named by the operator, one repository ruleset, one repository visibility change, one row in the organization profile, a dated withdrawal record, a workspace catalog correction, refreshed launch documents, repaired reference links and the Nix gates run at the local revisions. Not a push to a Kiln remote, tag, release, announcement, homepage or payment action",
   "owner": "The operator owns the three GitHub repositories and every remaining setting; Kiln maintainers own the launch kit and the hosting record",
   "observed_on": "2026-11-12",
   "authority": {
@@ -339,7 +339,7 @@
   "document_checks": {
     "method": "relative link targets and GitHub-style heading anchors resolved for every tracked Markdown document outside lifecycle, vendored, crate, check, fixture, web, tool and test directories",
     "documents": 63,
-    "relative_links": 519,
+    "relative_links": 521,
     "broken": 0,
     "broken_list": [],
     "negative_control": {
@@ -408,7 +408,11 @@
     "Disabling or deleting the ruleset, which a projection rollback would need",
     "scripts/check-nickel-fixtures.sh: its inputs did not change after the retained run",
     "The quick start from a credential-isolated checkout of the public route: nothing is published yet",
-    "Any push to a Kiln remote, tag, release or announcement: canonical publication signs with the operator's hardware key"
+    "Any push to a Kiln remote, tag, release or announcement: canonical publication signs with the operator's hardware key",
+    "nix flake check with builds as one command",
+    "The 35 source-dependent checks on the commits after 0495510a",
+    "Any aarch64-linux build",
+    "A build of the runtime workspaces from an empty fetch cache"
   ],
   "non_claims": [
     "Enabled settings are repository configuration; they do not establish that a report will be handled or that no secret exists in history",
@@ -469,7 +473,7 @@
     }
   },
   "nix_checks_after_host_conformance": {
-    "observed_on": "2026-11-12, between 20:55Z and 21:20Z",
+    "observed_on": "2026-11-12, between 21:00Z and 21:19Z",
     "revision": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
     "revision_note": "local revision that holds the Aspen host conformance change; not published",
     "flake_reference": "git+file://$PWD?rev=<revision>",
@@ -604,7 +608,7 @@
     "note": "the linked repository shows the previous README until the launch preparation is published"
   },
   "aarch64_evaluation": {
-    "observed_on": "2026-11-12",
+    "observed_on": "2026-11-12, about 21:30Z",
     "revision": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
     "method": "nix eval --raw <reference>#<checks|packages>.aarch64-linux.<name>.drvPath for every declared name; evaluation only",
     "checks": {
@@ -632,5 +636,438 @@
       "microvm-guest-surface"
     ],
     "not_exercised": "no aarch64-linux derivation was built or run"
-  }
+  },
+  "flake_checks": {
+    "observed_on": "2026-11-12, between 21:00Z and 21:53Z",
+    "system": "x86_64-linux",
+    "revision": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
+    "revision_note": "local revision that holds the Aspen host conformance change; not published",
+    "declared": 45,
+    "passed": 45,
+    "failed": 0,
+    "method": "one nix build per check from git+file://$PWD?rev=<revision>; 39 checks each with an out-link and its own exit status; six Octet and host checks recorded earlier at the same revision",
+    "invocation": "nix build --no-write-lock-file -L --keep-going --cores 8 -o <link> <reference>#checks.x86_64-linux.<name> --option min-free 0, with substituters limited to cache.nixos.org and no remote builders",
+    "results": [
+      {
+        "check": "aspen-runtime-octet-deny-all",
+        "exit_code": 0,
+        "run": "earlier run at the same revision, recorded in nix_checks_after_host_conformance",
+        "second_run_exit_code": 0
+      },
+      {
+        "check": "aspen-runtime-profile",
+        "exit_code": 0,
+        "wall_seconds": 30,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "bombadil",
+        "exit_code": 0,
+        "wall_seconds": 435,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "boundaries",
+        "exit_code": 0,
+        "wall_seconds": 436,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "cairn-gate-cohort",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "celld-boundaries",
+        "exit_code": 0,
+        "wall_seconds": 75,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "clippy",
+        "exit_code": 0,
+        "wall_seconds": 120,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "dashboard-index-assets",
+        "exit_code": 0,
+        "wall_seconds": 75,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "dashboard-publication",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "format",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "gitea-protocol-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 45,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "github-protocol-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 45,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "heartwood-canonical",
+        "exit_code": 0,
+        "wall_seconds": 75,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "jj-native-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 75,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "kiln-aspen-host-octet-deny-all",
+        "exit_code": 0,
+        "run": "earlier run at the same revision, recorded in nix_checks_after_host_conformance"
+      },
+      {
+        "check": "kiln-aspen-host-package",
+        "exit_code": 0,
+        "run": "earlier run at the same revision, recorded in nix_checks_after_host_conformance",
+        "wall_seconds": 735
+      },
+      {
+        "check": "kiln-radicle-nix-provider-octet-deny-all",
+        "exit_code": 0,
+        "run": "earlier run at the same revision, recorded in nix_checks_after_host_conformance",
+        "second_run_exit_code": 0
+      },
+      {
+        "check": "kiln-radicle-nix-provider-package",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "live-console-ui",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "mantle-build-cohort",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "microvm-guest-surface",
+        "exit_code": 0,
+        "wall_seconds": 31,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "nickel",
+        "exit_code": 0,
+        "wall_seconds": 75,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "nix-build-adapter-cohort",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "nix-build-adapter-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 45,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "nix-eval-fixture-process",
+        "exit_code": 0,
+        "wall_seconds": 45,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "nix-eval-jobs-cohort",
+        "exit_code": 0,
+        "wall_seconds": 360,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "no-std",
+        "exit_code": 0,
+        "wall_seconds": 45,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "octet",
+        "exit_code": 0,
+        "run": "earlier run at the same revision, recorded in nix_checks_after_host_conformance"
+      },
+      {
+        "check": "onixos-pilot-preparation",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "package",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "pijul-cohort",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "pijul-native-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 75,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "radicle-broker-wire-octet-deny-all",
+        "exit_code": 0,
+        "run": "earlier run at the same revision, recorded in nix_checks_after_host_conformance",
+        "second_run_exit_code": 0
+      },
+      {
+        "check": "radicle-mutation-native-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 61,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "radicle-source-contract-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 30,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "radicle-source-native-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 45,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "radicle-status-boundaries",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "radicle-status-cohort",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "radicle-status-native-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 60,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "release-evidence",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "runtime-independence",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "semantic-merge-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "tangled-git-fixtures",
+        "exit_code": 0,
+        "wall_seconds": 30,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "tests",
+        "exit_code": 0,
+        "wall_seconds": 15,
+        "run": "per-check run with an out-link"
+      },
+      {
+        "check": "web-service-deployment",
+        "exit_code": 0,
+        "wall_seconds": 255,
+        "run": "per-check run with an out-link"
+      }
+    ],
+    "observations": {
+      "bombadil": "seven terminal property tests ran; the rejected-evidence case exited 1 as its specification expects",
+      "web-service-deployment": "the NixOS VM test script finished in 31.73s",
+      "tests, boundaries and runtime-independence": "these three checks are the kiln package derivation, built once"
+    },
+    "single_command": {
+      "command": "nix flake check path:$PWD --no-write-lock-file -L",
+      "run": false,
+      "reason": "the documented path reference copies the working directory and would rebuild every check; free space on the store was 16 to 21 GiB"
+    }
+  },
+  "flake_evaluation": {
+    "observed_on": "2026-11-12; first run ended 22:00Z, second run ended 22:04Z",
+    "revision": "d7ea681d2791de66c9bf345fe5c51fcd93ab2cd6",
+    "command": "nix flake check --no-build --all-systems --no-write-lock-file git+file://$PWD?rev=<revision> --option min-free 0",
+    "first_run": {
+      "exit_code": 1,
+      "error": "path '/nix/store/ygwrmxa31yqiw6c4pskcy4299wpq1ymz-source.drv' is not valid, while evaluating checks.aarch64-linux.bombadil",
+      "context": "all 45 x86_64-linux checks had evaluated; a garbage collection was running on the host; the same attribute evaluated with exit 0 on its own immediately afterwards"
+    },
+    "second_run": {
+      "exit_code": 0,
+      "result": "all checks passed!",
+      "x86_64_linux_checks_evaluated": 45,
+      "aarch64_linux_checks_evaluated": 44,
+      "outputs_checked": [
+        "lib",
+        "packages",
+        "onixModules",
+        "apps",
+        "checks",
+        "devShells"
+      ],
+      "warnings": [
+        "unknown flake output 'onixModules'",
+        "could not get HEAD ref for repository 'https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git'; using expired cached ref 'refs/heads/main'"
+      ]
+    },
+    "bound": "evaluation only; no check was built at this revision"
+  },
+  "later_commits": {
+    "after": "0495510a4a2fd981fba091350759b1c13ccaf3c6",
+    "content": "documents and lifecycle evidence only: README.md, CONTRIBUTING.md, CHANGELOG.md, docs/gtm, docs/hosting-and-recovery.md and .cairn/changes",
+    "derivations_compared_at": "d7ea681d2791de66c9bf345fe5c51fcd93ab2cd6",
+    "identical_check_derivations": [
+      "dashboard-index-assets",
+      "heartwood-canonical",
+      "kiln-aspen-host-octet-deny-all",
+      "kiln-aspen-host-package",
+      "kiln-radicle-nix-provider-octet-deny-all",
+      "kiln-radicle-nix-provider-package",
+      "microvm-guest-surface",
+      "nix-build-adapter-cohort",
+      "pijul-cohort",
+      "radicle-mutation-native-fixtures"
+    ],
+    "differing_check_derivations": 35,
+    "difference": "the 35 differing checks copy the whole source tree; they were not rebuilt",
+    "reader_search": "no match for the changed documents' paths in flake.nix, checks/, scripts/, tests/ or Rust sources outside synthetic fixture strings; the release-evidence check reads evidence/release-input.ncl and evidence/release-evidence.json, which did not change",
+    "bound": "a source search, not an execution result"
+  },
+  "external_links": {
+    "observed_on": "2026-11-12, about 22:10Z",
+    "method": "every http(s) link outside code blocks in the same 63 documents requested with curl, following redirects",
+    "distinct_links": 69,
+    "http_200": 68,
+    "other": [
+      {
+        "url": "https://github.com/OnixResearch/kiln-public",
+        "status": "404",
+        "documents": [
+          "docs/hosting-and-recovery.md"
+        ],
+        "note": "the withdrawn repository, named in the dated projection record; left unchanged"
+      }
+    ],
+    "redirected": [
+      {
+        "url": "https://github.com/OnixResearch/kiln/security/advisories/new",
+        "to": "https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2FOnixResearch%2Fkiln%2Fsecurity%2Fadvisories%2Fnew"
+      },
+      {
+        "url": "https://nest.pijul.com/pijul/pijul",
+        "to": "https://nest.pijul.com/pijul/pijul/tree"
+      },
+      {
+        "url": "https://radicle.network/nodes/seed.radicle.garden/rad%3Az2CpqLFpdP36fZXYUK5ZNWxMibpCo",
+        "to": "https://radicle.network/nodes/iris.radicle.network/rad%3Az2CpqLFpdP36fZXYUK5ZNWxMibpCo"
+      },
+      {
+        "url": "https://radicle.network/nodes/seed.radicle.garden/rad%3AzL2ncTUeASVYwcoGkEXv9JKgGbAF",
+        "to": "https://radicle.network/nodes/iris.radicle.network/rad%3AzL2ncTUeASVYwcoGkEXv9JKgGbAF"
+      }
+    ],
+    "repaired": [
+      {
+        "document": "README.md",
+        "reference": "Bounded Exec",
+        "before": "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
+        "before_status": "530",
+        "after": "https://radicle.network/nodes/seed.radicle.garden/rad%3Az2CpqLFpdP36fZXYUK5ZNWxMibpCo"
+      },
+      {
+        "document": "README.md",
+        "reference": "Choregraph",
+        "before": "https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git",
+        "before_status": "404 to a plain request; the Git protocol works",
+        "after": "https://radicle.network/nodes/seed.radicle.garden/rad%3AzL2ncTUeASVYwcoGkEXv9JKgGbAF"
+      }
+    ],
+    "explorer_note": "the explorer is a single-page application, so HTTP 200 does not show the repository page; the seed API returned the public project record for both repository identifiers",
+    "bound": "one request per link from one host; anonymous rate limits and later availability are not covered"
+  },
+  "dependency_host": {
+    "host": "git.onix.computer",
+    "observed_at": "2026-11-12T22:05:22Z",
+    "result": "HTTP 530 with Cloudflare error code 1033 for the site root, the API path and the Git info/refs path",
+    "earlier_record": "docs/reference-pins.md already records HTTP 530 for this URL during integration verification",
+    "named_by": {
+      "cargo_locks": [
+        "runtime/kiln-aspen-host/Cargo.lock",
+        "runtime/kiln-radicle-nix-provider/Cargo.lock"
+      ],
+      "manifest": "runtime/kiln-radicle-nix-provider/Cargo.toml",
+      "typed_profiles": [
+        "config/aspen-runtime-profile.ncl",
+        "config/cairn-gate-profile.ncl",
+        "config/mantle-build-profile.ncl",
+        "config/nix-build-profile.ncl",
+        "config/nix-eval-jobs-profile.ncl"
+      ]
+    },
+    "not_named_by": "the root Cargo.lock and flake.lock; the root workspace vendors Bounded Exec under vendor/bounded-exec",
+    "effect": "on this host the two runtime workspaces and their four checks built from an existing fetch cache; a checkout without that cache cannot fetch the pinned source from this host while it returns 530",
+    "public_same_identifier_routes": {
+      "https://seed.radicle.garden/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git": "anonymous ls-remote exit 0; one advertised ref names the pinned revision 29dac88ecded94457572db3fdfaaaab95fa91525",
+      "https://iris.radicle.xyz/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git": "anonymous ls-remote exit 0"
+    },
+    "documented_step": "docs/reference-pins.md, build source acquisition: an explicit cache-seeding command through the public projection",
+    "not_exercised": "the seeding step was not rerun, and no build was attempted from an empty fetch cache"
+  },
+  "store_footprint": {
+    "free_before_nix_runs_gib": 40,
+    "lowest_free_gib": 16,
+    "free_after_gib": {
+      "while_a_collection_ran": "20 to 21",
+      "after_roots_removed": 43,
+      "observed_at": "2026-11-12T22:16Z"
+    },
+    "roots": "42 out-links under a temporary directory kept check outputs until they were recorded; all were removed afterwards",
+    "deletion": "these runs deleted no store path; a host collection removed unrooted check outputs while they were in progress"
+  },
+  "scratch_note": "one gate run wrote no output because the scratch dataset under /tmp returned 'Disk quota exceeded'; the gates were rerun from a tmpfs scratch directory and the results above are from that rerun"
 }

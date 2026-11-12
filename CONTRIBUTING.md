@@ -56,6 +56,13 @@ The development shell does not provide `cairn`; install a Cairn executable
 that accepts `cairn-policy/generated/cairn-policy.json` to run the three
 `cairn` gates. Do not replace a failing repository gate with an approximation.
 
+The two `nix` gates also build the separately locked workspaces under
+`runtime/`. Their locks name the Bounded Exec source at `git.onix.computer`.
+When that host is unreachable, seed the same revision from the public Radicle
+projection with the explicit step in
+[build source acquisition](docs/reference-pins.md#build-source-acquisition).
+The root workspace commands above do not fetch from it.
+
 ## Lifecycle
 
 Accepted requirements live in [`.cairn/specs/`](.cairn/specs/), active changes

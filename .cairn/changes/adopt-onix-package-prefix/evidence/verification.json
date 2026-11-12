@@ -160,7 +160,7 @@
     "synchronized_or_archived": false
   },
   "not_exercised": [
-    "The full nix flake check: 1224 derivations would be rebuilt, including Nix from source, two Rust toolchains and a NixOS VM test, on a store with about 40 GiB free; it was not started",
+    "The full nix flake check at this revision: it was not started. All 45 checks were later built one by one at 0495510a; see ../../resolve-launch-channel-blockers/evidence/verification.json, section flake_checks",
     "A build of Cairn, OnixOS or the Kiln Aspen host against a revision that includes the rename",
     "aarch64-linux"
   ],

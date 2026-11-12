@@ -34,9 +34,11 @@ missing documents:
   reaches the previous README;
 - published `main` fails the Octet check; the change that makes it pass is
   one of the local commits;
-- the full `nix flake check` was not run and `nix run` itself was not
-  exercised; [the checklist](launch-checklist.md#4-repository-gates) lists
-  the Nix checks that ran;
+- the gates ran on local revisions, not on a published release commit;
+  `nix flake check` with builds as one command and `nix run` were not run;
+- `git.onix.computer`, which the two runtime workspaces name as the Bounded
+  Exec source, returned HTTP 530; a fresh checkout needs that host or the
+  documented seeding step to build them or to run `nix flake check`;
 - the quick start was not repeated from a credential-isolated checkout at
   this revision;
 - the product name and domain are not cleared: an unrelated `kiln` crate
@@ -57,8 +59,10 @@ Resolved on 2026-11-12 at the operator's direction:
   and `onix-kiln-cli`;
 - `kiln --help` prints usage and `kiln --version` prints the version;
 - the packaged `kiln` flake output builds and runs;
-- the Aspen host conforms to the Octet policy, so the Octet check passes on
-  the local commits.
+- the Aspen host conforms to the Octet policy, and all 45 flake checks for
+  `x86_64-linux` pass at local revision `0495510a`;
+- every external link in the public documents resolves, apart from the
+  withdrawn `kiln-public` repository named in the hosting record.
 
 Hosted CI has its own blockers and stays out of the release: every gate
 L0 through L7 is open, no price is approved, and no service exists.

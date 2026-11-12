@@ -259,8 +259,8 @@ Accepted requirements are in `.cairn/specs/`. Active implementation changes are 
 - [SecretSpec](https://secretspec.dev/) — declared secret-provider interface consumed through the pinned `0.19.0` CLI.
 - [Cairn](https://github.com/OnixResearch/cairn) — lifecycle and gate-interchange producer at revision `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`. Kiln retains CI identity, process policy, gate composition, and state authority.
 - [Mantle](https://github.com/OnixResearch/mantle) — build-interchange producer at revision `d75158b00b080535f2ffea12430665ca3d57ea82`. Kiln retains candidate truth, required-product meaning, CI state, retry policy, and release authority.
-- [Bounded Exec](https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git) — bounded process mechanism at revision `29dac88ecded94457572db3fdfaaaab95fa91525`. Kiln retains executable authorization, output meaning, evidence, and retry policy.
-- [Choregraph](https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git) — bounded execution-graph and pure transition reference.
+- [Bounded Exec](https://radicle.network/nodes/seed.radicle.garden/rad%3Az2CpqLFpdP36fZXYUK5ZNWxMibpCo) — bounded process mechanism at revision `29dac88ecded94457572db3fdfaaaab95fa91525`. Kiln retains executable authorization, output meaning, evidence, and retry policy.
+- [Choregraph](https://radicle.network/nodes/seed.radicle.garden/rad%3AzL2ncTUeASVYwcoGkEXv9JKgGbAF) — bounded execution-graph and pure transition reference.
 - [Zuul](https://zuul-ci.org/) — exact candidate sets, speculative gates, dependency queues, and frozen repository state.
 - [Concourse](https://concourse-ci.org/) — versioned resource discovery, pinning, acquisition, and mutation separation.
 - [Bazel Remote Execution API](https://github.com/bazelbuild/remote-apis) — content, action, operation, cache, capability, and log-stream boundaries.
