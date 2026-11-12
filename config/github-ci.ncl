@@ -74,6 +74,7 @@ fun input =>
   & (
     if std.record.has_field "implementation_queue" settings then
       { implementation_queue = settings.implementation_queue }
-    else {}
+    else
+      {}
   )
-  | c.ServiceProfile
+    | c.ServiceProfile

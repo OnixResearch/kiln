@@ -10,9 +10,11 @@ let NonEmpty =
     std.is_string value && std.string.length value > 0
   )
 in
-let Strings = std.contract.from_predicate (fun value =>
-  std.is_array value && std.array.length value > 0 && std.array.all NonEmpty value
-) in
+let Strings =
+  std.contract.from_predicate (fun value =>
+    std.is_array value && std.array.length value > 0 && std.array.all NonEmpty value
+  )
+in
 let Class = {
   name | NonEmpty,
   enforce | Bool,
