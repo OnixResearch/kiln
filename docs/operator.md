@@ -2893,6 +2893,17 @@ retained files and work refs, desktop and 390px browser checks over the local
 origin, and the rollback package. Lattice was failed before that activation and
 was stopped again after one identical failed restart.
 
+The [Patchgate receipt deployment receipt](../.cairn/changes/clarify-patchgate-receipts/evidence/deployment.json)
+binds local source commit `5ffe67b0` to the running web-service package and all
+six changed asset identities on both origins. It records the packaged Rust
+tests, the real retained receipt and its verbatim native report, desktop and
+390px dark browser checks, and preserved CI state, retained files, work refs,
+configuration and credentials. Request auditing changes only the audit history
+and durable version. The administrative `--job-mode=ignore-requirements`
+restart kept the already-inactive Lattice service stopped and the active
+proxies running; this choice requires those dependency-state preconditions.
+The source was not published, and lifecycle acceptance remains unchanged.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:
