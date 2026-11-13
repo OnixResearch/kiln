@@ -444,18 +444,6 @@ button.account-button[aria-expanded="true"], #app-menu-toggle[aria-expanded="tru
 .cob-values { margin: 0; padding-left: 1.2rem; }
 .cob-values li + li { margin-top: .4rem; }
 .cob-exact, .cob-framing, .cob-raw { margin-block: .7rem; min-width: 0; }
-.worker-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); }
-.worker-metrics .inventory-card { min-width: 0; }
-.worker-metrics .metric-label { overflow-wrap: anywhere; }
-.worker-choice { min-height: var(--control-height); }
-.worker-choice-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; }
-.worker-choice strong, .worker-detail h3, .worker-identity, .worker-run-links a { overflow-wrap: anywhere; }
-.worker-choice .state-badge { justify-self: start; }
-.worker-detail { min-width: 0; }
-.worker-detail a { display: block; overflow-wrap: anywhere; }
-.worker-identity { font: var(--text-xs) var(--mono); }
-.worker-run-links { font-size: var(--text-sm); }
-.worker-list { scroll-margin-top: 1rem; }
 .run-header > * + * { margin-top: var(--space-3); }
 .run-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2) var(--space-3); min-width: 0; }
 .run-heading-title { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); flex: 1 1 18rem; min-width: 0; }
@@ -781,7 +769,7 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
   .live-indicator { width: 1.75rem; padding: 0; justify-content: center; font-size: 0; }
   .live-indicator::before { width: .55rem; height: .55rem; }
 }
-@media (max-width: 65rem) { .workspace-grid, .project-forms { grid-template-columns: minmax(0, 1fr); } .run-list { max-height: 22rem; } .worker-list { max-height: 24rem; } #worker-search-form > div { min-width: min(100%, 12rem); } }
+@media (max-width: 65rem) { .workspace-grid, .project-forms { grid-template-columns: minmax(0, 1fr); } .run-list { max-height: 22rem; } }
 @media (max-width: 60rem) {
   :root { --topbar-height: 4.2rem; }
   .app-topbar { grid-template-columns: minmax(0, 1fr) auto auto; height: 4.2rem; min-height: 4.2rem; padding: .45rem 1rem; gap: var(--space-2); }
@@ -838,9 +826,6 @@ a.count-chip:hover { border-color: var(--frame); background: var(--accent); box-
 /* In a phone-width region the Overview project list reads one fact per line, so a project name keeps the row. */
 @container data-table (max-width: 24rem) { .data-table-stack.project-table tr { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 40rem) {
-  #worker-search-form > div { flex-basis: 100%; }
-  #worker-search-form > button { flex: 1; }
-  .worker-detail > .section-heading { align-items: flex-start; }
   .login-panel { margin: var(--space-5) auto; padding: var(--space-5); }
   .facts { grid-template-columns: minmax(0, 1fr); gap: .2rem; }
   .facts dd { margin-bottom: .5rem; }

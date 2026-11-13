@@ -1,0 +1,293 @@
+{
+  "observed_on": "2026-11-13",
+  "owner": "Kiln web-service/dashboard maintainers",
+  "scope": "Real working-tree console assets in an isolated loopback preview. Live snapshots and other GETs proxy the installed HTTPS service with its CA; writes are refused. Edge snapshots are explicitly synthetic.",
+  "functional": {
+    "return_control_unobscured": {
+      "back": 97.125,
+      "bar": 56
+    },
+    "local_filtering": {
+      "query": "compiler",
+      "focused": "workers-q",
+      "caret": 8,
+      "visible": 1,
+      "selection": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "hiddenNotice": true,
+      "selectedSheet": "Expired heartbeat target",
+      "inventory_reads": 0
+    },
+    "url_reload_and_history": true,
+    "refresh_retains_selection_and_browse": true,
+    "return_focus": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "hidden_selection_return_focus": "Search field, because the selected row is hidden by the retained filters",
+    "arrow_keys": true,
+    "copy_target_id": true,
+    "missing_target_not_substituted": true,
+    "exact_live_run_link": true,
+    "exact_live_project_link": true,
+    "overview_shared_vocabulary": true,
+    "unavailable_replaces_capacity": true,
+    "retry_recovers_register": true,
+    "storage-failed": {
+      "message": "Workers unavailableWorkers unavailable: Durable worker state is unavailable. No free capacity or worker health is inferred. No presence, absence or worker health is inferred.Try again",
+      "metrics": 0
+    },
+    "malformed": {
+      "message": "Workers unavailableWorkers unavailable: Worker inventory response is invalid. Target capacity is unavailable. No presence, absence or worker health is inferred.Try again",
+      "metrics": 0
+    },
+    "empty_inventory_explicit": true,
+    "configured_without_report": {
+      "heartbeatLabel": "Not observed",
+      "heartbeatFactCount": 0,
+      "rawLiveness": "offline",
+      "density": "compact",
+      "overflow": 0,
+      "small": []
+    },
+    "pending_read_session_clear": {
+      "kind": "aborted",
+      "error": "net::ERR_ABORTED",
+      "privateNodes": 0,
+      "workspaceHidden": true
+    },
+    "pending_read_route_change": {
+      "kind": "finished",
+      "originalContentRetained": true,
+      "page": "guide",
+      "workersHidden": true,
+      "focusRetained": true
+    }
+  },
+  "geometry": [
+    {
+      "width_px": 320,
+      "appearance": "light",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 320,
+      "appearance": "light",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 320,
+      "appearance": "dark",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 320,
+      "appearance": "dark",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 390,
+      "appearance": "light",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 390,
+      "appearance": "light",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 390,
+      "appearance": "dark",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 390,
+      "appearance": "dark",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 768,
+      "appearance": "light",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 768,
+      "appearance": "light",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 768,
+      "appearance": "dark",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 768,
+      "appearance": "dark",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": true,
+      "minimum_mobile_control_height_px": 44,
+      "undersized_mobile_controls": 0
+    },
+    {
+      "width_px": 1440,
+      "appearance": "light",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1440,
+      "appearance": "light",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1440,
+      "appearance": "dark",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1440,
+      "appearance": "dark",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1920,
+      "appearance": "light",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1920,
+      "appearance": "light",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1920,
+      "appearance": "dark",
+      "view": "register",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    },
+    {
+      "width_px": 1920,
+      "appearance": "dark",
+      "view": "selected with disclosures open",
+      "document_overflow_px": 0,
+      "mobile_touch_check": false,
+      "minimum_mobile_control_height_px": null,
+      "undersized_mobile_controls": null
+    }
+  ],
+  "additional_layout": {
+    "width_px": 320,
+    "appearance": "dark",
+    "density": "compact",
+    "scenario": "Monitoring configured without an admitted heartbeat",
+    "document_overflow_px": 0,
+    "undersized_mobile_controls": 0
+  },
+  "diagnostics": {
+    "entries": [
+      {
+        "seq": 1,
+        "ts": 1794596939958,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET http://127.0.0.1:8800/api/workers: net::ERR_ABORTED",
+        "location": "http://127.0.0.1:8800/api/workers"
+      },
+      {
+        "seq": 2,
+        "ts": 1794596939958,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET http://127.0.0.1:8800/api/workers: net::ERR_ABORTED",
+        "location": "http://127.0.0.1:8800/api/workers"
+      },
+      {
+        "seq": 3,
+        "ts": 1794596939958,
+        "type": "requestfailed",
+        "level": "error",
+        "text": "GET http://127.0.0.1:8800/api/workers: net::ERR_ABORTED",
+        "location": "http://127.0.0.1:8800/api/workers"
+      }
+    ],
+    "dropped": 0,
+    "interpretation": "The three ERR_ABORTED inventory requests were observed during deliberate Clear session cancellation. No other console/network error entries were retained."
+  },
+  "probe_notes": [
+    "An initial disclosure click encountered an element replaced by the two startup reads. Fresh inspection showed the disclosure closed; the subsequent action and never-received-heartbeat check passed.",
+    "The initial navigation probe incorrectly required network abort. The design requires discarding a superseded response, not aborting it. The corrected probe observed a finished response with the original hidden Workers content, route and focus unchanged."
+  ],
+  "non_claims": [
+    "Not a deployment or installed-service validation.",
+    "No worker enrollment, dispatch, provider operation or runtime repair.",
+    "No machine-health, placement or dispatch guarantee.",
+    "Not release or lifecycle acceptance."
+  ]
+}

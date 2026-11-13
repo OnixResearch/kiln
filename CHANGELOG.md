@@ -102,6 +102,13 @@ entry describes the source tree prepared for the first tagged release.
   change message and latest decision time. (node and Rust tests; reviewed in a
   browser over the real reviews API with synthetic receipts, not a running
   service)
+- A full-width Workers target register with immediate local filters, readable
+  project names and independent exact selection. Target detail puts admission
+  capacity, heartbeat evidence, latest execution and assigned work before exact
+  binding identities. Expired heartbeat reports stay distinct from current
+  availability, and the Overview shares the same slot-state vocabulary. (Node
+  and Rust tests; browser review with read-only live data and synthetic edge
+  cases, not a deployment or worker execution)
 
 **Change review**
 

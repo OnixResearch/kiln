@@ -1,0 +1,86 @@
+/* r[impl kiln.dashboard.workers.view.scenario.register] The target register and detail use the shared technical graphics
+   components: ruled tables, three-fact readouts, square panels and disclosures. No worker-specific palette. */
+.workers-page { display: grid; gap: var(--space-4); min-width: 0; }
+.workers-summary { display: grid; gap: var(--space-3); }
+.workers-summary > * + * { margin-top: 0; }
+.workers-summary-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.workers-summary-head > * { margin: 0; }
+.workers-summary-head h2 { font-size: var(--text-lg); }
+.workers-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border: 1px solid var(--frame); background: var(--secondary); }
+.workers-metrics > div { display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-2); min-width: 0; padding: var(--space-2) var(--space-3); border-right: 1px solid var(--border); }
+.workers-metrics > div:last-child { border-right: 0; }
+.workers-metrics dt { color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; overflow-wrap: anywhere; }
+.workers-metrics dd { margin: 0; font: 600 var(--text-2xl)/1.2 var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.workers-register { display: grid; gap: var(--space-3); min-width: 0; }
+.workers-register > * + * { margin-top: 0; }
+.workers-register > h2 { font-size: var(--text-lg); margin: 0; }
+.workers-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem); align-items: end; gap: var(--space-3); }
+.workers-filters > div { display: grid; gap: var(--space-1); min-width: 0; }
+.workers-filters label { margin: 0; }
+.workers-filters input, .workers-filters select { width: 100%; min-width: 0; }
+.workers-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.workers-tools > * { margin: 0; }
+.workers-table { table-layout: fixed; }
+.workers-table th:first-child { width: 38%; }
+.workers-table th:nth-child(2) { width: 18%; }
+.workers-table th:nth-child(3) { width: 16%; }
+.workers-table th:nth-child(4) { width: 7%; }
+.workers-table td > * + * { margin-top: .3rem; }
+.workers-target-link { font-weight: 650; font-size: var(--text-md); line-height: 1.4; overflow-wrap: anywhere; }
+.workers-provider { display: block; color: var(--muted-foreground); font: var(--text-xs)/1.5 var(--mono); overflow-wrap: anywhere; }
+.workers-table td:first-child > .small { display: block; }
+.workers-slot-count { display: block; color: var(--muted-foreground); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.workers-table td[data-label="Heartbeat"] > .relative-time { display: block; margin-top: .3rem; font-size: var(--text-xs); }
+.workers-latest-cell { display: grid; gap: var(--space-1); justify-items: start; min-width: 0; }
+.workers-latest-cell > .relative-time { font-size: var(--text-xs); color: var(--muted-foreground); }
+.workers-table tr[data-selected="true"] td { background: var(--list-active); }
+.workers-table tr[data-selected="true"] td:first-child { box-shadow: inset 2px 0 0 var(--list-active-border); }
+.workers-detail { display: grid; gap: var(--space-4); min-width: 0; scroll-margin-top: calc(var(--topbar-height) + var(--space-4)); }
+.workers-detail > * + * { margin-top: 0; }
+.workers-back { justify-self: start; gap: var(--space-2); }
+.workers-detail > .workers-title { font-size: var(--text-2xl); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; margin: 0; scroll-margin-top: calc(var(--topbar-height) + var(--space-5)); }
+.workers-detail-badges { justify-content: flex-start; gap: var(--space-2); }
+.workers-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-5); min-width: 0; }
+.workers-section { display: grid; align-content: start; gap: var(--space-3); min-width: 0; padding-top: var(--space-3); border-top: 1px solid var(--frame); }
+.workers-section > * + * { margin-top: 0; }
+.workers-section > h3 { margin: 0; font: var(--label-font); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--muted-foreground); }
+.workers-section > .state-badge { justify-self: start; }
+.workers-latest-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.workers-latest-head > .relative-time { font-size: var(--text-sm); color: var(--muted-foreground); }
+.workers-section > .row-link { justify-self: start; }
+.workers-disclosure { min-width: 0; border-top: 1px solid var(--border); }
+.workers-disclosure > summary { min-height: max(var(--control-height), 2.75rem); padding-block: var(--space-2); color: var(--foreground); font-weight: 600; }
+.workers-disclosure[open] > summary { margin-bottom: var(--space-3); }
+.workers-disclosure > .facts, .workers-disclosure > .small { margin-block: var(--space-2); }
+.workers-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; }
+.workers-identity code { font: var(--text-sm)/1.6 var(--mono); overflow-wrap: anywhere; user-select: all; }
+.workers-identity button { flex-shrink: 0; }
+.workers-project-table td[data-label="Occupied slots"] > a { display: flex; width: fit-content; max-width: 100%; overflow-wrap: anywhere; }
+.workers-project-table td:first-child a { font-weight: 600; overflow-wrap: anywhere; }
+.workers-browse { padding: var(--space-3) var(--space-4); border: 1px solid var(--frame); background: var(--group-box); }
+.workers-browse > .workers-register { padding: 0; border: 0; box-shadow: none; }
+.workers-browse > summary { font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+.workers-unavailable { display: grid; gap: var(--space-3); justify-items: start; }
+.workers-unavailable > * { margin: 0; }
+
+@container data-table (max-width: 48rem) {
+  .workers-table tr, .workers-project-table tr { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .workers-table td[data-label="Target"], .workers-project-table td[data-label="Project"] { padding-bottom: var(--space-2); }
+  .workers-table td[data-label="Project slots"], .workers-table td[data-label="Heartbeat"], .workers-table td[data-label="Queued"], .workers-table td[data-label="Latest execution"], .workers-project-table td[data-label="Enrollment"], .workers-project-table td[data-label="Occupied slots"], .workers-project-table td[data-label="Queued"] { display: grid; grid-template-columns: minmax(7rem, .35fr) minmax(0, 1fr); align-items: start; gap: var(--space-1) var(--space-3); }
+  .workers-table td:not([data-label="Target"])::before, .workers-project-table td:not([data-label="Project"])::before { content: attr(data-label); grid-column: 1; grid-row: 1 / span 3; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; padding-top: .2rem; }
+  .workers-table td:not([data-label="Target"]) > *, .workers-project-table td:not([data-label="Project"]) > * { grid-column: 2; }
+  .workers-table td > * + * { margin-top: 0; }
+  .workers-table tr[data-selected="true"] td:first-child { box-shadow: none; }
+}
+@media (max-width: 65rem) {
+  .workers-detail-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+}
+@media (max-width: 40rem) {
+  .workers-filters { grid-template-columns: minmax(0, 1fr); }
+  .workers-metrics > div { padding: var(--space-2); }
+  .workers-detail > .workers-title { font-size: var(--text-xl); }
+  .workers-browse { padding: var(--space-3); }
+}
+@media (forced-colors: active) {
+  .workers-table tr[data-selected="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+}

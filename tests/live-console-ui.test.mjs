@@ -34,6 +34,7 @@ vm.runInNewContext(asset("icons.js"), context);
 vm.runInNewContext(asset("ui.js"), context);
 vm.runInNewContext(asset("source.js"), context);
 vm.runInNewContext(asset("receipts.js"), context);
+vm.runInNewContext(asset("workers.js"), context);
 const ui = context.window.KilnUi;
 const icons = context.window.KilnIcons;
 // Review-query route normalization must mirror the service's trimmed, bounded,
@@ -318,7 +319,7 @@ test("static placeholders hydrate into icons that keep their classes", () => {
 
 // r[verify kiln.web.design_system]
 test("every icon the console names is in the reviewed list", () => {
-  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js", "receipts.js"];
+  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js", "receipts.js", "workers.js"];
   const used = new Set();
   for (const name of sources) {
     const text = asset(name);
@@ -1079,4 +1080,80 @@ test("receipts list newest decision first and filter by text and decision", () =
   assert.deepEqual(plain(receipts.normalizeRoute({ receipt: "a.json", receipt_q: "q".repeat(300), receipt_decision: "attention" })), { receipt: "a.json", q: "q".repeat(256), decision: "attention" });
   assert.equal(receipts.normalizeRoute({ receipt_decision: "everything" }).decision, "");
   assert.deepEqual(plain(receipts.normalizeRoute(undefined)), { receipt: "", q: "", decision: "" });
+});
+
+const workers = context.window.KilnWorkers;
+const target = (id, label, profile, extra = {}) => ({
+  id, provider_profile_id: profile, platform: "linux-x86_64", status: "slots_available", liveness: "unknown",
+  capacity: { configured_slots: 1, enrolled_slots: 1, active: 0, free_slots: 1, queued: 0 },
+  projects: [{ id: `${id}-project`, label, enrolled: true, active_run_ids: [], queued: 0 }], latest_run: null,
+  ...extra,
+});
+
+// r[verify kiln.dashboard.workers.view] r[verify kiln.dashboard.workers.view.scenario.register]
+test("worker targets sort by readable name without coalescing distinct bindings or reordering their source", () => {
+  const inventory = { workers: Object.freeze([
+    target("z", "Shared project", "beta"), target("b", "Beta project", "provider"),
+    target("a", "alpha project", "provider"), target("x", "Shared project", "alpha"),
+  ]) };
+  const rows = workers.rows(inventory);
+  assert.deepEqual(plain(rows.map((row) => row.id)), ["a", "b", "x", "z"]);
+  assert.deepEqual(inventory.workers.map((row) => row.id), ["z", "b", "a", "x"]);
+  assert.equal(rows[2].worker, inventory.workers[3]);
+  assert.equal(workers.matches(rows[0], " ALPHA PROJECT ", "slots_available"), true);
+  assert.equal(workers.matches(rows[0], "a-project", ""), true);
+  assert.equal(workers.matches(rows[0], "linux-x86_64", "busy"), false);
+  assert.equal(workers.matches(rows[0], "not a project", ""), false);
+});
+
+// r[verify kiln.dashboard.workers.view.scenario.restore]
+test("worker filters never substitute an exact selected target, including a missing identity", () => {
+  const rows = workers.rows({ workers: [target("a", "Alpha", "profile-a"), target("b", "Beta", "profile-b", { status: "busy" })] });
+  const route = workers.normalizeRoute({ worker: "a", worker_q: "beta", worker_status: "busy" });
+  const selected = workers.selection(rows, route);
+  assert.equal(selected.selected.id, "a");
+  assert.equal(selected.hidden, true);
+  assert.equal(selected.missing, false);
+  const absent = workers.selection(rows, { ...route, worker: "missing" });
+  assert.equal(absent.selected, null);
+  assert.equal(absent.missing, true);
+  assert.equal(absent.hidden, false);
+  assert.equal(workers.selection(rows, workers.normalizeRoute({})).selected, null);
+  assert.equal(workers.normalizeRoute({ worker_status: "offline" }).status, "offline");
+  assert.equal(workers.normalizeRoute({ worker_status: "constructor" }).status, "");
+});
+
+// r[verify kiln.dashboard.workers.view.scenario.detail]
+test("worker counts and execution timing preserve zero without inventing missing or invalid observations", () => {
+  assert.deepEqual(plain(workers.capacity({ configured_slots: 0, enrolled_slots: null, active: -1, free_slots: "0", queued: 1.5 })), { configured_slots: 0, enrolled_slots: null, active: null, free_slots: null, queued: null });
+  const timed = workers.execution({ started_at_ms: 0, completed_at_ms: 1250, created_at_ms: 0 });
+  assert.deepEqual([timed.atMs, timed.durationMs], [1250, 1250]);
+  const zero = workers.execution({ started_at_ms: 0, completed_at_ms: 0 });
+  assert.deepEqual([zero.atMs, zero.durationMs], [0, 0]);
+  for (const run of [{}, { started_at_ms: null }, { started_at_ms: "0", completed_at_ms: null }, { started_at_ms: -1 }]) {
+    const value = workers.execution(run);
+    assert.deepEqual([value.atMs, value.durationMs], [null, null]);
+  }
+  assert.equal(workers.execution({ started_at_ms: 20, completed_at_ms: 10 }).durationMs, null);
+  assert.equal(workers.execution(null), null);
+});
+
+// r[verify kiln.dashboard.workers.view.scenario.heartbeat]
+test("expired or unknown heartbeats never turn historical free slots or a passed run into current capacity", () => {
+  const observation = { observed_slots: 4, active_slots: 1, free_slots: 3, last_seen_at_ms: 1000 };
+  const online = workers.heartbeat({ liveness: "online", observed_capacity: observation });
+  assert.deepEqual([online.currentFree, online.reportedFree, online.atMs], [3, 3, 1000]);
+  const expired = workers.heartbeat({ liveness: "offline", observed_capacity: observation, latest_run: { outcome: "Success" } });
+  assert.deepEqual([expired.state, expired.currentFree, expired.reportedFree], ["offline", null, 3]);
+  const unknown = workers.heartbeat({ liveness: "unknown", latest_run: { outcome: "Success" } });
+  assert.deepEqual([unknown.observed, unknown.currentFree, unknown.atMs], [false, null, null]);
+  const foreign = workers.heartbeat({ liveness: "future-state", observed_capacity: observation });
+  assert.deepEqual([foreign.state, foreign.currentFree], ["future-state", null]);
+  const occupied = workers.heartbeat({ liveness: "online", observed_capacity: { ...observation, free_slots: 0, last_seen_at_ms: 0 } });
+  assert.deepEqual([occupied.currentFree, occupied.atMs], [0, 0]);
+  // Monitoring may be configured before any admitted heartbeat has arrived: the server supplies a zero aggregate
+  // with no last-seen time. That is no report, not an expired report of zero physical capacity.
+  const neverSeen = workers.heartbeat({ liveness: "offline", observed_capacity: { observed_slots: 0, active_slots: 0, free_slots: 0, last_seen_at_ms: null } });
+  assert.deepEqual([neverSeen.observed, neverSeen.atMs, neverSeen.slots, neverSeen.reportedFree, neverSeen.currentFree], [false, null, null, null, null]);
+  assert.equal(observation.free_slots, 3);
 });

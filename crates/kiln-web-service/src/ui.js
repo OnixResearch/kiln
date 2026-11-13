@@ -678,7 +678,7 @@
     ["runs", "1.2", "Runs", "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence."],
     ["projects", "1.3", "CI projects", "Choose a project to start a source-bound run, or browse its retained history."],
     ["project", "1.3", "CI project", "Health, streak, duration trend and recent runs, derived from this project's retained runs.", "projects"],
-    ["workers", "1.4", "Workers", "Inspect configured execution targets and admission slots. Availability is not a health check."],
+    ["workers", "1.4", "Workers", "Find a configured execution target, check its project slots and inspect its latest execution."],
     ["work", "2.1", "Issues", "Capture an issue, decide what happens next, and follow its discussion and linked CI results."],
     ["inbox", "2.2", "My inbox", "Assignments, mentions, watched updates and due reminders. Opening an item does not mark it read."],
     ["planning", "2.3", "Planning", "Organize issues into projects, milestones and cycles. Track larger goals with initiatives."],

@@ -901,6 +901,12 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 include_bytes!("receipts.js"),
             ),
             "/receipts.css" => ("text/css; charset=utf-8", include_bytes!("receipts.css")),
+            // r[impl kiln.dashboard.workers.view] One Workers presentation and shared state vocabulary.
+            "/workers.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("workers.js"),
+            ),
+            "/workers.css" => ("text/css; charset=utf-8", include_bytes!("workers.css")),
             // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             // r[impl kiln.identity.shared] The shared identity, then the catalog shell it styles.

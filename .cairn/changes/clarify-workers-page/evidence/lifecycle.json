@@ -1,0 +1,243 @@
+{
+  "observed_on": "2026-11-13",
+  "scope": "Post-implementation planning-gate rechecks, package validation, policy freshness and active-delta marker coverage. Observed before marking the final verification checklist complete; no sync, archive, commit, publication or deployment.",
+  "review": "Agentic self-review, not independent approval or lifecycle acceptance.",
+  "results": [
+    {
+      "label": "design",
+      "command": "cairn gate design clarify-workers-page --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "709d4adad2d2cfe40cac7e6eaea97689351710bb04ba96105521c1de7da4bd9d",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "6d4b4b9817d277892a13d74e8321267b4e0bf0d2faa0ad8bf6691ebebd6c773c"
+    },
+    {
+      "label": "proposal",
+      "command": "cairn gate proposal clarify-workers-page --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "dcd8b161c3cbd80adc6be3f4c45eb5988cec080f252f64d1e9efd4b5b154671a",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "92182ee1b7c4cb01175b58556fe8107c696a338a24e32533663ead9da9afbdbe"
+    },
+    {
+      "label": "tasks",
+      "command": "cairn gate tasks clarify-workers-page --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "55aec7c348f0f375fe6f0374e97851e00c1a0508dc56c9c0a136b09435e322e0",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "46777a6c6d1e689d116377cea92d61eb6a50814879a7414a3048d19a475c75e3"
+    },
+    {
+      "label": "validate",
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "issues": [],
+      "receipt_hash": "19167b7f950d496d2d092d099b310bd55ae9bd5827377b7b819c2f7f9b500fa8"
+    }
+  ],
+  "policy_freshness": {
+    "command": "cairn policy export --check",
+    "result": "policy fresh: cairn-policy/generated/cairn-policy.json"
+  },
+  "traceability": {
+    "commands": [
+      "cairn policy export --source cairn-policy/development-coverage.ncl --output target/development-coverage-policy.json",
+      "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json"
+    ],
+    "result": {
+      "command": "traceability coverage",
+      "dangling": [],
+      "input_hash": "37d50eb6ecaba5a5e9e0336594b6444f4f411dcede7114327f66e6377f164923",
+      "missing": [],
+      "policy": "kiln-default",
+      "policy_hash": "bac38371f0371f2c48cee5e03abcf9dbe4d0fccaca19530670888c8d0b24a319",
+      "profile": {
+        "anchor_kind": "exact_marker_bytes",
+        "assurance_level": "declared",
+        "evidence_sources": [
+          {
+            "extensions": [
+              "rs"
+            ],
+            "root": "crates",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
+              "ncl"
+            ],
+            "root": "crates",
+            "source_kind": "nickel_source"
+          },
+          {
+            "extensions": [
+              "rs"
+            ],
+            "root": "runtime/kiln-aspen-host",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
+              "rs"
+            ],
+            "root": "runtime/kiln-radicle-nix-provider",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": "docs/hosting-and-recovery.md",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": "docs/observation-dashboard.md",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": "docs/operator.md",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "js",
+              "css",
+              "html"
+            ],
+            "root": "crates",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "rs"
+            ],
+            "root": "web/dashboard-index/src",
+            "source_kind": "rust_source"
+          },
+          {
+            "extensions": [
+              "rs",
+              "ncl"
+            ],
+            "root": "tools",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "mjs"
+            ],
+            "root": "src",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "mjs",
+              "sh"
+            ],
+            "root": "tests",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "py"
+            ],
+            "root": "scripts",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "ts"
+            ],
+            "root": "checks/bombadil",
+            "source_kind": "tool_source"
+          },
+          {
+            "extensions": [
+              "nix"
+            ],
+            "root": "flake.nix",
+            "source_kind": "tool_source"
+          }
+        ],
+        "id": "kiln-active-development",
+        "marker_verbs": [
+          "impl",
+          "verify",
+          "depends",
+          "related"
+        ],
+        "requirement_sources": [
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/specs",
+            "source_kind": "accepted_specs"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/adopt-technical-graphics-standard/specs/visual-identity/spec.md",
+            "source_kind": "requirements_doc"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/adopt-technical-graphics-standard/specs/live-console-design/spec.md",
+            "source_kind": "requirements_doc"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/clarify-patchgate-receipts/specs/patchgate-review-adapter/spec.md",
+            "source_kind": "requirements_doc"
+          },
+          {
+            "extensions": [
+              "md"
+            ],
+            "root": ".cairn/changes/clarify-workers-page/specs/dashboard-workers/spec.md",
+            "source_kind": "requirements_doc"
+          }
+        ]
+      },
+      "profile_id": "kiln-active-development",
+      "receipt_hash": "a423f21f38032bf5f649a92e24fe1d6fec83763c876b84ad49e1988f3617827f",
+      "referenced": 1775,
+      "requirements": 1775,
+      "root": ".",
+      "source_summary": {
+        "evidence_files": 717,
+        "evidence_manifest_hash": "6ca32d1c2700db8124697808a83132b7c1678b10985302abe07fefd68871fead",
+        "requirement_files": 146,
+        "requirement_manifest_hash": "37f5429380d012adffa10a0e1149b800768132b19997cbf4fcc5fdee3088b6f9"
+      },
+      "valid": true,
+      "verdict": "pass"
+    }
+  },
+  "non_claims": [
+    "Cairn gates establish structural policy facts, not implementation correctness.",
+    "Declared marker coverage is not behavioral verification.",
+    "No accepted specification synchronization, archive, release approval, publication or deployment."
+  ]
+}

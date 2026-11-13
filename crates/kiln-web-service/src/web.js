@@ -1148,10 +1148,9 @@
     // r[impl kiln.dashboard.reviews.view] Receipt reads and filters live in receipts.js.
     window.KilnReceipts?.clear();
     $("receipts-content").replaceChildren();
-    // r[impl kiln.dashboard.workers.view.scenario.cleared]
+    // r[impl kiln.dashboard.workers.view.scenario.cleared] Invalidate reads, filters and private DOM in the page module.
+    window.KilnWorkers.clear();
     $("workers-content").replaceChildren();
-    $("worker-search").value = "";
-    $("worker-status").value = "";
     $("source-reference").replaceChildren();
     for (const id of ["source-revision", "log-search"]) $(id).value = "";
     for (const id of ["overview-content", "project-cards", "reports-content", "compare-content", "activity-content", "run-activity-content", "evidence-content", "run-evidence-content", "automation-content", "operations-content", "principal-facts", "node-facts", "pipeline-graph", "source-status", "page-primary-action"]) $(id).replaceChildren();
@@ -1258,7 +1257,6 @@
     $("run-list-toggle").setAttribute("aria-expanded", String(open));
     $("run-list-toggle-label").textContent = open ? "Hide run list" : "Show run list";
   }
-  const workerStatuses = { slots_available: "Slots available", busy: "Busy", unknown: "Unknown execution", not_enrolled: "Not enrolled" };
   function canOperate() { return !!state.session && state.permissions.operate === true; }
   function adoptSession(result) {
     if (!result?.principal || result.permissions?.read !== true) throw new Error("No admitted readable principal was returned.");
@@ -1296,7 +1294,7 @@
       src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
       sview: ["history", "changes"].includes(params.get("sview")) ? params.get("sview") : "", sline: (params.get("sline") || "").slice(0, 32),
       receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
-      worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
+      worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
       work_ci_project: (params.get("work_ci_project") || "").slice(0, 16_384), work_ci_repository: (params.get("work_ci_repository") || "").slice(0, 16_384),
@@ -1388,8 +1386,6 @@
     for (const [id, key] of [["run-search", "q"], ["run-filter", "project"], ["run-outcome", "outcome"], ["run-source", "source"], ["run-order", "order"], ["compare-other", "other"], ["evidence-run", "run"]]) $(id).value = route[key];
     $("log-stream").value = effectiveStream();
     if (route.source || route.order !== "desc") $("run-more-filters").open = true;
-    $("worker-search").value = route.worker_q;
-    $("worker-status").value = route.worker_status;
     for (const [id, value] of [["run-filter", route.project], ["run-outcome", route.outcome]]) {
       const select = $(id);
       if (value && ![...select.options].some((option) => option.value === value)) { const option = element("option", `Unavailable selection: ${value}`); option.value = value; select.append(option); }
@@ -1910,7 +1906,8 @@
       if (state.startProject) { selectProjectForRun(state.startProject); state.startProject = ""; }
       await Promise.all([loadRefs(), loadProjectHealth()]);
     }
-    if (route.page === "workers") await renderEndpoint("/api/workers", "workers-content", renderWorkers);
+    // r[impl kiln.dashboard.workers.view] The Workers module owns its register, local filters and exact detail.
+    if (route.page === "workers") await window.KilnWorkers.load($("workers-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session, runLink, projectLink });
     if (route.page === "activity") await renderEndpoint(`/api/activity?${activityQuery()}`, "activity-content", renderActivity);
     if (route.page === "evidence") {
       void loadRunChoices();
@@ -1950,112 +1947,6 @@
     if (route.view === "evidence") await renderEndpoint(`${pathFor(route.run)}/evidence`, "run-evidence-content", renderEvidence);
     if (route.view === "artifacts") await loadArtifacts();
     if ((route.view === "logs" || bothPrimaryPanels()) && !state.logKey && !state.logBusy) { maybeAutoFollow(); await readLog(false); }
-  }
-  // r[impl kiln.dashboard.workers.view]
-  function workerMetrics(parent, capacity, targets) {
-    const grid = element("div", undefined, "inventory-grid worker-metrics");
-    const entries = [["Configured project slots", capacity.configured_slots], ["Enrolled project slots", capacity.enrolled_slots], ["Active / occupied slots", capacity.active], ["Free project slots", capacity.free_slots], ["Queued runs", capacity.queued]];
-    if (targets !== undefined) entries.unshift(["Configured targets", targets]);
-    for (const [label, value] of entries) {
-      const card = element("article", undefined, "inventory-card");
-      card.append(element("span", label, "metric-label"), element("strong", text(value), "metric-value"));
-      grid.append(card);
-    }
-    parent.append(grid);
-  }
-  // Slot statuses read as signal lamps: free slots good, busy running, unknown execution a warning, not enrolled neutral.
-  const WORKER_TONES = Object.freeze({ slots_available: "good", busy: "info", unknown: "warning" });
-  function workerStatusBadge(status) {
-    const badge = element("span", workerStatuses[status] || "Unknown slot status", "state-badge");
-    if (Object.hasOwn(WORKER_TONES, status)) badge.dataset.tone = WORKER_TONES[status];
-    return badge;
-  }
-  // r[impl kiln.dashboard.workers.view.scenario.restore]
-  function renderWorkers(parent, result) {
-    validWorkers(result);
-    const route = state.route;
-    const summary = section("Bounded target snapshot", parent);
-    summary.append(element("p", `Snapshot ${text(result.version)} · complete configured target inventory within service limits · liveness unknown`, "small"));
-    workerMetrics(summary, result.summary, result.summary.targets);
-    const query = route.worker_q.toLowerCase();
-    const matches = result.workers.filter((worker) => (!route.worker_status || worker.status === route.worker_status) && (!query || [worker.id, worker.provider_profile_id, worker.platform, ...worker.projects.flatMap((project) => [project.id, project.label])].some((value) => String(value ?? "").toLowerCase().includes(query))));
-    const workspace = element("div", undefined, "workspace-grid workers-grid");
-    parent.append(workspace);
-    const inventory = element("section", undefined, "panel");
-    inventory.setAttribute("aria-label", "Configured worker target inventory");
-    inventory.append(element("h2", "Target inventory"), element("p", `${matches.length} of ${result.workers.length} configured targets match · filters do not change exact selection`, "small"));
-    const list = element("div", undefined, "run-list worker-list");
-    inventory.append(list);
-    workspace.append(inventory);
-    for (const worker of matches) {
-      const choice = element("a", undefined, "run-choice cob-choice worker-choice");
-      const patch = { page: "workers", worker: worker.id };
-      choice.href = `?${new URLSearchParams({ ...route, ...patch })}`;
-      if (route.worker === worker.id) choice.setAttribute("aria-current", "true");
-      // r[impl kiln.web.page_consistency.scenario.data] Assigned project labels lead each target; the provider profile and shortened exact target id stay secondary (full id in the title and inspector).
-      const labels = worker.projects.map((project) => text(project.label || project.id));
-      const primary = labels.length ? (labels.length > 2 ? `${labels.slice(0, 2).join(", ")} +${labels.length - 2} more` : labels.join(", ")) : text(worker.provider_profile_id);
-      const identity = element("span", `${shortIdentity(worker.id)}`, "run-source");
-      identity.title = text(worker.id);
-      const head = element("span", undefined, "worker-choice-head");
-      head.append(workerStatusBadge(worker.status), element("span", text(worker.platform), "small"));
-      choice.title = `${text(worker.provider_profile_id)}\n${text(worker.id)}`;
-      choice.append(head, element("strong", primary), element("span", text(worker.provider_profile_id), "run-source"), identity, element("span", `${text(worker.capacity.free_slots)} of ${text(worker.capacity.configured_slots)} configured project slot${worker.capacity.configured_slots === 1 ? "" : "s"} free · ${text(worker.capacity.active)} occupied · ${text(worker.capacity.queued)} queued`, "small"), element("span", `${worker.projects.length} assigned project${worker.projects.length === 1 ? "" : "s"} · heartbeat ${text(worker.liveness || "unknown")}`, "small"));
-      choice.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate(patch); } });
-      list.append(choice);
-    }
-    if (!matches.length) list.append(element("p", result.workers.length ? "No targets match these metadata and slot-status filters. Clear filters to see the full bounded inventory; the selected target remains independent." : "No workflow targets are configured in this bounded snapshot. This is not a discovery of physical workers.", "small"));
-    const inspector = element("section", undefined, "panel worker-detail");
-    inspector.setAttribute("aria-label", "Exact worker target inspector");
-    const heading = element("div", undefined, "section-heading");
-    heading.append(element("h2", route.worker ? "Selected target" : "Select a target"));
-    inspector.append(heading);
-    workspace.append(inspector);
-    if (!route.worker) { inspector.append(element("p", "Choose a configured target to inspect its assigned projects and exact execution observations. No target is selected automatically.", "small")); return; }
-    const clear = element("button", "Clear selection");
-    clear.type = "button";
-    clear.addEventListener("click", () => navigate({ worker: "" }));
-    heading.append(clear);
-    const selected = result.workers.find((worker) => worker.id === route.worker);
-    if (!selected) { inspector.append(element("p", "Target not found in this configured snapshot. No other target was substituted.", "warning"), element("p", route.worker, "worker-identity")); return; }
-    if (!matches.includes(selected)) inspector.append(element("p", "This exact target is outside the current list filters. Its inspection remains selected.", "small"));
-    renderWorkerDetail(inspector, selected);
-  }
-  function renderWorkerDetail(parent, worker) {
-    const badges = element("div", undefined, "badges");
-    badges.append(workerStatusBadge(worker.status), element("span", `Heartbeat liveness: ${text(worker.liveness || "unknown")}`, "state-badge"));
-    parent.append(badges);
-    const facts = element("dl", undefined, "facts");
-    addFacts(facts, [["Kiln target ID", worker.id], ["Provider profile", worker.provider_profile_id], ["Platform", worker.platform], ["Assigned projects", worker.projects.length], ["Enrolled projects", worker.projects.filter((project) => project.enrolled).length]]);
-    parent.append(facts);
-    workerMetrics(parent, worker.capacity);
-    parent.append(element("p", "Each enrolled project contributes one admission slot. Ambiguous nonterminal executions retain their occupied slots. Availability is not a heartbeat or a provider concurrency guarantee.", "small"));
-    if (worker.observed_capacity) {
-      const observed = element("dl", undefined, "facts");
-      addFacts(observed, [["Heartbeat observed slots", worker.observed_capacity.observed_slots], ["Heartbeat active slots", worker.observed_capacity.active_slots], ["Heartbeat free slots", worker.observed_capacity.free_slots], ["Last heartbeat", when(worker.observed_capacity.last_seen_at_ms)]]);
-      parent.append(observed, element("p", "Expired observations contribute no free slots. Heartbeats observe availability, not physical capacity guarantees.", "small"));
-    }
-    const projects = section("Assigned projects & current runs", parent, "view-stack");
-    for (const project of worker.projects) {
-      const card = section(text(project.label || project.id), projects, "record-card");
-      const metadata = element("dl", undefined, "facts");
-      addFacts(metadata, [["Project ID", project.id], ["Enrollment", project.enrolled ? "Enrolled" : "Not enrolled"], ["Queued runs", project.queued]]);
-      card.append(metadata);
-      const runs = element("div", undefined, "view-stack worker-run-links");
-      for (const id of project.active_run_ids) { const link = runLink(id, `Active / occupying: ${shortIdentity(id)}`); link.title = id; runs.append(link); }
-      if (!project.active_run_ids.length) runs.append(element("p", "No active execution is retained for this project slot. Physical liveness remains unknown.", "small"));
-      card.append(runs);
-    }
-    if (!worker.projects.length) projects.append(element("p", "No assigned projects in this snapshot.", "small"));
-    const latest = section("Latest execution observation", parent, "record-card");
-    const run = worker.latest_run;
-    if (!run) { latest.append(element("p", "Unknown: no retained execution observation. Queued requests are not execution evidence; timing, sequence and outcome are unknown.", "small")); return; }
-    { const link = runLink(run.id, `Inspect exact run: ${shortIdentity(run.id)}`); link.title = run.id; latest.append(link); }
-    const observation = element("dl", undefined, "facts");
-    const unknown = (value) => value === null || value === undefined ? "Not recorded" : value;
-    const executionMs = Number.isSafeInteger(run.started_at_ms) && Number.isSafeInteger(run.completed_at_ms) && run.completed_at_ms >= run.started_at_ms ? run.completed_at_ms - run.started_at_ms : null;
-    addFacts(observation, [["Project ID", run.project_id], ["Phase", unknown(run.phase)], ["Outcome", ui.statusPill(run.outcome, run.phase)], ["Sequence", unknown(run.sequence)], ["Error code", unknown(run.error_code)], ["Created", when(run.created_at_ms)], ["Started", when(run.started_at_ms)], ["Completed", when(run.completed_at_ms)], ["Execution duration", elapsed(executionMs)]]);
-    latest.append(observation, element("p", "Latest retained nonqueued execution, not necessarily an active run. A newer queued request never replaces this execution evidence.", "small"));
   }
   const browsingLoads = new Map();
   function beginBrowsingLoad(page, route) {
@@ -2592,11 +2483,8 @@
     else if (!runningFirst && passedSection.nextElementSibling !== otherSection) passedSection.after(otherSection);
     renderDurationTrend($("overview-trend"), result);
   }
-  function validWorkers(result) {
-    if (result?.schema !== "kiln.web-workers.v1" || result.bounded !== true || typeof result.storage_failed !== "boolean" || !result.summary || !Array.isArray(result.workers) || result.workers.some((worker) => !worker.capacity || !Array.isArray(worker.projects) || worker.projects.some((project) => !Array.isArray(project.active_run_ids)))) throw new Error("Worker inventory response is invalid. Target capacity is unavailable.");
-  }
   function renderOverviewWorkers(result) {
-    validWorkers(result);
+    window.KilnWorkers.validate(result);
     const body = $("overview-workers");
     body.replaceChildren();
     setSectionCount("overview-workers", `${result.workers.length} target${result.workers.length === 1 ? "" : "s"}`);
@@ -2612,7 +2500,7 @@
     for (const worker of result.workers) counts.set(worker.status, (counts.get(worker.status) || 0) + 1);
     const statuses = element("div", undefined, "cluster");
     statuses.setAttribute("aria-label", "Targets by slot status");
-    for (const [status, count] of counts) { const badge = workerStatusBadge(status); badge.append(document.createTextNode(` · ${count}`)); statuses.append(badge); }
+    for (const [status, count] of counts) { const badge = window.KilnWorkers.statusBadge(status); badge.append(document.createTextNode(` · ${count}`)); statuses.append(badge); }
     body.append(metrics, statuses, element("p", "Configured targets and admission slots, not discovered machines. Physical liveness is unknown.", "small"));
   }
   // r[impl kiln.web.page_consistency] Readable activity rows: long identity segments are shortened in the title, the exact target stays secondary mono text.
@@ -3383,8 +3271,6 @@
   $("runs-next").addEventListener("click", () => { if (state.nextCursor) navigate({ cursor: state.nextCursor }); });
   $("compare-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ other: $("compare-other").value.trim(), view: "compare" }); });
   $("evidence-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ page: "evidence", run: $("evidence-run").value.trim() }); });
-  $("worker-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ worker_q: $("worker-search").value.trim(), worker_status: $("worker-status").value }); });
-  $("worker-reset").addEventListener("click", () => navigate({ worker_q: "", worker_status: "" }));
   $("cob-search-form").addEventListener("submit", (event) => { event.preventDefault(); navigate({ cob_repository: $("cob-repository").value, cob_type: $("cob-type").value, cob_q: $("cob-search").value.trim(), cob_cursor: "" }); });
   $("cob-reset").addEventListener("click", () => navigate({ cob_repository: "", cob_type: "", cob_q: "", cob_cursor: "" }));
   $("cob-first").addEventListener("click", () => navigate({ cob_cursor: "" }));

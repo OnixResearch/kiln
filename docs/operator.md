@@ -3136,17 +3136,51 @@ Each enrolled project supplies one admission slot, not a physical worker or CPU.
 A nonterminal run outside the queue occupies its slot, including ambiguous
 executions. A shared target with a free enrolled slot reports **Slots available**;
 without free slots it reports **Unknown execution** for ambiguous work or **Busy**
-otherwise. Unenrolled targets report **Not enrolled**. The badges read as signal
-lamps: **Slots available** green, **Busy** blue, **Unknown execution** amber and
-**Not enrolled** neutral. Physical liveness always
-remains unknown. Failed durable storage returns unavailable (503), never usable
+otherwise. Unenrolled targets report **Not enrolled**. Free slots use a neutral
+badge rather than a health-success indication; busy is blue, and uncertain
+execution or an expired heartbeat is amber. The page and Overview share this
+vocabulary. Failed durable storage returns unavailable (503), never usable
 capacity. A queued or cancelled-before-dispatch request does not replace the
 latest execution observation; missing recorded sequence or timing stays unknown.
 
-The Workers inspector follows exact retained run IDs. List filters never replace
-or clear the selected target, and a missing target remains missing. Clearing the
-session erases private inventory and invalidates pending responses. Free slots
-do not establish online status, provider placement or guaranteed dispatch.
+<!-- r[impl kiln.dashboard.workers.view] -->
+Workers opens with a three-fact readout of occupied project slots, free slots
+and queued runs, followed by a full-width **Execution targets** register. Targets
+sort by readable project names, with exact binding/ID tie-breakers. The rows keep
+provider/platform metadata secondary and show slot state, heartbeat evidence,
+queue and the latest retained execution together. They stack by their own
+region width rather than overflowing on a narrow screen.
+
+**Search targets** filters project names/IDs, provider profiles, platforms and
+target IDs as you type. **Slot state** includes **No current heartbeat** for
+offline targets, whether no admitted report has arrived or the retained report
+is no longer current. These
+are local filters over the already bounded inventory: typing does not issue an
+inventory read per keystroke. `worker_q` and `worker_status` are committed to the
+URL after a short pause; reload and browser history restore them. Clear filters
+does not clear the exact target selection. Arrow keys move between visible
+target links.
+
+Selecting a target opens its readable detail: project name and state, admission
+capacity and latest execution, heartbeat facts, then assigned projects and
+occupied slots. Project links open CI project histories; execution links keep
+the exact retained run ID. **All targets** returns to the register and restores
+focus to the selected row, or to search if the filters hide it. **Browse targets**
+keeps the register and filters available while the detail is open. A filtered
+selection remains selected, and a missing target is never replaced. **Exact
+target binding and snapshot** retains the full copyable target ID, provider,
+platform, counts and snapshot version. Refresh preserves selection and open
+disclosures. Clearing the session erases inventory and invalidates delayed reads.
+
+Heartbeat evidence is separate from admission slots. Monitoring configured before
+any admitted report still reads **Not observed**, not expired. A retained
+observation shows its admitted time and API-projected snapshot counts; those
+counts are not a copy of the last producer heartbeat. Only an online observation
+supplies **Current observed free**. A noncurrent report instead says **No current
+heartbeat**, and any reported free count is labelled **Snapshot free (not
+current)** rather than presented as availability. The raw liveness value remains
+in the exact-binding disclosure. Neither free admission slots nor a previous
+passing run establishes worker health, placement or guaranteed dispatch.
 
 Kiln web-service/dashboard maintainers own this view. Repeat its behavioral rail
 with `cargo test --locked -p kiln-web-service --test engine workers::` in the
@@ -3156,6 +3190,12 @@ and mobile, restore its URL, follow the exact run and clear the session.
 Candidate-local observations are retained under
 `.cairn/archive/1970-01-01-add-dashboard-workers-view/evidence/`; they grant no deployment,
 release or lifecycle acceptance authority.
+
+The presentation helpers also run in the Node rail:
+`node --test tests/live-console-ui.test.mjs tests/kiln-identity.test.mjs tests/work-views.test.mjs`.
+The [Workers UX verification](../.cairn/changes/clarify-workers-page/evidence/verification.json)
+records real assets over read-only live data plus explicitly synthetic edge
+snapshots. It is not a deployment, a worker execution or lifecycle acceptance.
 
 #### Registered automation
 

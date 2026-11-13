@@ -10,7 +10,7 @@
   <!-- r[impl kiln.web.design_system.scenario.local] Icons are same-origin data; no remote asset is requested. -->
   <script src="/icons.js" defer></script><script src="/ui.js" defer></script>
   <link rel="stylesheet" href="/code-review.css"><script src="/code-review.js" defer></script>
-  <link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><link rel="stylesheet" href="/project.css"><link rel="stylesheet" href="/source.css"><link rel="stylesheet" href="/receipts.css"><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work-board.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script><script src="/project.js" defer></script><script src="/source.js" defer></script><script src="/receipts.js" defer></script>
+  <link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><link rel="stylesheet" href="/project.css"><link rel="stylesheet" href="/source.css"><link rel="stylesheet" href="/receipts.css"><link rel="stylesheet" href="/workers.css"><script src="/workers.js" defer></script><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work-board.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script><script src="/project.js" defer></script><script src="/source.js" defer></script><script src="/receipts.js" defer></script>
   <!-- r[impl kiln.dashboard.complete.shell] -->
   <!-- r[impl kiln.web.visual_design] -->
 </head>
@@ -108,12 +108,8 @@
       </section>
       <!-- r[impl kiln.web.project_page] Project history route; project.js renders into #project-content. -->
       <section data-panel="project" hidden class="view-stack"><div id="project-content" class="view-stack"></div></section>
-      <section data-panel="workers" hidden class="view-stack" aria-label="Worker execution targets">
-        <section class="panel filter-panel"><h2>Target filters</h2><details class="about-view"><summary><span class="icon" data-icon="info" aria-hidden="true"></span>About this view<span class="icon disclosure-chevron" data-icon="chevron-down" aria-hidden="true"></span></summary><div class="about-view-body"><p>Targets group configured workflow bindings, not discovered physical machines. Free slots are idle enrolled project slots—not online workers, health checks or guaranteed dispatch. Physical liveness is unknown.</p></div></details>
-          <form id="worker-search-form" class="inline-form toolbar"><div><label for="worker-search">Search target metadata</label><input id="worker-search" type="search" maxlength="256" autocomplete="off" placeholder="Target, provider, platform, project…"></div><div><label for="worker-status">Slot status</label><select id="worker-status"><option value="">All slot statuses</option><option value="slots_available">Slots available</option><option value="busy">Busy</option><option value="unknown">Unknown execution</option><option value="not_enrolled">Not enrolled</option></select></div><button type="submit">Apply filters</button><button id="worker-reset" class="quiet" type="button">Clear filters</button></form>
-        </section>
-        <div id="workers-content" class="view-stack" aria-live="polite"></div>
-      </section>
+      <!-- r[impl kiln.dashboard.workers.view] Workers owns the target register, filters and exact target detail. -->
+      <section data-panel="workers" hidden class="view-stack" aria-label="Worker execution targets"><div id="workers-content" class="view-stack"></div></section>
       <!-- r[impl kiln.web.console_layout] Split run view: the retained-runs table sits beside the selected run at ≥90rem and above it otherwise; the inspector shows pipeline and logs side by side when it has room, one tabbed column when it does not (failed runs show logs first). -->
       <!-- r[impl kiln.web.runs_table] Retained runs table grouped by local day; header sorting reorders only the loaded page. -->
       <section data-panel="runs" hidden>

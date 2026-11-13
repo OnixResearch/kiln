@@ -1,0 +1,101 @@
+{
+  "observed_on": "2026-11-13",
+  "scope": "Working-copy Workers presentation and its Overview caller. Not a deployment, worker execution or lifecycle acceptance.",
+  "immediate_outcome": "Full-width readable target register, immediate local filtering, exact independent selection and a detail ordered by capacity, execution, heartbeat and assigned work before exact binding identities.",
+  "durable_capability": "One Workers page module, shared worker-state vocabulary, pure presentation helpers, behavioral boundary cases and bounded browser evidence.",
+  "owner": "Kiln web-service/dashboard maintainers",
+  "checks": [
+    {
+      "command": "node --check crates/kiln-web-service/src/workers.js",
+      "result": "pass after final heartbeat-helper changes"
+    },
+    {
+      "command": "node --check crates/kiln-web-service/src/web.js && node --check crates/kiln-web-service/src/ui.js",
+      "result": "pass during module cutover; both scripts also executed in the final browser review"
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs tests/kiln-identity.test.mjs tests/work-views.test.mjs",
+      "result": "pass",
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service",
+      "result": "pass",
+      "top_level_passed": 388,
+      "child_process_passed": 2,
+      "ignored": 1,
+      "ignored_reason": "worker::streaming::tests::stream_child_entry is an exec-adapter entry launched only by worker process tests.",
+      "filter_scope": "No top-level cases filtered. The two exact code-review child-process invocations each filter the other 26 cases."
+    },
+    {
+      "command": "cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt -p kiln-web-service -- --check",
+      "result": "pass"
+    }
+  ],
+  "cargo_environment": {
+    "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "1.88.0 (873a06493 2025-05-10)",
+    "pkg_config": "/nix/store/v7mjkia7ki79s5i24ldbzq1khalhgzk0-pkg-config-wrapper-0.29.2/bin",
+    "pkg_config_path": "/nix/store/zh4ns9db9vnq3gi42k0rgpr6sc7l12a5-openssl-3.6.4-dev/lib/pkgconfig",
+    "target_directory": "/home/brittonr/.cargo-target-kiln-full"
+  },
+  "browser": {
+    "evidence": "browser.json",
+    "matrix_cases": 20,
+    "widths_px": [
+      320,
+      390,
+      768,
+      1440,
+      1920
+    ],
+    "appearances": [
+      "light",
+      "dark"
+    ],
+    "views": [
+      "register",
+      "selected with disclosures open"
+    ],
+    "mobile_cases": 12,
+    "document_overflow_cases": 0,
+    "undersized_mobile_cases": 0,
+    "additional_case": "320px compact dark; monitoring configured but no admitted heartbeat. Not observed, no invented heartbeat counts, raw offline liveness retained.",
+    "authority": "Real assets over read-only live data; synthetic snapshots are explicitly identified. No provider or worker operations."
+  },
+  "lifecycle": {
+    "evidence": "lifecycle.json",
+    "proposal": "PASS",
+    "design": "PASS",
+    "tasks": "PASS",
+    "validation": "valid; no issues",
+    "policy": "fresh",
+    "traceability": {
+      "profile": "kiln-active-development",
+      "requirements": 1775,
+      "referenced": 1775,
+      "missing": 0,
+      "dangling": 0,
+      "assurance_level": "declared"
+    }
+  },
+  "documentation": [
+    "docs/operator.md — Worker target inventory",
+    "CHANGELOG.md — Workers presentation entry"
+  ],
+  "repeatability": [
+    "Run the listed Node and web-service Cargo commands from the repository with its documented toolchain/native prerequisites.",
+    "Recreate an isolated real-asset browser preview over read-only inventory plus the scenarios described in browser.json; do not enroll or dispatch work."
+  ],
+  "not_exercised": [
+    "Nix dev shell or flake checks",
+    "Installed-service deployment or worker runtime behavior",
+    "Specification synchronization, archive, release approval, commit or publication"
+  ]
+}
