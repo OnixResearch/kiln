@@ -105,6 +105,24 @@ state. It contacts no provider:
 `cargo run --locked -p onix-kiln-cli -- --help` lists the operator command's
 other commands.
 
+Explore the full website with disposable examples for every console destination
+and run-detail tab:
+
+```console
+cargo run --locked -p kiln-web-service --example explore -- --port 18787
+```
+
+Open <http://127.0.0.1:18787/examples> for the linked feature index and what to
+try. CI, work/planning, review, source, receipts, feeds and administration are
+populated. Local edits use disposable stores; execution and feed observations
+are simulated. No provider is contacted or source command executed. Stop with
+Ctrl-C; restart to reset. See [website exploration](docs/operator.md#explore-the-website-without-providers)
+for coverage and boundaries. This is separate from the read-only report below.
+
+The same workspace is available as `nix run path:.#kiln-website-exploration`.
+The operator guide also covers the separate `website-exploration` package and
+supervised loopback user service; these never replace the authenticated website.
+
 Render the local dashboard over synthetic sample data, then open the printed
 `dashboard.html` in a browser:
 

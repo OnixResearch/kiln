@@ -1538,6 +1538,107 @@ checkout rather than the mutable worktree. Follow the existing
 [workflow application contract](lattice-workflow.md) for native handler setup;
 profile generation does not install or start it.
 
+### Explore the website without providers
+
+<!-- r[impl kiln.web.exploration.scenario.repeat] -->
+The maintained exploration workspace starts the real console over fresh private
+temporary stores. It needs no installed service profile, bearer credential,
+source checkout, Lattice process or remote account:
+
+```console
+nix develop path:. -c cargo run --locked -p kiln-web-service --example explore -- --port 18787
+```
+
+Open <http://127.0.0.1:18787/examples>. The index reads the console's own
+destination register, links every view and names deeper feature scenarios with
+what to try. A visible **Synthetic examples** link and disposable-workspace
+notice remain in the console. The port is IPv4 loopback only; choose another
+`--port` if it is occupied (`0` selects a free port and prints its URL). Without
+the flag, the example uses port 8787. It cannot accept an existing profile or
+state directory. Ctrl-C/SIGTERM stops it and removes its stores; each restart
+creates a clean workspace. Rebuild/restart after editing example seeds or the
+embedded assets.
+
+<!-- r[impl kiln.web.exploration.scenario.coverage] -->
+| Surface | Examples and things to try |
+| --- | --- |
+| Guide and global navigation | Numbered destinations, command/search palette, keyboard reference and run-state legend. |
+| Overview, CI projects and project history | Latest project failure, active and queued work, unenrolled sandbox, exact-source starts, retained history, streaks and duration trend. Planning projects remain separate. |
+| Runs: pipeline and logs | Success, failed test, successful partial retry, running, queued, unknown, cancellation and an exact-commit untrusted approval hold; dependency graph, node selection, measured-step sample, stdout/stderr, search, first-error navigation and retained-log download. |
+| Runs: artifacts, tests, reviews, comparison, activity and evidence | Downloadable text/report bytes, passed/failed/skipped JUnit cases, LCOV coverage, a native-shaped synthetic Patchgate receipt, gate/provenance documents, passing baseline comparison, canonical events and exact source/execution identities. |
+| Workers | Busy/available/unenrolled targets, latest execution, project slots, a refreshed synthetic heartbeat and an expiring report. Heartbeat counts and project admission slots remain distinct; expired reports never establish current capacity. |
+| Issues and inbox | Markdown, assignees, priorities, labels, parent/subissue, blockers, duplicates, snoozing, comments, mentions, reactions, updates and exact CI run links; unread assignments/mentions/watched items, a due reminder and favorites. |
+| Planning | Initiative, project, milestone, cycle and team with a custom review/blocked workflow, dates and related issues. |
+| Requests, saved views and boards | Incoming/accepted/declined requests with original customer/source retained; private/shared/favorite filters, status board with keyboard/drag move controls and a CI-project board retaining unlinked issues. |
+| Code review | Requested review, multiple exact revisions/interdiff, line/split/structural comparison, historical blocking discussion, private draft and publication, viewed files, votes, unmet exact-CI requirements, dependency stack, WIP, submitted/abandoned changes, queue registration and self-declared agent authorship. |
+| Source | Two disposable Git repositories, branches/tag, directories, highlighted Rust/Nickel/Markdown, exact file/line links, commit history, rename and binary-file changes. |
+| Patchgate receipts and raw collaboration history | All nine receipt decisions with recorded reasons/paths/times/coverage; exact retained documents; issue, patch and Cairn-change raw histories with multiple local ref tips. |
+| Feeds | Repository Atom/RSS and OPML publication; parsed illustrative upstream entries in observed/paused/pending/failing states; filtering, pause/resume/rename/remove, offline-catalog subscription and OPML import/export. Try `https://examples.invalid/new.atom`. |
+| Activity, evidence, automation, operations and settings | Retained audit/event history and run chooser; locally signed synthetic intake, disabled interval/calendar schedules and intentionally withheld notification reservations; capacity/retention, appearance/density and session clearing. Reload reconnects the example identity. |
+
+<!-- r[impl kiln.web.exploration.scenario.local] -->
+CI state, work commands, review policy/provider operations and inspection use
+their real local APIs. The workflow provider is an explicit in-process
+simulator: seeded running/queued/unknown runs remain available for inspection;
+newly dispatched interactive runs complete after bounded observations. Native
+capability admission still applies (the pinned workflow contract supports
+cancellation, not pause/resume). Local review submit changes only a disposable
+target ref, and its CI facts come from exact retained **simulated** runs.
+
+Feeds use the production bounded parsers/renderers with an explicit offline
+catalog, not the network-fetch shell. Only named `https://examples.invalid/*.atom`
+catalog URLs are admitted; arbitrary URLs fail rather than fetching or silently
+substituting data. Notification work may be reserved in the real journal but is
+never delivered. Neither source commands nor remote providers are executed.
+
+This is UI rehearsal, not CI/provider verification, hostile-execution isolation,
+source trust, review acceptance, release or deployment evidence. Raw history
+does not verify signatures or reduce Cairn state. Native Jujutsu/Pijul intake,
+external webhook delivery, real worker execution and optional hosted
+account/payment services need their separately documented setups; they are not
+silently emulated as successful operations. The production HTTPS listener and
+its authentication/admission are unchanged.
+
+Kiln web-service/dashboard maintainers own the seeds under
+`crates/kiln-web-service/examples/explore/`, the `explore.rs` entrypoint and
+future feature examples. Add exact returned-identity links and meaningful
+detail data when adding a view. Focused checks are
+`cargo test --locked -p kiln-web-service --example explore` and
+`cargo clippy --locked -p kiln-web-service --example explore -- -D warnings`,
+plus actual browser navigation, edits, downloads and narrow/dark presentation.
+
+<!-- r[impl kiln.web.exploration.scenario.deploy] -->
+The dedicated `website-exploration` flake package and
+`kiln-website-exploration` app contain the same standalone example, not the
+authenticated service. For an explicitly authorized managed local deployment,
+build the selected frozen source revision, retain its output as `new_package`,
+then install its separate user unit:
+
+```sh
+nix profile add "$new_package" --option min-free 0
+install -Dm644 "$new_package/share/systemd/user/kiln-website-exploration.service" \
+  "$HOME/.config/systemd/user/kiln-website-exploration.service"
+systemctl --user daemon-reload
+systemctl --user enable --now kiln-website-exploration.service
+```
+
+The package's executable is `bin/kiln-website-exploration`; its user unit pins
+the immutable output path and listens only at <http://127.0.0.1:18787/examples>.
+Stop any manually launched exploration process on that port before activation.
+Do not replace or restart `kiln-web-service.service`, modify its profiles or
+route this synthetic operator through the existing HTTPS website. Managed
+deployment does not make examples persistent: every service start creates fresh
+private temporary stores. `systemctl --user restart kiln-website-exploration`
+resets them; `systemctl --user disable --now kiln-website-exploration` stops the
+workspace and disables automatic start with the user manager.
+
+For an update, retain the previous package/unit, remove only the
+`kiln-website-exploration` profile element before adding its replacement, install
+the replacement unit, reload the user daemon and restart that unit. If adding the
+replacement fails, restore the previous profile element before changing the
+unit. Executable rollback restores the previous package/unit, not discarded
+example edits. Never remove the independent `kiln-web-service` profile element.
+
 ### Navigate the live workspace
 <!-- r[related kiln.work.usability] -->
 

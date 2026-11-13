@@ -1,0 +1,22 @@
+.example-boundary { max-width: 96rem; margin: 0 auto 1rem; border: 1px solid var(--border); padding: .65rem 1rem; font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere; }
+.example-boundary a { display: inline-block; margin-left: .5rem; color: inherit; text-decoration: underline; text-underline-offset: .2em; }
+.example-link { max-width: 12rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.example-index { margin: 0; color: var(--foreground); background: var(--background); font-family: var(--font-sans); line-height: 1.5; }
+.example-index main { max-width: 88rem; margin: auto; padding: clamp(1rem, 4vw, 4rem); }
+.example-index header { padding-bottom: 1rem; border-bottom: 3px solid var(--foreground); }
+.example-index h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; margin: .5rem 0 1rem; }
+.example-index h2 { font-size: 1.5rem; margin: 2.5rem 0 .75rem; }
+.example-index h3 { font-size: 1rem; margin: 0 0 .5rem; }
+.example-index p { max-width: 82ch; }
+.example-index a { color: inherit; text-underline-offset: .2em; }
+.example-index a:focus-visible, .example-index input:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.example-eyebrow, .example-meta { font-family: var(--font-mono); font-size: .75rem; }
+.example-eyebrow { text-transform: uppercase; letter-spacing: .1em; }
+.example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.example-card { border: 1px solid var(--border); padding: 1.2rem; background: var(--card); overflow-wrap: anywhere; }
+.example-card p { margin: .5rem 0 0; }
+.example-card[hidden] { display: none; }
+.example-index label { display: block; font-size: .8rem; font-family: var(--font-mono); }
+.example-index input { box-sizing: border-box; width: min(100%, 32rem); min-height: 44px; border: 1px solid var(--border); border-radius: 0; color: inherit; background: var(--card); padding: .6rem; font: inherit; }
+.example-index footer { border-top: 1px solid var(--border); margin-top: 3rem; padding-top: 1rem; font-size: .8rem; overflow-wrap: anywhere; }
+@media (max-width: 40rem) { .example-boundary { padding: .5rem; } .example-link { max-width: 7rem; } }

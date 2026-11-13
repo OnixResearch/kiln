@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>Kiln · Website examples</title>
+<link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/identity.css"><link rel="stylesheet" href="/example.css">
+<script src="/icons.js" defer></script><script src="/ui.js" defer></script><script src="/example.js" defer></script>
+</head>
+<body class="example-index">
+<main>
+<header class="kiln-rule"><p class="example-eyebrow">Kiln · Exploration workspace</p><h1>Website examples</h1><p>Real console. Disposable local state. Simulated execution and feed observations.</p></header>
+<section class="example-intro"><p>Explore the numbered destinations below, or jump into a named scenario. Issue and review edits use the real local APIs. Run controls affect an in-process simulator: no source command, remote provider, feed fetch or notification delivery occurs.</p><p><a href="/?page=overview">Open the console →</a> · <a href="/?page=guide">Guide and keyboard reference</a></p><p>Restart the example command to reset all data. Nothing is written to an installed service. Git is demonstrated natively; Jujutsu/Pijul tools, real execution, signed external triggers and hosted account/billing services require their separately documented setups.</p></section>
+<section aria-labelledby="destinations-title"><h2 id="destinations-title">Every console destination</h2><p id="coverage-status" role="status">Loading the console's destination register…</p><div id="destinations" class="example-grid"></div></section>
+<section aria-labelledby="scenarios-title"><h2 id="scenarios-title">Feature scenarios</h2><label for="example-filter">Find a feature or view</label><input id="example-filter" type="search" placeholder="Logs, board, review, feed…" autocomplete="off"><p id="scenario-count" role="status"></p><div id="scenarios" class="example-grid"></div></section>
+<footer><p>Owner: Kiln web-service/dashboard maintainers. Synthetic examples are rehearsal, not CI, provider, source-trust, merge, release or deployment evidence.</p><p><code>cargo run --locked -p kiln-web-service --example explore</code></p></footer>
+</main>
+</body>
+</html>

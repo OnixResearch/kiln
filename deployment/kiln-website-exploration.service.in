@@ -1,0 +1,16 @@
+# r[impl kiln.web.exploration.scenario.deploy]
+# Synthetic local examples only; never replace the authenticated web service.
+[Unit]
+Description=Kiln disposable website exploration
+
+[Service]
+Type=simple
+ExecStart=@out@/bin/kiln-website-exploration --port 18787
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=30s
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

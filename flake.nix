@@ -251,6 +251,38 @@
           '';
           meta.description = "Authenticated single-tenant Kiln web service with supervised deployment assets";
         });
+      # r[impl kiln.web.exploration.scenario.deploy]
+      websiteExplorationPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        (packageFor system).overrideAttrs (_: {
+          pname = "kiln-website-exploration";
+          cargoBuildFlags = [
+            "-p"
+            "kiln-web-service"
+            "--example"
+            "explore"
+          ];
+          cargoTestFlags = [
+            "-p"
+            "kiln-web-service"
+            "--example"
+            "explore"
+          ];
+          installPhase = ''
+            runHook preInstall
+            install -Dm755 target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/examples/explore \
+              "$out/bin/kiln-website-exploration"
+            install -Dm644 deployment/kiln-website-exploration.service.in \
+              "$out/share/systemd/user/kiln-website-exploration.service"
+            substituteInPlace "$out/share/systemd/user/kiln-website-exploration.service" \
+              --replace-fail '@out@' "$out"
+            runHook postInstall
+          '';
+          meta.description = "Disposable loopback-only Kiln website exploration with synthetic examples";
+        });
       # Standalone Cairn intake binary from the adapter package.
       kilnCairnIntakePackageFor =
         system:
@@ -676,6 +708,7 @@
           kiln = packageFor system;
           kiln-cairn-intake = kilnCairnIntakePackageFor system;
           web-service = webServicePackageFor system;
+          website-exploration = websiteExplorationPackageFor system;
           kiln-aspen-host = kilnAspenHostPackageFor system;
           kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
           dashboard-tools = dashboardToolsPackageFor system;
@@ -767,6 +800,11 @@
           type = "app";
           program = "${webServicePackageFor system}/bin/kiln-web-service";
           meta.description = "Run the authenticated source-bound single-tenant CI web service";
+        };
+        kiln-website-exploration = {
+          type = "app";
+          program = "${websiteExplorationPackageFor system}/bin/kiln-website-exploration";
+          meta.description = "Explore the real console with isolated synthetic examples on IPv4 loopback";
         };
         kiln-nix-cache = {
           type = "app";

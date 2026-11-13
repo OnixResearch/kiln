@@ -1,0 +1,909 @@
+{
+  "schema": "kiln.website-exploration-verification.v1",
+  "scope": "Disposable standalone example and current console assets; no production deployment or provider execution claim",
+  "coverage": {
+    "registered_destinations": 21,
+    "run_tabs": 8,
+    "index_scenarios": 80,
+    "mobile_dark": [
+      {
+        "title": "Guide, keyboard reference and command palette",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Overview: failure first, health and retained activity",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "CI projects and source-bound start",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "CI project history, streak and duration trend",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Workers: busy, available, unknown and unenrolled",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Issues: discussion, mentions, reactions and exact CI",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "My inbox: assignments, mentions, watching and due reminders",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Planning: initiative to project to milestone and cycle",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Code review: exact revisions, discussion and submit requirements",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Requests & triage: incoming, accepted and declined",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Saved views: private, shared and favorites",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Source repositories, refs and directories",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Patchgate decision: accepted",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Retained activity and audit decisions",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Feeds: repository publication and offline upstream entries",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Evidence entry point",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Automation: signed intake, interval/calendar schedules and withheld notifications",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Capacity and retention",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Raw collaboration: Example issue discussion",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Appearance, density and session",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Logs: stdout/stderr, search and failure navigation",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Artifacts and authenticated byte downloads",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Tests and coverage reports",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Run review, gate and provenance evidence",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Compare runs: regression and source changes",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Run activity and canonical events",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Exact source, execution and evidence",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      }
+    ],
+    "desktop": [
+      {
+        "title": "Overview: failure first, health and retained activity",
+        "href": "/?page=overview",
+        "heading": "Overview",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "CI projects and source-bound start",
+        "href": "/?page=projects",
+        "heading": "CI projects",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "CI project history, streak and duration trend",
+        "href": "/?page=project&project=checks",
+        "heading": "Core checks · simulated",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Workers: busy, available, unknown and unenrolled",
+        "href": "/?page=workers",
+        "heading": "Workers",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=pipeline&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Logs: stdout/stderr, search and failure navigation",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=logs&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Artifacts and authenticated byte downloads",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=artifacts&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Tests and coverage reports",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=tests&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run review, gate and provenance evidence",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=reviews&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Compare runs: regression and source changes",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=compare&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run activity and canonical events",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=activity&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Exact source, execution and evidence",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2&view=evidence&other=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Automation: signed intake, interval/calendar schedules and withheld notifications",
+        "href": "/?page=automation",
+        "heading": "Automation",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: awaiting-approval",
+        "href": "/?page=runs&run=web-run-ed5198d8a42d627c23e702b49bc25d6cf3609bf789f62405ccb945a1011ba7af",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: cancelled",
+        "href": "/?page=runs&run=web-run-28d4fd2df3436240ea3bc46ce5fd07f63fa2416c96bb56e3d1cf6cb30457fce0",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: docs",
+        "href": "/?page=runs&run=web-run-b3f7c9bc85e43711ac8f1efc84ada504e407c97909dea4159cabcbdc065c8658",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: failure",
+        "href": "/?page=runs&run=web-run-f55383b7321661d316e6f649ee05898c05d98e88e727f14a493fd089f66e62d2",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: partial",
+        "href": "/?page=runs&run=web-run-5a3aee277dae76c654f29f4566a4b9dd49c6b34c2a026f8023d776e30767c6b3",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: queued",
+        "href": "/?page=runs&run=web-run-cb3a62db19fdf78a460bf9230a8a1591fabb13a50d5358458ecd895ed4b24585",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: regression",
+        "href": "/?page=runs&run=web-run-2a84cee18aa4680dbd5a3997868c9e5d4c53ea92d6e49d4fa626167140075adc",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: running",
+        "href": "/?page=runs&run=web-run-3dd765f748ee872f40161d0af7cadfe299151d43492f7b0556adb1c16e9e81df",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: success",
+        "href": "/?page=runs&run=web-run-8884cc9ad8411ecf5545f9cedd7f243ed2bb79d904ce65026cabb71b9f7e1a41",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Run state: unknown",
+        "href": "/?page=runs&run=web-run-45e287c2f2c7c52f6896efee6859d0743e6f598ba7861ac595cefd06ed5a4c99",
+        "heading": "Runs",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Issues: discussion, mentions, reactions and exact CI",
+        "href": "/?page=work&work_id=7acdaa16136b8e285f5a9d59637afe731b200a87",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "My inbox: assignments, mentions, watching and due reminders",
+        "href": "/?page=inbox",
+        "heading": "My inbox",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Planning: initiative to project to milestone and cycle",
+        "href": "/?page=planning",
+        "heading": "Planning",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Requests & triage: incoming, accepted and declined",
+        "href": "/?page=triage&work_id=9ed603708d971da0ca350e31a4b708b52dee0f39",
+        "heading": "Requests & triage",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Saved views: private, shared and favorites",
+        "href": "/?page=workviews",
+        "heading": "Saved views",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Status board: custom lanes and safe card moves",
+        "href": "/?page=work&work_view=b755c057fafc99d362d7f1b6066f9291122ef3a7",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "CI-project board: linked and unlinked work",
+        "href": "/?page=work&work_view=46e4be261d7c7a2d7e0466af2ba89457c3af9242",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Private saved list",
+        "href": "/?page=work&work_view=ef168ec7c327bc472572452614050eb7e90622b4",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Initiative and its planning relationships",
+        "href": "/?page=planning&work_kind=initiative&work_id=499efb8c3c4c76c0c3f3ae9c11a1c20f9c549276",
+        "heading": "Planning",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Planning project, milestone and progress",
+        "href": "/?page=planning&work_kind=project&work_id=85140ac5e0b7d4e389abde5743e2cc216295674e",
+        "heading": "Planning",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Milestone and child issues",
+        "href": "/?page=planning&work_kind=milestone&work_id=38c379c4ae1f249e07124a5c93470f4a85e09a14",
+        "heading": "Planning",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Current cycle and team workflow",
+        "href": "/?page=planning&work_kind=cycle&work_id=11a2da2884546b32f4de8feeb7db554edb3785c4",
+        "heading": "Planning",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Team with custom workflow statuses",
+        "href": "/?page=planning&work_kind=team&work_id=86e98ac33e01e1bc47d1eabc7929795d340f8ee1",
+        "heading": "Planning",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Issue relationships: parent and subissue",
+        "href": "/?page=work&work_id=a6ee5e77604e66e8e3ffe0d615f8fa8d4064c648",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Blocked issue and dependency",
+        "href": "/?page=work&work_id=79df96a9583702200df13c33e558418744bc99c2",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Completed issue with passing CI",
+        "href": "/?page=work&work_id=1320a2b092e68ddfc4614ce4714b014203579d99",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Snoozed issue with due date",
+        "href": "/?page=work&work_id=dfb873fa2872dbde70b35de94ce19821672d5a3f",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Duplicate issue keeps its canonical relationship",
+        "href": "/?page=work&work_id=79c265cc27272861449642d5300acfca8a05a7d6",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Attention preferences and favorites",
+        "href": "/?page=work&work_id=02a6cf0afb9868d1bed64b29398270262d9cc412",
+        "heading": "Issues",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Accepted request retains its original source",
+        "href": "/?page=triage&work_id=fd581a00f10b1c581ba0331712680e0d2506f7b2",
+        "heading": "Requests & triage",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Declined request retains its reason",
+        "href": "/?page=triage&work_id=10e4476ffc33ad4b3d7931b45fc0b3c286ec4634",
+        "heading": "Requests & triage",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Code review: exact revisions, discussion and submit requirements",
+        "href": "/?page=code-review&review_change=66651007b6577023bd5050543e5ddf2efab11977a74d1e0298fcca1ad4fb62f0",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Interdiff: changes since the previous revision",
+        "href": "/?page=code-review&review_change=66651007b6577023bd5050543e5ddf2efab11977a74d1e0298fcca1ad4fb62f0&review_interdiff=aea03665e9f7bf4477f2c8afd201180b54533d222807439881c4fec62f7ccda2..f697109946bf5640e281cd70abd42c88d2b9e51ad18ac3c0b8c128dad68e5828",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Structural review and line permalinks",
+        "href": "/?page=code-review&review_change=66651007b6577023bd5050543e5ddf2efab11977a74d1e0298fcca1ad4fb62f0&review_revision=f697109946bf5640e281cd70abd42c88d2b9e51ad18ac3c0b8c128dad68e5828&review_file=src%2Flib.rs&review_mode=structural",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Awaiting my review and personal saved review queries",
+        "href": "/?page=code-review&review_view=awaiting_review",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "WIP change owned by you",
+        "href": "/?page=code-review&review_change=afdf2803d2e86deab8214484ab38cecd207c898013d28ec695777619212545ee",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Review dependency stack",
+        "href": "/?page=code-review&review_change=8378a03b208441459bbf3ffc8eee27eeaf02ca80cfd27d966697cfce74e9264a",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Submitted exact-CI candidate",
+        "href": "/?page=code-review&review_change=53588cf2797f2f6644b1ee8aed953f9fc1b2803abcf92166cfd2ea817ff7063a",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Abandoned change and restore",
+        "href": "/?page=code-review&review_change=caad8ee70422eb55b7d8e074dd67f08dcedd92c08711d4ce84daf420f29c3444",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Self-declared agent authorship",
+        "href": "/?page=code-review&review_change=effd169e2cc862ebee971b15130ac52cccfa1237f754130abab4f3c192d40c91",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Review merge-queue entry",
+        "href": "/?page=code-review&review_change=7f3abd78236830263196d3a2babcb7a5ee33b0642d83e093252867c9a34dbc4a",
+        "heading": "Code review",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Source repositories, refs and directories",
+        "href": "/?page=source&src=example-service",
+        "heading": "Source",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Source file: highlighted Rust and exact line",
+        "href": "/?page=source&src=example-service&rev=72c2e969f7e418901465d94124d527dd1a8061fe&spath=src&sfile=src%2Flib.rs&sline=3",
+        "heading": "Source",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Source history and exact commits",
+        "href": "/?page=source&src=example-service&sview=history",
+        "heading": "Source",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Source changes: rename and binary file",
+        "href": "/?page=source&src=example-service&rev=08c04619952fca3917042bbf69aa701dddf75a81&sview=changes",
+        "heading": "Source",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Source configuration and Markdown",
+        "href": "/?page=source&src=example-service&rev=72c2e969f7e418901465d94124d527dd1a8061fe&spath=config&sfile=config%2Frelease.ncl",
+        "heading": "Source",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: accepted",
+        "href": "/?page=reviews&receipt=example-accepted.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: rejected",
+        "href": "/?page=reviews&receipt=example-rejected.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: escalated",
+        "href": "/?page=reviews&receipt=example-escalated.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: blocked",
+        "href": "/?page=reviews&receipt=example-blocked.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: waiting",
+        "href": "/?page=reviews&receipt=example-waiting.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: pending",
+        "href": "/?page=reviews&receipt=example-pending.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: removed",
+        "href": "/?page=reviews&receipt=example-removed.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: reverted",
+        "href": "/?page=reviews&receipt=example-reverted.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Patchgate decision: unknown",
+        "href": "/?page=reviews&receipt=example-unknown.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Raw collaboration: Example issue discussion",
+        "href": "/?page=cobs&cob_repository=examples&cob_type=xyz.radicle.issue&cob=a1fe152810cf638d8ccf5dcbe6f49e405c1582c4&cob_repo=examples&cob_kind=xyz.radicle.issue",
+        "heading": "Raw collaboration history",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Raw collaboration: Example lifecycle proposal",
+        "href": "/?page=cobs&cob_repository=examples&cob_type=xyz.onixresearch.cairn-change&cob=7d8d5dc462b9d64f63621698cd6ef6d0b3e38b4b&cob_repo=examples&cob_kind=xyz.onixresearch.cairn-change",
+        "heading": "Raw collaboration history",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Raw collaboration: Example exact-source patch",
+        "href": "/?page=cobs&cob_repository=examples&cob_type=xyz.radicle.patch&cob=c86d6da0145b863d6d8f93aafc849c21c83f004b&cob_repo=examples&cob_kind=xyz.radicle.patch",
+        "heading": "Raw collaboration history",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Feeds: repository publication and offline upstream entries",
+        "href": "/?page=feeds",
+        "heading": "Feeds",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Feed subscription rehearsal",
+        "href": "/?page=feeds&feed_q=Example",
+        "heading": "Feeds",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Feed outage preserves retained entries",
+        "href": "/?page=feeds&feed_q=Unavailable",
+        "heading": "Feeds",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Feed OPML import/export and local publication",
+        "href": "/?page=feeds",
+        "heading": "Feeds",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Guide, keyboard reference and command palette",
+        "href": "/?page=guide",
+        "heading": "Guide",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Evidence entry point",
+        "href": "/?page=evidence",
+        "heading": "Evidence",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Appearance, density and session",
+        "href": "/?page=settings",
+        "heading": "Settings",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Retained activity and audit decisions",
+        "href": "/?page=activity",
+        "heading": "Activity",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      },
+      {
+        "title": "Capacity and retention",
+        "href": "/?page=operations",
+        "heading": "Operations",
+        "errors": [],
+        "overflow": false,
+        "failures": []
+      }
+    ],
+    "mobile_browser_errors": [],
+    "post_reset_browser_errors": [],
+    "cohort": "Desktop/mobile detail identities belong to the discarded pre-reset workspace; use /examples for current links."
+  },
+  "interactions": {
+    "board_move": "Moved “Explain a failed test from its run” to Review.",
+    "review_publication": "Review command recorded.",
+    "simulated_cancel": "CANCELLED\nPhase: terminal",
+    "exact_commit_untrusted_approval": {
+      "badges": "PASSED\nPhase: terminal",
+      "gate": "Untrusted pull request\nAPPROVED TO RUN UNTRUSTED\nWHY UNTRUSTED\nThe pull request comes from a fork.\nPULL REQUEST\n#7\nHEAD REPOSITORY\noutside/source-fork\nEXACT COMMIT\nb612672e1b483ef1b7126d89b39bc52e1abfc57e\nAPPROVED BY\nSynthetic example operator (local:operator)\nAPPROVED COMMIT\nb612672e1b483ef1b7126d89b39bc52e1abfc57e\nAPPROVED\nNov 13, 2026, 03:59:47 PM EST (local · America/New_York) · 2026-11-13T20:59:47.781Z (UTC)\nCOUNTS FOR REQUIRED CI\nNo\n\nApproved untrusted runs and their retries run only on untrusted-capable runners, without secrets, workload token or cache. Approving a run is not a code-review approval.",
+      "notice": "Approval admitted for this exact commit. Observe the run for dispatch and its outcome; no success is inferred. Request 7d5c1727-b419-4bad-b7ca-fcd314f24a35."
+    },
+    "offline_feed_added": true,
+    "external_feed_rejected": "example_request_rejected: Offline examples only admit catalog URLs under https://examples.invalid; no external destination is fetched",
+    "download": {
+      "filename": "release-notes.txt",
+      "bytes": 86,
+      "blake3": "151bbed33571de6e8a62087ea051ced640eab6903f66d3fc4e27738ede4c0ed1",
+      "content": "Synthetic release notes\nThis is a downloadable example artifact, not a built product.\n"
+    }
+  },
+  "maintenance_owner": "Kiln web-service/dashboard maintainers",
+  "repeatability": "Fresh private native stores per process; ordinary signal exit removes stores; restart restores all seeds",
+  "non_claims": [
+    "No source command or execution provider contacted",
+    "No remote feed fetch or notification delivery",
+    "No installed service, production state or profile used",
+    "Not CI/provider verification, hostile isolation, review acceptance, release, deployment, commit or publication authority"
+  ],
+  "reset": {
+    "normal_exit_code": 0,
+    "previous_private_root_removed": true,
+    "previous_root": "/tmp/kiln-website-examples-IaBaDT",
+    "restarted_running": "RUNNING\nPhase: active",
+    "restarted_approval_hold": "AWAITING APPROVAL\nPhase: awaiting_approval",
+    "restored_scenarios": true
+  },
+  "http_admission": {
+    "observed_live": [
+      {
+        "request": "GET /api/session with Origin: https://attacker.invalid",
+        "status": 403
+      },
+      {
+        "request": "GET /api/session with Host: attacker.invalid",
+        "status": 403
+      },
+      {
+        "request": "GET /../Cargo.toml using --path-as-is",
+        "status": 404
+      }
+    ]
+  }
+}

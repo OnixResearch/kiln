@@ -7,6 +7,7 @@ let ActiveRoots = [
   ".cairn/changes/adopt-technical-graphics-standard/specs/live-console-design/spec.md",
   ".cairn/changes/clarify-patchgate-receipts/specs/patchgate-review-adapter/spec.md",
   ".cairn/changes/clarify-workers-page/specs/dashboard-workers/spec.md",
+  ".cairn/changes/add-website-exploration-examples/specs/website-exploration/spec.md",
 ] in
 let Active =
   Accepted

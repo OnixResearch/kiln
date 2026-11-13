@@ -1,0 +1,26 @@
+{
+  "schema": "kiln.website-exploration-checks.v1",
+  "checks": [
+    {
+      "command": "nix --option min-free 0 develop path:. -c cargo test --locked -p kiln-web-service --example explore",
+      "exit_code": 0
+    },
+    {
+      "command": "nix --option min-free 0 develop path:. -c cargo clippy --locked -p kiln-web-service --example explore -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "nix --option min-free 0 develop path:. -c cargo fmt --package kiln-web-service --check",
+      "exit_code": 0
+    }
+  ],
+  "browser_evidence": "browser.json",
+  "environment_notes": [
+    "An earlier Nix development-shell attempt timed out during automatic GC before Cargo ran. The successful command disabled that automatic-GC threshold for this invocation only.",
+    "Private binary-cache timeouts fell back to cache.nixos.org.",
+    "kache reported an index disk-I/O error and disabled caching; compilation and checks completed successfully."
+  ],
+  "non_claims": [
+    "Focused example checks, not a full-workspace, flake, release or deployment qualification"
+  ]
+}
