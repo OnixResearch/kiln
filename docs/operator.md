@@ -1616,9 +1616,7 @@ then install its separate user unit:
 
 ```sh
 nix profile add "$new_package" --option min-free 0
-install -Dm644 "$new_package/share/systemd/user/kiln-website-exploration.service" \
-  "$HOME/.config/systemd/user/kiln-website-exploration.service"
-systemctl --user daemon-reload
+systemctl --user link "$new_package/share/systemd/user/kiln-website-exploration.service"
 systemctl --user enable --now kiln-website-exploration.service
 ```
 
@@ -1633,11 +1631,20 @@ resets them; `systemctl --user disable --now kiln-website-exploration` stops the
 workspace and disables automatic start with the user manager.
 
 For an update, retain the previous package/unit, remove only the
-`kiln-website-exploration` profile element before adding its replacement, install
-the replacement unit, reload the user daemon and restart that unit. If adding the
-replacement fails, restore the previous profile element before changing the
+`kiln-website-exploration` profile element before adding its replacement, then
+relink/re-enable it with `systemctl --user enable --force "$new_package/share/systemd/user/kiln-website-exploration.service"`
+and restart that unit. If adding the replacement fails, restore the previous
+profile element before changing the
 unit. Executable rollback restores the previous package/unit, not discarded
 example edits. Never remove the independent `kiln-web-service` profile element.
+
+The [managed example deployment receipt](../.cairn/changes/add-website-exploration-examples/evidence/deployment.json)
+binds implementation source `4418586c` to the installed package, loopback socket,
+all 80 desktop scenarios and 29 narrow/dark view/tab checks, local cancellation
+and artifact download, managed restart/reset, private-store cleanup and the
+preserved authenticated service. Its four packaged release-profile tests passed.
+It grants no production, provider-execution, publication or lifecycle acceptance
+claim.
 
 ### Navigate the live workspace
 <!-- r[related kiln.work.usability] -->

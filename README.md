@@ -119,7 +119,8 @@ are simulated. No provider is contacted or source command executed. Stop with
 Ctrl-C; restart to reset. See [website exploration](docs/operator.md#explore-the-website-without-providers)
 for coverage and boundaries. This is separate from the read-only report below.
 
-The same workspace is available as `nix run path:.#kiln-website-exploration`.
+Alternatively run
+`nix run path:.#kiln-website-exploration -- --port 18787`.
 The operator guide also covers the separate `website-exploration` package and
 supervised loopback user service; these never replace the authenticated website.
 

@@ -80,7 +80,8 @@ entry describes the source tree prepared for the first tagged release.
   notification delivery is invoked. Restart resets the workspace.
   A separate `website-exploration` package/app and immutable-path user unit
   support operator-authorized loopback deployment without changing live CI.
-  (exercised locally in Chromium; not deployment or execution evidence)
+  (deployed as a separate local user service; browser and packaged checks passed;
+  not CI/provider execution or production qualification)
 - Single-tenant HTTPS workspace with logs, reruns, signed triggers, schedules and
   notifications. (exercised locally with TLS 1.3; not production deployment)
 - Operator-approved untrusted pull-request runs held in a durable blocked state

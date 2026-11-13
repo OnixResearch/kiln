@@ -1,0 +1,267 @@
+{
+  "schema": "kiln.website-exploration-deployment-lifecycle.v1",
+  "observed_at": "2026-11-13T21:53:44.105Z",
+  "scope": "Read-only lifecycle checks after documented local activation; no acceptance, synchronization, archive, release or publication",
+  "checks": [
+    {
+      "label": "tasks",
+      "command": "cairn gate tasks add-website-exploration-examples --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "result": {
+        "valid": true,
+        "verdict": "PASS",
+        "issues": [],
+        "receipt_hash": "5b35f00aff21a24b4a0f719f8f9e520987771a383be96f10c59456181a2707d9",
+        "input_hash": "ca5478e8186603c19758514ecb12e8b91eb4455e608cc321d55f4db93ee4cf09",
+        "policy": "kiln-default",
+        "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+        "policy_selection": {
+          "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        },
+        "task_ordering": {
+          "active": false,
+          "edges": [],
+          "issues": [],
+          "nodes": [],
+          "order": [],
+          "ready_tasks": [],
+          "valid": true
+        }
+      },
+      "task_substance": [
+        {
+          "checkbox_tasks": 11,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-website-exploration-examples/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 11,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 11,
+          "task_done": 11,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ]
+    },
+    {
+      "label": "validate",
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "result": {
+        "valid": true,
+        "issues": [],
+        "change_issues": [],
+        "cross_repo_dependencies": [],
+        "cross_repo_evidence_issues": [],
+        "findings": [],
+        "profile_issues": [],
+        "spec_issues": [],
+        "spec_findings": [],
+        "receipt_hash": "59e909b803c732f95343972c2204977464da0fa1b344e7684f09a1a545b3ebad",
+        "policy": "kiln-default",
+        "policy_selection": {
+          "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+          "installation_receipt": false,
+          "locator": "cairn-policy/generated/cairn-policy.json",
+          "source": "explicit"
+        }
+      },
+      "task_substance": [
+        {
+          "checkbox_tasks": 11,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/add-website-exploration-examples/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 11,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 11,
+          "task_done": 11,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 3,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/adopt-onix-package-prefix/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 7,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 3,
+          "task_done": 3,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 11,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/adopt-technical-graphics-standard/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 16,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 11,
+          "task_done": 11,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 7,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/clarify-patchgate-receipts/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 8,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 7,
+          "task_done": 7,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 6,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/clarify-workers-page/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 6,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 6,
+          "task_done": 6,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 5,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/conform-aspen-host-to-octet/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 10,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 5,
+          "task_done": 5,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 5,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/prepare-go-to-market/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 10,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 5,
+          "task_done": 5,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 6,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/publish-launch-preparation/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 10,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 6,
+          "task_done": 6,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 5,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/reconcile-readiness-and-qualification/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 9,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 5,
+          "task_done": 4,
+          "task_in_progress": 0,
+          "task_todo": 1
+        },
+        {
+          "checkbox_tasks": 7,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/resolve-launch-channel-blockers/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 12,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 7,
+          "task_done": 7,
+          "task_in_progress": 0,
+          "task_todo": 0
+        },
+        {
+          "checkbox_tasks": 3,
+          "kind": "tasks",
+          "malformed_dependency_markers": 0,
+          "path": "./.cairn/changes/retain-heartwood-license-texts/tasks.md",
+          "requirement_blocks": 0,
+          "scenario_blocks": 0,
+          "substantive_lines": 6,
+          "substantive_requirement_blocks": 0,
+          "substantive_tasks": 3,
+          "task_done": 3,
+          "task_in_progress": 0,
+          "task_todo": 0
+        }
+      ]
+    },
+    {
+      "label": "policy_freshness",
+      "command": "cairn policy export --check",
+      "exit_code": 0,
+      "result": "policy fresh: cairn-policy/generated/cairn-policy.json"
+    },
+    {
+      "label": "development_policy",
+      "command": "cairn policy export --source cairn-policy/development-coverage.ncl --output target/development-coverage-policy.json",
+      "exit_code": 0,
+      "result": "wrote target/development-coverage-policy.json"
+    },
+    {
+      "label": "active_coverage",
+      "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+      "exit_code": 0,
+      "result": {
+        "valid": true,
+        "verdict": "pass",
+        "receipt_hash": "f478d1d6df827e9a2738395bc22472257297d52523372a9fc100e412caeabd8b",
+        "input_hash": "f3cdd0fd7da4657450e7f818ac2a5471d34eb91559b698aee31bc4f8d963e2c6",
+        "policy": "kiln-default",
+        "policy_hash": "c42392154cf422da59d089ab985e32c75107bda40c7e8d30b9b08f9d2e9986f0",
+        "requirements": 1781,
+        "referenced": 1781,
+        "dangling": [],
+        "source_summary": {
+          "evidence_files": 728,
+          "evidence_manifest_hash": "213f6d75d5e1978d07f5f6cd09fba959db4e8eab5f1cef43f153377420a5f74e",
+          "requirement_files": 147,
+          "requirement_manifest_hash": "2d0acc12ef7f95d5a2dd381febd979c46a853bf0cfa86de6299ea71a8d150916"
+        },
+        "profile_id": "kiln-active-development"
+      }
+    }
+  ]
+}

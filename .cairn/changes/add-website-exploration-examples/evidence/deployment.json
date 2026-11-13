@@ -1,0 +1,986 @@
+{
+  "schema": "kiln.operator-authorized.loopback-deployment.v1",
+  "observed_at": "2026-11-13T21:52:02.394Z",
+  "authority": "Explicit user request: commit and deploy",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers; operator owns package installation and user-service activation",
+  "traceability": [
+    "r[verify kiln.web.exploration.scenario.deploy]"
+  ],
+  "source_commit": "4418586c70c117dafc85802ca531ff5602647749",
+  "source_state": "Repository-local jj implementation commit; no source push, remote publication, lifecycle acceptance, synchronization or archive",
+  "build": {
+    "command": "nix build 'git+file:///home/brittonr/git/OnixResearch/kiln?rev=4418586c70c117dafc85802ca531ff5602647749#website-exploration' --print-out-paths --no-link --no-write-lock-file -L --builders '' --option build-hook '' --option min-free 0 --option substituters https://cache.nixos.org",
+    "exit_code": 0,
+    "wall_seconds": 232.79,
+    "source_commit": "4418586c70c117dafc85802ca531ff5602647749",
+    "frozen_source": "/nix/store/m7w677mfl0yc6m225cjlsjs2qpdsdbs2-source",
+    "derivation": "/nix/store/gk2mhvc6ig80c7g6ad4xyskgn5fcc6xm-kiln-website-exploration-0.1.0.drv",
+    "package": "/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0",
+    "packaged_tests": {
+      "passed": 4,
+      "failed": 0,
+      "profile": "release",
+      "offline": true,
+      "target": "x86_64-unknown-linux-gnu"
+    }
+  },
+  "activation": [
+    {
+      "command": "nix profile add '/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0' --option min-free 0",
+      "exit_code": 0,
+      "output": ""
+    },
+    {
+      "command": "systemctl --user link '/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0/share/systemd/user/kiln-website-exploration.service'",
+      "exit_code": 0,
+      "output": "Created symlink '/home/brittonr/.config/systemd/user/kiln-website-exploration.service' → '/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0/share/systemd/user/kiln-website-exploration.service'.\n"
+    },
+    {
+      "command": "systemctl --user enable --now kiln-website-exploration.service",
+      "exit_code": 0,
+      "output": "Created symlink '/home/brittonr/.config/systemd/user/default.target.wants/kiln-website-exploration.service' → '/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0/share/systemd/user/kiln-website-exploration.service'.\n"
+    },
+    {
+      "command": "systemctl --user restart kiln-website-exploration.service",
+      "exit_code": 0,
+      "output": ""
+    }
+  ],
+  "deployment": {
+    "service": "kiln-website-exploration.service (desktop user unit)",
+    "profile_element": "kiln-website-exploration",
+    "index_url": "http://127.0.0.1:18787/examples",
+    "console_url": "http://127.0.0.1:18787/",
+    "pid": 3466032,
+    "running_executable": "/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0/bin/kiln-website-exploration",
+    "executable_blake3": "9d7854ff118a3b8434657ca7e05c93298607416478ce75c96f96c8e3cfc2677a",
+    "unit_state": "ActiveState=active\nSubState=running\nFragmentPath=/home/brittonr/.nix-profile/share/systemd/user/kiln-website-exploration.service\nUnitFileState=enabled\nMainPID=3466032\nNRestarts=0\nExecMainStartTimestamp=Fri 2026-11-13 16:48:26 EST\n",
+    "socket": "State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess\nLISTEN 0      128        127.0.0.1:18787      0.0.0.0:*    users:((\"kiln-website-ex\",pid=3466032,fd=3))\n",
+    "private_preservation_records": "/home/brittonr/.local/state/kiln/website-exploration-4418586c-k3MfB3",
+    "unit_validation": {
+      "command": "systemd-analyze --user verify /nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0/share/systemd/user/kiln-website-exploration.service",
+      "exit_code": 0,
+      "note": "The verifier also warned about a pre-existing executable pueue-gc.timer; it was not changed."
+    },
+    "session_handoff": {
+      "previous_session_service": "kiln-exploration-ready",
+      "normal_exit_code": 0,
+      "previous_temporary_root_removed": true
+    }
+  },
+  "verification": {
+    "registered_destinations": 21,
+    "run_detail_tabs": 8,
+    "desktop_cases": 80,
+    "desktop_failures": [],
+    "mobile_dark_cases": 29,
+    "mobile_dark_failures": [],
+    "desktop_browser_errors": {
+      "entries": [],
+      "nextSeq": 0,
+      "dropped": 0
+    },
+    "mobile_browser_errors": {
+      "entries": [],
+      "nextSeq": 0,
+      "dropped": 0
+    },
+    "installed_cancel": "CANCELLED\nPhase: terminal",
+    "download": {
+      "filename": "release-notes.txt",
+      "bytes": 86,
+      "blake3": "151bbed33571de6e8a62087ea051ced640eab6903f66d3fc4e27738ede4c0ed1"
+    },
+    "browser_cohort": "These exact detail identities precede the controlled managed restart; use the current /examples index for fresh links.",
+    "desktop": [
+      {
+        "title": "Overview: failure first, health and retained activity",
+        "href": "http://127.0.0.1:18787/?page=overview",
+        "heading": "Overview",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "CI projects and source-bound start",
+        "href": "http://127.0.0.1:18787/?page=projects",
+        "heading": "CI projects",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "CI project history, streak and duration trend",
+        "href": "http://127.0.0.1:18787/?page=project&project=checks",
+        "heading": "Core checks · simulated",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Workers: busy, available, unknown and unenrolled",
+        "href": "http://127.0.0.1:18787/?page=workers",
+        "heading": "Workers",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=pipeline&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Logs: stdout/stderr, search and failure navigation",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=logs&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Artifacts and authenticated byte downloads",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=artifacts&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Tests and coverage reports",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=tests&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run review, gate and provenance evidence",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=reviews&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Compare runs: regression and source changes",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=compare&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run activity and canonical events",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=activity&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Exact source, execution and evidence",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721&view=evidence&other=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Automation: signed intake, interval/calendar schedules and withheld notifications",
+        "href": "http://127.0.0.1:18787/?page=automation",
+        "heading": "Automation",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: awaiting-approval",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-c1d29d9cecff52590713010df3cd6253859f3a73f1243b516e306245b0a65696",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: cancelled",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-f5e15975503b672d0aac1a3a4a5d751b6dd3e619d775968949b5534937948630",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: docs",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-ad0029b694d6e1e0e024ecf746af9fff14900bb6fd2de4fb392ff630c8f40168",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: failure",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-89f9e75eb853b854fa6d8e410264e22860f5d2287c12f7f506349da2e0e28721",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: partial",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-7003f4da9bf163efdb10d3fbf5115e5e606b649a0ef429b7411276a1076c0cfa",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: queued",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-e5506d4d0d522b3e7daff45ec06c53b9ac491947a4e86a64b9b20ba00f600416",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: regression",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-242bdc787637704dbb79e1d79ae448db91c34a0c0a96b77db3f5f7a4b53df88f",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: running",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-a6b0c6745e207a854cfb882fdf2e91843398c2ea19c511e846c73f0f276ccdfb",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: success",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-e6da8f2faafe844dde3cfb9fe56dc23bff4f58f6643a6fa325b922af4e8eda74",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Run state: unknown",
+        "href": "http://127.0.0.1:18787/?page=runs&run=web-run-6b199b2db855258138d946074cf77b5592d2a26c513b3fe253259b4d9d3f1658",
+        "heading": "Runs",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Issues: discussion, mentions, reactions and exact CI",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=ef7775873c03d826d78212768f54473db2a9e4e1",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "My inbox: assignments, mentions, watching and due reminders",
+        "href": "http://127.0.0.1:18787/?page=inbox",
+        "heading": "My inbox",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Planning: initiative to project to milestone and cycle",
+        "href": "http://127.0.0.1:18787/?page=planning",
+        "heading": "Planning",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Requests & triage: incoming, accepted and declined",
+        "href": "http://127.0.0.1:18787/?page=triage&work_id=82b8c21f22cbc265e6baaddbe1f9225f7f6a4b0b",
+        "heading": "Requests & triage",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Saved views: private, shared and favorites",
+        "href": "http://127.0.0.1:18787/?page=workviews",
+        "heading": "Saved views",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Status board: custom lanes and safe card moves",
+        "href": "http://127.0.0.1:18787/?page=work&work_view=99b3b274c7cd976885cccd4a3d97de30c9aa0ddd",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "CI-project board: linked and unlinked work",
+        "href": "http://127.0.0.1:18787/?page=work&work_view=b9059a92aede8a4a298881d14359ee20d8ea9f8f",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Private saved list",
+        "href": "http://127.0.0.1:18787/?page=work&work_view=a1381e4ced5dbed5e0f637066f41adc6aa98e805",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Initiative and its planning relationships",
+        "href": "http://127.0.0.1:18787/?page=planning&work_kind=initiative&work_id=7a03125d25dc0ea9bd9ec7c426ef659e5ef0451b",
+        "heading": "Planning",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Planning project, milestone and progress",
+        "href": "http://127.0.0.1:18787/?page=planning&work_kind=project&work_id=a9bf8553a7bd8c0ce5484f6e8c660e9faa0fdcac",
+        "heading": "Planning",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Milestone and child issues",
+        "href": "http://127.0.0.1:18787/?page=planning&work_kind=milestone&work_id=1f8d1094f2725bf07cccce7181fbc4839af9627d",
+        "heading": "Planning",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Current cycle and team workflow",
+        "href": "http://127.0.0.1:18787/?page=planning&work_kind=cycle&work_id=184649ab41bcba26887766de1967492e7a9e7b7a",
+        "heading": "Planning",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Team with custom workflow statuses",
+        "href": "http://127.0.0.1:18787/?page=planning&work_kind=team&work_id=694076b0090d17d02dc8cff581da7b4738f2e6ee",
+        "heading": "Planning",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Issue relationships: parent and subissue",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=0902b267386bdba0c9b18f72b490c876eac75c93",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Blocked issue and dependency",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=d1102dcf6a310dc6fbfe6ab8c5810e22053004b8",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Completed issue with passing CI",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=ac87154430e234f76d6e64e498668b592c7bc724",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Snoozed issue with due date",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=95dc4f6f3363ca723e517fc1c9188e322c3942dc",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Duplicate issue keeps its canonical relationship",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=35848296f69d10ef4ac6817d8b12af279e055e41",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Attention preferences and favorites",
+        "href": "http://127.0.0.1:18787/?page=work&work_id=9b5f448284786272408f330d429c1cf9c93dee6e",
+        "heading": "Issues",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Accepted request retains its original source",
+        "href": "http://127.0.0.1:18787/?page=triage&work_id=cfe266465e2fb7761fbfc819748041ebcf903019",
+        "heading": "Requests & triage",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Declined request retains its reason",
+        "href": "http://127.0.0.1:18787/?page=triage&work_id=af4c4fda60fedee3fa371bfbc5819dc71fdba1cc",
+        "heading": "Requests & triage",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Code review: exact revisions, discussion and submit requirements",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=89aefbb3a55a3851cb458da109d15731983ebde137c5cd3b29f854d84476149b",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Interdiff: changes since the previous revision",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=89aefbb3a55a3851cb458da109d15731983ebde137c5cd3b29f854d84476149b&review_interdiff=52c95e1513f3567b96596b902491dd7271bd4a3a1bbd18cd4264b3bc59f62be5..ebc89d2b3527e5672f92635bfb2e4745f4fae23296e977f6b17d7c8dc61120bd",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Structural review and line permalinks",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=89aefbb3a55a3851cb458da109d15731983ebde137c5cd3b29f854d84476149b&review_revision=ebc89d2b3527e5672f92635bfb2e4745f4fae23296e977f6b17d7c8dc61120bd&review_file=src%2Flib.rs&review_mode=structural",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Awaiting my review and personal saved review queries",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_view=awaiting_review",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "WIP change owned by you",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=47a4a9094cba7d61f81ebc0fb05e5989c35812bdfae20b42f587e21daf379dea",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Review dependency stack",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=4fb2e4a4bb78710f7270726d278d0ba89cb237c0f57656ae3a4a74ae28d783d0",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Submitted exact-CI candidate",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=a195b5486e670ce8d3bdcc927d2d840158deb9e67f91f6c7b021f8dee99018cc",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Abandoned change and restore",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=fff2470c4d3f0f5e4395c26d129917858caaf42244204a2d44e0b625f290d963",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Self-declared agent authorship",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=350e466e17029d0e28ccc7c289c6ce2731b42c8d87a7af57074ebe8dd8af75cd",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Review merge-queue entry",
+        "href": "http://127.0.0.1:18787/?page=code-review&review_change=09091af975b1f222cb6356c5982a6b882bae30335b693f681dae3da9ca2bb3a8",
+        "heading": "Code review",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Source repositories, refs and directories",
+        "href": "http://127.0.0.1:18787/?page=source&src=example-service",
+        "heading": "Source",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Source file: highlighted Rust and exact line",
+        "href": "http://127.0.0.1:18787/?page=source&src=example-service&rev=95c04fe4254b87970aeb6ffbf9b907f2de110147&spath=src&sfile=src%2Flib.rs&sline=3",
+        "heading": "Source",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Source history and exact commits",
+        "href": "http://127.0.0.1:18787/?page=source&src=example-service&sview=history",
+        "heading": "Source",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Source changes: rename and binary file",
+        "href": "http://127.0.0.1:18787/?page=source&src=example-service&rev=1a899adea80a5be59e525fa5d96199f6e06a4215&sview=changes",
+        "heading": "Source",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Source configuration and Markdown",
+        "href": "http://127.0.0.1:18787/?page=source&src=example-service&rev=95c04fe4254b87970aeb6ffbf9b907f2de110147&spath=config&sfile=config%2Frelease.ncl",
+        "heading": "Source",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: accepted",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-accepted.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: rejected",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-rejected.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: escalated",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-escalated.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: blocked",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-blocked.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: waiting",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-waiting.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: pending",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-pending.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: removed",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-removed.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: reverted",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-reverted.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Patchgate decision: unknown",
+        "href": "http://127.0.0.1:18787/?page=reviews&receipt=example-unknown.json",
+        "heading": "Patchgate receipts",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Raw collaboration: Example issue discussion",
+        "href": "http://127.0.0.1:18787/?page=cobs&cob_repository=examples&cob_type=xyz.radicle.issue&cob=8beea3fb5d853311501db76d315ce2bf0695ea63&cob_repo=examples&cob_kind=xyz.radicle.issue",
+        "heading": "Raw collaboration history",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Raw collaboration: Example lifecycle proposal",
+        "href": "http://127.0.0.1:18787/?page=cobs&cob_repository=examples&cob_type=xyz.onixresearch.cairn-change&cob=cfde665d808cf755006a3f13cfc736e78fed4795&cob_repo=examples&cob_kind=xyz.onixresearch.cairn-change",
+        "heading": "Raw collaboration history",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Raw collaboration: Example exact-source patch",
+        "href": "http://127.0.0.1:18787/?page=cobs&cob_repository=examples&cob_type=xyz.radicle.patch&cob=0132fa1b01feb3d4816f319d0d98b9f99627c9d4&cob_repo=examples&cob_kind=xyz.radicle.patch",
+        "heading": "Raw collaboration history",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Feeds: repository publication and offline upstream entries",
+        "href": "http://127.0.0.1:18787/?page=feeds",
+        "heading": "Feeds",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Feed subscription rehearsal",
+        "href": "http://127.0.0.1:18787/?page=feeds&feed_q=Example",
+        "heading": "Feeds",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Feed outage preserves retained entries",
+        "href": "http://127.0.0.1:18787/?page=feeds&feed_q=Unavailable",
+        "heading": "Feeds",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Feed OPML import/export and local publication",
+        "href": "http://127.0.0.1:18787/?page=feeds",
+        "heading": "Feeds",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Guide, keyboard reference and command palette",
+        "href": "http://127.0.0.1:18787/?page=guide",
+        "heading": "Guide",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Evidence entry point",
+        "href": "http://127.0.0.1:18787/?page=evidence",
+        "heading": "Evidence",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Appearance, density and session",
+        "href": "http://127.0.0.1:18787/?page=settings",
+        "heading": "Settings",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Retained activity and audit decisions",
+        "href": "http://127.0.0.1:18787/?page=activity",
+        "heading": "Activity",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      },
+      {
+        "title": "Capacity and retention",
+        "href": "http://127.0.0.1:18787/?page=operations",
+        "heading": "Operations",
+        "errors": [],
+        "width": 1440,
+        "scrollWidth": 1440
+      }
+    ],
+    "mobile_dark": [
+      {
+        "title": "Guide, keyboard reference and command palette",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Overview: failure first, health and retained activity",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "CI projects and source-bound start",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "CI project history, streak and duration trend",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Workers: busy, available, unknown and unenrolled",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Issues: discussion, mentions, reactions and exact CI",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "My inbox: assignments, mentions, watching and due reminders",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Planning: initiative to project to milestone and cycle",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Code review: exact revisions, discussion and submit requirements",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Requests & triage: incoming, accepted and declined",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Saved views: private, shared and favorites",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Source repositories, refs and directories",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Patchgate decision: accepted",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Retained activity and audit decisions",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Feeds: repository publication and offline upstream entries",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Evidence entry point",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Automation: signed intake, interval/calendar schedules and withheld notifications",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Capacity and retention",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Raw collaboration: Example issue discussion",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Appearance, density and session",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Logs: stdout/stderr, search and failure navigation",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Artifacts and authenticated byte downloads",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Tests and coverage reports",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Run review, gate and provenance evidence",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Compare runs: regression and source changes",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Run activity and canonical events",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      },
+      {
+        "title": "Exact source, execution and evidence",
+        "theme": "dark",
+        "width": 390,
+        "scrollWidth": 390,
+        "errors": []
+      }
+    ]
+  },
+  "restart_reset": {
+    "command": "systemctl --user restart kiln-website-exploration.service",
+    "exit_code": 0,
+    "removed_root": "/tmp/kiln-website-examples-B7pXvI/",
+    "created_root": "/tmp/kiln-website-examples-Ced1hf/",
+    "root_mode": "700",
+    "running": "RUNNING\nPhase: active",
+    "approval_hold": "AWAITING APPROVAL\nPhase: awaiting_approval",
+    "browser_errors": {
+      "entries": [],
+      "nextSeq": 0,
+      "dropped": 0
+    },
+    "unit": "ActiveState=active\nSubState=running\nFragmentPath=/home/brittonr/.nix-profile/share/systemd/user/kiln-website-exploration.service\nUnitFileState=enabled\nMainPID=3466032\nNRestarts=0\nExecMainStartTimestamp=Fri 2026-11-13 16:48:26 EST\n"
+  },
+  "preservation": {
+    "protected_file_count": 40,
+    "protected_files_unchanged": true,
+    "existing_profile_elements_unchanged": 6,
+    "live_units_unchanged": true,
+    "live_units_before": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=3140209\nExecMainStartTimestamp=Fri 2026-11-13 14:47:13 EST\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=3840257\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-web-lattice.service\nActiveState=inactive\nSubState=dead\nMainPID=0\nExecMainStartTimestamp=Fri 2026-11-13 11:54:59 EST\n",
+    "live_units_after": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=3140209\nExecMainStartTimestamp=Fri 2026-11-13 14:47:13 EST\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=3840257\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-web-lattice.service\nActiveState=inactive\nSubState=dead\nMainPID=0\nExecMainStartTimestamp=Fri 2026-11-13 11:54:59 EST\n",
+    "live_executable": "/nix/store/iqmgxj2sbvqd22j90wx3ifd1rnjs3pj4-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "live_executable_blake3": "4244464108fe784f524970f5f42964465c4bac7cebfe03b733372f915d45f450",
+    "live_state_boundary": "No live database, credential, profile or provider route was opened for writing; only the separate example package/unit and disposable roots were changed."
+  },
+  "rollback": {
+    "previous_managed_service": "absent",
+    "previous_example_profile_element": "absent",
+    "commands": [
+      "systemctl --user disable --now kiln-website-exploration.service",
+      "nix profile remove kiln-website-exploration --option min-free 0",
+      "systemctl --user daemon-reload"
+    ],
+    "exercised": false,
+    "state_boundary": "Remove only this newly installed example service/profile element. Never roll back the full operator profile or touch the independent authenticated service, live stores or credentials."
+  },
+  "non_claims": [
+    "Loopback-only synthetic UI rehearsal, not CI/provider execution or production qualification",
+    "No production demo mode, external listener, remote feed fetch, notification delivery or hosted payment effect",
+    "No installed live profile, credential, provider route or durable state was changed",
+    "No source publication, release acceptance, lifecycle synchronization or archive"
+  ]
+}
