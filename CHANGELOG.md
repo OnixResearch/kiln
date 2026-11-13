@@ -80,6 +80,9 @@ entry describes the source tree prepared for the first tagged release.
   notification delivery is invoked. Restart resets the workspace.
   A separate `website-exploration` package/app and immutable-path user unit
   support operator-authorized loopback deployment without changing live CI.
+  Optional registered-user HTTPS ingress makes the examples available on a
+  separate tailnet-only origin, with strict Host/Origin translation and no
+  changes to the original CI origin, Tailscale Serve routes or Funnel exposure.
   (deployed as a separate local user service; browser and packaged checks passed;
   not CI/provider execution or production qualification)
 - Single-tenant HTTPS workspace with logs, reruns, signed triggers, schedules and

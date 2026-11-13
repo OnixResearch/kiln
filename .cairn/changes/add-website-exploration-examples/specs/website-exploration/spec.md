@@ -33,3 +33,9 @@ r[kiln.web.exploration.scenario.deploy]
 - GIVEN an explicit operator request to commit and deploy the example workspace
 - WHEN the frozen source is built and installed locally
 - THEN a dedicated package and supervised user unit MUST serve the loopback-only examples independently of the authenticated web service, with fresh disposable state on each start and unchanged live profiles, credentials, routing and durable state
+
+#### Scenario: Explore through a separate registered-user tailnet origin
+r[kiln.web.exploration.scenario.tailnet]
+- GIVEN explicit operator permission for private-tailnet access to the examples
+- WHEN the separate HTTPS origin is enabled
+- THEN the proxy MUST bind only declared Tailscale addresses, admit only existing registered identities and the exact public Host/Origin, keep private credentials out of the example backend, preserve backend missing-Origin rejection, and leave existing CI origins, Tailscale Serve routes and Funnel exposure unchanged

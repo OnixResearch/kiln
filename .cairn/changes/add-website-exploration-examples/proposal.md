@@ -10,6 +10,7 @@ The operator wants examples for every Kiln website feature and view so the conso
 - Simulate workflow observations only in the example. Never execute source commands, contact remote providers, reuse installed credentials/state, or change production authentication or routing. Local work/review commands operate only on disposable example repositories.
 - Document the launch/reset procedure, feature coverage, owner and verification evidence.
 - Package the standalone example and its supervised user unit separately from the authenticated web service; install and activate it only on explicit operator request.
+- On the subsequent explicit request for Tailscale access, add a separate HTTPS example origin behind the existing registered-user resolver, without changing the authenticated CI origin, Tailscale Serve routes or Funnel exposure.
 
 ## Impact
 
@@ -17,9 +18,9 @@ The operator wants examples for every Kiln website feature and view so the conso
 - **Immediate outcome:** one local command opens a populated console with an example for every destination and nested feature family.
 - **Durable capability:** a maintained, repeatable exploration workspace built on real production reducers and local adapters, not a second UI or silent mock fallback.
 - **Owner:** Kiln web-service/dashboard maintainers.
-- **Files:** `crates/kiln-web-service/examples/explore.rs`, its `examples/explore/` modules, focused example behavior checks where necessary, the dedicated flake package and user-unit template, README/operator documentation, changelog and this package.
+- **Files:** `crates/kiln-web-service/examples/explore.rs`, its `examples/explore/` modules, focused example behavior checks where necessary, the dedicated flake package, user-unit and optional tailnet-proxy templates, README/operator documentation, changelog and this package.
 - **Verification:** planning gates before implementation; compile and launch the example; actual browser coverage of destinations, run tabs, representative local mutations, deep links and narrow layout; focused existing checks and Cairn validation.
-- **Authority:** the subsequent explicit user request to commit and deploy authorizes a local jj commit and installation/activation of the separate loopback example user service. Existing authenticated service configuration, credentials, routing and durable state remain unchanged. No source publication, remote signing, pushes, synchronization, release acceptance or lifecycle archive.
+- **Authority:** the explicit commit/deploy request authorizes local jj commits and installation/activation of the separate loopback example user service. The subsequent request to make it viewable from Tailscale additionally authorizes a dedicated tailnet-only HTTPS proxy origin using existing TLS identity and registered-user access controls. Existing CI origins, application profiles, credentials, provider routing and durable state remain unchanged. No source publication, remote signing, pushes, ACL expansion, Funnel, release acceptance or lifecycle archive.
 
 ## Out of Scope
 

@@ -1646,6 +1646,56 @@ preserved authenticated service. Its four packaged release-profile tests passed.
 It grants no production, provider-execution, publication or lifecycle acceptance
 claim.
 
+#### Optional private-tailnet access
+
+<!-- r[impl kiln.web.exploration.scenario.tailnet] -->
+The operated example index is
+<https://britton-desktop.bison-tailor.ts.net:9444/examples>. This is a separate
+origin from the authenticated CI workspace on port 9443. It uses the existing
+Kiln private CA: client devices must trust that CA, just as for the existing
+Kiln site. No client trust settings are changed automatically.
+
+After explicit operator approval, render
+`deployment/kiln-website-exploration-tailnet.conf.in` with the declared
+`dns_name`, `tailnet_ipv4`, `tailnet_ipv6`, `certificate`, `private_key` and
+`authorization_include` values. These are paths and public endpoint facts, not
+credential bytes. The fragment requires the existing `$kiln_peer_socket` map
+and private registered-user `proxy-auth` resolver. Store it as
+`~/.config/kiln/web-service/website-exploration-tailnet.conf` and add one include
+inside the existing Nginx `http` block. Preserve the original server and its
+Host/Origin maps. Validate the full configuration with the installed Nginx
+binary, prefix and `-c` arguments from `kiln-tailnet-proxy.service` before
+gracefully reloading only its master:
+
+```sh
+systemctl --user kill --kill-whom=main --signal=HUP kiln-tailnet-proxy.service
+```
+
+The example origin binds only the declared tailnet addresses on port 9444.
+Only existing registered untagged Tailscale identities are admitted; client
+identity headers are not authority. Every admitted visitor shares the disposable
+synthetic operator workspace, never live CI authority. Only this origin is
+translated to `http://127.0.0.1:18787`; missing-Origin writes remain rejected.
+Browser authorization, cookies and identity/proxy-key headers are cleared before
+the example backend. The private proxy key goes only to the resolver. The
+original HTTPS backend, application profiles, credentials, Tailscale Serve
+routes and Funnel state are unchanged.
+
+The [tailnet deployment receipt](../.cairn/changes/add-website-exploration-examples/evidence/tailnet.json)
+records CA/hostname-verified reads from the owned `aspen3-1` peer, all 21 browser
+destinations and eight run tabs, narrow/dark review, a temporary subscription
+write/removal, a byte/hash-verified artifact download, and negative Host/Origin
+and identity-header checks. The existing CI health endpoint remained available.
+The operator owns listener exposure, enrollment, certificate renewal and trust;
+Kiln web-service/dashboard maintainers own the reusable template and examples.
+
+Rollback removes only this fragment's include from the current configuration,
+validates and gracefully reloads Nginx again. A private pre-change configuration
+is retained in the receipt's rollback directory; do not restore it over later
+operator edits. No backend restart, global profile rollback, Tailscale Serve
+reset, credential rotation or live database rewind is part of this operation.
+
+
 ### Navigate the live workspace
 <!-- r[related kiln.work.usability] -->
 

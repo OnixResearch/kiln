@@ -1,0 +1,476 @@
+{
+  "schema": "kiln.operator-authorized.example-tailnet.v1",
+  "observed_at": "2026-11-13T22:39:46.564Z",
+  "authority": "Explicit user request: make sure the examples are viewable from Tailscale",
+  "traceability": [
+    "r[verify kiln.web.exploration.scenario.tailnet]"
+  ],
+  "maintenance_owner": "Operator owns ingress, enrollment, certificates and trust; Kiln web-service/dashboard maintainers own the template and examples",
+  "application": {
+    "source_commit": "4418586c70c117dafc85802ca531ff5602647749",
+    "package": "/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0",
+    "service": "kiln-website-exploration.service",
+    "upstream": "http://127.0.0.1:18787",
+    "restarted": false
+  },
+  "ingress": {
+    "url": "https://britton-desktop.bison-tailor.ts.net:9444/examples",
+    "ipv4": "100.110.43.11",
+    "ipv6": "fd7a:115c:a1e0::c401:2b0c",
+    "nginx_main": "/home/brittonr/.config/kiln/web-service/tailscale-proxy.conf",
+    "rendered_fragment": "/home/brittonr/.config/kiln/web-service/website-exploration-tailnet.conf",
+    "template": "deployment/kiln-website-exploration-tailnet.conf.in",
+    "fields": {
+      "dns_name": "britton-desktop.bison-tailor.ts.net",
+      "tailnet_ipv4": "100.110.43.11",
+      "tailnet_ipv6": "fd7a:115c:a1e0::c401:2b0c",
+      "certificate": "/home/brittonr/.config/kiln/web-service/credentials/tailnet-certificate.pem",
+      "private_key": "/home/brittonr/.config/kiln/web-service/credentials/tailnet-key.pem",
+      "authorization_include": "/run/user/1555/kiln-tailnet-proxy/authorization.conf"
+    },
+    "validation": {
+      "command": "/home/brittonr/.local/state/nix/profiles/kiln-tailnet-proxy/bin/nginx -t -e stderr -p /home/brittonr/git/.kiln-web-service/tailnet-proxy/ -c /home/brittonr/.config/kiln/web-service/tailscale-proxy.conf",
+      "exit_code": 0
+    },
+    "activation": [
+      {
+        "command": "systemctl --user kill --kill-whom=main --signal=HUP kiln-tailnet-proxy.service",
+        "exit_code": 0,
+        "output": ""
+      }
+    ],
+    "certificate": {
+      "subject": "CN=britton-desktop.bison-tailor.ts.net",
+      "issuer": "CN=Kiln localhost deployment CA",
+      "valid_to": "Oct 27 20:18:17 2027 GMT",
+      "client_requirement": "Trust the same existing private CA as the original Kiln origin; no device trust settings changed"
+    },
+    "authentication": "Existing proxy-auth resolver admits registered exact user-ID/login identities using the actual TCP peer socket. Private proxy key is supplied only to the resolver; the example receives no browser authority or credential headers."
+  },
+  "planning_gates": [
+    {
+      "gate": "proposal",
+      "command": "cairn gate proposal add-website-exploration-examples --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "receipt_hash": "718fa0d435c20c0b737eb5090285520c0431392bd1931529b6a0abafc895ff0e",
+      "issues": []
+    },
+    {
+      "gate": "design",
+      "command": "cairn gate design add-website-exploration-examples --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "receipt_hash": "8ade32351da8547a5449603f0605b3adf3b2a36927406b39c9158b6d6269fc34",
+      "issues": []
+    },
+    {
+      "gate": "tasks",
+      "command": "cairn gate tasks add-website-exploration-examples --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "receipt_hash": "d933bff4c75958f490aada98fc679661f08893780374ed1cf3a32f1a301f9345",
+      "issues": []
+    }
+  ],
+  "remote_verification": {
+    "peer": "aspen3-1.bison-tailor.ts.net",
+    "ssh": {
+      "batch_mode": true,
+      "strict_host_key_checking": true,
+      "agent_forwarding": false
+    },
+    "tls": "curl --cacert /dev/stdin with the public existing CA, normal tailnet DNS and no insecure/resolve option",
+    "catalog": {
+      "status": 200,
+      "exit_code": 0,
+      "scenarios": 80
+    },
+    "session": {
+      "url": "https://britton-desktop.bison-tailor.ts.net:9444/api/session",
+      "method": "GET",
+      "exit_code": 0,
+      "status": 200,
+      "body": "{\"permissions\":{\"configure\":true,\"operate\":true,\"read\":true},\"principal\":{\"id\":\"local:operator\",\"label\":\"Synthetic example operator\",\"role\":\"operator\"}}",
+      "stderr": ""
+    },
+    "admission_cases": [
+      {
+        "label": "own_origin_read",
+        "expected": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/api/session",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 200,
+        "body": "{\"permissions\":{\"configure\":true,\"operate\":true,\"read\":true},\"principal\":{\"id\":\"local:operator\",\"label\":\"Synthetic example operator\",\"role\":\"operator\"}}",
+        "stderr": ""
+      },
+      {
+        "label": "foreign_host",
+        "expected": 403,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/examples.json",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 403,
+        "body": "<html>\r\n<head><title>403 Forbidden</title></head>\r\n<body>\r\n<center><h1>403 Forbidden</h1></center>\r\n<hr><center>nginx/1.30.4</center>\r\n</body>\r\n</html>\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "foreign_origin",
+        "expected": 403,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/examples.json",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 403,
+        "body": "<html>\r\n<head><title>403 Forbidden</title></head>\r\n<body>\r\n<center><h1>403 Forbidden</h1></center>\r\n<hr><center>nginx/1.30.4</center>\r\n</body>\r\n</html>\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "missing_origin_write",
+        "expected": 403,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/api/runs",
+        "method": "POST",
+        "exit_code": 0,
+        "status": 403,
+        "body": "{\"code\":\"example_request_rejected\",\"message\":\"Local writes require this exact Origin and JSON content\"}",
+        "stderr": ""
+      },
+      {
+        "label": "foreign_origin_write",
+        "expected": 403,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/api/runs",
+        "method": "POST",
+        "exit_code": 0,
+        "status": 403,
+        "body": "<html>\r\n<head><title>403 Forbidden</title></head>\r\n<body>\r\n<center><h1>403 Forbidden</h1></center>\r\n<hr><center>nginx/1.30.4</center>\r\n</body>\r\n</html>\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "original_ci_rejects_example_origin",
+        "expected": 403,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9443/healthz",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 403,
+        "body": "<html>\r\n<head><title>403 Forbidden</title></head>\r\n<body>\r\n<center><h1>403 Forbidden</h1></center>\r\n<hr><center>nginx/1.30.4</center>\r\n</body>\r\n</html>\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "example_rejects_original_ci_origin",
+        "expected": 403,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/examples.json",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 403,
+        "body": "<html>\r\n<head><title>403 Forbidden</title></head>\r\n<body>\r\n<center><h1>403 Forbidden</h1></center>\r\n<hr><center>nginx/1.30.4</center>\r\n</body>\r\n</html>\r\n",
+        "stderr": ""
+      },
+      {
+        "label": "client_identity_headers_are_not_authority",
+        "expected": 200,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/api/session",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 200,
+        "body": "{\"permissions\":{\"configure\":true,\"operate\":true,\"read\":true},\"principal\":{\"id\":\"local:operator\",\"label\":\"Synthetic example operator\",\"role\":\"operator\"}}",
+        "stderr": ""
+      },
+      {
+        "label": "private_auth_location_is_internal",
+        "expected": 404,
+        "url": "https://britton-desktop.bison-tailor.ts.net:9444/_kiln_example_verify",
+        "method": "GET",
+        "exit_code": 0,
+        "status": 404,
+        "body": "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx/1.30.4</center>\r\n</body>\r\n</html>\r\n",
+        "stderr": ""
+      }
+    ],
+    "original_ci_before": {
+      "url": "https://britton-desktop.bison-tailor.ts.net:9443/healthz",
+      "method": "GET",
+      "exit_code": 0,
+      "status": 200,
+      "body": "{\"status\":\"ok\"}",
+      "stderr": ""
+    },
+    "original_ci_after": {
+      "url": "https://britton-desktop.bison-tailor.ts.net:9443/healthz",
+      "method": "GET",
+      "exit_code": 0,
+      "status": 200,
+      "body": "{\"status\":\"ok\"}",
+      "stderr": ""
+    }
+  },
+  "browser": {
+    "origin": "https://britton-desktop.bison-tailor.ts.net:9444",
+    "certificate_handling": "Visual browser used ignore_https_errors for the existing private CA; the independent remote curl checks validated the CA and hostname",
+    "registered_destinations": 21,
+    "run_tabs": 8,
+    "linked_scenarios": 80,
+    "view_tab_checks": [
+      {
+        "title": "Guide, keyboard reference and command palette",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=guide",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Overview: failure first, health and retained activity",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=overview",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=pipeline&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "CI projects and source-bound start",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=projects",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "CI project history, streak and duration trend",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=project&project=checks",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Workers: busy, available, unknown and unenrolled",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=workers",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Issues: discussion, mentions, reactions and exact CI",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=work&work_id=2fef4d9781b82477d57742200d8d16beb71042fc",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "My inbox: assignments, mentions, watching and due reminders",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=inbox",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Planning: initiative to project to milestone and cycle",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=planning",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Code review: exact revisions, discussion and submit requirements",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=code-review&review_change=d5f4a51f21bbd72b7bfa3f605528f35c5e493d3e76190c4e28ee6e5076c675ec",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Requests & triage: incoming, accepted and declined",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=triage&work_id=ca3fc9c5fb08576a04f6be93c008b98061a0b5ce",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Saved views: private, shared and favorites",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=workviews",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Source repositories, refs and directories",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=source&src=example-service",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Patchgate decision: accepted",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=reviews&receipt=example-accepted.json",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Retained activity and audit decisions",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=activity",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Feeds: repository publication and offline upstream entries",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=feeds",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Evidence entry point",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=evidence",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Automation: signed intake, interval/calendar schedules and withheld notifications",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=automation",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Capacity and retention",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=operations",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Raw collaboration: Example issue discussion",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=cobs&cob_repository=examples&cob_type=xyz.radicle.issue&cob=9cbd3683e02b6b8913263b1b6ae560037310003d&cob_repo=examples&cob_kind=xyz.radicle.issue",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Appearance, density and session",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=settings",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Pipeline graph and node details",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=pipeline&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Logs: stdout/stderr, search and failure navigation",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=logs&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Artifacts and authenticated byte downloads",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=artifacts&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Tests and coverage reports",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=tests&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Run review, gate and provenance evidence",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=reviews&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Compare runs: regression and source changes",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=compare&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Run activity and canonical events",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=activity&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      },
+      {
+        "title": "Exact source, execution and evidence",
+        "href": "https://britton-desktop.bison-tailor.ts.net:9444/?page=runs&run=web-run-3c16fe38121b562dca36eb3ff986b075c711e16d0b20b83448cdd38deaaccfa2&view=evidence&other=web-run-6b1fceb64f8c3afcda02c96d67d545c7583d8733223d339251d8b46388ad287b",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "errors": []
+      }
+    ],
+    "mobile_dark": {
+      "theme": "dark",
+      "width": 390,
+      "scrollWidth": 390,
+      "errors": []
+    },
+    "errors": {
+      "entries": [],
+      "nextSeq": 0,
+      "dropped": 0
+    },
+    "mobile_errors": {
+      "entries": [],
+      "nextSeq": 0,
+      "dropped": 0
+    },
+    "write": {
+      "created": true,
+      "temporary_subscription": "Tailnet connectivity check (temporary)",
+      "removed_after_reload": true
+    },
+    "download": {
+      "filename": "release-notes.txt",
+      "bytes": 86,
+      "blake3": "151bbed33571de6e8a62087ea051ced640eab6903f66d3fc4e27738ede4c0ed1"
+    }
+  },
+  "preservation": {
+    "original_ingress_unchanged_except_one_include": true,
+    "application_and_credential_files_unchanged": 39,
+    "all_four_main_pids_and_start_times_unchanged": true,
+    "nix_profile_elements_unchanged": 7,
+    "serve_and_funnel_state_unchanged": true,
+    "units_before": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=3140209\nExecMainStartTimestamp=Fri 2026-11-13 14:47:13 EST\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=3840257\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nMainPID=3840272\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-website-exploration.service\nActiveState=active\nSubState=running\nMainPID=3466032\nExecMainStartTimestamp=Fri 2026-11-13 16:48:26 EST\n",
+    "units_after": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=3140209\nExecMainStartTimestamp=Fri 2026-11-13 14:47:13 EST\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=3840257\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nMainPID=3840272\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-website-exploration.service\nActiveState=active\nSubState=running\nMainPID=3466032\nExecMainStartTimestamp=Fri 2026-11-13 16:48:26 EST\n",
+    "socket_state": "State  Recv-Q Send-Q               Local Address:Port  Peer Address:PortProcess\nLISTEN 0      128                      127.0.0.1:18787      0.0.0.0:*    users:((\"kiln-website-ex\",pid=3466032,fd=3))\nLISTEN 0      511                  100.110.43.11:9444       0.0.0.0:*    users:((\"nginx\",pid=3840272,fd=7),(\"nginx\",pid=284354,fd=7))\nLISTEN 0      511    [fd7a:115c:a1e0::c401:2b0c]:9444          [::]:*    users:((\"nginx\",pid=3840272,fd=8),(\"nginx\",pid=284354,fd=8))\n",
+    "config_digests": "f6aa72485e9ae3a4adff14b4918d3a406a93d8adbae274bab4d8edff2e825d5a  deployment/kiln-website-exploration-tailnet.conf.in\n8ec5cc18b723dd794b7165151107eab9a99f4e51586563fe808631d730998bab  /home/brittonr/.config/kiln/web-service/website-exploration-tailnet.conf\nb74e17434d55703446b076f58d124aae6a25e208526c9179277d5d38cca3e973  /home/brittonr/.config/kiln/web-service/tailscale-proxy.conf\n"
+  },
+  "rollback": {
+    "private_directory": "/home/brittonr/.local/state/kiln/website-exploration-tailnet-p40Pcz",
+    "original_main_configuration": "/home/brittonr/.local/state/kiln/website-exploration-tailnet-p40Pcz/tailscale-proxy-before.conf",
+    "action": "Remove only the new include from the current operator configuration; validate and HUP only the existing Nginx master. Do not overwrite later operator edits or reset Serve, profiles, credentials or databases.",
+    "exercised": false
+  },
+  "retained_probe": {
+    "url": "https://britton-desktop.bison-tailor.ts.net:9443/health",
+    "status": 404,
+    "note": "The initial /health probe was not a deployed route and returned 404. The documented /healthz route passed before and after activation."
+  },
+  "non_claims": [
+    "Not CI/provider execution, production qualification, hostile sandboxing or release authority",
+    "No new principal enrollment, ACL grant, public Funnel or Tailscale Serve change",
+    "No private credential or key copied to the remote peer, source or example backend",
+    "No distinct-host unregistered/tagged identity negative was exercised; the existing resolver/enrollment were unchanged",
+    "No source push, remote publication, lifecycle acceptance or archive"
+  ]
+}

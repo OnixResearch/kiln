@@ -124,6 +124,12 @@ Alternatively run
 The operator guide also covers the separate `website-exploration` package and
 supervised loopback user service; these never replace the authenticated website.
 
+The operated private-tailnet examples are at
+<https://britton-desktop.bison-tailor.ts.net:9444/examples>. Access uses existing
+registered Tailscale identities and the same private Kiln CA as the CI website;
+the client device must trust that CA. See
+[private-tailnet access](docs/operator.md#optional-private-tailnet-access).
+
 Render the local dashboard over synthetic sample data, then open the printed
 `dashboard.html` in a browser:
 

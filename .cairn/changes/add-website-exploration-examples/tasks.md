@@ -17,3 +17,9 @@
 
 - [x] [serial] Freeze the checked implementation in a repository-local jj commit without moving publication bookmarks or pushing. r[kiln.web.exploration.scenario.deploy]
 - [x] [serial] Install and activate the separate loopback example user service, verify actual browser coverage and restart/reset, and record package/source identities plus preserved live-service state. r[kiln.web.exploration.scenario.deploy]
+
+## Phase 4: Authorized tailnet access
+
+- [x] [serial] Add a maintained HTTPS proxy fragment for the separate example origin with existing registered-user admission, exact Host/Origin handling and credential separation. r[kiln.web.exploration.scenario.tailnet]
+- [x] [serial] Back up operator ingress, render and validate the fragment, gracefully reload only the tailnet proxy, and verify browser use plus CA-checked tailnet-peer access and negative admission cases. r[kiln.web.exploration.scenario.tailnet]
+- [x] [serial] Record unchanged live application/credentials and Serve/Funnel state, document the tailnet URL/private-CA requirement and rollback, and retain exact verification evidence. r[kiln.web.exploration.scenario.tailnet]
