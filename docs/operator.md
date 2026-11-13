@@ -2904,6 +2904,16 @@ restart kept the already-inactive Lattice service stopped and the active
 proxies running; this choice requires those dependency-state preconditions.
 The source was not published, and lifecycle acceptance remains unchanged.
 
+The [Workers deployment receipt](../.cairn/changes/clarify-workers-page/evidence/deployment.json)
+binds local source commit `79384053` to the running web-service package and all
+six changed asset identities on both CA-verified origins. It records the
+packaged release-profile tests and desktop/320px compact-dark browser checks
+over the installed assets, without asset overrides or a browser TLS exception.
+The original runs, retained files, signed work store, configuration and
+credentials are preserved; only the bounded request audit and durable version
+changed. The same dependency-limited restart kept both proxies running and
+Lattice inactive. Source publication and lifecycle acceptance remain unchanged.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:

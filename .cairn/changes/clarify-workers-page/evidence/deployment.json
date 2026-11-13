@@ -1,0 +1,373 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "observed_at": "2026-11-13T20:02:42.681370+00:00",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers; operator owns installed profiles, credentials and activation",
+  "authority": "Explicit user request: commit and deploy",
+  "source_commit": "793840535d98ed477bdfcea26729d8ca6254096a",
+  "source_state": "Local jj implementation change noowvlml, committed and frozen before the build. No bookmark moved and no source was pushed or published. Lifecycle acceptance, specification synchronization and archive remain unchanged.",
+  "build": {
+    "command": "nix build 'git+file:///home/brittonr/git/OnixResearch/kiln?rev=793840535d98ed477bdfcea26729d8ca6254096a#web-service' --print-out-paths --no-link --no-write-lock-file -L --builders '' --option build-hook '' --option min-free 0",
+    "exit_code": 0,
+    "wall_seconds": 363.46,
+    "frozen_source": "/nix/store/ygb4wdrrwmfqaaxkfgqncrc57ll7ys71-source",
+    "derivation": "/nix/store/w7mq3kk9h7hl0fl1l56vn35i2mr7b59w-kiln-web-service-0.1.0.drv",
+    "package": "/nix/store/iqmgxj2sbvqd22j90wx3ifd1rnjs3pj4-kiln-web-service-0.1.0",
+    "packaged_tests": {
+      "profile": "release",
+      "top_level_passed": 388,
+      "child_process_passed": 2,
+      "failed": 0,
+      "ignored": 1,
+      "ignored_reason": "Exec-adapter entry launched only by worker process tests; no top-level filters."
+    }
+  },
+  "deployment": {
+    "service": "kiln-web-service.service (desktop user unit)",
+    "origins": [
+      "https://localhost:9443",
+      "https://britton-desktop.bison-tailor.ts.net:9443"
+    ],
+    "running_executable": "/nix/store/iqmgxj2sbvqd22j90wx3ifd1rnjs3pj4-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "4244464108fe784f524970f5f42964465c4bac7cebfe03b733372f915d45f450",
+    "pid": 3140209,
+    "main_process_started": "Fri 2026-11-13 14:47:13 EST",
+    "previous_package": "/nix/store/0b35sajqc66czrbynznmy49ysdbix0i7-kiln-web-service-0.1.0",
+    "previous_executable_blake3": "822b3956c43baad6d9f310ef03c58aff6b78bb1d716c27778eafc2b58afb95f6",
+    "private_backup": "~/.local/state/kiln/redeploy-20261113-79384053-n_01n0ul",
+    "preflight": {
+      "exit_code": 0,
+      "profile_arguments": [
+        "service",
+        "access",
+        "automation",
+        "cobs",
+        "sources",
+        "reviews",
+        "work",
+        "code-review"
+      ],
+      "unchanged_installed_arguments": true
+    },
+    "activation_started": "2026-11-13T19:47:12.500546+00:00",
+    "activation_finished": "2026-11-13T19:47:13.167133+00:00",
+    "activation": [
+      {
+        "command": [
+          "nix",
+          "profile",
+          "remove",
+          "kiln-web-service",
+          "--option",
+          "min-free",
+          "0"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "nix",
+          "profile",
+          "add",
+          "/nix/store/iqmgxj2sbvqd22j90wx3ifd1rnjs3pj4-kiln-web-service-0.1.0",
+          "--option",
+          "min-free",
+          "0"
+        ],
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "systemctl",
+          "--user",
+          "--job-mode=ignore-requirements",
+          "restart",
+          "kiln-web-service.service"
+        ],
+        "exit_code": 0
+      }
+    ],
+    "dependency_handling": "Used the documented administrative --job-mode=ignore-requirements restart after confirming the web service and both proxies active and Lattice inactive. This preserved ordering without activating the known-failed Lattice dependency. No unit configuration changed. Both proxy PIDs remained unchanged and both HTTPS origins passed.",
+    "dependencies": [
+      {
+        "unit": "kiln-web-proxy-auth.service",
+        "before": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3840257"
+        },
+        "after": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3840257"
+        }
+      },
+      {
+        "unit": "kiln-tailnet-proxy.service",
+        "before": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3840272"
+        },
+        "after": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3840272"
+        }
+      },
+      {
+        "unit": "kiln-web-lattice.service",
+        "before": {
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "MainPID": "0"
+        },
+        "after": {
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "MainPID": "0"
+        }
+      }
+    ],
+    "preservation": {
+      "protected_files_unchanged": 120,
+      "unrelated_profile_elements_unchanged": 5,
+      "retained_files_unchanged": 394,
+      "work_store_files_unchanged": 24,
+      "consistent_database_backups": 2,
+      "live_database_integrity": {
+        "/home/brittonr/git/.kiln-web-service/web-live/service.sqlite": "ok",
+        "/home/brittonr/git/.kiln-web-service/code-review/review.sqlite": "ok"
+      },
+      "database_tables_changed": {
+        "/home/brittonr/git/.kiln-web-service/web-live/service.sqlite": [
+          "service_state"
+        ],
+        "/home/brittonr/git/.kiln-web-service/code-review/review.sqlite": []
+      },
+      "database_row_counts_unchanged": true,
+      "runs_preserved": 19,
+      "runs_projection_unchanged": true,
+      "projects_projection_unchanged": true,
+      "workers_projection_unchanged_except_version": true,
+      "audit_delta": {
+        "checkpoint": "After installed browser verification and closing its tab",
+        "before_entries": 922,
+        "after_entries": 924,
+        "preserved_overlap": 922,
+        "added_entries": 2,
+        "oldest_entries_retired": 0,
+        "version_before": 1516,
+        "version_after": 1519,
+        "other_durable_state_identical": true
+      }
+    },
+    "rollback": {
+      "previous_package": "/nix/store/0b35sajqc66czrbynznmy49ysdbix0i7-kiln-web-service-0.1.0",
+      "precondition": "Web service and both proxy units active; Lattice inactive, as at this deployment. Reassess dependencies if that baseline changes.",
+      "commands": [
+        "nix profile remove kiln-web-service --option min-free 0",
+        "nix profile add /nix/store/0b35sajqc66czrbynznmy49ysdbix0i7-kiln-web-service-0.1.0 --option min-free 0",
+        "systemctl --user --job-mode=ignore-requirements restart kiln-web-service.service"
+      ],
+      "state_boundary": "Executable rollback only. Never rewind live databases, retained files, receipts or work history."
+    },
+    "rollback_exercised": false
+  },
+  "verification": {
+    "native_tls": "Both local and tailnet origins verified with the installed private CA and hostname checking. No insecure TLS option or host trust-store change.",
+    "health": [
+      {
+        "origin": "https://localhost:9443",
+        "status": 200,
+        "response": {
+          "status": "ok"
+        }
+      },
+      {
+        "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+        "status": 200,
+        "response": {
+          "status": "ok"
+        }
+      }
+    ],
+    "anonymous_api_status": 401,
+    "authorized_reads": {
+      "projects": 200,
+      "runs": 200,
+      "workers": 200
+    },
+    "served_assets": {
+      "routes_per_origin": 6,
+      "exact_matches": 12,
+      "source_commit": "793840535d98ed477bdfcea26729d8ca6254096a",
+      "observations": [
+        {
+          "origin": "https://localhost:9443",
+          "route": "/",
+          "status": 200,
+          "blake3": "0fd4016df82a36f2e8e0f41908e7f542d6786af89430896caf6a87118475c0ca",
+          "bytes": 38512
+        },
+        {
+          "origin": "https://localhost:9443",
+          "route": "/web.js",
+          "status": 200,
+          "blake3": "3b3466b15a0e177be59530e338eab1ce89e541324ea3820bef5c2dac9ed7fad1",
+          "bytes": 234442
+        },
+        {
+          "origin": "https://localhost:9443",
+          "route": "/ui.js",
+          "status": 200,
+          "blake3": "2b1f7b3eb58b5eee391cefff9a779267a1952c969672b97c3f2bca193a3963e1",
+          "bytes": 43503
+        },
+        {
+          "origin": "https://localhost:9443",
+          "route": "/web.css",
+          "status": 200,
+          "blake3": "d054e95c6d91c7ced031017d091ca3e7562356a1558e904f54da1e8e458ebc0c",
+          "bytes": 91609
+        },
+        {
+          "origin": "https://localhost:9443",
+          "route": "/workers.js",
+          "status": 200,
+          "blake3": "0b6f96059721feec7eb264f09b4e6c9ed4c5e283a28951ae825e1e87fd74cff2",
+          "bytes": 29829
+        },
+        {
+          "origin": "https://localhost:9443",
+          "route": "/workers.css",
+          "status": 200,
+          "blake3": "a0232053880938e9d74d48d383b3f18934da029ac3694443e9152bd7877e79c0",
+          "bytes": 7809
+        },
+        {
+          "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+          "route": "/",
+          "status": 200,
+          "blake3": "0fd4016df82a36f2e8e0f41908e7f542d6786af89430896caf6a87118475c0ca",
+          "bytes": 38512
+        },
+        {
+          "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+          "route": "/web.js",
+          "status": 200,
+          "blake3": "3b3466b15a0e177be59530e338eab1ce89e541324ea3820bef5c2dac9ed7fad1",
+          "bytes": 234442
+        },
+        {
+          "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+          "route": "/ui.js",
+          "status": 200,
+          "blake3": "2b1f7b3eb58b5eee391cefff9a779267a1952c969672b97c3f2bca193a3963e1",
+          "bytes": 43503
+        },
+        {
+          "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+          "route": "/web.css",
+          "status": 200,
+          "blake3": "d054e95c6d91c7ced031017d091ca3e7562356a1558e904f54da1e8e458ebc0c",
+          "bytes": 91609
+        },
+        {
+          "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+          "route": "/workers.js",
+          "status": 200,
+          "blake3": "0b6f96059721feec7eb264f09b4e6c9ed4c5e283a28951ae825e1e87fd74cff2",
+          "bytes": 29829
+        },
+        {
+          "origin": "https://britton-desktop.bison-tailor.ts.net:9443",
+          "route": "/workers.css",
+          "status": 200,
+          "blake3": "a0232053880938e9d74d48d383b3f18934da029ac3694443e9152bd7877e79c0",
+          "bytes": 7809
+        }
+      ]
+    },
+    "browser": {
+      "upstream_origin": "https://localhost:9443",
+      "inspection_origin": "http://127.0.0.1:33435",
+      "transport": "Read-only loopback proxy. All HTML, JS, CSS and API response bodies came verbatim from the installed HTTPS service, verified against its private CA and normal hostname checks. No browser certificate exception or trust-store change.",
+      "authenticated": true,
+      "assets_overridden": false,
+      "views": [
+        "1440px light comfortable register",
+        "320px dark compact selected target and register"
+      ],
+      "targets": 15,
+      "desktop_overflow_px": 0,
+      "exact_selection": true,
+      "local_filter": {
+        "visible_rows": 0,
+        "selected_target_retained": true,
+        "inventory_reads_while_typing": 0,
+        "clear_restored_rows": 15
+      },
+      "narrow": {
+        "width_px": 320,
+        "appearance": "dark",
+        "density": "compact",
+        "document_overflow_px": 0,
+        "undersized_controls": 0,
+        "minimum_control_height_px": 44,
+        "heartbeat": "Worker heartbeatNot observedNo admitted heartbeat is recorded for this target. Project slots do not establish whether a worker is online.",
+        "exact_binding_disclosure_opened": true
+      },
+      "refresh": {
+        "exact": true,
+        "bindingOpen": true
+      },
+      "return_to_register": {
+        "targetFocused": true,
+        "overflow": 0,
+        "rows": 15
+      },
+      "network_sample": {
+        "requests": 200,
+        "first_sequence": 57,
+        "last_sequence": 256,
+        "off_origin_requests": 0
+      },
+      "diagnostics": {
+        "entries": [],
+        "nextSeq": 0,
+        "dropped": 0
+      },
+      "probe_note": "An initial smoke assertion counted hidden table rows as visible. Fresh inspection and the corrected client-rectangle visibility check confirmed zero visible matches, an unchanged selected target and no inventory read. No code change was needed.",
+      "screenshots": "Inspected in this operator session; not committed because live workspace metadata is private.",
+      "non_claims": [
+        "No worker effect or CI execution was invoked.",
+        "Read-only browser transport was temporary and is not a production dependency."
+      ]
+    }
+  },
+  "retained_attempts": [
+    {
+      "stage": "Nix source lookup",
+      "result": "Nix warned that the local Git HEAD ref could not be read and used master for that lookup. The build used the explicit full source revision above; no source ref changed."
+    },
+    {
+      "stage": "Nix binary-cache probing",
+      "result": "The two configured 100.100.103.95 cache endpoints timed out on narinfo reads. Nix then built the package locally, including its release-profile tests. No cache configuration or remote builder changed."
+    },
+    {
+      "stage": "Browser probe",
+      "result": "An initial smoke assertion counted hidden table rows as visible. Fresh inspection and the corrected client-rectangle visibility check confirmed zero visible matches, an unchanged selected target and no inventory read. No code change was needed."
+    }
+  ],
+  "boundaries": {
+    "configuration_and_credentials_unchanged": true,
+    "unrelated_profile_elements_unchanged": true,
+    "system_units_untouched": true,
+    "tailscale_configuration_unchanged": true,
+    "lattice": "Remains inactive; this deployment neither repairs its recorded configuration failure nor activates worker execution.",
+    "publication": "None; source commits remain local.",
+    "lifecycle": "No acceptance, specification synchronization or archive.",
+    "release_readiness": "Not evaluated; not a tagged release.",
+    "worker_effects": "No enrollment, dispatch or provider operation invoked."
+  }
+}

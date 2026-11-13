@@ -107,8 +107,8 @@ entry describes the source tree prepared for the first tagged release.
   capacity, heartbeat evidence, latest execution and assigned work before exact
   binding identities. Expired heartbeat reports stay distinct from current
   availability, and the Overview shares the same slot-state vocabulary. (Node
-  and Rust tests; browser review with read-only live data and synthetic edge
-  cases, not a deployment or worker execution)
+  and Rust tests; live and synthetic browser review; CA-verified local and
+  tailnet deployment of the committed package, without worker execution)
 
 **Change review**
 
