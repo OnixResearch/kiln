@@ -1,0 +1,162 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "observed_at": "2026-11-13T06:07:50+00:00",
+  "maintenance_owner": "Kiln maintainers; operator owns profiles, credentials and activation",
+  "authority": "Explicit user request: commit and push, then deploy",
+  "source_commit": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+  "build": {
+    "command": "nix build 'git+file://<kiln>?rev=5a8f97e777449ce1f9a1db1038cbaa866754d1a1#web-service' --print-out-paths --no-write-lock-file -L --builders '' --option build-hook '' --option min-free 0",
+    "frozen_source": "/nix/store/dzgb6273xkbi9lvjs4lwqsv0dvv5ckg5-source",
+    "derivation": "/nix/store/xqkaqbdb1k8fzdfngjqks5w555ac2c3a-kiln-web-service-0.1.0.drv",
+    "package": "/nix/store/0wyyv8zyh2644j8ac05gjafdhjxim0yz-kiln-web-service-0.1.0",
+    "packaged_tests": {
+      "suites": 19,
+      "passed": 389,
+      "failed": 0,
+      "ignored": 1
+    }
+  },
+  "deployment": {
+    "service": "kiln-web-service.service (desktop user unit)",
+    "origin_verified": "https://localhost:9443",
+    "tailnet_origin": "Not verified: kiln-tailnet-proxy has failed to bind its tailnet port since 2026-11-11 17:27 because Tailscale Serve holds that port for another route. Observed before and after this deployment; not changed",
+    "running_executable": "/nix/store/0wyyv8zyh2644j8ac05gjafdhjxim0yz-kiln-web-service-0.1.0/bin/kiln-web-service",
+    "executable_blake3": "a877a3afe6229d81e95eb84b45cda0a3531342970805cfe1745cce400c766ada",
+    "pid": 1101205,
+    "previous_package": "/nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0",
+    "previous_executable_blake3": "de0ee357f971792e116227ffc14db7ed6ad3e1e38ea0f746dafc5e158b003b16",
+    "private_backup": "~/.local/state/kiln/redeploy-20261113-5a8f97e7-derkmm9r",
+    "preflight": "Candidate check with every installed ExecStartPre argument (eight configuration files) exited zero",
+    "activation": [
+      "nix profile add /nix/store/0wyyv8zyh2644j8ac05gjafdhjxim0yz-kiln-web-service-0.1.0 --priority 4 --option min-free 0",
+      "nix profile remove kiln-web-service --option min-free 0",
+      "nix profile add /nix/store/0wyyv8zyh2644j8ac05gjafdhjxim0yz-kiln-web-service-0.1.0 --option min-free 0",
+      "nix profile remove kiln-web-service-1 --option min-free 0",
+      "systemctl --user restart kiln-web-service.service"
+    ],
+    "rollback": [
+      "nix profile remove kiln-web-service --option min-free 0",
+      "nix profile add /nix/store/7zabh23mpc29ki47zv5smr948ljlr5k4-kiln-web-service-0.1.0 --option min-free 0",
+      "systemctl --user restart kiln-web-service.service",
+      "Preserve live state; do not rewind SQLite or retained files."
+    ],
+    "preservation": {
+      "protected_configuration_and_unit_files": 122,
+      "contents_and_modes": "unchanged",
+      "unrelated_profile_elements": 5,
+      "unrelated_profile_elements_unchanged": true,
+      "consistent_sqlite_backups": 2,
+      "live_and_backup_sqlite_integrity": "ok",
+      "sqlite_row_counts_unchanged": true,
+      "retained_runs_preserved": 19,
+      "projects_projection_unchanged": true,
+      "retained_files_unchanged": "395 of 395"
+    },
+    "dependency_observations": [
+      {
+        "unit": "kiln-web-proxy-auth.service",
+        "before": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "3001"
+        },
+        "after": {
+          "ActiveState": "active",
+          "SubState": "running",
+          "MainPID": "1101247"
+        }
+      },
+      {
+        "unit": "kiln-tailnet-proxy.service",
+        "before": {
+          "ActiveState": "activating",
+          "SubState": "auto-restart",
+          "MainPID": "0"
+        },
+        "after": {
+          "ActiveState": "activating",
+          "SubState": "auto-restart",
+          "MainPID": "0"
+        }
+      },
+      {
+        "unit": "kiln-web-lattice.service",
+        "before": {
+          "ActiveState": "failed",
+          "SubState": "failed",
+          "MainPID": "0"
+        },
+        "after": {
+          "ActiveState": "failed",
+          "SubState": "failed",
+          "MainPID": "0"
+        }
+      }
+    ],
+    "note": "proxy-auth requires the web service, restarted with it and runs the new executable. The tailnet proxy kept the bind failure it had before. kiln-web-lattice had been failed since 2026-11-11 (configuration error: app_config_evaluation_failed). The restart pulled it in through Wants= and it failed the same way every 20 s, a pace that never reaches its start limit, so after 12 restarts it was stopped to return it to the quiet state it had before. Its configuration was not changed. Without Lattice no CI work executes on this host."
+  },
+  "verification": {
+    "local_health": {
+      "path": "/healthz",
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "anonymous_api_status": 401,
+    "authorized_projects_status": 200,
+    "authorized_runs_status": 200,
+    "tls": {
+      "native_ca_and_hostname_verification": true,
+      "ca": "the installed private deployment CA"
+    },
+    "served_assets": {
+      "routes": 20,
+      "identical_to_commit": 20,
+      "identical_before_activation": 8
+    },
+    "browser": {
+      "origin": "https://localhost:9443",
+      "authenticated": true,
+      "pages": [
+        "overview",
+        "runs",
+        "work",
+        "code-review",
+        "settings"
+      ],
+      "widths": [
+        1440,
+        320
+      ],
+      "document_overflow": 0,
+      "identity_stylesheet_loaded": true,
+      "favicon": "/favicon.svg",
+      "running_count": "present and hidden; text \"0 running runs in the last live snapshot\", no run was running",
+      "off_origin_requests": 0,
+      "console_errors": 0,
+      "request_aborts": [
+        "GET /api/session during sign-in (net::ERR_ABORTED)"
+      ],
+      "screenshots": "Viewed in the operator session at 1440px and 390px, not committed because the live workspace includes private project metadata",
+      "trust_boundary": "Browser-only certificate exception after separate native CA- and hostname-verified HTTPS checks"
+    }
+  },
+  "retained_attempts": [
+    {
+      "stage": "profile replacement",
+      "result": "The first nix profile remove waited behind the host auto-GC queue (69 GB free against a 100 GiB min-free) and was killed after 300 s with the profile unchanged. Its orphaned root nix-daemon worker still holds the path lock of that profile derivation. The replacement then used --option min-free 0 and a priority sequence so the profile always held one kiln-web-service executable"
+    },
+    {
+      "stage": "browser helper",
+      "result": "The first baseline run failed on the shape of the diagnostics helper and was corrected before the baseline and the after run"
+    }
+  ],
+  "boundaries": {
+    "system_units_untouched": true,
+    "profiles_credentials_and_configuration_unchanged": true,
+    "tailscale_serve_unchanged": true,
+    "dashboard_refresh": "Failing before and after (report transfer failed, exit 255); not touched",
+    "release_readiness": "Local Cairn verdict passes for the source; this deployment is not a release"
+  }
+}

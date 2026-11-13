@@ -2765,6 +2765,14 @@ browser checks without asset overrides, preserved runs and retained files, and
 the private executable rollback backup. Existing traceability and release holds
 remain unchanged.
 
+The [visual identity deployment receipt](../.cairn/archive/1970-01-01-establish-kiln-visual-identity/evidence/deployment.json)
+binds published source `5a8f97e7` to the running package and all twenty served
+asset identities. It records CA-verified local health, anonymous refusal,
+authorized reads, preserved runs and retained files, desktop and 320px browser
+checks over the local origin, and the rollback package. The tailnet origin was
+unavailable before and after that activation, so it was not exercised.
+Publication readbacks are in the neighbouring `publication.json`.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:

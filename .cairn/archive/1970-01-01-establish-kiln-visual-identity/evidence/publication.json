@@ -1,0 +1,159 @@
+{
+  "schema": "kiln.visual-identity.publication.v1",
+  "observed_at": "2026-11-13T06:07:28+00:00",
+  "authority": {
+    "instruction": "commit and push, then deploy",
+    "lifecycle_decision": "The operator chose to accept the change before the commit (acceptance.json)",
+    "scope_read": "Fast-forward canonical main on Radicle, then the GitHub projection; no tag, release, announcement or workspace-repository push"
+  },
+  "source": {
+    "commit": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+    "tree": "4155cc828cbc71d5411ebe14d1eb955c872765b9",
+    "previous_published_main": "bd5edde80d03fa418219a0832114bbf3768800e2",
+    "published_commits": [
+      {
+        "commit": "35a58b968e8553a9535837a42fe7d60d1d7a9ba9",
+        "subject": "Record the publication of the launch preparation"
+      },
+      {
+        "commit": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+        "subject": "Establish one Kiln visual identity across the console, catalog, report and hosted page"
+      }
+    ],
+    "signing": "Commits unsigned, as earlier commits on main; Radicle signs the reference update"
+  },
+  "before_push": {
+    "github_anonymous_main": "bd5edde80d03fa418219a0832114bbf3768800e2",
+    "local_radicle_storage_main": "bd5edde80d03fa418219a0832114bbf3768800e2",
+    "garden_seed_https": "HTTP 504 (unavailable)",
+    "fast_forward": "bd5edde8 is an ancestor of the candidate",
+    "added_line_scan": {
+      "lines": 2714,
+      "patterns": [
+        "private key block",
+        "GitHub token",
+        "GitHub fine-grained token",
+        "Slack token",
+        "AWS key id",
+        "sk- key",
+        "assignment of a key, password, secret or bearer value",
+        "e-mail address",
+        "tailnet host name",
+        "home directory path",
+        "IPv4 address",
+        "private host or operator name"
+      ],
+      "matches": 0,
+      "positive_control": "a synthetic ghp_ token matched",
+      "bound": "A bounded pattern search, not privacy clearance"
+    },
+    "removed_before_commit": "vendor/artifact/Cargo.lock and vendor/valence/Cargo.lock, written into the vendored snapshots by cargo during the workspace test run; the snapshots stay pristine"
+  },
+  "gates_on_the_committed_tree": [
+    {
+      "command": "cargo fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo test --locked --workspace",
+      "exit_code": 0,
+      "suites": 161,
+      "passed": 1612,
+      "failed": 0,
+      "ignored": 5
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "exit_code": 0,
+      "result": "Nickel fixture gate passed (78 positive, 567 negative)"
+    },
+    {
+      "command": "cairn validate, traceability coverage (accepted profile) and release-readiness",
+      "result": "pass; 1762/1762 requirements referenced (acceptance.json)"
+    },
+    {
+      "command": "nix build 'git+file://<kiln>?rev=<commit>#checks.x86_64-linux.octet' --no-link -L",
+      "exit_code": 0,
+      "seconds": 672
+    },
+    {
+      "command": "nix flake check 'git+file://<kiln>?rev=<commit>' -L --eval-store local?root=<private directory>",
+      "exit_code": 0,
+      "outputs_evaluated": 65,
+      "checks_evaluated": 45,
+      "derivations_built": 1091,
+      "note": "The log contains error lines from expected-negative cases inside checks that passed (an evaluator fixture missing an attribute, an Aspen host given a non-redb journal)"
+    }
+  ],
+  "host_accommodations": [
+    "The Cargo and Nickel gates ran in the default dev shell package set without nixfmt, entered from a throwaway expression over the same flake inputs: nix develop path:$PWD could not instantiate nixfmt because an orphaned nix-daemon worker holds the path lock of one of its Haskell inputs",
+    "The flake check used a separate evaluation store for the same reason; builds ran in the host store",
+    "Nix calls passed --option min-free 0 to stay out of about 340 queued auto-GC runs, and --builders '' because the host's remote-build hook fails before building (lock file name too long)"
+  ],
+  "observed_flake": "On the pre-commit working copy, kiln-adapter-gitea tests::http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_headers failed once (dispatches 0, expected 1) at load average about 60. Five reruns and the workspace run on the committed tree passed. Not investigated or changed here",
+  "pushes": [
+    {
+      "label": "push_main_rad",
+      "command": "jj git push --no-pager --remote rad --bookmark main",
+      "exit_code": 0,
+      "output": "Changes to push to rad:\n  bookmark: main [move forward from bd5edde80d03 to 5a8f97e77744]\ngit: ✓ Canonical reference refs/heads/main updated to target commit 5a8f97e777449ce1f9a1db1038cbaa866754d1a1        \ngit: ✓ Synced with 3 seed(s)        \ngit: \ngit:   https://app.radicle.xyz/nodes/rosa.radicle.network/rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE/tree/5a8f97e777449ce1f9a1db1038cbaa866754d1a1        \ngit:"
+    },
+    {
+      "label": "push_main_github",
+      "command": "jj git push --no-pager --remote github --bookmark main",
+      "exit_code": 0,
+      "output": "Changes to push to github:\n  bookmark: main [move forward from bd5edde80d03 to 5a8f97e77744]"
+    }
+  ],
+  "after_push": {
+    "local_radicle_storage_main": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+    "radicle_sync_status": {
+      "nodes_in_sync_including_local": 10,
+      "signed_refs": "2dbbedc",
+      "nodes": [
+        "brittonr",
+        "seed.dazuzu.com",
+        "thistle.levitte.org",
+        "radicle.jarg.io",
+        "seed1",
+        "seed2",
+        "index.radicle.garden",
+        "community.computer",
+        "rosa.radicle.network",
+        "radicle.at"
+      ]
+    },
+    "seed_https_main": {
+      "seed.radicle.garden": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+      "index.radicle.garden": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+      "rosa.radicle.network": "HTTP 502",
+      "seed.radicle.xyz": "HTTP 500"
+    },
+    "github_anonymous_main": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+    "github_anonymous_fetch": {
+      "command": "git fetch --depth 1 https://github.com/OnixResearch/kiln.git <commit>",
+      "commit": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+      "tree": "4155cc828cbc71d5411ebe14d1eb955c872765b9",
+      "tree_equals_local": true,
+      "files": 13504
+    },
+    "github_api_main": "5a8f97e777449ce1f9a1db1038cbaa866754d1a1",
+    "github_secret_scanning_alerts": {
+      "total": 0,
+      "open": 0
+    }
+  },
+  "not_done": [
+    "No tag, release or announcement; the workspace repository was not pushed",
+    "No full anonymous clone or quick-start run from a published route",
+    "The GitHub ruleset was not re-read"
+  ],
+  "non_claims": [
+    "Matching refs and an equal tree show what the routes serve, not that every seed has replicated",
+    "Gate results bind this commit on one x86_64-linux host with the accommodations above"
+  ]
+}
