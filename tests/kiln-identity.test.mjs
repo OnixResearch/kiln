@@ -19,9 +19,9 @@ const SURFACES = Object.freeze({
 // WCAG 2.x contrast floors for text and for boundaries that identify a control.
 const TEXT_RATIO = 4.5;
 const BOUNDARY_RATIO = 3;
-// OKLab distance between action emphasis and each status colour. A just-noticeable difference is about 0.02;
-// the floor keeps ember several of those away from failure red and warning yellow.
-const ACTION_STATUS_DISTANCE = 0.12;
+// OKLab distance between two colours that must not be read as one. A just-noticeable difference is about 0.02; the
+// floor keeps action emphasis several of those away from every status, and identity red away from failure red.
+const DISTINCT_DISTANCE = 0.12;
 const STATUSES = Object.freeze(["success", "danger", "info", "warning", "queued", "cancelled", "unknown"]);
 const SYNTAX = Object.freeze(["keyword", "string", "comment", "number", "constant", "type", "function", "macro", "attribute", "property", "variable", "operator", "punctuation", "tag", "escape", "heading", "link"]);
 const SCHEMES = Object.freeze(["light", "dark"]);
@@ -75,17 +75,26 @@ function contrastPairs() {
   add("--foreground", pageSurfaces, TEXT_RATIO);
   add("--muted-foreground", pageSurfaces, TEXT_RATIO);
   add("--link", pageSurfaces, TEXT_RATIO);
-  // The navigation rail, hero and log panel are dark in both appearances, so only dark values are drawn there.
-  for (const text of ["--foreground", "--muted-foreground"]) add(text, ["--sidebar", "--soot"], TEXT_RATIO, ["dark"]);
+  // The navigation rail, catalog cover and log panel are dark in both appearances, so only dark values are drawn there.
+  for (const text of ["--foreground", "--muted-foreground"]) add(text, ["--sidebar", "--editor-background"], TEXT_RATIO, ["dark"]);
   add("--editor-foreground", ["--editor-background"], TEXT_RATIO);
   add("--editor-muted-foreground", ["--editor-background"], TEXT_RATIO);
   for (const status of STATUSES) add(`--${status}`, [`--${status}-background`, "--background", "--group-box", "--secondary", "--muted"], TEXT_RATIO);
   // Status text also appears inside the dark log panel.
-  for (const status of ["success", "danger", "info", "warning"]) add(`--${status}`, ["--soot", "--editor-background"], TEXT_RATIO, ["dark"]);
-  add("--primary-foreground", ["--primary", "--primary-hover", "--ember-bright"], TEXT_RATIO);
+  for (const status of ["success", "danger", "info", "warning"]) add(`--${status}`, ["--editor-background"], TEXT_RATIO, ["dark"]);
+  add("--primary-foreground", ["--primary", "--primary-hover"], TEXT_RATIO);
   add("--ring", ["--background", "--group-box", "--secondary", "--popover", "--muted"], BOUNDARY_RATIO);
-  add("--ring", ["--sidebar", "--soot"], BOUNDARY_RATIO, ["dark"]);
+  add("--ring", ["--sidebar", "--editor-background"], BOUNDARY_RATIO, ["dark"]);
   add("--input-border", ["--background", "--group-box", "--secondary", "--popover"], BOUNDARY_RATIO);
+  // The ink frame identifies panels and controls; a selected row keeps a visible boundary on its own fill.
+  add("--frame", ["--background", "--group-box", "--secondary", "--popover", "--muted"], BOUNDARY_RATIO);
+  add("--list-active-border", ["--list-active"], BOUNDARY_RATIO);
+  // The mark is a graphic: identity red stands off the rail and the page, its door stands off the red, and the lit
+  // door stays distinct from the idle door when reduced motion removes its animation.
+  add("--brand", ["--sidebar"], BOUNDARY_RATIO, ["dark"]);
+  add("--brand", ["--background", "--group-box"], BOUNDARY_RATIO);
+  add("--brand-door", ["--brand"], BOUNDARY_RATIO);
+  add("--brand-live", ["--brand-door"], BOUNDARY_RATIO);
   for (const kind of SYNTAX) add(`--syntax-${kind}`, ["--group-box", "--secondary", "--muted", "--success-background", "--danger-background", "--code-selection"], TEXT_RATIO);
   return pairs;
 }
@@ -99,10 +108,12 @@ function contrastFailures(css) {
     }
   }
   for (const scheme of SCHEMES) {
-    for (const status of ["success", "danger", "info", "warning"]) {
-      const apart = distance(resolveColour(tokens, "--primary", scheme), resolveColour(tokens, `--${status}`, scheme));
-      if (apart < ACTION_STATUS_DISTANCE) failures.push(`--primary and --${status} (${scheme}): distance ${apart.toFixed(3)} < ${ACTION_STATUS_DISTANCE}`);
-    }
+    const apart = (first, second) => {
+      const gap = distance(resolveColour(tokens, first, scheme), resolveColour(tokens, second, scheme));
+      if (gap < DISTINCT_DISTANCE) failures.push(`${first} and ${second} (${scheme}): distance ${gap.toFixed(3)} < ${DISTINCT_DISTANCE}`);
+    };
+    for (const status of ["success", "danger", "info", "warning"]) apart("--primary", `--${status}`);
+    apart("--brand", "--danger");
   }
   return failures;
 }
@@ -122,6 +133,50 @@ function ownershipFailures(name, css, definedElsewhere) {
   return failures;
 }
 
+// The graphics standard's checkable rules: identity red only in the mark, the title rule and the busy line; square
+// geometry (no literal radius, and every radius tier zero); flat surfaces (no blurred shadow anywhere, so elevation is
+// a hard offset). The mark's own arch is its artwork, not a rounded surface.
+const IDENTITY_RED_RULES = /\.brand-mark|\.kiln-rule|\.app-topbar::after/;
+function withoutFunctions(value) {
+  let text = value;
+  while (/[\w-]+\([^()]*\)/.test(text)) text = text.replace(/[\w-]+\([^()]*\)/g, " ");
+  return text;
+}
+// Top-level comma split: commas inside color-mix(), light-dark() and rgb() belong to their function.
+function shadowLayers(value) {
+  const layers = [];
+  let depth = 0, start = 0;
+  for (let index = 0; index < value.length; index++) {
+    if (value[index] === "(") depth++;
+    else if (value[index] === ")") depth--;
+    else if (value[index] === "," && depth === 0) { layers.push(value.slice(start, index)); start = index + 1; }
+  }
+  return [...layers, value.slice(start)];
+}
+const LENGTH = /^-?(?:\d+\.?\d*|\.\d+)[a-z%]*$/i;
+const blurred = (value) => shadowLayers(value).some((layer) => {
+  const lengths = withoutFunctions(layer).split(/\s+/).filter((token) => LENGTH.test(token));
+  return lengths.length >= 3 && parseFloat(lengths[2]) !== 0;
+});
+function standardFailures(name, css) {
+  const text = withoutStrings(withoutComments(css));
+  const failures = [];
+  for (const [token, value] of declaredTokens(css)) {
+    if (token.startsWith("--radius") && value !== "0") failures.push(`${name}: rounded radius tier ${token}: ${value}`);
+    if (token.startsWith("--shadow") && blurred(value)) failures.push(`${name}: blurred shadow tier ${token}: ${value}`);
+  }
+  for (const rule of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = rule[1].trim();
+    for (const declaration of rule[2].matchAll(/([a-z-]+)\s*:\s*([^;]+)/gi)) {
+      const [property, value] = [declaration[1], declaration[2].trim()];
+      if (/var\(\s*--brand/.test(value) && !IDENTITY_RED_RULES.test(selector)) failures.push(`${name}: identity red outside the mark, title rule or busy line in "${selector} { ${property}: ${value} }"`);
+      if (/radius$/.test(property) && !/\.brand-mark/.test(selector) && withoutFunctions(value).split(/[\s/]+/).some((part) => LENGTH.test(part) && parseFloat(part) !== 0)) failures.push(`${name}: rounded geometry in "${selector} { ${property}: ${value} }"`);
+      if (property === "box-shadow" && blurred(value)) failures.push(`${name}: blurred shadow in "${selector} { ${property}: ${value} }"`);
+    }
+  }
+  return failures;
+}
+
 const identity = source(IDENTITY);
 
 // r[verify kiln.identity.contrast]
@@ -129,7 +184,7 @@ const identity = source(IDENTITY);
 test("the declared palette meets its contrast floor in light and dark", () => {
   assert.deepEqual(contrastFailures(identity), []);
   const tokens = declaredTokens(identity);
-  // The floors are measured, not assumed: the ink-on-porcelain pair is far above the floor and the primary pair is real.
+  // The floors are measured, not assumed: the ink-on-paper pair is far above the floor and the primary pair is real.
   assert.ok(contrast(resolveColour(tokens, "--foreground", "light"), resolveColour(tokens, "--background", "light")) > 12);
   assert.ok(contrast(resolveColour(tokens, "--primary-foreground", "dark"), resolveColour(tokens, "--primary", "dark")) >= TEXT_RATIO);
   assert.equal(contrast("#000000", "#ffffff"), 21);
@@ -138,15 +193,15 @@ test("the declared palette meets its contrast floor in light and dark", () => {
 
 // r[verify kiln.identity.contrast.scenario.regression]
 test("a palette edit below the floor is reported with its pair, appearance and ratio", () => {
-  const lowered = identity.replace(/--muted-foreground:\s*light-dark\([^)]*\)/, "--muted-foreground: light-dark(#a39a90, #ab9f93)");
+  const lowered = identity.replace(/--muted-foreground:\s*light-dark\([^)]*\)/, "--muted-foreground: light-dark(#9a9a9a, #a4a4a4)");
   assert.notEqual(lowered, identity);
   const failures = contrastFailures(lowered);
   assert.ok(failures.length > 0);
   assert.ok(failures.every((failure) => failure.startsWith("--muted-foreground on ") && failure.includes("(light)")), failures.join("\n"));
   assert.match(failures[0], /^--muted-foreground on --background \(light\): 2\.\d\d < 4\.5$/);
-  // Only the lowered appearance fails; a status colour pulled onto ember is reported as too close to action emphasis.
-  const collided = identity.replace(/--danger:\s*light-dark\([^)]*\)/, "--danger: light-dark(#a8182d, #ff7a45)");
-  assert.deepEqual(contrastFailures(collided).filter((failure) => failure.startsWith("--primary and ")), ["--primary and --danger (dark): distance 0.031 < 0.12"]);
+  // Only the lowered appearance fails; a failure colour pulled onto identity red is reported as too close to it.
+  const collided = identity.replace(/--danger:\s*light-dark\([^)]*\)/, "--danger: light-dark(#b0001b, #fc4a2e)");
+  assert.deepEqual(contrastFailures(collided).filter((failure) => failure.startsWith("--brand and ")), ["--brand and --danger (dark): distance 0.017 < 0.12"]);
   // A token that stops being an opaque colour cannot be measured, so it is refused rather than skipped.
   assert.throws(() => contrastFailures(identity.replace(/--link:\s*[^;]+;/, "--link: rgb(0 0 0 / 50%);")), /--link is not an opaque hex colour in light/);
   assert.throws(() => contrastFailures(identity.replace(/--ring:\s*[^;]+;/, "")), /--ring is not declared/);
@@ -175,4 +230,30 @@ test("a palette literal or an undefined token in a surface stylesheet is named",
   // Allowed: tokens the sheet defines itself, system colours, keywords, and colour text inside a quoted selector pattern.
   const allowed = ':root { --rail: 4rem; } .a { width: var(--rail); color: CanvasText; background: transparent; border-color: currentColor; } .b[style*="color: rgb(255, 255, 255)"]::before { content: "#fff"; color: var(--primary); }';
   assert.deepEqual(ownershipFailures("fixture.css", allowed, known), []);
+});
+
+// r[verify kiln.identity.graphics_standard]
+// r[verify kiln.identity.graphics_standard.scenario.surfaces]
+test("every surface keeps identity red reserved, square geometry and flat surfaces", () => {
+  const sheets = [IDENTITY, ...new Set(Object.values(SURFACES).flat())];
+  for (const path of sheets) assert.deepEqual(standardFailures(path, source(path)), [], path);
+  // The rules are exercised, not vacuous: the identity declares the tiers and the console paints the busy line.
+  const tokens = declaredTokens(identity);
+  assert.equal(tokens.get("--radius-lg"), "0");
+  assert.match(tokens.get("--shadow-overlay"), /^6px 6px 0 0 /);
+  assert.match(source(`${WEB}/web.css`), /\.app-topbar::after \{[^}]*var\(--brand\)/);
+});
+
+// r[verify kiln.identity.graphics_standard.scenario.regression]
+test("identity red as a status or action, a rounded corner or a blurred shadow is named", () => {
+  assert.deepEqual(standardFailures("fixture.css", "button.primary { background: var(--brand); color: var(--primary-foreground); }"), ['fixture.css: identity red outside the mark, title rule or busy line in "button.primary { background: var(--brand) }"']);
+  assert.deepEqual(standardFailures("fixture.css", ".status-pill[data-status=failure] { color: var(--brand-live) }"), ['fixture.css: identity red outside the mark, title rule or busy line in ".status-pill[data-status=failure] { color: var(--brand-live) }"']);
+  assert.deepEqual(standardFailures("fixture.css", ".card { border-radius: .5rem; }"), ['fixture.css: rounded geometry in ".card { border-radius: .5rem }"']);
+  assert.deepEqual(standardFailures("fixture.css", ".tab { border-top-left-radius: 4px }"), ['fixture.css: rounded geometry in ".tab { border-top-left-radius: 4px }"']);
+  assert.deepEqual(standardFailures("fixture.css", ".menu { box-shadow: 0 2px 6px var(--overlay), 0 0 0 1px var(--frame); }"), ['fixture.css: blurred shadow in ".menu { box-shadow: 0 2px 6px var(--overlay), 0 0 0 1px var(--frame) }"']);
+  assert.deepEqual(standardFailures("identity.css", identity.replace(/--radius-sm: 0;/, "--radius-sm: .3rem;")), ["identity.css: rounded radius tier --radius-sm: .3rem"]);
+  assert.deepEqual(standardFailures("identity.css", identity.replace(/--shadow-md: [^;]+;/, "--shadow-md: 0 6px 18px rgb(0 0 0 / 9%);")), ["identity.css: blurred shadow tier --shadow-md: 0 6px 18px rgb(0 0 0 / 9%)"]);
+  // Allowed: the mark and its arch, the title rule, the busy line, radius tokens, rings and hard offsets.
+  const allowed = ".brand-mark::after { border-radius: 50% 50% 0 0 / 30% 30% 0 0; background: var(--brand-door); } .kiln-rule::after { background: var(--brand); } .app-topbar::after { background: linear-gradient(var(--brand), var(--brand)); } .a { border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 25%, transparent), inset 0 1px var(--frame), 4px 4px 0 0 light-dark(rgb(0 0 0 / 14%), rgb(0 0 0 / 70%)); }";
+  assert.deepEqual(standardFailures("fixture.css", allowed), []);
 });

@@ -175,12 +175,14 @@ executable script or markup.
 
 <!-- r[impl kiln.identity.shared] -->
 <!-- r[impl kiln.identity.shared.scenario.surfaces] -->
+<!-- r[impl kiln.identity.graphics_standard] -->
 The report and the catalog embed the shared Kiln identity
 (`crates/kiln-dashboard/src/render/identity.css`) ahead of their own stylesheet
-in the one inline style. It is the same palette, type, scale and kiln-arch brand
-mark that the live console and the hosted bridge page load, in light and dark,
-and it references no font or image. A catalog carries one copy per embedded
-report inside its rendered-size bound.
+in the one inline style. It is the same graphics standard (paper and ink, square
+framed panels, a technical label layer and identity red reserved for the brand
+mark and the title rule) and the same brand mark that the live console and the
+hosted bridge page load, in light and dark, and it references no font or image.
+A catalog carries one copy per embedded report inside its rendered-size bound.
 
 The page shows the same admitted facts as the terminal report: the observed
 state revision, the profile identities, the declared journal identity, the

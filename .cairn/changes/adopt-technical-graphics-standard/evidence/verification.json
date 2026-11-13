@@ -1,0 +1,120 @@
+{
+  "schema": "kiln.visual-identity.verification.v1",
+  "scope": "Presentation of the live console, the offline catalog and report and the hosted bridge page: the technical graphics standard, numbered wayfinding with a Guide page, pending run timing and readable quantities, and their checks. Not a qualification of the web service, the hosted bridge, any deployment or any CI execution",
+  "owner": "Kiln web-service and dashboard maintainers",
+  "observed_on": "2026-11-13",
+  "authority": {
+    "instruction": "go through every web view and page of the kiln website and make the UI and UX make sense to a new and advanced user. make it nasa graphics standard. usgraphics company like.",
+    "reading": "change the presentation and wayfinding of the browser surfaces in this repository, in the working copy",
+    "not_read_as": [
+      "commit",
+      "synchronization of the delta into accepted specifications",
+      "archive",
+      "publication to Radicle or a mirror",
+      "deployment of any service"
+    ]
+  },
+  "source": {
+    "parent_revision": "40a0ffc5a6b23a24737f9bb02137f6268a58bedb",
+    "state": "uncommitted jj working copy on top of the parent revision",
+    "changed_paths": 30,
+    "changed_paths_outside_change_package": 24,
+    "rust_sources_changed": 0,
+    "manifest": {
+      "blake3": "64baa1330b05218061aa6679960a14c94fffbd12a867756895475d38ac998811",
+      "method": "BLAKE3 of the b3sum listing of the 24 changed paths outside .cairn/changes/adopt-technical-graphics-standard/, sorted by path, as they stood when the Cargo and node rails below ran"
+    }
+  },
+  "environment": {
+    "platform": "x86_64-linux, one host",
+    "toolchain": "rustc 1.88.0 and cargo 1.88.0 from the host rustup, the channel rust-toolchain.toml pins. nix develop did not reach cargo: twice it waited on a busy Nix evaluation-cache SQLite database and printed no build output, so the dev shell was not used",
+    "openssl": "openssl-sys built against an existing store OpenSSL 3.6.4 (/nix/store/sbbghw4j32smy8hfbvvcbqvbafi6d66i-openssl-3.6.4 with its -dev output) through the store pkg-config wrapper 0.29.2, because the host has no system OpenSSL. The flake pins its own nixpkgs OpenSSL; this is not that derivation",
+    "cargo_target_dir": "/home/brittonr/.cargo-target-kiln-full, an existing Kiln target directory; the host disk was 98% full",
+    "node": "v26.8.1 from the host, not the flake nodejs",
+    "browser": "Chromium 157, headless, driven by the omp browser helper",
+    "cairn": "host executable that accepts cairn-policy/generated/cairn-policy.json; it reports no version",
+    "nix": "2.36.0",
+    "jj": "0.47.1"
+  },
+  "rails": [
+    {
+      "command": "node --test tests/kiln-identity.test.mjs tests/live-console-ui.test.mjs tests/work-views.test.mjs",
+      "exit_code": 0,
+      "tests": 57,
+      "pass": 57,
+      "fail": 0
+    },
+    {
+      "command": "node --check on web.js, ui.js, source.js, project.js and work.js",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo test --locked -p kiln-dashboard -p kiln-web-service -p kiln-hosted -p onix-kiln-cli",
+      "exit_code": 0,
+      "result_lines": 31,
+      "passed": 561,
+      "failed": 0,
+      "ignored": 2,
+      "by_package": {
+        "kiln-dashboard": { "passed": 43, "ignored": 0 },
+        "kiln-hosted": { "passed": 123, "ignored": 1 },
+        "kiln-web-service": { "passed": 389, "ignored": 1 },
+        "onix-kiln-cli": { "passed": 6, "ignored": 0 }
+      }
+    }
+  ],
+  "not_run": [
+    { "rail": "cargo fmt --all --check and cargo clippy", "reason": "no Rust source changed; the changed assets are embedded by include_str! and include_bytes!, which neither tool reads" },
+    { "rail": "nix flake check, including the live-console-ui flake check", "reason": "nix develop could not evaluate past a busy evaluation cache; the same node files ran on the host node instead" },
+    { "rail": "workspace-wide Cargo gates, the Octet check, the Bombadil rails and the web-service smoke rails", "reason": "outside this presentation change's surface; not run" },
+    { "rail": "deployment", "reason": "not authorized" }
+  ],
+  "offline_documents": {
+    "report": {
+      "command": "cargo run --locked -p kiln-dashboard --example preview -- <dir>",
+      "bytes": 67022,
+      "blake3": "7e8228af6171bc4afbc7cce7338709d45bdcab5b9518f0dfbb613069dc6622aa",
+      "second_render_identical": true
+    },
+    "catalog": {
+      "command": "kiln-dashboard --catalog config/dashboard-kiln.json --profile fixtures/dashboard/profile-v1.json --format html --output <file>",
+      "bytes": 2040703,
+      "blake3": "9581e9ba316fd97cf3184f4bb627414020e0ec0bb0693a9fa083f132d0ed8a87",
+      "second_render_identical": true,
+      "embedded_reports": 7
+    },
+    "bound": "rendered outside the repository and not retained; the same inputs render the same bytes"
+  },
+  "browser_review": {
+    "method": "The console was served by a throwaway Node server outside the repository that reads the real assets from the working tree on every request, sends the console's response policy (minus HSTS) and answers the API from synthetic data shaped from the service serializers, with the work, code-review and source stores proxied to a preview backend. The hosted page was served the same way, with bridge.rs's /app.css join. The catalog and report are the rendered files above, served from a local static server",
+    "bound": "Synthetic data and one headless Chromium. Not the kiln-web-service or kiln-hosted executables, not a deployment, not Firefox or Safari, not a touch device and not a screen reader",
+    "console": {
+      "pages": 21,
+      "loads_at_1440_light_and_dark": 42,
+      "console_errors_or_warnings": 0,
+      "error_capture_control": "a console.error injected into the page was captured with level error",
+      "requests_leaving_origin": 0,
+      "explicit_appearance_override": "theme=dark under a light system scheme resolved color-scheme dark and the dark page colour; theme=light under a dark system scheme resolved light",
+      "focus_ring": "2px solid ink on the refresh button",
+      "command_palette": "typing 4.2 offered Go to 4.2 Operations",
+      "guide": "four general key rows and all 15 code-review shortcuts listed; the state legend draws the real status pills",
+      "empty_workspace": "Overview offered Open 1.3 CI projects and Read 0.0 Guide",
+      "signed_out": "sign-in panel shown; the token field and the connect button are 44px tall; no horizontal overflow",
+      "rail_current_destination": "on Settings the rail scrolled itself by 31px so the current destination is fully inside it; the page did not scroll",
+      "accessible_names": "rail link names carry no section number",
+      "custom_work_status": "a team status renders as a neutral custom cell titled Custom status: in_review (not a built-in status)",
+      "reduced_motion": "with reduce, the mark's lit door stays amber without animation, the live icon is still, motion tokens are 0ms and the running count text remains. The no-preference case could not be emulated in this browser and was not observed",
+      "narrow": {
+        "widths": [390, 768],
+        "pages": ["overview", "runs", "guide", "operations"],
+        "horizontal_overflow": 0,
+        "controls_under_44px": 0
+      }
+    },
+    "hosted_page": { "appearances": ["light", "dark"], "width": 1440, "horizontal_overflow": "0, measured in dark; light was reviewed by screenshot only" },
+    "offline": {
+      "report": { "observations": ["light 1440", "dark 1440", "light 390", "dark 768"], "horizontal_overflow": 0, "controls_under_44px_at_960px_or_narrower": 0, "resource_requests": 0 },
+      "catalog": { "observations": ["light 1440", "dark 1440", "light 390", "dark 768"], "horizontal_overflow": 0, "controls_under_44px_at_960px_or_narrower": 0, "resource_requests": 0 }
+    }
+  }
+}

@@ -1487,34 +1487,74 @@ profile generation does not install or start it.
 
 <!-- r[impl kiln.web.console_layout] -->
 Navigation is a compact icon rail. Hovering it, or moving keyboard focus into it,
-expands it over the page to show every label and the **Work**, **Continuous
-integration**, **More work**, **Inspect** and **Administration** groups; labels
-stay available to assistive technology while it is collapsed. **Keep navigation
-expanded** at the bottom pins it open beside the content for this page session
-(the URL is unchanged). Escape collapses an unpinned expansion and returns focus.
-Group headings keep their place while the rail is collapsed and fade in when it
-expands, so no destination moves under the pointer. The active page has a
-selected row fill and an ember icon tile. Rail destinations
-and run tabs are links, so they open in a new tab and keep browser history;
-commands stay buttons. Secondary groups open automatically for
-a selected deep link. Existing page URLs remain valid; the Kiln brand returns to
-Issues. The service boundary note (authenticated live service; actions affect the
-configured execution provider; recorded evidence is not acceptance authority)
-is in the account menu. Pages sit in a centred column under a large page title.
+expands it over the page to show every label and the **Continuous
+integration**, **Work**, **More work**, **Inspect** and **Administration**
+groups; labels stay available to assistive technology while it is collapsed.
+**Keep navigation expanded** at the bottom pins it open beside the content for
+this page session (the URL is unchanged). Escape collapses an unpinned expansion
+and returns focus. Group headings keep their place while the rail is collapsed
+and fade in when it expands, so no destination moves under the pointer. The
+active page is an inverted ink row. Rail destinations and run tabs are links, so
+they open in a new tab and keep browser history; commands stay buttons.
+Secondary groups open automatically for a selected deep link, and when the rail
+scrolls the active page is scrolled into its view. Existing page URLs remain
+valid; the Kiln brand returns to the Overview, the page a bare console URL
+opens. The service boundary note (authenticated live service; actions affect
+the configured execution provider; recorded evidence is not acceptance
+authority) is in the account menu. Pages sit in a centred column under a large
+page title.
+
+<!-- r[impl kiln.web.wayfinding] -->
+Every destination has a section number, as in a standards manual. The numbers
+come from one register in `ui.js` (`KilnUi.destinations`), which the rail, the
+page title block, the breadcrumb, the document title and the command palette
+all read:
+
+| Group | Destinations |
+| --- | --- |
+| 0 Start here | 0.0 Guide |
+| 1 Continuous integration | 1.1 Overview, 1.2 Runs, 1.3 CI projects (a project's history shares 1.3), 1.4 Workers |
+| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.5 Requests & triage, 2.6 Saved views |
+| 3 Inspect | 3.1 Source, 3.2 Patchgate receipts, 3.3 Activity, 3.4 Feeds, 3.5 Evidence |
+| 4 Administration | 4.1 Automation, 4.2 Operations, 4.3 Raw collaboration history, 4.4 Settings |
+
+The title block shows the number and group above the title, and the purpose
+below it. The rail shows each number beside its label once the rail expands;
+numbers are visual and stay out of each link's accessible name. In the command
+palette (**Ctrl K**) every destination is a **Go to** command, so typing `4.2`
+or `operations` finds Operations. The console admits exactly the register's
+pages, so a new page is added there once.
+
+**Guide** (0.0, in the rail footer and in Settings) is the console's index: a
+first path for a new operator, every destination by number with its purpose,
+how each run state reads (drawn with the real status indicators), the words
+Kiln uses and the keyboard reference, including code review's shortcuts. It
+reads the register, the status rule and the review shortcut table, so it cannot
+describe a page or key the console lacks. An Overview with no project offers
+**Open 1.3 CI projects** and **Read 0.0 Guide**.
 
 <!-- r[impl kiln.web.visual_design] -->
 <!-- r[impl kiln.identity.shared] -->
-The live console presents the Kiln identity that it shares with the offline
-catalog, the offline report and the hosted bridge page: warm porcelain surfaces
-in light appearance and soot in dark, a dark navigation rail in both, flat
-panels with hairline boundaries, and ember emphasis reserved for each view's
-single primary action, the current navigation tile and keyboard focus. Ember
-marks actions and emphasis, not successful execution; success, failure,
-running, queued, cancelled, unknown and warning states keep distinct semantic
-colors, icons and text. The brand mark is a kiln arch drawn in CSS, and
-`/favicon.svg` carries the same shape. Every page has one title row over a
-graduated rule, with one quiet **Refresh** icon button that refreshes and
-reconnects live observations.
+<!-- r[impl kiln.identity.graphics_standard] -->
+The live console presents the Kiln graphics standard that it shares with the
+offline catalog, the offline report and the hosted bridge page. It follows the
+NASA Graphics Standards Manual (NHB 1430.2) and engineering-drawing practice:
+paper panels framed in ink on a grey page in light appearance, inverted in
+dark; an ink navigation spine in both; square corners; flat surfaces ruled by
+hairlines; a Helvetica-class grotesque for reading text and a small, upper-case,
+tracked monospace for technical labels (eyebrows, column heads, field labels,
+fact terms), identifiers and numbers. Each view's single primary action is a
+solid ink block (paper in dark appearance); other buttons are framed paper
+cells, and selection is an inverted ink cell. Identity red (NASA red, PMS 179)
+appears in three places only: the brand mark, the short index block opening
+each page's title rule, and the request line. It never marks a status, an
+action or a selection. Success, failure, running, queued, cancelled, unknown
+and warning states keep distinct semantic colours, icons and text. Only
+overlays (menus, dialogs, the command palette, the expanded rail) are raised,
+by an unblurred offset shadow. The brand mark is a square of identity red with
+an ink kiln door, drawn in CSS; `/favicon.svg` carries the same shape. Every
+page has one title row over the ink title rule, with one quiet **Refresh** icon
+button that refreshes and reconnects live observations.
 
 The top bar holds the search/command trigger (**Ctrl K**), the running count, a
 live-connection indicator and an account menu with the signed-in identity, an
@@ -1528,17 +1568,18 @@ reduced-motion preference removes every transition and animation.
 <!-- r[impl kiln.web.live_activity.scenario.count] -->
 <!-- r[impl kiln.web.live_activity.scenario.stale] -->
 While the last admitted live snapshot reports running runs, the top bar shows
-**N running** on every page and the door of the brand mark glows. The count
-links to the retained-run list filtered to pending runs, where each row states
-running, queued or awaiting approval. Queued, awaiting-approval, unknown and
-finished runs are not counted. The count and the glow are hidden before the
-first snapshot, while live observation is stale or disconnected, and after the
-session is cleared. They read one snapshot; they are not a worker health check.
+**N running** on every page and the door of the brand mark turns amber. The
+count links to the retained-run list filtered to pending runs, where each row
+states running, queued or awaiting approval. Queued, awaiting-approval, unknown
+and finished runs are not counted. The count and the lit door are hidden before
+the first snapshot, while live observation is stale or disconnected, and after
+the session is cleared. They read one snapshot; they are not a worker health
+check.
 
 <!-- r[impl kiln.web.request_feedback] -->
 <!-- r[impl kiln.web.request_feedback.scenario.slow] -->
 A read or mutation that stays in flight for more than a moment draws a moving
-ember line on the lower edge of the top bar and marks the page busy for
+identity-red line on the lower edge of the top bar and marks the page busy for
 assistive technology. The line clears when no such request remains, whether the
 request succeeded, failed, timed out or was aborted. It states waiting only,
 never progress or success. The live-observation poll and log following do not
@@ -1603,7 +1644,7 @@ tokens. Former names were removed, not aliased:
 | `--border-strong` | list.active.border; Kiln extension | `--list-active-border`; `--border-emphasis` |
 | `--sidebar` | sidebar.background | `--sidebar` |
 | `--focus` | ring | `--ring` |
-| `--signal`, `--signal-strong`, `--signal-text` | primary.background, primary.hover.background, primary.foreground | `--primary` (ember), `--primary-hover`, `--primary-foreground` |
+| `--signal`, `--signal-strong`, `--signal-text` | primary.background, primary.hover.background, primary.foreground | `--primary` (ink), `--primary-hover`, `--primary-foreground` |
 | `--olive` | link; progress.bar.background; syntax string | `--link`; `--progress-bar`; `--syntax-string` |
 | `--accent` | syntax number | `--syntax-number` |
 | `--status-success`, `--status-failure`, `--status-warning`, `--status-running` (and `-bg`) | success, danger, warning, info (and `.background`) | `--success`, `--danger`, `--warning`, `--info` (and `-background`) |
@@ -1613,21 +1654,28 @@ tokens. Former names were removed, not aliased:
 Text on a state's `-background` uses the state colour itself, so no separate
 `-foreground` exists for states. `--hero`, `--olive-soft` and `--accent-soft`
 were unused by the live console and were removed. Spacing, type, radius, shadow,
-motion and layout sizes keep their names. Kiln extensions beyond the table are
-`--syntax-<class>` for each server token class, `--code-selection` for selected
-source lines, and the brand colours `--ember-bright`, `--ember-deep`,
-`--flame`, `--soot`, `--glaze`, `--shade`, `--primary-fill` and
-`--primary-fill-hover`. The offline catalog's `catalog.css`, which also styles
-the console shell, uses the same names; no stylesheet maps one vocabulary onto
-another.
+motion and layout sizes keep their names; every radius tier is `0`, and
+`--shadow-md` and `--shadow-overlay` are unblurred offsets. Kiln extensions
+beyond the table are `--frame` (the ink line around panels, cards, controls and
+overlays), `--syntax-<class>` for each server token class, `--code-selection`
+for selected source lines and selected text, the label tokens `--label-font`
+and `--label-tracking`, and the identity colours `--brand` (identity red),
+`--brand-door` (the mark's ink door) and `--brand-live` (the lit door). The
+offline catalog's `catalog.css`, which also styles the console shell, uses the
+same names; no stylesheet maps one vocabulary onto another.
 
 <!-- r[impl kiln.identity.contrast] -->
 `tests/kiln-identity.test.mjs` holds the identity. Every declared text, status,
 action, focus, boundary and syntax pair must meet its contrast floor in both
-appearances: 4.5:1 for text, 3:1 for the focus ring and the input boundary.
-Ember must stay apart from the success, failure, running and warning colours.
-No surface stylesheet may declare a colour literal or use a token that nothing
-defines. After changing a value in `identity.css`, run:
+appearances: 4.5:1 for text, 3:1 for the focus ring, the input boundary, the
+ink frame, a selected row's boundary, identity red against the rail and the
+page, the mark's door against red, and the lit door against the idle door. Ink
+action emphasis must stay apart from the success, failure, running and warning
+colours, and identity red from the failure colour. No surface stylesheet may
+declare a colour literal or use a token that nothing defines. The standard
+check fails on identity red outside the mark, the title rule and the request
+line, on a rounded corner or radius tier, and on a blurred shadow. After
+changing a value in `identity.css` or a surface stylesheet, run:
 
 ```sh
 node --test tests/kiln-identity.test.mjs
@@ -1641,8 +1689,13 @@ Outcomes appear as status pills with an icon and a human label (for example a
 human units (`273357 ms` reads **4m 33s**) and timestamps read relative to now
 (**2h ago**). The exact canonical outcome, recorded milliseconds and the local and
 UTC instant stay available on hover and to assistive technology, and exact
-identity disclosures keep full local/UTC timestamps. Missing timing reads **Not
-recorded**, never zero or the current time. Formatting never changes stored data.
+identity disclosures keep full local/UTC timestamps. Timing a run cannot have
+yet is named from its recorded phase: a running run's duration reads **In
+progress**, a queued or awaiting-approval run's start and duration read **Not
+started**, and an unfinished run's completion reads **Not finished**. Other
+missing timing reads **Not recorded**, never zero or the current time. Byte
+quantities read in binary units (**1.2 GiB**) with the exact byte count beside
+them. Formatting never changes stored data.
 
 <!-- r[impl kiln.web.page_consistency] -->
 Every CI page leads with readable labels and keeps exact identities secondary:
@@ -1738,10 +1791,11 @@ peek, selection and Watch/Favorite/Mark read, with the same labels as the detail
 
 
 Overview count chips link to retained run filters; the active count opens busy
-workers. Failing projects appear before healthy projects. Projects places
-enrollment and source-bound execution above the inventory cards, which show each
-project's latest retained run; **Select for new run** only selects the project and
-never dispatches it.
+workers. Failing projects appear before healthy projects. Projects leads with
+the inventory cards, which show each project's latest retained run (started,
+requested or finished, by state); the start form and enrollment follow it.
+**Select for new run** only selects the project in the start form and never
+dispatches it.
 
 Runs lists retained runs as a table grouped under local start-day headings,
 with status, project (linking to its project page), short source revision
@@ -2129,6 +2183,8 @@ Every column is shown even when empty. Team-defined columns name their teams.
 A new column must be built-in or defined by a team workflow; a kept column whose
 status a team later removes is marked retired and is not a move target. Matching
 issues whose status has no column appear under **Other statuses**; none is hidden.
+A status outside the built-in set (a team status or a retired one) is a known
+value: its indicator is a neutral cell marked custom, never an unknown state.
 `GET /api/work/board?view=<id>` (plus the Work page's `kind`, `status`,
 `assignee`, `project`, `q` and `sort` overrides) is the read-only projection. It
 returns at most 100 cards per column with totals, matched, shown and list-only
@@ -3005,7 +3061,9 @@ Each enrolled project supplies one admission slot, not a physical worker or CPU.
 A nonterminal run outside the queue occupies its slot, including ambiguous
 executions. A shared target with a free enrolled slot reports **Slots available**;
 without free slots it reports **Unknown execution** for ambiguous work or **Busy**
-otherwise. Unenrolled targets report **Not enrolled**. Physical liveness always
+otherwise. Unenrolled targets report **Not enrolled**. The badges read as signal
+lamps: **Slots available** green, **Busy** blue, **Unknown execution** amber and
+**Not enrolled** neutral. Physical liveness always
 remains unknown. Failed durable storage returns unavailable (503), never usable
 capacity. A queued or cancelled-before-dispatch request does not replace the
 latest execution observation; missing recorded sequence or timing stays unknown.

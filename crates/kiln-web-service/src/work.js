@@ -44,10 +44,13 @@
     if (Number.isNaN(instant.getTime())) return el("span", "Not recorded", "meta");
     const node = el("time", instant.toLocaleString()); node.dateTime = instant.toISOString(); return node;
   }
+  // A recorded status outside the built-in set (a team workflow status, or a retired one) is a known value, not an
+  // unknown state: it reads as a neutral custom cell. Whether a team defines it is stated only where that is known
+  // (board lane notes). Only an absent status reads as unknown.
   function workStatus(status) {
-    const kind = WORK_STATUS[status] || "unknown", pill = el("span", undefined, "status-pill"); pill.dataset.status = kind;
-    pill.append(kui().statusIcon(kind === "pending" ? "queued" : kind));
-    pill.append(el("span", status ? title(status) : "Not set")); pill.title = `Status: ${status || "not set"}`;
+    const kind = WORK_STATUS[status] || (status ? "custom" : "unknown"), pill = el("span", undefined, "status-pill"); pill.dataset.status = kind;
+    pill.append(kind === "custom" ? icon("square-kanban") : kui().statusIcon(kind === "pending" ? "queued" : kind));
+    pill.append(el("span", status ? title(status) : "Not set")); pill.title = kind === "custom" ? `Custom status: ${status} (not a built-in status)` : `Status: ${status || "not set"}`;
     return pill;
   }
   function priorityTag(priority) { const node = el("span", PRIORITIES[priority] || "No priority", "work-priority"); node.dataset.priority = String(priority || 0); return node; }

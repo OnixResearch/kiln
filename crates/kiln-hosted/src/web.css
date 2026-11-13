@@ -1,55 +1,54 @@
 /* r[impl kiln.identity.shared] Hosted bridge page. Colours, type, scale and the brand mark come from identity.css,
    which bridge.rs serves ahead of this sheet in the same /app.css response. */
 * { box-sizing: border-box; }
-body { margin: 0; display: grid; grid-template-columns: 15rem minmax(0, 1fr); min-height: 100vh; font-size: .875rem; line-height: 1.55; color: var(--foreground); background: radial-gradient(64rem 26rem at 22% -14%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 72%) no-repeat var(--background); }
+body { margin: 0; display: grid; grid-template-columns: 15rem minmax(0, 1fr); min-height: 100vh; font-size: .875rem; line-height: 1.55; color: var(--foreground); background: var(--background); }
 h1, h2, p { margin: 0; }
-h1 { font-size: clamp(1.6rem, 1.2rem + 1.2vw, 2.25rem); line-height: 1.15; letter-spacing: -.035em; font-weight: 700; margin-top: .35rem; }
-h2 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
-.eyebrow { font: 500 .6875rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+h1 { font-size: clamp(1.75rem, 1.25rem + 1.4vw, 2.6rem); line-height: 1.08; letter-spacing: -.03em; font-weight: 700; margin-top: .35rem; }
+h2 { font-size: 1rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.eyebrow { font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--muted-foreground); }
 .muted { color: var(--muted-foreground); font-size: .8125rem; line-height: 1.6; }
 
-/* Navigation is one soot band in both appearances; the lit mark sits at its head. */
+/* Navigation is one ink spine in both appearances; the mark sits at its head. */
 aside { color-scheme: dark; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; padding: 1.6rem 1rem 1.25rem; border-right: 1px solid var(--border); background: var(--sidebar); color: var(--foreground); }
 .brand { display: flex; align-items: center; gap: .75rem; padding: 0 .35rem; color: var(--foreground); font-size: 1.35rem; font-weight: 700; letter-spacing: -.035em; text-decoration: none; }
 .brand .brand-mark { font-size: 2.25rem; }
 aside > .eyebrow { margin: 2.2rem .6rem .6rem; }
 nav { display: grid; gap: 2px; }
-nav a { padding: .55rem .7rem; border-radius: var(--radius); color: var(--muted-foreground); font-size: .8125rem; font-weight: 520; text-decoration: none; }
+nav a { padding: .55rem .7rem; border-radius: var(--radius); color: var(--muted-foreground); font-size: .8125rem; font-weight: 500; text-decoration: none; }
 nav a:hover { background: var(--list-hover); color: var(--foreground); }
-/* The current destination is its row's own fill and weight; the ember dot is the only signal colour in the band. */
-nav a[aria-current="page"] { display: flex; align-items: center; justify-content: space-between; gap: .5rem; background: var(--list-active); color: var(--foreground); font-weight: 650; }
-nav a[aria-current="page"]::after { content: ""; flex: 0 0 auto; width: .4rem; height: .4rem; border-radius: 50%; background: var(--primary); }
+/* The current destination is its row's own inverted surface on the spine: paper with ink text. */
+nav a[aria-current="page"] { background: var(--foreground); color: var(--background); font-weight: 700; }
 .connection { display: flex; align-items: center; gap: .55rem; margin-top: auto; padding: 1.25rem .6rem .6rem; border-top: 1px solid var(--border); font-size: .78rem; color: var(--foreground); }
-.dot { flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 50%; background: var(--queued); }
-.connection[data-state="connected"] .dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); }
+.dot { flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 0; background: var(--queued); }
+.connection[data-state="connected"] .dot { background: var(--success); box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 25%, transparent); }
 .connection[data-state="unavailable"] { color: var(--warning); }
 .connection[data-state="unavailable"] .dot { background: var(--warning); }
 aside > .muted { padding: 0 .6rem; font-size: .72rem; }
 
 main { width: 100%; max-width: 84rem; min-width: 0; padding: 2.2rem clamp(1rem, 4vw, 2.75rem); }
-main > header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.25rem; padding-bottom: 1.4rem; }
+main > header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.25rem; padding-bottom: 1.25rem; }
 main > header .muted { max-width: 60ch; margin-top: .5rem; font-size: .875rem; }
-.badge { flex: 0 0 auto; border: 1px solid var(--border); background: var(--muted); border-radius: var(--radius-pill); padding: .15rem .6rem; font-size: .72rem; font-weight: 550; color: var(--muted-foreground); white-space: nowrap; }
+.badge { flex: 0 0 auto; border: 1px solid var(--frame); background: var(--secondary); border-radius: var(--radius-pill); padding: .15rem .5rem; font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--foreground); white-space: nowrap; }
 .identity { display: flex; gap: .4rem 1.75rem; flex-wrap: wrap; margin: 1.4rem 0 1.1rem; color: var(--muted-foreground); font: .72rem/1.6 var(--mono); overflow-wrap: anywhere; }
 .identity:empty { display: none; }
-.identity strong { margin-right: .5rem; color: var(--foreground); font: 600 .72rem var(--sans); }
-.notice { margin-top: 1.1rem; padding: .65rem .9rem; border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); border-left-width: 3px; border-left-color: var(--warning); border-radius: var(--radius); background: var(--warning-background); color: var(--foreground); font-size: .8125rem; line-height: 1.6; }
-/* Panels are flat: a fill and a hairline. */
-.panel { min-width: 0; margin-top: 1.25rem; padding: 1.4rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--group-box); }
+.identity strong { margin-right: .5rem; color: var(--foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+.notice { margin-top: 1.1rem; padding: .65rem .9rem; border: 1px solid color-mix(in srgb, var(--warning) 60%, transparent); border-radius: var(--radius); background: var(--warning-background); color: var(--foreground); font-size: .8125rem; line-height: 1.6; }
+/* Panels are flat paper sheets framed in ink. */
+.panel { min-width: 0; margin-top: 1.25rem; padding: 1.4rem; border: 1px solid var(--frame); border-radius: var(--radius-lg); background: var(--group-box); }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .section-heading p { margin-top: .35rem; }
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-label { display: grid; gap: .4rem; margin-bottom: 1rem; color: var(--foreground); font-size: .75rem; font-weight: 600; }
+label { display: grid; gap: .4rem; margin-bottom: 1rem; color: var(--foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 input, select, textarea { width: 100%; min-height: var(--control-height); padding: .5rem .7rem; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font: 450 .8125rem/1.5 var(--sans); }
-input:hover, select:hover, textarea:hover { border-color: var(--foreground); }
+input:hover, select:hover, textarea:hover { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
 input, textarea { font-family: var(--mono); }
 textarea { resize: vertical; line-height: 1.6; }
 .actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-button { min-height: var(--control-height); padding: .45rem .9rem; border: 1px solid var(--border-emphasis); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font: 600 .8125rem/1.3 var(--sans); cursor: pointer; }
+button { min-height: var(--control-height); padding: .45rem .9rem; border: 1px solid var(--frame); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font: 600 .8125rem/1.3 var(--sans); cursor: pointer; }
 button:hover:not(:disabled) { background: var(--accent); }
-/* The one commit of the page is a glazed ember tile. */
-button[type="submit"] { border-color: var(--ember-deep); background: var(--primary-fill); color: var(--primary-foreground); font-weight: 650; box-shadow: inset 0 1px 0 var(--glaze); }
-button[type="submit"]:hover:not(:disabled) { background: var(--primary-fill-hover); }
+/* The one commit of the page is a solid ink block. */
+button[type="submit"] { border-color: var(--primary); background: var(--primary); color: var(--primary-foreground); font-weight: 700; }
+button[type="submit"]:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
 button:disabled { opacity: .55; cursor: wait; }
 #status { font-size: .78rem; color: var(--muted-foreground); text-align: right; overflow-wrap: anywhere; }
 #status.error { color: var(--danger); }
@@ -59,14 +58,14 @@ button:disabled { opacity: .55; cursor: wait; }
 #records { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: .8125rem; }
 th, td { max-width: 20rem; padding: .55rem .7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: break-word; }
-th { background: var(--table-head); color: var(--muted-foreground); font: 500 .6875rem/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+th { border-bottom-color: var(--frame); background: var(--table-head); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; white-space: nowrap; }
 tbody tr:hover td { background: var(--list-hover); }
-/* The recorded response reads as retained output: the same soot surface as the console's log panel. */
-pre { color-scheme: dark; max-height: 40rem; margin: 0; padding: 1rem; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--editor-background); color: var(--editor-foreground); font: .75rem/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The recorded response reads as retained output: the same editor ink as the console's log panel. */
+pre { color-scheme: dark; max-height: 40rem; margin: 0; padding: 1rem; overflow: auto; border: 1px solid var(--frame); border-radius: var(--radius); background: var(--editor-background); color: var(--editor-foreground); font: .75rem/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 /* r[impl kiln.identity.contrast] The panel is dark in both appearances, so its focus ring takes the dark value and is
    drawn inside the panel's edge, on the panel's own surface. */
 pre:focus-visible { outline-offset: -2px; }
-footer { margin: 1.5rem 0; color: var(--muted-foreground); font: .6875rem var(--mono); }
+footer { margin: 1.5rem 0; padding-top: .9rem; border-top: 2px solid var(--foreground); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 /* r[impl kiln.identity.touch_targets] r[impl kiln.identity.touch_targets.scenario.narrow]
    Touch layout: every control is at least 44px tall. */
 @media (max-width: 60rem) {

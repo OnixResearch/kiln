@@ -397,8 +397,8 @@
       const revision = element("span", shorten(run.source_revision, SHORT_REVISION_LENGTH), "mono");
       revision.title = `Exact source revision: ${run.source_revision ?? NOT_RECORDED}\nRun: ${run.id}`;
       cell("Revision", revision);
-      cell("Duration", ui().durationElement(validDuration(run.duration_ms)), "num");
-      cell("Started", ui().timeElement(safeMs(run.started_at_ms)), "pp-started");
+      cell("Duration", ui().runDurationElement(run), "num");
+      cell("Started", ui().runInstantElement(run, "started_at_ms"), "pp-started");
       const actions = element("div", undefined, "project-row-actions");
       const { logs, pipeline } = runLinks(ctx, projectId, run, `run ${shorten(run.id, SHORT_RUN_LENGTH)}`);
       actions.append(logs, pipeline);

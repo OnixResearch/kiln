@@ -2,7 +2,10 @@ let Base = import "default.ncl" in
 let Accepted = std.array.at 0 Base.traceability_policy.profiles in
 # Delta-spec roots of changes in flight. A root stays here only until its change
 # is accepted and archived. Add only active roots.
-let ActiveRoots = [] in
+let ActiveRoots = [
+  ".cairn/changes/adopt-technical-graphics-standard/specs/visual-identity/spec.md",
+  ".cairn/changes/adopt-technical-graphics-standard/specs/live-console-design/spec.md",
+] in
 let Active =
   Accepted
   & {

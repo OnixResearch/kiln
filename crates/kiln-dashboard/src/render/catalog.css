@@ -1,122 +1,121 @@
 /* r[impl kiln.dashboard.product.shell] */
 /* r[impl kiln.identity.shared] Colours, type, scale and the brand mark come from identity.css, which precedes this sheet. */
 * { box-sizing: border-box; }
-/* A faint ember wash warms the top of the page, as from the kiln mark in the rail. */
-body { margin: 0; font-size: .875rem; line-height: 1.55; color: var(--foreground); background: radial-gradient(64rem 26rem at 12% -14%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 72%) no-repeat var(--background); }
+/* The page is flat paper grey; panels are paper sheets framed in ink. */
+body { margin: 0; font-size: .875rem; line-height: 1.55; color: var(--foreground); background: var(--background); }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
-a { color: var(--link); text-decoration-color: color-mix(in srgb, currentColor 38%, transparent); text-underline-offset: .2em; }
-a:hover { text-decoration-color: var(--primary); }
+a { color: var(--link); text-decoration-color: color-mix(in srgb, currentColor 45%, transparent); text-underline-offset: .2em; }
+a:hover { text-decoration-color: currentColor; }
 button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
 button:disabled { cursor: default; opacity: .55; }
 button, input, select { min-width: 0; }
 button svg, .search-field svg, .project-avatar svg { width: 1.15rem; height: 1.15rem; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 h1, h2, h3, p { margin: 0; overflow-wrap: anywhere; }
-h1 { font-size: clamp(1.55rem, 2.5vw, 2rem); letter-spacing: -.035em; line-height: 1.2; font-weight: 680; }
-h2 { font-size: 1.03rem; letter-spacing: -.015em; line-height: 1.4; font-weight: 650; }
-h3 { font-size: .95rem; font-weight: 650; }
+h1 { font-size: clamp(1.6rem, 2.6vw, 2.25rem); letter-spacing: -.03em; line-height: 1.1; font-weight: 700; }
+h2 { font-size: 1.03rem; letter-spacing: -.01em; line-height: 1.4; font-weight: 700; }
+h3 { font-size: .95rem; font-weight: 700; }
 p { color: var(--muted-foreground); }
-strong { font-weight: 620; }
+strong { font-weight: 700; }
 [hidden], .catalog-js [hidden], .catalog-js .app-only[hidden] { display: none !important; }
 .app-only { display: none !important; }
 .catalog-js .app-only { display: revert !important; }
 .catalog-js .no-js-only { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.skip-link { position: fixed; top: .5rem; left: 1rem; padding: .7rem 1rem; border: 1px solid var(--border-emphasis); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-overlay); z-index: 100; transform: translateY(-180%); }
+.skip-link { position: fixed; top: .5rem; left: 1rem; padding: .7rem 1rem; border: 1px solid var(--frame); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-overlay); z-index: 100; transform: translateY(-180%); }
 .skip-link:focus { transform: none; }
 
-/* Navigation is one soot band in both appearances; the lit mark sits at its head. */
+/* Navigation is one ink spine in both appearances; the mark sits at its head. */
 .app-sidebar { color-scheme: dark; position: fixed; inset: 0 auto 0 0; width: 15.25rem; background: var(--sidebar); color: var(--foreground); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.6rem 1rem 1rem; z-index: 30; }
-.brand { display: flex; align-items: center; gap: .75rem; margin: 0 .5rem 1.6rem; color: var(--foreground); font-size: 1.35rem; font-weight: 700; letter-spacing: -.035em; line-height: 1.2; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: .75rem; margin: 0 .5rem 1.6rem; color: var(--foreground); font-size: 1.35rem; font-weight: 700; letter-spacing: -.03em; line-height: 1.2; text-decoration: none; }
 .brand .brand-mark { font-size: 2.25rem; }
 .brand-caption { display: block; font-size: .65rem; font-weight: 450; color: var(--muted-foreground); letter-spacing: .01em; }
 .workspace-card { display: flex; align-items: center; gap: .7rem; padding: .7rem .8rem; background: var(--secondary); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1.6rem; }
 .workspace-card strong { display: block; font-size: .8rem; }
-.workspace-avatar { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--radius-sm); background: var(--muted); color: var(--muted-foreground); font: 600 .75rem var(--mono); }
+.workspace-avatar { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--radius-sm); background: var(--foreground); color: var(--background); font: 700 .75rem var(--mono); }
 .workspace-caption { display: flex; align-items: center; gap: .35rem; font-size: .67rem; color: var(--muted-foreground); margin-top: .15rem; }
-.status-dot { display: inline-block; height: .4rem; width: .4rem; border-radius: 50%; background: var(--success); flex-shrink: 0; }
-.nav-label, .eyebrow { font-family: var(--mono); text-transform: uppercase; font-size: .6875rem; letter-spacing: .08em; font-weight: 500; color: var(--muted-foreground); }
+.status-dot { display: inline-block; height: .4rem; width: .4rem; border-radius: 0; background: var(--success); flex-shrink: 0; }
+.nav-label, .eyebrow { font: var(--label-font); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--muted-foreground); }
 .nav-label { padding: 0 .8rem .6rem; }
 .app-navigation { display: grid; gap: 2px; }
 .catalog-js .app-navigation.app-only { display: grid !important; }
-.app-navigation button { display: flex; align-items: center; gap: .7rem; width: 100%; padding: .3rem .35rem; border: 1px solid transparent; border-radius: var(--radius); background: transparent; text-align: left; color: var(--muted-foreground); font-size: .83rem; font-weight: 520; }
+.app-navigation button { display: flex; align-items: center; gap: .7rem; width: 100%; padding: .3rem .35rem; border: 1px solid transparent; border-radius: var(--radius); background: transparent; text-align: left; color: var(--muted-foreground); font-size: .83rem; font-weight: 500; }
 .app-navigation button svg { box-sizing: content-box; width: 1.1rem; height: 1.1rem; padding: .45rem; border-radius: var(--radius-sm); }
 .app-navigation button:hover { background: var(--list-hover); color: var(--foreground); }
-/* The current destination is its own selected surface; the ember tile behind its icon is the only signal colour in the band. */
-.app-navigation [aria-current="page"], .app-navigation .active { background: var(--list-active); color: var(--foreground); font-weight: 650; }
-.app-navigation button[aria-current="page"] svg, .app-navigation button.active svg { background: var(--primary-fill); color: var(--primary-foreground); box-shadow: inset 0 1px 0 var(--glaze); }
+/* The current destination is its own inverted surface on the spine: paper with ink text. No edge bar. */
+.app-navigation [aria-current="page"], .app-navigation .active, .app-navigation button[aria-current="page"]:hover { background: var(--foreground); color: var(--background); font-weight: 700; }
 .sidebar-boundary { margin: auto .45rem 1.25rem; padding-top: 2rem; }
 .sidebar-boundary p { font-size: .72rem; line-height: 1.7; margin: .5rem 0 .75rem; }
 .offline-badge { display: inline-flex; align-items: center; gap: .4rem; font-size: .65rem; color: var(--muted-foreground); }
 .sidebar-bottom { border-top: 1px solid var(--border); padding-top: .8rem; }
 .sidebar-bottom button { display: flex; align-items: center; gap: .5rem; background: transparent; border: 0; border-radius: var(--radius); width: 100%; color: var(--muted-foreground); font-size: .72rem; padding: .5rem; }
 .sidebar-bottom button:hover { background: var(--list-hover); color: var(--foreground); }
-.sidebar-bottom button > span { width: 1.15rem; height: 1.15rem; border: 1px solid var(--border-emphasis); border-radius: 50%; font-size: .65rem; }
+.sidebar-bottom button > span { width: 1.15rem; height: 1.15rem; border: 1px solid var(--border-emphasis); border-radius: 0; font-size: .65rem; }
 .sidebar-bottom kbd { margin-left: auto; }
 .app-workspace { margin-left: 15.25rem; min-width: 0; }
-.app-topbar { position: sticky; top: 0; z-index: 20; height: 4.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 2.5rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 88%, transparent); backdrop-filter: saturate(1.3) blur(10px); }
+.app-topbar { position: sticky; top: 0; z-index: 20; height: 4.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 2.5rem; border-bottom: 1px solid var(--frame); background: var(--group-box); }
 .topbar-location { display: flex; align-items: center; gap: .8rem; font-size: .8rem; white-space: nowrap; }
 .topbar-workspace { color: var(--muted-foreground); }
 .breadcrumb-divider { color: var(--border-emphasis); }
-#app-breadcrumb { font-weight: 600; }
+#app-breadcrumb { font-weight: 700; }
 .topbar-actions { display: flex; align-items: center; gap: .8rem; }
 .catalog-js .topbar-actions.app-only { display: flex !important; }
 .icon-button { display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--muted-foreground); }
 .icon-button:hover { background: var(--accent); color: var(--foreground); }
 #app-menu-toggle { display: none !important; }
-kbd { font-family: var(--mono); font-size: .6875rem; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: var(--radius-sm); padding: 0 .35rem; background: var(--muted); color: var(--muted-foreground); }
+kbd { font-family: var(--mono); font-size: .6875rem; border: 1px solid var(--frame); border-radius: var(--radius-sm); padding: 0 .35rem; background: var(--secondary); color: var(--foreground); }
 .catalog-search-wrap { position: relative; }
 .search-field { display: flex; align-items: center; gap: .5rem; width: clamp(12rem, 22vw, 22rem); border: 1px solid var(--input-border); background: var(--secondary); border-radius: var(--radius); padding: .45rem .6rem; color: var(--muted-foreground); }
 .search-field:focus-within { outline: 2px solid var(--ring); outline-offset: 1px; }
 .search-field svg { width: .95rem; height: .95rem; }
 #catalog-search { border: 0; outline: 0; background: transparent; color: var(--foreground); width: 100%; font-size: .78rem; min-height: 1.25rem; }
 #catalog-search::placeholder { color: var(--muted-foreground); opacity: 1; }
-.search-results { position: absolute; top: calc(100% + .5rem); right: 0; width: min(32rem, 85vw); max-height: min(32rem, 70vh); overflow: auto; background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); padding: .35rem; }
+.search-results { position: absolute; top: calc(100% + .5rem); right: 0; width: min(32rem, 85vw); max-height: min(32rem, 70vh); overflow: auto; background: var(--popover); border: 1px solid var(--frame); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); padding: .35rem; }
 #catalog-search-count { padding: .5rem .6rem; font-size: .72rem; }
 #catalog-search-list { display: grid; gap: 2px; }
 #catalog-search-list button { display: grid; gap: .2rem; padding: .6rem .7rem; width: 100%; border: 0; border-radius: var(--radius); background: transparent; text-align: left; overflow-wrap: anywhere; }
 #catalog-search-list button:hover, #catalog-search-list button:focus { background: var(--list-hover); }
 #catalog-search-list button span, #catalog-search-list small { font-size: .73rem; color: var(--muted-foreground); }
-.header-readonly { display: inline-flex; align-items: center; gap: .4rem; font-size: .7rem; color: var(--muted-foreground); white-space: nowrap; border-left: 1px solid var(--border); padding-left: 1rem; }
+.header-readonly { display: inline-flex; align-items: center; gap: .4rem; font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--muted-foreground); white-space: nowrap; border-left: 1px solid var(--border); padding-left: 1rem; }
 .app-main { max-width: 100rem; padding: 2.25rem 2.5rem 2rem; margin-inline: auto; }
-.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.75rem; padding-bottom: 1.5rem; }
+.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1.75rem; padding-bottom: 1.25rem; }
 .page-heading > .button { flex-shrink: 0; }
 .page-heading .eyebrow { margin-bottom: .45rem; }
 #app-subtitle { font-size: .875rem; margin-top: .5rem; }
-.button { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; padding: .5rem .85rem; min-height: 2.35rem; font-size: .8rem; font-weight: 600; border: 1px solid transparent; border-radius: var(--radius); text-decoration: none; white-space: nowrap; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; padding: .5rem .85rem; min-height: 2.35rem; font-size: .8rem; font-weight: 600; border: 1px solid var(--frame); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); text-decoration: none; white-space: nowrap; }
 .catalog-js .button.app-only { display: inline-flex !important; }
 .button svg { width: 1rem; height: 1rem; }
-/* The primary action is a glazed ember tile: one per view. */
-.button-primary { color: var(--primary-foreground); background: var(--primary-fill); border-color: var(--ember-deep); box-shadow: inset 0 1px 0 var(--glaze); }
-.button-primary:hover { background: var(--primary-fill-hover); }
-.button-secondary { background: var(--secondary); border-color: var(--border-emphasis); color: var(--foreground); }
+/* The primary action is a solid ink block: one per view. */
+.button-primary { color: var(--primary-foreground); background: var(--primary); border-color: var(--primary); font-weight: 700; }
+.button-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+.button-secondary { background: var(--secondary); border-color: var(--frame); color: var(--foreground); }
 .button-secondary:hover { background: var(--accent); }
 .text-button { flex-shrink: 0; border: 0; padding: .3rem 0; background: transparent; color: var(--foreground); font-size: .78rem; font-weight: 600; white-space: nowrap; }
-.text-button:hover { text-decoration: underline; text-decoration-color: var(--primary); text-underline-offset: .25em; }
+.text-button:hover { text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: .25em; }
 .text-button > span[aria-hidden] { margin-left: .35rem; }
 
-/* Overview hero: the kiln interior. Soot in both appearances, heat rings rising from the mark. */
-.welcome-card { color-scheme: dark; position: relative; overflow: hidden; min-height: 13.25rem; display: flex; justify-content: space-between; gap: 1rem; color: var(--foreground); background: radial-gradient(34rem 19rem at 86% 118%, color-mix(in srgb, var(--primary) 38%, transparent), transparent 70%) var(--soot); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.9rem 2rem; }
+/* Overview cover: an ink band, as the cover of a standards manual, with the mark on engineering graph paper. */
+.welcome-card { color-scheme: dark; position: relative; overflow: hidden; min-height: 13.25rem; display: flex; justify-content: space-between; gap: 1rem; color: var(--foreground); background: var(--sidebar); border: 1px solid var(--frame); border-radius: var(--radius-lg); padding: 1.9rem 2rem; }
 .welcome-card > div:first-child { position: relative; z-index: 1; max-width: 32rem; }
-.welcome-card .eyebrow { color: var(--ember-bright); }
-.welcome-card h2 { font-size: clamp(1.35rem, 2vw, 1.75rem); letter-spacing: -.035em; line-height: 1.2; margin: .55rem 0; }
+.welcome-card .eyebrow { color: var(--foreground); }
+.welcome-card h2 { font-size: clamp(1.5rem, 2.2vw, 2rem); letter-spacing: -.03em; line-height: 1.1; margin: .55rem 0; padding-bottom: .6rem; border-bottom: 2px solid var(--foreground); }
 .welcome-card p { max-width: 28rem; font-size: .85rem; line-height: 1.7; }
 .welcome-card .button { margin-top: 1.25rem; }
 .welcome-art { position: relative; width: 15rem; min-width: 11rem; align-self: stretch; display: grid; place-items: end center; margin: -1.9rem .5rem -1.9rem 0; }
-.art-heat { position: absolute; inset: 0; background: repeating-radial-gradient(ellipse 50% 62% at 50% 100%, transparent 0 1.1rem, color-mix(in srgb, var(--primary) 52%, transparent) 1.1rem calc(1.1rem + 1px)); mask-image: radial-gradient(ellipse 62% 92% at 50% 100%, var(--soot) 22%, transparent 78%); }
+.art-heat { position: absolute; inset: 0; background-image: linear-gradient(color-mix(in srgb, var(--foreground) 16%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--foreground) 16%, transparent) 1px, transparent 1px); background-size: 1rem 1rem; mask-image: linear-gradient(0deg, var(--sidebar) 30%, transparent 95%); }
 .welcome-art .brand-mark { position: relative; z-index: 1; margin-bottom: 1.9rem; font-size: 4.25rem; }
 .inventory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.25rem 1.75rem; }
-.inventory-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--group-box); padding: 1.1rem 1.3rem; }
-.metric-label { font: 500 .6875rem/1.5 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); }
-.metric-value { display: block; font: 600 2rem/1.25 var(--mono); letter-spacing: -.04em; margin-block: .4rem .25rem; font-variant-numeric: tabular-nums; }
-.mode-value { display: flex; align-items: center; gap: .6rem; font: 650 1.5rem/1.35 var(--sans); letter-spacing: -.025em; }
+.inventory-card { border: 1px solid var(--frame); border-radius: var(--radius-lg); background: var(--group-box); padding: 1.1rem 1.3rem; }
+.metric-label { font: var(--label-font); text-transform: uppercase; letter-spacing: var(--label-tracking); color: var(--muted-foreground); }
+.metric-value { display: block; font: 600 2rem/1.25 var(--mono); letter-spacing: -.03em; margin-block: .4rem .25rem; font-variant-numeric: tabular-nums; }
+.mode-value { display: flex; align-items: center; gap: .6rem; font: 700 1.5rem/1.35 var(--sans); letter-spacing: -.025em; }
 .mode-value .status-dot { width: .5rem; height: .5rem; }
 .inventory-card p { font-size: .75rem; }
-.surface { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--group-box); }
+.surface { border: 1px solid var(--frame); border-radius: var(--radius-lg); background: var(--group-box); }
 .overview-columns { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 1.25rem; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .section-heading p { font-size: .78rem; margin-top: .25rem; }
-.quick-open .section-heading { padding: 1.1rem 1.3rem; border-bottom: 1px solid var(--border); }
+.quick-open .section-heading { padding: 1.1rem 1.3rem; border-bottom: 1px solid var(--frame); }
 .history-shortcuts { list-style: none; padding: 0; margin: 0; }
 .history-shortcuts li { display: flex; align-items: center; gap: .75rem; padding: .8rem 1.3rem; }
 .history-shortcuts li + li { border-top: 1px solid var(--border); }
@@ -126,35 +125,35 @@ kbd { font-family: var(--mono); font-size: .6875rem; border: 1px solid var(--bor
 .history-shortcuts strong { display: block; font-size: .82rem; overflow-wrap: anywhere; }
 .history-shortcuts div > span { display: block; font-size: .75rem; color: var(--muted-foreground); overflow-wrap: anywhere; }
 .history-shortcuts .button { min-height: 1.9rem; padding: .3rem .6rem; font-size: .72rem; }
-.history-symbol { display: grid; place-items: center; width: 2rem; height: 2rem; flex-shrink: 0; border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted-foreground); background: var(--muted); font-family: var(--mono); }
+.history-symbol { display: grid; place-items: center; width: 2rem; height: 2rem; flex-shrink: 0; border: 1px solid var(--frame); border-radius: var(--radius); color: var(--foreground); background: var(--muted); font-family: var(--mono); }
 .scope-card { padding: 1.4rem; }
-.scope-icon { display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); border-radius: var(--radius); background: var(--warning-background); color: var(--warning); font-size: 1.15rem; margin-bottom: 1rem; }
+.scope-icon { display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--warning); border-radius: var(--radius); background: var(--warning-background); color: var(--warning); font-size: 1.15rem; margin-bottom: 1rem; }
 .scope-card p { font-size: .8rem; line-height: 1.7; margin-top: .7rem; }
-.boundary-label { display: inline-block; border-top: 1px solid var(--border); width: 100%; padding-top: .9rem; margin-top: 1rem; font: .6875rem var(--mono); letter-spacing: .04em; color: var(--muted-foreground); }
+.boundary-label { display: inline-block; border-top: 1px solid var(--border); width: 100%; padding-top: .9rem; margin-top: 1rem; font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--muted-foreground); }
 .projects-panel, .settings-panel { margin-bottom: 1.5rem; }
 :root:not(.catalog-js) [data-app-panel] { margin-bottom: 2rem; }
 .index-surface { padding: var(--space); }
 .index-surface .section-heading { margin-bottom: 1.25rem; }
 .index-surface h2 { margin-top: .3rem; }
-.subtle-badge { display: inline-block; padding: .15rem .5rem; border: 1px solid var(--border); border-radius: var(--radius-pill); font-size: .6875rem; font-weight: 550; color: var(--muted-foreground); background: var(--muted); white-space: nowrap; }
+.subtle-badge { display: inline-block; padding: .15rem .45rem; border: 1px solid var(--border-emphasis); border-radius: var(--radius-pill); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--foreground); background: var(--secondary); white-space: nowrap; }
 #rats-index { min-width: 0; max-width: 100%; overflow: auto; border-radius: var(--radius); }
 #rats-index > div { max-width: 100%; }
 #rats-index canvas { display: block; max-width: 100%; }
 #rats-index-status { font-size: .75rem; line-height: 1.7; margin-top: .75rem; }
 #rats-index > p { font-size: .78rem; line-height: 1.7; color: var(--muted-foreground); margin-block: .75rem; }
 #rats-index .kiln-rats-detail { padding: .85rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); font: .75rem/1.7 var(--mono); }
-#rats-index > button { margin-top: .75rem; min-height: 2.35rem; padding: .5rem .85rem; border: 1px solid var(--border-emphasis); border-radius: var(--radius); color: var(--foreground); background: var(--secondary); font: inherit; font-size: .8rem; font-weight: 600; }
+#rats-index > button { margin-top: .75rem; min-height: 2.35rem; padding: .5rem .85rem; border: 1px solid var(--frame); border-radius: var(--radius); color: var(--foreground); background: var(--secondary); font: inherit; font-size: .8rem; font-weight: 600; }
 #rats-index > button:hover { background: var(--accent); }
 #rats-index > button:disabled { opacity: .55; cursor: not-allowed; }
 /* The pinned index widget (web/dashboard-index) embeds one rule and writes three inline cell colours: header,
    row and chosen row. They are restated here from the identity; if the widget changes how it serialises a
    cell style these selectors stop matching and the table shows its own colours again. */
-#rats-index #kiln-rats-table { color-scheme: dark; border-color: var(--border); border-radius: var(--radius); background: var(--editor-background); color: var(--editor-foreground); font-family: var(--mono); }
+#rats-index #kiln-rats-table { color-scheme: dark; border-color: var(--frame); border-radius: var(--radius); background: var(--editor-background); color: var(--editor-foreground); font-family: var(--mono); }
 /* r[impl kiln.identity.contrast] The table is dark in both appearances, so its ring takes the dark value. Drawn
    inside the table's edge it sits on the table's own surface; outside, it would sit on the light page. */
 #rats-index #kiln-rats-table:focus { outline: 2px solid var(--ring); outline-offset: -2px; }
 #kiln-rats-table span[style*="color: rgb(255, 255, 255)"] { color: var(--editor-foreground) !important; }
-#kiln-rats-table span[style*="color: rgb(0, 128, 128)"] { color: var(--ember-bright) !important; }
+#kiln-rats-table span[style*="color: rgb(0, 128, 128)"] { color: var(--info) !important; }
 #kiln-rats-table span[style*="background-color: rgb(0, 0, 128)"] { background-color: var(--primary) !important; color: var(--primary-foreground) !important; }
 #rats-index .kiln-rats-error { color: var(--danger); }
 .project-heading { margin: 1.75rem 0 1rem; }
@@ -162,10 +161,10 @@ kbd { font-family: var(--mono); font-size: .6875rem; border: 1px solid var(--bor
 .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.15rem; }
 .project-card { min-width: 0; padding: 1.3rem; }
 .project-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.project-avatar { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground); border-radius: var(--radius); }
+.project-avatar { width: 2.4rem; height: 2.4rem; display: grid; place-items: center; border: 1px solid var(--frame); background: var(--muted); color: var(--foreground); border-radius: var(--radius); }
 .project-avatar svg { width: 1.25rem; height: 1.25rem; }
 .project-card h3 { font-size: 1rem; }
-.project-identity { font-size: .72rem; margin-top: .2rem; font-family: var(--mono); }
+.project-identity { font-size: .72rem; margin-top: .2rem; font-family: var(--mono); color: var(--muted-foreground); }
 .project-histories { list-style: none; padding: 0; margin: 1rem 0 0; }
 .project-histories > li { border-top: 1px solid var(--border); padding-top: .9rem; }
 .project-histories > li + li { margin-top: .9rem; }
@@ -197,7 +196,7 @@ select { min-height: 2.5rem; border: 1px solid var(--input-border); border-radiu
 .catalog-controls label { display: grid; gap: .4rem; color: var(--foreground); font-size: .75rem; font-weight: 600; }
 .catalog-controls select { width: 100%; font-weight: 500; }
 .context-metadata { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; border-top: 1px solid var(--border); padding-top: .9rem; margin: 1rem 0 0; font-size: .78rem; }
-.context-metadata dt { margin-bottom: .2rem; font: .6875rem var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.context-metadata dt { margin-bottom: .2rem; font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 #selected-revision { font-family: var(--mono); }
 #catalog-status { margin-top: .7rem; font-size: .78rem; }
 #selected-observation { margin-top: .8rem; font: .72rem var(--mono); color: var(--muted-foreground); }
@@ -210,20 +209,20 @@ select { min-height: 2.5rem; border: 1px solid var(--input-border); border-radiu
 #catalog-reports > section { scroll-margin-top: 6rem; margin-top: 1.5rem; }
 #catalog-reports > section > h2 { margin-bottom: .4rem; }
 #catalog-reports > section > p { font-size: .8rem; margin-bottom: 1rem; }
-iframe { display: block; width: 100%; height: 85vh; min-height: 32rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--group-box); }
+iframe { display: block; width: 100%; height: 85vh; min-height: 32rem; border: 1px solid var(--frame); border-radius: var(--radius-lg); background: var(--group-box); }
 .catalog-js #catalog-reports > section { margin-top: 0; }
 .catalog-js #catalog-reports > section > h2, .catalog-js #catalog-reports > section > p { display: none; }
 .catalog-js iframe { min-height: 0; border: 0; border-radius: 0; background: transparent; }
-.app-footer { border-top: 1px solid var(--border); margin: 0 2.5rem; padding: 1.2rem 0 1.5rem; color: var(--muted-foreground); font-size: .72rem; }
+.app-footer { border-top: 2px solid var(--foreground); margin: 0 2.5rem; padding: 1.2rem 0 1.5rem; color: var(--muted-foreground); font-size: .72rem; }
 .app-footer > div { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
 .app-footer strong { font-size: .8rem; color: var(--foreground); }
 .footer-readonly { margin-left: auto; font-family: var(--mono); }
 .app-footer details { margin-top: .5rem; }
 .app-footer summary { cursor: pointer; padding-block: .3rem; width: fit-content; }
 .app-footer pre { max-height: 20rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .6875rem/1.6 var(--mono); border: 1px solid var(--border); border-radius: var(--radius); background: var(--group-box); padding: 1rem; }
-dialog { color: var(--foreground); background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius-lg); width: min(30rem, calc(100% - 2rem)); padding: 1.5rem; box-shadow: var(--shadow-overlay); }
+dialog { color: var(--foreground); background: var(--popover); border: 1px solid var(--frame); border-radius: var(--radius-lg); width: min(30rem, calc(100% - 2rem)); padding: 1.5rem; box-shadow: var(--shadow-overlay); }
 dialog::backdrop { background: var(--overlay); }
-.dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .5rem; }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .5rem; padding-bottom: .5rem; border-bottom: 2px solid var(--foreground); }
 .dialog-heading .icon-button { font-size: 1.3rem; }
 dialog p { font-size: .85rem; }
 .shortcut-list { margin: 1.2rem 0; }

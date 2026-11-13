@@ -2,107 +2,119 @@
  * Included first by the live console (/identity.css), the offline catalog and report (inline) and the hosted
  * bridge page (joined into /app.css). Surface stylesheets declare no colour of their own.
  *
+ * r[impl kiln.identity.graphics_standard] The Kiln graphics standard follows the NASA Graphics Standards Manual
+ * (NHB 1430.2, 1975) and the U.S. Graphics Company's engineering-graphics practice: ink on paper, one red reserved
+ * for identity, a Helvetica-class grotesque for reading text, a monospace for data and technical labels, square
+ * geometry, hairline structure and flat surfaces. Overlays alone cast a hard offset shadow.
+ *
  * Token names follow GPUI Kit's semantic theme names with dots written as hyphens (docs/operator.md has the table).
  * Each colour is declared once as light-dark(light, dark). A region that is dark in both appearances (navigation
- * rail, log panel, catalog hero) sets `color-scheme: dark` and restates `color`, because an inherited computed
+ * rail, log panel, catalog cover) sets `color-scheme: dark` and restates `color`, because an inherited computed
  * colour does not resolve again.
- * crates/kiln-web-service/src/favicon.svg restates ember and soot; keep it in step with --primary and --soot.
+ * crates/kiln-web-service/src/favicon.svg restates the identity red and the door; keep it in step with --brand and
+ * --brand-door.
  */
 /* r[impl kiln.identity.contrast] Pairs and ratios are held by tests/kiln-identity.test.mjs. */
 :root {
   color-scheme: light dark;
 
-  /* Clay and soot: warm neutral surfaces, boundaries and text. */
-  --background: light-dark(#f4f1eb, #131110);
-  --foreground: light-dark(#1d1916, #f3ece4);
-  --muted: light-dark(#ece7df, #221e1b);
-  --muted-foreground: light-dark(#655d54, #ab9f93);
-  --secondary: light-dark(#fffdf9, #1b1816);
-  --group-box: light-dark(#fffdf9, #1b1816);
-  --popover: light-dark(#fffdf9, #201c19);
-  --accent: light-dark(#e7e0d6, #2b2622);
-  --list-hover: light-dark(#ebe5dc, #2b2622);
-  --list-active: light-dark(#ece7df, #292421);
-  --list-active-border: light-dark(#b9ad9d, #5d5146);
-  --table-head: light-dark(#f0ebe3, #201c19);
-  --border: light-dark(#e1d9cd, #312b26);
-  --border-emphasis: light-dark(#b9ad9d, #5d5146);
-  --input-border: light-dark(#8f8475, #746759);
-  --sidebar: #181513;
+  /* Paper and ink: neutral surfaces, boundaries and text. Panels are paper on a grey page; dark appearance inverts. */
+  --background: light-dark(#ececec, #0a0a0a);
+  --foreground: light-dark(#0b0b0b, #f0f0f0);
+  --muted: light-dark(#f4f4f4, #171717);
+  --muted-foreground: light-dark(#545454, #a4a4a4);
+  --secondary: light-dark(#ffffff, #121212);
+  --group-box: light-dark(#ffffff, #101010);
+  --popover: light-dark(#ffffff, #151515);
+  --accent: light-dark(#e2e2e2, #242424);
+  --list-hover: light-dark(#f0f0f0, #1b1b1b);
+  --list-active: light-dark(#e3e3e3, #262626);
+  --list-active-border: light-dark(#0b0b0b, #d6d6d6);
+  --table-head: light-dark(#f4f4f4, #171717);
+  --border: light-dark(#c8c8c8, #333333);
+  --border-emphasis: light-dark(#8a8a8a, #5e5e5e);
+  /* The frame of a panel, card, control or overlay: an ink line on paper, a light line on ink. */
+  --frame: light-dark(#0b0b0b, #7a7a7a);
+  --input-border: light-dark(#0b0b0b, #9a9a9a);
+  --sidebar: #000000;
   --link: var(--foreground);
 
-  /* Ember: action emphasis, focus and the live-activity signal. Never a status. */
-  --primary: #ff6a2b;
-  --primary-hover: light-dark(#f55a17, #ff7f47);
-  --primary-foreground: #2b1004;
-  --ring: light-dark(#c2410c, #ff9a62);
-  --progress-bar: var(--primary);
-  --ember-bright: #ff9255;
-  --ember-deep: #dd4a12;
-  --flame: #ffd58a;
-  --soot: #151210;
-  --glaze: rgb(255 255 255 / 36%);
-  --shade: rgb(0 0 0 / 24%);
-  /* The glazed fill of a primary action and of the current navigation tile, over a solid ember so text keeps its
-     surface where a gradient is not painted. */
-  --primary-fill: linear-gradient(var(--ember-bright), var(--primary) 62%) var(--primary);
-  --primary-fill-hover: linear-gradient(var(--primary), var(--primary-hover)) var(--primary-hover);
+  /* Action emphasis is ink: the single primary action is a solid ink block, paper in dark appearance. */
+  --primary: light-dark(#0b0b0b, #f0f0f0);
+  --primary-hover: light-dark(#333333, #cfcfcf);
+  --primary-foreground: light-dark(#ffffff, #000000);
+  --ring: light-dark(#0b0b0b, #ffffff);
+  --progress-bar: var(--foreground);
 
-  /* Glazes: status colours keep their meanings. Text on a status background uses the status colour itself. */
-  --success: light-dark(#17673f, #8ed6a6); --success-background: light-dark(#e3f2e8, #16291f);
-  --danger: light-dark(#a8182d, #ff98a6); --danger-background: light-dark(#fbe9ea, #3a1c20);
-  --info: light-dark(#1d4fb0, #9dbcff); --info-background: light-dark(#e7eefb, #19263f);
-  --warning: light-dark(#8a4f00, #f1c56c); --warning-background: light-dark(#fcefd8, #352a14);
-  --queued: light-dark(#5f564d, #c9bdb0); --queued-background: light-dark(#ece7df, #2a2521);
-  --cancelled: light-dark(#5a544e, #a8a098); --cancelled-background: light-dark(#e9e4dd, #252120);
-  --unknown: light-dark(#6d591b, #d9c78f); --unknown-background: light-dark(#f3eedb, #2f2a1a);
+  /* Identity red (NASA red, PMS 179): the brand mark, the title rule's index block and the busy line. Never a
+     status and never an action fill; failure keeps its own crimson. The mark's kiln door is ink while idle and
+     amber while the live snapshot reports running work. */
+  --brand: #fc3d21;
+  --brand-door: #0b0b0b;
+  --brand-live: #ffc23d;
+
+  /* Signal lights: status colours keep their meanings. Text on a status background uses the status colour itself. */
+  --success: light-dark(#0b6a30, #6fd98a); --success-background: light-dark(#e2f0e6, #0d2615);
+  --danger: light-dark(#b0001b, #ff7e8a); --danger-background: light-dark(#fbe5e8, #360c12);
+  --info: light-dark(#0b3d91, #8fb6ff); --info-background: light-dark(#e4ebf7, #0e1b36);
+  --warning: light-dark(#844800, #f2bd5c); --warning-background: light-dark(#faeed7, #2f2108);
+  --queued: light-dark(#4f4f4f, #c2c2c2); --queued-background: light-dark(#ebebeb, #202020);
+  --cancelled: light-dark(#595959, #a9a9a9); --cancelled-background: light-dark(#e6e6e6, #1c1c1c);
+  --unknown: light-dark(#665300, #ded087); --unknown-background: light-dark(#f3eed5, #28230d);
 
   /* Log and terminal surfaces are dark in both appearances. */
-  --editor-background: #0e0c0b;
-  --editor-foreground: #ece5dc;
-  --editor-muted-foreground: #a59b8e;
+  --editor-background: #050505;
+  --editor-foreground: #e6e6e6;
+  --editor-muted-foreground: #9b9b9b;
 
   /* Server token classes (kiln.highlight.v1); each reaches 4.5:1 on code surfaces and diff rows. */
   --syntax-keyword: light-dark(#7b3aa8, #c9a8f5);
   --syntax-string: light-dark(#17673f, #8ed6a6);
-  --syntax-comment: light-dark(#69635a, #a59b8e);
+  --syntax-comment: light-dark(#5f5f5f, #a3a3a3);
   --syntax-number: light-dark(#b23a1e, #ffa98a);
   --syntax-constant: light-dark(#96500a, #f1c56c);
   --syntax-type: light-dark(#0b6a72, #7fd4cc);
   --syntax-function: light-dark(#1d4fb0, #9dbcff);
   --syntax-macro: light-dark(#8a2d78, #eaa0d8);
-  --syntax-attribute: light-dark(#6d591b, #d9c78f);
-  --syntax-property: light-dark(#3e5873, #b4c6dc);
-  --syntax-variable: light-dark(#3a342e, #e0d8cd);
-  --syntax-operator: light-dark(#5a534a, #cdc3b6);
-  --syntax-punctuation: light-dark(#635b52, #b8ad9f);
+  --syntax-attribute: light-dark(#665300, #d9c78f);
+  --syntax-property: light-dark(#344d6b, #b4c6dc);
+  --syntax-variable: light-dark(#2f2f2f, #dedede);
+  --syntax-operator: light-dark(#4f4f4f, #c9c9c9);
+  --syntax-punctuation: light-dark(#585858, #b5b5b5);
   --syntax-tag: light-dark(#9b2f5c, #f39bb8);
   --syntax-escape: light-dark(#8c5a00, #f0b46a);
   --syntax-heading: light-dark(#7b3aa8, #c9a8f5);
   --syntax-link: light-dark(#0b6a72, #7fd4cc);
-  --code-selection: light-dark(#ffddcc, #362219);
+  /* A highlighter mark: selected source lines and selected text. */
+  --code-selection: light-dark(#fff1b3, #3a3313);
 
-  /* Elevation is for stacked layers only: menus, dialogs, the expanded rail. */
-  --shadow-sm: 0 1px 2px light-dark(rgb(40 28 18 / 7%), rgb(0 0 0 / 36%));
-  --shadow-md: 0 1px 2px light-dark(rgb(40 28 18 / 7%), rgb(0 0 0 / 36%)), 0 6px 18px light-dark(rgb(40 28 18 / 9%), rgb(0 0 0 / 32%));
-  --shadow-overlay: 0 2px 6px light-dark(rgb(40 28 18 / 10%), rgb(0 0 0 / 42%)), 0 20px 48px light-dark(rgb(40 28 18 / 20%), rgb(0 0 0 / 52%));
+  /* Elevation is for stacked layers only, and it is a hard offset, as a drawing's drop shadow: menus, dialogs,
+     the expanded rail. Surfaces in the page are flat. */
+  --shadow-sm: 0 0 0 0 transparent;
+  --shadow-md: 4px 4px 0 0 light-dark(rgb(0 0 0 / 14%), rgb(0 0 0 / 70%));
+  --shadow-overlay: 6px 6px 0 0 light-dark(rgb(0 0 0 / 20%), rgb(0 0 0 / 75%));
   --shadow: var(--shadow-sm);
-  --overlay: rgb(19 17 16 / 56%);
+  --overlay: rgb(0 0 0 / 55%);
 
-  /* Type: the platform interface font; monospace for identifiers, shortcuts and aligned numbers. */
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", "Noto Sans", sans-serif;
-  --mono: "Berkeley Mono", ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* Type: a Helvetica-class grotesque for reading text and a monospace for identifiers, numbers, shortcuts and the
+     technical label layer (eyebrows, column heads, field labels, fact terms). Only local typefaces are named. */
+  --sans: "Helvetica Neue", Helvetica, "Nimbus Sans", "Nimbus Sans L", "TeX Gyre Heros", Arimo, "Liberation Sans", Arial, sans-serif;
+  --mono: "Berkeley Mono", "TX-02", "JetBrains Mono", "IBM Plex Mono", "SF Mono", SFMono-Regular, ui-monospace, "Cascadia Code", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
   --text-xs: .75rem; --text-sm: .8125rem; --text-md: .875rem; --text-lg: 1rem; --text-xl: 1.25rem; --text-2xl: 1.5rem;
+  /* The technical label: small, upper case, tracked monospace. */
+  --label-font: 500 .6875rem/1.4 var(--mono);
+  --label-tracking: .07em;
 
-  /* Scale. */
+  /* Scale. Geometry is square: every radius tier is zero, so nested surfaces stay concentric. */
   --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-5: 1.5rem; --space-6: 2rem;
   --space: 1.25rem;
-  --radius-sm: .3rem; --radius: .45rem; --radius-lg: .7rem; --radius-pill: 999px;
+  --radius-sm: 0; --radius: 0; --radius-lg: 0; --radius-pill: 0;
   --control-height: 2.5rem;
-  --motion-fast: 120ms; --motion: 180ms;
+  --motion-fast: 100ms; --motion: 150ms;
 
   font-family: var(--sans);
   font-synthesis: none;
+  font-kerning: normal;
   background: var(--background);
   color: var(--foreground);
 }
@@ -110,23 +122,29 @@
 :root[data-theme="dark"] { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) { :root { --motion-fast: 0ms; --motion: 0ms; } }
 
-::selection { background: color-mix(in srgb, var(--primary) 32%, transparent); }
+::selection { background: var(--code-selection); }
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-/* Brand mark: a kiln arch with its firing door. Drawn here so it renders with no image request; size it with font-size. */
-.brand-mark { position: relative; display: inline-block; flex: 0 0 auto; width: 1em; height: 1em; overflow: hidden; border-radius: 50% 50% 20% 20% / 58% 58% 15% 15%; background: linear-gradient(160deg, var(--ember-bright), var(--primary) 52%, var(--ember-deep)); box-shadow: inset 0 .05em 0 var(--glaze), inset 0 -.05em 0 var(--shade); font-size: 2rem; line-height: 1; user-select: none; }
-.brand-mark::after { content: ""; position: absolute; left: 31%; right: 31%; bottom: 13%; height: 45%; border-radius: 50% 50% 12% 12% / 62% 62% 10% 10%; background: var(--soot); box-shadow: inset 0 .04em .05em var(--shade); }
-/* r[impl kiln.web.live_activity] The door glows only while the last admitted live snapshot reports running work. */
-:root[data-firing] .brand-mark::after { background: radial-gradient(120% 105% at 50% 100%, var(--flame), var(--ember-bright) 46%, var(--ember-deep) 78%, var(--soot)); animation: kiln-fire 2.4s ease-in-out infinite; }
-@keyframes kiln-fire { 0%, 100% { filter: brightness(.92); } 50% { filter: brightness(1.22); } }
+/* Brand mark: the kiln, a field of identity red with its arched door. Drawn here so it renders with no image request;
+   size it with font-size. */
+.brand-mark { position: relative; display: inline-block; flex: 0 0 auto; width: 1em; height: 1em; overflow: hidden; background: var(--brand); font-size: 2rem; line-height: 1; user-select: none; }
+.brand-mark::after { content: ""; position: absolute; left: 31.25%; right: 31.25%; bottom: 0; height: 62.5%; border-radius: 50% 50% 0 0 / 30% 30% 0 0; background: var(--brand-door); }
+/* r[impl kiln.web.live_activity] The door is lit only while the last admitted live snapshot reports running work. */
+:root[data-firing] .brand-mark::after { background: var(--brand-live); animation: kiln-fire 1.6s ease-in-out infinite; }
+@keyframes kiln-fire { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { :root[data-firing] .brand-mark::after { animation: none; } }
 
-/* Pyrometer rule: a graduated boundary under a page heading, with a short ember reading at its start. */
-.kiln-rule { position: relative; border-bottom: 1px solid var(--border); }
-.kiln-rule::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 7px; pointer-events: none; background: linear-gradient(var(--primary), var(--primary)) left bottom / 2.5rem 2px no-repeat, repeating-linear-gradient(90deg, var(--border-emphasis) 0 1px, transparent 1px 2.5rem) left bottom / 100% 7px no-repeat, repeating-linear-gradient(90deg, var(--border-emphasis) 0 1px, transparent 1px .5rem) left bottom / 100% 4px no-repeat; mask-image: linear-gradient(90deg, var(--soot), transparent min(32rem, 72%)); }
+/* Title rule: the heavy ink rule under a page heading, opened by a short block of identity red, as on the pages of a
+   standards manual. */
+.kiln-rule { position: relative; border-bottom: 2px solid var(--foreground); }
+.kiln-rule::after { content: ""; position: absolute; left: 0; bottom: -2px; width: 2.5rem; height: 6px; pointer-events: none; background: var(--brand); }
+
+/* The technical label layer: one treatment wherever a surface names a value, a column or a section. */
+.kiln-label { font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--muted-foreground); }
 
 @media (forced-colors: active) {
-  .brand-mark { forced-color-adjust: none; background: ButtonText; box-shadow: none; }
-  .brand-mark::after, :root[data-firing] .brand-mark::after { background: ButtonFace; box-shadow: none; animation: none; }
+  .brand-mark { forced-color-adjust: none; background: ButtonText; }
+  .brand-mark::after, :root[data-firing] .brand-mark::after { background: ButtonFace; animation: none; }
+  .kiln-rule { border-bottom-color: CanvasText; }
   .kiln-rule::after { display: none; }
 }

@@ -84,6 +84,15 @@ entry describes the source tree prepared for the first tagged release.
   tables stack by the width of their own region. The offline documents and the
   hosted page keep 44px controls at 960px and narrower. (node tests; reviewed in
   a browser over synthetic data, not a running service)
+- A technical graphics standard for every web surface, after the NASA Graphics
+  Standards Manual: paper and ink, square framed panels, a monospace label
+  layer, ink primary actions and identity red reserved for the brand mark, the
+  title rule and the request line. A check rejects red elsewhere, rounded
+  corners and blurred shadows. The console numbers every destination from one
+  register read by the rail, title block and command palette, adds a Guide to
+  destinations, run states, terms and keys, names timing a run cannot have yet
+  and shows byte quantities in binary units. (node tests; reviewed in a browser
+  over synthetic data, not a running service)
 
 **Change review**
 

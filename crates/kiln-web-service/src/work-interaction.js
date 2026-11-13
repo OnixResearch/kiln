@@ -202,12 +202,12 @@
   }
 
   function builtins(query) {
-    const entries = [
-      ["Go to issues", { page: "work" }], ["Go to planning", { page: "planning" }],
-      ["Go to my inbox", { page: "inbox" }], ["Go to requests and triage", { page: "triage" }],
-      ["Go to saved views", { page: "workviews" }], ["Go to CI projects", { page: "projects" }],
-      ["Go to CI runs", { page: "runs" }], ["Go to retained reviews", { page: "reviews" }],
-    ].map(([label, patch]) => ({ label, group: "Go to", detail: "Navigation", run: () => bridge().navigate(patch) }));
+    // r[impl kiln.web.wayfinding] Every destination of the numbered register is one "Go to" command; typing its number
+    // or its name finds it. The project history page needs a project and is reached through CI projects.
+    const kiln = window.KilnUi;
+    const entries = (kiln?.destinations || []).filter((place) => !place.parent).map((place) => ({
+      label: `Go to ${place.number} ${place.title}`, group: "Go to", detail: kiln.destinationGroup(place.group).name, run: () => bridge().navigate({ page: place.page }),
+    }));
     if (writable() && typeof ui()?.create === "function") {
       for (const kind of KINDS) entries.push({ label: `New ${kind === "view" ? "saved view" : kind === "personal" ? "attention preferences" : kind}…`, group: "Create", detail: "Open creation form", run: () => ui().create(kind) });
     }

@@ -373,6 +373,23 @@
     return parent;
   }
 
+  // r[impl kiln.web.readable_observations] Humanized byte size in binary units; "" when the size is not an exact
+  // non-negative integer. Callers keep the exact count beside it (a title or the recorded number).
+  const BYTE_BASE = 1024;
+  const BYTE_UNITS = Object.freeze(["B", "KiB", "MiB", "GiB"]);
+  // A one-decimal size reads well below this many units ("9.5 KiB"), whole numbers above ("12 KiB").
+  const ONE_DECIMAL_BELOW = 10;
+  function humanBytes(value) {
+    if (!Number.isSafeInteger(value) || value < 0) return "";
+    if (value < BYTE_BASE) return `${value} B`;
+    let unit = 0;
+    let amount = value;
+    while (amount >= BYTE_BASE && unit < BYTE_UNITS.length - 1) { amount /= BYTE_BASE; unit += 1; }
+    let shown = amount < ONE_DECIMAL_BELOW ? Math.round(amount * 10) / 10 : Math.round(amount);
+    if (shown >= BYTE_BASE && unit < BYTE_UNITS.length - 1) { unit += 1; shown = 1; }
+    return `${shown < ONE_DECIMAL_BELOW ? shown.toFixed(1) : shown} ${BYTE_UNITS[unit]}`;
+  }
+
   // r[impl kiln.monorepo.console] Monorepo presentation: pure derivations over service JSON. A field
   // that is absent (an older record) yields null so callers render nothing; a malformed one is ignored.
   const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -600,7 +617,79 @@
   function presentedRunning(running, current) {
     return current === true && Number.isSafeInteger(running) && running > 0 ? running : 0;
   }
+  // r[impl kiln.web.readable_observations.scenario.pending] Timing a run cannot have yet is named from its recorded
+  // phase: a running run's duration is in progress, a waiting run (queued or awaiting approval) has not started, and
+  // neither has finished. Only a value that should exist and is absent reads as not recorded. Nothing is invented.
+  function runTiming(run) {
+    const record = run !== null && typeof run === "object" ? run : {};
+    const { status } = outcomeStatus(record.outcome, record.phase);
+    const waiting = status === "queued";
+    const unfinished = waiting || status === "running";
+    const duration = Number.isSafeInteger(record.duration_ms) && record.duration_ms >= 0 ? "recorded" : waiting ? "not_started" : unfinished ? "in_progress" : "not_recorded";
+    const started = Number.isSafeInteger(record.started_at_ms) ? "recorded" : waiting ? "not_started" : "not_recorded";
+    const completed = Number.isSafeInteger(record.completed_at_ms) ? "recorded" : unfinished ? "not_finished" : "not_recorded";
+    return Object.freeze({ duration, started, completed });
+  }
+  const PENDING_TIMING = Object.freeze({
+    in_progress: ["In progress", "Still running: no duration is recorded until the run finishes"],
+    not_started: ["Not started", "Waiting: the run has not started"],
+    not_finished: ["Not finished", "The run has not finished"],
+  });
+  function pendingTiming(kind) {
+    const [label, explanation] = PENDING_TIMING[kind];
+    const span = document.createElement("span");
+    span.className = "pending-timing";
+    span.textContent = label;
+    span.title = explanation;
+    return span;
+  }
+  // A run's duration and instant cells: recorded values through durationElement and timeElement, pending ones in words.
+  function runDurationElement(run) {
+    const kind = runTiming(run).duration;
+    return Object.hasOwn(PENDING_TIMING, kind) ? pendingTiming(kind) : durationElement(kind === "recorded" ? run.duration_ms : null);
+  }
+  function runInstantElement(run, field) {
+    const kind = runTiming(run)[field === "started_at_ms" ? "started" : "completed"];
+    return Object.hasOwn(PENDING_TIMING, kind) ? pendingTiming(kind) : timeElement(kind === "recorded" ? run[field] : null);
+  }
+  // r[impl kiln.web.wayfinding] One numbered register of console destinations. The rail, the page title block, the
+  // Guide and the command palette all read it, so a destination's number, name and purpose cannot drift between them.
+  // Numbers follow the rail's reading order, as sections of a standards manual: 0 start here, 1 continuous
+  // integration, 2 work, 3 inspection, 4 administration. The project history page sits under CI projects.
+  const DESTINATION_GROUPS = Object.freeze([
+    ["0", "Start here"], ["1", "Continuous integration"], ["2", "Work"], ["3", "Inspect"], ["4", "Administration"],
+  ].map(([number, name]) => Object.freeze({ number, name })));
+  const DESTINATIONS = Object.freeze([
+    ["guide", "0.0", "Guide", "Every destination by section number, how run states read, the words Kiln uses and the keyboard reference."],
+    ["overview", "1.1", "Overview", "Failing projects first, then health, worker capacity and recent activity. Counts cover retained runs only."],
+    ["runs", "1.2", "Runs", "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence."],
+    ["projects", "1.3", "CI projects", "Choose a project to start a source-bound run, or browse its retained history."],
+    ["project", "1.3", "CI project", "Health, streak, duration trend and recent runs, derived from this project's retained runs.", "projects"],
+    ["workers", "1.4", "Workers", "Inspect configured execution targets and admission slots. Availability is not a health check."],
+    ["work", "2.1", "Issues", "Capture an issue, decide what happens next, and follow its discussion and linked CI results."],
+    ["inbox", "2.2", "My inbox", "Assignments, mentions, watched updates and due reminders. Opening an item does not mark it read."],
+    ["planning", "2.3", "Planning", "Organize issues into projects, milestones and cycles. Track larger goals with initiatives."],
+    ["code-review", "2.4", "Code review", "Review exact revisions, publish discussions and approvals, and inspect every submit requirement. CI evidence alone is not merge authority."],
+    ["triage", "2.5", "Requests & triage", "Review incoming requests, keep their original source and decide what to take on next."],
+    ["workviews", "2.6", "Saved views", "Return to private or shared filters, boards and favorites saved in this workspace."],
+    ["source", "3.1", "Source", "Choose a repository and revision to browse files and changes without modifying source."],
+    ["reviews", "3.2", "Patchgate receipts", "Inspect retained review decisions. Producer verdicts do not grant acceptance authority."],
+    ["activity", "3.3", "Activity", "Browse retained canonical events and attributable audit decisions."],
+    ["feeds", "3.4", "Feeds", "Subscribe to Atom feeds of retained runs and follow external repository feeds. Feeds are read-only projections, not CI evidence."],
+    ["evidence", "3.5", "Evidence", "Choose a retained run to inspect its source, execution and recorded evidence."],
+    ["automation", "4.1", "Automation", "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable."],
+    ["operations", "4.2", "Operations", "Inspect capacity, queued work and retention limits. No automatic pruning is performed."],
+    ["cobs", "4.3", "Raw collaboration history", "Browse local collaboration records. Raw operation history is not verified lifecycle state."],
+    ["settings", "4.4", "Settings", "Review your access and adjust appearance and density. Credentials are never saved by this page."],
+  ].map(([page, number, title, purpose, parent = null]) => Object.freeze({ page, number, group: number.split(".")[0], title, purpose, parent })));
+  // The destination of a page, or null for anything that is not a console page.
+  function destination(page) {
+    return typeof page === "string" ? DESTINATIONS.find((entry) => entry.page === page) || null : null;
+  }
+  function destinationGroup(number) {
+    return typeof number === "string" ? DESTINATION_GROUPS.find((group) => group.number === number) || null : null;
+  }
 
-  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList, liveActivity, presentedRunning });
+  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, humanBytes, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList, liveActivity, presentedRunning, runTiming, runDurationElement, runInstantElement, destinations: DESTINATIONS, destinationGroups: DESTINATION_GROUPS, destination, destinationGroup });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

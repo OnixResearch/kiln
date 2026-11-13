@@ -1,0 +1,76 @@
+{
+  "scope": "Planning gates, validation, policy freshness and traceability for the adopt-technical-graphics-standard change on the uncommitted working copy. No synchronization, archive, commit, publication or deployment",
+  "review": "Agentic self-review, not independent approval",
+  "observed_on": "2026-11-13",
+  "results": [
+    {
+      "label": "proposal",
+      "command": ["cairn", "gate", "proposal", "adopt-technical-graphics-standard", "--root", ".", "--policy", "$PWD/cairn-policy/generated/cairn-policy.json"],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "6c8b0d8f1660527e262abdd897ec0c672d355fb5ef978129f921ae263a36533a",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b283c5281d9ba980a242fa590ddf135813280327f54a9c46396d4db399b6e403"
+    },
+    {
+      "label": "design",
+      "command": ["cairn", "gate", "design", "adopt-technical-graphics-standard", "--root", ".", "--policy", "$PWD/cairn-policy/generated/cairn-policy.json"],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "8a2ba6cf69fbea6eb15700644973f3d928de901c8c4f86149c03e85f011c3666",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b6ceddd580f548754288c762c41aa753f3c566dfea66031a21045ceb22c098d8"
+    },
+    {
+      "label": "tasks",
+      "command": ["cairn", "gate", "tasks", "adopt-technical-graphics-standard", "--root", ".", "--policy", "$PWD/cairn-policy/generated/cairn-policy.json"],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "d267a824332bea8be588edbf92e75e3d9cb04babb5133695d479ac63c186091a",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "9a89460fa50e6507daf1f24f58018ade3531c4a026472b39faf66464bed09d15"
+    },
+    {
+      "label": "validate",
+      "command": ["cairn", "validate", "--root", ".", "--policy", "$PWD/cairn-policy/generated/cairn-policy.json"],
+      "exit_code": 0,
+      "valid": true,
+      "changes": 8,
+      "specs_validated": 144,
+      "issues": [],
+      "change_issues": [],
+      "spec_issues": [],
+      "substance_issues": [],
+      "profile_issues": [],
+      "receipt_hash": "b7532091fcb46a03fe384edce96c82705b2a3ff5d803a84c259617b9ad5b2751"
+    },
+    {
+      "label": "policy freshness",
+      "command": ["cairn", "policy", "export", "--check"],
+      "exit_code": 0,
+      "output": "policy fresh: cairn-policy/generated/cairn-policy.json"
+    },
+    {
+      "label": "traceability coverage, development profile",
+      "command": ["cairn", "policy", "export", "--source", "cairn-policy/development-coverage.ncl", "--output", "target/development-coverage-policy.json", "&&", "cairn", "traceability", "coverage", "--root", ".", "--policy", "target/development-coverage-policy.json", "--profile", "kiln-active-development", "--json"],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "pass",
+      "profile_id": "kiln-active-development",
+      "requirements": 1769,
+      "referenced": 1769,
+      "missing": [],
+      "dangling": [],
+      "input_hash": "27a34d52ccec8f8aedf9c42bee548ffc5125adddfe94069c4f42accc9dfef4b7",
+      "policy_hash": "d543ce657e285137aea64e063c1ac64ba83742d794a589e932186467855e9696",
+      "receipt_hash": "29e0800755034de7348f330cb6fc3134b3735b89dd563d5503f340beb90a92f9",
+      "note": "The profile adds this change's two delta-spec roots to the accepted profile. A pass is declared linkage, not acceptance."
+    }
+  ]
+}

@@ -199,6 +199,48 @@ test("a running count is presented only while live observation is current", () =
   for (const value of [undefined, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53, "2", true, {}, [2]]) assert.equal(ui.presentedRunning(value, true), 0);
 });
 
+// r[verify kiln.web.readable_observations.scenario.pending]
+test("pending timing is named from the recorded phase; finished or unreadable runs never borrow it", () => {
+  const timing = (run) => ({ ...ui.runTiming(run) });
+  const started = 1_700_000_000_000;
+  assert.deepEqual(timing({ outcome: "Pending", phase: "active", started_at_ms: started }), { duration: "in_progress", started: "recorded", completed: "not_finished" });
+  for (const phase of ["queued", "awaiting_approval"]) assert.deepEqual(timing({ outcome: "Pending", phase }), { duration: "not_started", started: "not_started", completed: "not_finished" }, phase);
+  assert.deepEqual(timing({ outcome: null, phase: "queued" }), { duration: "not_started", started: "not_started", completed: "not_finished" });
+  // A recorded value always wins, even on a run that is still pending.
+  assert.deepEqual(timing({ outcome: "Pending", phase: "active", started_at_ms: started, duration_ms: 0 }), { duration: "recorded", started: "recorded", completed: "not_finished" });
+  assert.deepEqual(timing({ outcome: "Success", started_at_ms: started, completed_at_ms: started + 5, duration_ms: 5 }), { duration: "recorded", started: "recorded", completed: "recorded" });
+  // Finished, unknown and unreadable runs with absent or invalid timing read as not recorded.
+  for (const outcome of ["DomainFailure", "Cancelled", "Unknown", "SomethingNew"]) assert.deepEqual(timing({ outcome }), { duration: "not_recorded", started: "not_recorded", completed: "not_recorded" }, outcome);
+  for (const duration_ms of [-1, 1.5, "273357", Number.NaN, 2 ** 53]) {
+    assert.equal(timing({ outcome: "Success", duration_ms }).duration, "not_recorded", String(duration_ms));
+    assert.equal(timing({ outcome: "Pending", phase: "active", duration_ms }).duration, "in_progress", String(duration_ms));
+  }
+  for (const run of [null, undefined, "run", 3, []]) assert.deepEqual(timing(run), { duration: "not_recorded", started: "not_recorded", completed: "not_recorded" }, String(run));
+});
+
+// r[verify kiln.web.wayfinding]
+// r[verify kiln.web.wayfinding.scenario.register]
+test("every destination has one section number in an existing group, and a nested page names an existing parent", () => {
+  const places = [...ui.destinations];
+  assert.ok(places.length > 10);
+  assert.equal(new Set(places.map((place) => place.page)).size, places.length, "one entry per page");
+  const numbered = places.filter((place) => !place.parent);
+  assert.equal(new Set(numbered.map((place) => place.number)).size, numbered.length, "no two destinations share a number");
+  for (const place of places) {
+    assert.match(place.number, /^\d+\.\d+$/, place.page);
+    assert.equal(ui.destinationGroup(place.group)?.number, place.number.split(".")[0], place.page);
+    assert.ok(place.title && place.purpose, place.page);
+    if (place.parent) {
+      const parent = ui.destination(place.parent);
+      assert.ok(parent && !parent.parent, `${place.page} nests under a top-level destination`);
+      assert.equal(parent.number, place.number, `${place.page} shares its parent's number`);
+    }
+  }
+  assert.equal(ui.destination("project").parent, "projects");
+  for (const value of ["", "nope", "__proto__", "toString", null, undefined, 3]) assert.equal(ui.destination(value), null, String(value));
+  assert.equal(ui.destinationGroup("9"), null);
+});
+
 // r[verify kiln.web.runs_table]
 test("runs group by local calendar day; unrecorded instants have no day", () => {
   const now = new Date(2026, 9, 29, 12, 0).getTime();
@@ -294,11 +336,11 @@ test("every icon the console names is in the reviewed list", () => {
   }
 });
 
-// r[verify kiln.dashboard.source.navigation]
-test("source sizes read in binary units; unknown or inexact sizes stay blank", () => {
+// r[verify kiln.web.readable_observations]
+test("byte sizes read in binary units; unknown or inexact sizes stay blank", () => {
   const cases = [[0, "0 B"], [1, "1 B"], [1023, "1023 B"], [1024, "1.0 KiB"], [1536, "1.5 KiB"], [10 * 1024 - 1, "10 KiB"], [10 * 1024, "10 KiB"], [74364, "73 KiB"], [1048575, "1.0 MiB"], [5.25 * 1048576, "5.3 MiB"], [3 * 1024 ** 3, "3.0 GiB"]];
-  for (const [bytes, label] of cases) assert.equal(source.humanBytes(bytes), label, String(bytes));
-  for (const value of [null, undefined, -1, 1.5, Number.NaN, Infinity, "12", 2 ** 53, {}]) assert.equal(source.humanBytes(value), "", String(value));
+  for (const [bytes, label] of cases) assert.equal(ui.humanBytes(bytes), label, String(bytes));
+  for (const value of [null, undefined, -1, 1.5, Number.NaN, Infinity, "12", 2 ** 53, {}]) assert.equal(ui.humanBytes(value), "", String(value));
 });
 
 // r[verify kiln.dashboard.source.navigation]

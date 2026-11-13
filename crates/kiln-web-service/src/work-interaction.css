@@ -8,16 +8,16 @@
   overflow: auto;
   color: var(--foreground);
   background: var(--popover);
-  border: 1px solid var(--border);
+  border: 1px solid var(--frame);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-overlay);
   overscroll-behavior: contain;
 }
 .work-interaction-dialog *, .work-selection-toolbar * { box-sizing: border-box; }
-.work-interaction-header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); padding-block: var(--space-4) var(--space-3); background: var(--popover); border-bottom: 1px solid var(--border); }
-.work-interaction-header h2 { min-width: 0; margin: 0; font-size: var(--text-lg); font-weight: 650; letter-spacing: -.015em; overflow-wrap: anywhere; }
+.work-interaction-header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); padding-block: var(--space-4) var(--space-3); background: var(--popover); border-bottom: 2px solid var(--foreground); }
+.work-interaction-header h2 { min-width: 0; margin: 0; font-size: var(--text-lg); font-weight: 700; letter-spacing: -.015em; overflow-wrap: anywhere; }
 .work-interaction-close { flex: 0 0 auto; }
-.work-interaction-dialog label { display: block; margin-bottom: var(--space-1); font-size: var(--text-xs); font-weight: 600; color: var(--muted-foreground); }
+.work-interaction-dialog label { display: block; margin-bottom: var(--space-1); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 .work-interaction-status, .work-interaction-help { font-size: var(--text-xs); line-height: 1.6; color: var(--muted-foreground); overflow-wrap: anywhere; }
 .work-interaction-status { min-height: 1.5em; margin: var(--space-2) 0; }
 .work-interaction-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
@@ -29,14 +29,14 @@
 .work-command-palette > .work-interaction-header { flex: 0 0 auto; }
 .work-command-field { position: relative; }
 .work-command-field > svg { position: absolute; left: var(--space-3); top: 50%; width: 1.1rem; height: 1.1rem; transform: translateY(-50%); color: var(--muted-foreground); pointer-events: none; }
-.work-interaction-dialog input[type="search"] { box-sizing: border-box; width: 100%; min-height: 3rem; padding: var(--space-3); font: inherit; font-size: var(--text-lg); border: 1px solid var(--border-emphasis); border-radius: var(--radius); color: var(--foreground); background: var(--popover); }
+.work-interaction-dialog input[type="search"] { box-sizing: border-box; width: 100%; min-height: 3rem; padding: var(--space-3); font: inherit; font-size: var(--text-lg); border: 1px solid var(--input-border); border-radius: var(--radius); color: var(--foreground); background: var(--popover); }
 .work-command-field > svg + input[type="search"] { padding-inline-start: calc(var(--space-3) + 1.75rem); }
 .work-command-results { display: grid; align-content: start; gap: var(--space-3); flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-1) 0; }
 .work-command-group { display: grid; gap: 2px; min-width: 0; }
-.work-command-group-label { position: sticky; top: 0; z-index: 1; padding: var(--space-1) var(--space-3); background: var(--popover); color: var(--muted-foreground); font-family: var(--mono); font-size: var(--text-xs); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+.work-command-group-label { position: sticky; top: 0; z-index: 1; padding: var(--space-1) var(--space-3); border-bottom: 1px solid var(--border); background: var(--popover); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
 .work-command-result { display: grid; gap: 2px; min-height: 2.75rem; padding: var(--space-2) var(--space-3); border-radius: var(--radius); overflow-wrap: anywhere; transition: background-color var(--motion-fast); }
 .work-command-result-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
-.work-command-result-head > strong { min-width: 0; font-size: var(--text-md); font-weight: 600; }
+.work-command-result-head > strong { min-width: 0; font-size: var(--text-md); font-weight: 700; }
 .work-command-result-detail { font-size: var(--text-xs); line-height: 1.5; color: var(--muted-foreground); }
 /* r[impl kiln.web.design_system] */
 /* Active option: the item's own surface (fill plus a full hairline), never a leading-edge bar; hover is fill only. */
@@ -57,9 +57,9 @@
 
 /* r[impl kiln.web.design_system] */
 /* Row actions menu: an anchored popover menu on the shared popover surface; rows share padding, a fixed shortcut lane and one separator. */
-.work-context-menu { position: fixed; inset: auto; margin: 0; box-sizing: border-box; min-width: 14rem; max-width: min(20rem, calc(100vw - 1rem)); max-height: calc(100dvh - 1rem); overflow-y: auto; padding: var(--space-1); color: var(--foreground); background: var(--popover); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+.work-context-menu { position: fixed; inset: auto; margin: 0; box-sizing: border-box; min-width: 14rem; max-width: min(20rem, calc(100vw - 1rem)); max-height: calc(100dvh - 1rem); overflow-y: auto; padding: var(--space-1); color: var(--foreground); background: var(--popover); border: 1px solid var(--frame); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
 .work-context-menu * { box-sizing: border-box; }
-.work-context-title { margin: 0; padding: var(--space-1) var(--space-3) var(--space-2); color: var(--muted-foreground); font-size: var(--text-xs); font-weight: 600; overflow-wrap: anywhere; }
+.work-context-title { margin: 0; padding: var(--space-1) var(--space-3) var(--space-2); color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; overflow-wrap: anywhere; }
 .work-menu-item { display: flex; align-items: center; justify-content: flex-start; gap: var(--space-3); width: 100%; min-height: var(--control-height); margin: 0; padding: var(--space-1) var(--space-3); color: var(--foreground); text-align: left; overflow-wrap: anywhere; }
 .work-menu-item:focus-visible { background: var(--list-hover); }
 .work-menu-item > kbd { margin-inline-start: auto; }

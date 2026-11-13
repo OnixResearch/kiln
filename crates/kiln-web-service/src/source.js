@@ -21,28 +21,12 @@
   const COPY_FEEDBACK_MS = 2_000;
   // Bounded read caches, keyed by exact revision identity; cleared with the session.
   const CACHE_LIMITS = Object.freeze({ log: 4, tree: 24, file: 8, diff: 4 });
-  const BYTE_BASE = 1024;
-  const BYTE_UNITS = Object.freeze(["B", "KiB", "MiB", "GiB"]);
-  // A one-decimal size reads well below this many units ("9.5 KiB"), whole numbers above ("12 KiB").
-  const ONE_DECIMAL_BELOW = 10;
   const VIEWS = Object.freeze(["files", "history", "changes"]);
   // Narrow layouts wrap long lines by default; the reader's toggle wins for the session.
   const NARROW_QUERY = "(max-width: 40rem)";
   const KIND_LABELS = Object.freeze({ git: "Git", jj: "Jujutsu", pijul: "Pijul" });
 
   // ---------- Pure helpers (exported for tests) ----------
-
-  // Humanized byte size; "" when the size is not an exact non-negative integer.
-  function humanBytes(value) {
-    if (!Number.isSafeInteger(value) || value < 0) return "";
-    if (value < BYTE_BASE) return `${value} B`;
-    let unit = 0;
-    let amount = value;
-    while (amount >= BYTE_BASE && unit < BYTE_UNITS.length - 1) { amount /= BYTE_BASE; unit += 1; }
-    let shown = amount < ONE_DECIMAL_BELOW ? Math.round(amount * 10) / 10 : Math.round(amount);
-    if (shown >= BYTE_BASE && unit < BYTE_UNITS.length - 1) { unit += 1; shown = 1; }
-    return `${shown < ONE_DECIMAL_BELOW ? shown.toFixed(1) : shown} ${BYTE_UNITS[unit]}`;
-  }
 
   const compareText = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   // Directories first, then every other entry; case-insensitive by name, exact name breaking ties.
@@ -424,7 +408,7 @@
     link.dataset.path = String(entry.path).toLowerCase();
     if (!directory && entry.path === route.sfile) link.setAttribute("aria-current", "page");
     link.append(directory ? icon("folder") : icon("file"), element("span", String(entry.name), "src-entry-name"));
-    const size = directory ? "" : humanBytes(entry.bytes);
+    const size = directory ? "" : ui().humanBytes(entry.bytes);
     const sizeNode = element("span", size, "src-entry-size");
     if (size) sizeNode.title = `${entry.bytes.toLocaleString("en-US")} bytes`;
     link.append(sizeNode);
@@ -490,7 +474,7 @@
       const directories = entries.filter((entry) => entry.kind === "directory").length;
       const files = entries.length - directories;
       const total = entries.reduce((sum, entry) => (entry.kind !== "directory" && Number.isSafeInteger(entry.bytes) ? sum + entry.bytes : sum), 0);
-      card.append(element("p", `${plural(directories, "directory", "directories")} · ${plural(files, "file")}${total ? ` · ${humanBytes(total)} in listed files` : ""}`, "src-dir-counts"));
+      card.append(element("p", `${plural(directories, "directory", "directories")} · ${plural(files, "file")}${total ? ` · ${ui().humanBytes(total)} in listed files` : ""}`, "src-dir-counts"));
       card.append(element("p", scopeLine(tree.value), "small"));
     }
     card.append(element("p", "Select a file in the list to read it. No file is opened automatically.", "small"));
@@ -523,7 +507,7 @@
     const title = element("div", undefined, "src-file-title");
     const path = element("h2", String(file.path), "src-file-path mono");
     const meta = element("p", undefined, "src-file-meta");
-    const size = element("span", bytes === null ? "size not recorded" : humanBytes(bytes));
+    const size = element("span", bytes === null ? "size not recorded" : ui().humanBytes(bytes));
     if (bytes !== null) size.title = `${bytes.toLocaleString("en-US")} bytes`;
     meta.append(size, element("span", binary ? "binary" : lineCountLabel(lines.length, finalNewline)));
     if (file.oid) { const oid = exactId(file.oid); oid.title = `Object ${file.oid}`; meta.append(oid); }
@@ -999,6 +983,6 @@
 
   window.KilnSource = Object.freeze({
     load, clear,
-    humanBytes, sortEntries, parseLineSelection, splitLines, parseDiff,
+    sortEntries, parseLineSelection, splitLines, parseDiff,
   });
 })();

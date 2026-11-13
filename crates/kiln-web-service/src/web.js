@@ -377,8 +377,8 @@
     const revision = element("span", shortRevision(run.source_revision), "mono");
     revision.title = text(run.source_revision);
     cell("revision", [revision]);
-    cell("duration", [elapsed(run.duration_ms)], "num");
-    cell("started", [when(run.started_at_ms)]);
+    cell("duration", [ui.runDurationElement(run)], "num");
+    cell("started", [ui.runInstantElement(run, "started_at_ms")]);
     const logs = workspaceLink({ page: "runs", run: run.id, view: "logs", node: "", stream: "" }, "Logs", "row-link");
     logs.setAttribute("aria-label", `Logs for ${label} run ${shortIdentity(run.id)}`);
     cell("actions", [logs]);
@@ -599,7 +599,7 @@
     $("run-warning").hidden = !warnings.length;
     const revision = element("span", shortIdentity(run.source_revision), "mono");
     revision.title = text(run.source_revision);
-    addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", when(run.started_at_ms)], ["Completed", when(run.completed_at_ms)], ["Duration", elapsed(run.duration_ms)]]);
+    addFactTiles($("run-facts"), [["Source revision", revision], ["Created", when(run.created_at_ms)], ["Started", ui.runInstantElement(run, "started_at_ms")], ["Completed", ui.runInstantElement(run, "completed_at_ms")], ["Duration", ui.runDurationElement(run)]]);
     const affected = ui.affectedSummary(run.affected);
     addFacts($("run-exact-facts"), [["Run ID", run.id], ["Project", run.project_id], ["Repository", run.repository], ["Source revision", run.source_revision], ["Canonical tree", run.canonical_tree], ["Run revision", run.revision], ["Attempt", run.attempt_id], ["Sequence", run.sequence], ["Parent run", run.parent_run_id], ["Created", timestamp(run.created_at_ms)], ["Started", timestamp(run.started_at_ms)], ["Completed", timestamp(run.completed_at_ms)], ...(affected?.identity ? [["Affected-set BLAKE3", affected.identity]] : [])]);
     renderWhy(affected);
@@ -1222,18 +1222,22 @@
       if (!isAborted(error) && epoch === state.epoch) notice(`Network access unavailable: ${explain(error)}`);
     }
   }
-  const pages = ["overview", "projects", "project", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "feeds", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
+  // r[impl kiln.web.wayfinding] The admitted pages are exactly the register's destinations.
+  const pages = ui.destinations.map((place) => place.page);
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
   // r[impl kiln.web.live_activity] The running count opens the pending-run list with no other filter or selection,
   // where each row states whether it is running, queued or awaiting approval.
   const PENDING_RUNS = Object.freeze({ page: "runs", outcome: "Pending", project: "", q: "", source: "", cursor: "", run: "", node: "" });
-  // Navigation group shown as the page-header eyebrow; matches the rail sections.
-  const pageGroups = Object.freeze({
-    work: "Work", inbox: "Work", planning: "Work", triage: "Work", workviews: "Work", "code-review": "Review",
-    overview: "Continuous integration", projects: "Continuous integration", project: "Continuous integration", runs: "Continuous integration", workers: "Continuous integration",
-    source: "Inspect", reviews: "Inspect", activity: "Inspect", feeds: "Inspect", evidence: "Inspect",
-    automation: "Administration", operations: "Administration", cobs: "Administration", settings: "Administration",
-  });
+  // r[impl kiln.web.wayfinding] The brand returns to the workspace's home, the page the bare URL opens.
+  const HOME = Object.freeze({ page: "overview" });
+  // Each rail destination carries its register number; the number is visual wayfinding and stays out of the link's name.
+  for (const link of document.querySelectorAll("#app-sidebar a[data-page]")) {
+    const place = ui.destination(link.dataset.page);
+    if (!place) continue;
+    const number = element("span", place.number, "nav-number");
+    number.setAttribute("aria-hidden", "true");
+    link.querySelector(".nav-text")?.before(number);
+  }
   // r[impl kiln.web.console_layout] Wide screens show pipeline and logs together (side by side when the inspector has room);
   // the tab bar selects the remaining run view below them.
   const splitRunQuery = window.matchMedia("(min-width: 90rem)");
@@ -1340,47 +1344,39 @@
     for (const node of $("theme-switch").children) node.setAttribute("aria-pressed", String(node.dataset.themeChoice === route.theme));
     $("app-density").value = route.density;
     for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
-    // The project history page belongs to the CI projects destination in the rail.
-    const navPage = route.page === "project" ? "projects" : route.page;
+    // The project history page belongs to the CI projects destination in the rail (its register parent).
+    const navPage = ui.destination(route.page).parent || route.page;
     // Link targets mirror navigate(patch), so a new tab opens the same destination a plain click does.
     const routeHref = (patch) => `?${new URLSearchParams(Object.entries({ ...route, ...patch }).filter(([, value]) => value))}`;
     for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page });
     for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
     $("live-activity").href = routeHref(PENDING_RUNS);
+    $("brand-home").href = routeHref(HOME);
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === navPage) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const group of document.querySelectorAll(".app-navigation details")) {
       if (group.querySelector('[aria-current="page"]')) group.open = true;
+    }
+    // r[impl kiln.web.wayfinding] When the rail is taller than the window it scrolls; the current destination is
+    // brought fully into the rail's own view. Only the rail scrolls: the page keeps its position.
+    const rail = document.querySelector(".app-navigation");
+    const current = rail?.querySelector('[aria-current="page"]');
+    if (rail && current) {
+      const frame = rail.getBoundingClientRect();
+      const box = current.getBoundingClientRect();
+      if (box.top < frame.top) rail.scrollTop -= frame.top - box.top;
+      else if (box.bottom > frame.bottom) rail.scrollTop += box.bottom - frame.bottom;
     }
     $("workspace").classList.toggle("page-frame-wide", route.page === "runs");
     $("run-split").classList.toggle("has-run", Boolean(route.run));
     applyRunPanels();
     for (const node of document.querySelectorAll("[data-view]")) { if (node.dataset.view === route.view) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
-    const title = { work: "Issues", inbox: "My inbox", planning: "Planning", triage: "Requests & triage", workviews: "Saved views", projects: "CI projects", project: "CI project", cobs: "Raw collaboration history", overview: "Overview", "code-review": "Code review", reviews: "Patchgate receipts", feeds: "Feeds" }[route.page] || route.page[0].toUpperCase() + route.page.slice(1);
-    $("workspace-title").textContent = title;
-    $("app-breadcrumb").textContent = title;
-    document.title = `Kiln · ${title}`;
-    $("workspace-eyebrow").textContent = pageGroups[route.page] || "";
-    $("observation-note").textContent = {
-      overview: "Failing projects first, then health, worker capacity and recent activity. Counts cover retained runs only.",
-      projects: "Choose a project to start a source-bound run, or browse its retained history.",
-      project: "Health, streak, duration trend and recent runs, derived from this project's retained runs.",
-      workers: "Inspect configured execution targets and admission slots. Availability is not a health check.",
-      runs: "Filter retained runs, select an execution, then inspect its pipeline, logs and evidence.",
-      cobs: "Browse local collaboration records. Raw operation history is not verified lifecycle state.",
-      source: "Choose a repository and revision to browse files and changes without modifying source.",
-      reviews: "Inspect retained review decisions. Producer verdicts do not grant acceptance authority.",
-      "code-review": "Review exact revisions, publish discussions and approvals, and inspect every submit requirement. CI evidence alone is not merge authority.",
-      activity: "Browse retained canonical events and attributable audit decisions.",
-      evidence: "Choose a retained run to inspect its source, execution and recorded evidence.",
-      automation: "Inspect registered triggers, schedules and delivery outcomes. Only admitted registrations are editable.",
-      operations: "Inspect capacity, queued work and retention limits. No automatic pruning is performed.",
-      work: "Capture an issue, decide what happens next, and follow its discussion and linked CI results.",
-      planning: "Organize issues into projects, milestones and cycles. Track larger goals with initiatives.",
-      inbox: "Assignments, mentions, watched updates and due reminders. Opening an item does not mark it read.",
-      triage: "Review incoming requests, keep their original source and decide what to take on next.",
-      workviews: "Return to private or shared filters, boards and favorites saved in this workspace.",
-      settings: "Review your access and adjust appearance. Credentials are never saved by this page."
-    }[route.page];
+    // r[impl kiln.web.wayfinding] The title block reads the destination register: section number and group, title, purpose.
+    const place = ui.destination(route.page);
+    $("workspace-title").textContent = place.title;
+    $("app-breadcrumb").textContent = `${place.number} ${place.title}`;
+    document.title = `Kiln · ${place.title}`;
+    $("workspace-eyebrow").replaceChildren(element("span", place.number, "page-number"), document.createTextNode(ui.destinationGroup(place.group).name));
+    $("observation-note").textContent = place.purpose;
     if (previous?.page !== route.page) {
       notice("");
       $("page-primary-action").replaceChildren();
@@ -1445,6 +1441,107 @@
     for (const paragraph of paragraphs) body.append(element("p", paragraph));
     details.append(ui.disclosureSummary(label, "info"), body);
     return details;
+  }
+  // r[impl kiln.web.wayfinding] r[impl kiln.web.wayfinding.scenario.orientation] The Guide is the workspace's index: a first path for a new operator, every destination by
+  // section number with its purpose, how run states read, Kiln's vocabulary and the keyboard reference. It reads only
+  // the destination register, the status rule and the review shortcut table, so it cannot describe a page or a key that
+  // the console does not have.
+  const GUIDE_STATES = Object.freeze([
+    ["Pending", "active", "Dispatched to an execution provider and not finished yet."],
+    ["Pending", "queued", "Admitted and waiting for a free project slot. Nothing has executed."],
+    ["Pending", "awaiting_approval", "An untrusted pull-request run. Nothing runs until an operator approves its exact commit."],
+    ["Success", "", "The workflow completed and every node succeeded for this exact revision."],
+    ["DomainFailure", "", "The workflow ran and at least one node failed. Logs open on the first failed node."],
+    ["Denied", "", "Refused by policy or authority; the requested work did not run as asked."],
+    ["TimedOut", "", "The work exceeded its time bound and was stopped."],
+    ["ProviderError", "", "The execution provider reported an error and the work did not complete."],
+    ["Cancelled", "", "Stopped on request before it finished."],
+    ["Unknown", "", "Kiln cannot confirm what happened, for example after a lost connection. Unknown is neither a pass nor a failure: observe or reconcile before acting."],
+  ]);
+  const GUIDE_TERMS = Object.freeze([
+    ["Project", "A repository reference with a reviewed pipeline that this service may run."],
+    ["Run", "One execution of a project's pipeline at one exact source revision. A rerun is a new run."],
+    ["Exact revision", "The full commit identity a run is bound to. A branch that moves needs a new run; results never carry over."],
+    ["Node", "One step of a run's workflow graph, such as build or test. Each node has its own logs."],
+    ["Worker target", "A configured execution target with project admission slots. It is not a discovered machine or a health check."],
+    ["Retained", "Kept by this service within its bounds. Views show retained records, not a complete history."],
+    ["Evidence", "Recorded source, execution, report, review and provenance facts for a run. Evidence is not acceptance or release authority."],
+    ["Viewer and operator", "Viewers read. Operators can also enroll projects and start, cancel, approve and rerun runs; the service checks every request again."],
+  ]);
+  // One Guide sheet: a framed panel with its section title.
+  function guideSheet(parent, title) {
+    const sheet = element("section", undefined, "panel guide-sheet");
+    const heading = element("h2", title, "card-title");
+    heading.id = `guide-${title.toLowerCase().replace(/[^a-z]+/g, "-")}`;
+    sheet.setAttribute("aria-labelledby", heading.id);
+    sheet.append(heading);
+    parent.append(sheet);
+    return sheet;
+  }
+  // A numbered destination line: section number, link, purpose.
+  function guideEntry(page, text) {
+    const place = ui.destination(page);
+    const item = element("li");
+    item.append(element("span", place.number, "page-number"), workspaceLink({ page }, place.title), element("p", text));
+    return item;
+  }
+  function renderGuide(parent) {
+    parent.replaceChildren();
+    const start = guideSheet(parent, "Start here");
+    const steps = element("ol", undefined, "contents-list guide-steps");
+    for (const [page, text] of [
+      ["overview", "Failing projects come first. Each card opens the exact failed run at its logs."],
+      ["runs", "Every retained run, newest first. Select a run to see its pipeline, logs, artifacts, tests and evidence."],
+      ["projects", "Start a run: choose a project, then its latest reference, a named reference or an exact revision."],
+      ["code-review", "Review a change at its exact revision; its submit requirements show the CI results that apply to it."],
+    ]) steps.append(guideEntry(page, text));
+    start.append(steps);
+    const contents = element("div", undefined, "contents-groups");
+    contents.setAttribute("role", "group");
+    contents.setAttribute("aria-label", "Contents");
+    for (const group of ui.destinationGroups) {
+      const places = ui.destinations.filter((place) => place.group === group.number && !place.parent && place.page !== "guide");
+      if (!places.length) continue;
+      const box = element("section", undefined, "contents-group panel");
+      const heading = element("h2");
+      heading.append(element("span", `${group.number}.0`, "page-number"), document.createTextNode(group.name));
+      const list = element("ul", undefined, "contents-list");
+      for (const place of places) list.append(guideEntry(place.page, place.purpose));
+      box.append(heading, list);
+      contents.append(box);
+    }
+    parent.append(contents);
+    const states = guideSheet(parent, "How run states read");
+    states.append(element("p", "A state is a recorded observation of one run. Colour, icon and words carry the same state; the exact canonical outcome stays available on hover and to assistive technology.", "small"));
+    const legend = element("dl", undefined, "guide-legend");
+    for (const [outcome, phase, meaning] of GUIDE_STATES) {
+      const term = element("dt");
+      term.append(ui.statusPill(outcome, phase || undefined));
+      legend.append(term, element("dd", meaning));
+    }
+    states.append(legend);
+    const terms = guideSheet(parent, "Words Kiln uses");
+    const vocabulary = element("dl", undefined, "guide-terms");
+    for (const [term, meaning] of GUIDE_TERMS) vocabulary.append(element("dt", term), element("dd", meaning));
+    terms.append(vocabulary);
+    const keys = guideSheet(parent, "Keyboard");
+    const reference = element("dl", undefined, "contents-keys");
+    const keyRow = (list, combo, meaning) => {
+      const term = element("dt");
+      for (const key of combo) term.append(element("kbd", key));
+      list.append(term, element("dd", meaning));
+    };
+    keyRow(reference, ["Ctrl", "K"], "Search and commands: jump to any numbered destination, issue, project or run (⌘ K on macOS).");
+    keyRow(reference, ["Esc"], "Close a menu, dialog, the command palette or the expanded navigation.");
+    keyRow(reference, ["↑", "↓", "Enter"], "Run list: move between rows and open the focused run.");
+    keyRow(reference, ["j", "k", "Enter", "Space", "x"], "Work lists: move, open, peek and select rows; Shift F10 opens a row's actions.");
+    keys.append(reference);
+    // The review table is the one the review page binds; it is listed only when that module has loaded.
+    const review = window.KilnCodeReview?.keys?.commands || [];
+    if (!review.length) return;
+    const reviewKeys = element("dl", undefined, "contents-keys");
+    for (const command of review) keyRow(reviewKeys, String(command.keys).split(" / ").map((key) => ({ ArrowDown: "↓", ArrowUp: "↑" }[key] || key)), command.description);
+    keys.append(element("p", "Code review, while a change is open", "eyebrow"), reviewKeys);
   }
   // r[impl kiln.monorepo.console] A delivery's affected decision: which projects ran and why, and which were skipped.
   function affectedDecisionList(decisions) {
@@ -1799,6 +1896,7 @@
       return;
     }
     if (route.page === "overview") await loadOverview();
+    if (route.page === "guide") renderGuide($("guide-content"));
     // r[impl kiln.web.project_page] Project history renders through project.js; Run latest reuses the existing start form.
     if (route.page === "project") {
       if (!window.KilnProject) { $("project-content").replaceChildren(element("p", "Project history is loading.", "small")); return; }
@@ -1856,9 +1954,11 @@
     }
     parent.append(grid);
   }
+  // Slot statuses read as signal lamps: free slots good, busy running, unknown execution a warning, not enrolled neutral.
+  const WORKER_TONES = Object.freeze({ slots_available: "good", busy: "info", unknown: "warning" });
   function workerStatusBadge(status) {
     const badge = element("span", workerStatuses[status] || "Unknown slot status", "state-badge");
-    if (status === "unknown") badge.dataset.tone = "warning";
+    if (Object.hasOwn(WORKER_TONES, status)) badge.dataset.tone = WORKER_TONES[status];
     return badge;
   }
   // r[impl kiln.dashboard.workers.view.scenario.restore]
@@ -2361,6 +2461,14 @@
   }
   function shortRevision(value) { return typeof value === "string" && value.length > 12 ? value.slice(0, 12) : text(value); }
   function finishedAt(ms) { return Number.isSafeInteger(ms) ? ms : -1; }
+  // The moment that matters for a project's latest run: started while running, requested while queued or awaiting
+  // approval, finished otherwise. Unrecorded instants read as not recorded.
+  function runMoment(health, run) {
+    const [label, ms, className] = health === "active" ? ["Started ", run.started_at_ms, "running-since"] : health === "queued" ? ["Requested ", run.created_at_ms, "meta"] : ["Finished ", run.completed_at_ms, "meta"];
+    const node = element("span", label, className);
+    node.append(when(ms));
+    return node;
+  }
   // r[impl kiln.web.project_page] Project names open the project's history page with a clean run selection.
   const CLEAR_RUN_SELECTION = Object.freeze({ run: "", node: "", stream: "", view: "", q: "", outcome: "", source: "", cursor: "", other: "", activity_cursor: "" });
   function projectLink(id, label, className) {
@@ -2408,8 +2516,12 @@
     const passed = groups.healthy.length;
     const active = groups.active.length + groups.queued.length;
     const denominator = passed + failing + active;
-    if (!total) body.append(emptyState("No projects configured", "No project health is recorded. Enroll an allowlisted repository to start source-bound runs."));
-    else {
+    // r[impl kiln.web.wayfinding.scenario.orientation] An empty workspace names its next step: enroll a project, or read the Guide first.
+    if (!total) {
+      const next = element("div", undefined, "cluster");
+      next.append(workspaceLink({ page: "projects" }, `Open ${ui.destination("projects").number} CI projects`, "button"), workspaceLink({ page: "guide" }, `Read ${ui.destination("guide").number} Guide`, "button"));
+      body.append(emptyState("No projects configured", "No project health is recorded. Enroll an allowlisted repository in CI projects to start source-bound runs.", next));
+    } else {
       const headline = element("p", undefined, "health-headline");
       headline.dataset.state = failing ? "failing" : "clear";
       headline.append(element("span", String(failing), "health-failing"), document.createTextNode(` failing of ${total} project${total === 1 ? "" : "s"}`));
@@ -2482,10 +2594,10 @@
         name.append(projectLink(project.id, project.label));
         cell("Status", livePill(latest.outcome, latest.phase), "project-row-status");
         cell("Project", name);
-        cell("Duration", elapsed(latest.duration_ms), "num project-row-duration");
-        // r[impl kiln.web.live_progress] Running projects show when their recorded run started instead of an absent finish.
-        if (project.health === "active") { const started = element("span", "Started ", "running-since"); started.append(when(latest.started_at_ms)); cell("Finished", started, "project-row-time"); }
-        else cell("Finished", when(latest.completed_at_ms), "project-row-time");
+        cell("Duration", ui.runDurationElement(latest), "num project-row-duration");
+        // r[impl kiln.web.live_progress] Running projects show when their recorded run started, and queued projects
+        // when they were requested, instead of an absent finish.
+        cell("Finished", runMoment(project.health, latest), "project-row-time");
         const actions = element("div", undefined, "project-row-actions");
         actions.append(logs, pipeline);
         cell("Inspect", actions, "project-row-actions-cell");
@@ -2657,7 +2769,7 @@
       }
       for (const project of group.projects) projectCard(project, target, group.shared ? "h4" : "h3");
     }
-    if (!state.projects.enrolled.length) parent.append(emptyState("No enrolled projects", "Enroll an allowlisted repository above to start source-bound runs."));
+    if (!state.projects.enrolled.length) parent.append(emptyState("No enrolled projects", "Enroll an allowlisted repository below to start source-bound runs."));
   }
   function projectCard(project, parent, headingLevel) {
     const card = element("section", undefined, "project-card card");
@@ -2726,9 +2838,7 @@
         logs.dataset.projectLogs = "";
         if (project.health === "failing") logs.prepend(ui.icon("triangle-alert"));
         card.querySelector(".project-actions")?.prepend(logs);
-        const finished = element("span", "Finished ");
-        finished.append(when(latest.completed_at_ms));
-        slot.append(ui.statusPill(latest.outcome, latest.phase), finished);
+        slot.append(ui.statusPill(latest.outcome, latest.phase), runMoment(project.health, latest));
       }
     } catch (error) {
       if (isAborted(error) || generation !== state.pageGeneration) return;
@@ -3203,8 +3313,15 @@
   // r[impl kiln.dashboard.complete.operations]
   function renderOperations(parent, result) {
     if (result.storage_failed) parent.append(element("p", "Durable storage is failed. Mutating admission is unavailable; no healthy state is inferred.", "warning"));
+    // Retained quantities read in human units with their share of the limit; the exact recorded counts stay beside them.
+    const quantity = (resource, value) => {
+      const bytes = typeof resource === "string" && resource.endsWith("bytes") ? ui.humanBytes(value) : "";
+      return bytes ? `${bytes} (${value.toLocaleString("en-US")} bytes)` : text(value);
+    };
+    const share = (used, maximum) => Number.isSafeInteger(used) && Number.isSafeInteger(maximum) && maximum > 0 ? ` · ${Math.floor((used / maximum) * 100)}% of the limit` : "";
+    const resourceName = (resource) => text(resource).replaceAll("_", " ");
     for (const warning of result.warnings || []) {
-      const row = element("div", undefined, "warning"); row.append(element("span", `${text(warning.code)}: ${text(warning.resource)} uses ${text(warning.used)} / ${text(warning.maximum)}. Retention admission may fail; no canonical data is automatically pruned.`));
+      const row = element("div", undefined, "warning"); row.append(element("span", `${resourceName(warning.resource)} near its retention limit: ${quantity(warning.resource, warning.used)} of ${quantity(warning.resource, warning.maximum)}${share(warning.used, warning.maximum)}. Retention admission may fail; no canonical data is automatically pruned. Code ${text(warning.code)}.`));
       if (warning.run_id) row.append(document.createTextNode(" "), runLink(warning.run_id, "Inspect affected run")); parent.append(row);
     }
     // r[impl kiln.web.page_consistency.scenario.data] Scalar capacity reads as metric tiles; project labels lead queue and provider rows with exact ids kept secondary.
@@ -3217,7 +3334,7 @@
     } else renderRecorded(capacity, result.capacity);
     const queue = section("Durable queue", parent, "view-stack");
     if (!result.queue?.length) queue.append(emptyState("Queue is empty", "No queued work in the admitted snapshot."));
-    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(projectLabel(row.project_id))}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms)); card.append(element("p", text(row.project_id), "mono meta"), runLink(row.run_id), queued); }
+    for (const row of result.queue || []) { const card = section(`Position ${text(row.position)} · ${text(projectLabel(row.project_id))}`, queue, "record-card"); const queued = element("p", "Queued ", "small"); queued.append(when(row.created_at_ms)); const link = runLink(row.run_id, `Run ${shortIdentity(row.run_id)}`); link.title = text(row.run_id); card.append(element("p", text(row.project_id), "mono meta"), link, queued); }
     const providers = section("Provider observations", parent, "view-stack");
     if (!result.providers?.length) providers.append(emptyState("No provider observations", "No provider observation is retained in this snapshot. Capacity is not inferred."));
     for (const row of result.providers || []) {
@@ -3238,7 +3355,7 @@
     }
     const usage = section("Retained usage & limits", parent, "view-stack");
     for (const row of result.usage || []) {
-      const card = section(text(row.resource), usage, "record-card"); card.append(element("p", `${text(row.used)} / ${text(row.maximum)}`, "small"));
+      const card = section(resourceName(row.resource), usage, "record-card"); card.append(element("p", `${quantity(row.resource, row.used)} of ${quantity(row.resource, row.maximum)}${share(row.used, row.maximum)}`, "small"));
       if (row.run_id) card.append(runLink(row.run_id, "Inspect retained run"));
       if (Number.isSafeInteger(row.used) && Number.isSafeInteger(row.maximum) && row.maximum > 0) { const meter = element("meter"); meter.min = 0; meter.max = row.maximum; meter.value = row.used; meter.setAttribute("aria-label", `${row.resource}: ${row.used} of ${row.maximum}`); card.append(meter); }
     }
@@ -3251,7 +3368,7 @@
     if (type === "checkbox") input.checked = value === true;
     else input.value = value ?? "";
     for (const [key, val] of Object.entries(bounds)) input[key] = val;
-    if (type === "checkbox") wrapper.append(input, document.createTextNode(label)); else wrapper.append(document.createTextNode(label), input);
+    if (type === "checkbox") wrapper.append(input, document.createTextNode(label)); else wrapper.append(element("span", label), input);
     input.disabled = !canOperate() || state.permissions.configure !== true;
     form.append(wrapper); return input;
   }
@@ -3380,6 +3497,7 @@
   // r[impl kiln.web.design_system] Web deviation: rail destinations and run tabs are links (new tab, history); plain clicks stay in-page.
   const plainClick = (event) => event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
   for (const node of document.querySelectorAll("a[data-page]")) node.addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate({ page: node.dataset.page }); } });
+  $("brand-home").addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate(HOME); } });
   for (const node of document.querySelectorAll("a[data-view]")) node.addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate({ view: node.dataset.view }); } });
   for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).addEventListener("click", () => { void prepareRerun(mode); });
   for (const id of ["app-theme", "app-density"]) $(id).addEventListener("change", () => navigate({ [id === "app-theme" ? "theme" : "density"]: $(id).value }));
