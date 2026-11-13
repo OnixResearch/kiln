@@ -18,7 +18,6 @@
   const FILTER_MAX_CHARS = 256;
   const LINE_INPUT_MAX_CHARS = 19;
   const SHORT_ID_LENGTH = 12;
-  const COPY_FEEDBACK_MS = 2_000;
   // Bounded read caches, keyed by exact revision identity; cleared with the session.
   const CACHE_LIMITS = Object.freeze({ log: 4, tree: 24, file: 8, diff: 4 });
   const VIEWS = Object.freeze(["files", "history", "changes"]);
@@ -481,11 +480,6 @@
     if (route.sline) card.append(element("p", `Line selection ${route.sline} needs a selected file; nothing is highlighted.`, "warning"));
     return card;
   }
-  function copyText(value, status, done) {
-    const report = (message) => { status.textContent = message; clearTimeout(status.timer); status.timer = setTimeout(() => { if (status.isConnected) status.textContent = ""; }, COPY_FEEDBACK_MS); };
-    if (!navigator.clipboard?.writeText) { report("Copying is unavailable in this browser context."); return; }
-    navigator.clipboard.writeText(value).then(() => report(done), () => report("Copying was refused by the browser; nothing was copied."));
-  }
   // The view's highlighting state: the language when highlighted, else one explicit note.
   function highlightNote(plan, tag) {
     const node = element(tag, plan.note ?? ui().languageLabel(plan.language), "src-highlight");
@@ -520,10 +514,10 @@
     const actions = element("div", undefined, "src-file-actions");
     const copyPath = button("Copy path", icon("copy"));
     copyPath.dataset.srcFocus = "copy-path";
-    copyPath.addEventListener("click", () => copyText(String(file.path), status, "Path copied."));
+    copyPath.addEventListener("click", () => ui().copyText(String(file.path), status, "Path copied."));
     const copyLink = button("Copy link", icon("link"));
     copyLink.dataset.srcFocus = "copy-link";
-    copyLink.addEventListener("click", () => copyText(location.href, status, selection.state === "ok" ? `Link to line${selection.start === selection.end ? "" : "s"} ${formatLineSelection(selection.start, selection.end)} copied.` : "Link copied."));
+    copyLink.addEventListener("click", () => ui().copyText(location.href, status, selection.state === "ok" ? `Link to line${selection.start === selection.end ? "" : "s"} ${formatLineSelection(selection.start, selection.end)} copied.` : "Link copied."));
     actions.append(copyPath, copyLink);
     if (!binary) {
       // Download writes exactly the retained text; binary objects have no retained text to offer.

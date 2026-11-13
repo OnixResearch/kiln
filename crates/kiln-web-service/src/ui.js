@@ -390,6 +390,19 @@
     return `${shown < ONE_DECIMAL_BELOW ? shown.toFixed(1) : shown} ${BYTE_UNITS[unit]}`;
   }
 
+  // Copy text to the clipboard and say what happened in a status element, which clears itself after a pause. Used by
+  // the Source page and the receipts page.
+  const COPY_FEEDBACK_MS = 2_000;
+  function copyText(value, status, done) {
+    const report = (message) => {
+      status.textContent = message;
+      clearTimeout(status.copyTimer);
+      status.copyTimer = setTimeout(() => { if (status.isConnected) status.textContent = ""; }, COPY_FEEDBACK_MS);
+    };
+    if (!navigator.clipboard?.writeText) { report("Copying is unavailable in this browser context."); return; }
+    navigator.clipboard.writeText(value).then(() => report(done), () => report("Copying was refused by the browser; nothing was copied."));
+  }
+
   // r[impl kiln.monorepo.console] Monorepo presentation: pure derivations over service JSON. A field
   // that is absent (an older record) yields null so callers render nothing; a malformed one is ignored.
   const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -673,7 +686,7 @@
     ["triage", "2.5", "Requests & triage", "Review incoming requests, keep their original source and decide what to take on next."],
     ["workviews", "2.6", "Saved views", "Return to private or shared filters, boards and favorites saved in this workspace."],
     ["source", "3.1", "Source", "Choose a repository and revision to browse files and changes without modifying source."],
-    ["reviews", "3.2", "Patchgate receipts", "Inspect retained review decisions. Producer verdicts do not grant acceptance authority."],
+    ["reviews", "3.2", "Patchgate receipts", "What Patchgate decided for each reviewed change, why and when. A receipt is evidence only: it never accepts or merges a change."],
     ["activity", "3.3", "Activity", "Browse retained canonical events and attributable audit decisions."],
     ["feeds", "3.4", "Feeds", "Subscribe to Atom feeds of retained runs and follow external repository feeds. Feeds are read-only projections, not CI evidence."],
     ["evidence", "3.5", "Evidence", "Choose a retained run to inspect its source, execution and recorded evidence."],
@@ -690,6 +703,6 @@
     return typeof number === "string" ? DESTINATION_GROUPS.find((group) => group.number === number) || null : null;
   }
 
-  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, humanBytes, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList, liveActivity, presentedRunning, runTiming, runDurationElement, runInstantElement, destinations: DESTINATIONS, destinationGroups: DESTINATION_GROUPS, destination, destinationGroup });
+  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, humanBytes, copyText, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList, liveActivity, presentedRunning, runTiming, runDurationElement, runInstantElement, destinations: DESTINATIONS, destinationGroups: DESTINATION_GROUPS, destination, destinationGroup });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

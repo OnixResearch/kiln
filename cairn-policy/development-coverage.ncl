@@ -5,6 +5,7 @@ let Accepted = std.array.at 0 Base.traceability_policy.profiles in
 let ActiveRoots = [
   ".cairn/changes/adopt-technical-graphics-standard/specs/visual-identity/spec.md",
   ".cairn/changes/adopt-technical-graphics-standard/specs/live-console-design/spec.md",
+  ".cairn/changes/clarify-patchgate-receipts/specs/patchgate-review-adapter/spec.md",
 ] in
 let Active =
   Accepted

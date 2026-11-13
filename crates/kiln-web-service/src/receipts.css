@@ -1,0 +1,103 @@
+/* r[impl kiln.dashboard.reviews.view] Patchgate receipts: the receipt list beside the selected receipt, read from the
+   human facts down to the exact ones. Shared tokens and components only (panels, fact tables, pills, disclosures). */
+.receipts-layout { display: grid; grid-template-columns: minmax(18rem, 25rem) minmax(0, 1fr); gap: var(--space-4); align-items: start; min-width: 0; }
+.receipts-list-panel, .receipts-detail { display: grid; gap: var(--space-3); align-content: start; min-width: 0; }
+.receipts-list-panel > * + *, .receipts-detail > * + * { margin-top: 0; }
+.receipts-list-head { display: grid; gap: .15rem; }
+.receipts-list-head > h2 { font-size: var(--text-lg); font-weight: 700; }
+.receipts-list-head > p { margin: 0; }
+
+/* Filters narrow the list at once. */
+.receipts-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(8rem, 11rem); gap: var(--space-2); align-items: end; }
+.receipts-field { display: grid; gap: var(--space-1); min-width: 0; }
+.receipts-field > label { margin: 0; }
+.receipts-tools { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 2rem; }
+.receipts-tools > p { margin: 0; }
+.receipts-no-match > p, .receipts-hidden { margin: 0; }
+
+/* The list reads as a ruled register: one row per receipt, the selection an inverted-tone cell with an ink frame. */
+.receipts-list { display: grid; margin: 0; padding: 0; list-style: none; max-height: min(70vh, 48rem); overflow-y: auto; border-block: 1px solid var(--frame); }
+.receipts-list > li:last-child { border-bottom: 0; }
+.receipts-list > li { min-width: 0; border-bottom: 1px solid var(--border); }
+.receipt-row { display: grid; gap: .35rem; min-width: 0; padding: var(--space-3) var(--space-2); color: var(--foreground); text-decoration: none; }
+.receipt-row:hover { background: var(--list-hover); text-decoration: none; }
+.receipt-row[aria-current="true"] { background: var(--list-active); box-shadow: inset 0 0 0 1px var(--list-active-border); }
+.receipt-row:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.receipt-row-tally, .receipt-row-flags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); min-width: 0; }
+.receipt-row-title { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: var(--text-md); font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.receipt-row-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem var(--space-3); min-width: 0; color: var(--muted-foreground); font-size: var(--text-xs); }
+.receipt-row-meta code { font-family: var(--mono); overflow-wrap: anywhere; }
+
+/* Selected receipt and the legend shown before a selection. */
+.receipts-back { display: none; justify-self: start; }
+.receipt-howto { display: grid; gap: var(--space-3); }
+.receipt-howto > * { margin: 0; }
+.receipt-howto > h2 { font-size: var(--text-lg); font-weight: 700; }
+.receipt-legend .receipt-next { display: block; margin-top: .2rem; color: var(--muted-foreground); font-size: var(--text-xs); }
+.receipt-sheet { display: grid; gap: var(--space-4); min-width: 0; }
+.receipt-sheet > * { margin: 0; }
+.receipt-head { display: grid; gap: var(--space-1); padding-bottom: var(--space-3); border-bottom: 2px solid var(--foreground); }
+.receipt-head > * { margin: 0; }
+.receipt-title { font-size: var(--text-2xl); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; }
+.receipt-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem var(--space-3); color: var(--muted-foreground); font-size: var(--text-sm); }
+.receipt-file { color: var(--foreground); font-family: var(--mono); overflow-wrap: anywhere; }
+
+/* The tally is one ruled readout: a count over its decision, coloured by the decision's tone. */
+.receipt-tally { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr)); overflow: hidden; border: 1px solid var(--frame); background: var(--secondary); }
+.receipt-tally > p { margin: 0; padding: var(--space-2) var(--space-3); }
+.receipt-tally-cell { display: grid; gap: .1rem; min-width: 0; margin-right: -1px; padding: var(--space-2) var(--space-3); border-right: 1px solid var(--border); }
+.receipt-tally-count { font: 600 1.6rem/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.receipt-tally-label { color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; overflow-wrap: anywhere; }
+.receipt-tally-cell[data-tone="success"] .receipt-tally-count { color: var(--success); }
+.receipt-tally-cell[data-tone="failure"] .receipt-tally-count { color: var(--danger); }
+.receipt-tally-cell[data-tone="warning"] .receipt-tally-count { color: var(--warning); }
+.receipt-tally-cell[data-tone="queued"] .receipt-tally-count { color: var(--queued); }
+.receipt-tally-cell[data-tone="cancelled"] .receipt-tally-count { color: var(--cancelled); }
+.receipt-tally-cell[data-tone="unknown"] .receipt-tally-count { color: var(--unknown); }
+.receipt-evidence { padding: var(--space-2) var(--space-3); border: 1px solid var(--border-emphasis); background: var(--muted); font-size: var(--text-sm); line-height: 1.55; }
+.receipt-binding { display: grid; gap: var(--space-2); justify-items: start; padding-block: var(--space-2); border-block: 1px solid var(--border); }
+.receipt-binding > .facts { justify-self: stretch; }
+
+/* Sections carry a technical label over an ink hairline. */
+.receipt-section { display: grid; gap: var(--space-2); min-width: 0; }
+.receipt-section-title { margin: 0; padding-bottom: var(--space-1); border-bottom: 1px solid var(--frame); color: var(--foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+
+/* One entry per change: decision and message first, then the recorded facts, then the exact hash. */
+.receipt-changes { display: grid; margin: 0; padding: 0; list-style: none; }
+.receipt-change { display: grid; gap: var(--space-2); min-width: 0; padding-block: var(--space-3); border-bottom: 1px solid var(--border); }
+.receipt-change:first-child { padding-top: var(--space-1); }
+.receipt-change > * { margin: 0; }
+.receipt-change-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+.receipt-change-title { flex: 1 1 12rem; min-width: 0; font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
+.receipt-change-head > .relative-time { color: var(--muted-foreground); font-size: var(--text-xs); }
+.receipt-change-meaning { color: var(--muted-foreground); font-size: var(--text-sm); line-height: 1.55; }
+.receipt-change-meaning > .receipt-next { color: var(--foreground); }
+.receipt-needs { display: grid; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
+.receipt-needs > li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.receipt-hash { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.receipt-hash code, .receipt-identity code, .receipt-needs code { font-family: var(--mono); overflow-wrap: anywhere; user-select: all; }
+.receipt-copy { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.receipt-copy-button { font-family: var(--sans); font-size: var(--text-xs); white-space: nowrap; }
+.receipt-copy-status { margin: 0; }
+.receipt-more > summary, .receipt-raw > summary, .receipt-skipped-disclosure > summary { color: var(--foreground); font-weight: 600; }
+.receipt-raw > pre { max-height: 28rem; }
+.receipt-unavailable { padding: var(--space-3); border: 1px dashed var(--border-emphasis); }
+
+@media (max-width: 65rem) {
+  .receipts-layout { grid-template-columns: minmax(0, 1fr); }
+  /* With a receipt selected, the receipt comes first and a link returns to the whole list. */
+  .receipts-layout[data-selected="true"] > .receipts-detail { order: -1; }
+  .receipts-layout[data-selected="true"] .receipts-back { display: inline-flex; }
+  .receipts-list { max-height: none; }
+}
+@media (max-width: 40rem) {
+  .receipts-filters { grid-template-columns: minmax(0, 1fr); }
+  .receipt-title { font-size: var(--text-xl); }
+}
+@media (max-width: 60rem) {
+  .receipt-row { min-height: 2.75rem; }
+}
+@media (forced-colors: active) {
+  .receipt-row[aria-current="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .receipt-tally, .receipt-evidence { border: 1px solid CanvasText; }
+}

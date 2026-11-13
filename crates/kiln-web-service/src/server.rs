@@ -895,6 +895,12 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 include_bytes!("source.js"),
             ),
             "/source.css" => ("text/css; charset=utf-8", include_bytes!("source.css")),
+            // r[impl kiln.dashboard.reviews.view] Patchgate receipts page module, served like the source page.
+            "/receipts.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("receipts.js"),
+            ),
+            "/receipts.css" => ("text/css; charset=utf-8", include_bytes!("receipts.css")),
             // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             // r[impl kiln.identity.shared] The shared identity, then the catalog shell it styles.

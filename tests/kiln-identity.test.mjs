@@ -10,7 +10,7 @@ const CATALOG = "crates/kiln-dashboard/src/render/catalog.css";
 const WEB = "crates/kiln-web-service/src";
 // Each surface with the stylesheets it loads after the identity.
 const SURFACES = Object.freeze({
-  "live console": [CATALOG, `${WEB}/web.css`, `${WEB}/work.css`, `${WEB}/work-interaction.css`, `${WEB}/code-review.css`, `${WEB}/project.css`, `${WEB}/source.css`],
+  "live console": [CATALOG, `${WEB}/web.css`, `${WEB}/work.css`, `${WEB}/work-interaction.css`, `${WEB}/code-review.css`, `${WEB}/project.css`, `${WEB}/source.css`, `${WEB}/receipts.css`],
   "offline catalog": [CATALOG],
   "offline report": ["crates/kiln-dashboard/src/render/html.css"],
   "hosted bridge page": ["crates/kiln-hosted/src/web.css"],

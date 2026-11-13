@@ -93,6 +93,15 @@ entry describes the source tree prepared for the first tagged release.
   destinations, run states, terms and keys, names timing a run cannot have yet
   and shows byte quantities in binary units. (node tests; reviewed in a browser
   over synthetic data, not a running service)
+- One Patchgate receipt presentation for the receipts page and a run's Reviews
+  tab. All nine admitted decisions read in their own words with their meaning
+  and Patchgate's next step. Each change shows its message, paths, decider,
+  time and reason from the native report, labeled as recorded by Patchgate. The
+  list leads with the newest decision, names each receipt by its first change,
+  and filters by text and decision. `/api/reviews` adds each receipt's first
+  change message and latest decision time. (node and Rust tests; reviewed in a
+  browser over the real reviews API with synthetic receipts, not a running
+  service)
 
 **Change review**
 

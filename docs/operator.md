@@ -275,20 +275,71 @@ authenticity claim. Review never grants acceptance or release authority.
 
 ### Inspect retained receipts in the workspace
 
-The run inspector's **Reviews** tab reads the run's retained reports and selects
-only documents whose schema is `kiln.patchgate.review.v1`. For each receipt it
-shows the preserved effect, candidate, candidate-root, pipeline-revision,
-policy, provider-profile, native-binding and report identities, the request
-identity, the recorded time and source revision, one row per change with its
-normalized decision, the producer's `isolated` and `authorizes_acceptance`
-claims, and the verbatim native report.
+<!-- r[impl kiln.dashboard.reviews.view] -->
+The **Patchgate receipts** page (3.2 in the console's numbering) and each run's
+**Reviews** tab show a receipt the same way, from the human facts to the exact
+ones:
 
-Decisions stay distinct: rejected, escalated, blocked, waiting, pending,
-removed, reverted and unknown are never folded into "passed". A run with no
-receipt says so explicitly; unrelated reports remain under **Tests & coverage**.
-The view is read-only, never dispatches Patchgate, and grants no review, merge,
-gate or release authority. Upload the receipt JSON as a `review` report to
-retain it for the run.
+1. A headline with the first change's message, the receipt file and the latest
+   decision time, and a tally of decisions with what needs a person first.
+2. A plain statement that the receipt is evidence only. It warns when the
+   producer claims acceptance authority, when isolation is not recorded, or
+   when Patchgate's report cannot be read.
+3. One entry per change: its decision and what that decision means, Patchgate's
+   next step, and the change's message, paths, decider (Patchgate's rules, a
+   model or a person), decision time, reason and prerequisites. Below these
+   come the full change hash with a copy control, and any model, context
+   coverage, Nix check or secret-finding evidence.
+4. The review context: the main and inbox channel states, the trusted
+   configuration and policy, protected and documentation paths, model requests
+   and review time, and the Patchgate and Pijul versions.
+5. The exact identities: the receipt's BLAKE3 and size, plus the request,
+   report, effect, idempotency, candidate, candidate-root, pipeline-revision,
+   policy, provider-profile and native-binding identities, and the producer's
+   `isolated` and `authorizes_acceptance` claims.
+6. Patchgate's report verbatim, then the complete receipt.
+
+Each decision comes from Kiln's admitted observation. Messages, paths,
+deciders, reasons and times are read from Patchgate's native report and are
+labeled as recorded by Patchgate. A report that is not readable JSON leaves
+every decision in place and marks that context unavailable.
+
+All nine decisions read in their own words. The meanings follow Patchgate's
+state model:
+
+| Decision | Meaning | Next in Patchgate |
+| --- | --- | --- |
+| Accepted | Patchgate accepted the change | — |
+| Rejected | It stays in the inbox and is not applied to main | Remove or replace it, then record a corrected change |
+| Escalated | A person must decide (protected path, unmerged conflict, oversized change, unsettled review) | Resolve it in a separate workspace, or reject it |
+| Blocked | A prerequisite was rejected, escalated, removed, blocked or is unknown | Decide the prerequisites first |
+| Waiting | A prerequisite is not in main yet | Decide the prerequisites first |
+| Pending | Not decided yet | Review the change |
+| Removed | Accepted before, no longer in main | Examine the removal before deciding again |
+| Reverted | Accepted, then removed with `patchgate revert` | Examine the removal before deciding again |
+| Unknown | A decision record Patchgate does not recognize | Examine the channel and the prerequisites |
+
+Any other value reads as "Unrecognized" with the recorded text, and a missing
+one reads as "Not recorded". Neither reads as accepted. None of these
+decisions is folded into "passed".
+
+The page lists receipts newest decision first. Each is named by its first
+change's message and shows a tally, the number of changes, the decision time,
+and a flag when the producer claims authority or isolation is not recorded.
+Search narrows the list by file name, message, change hash or the candidate,
+effect or report identity. The decision filter, including **Needs attention**
+for Patchgate's stuck states, narrows it as you type. Both filters are kept in
+the URL (`receipt_q`, `receipt_decision`). A selected receipt that the filters
+hide stays selected. The arrow keys move between receipts. With nothing
+selected, the right-hand panel explains every decision.
+
+In a run's **Reviews** tab, each receipt also shows when it was retained, its
+review node, source revision and report record, and offers **Download exact
+receipt** for the retained bytes. A review report that the run declared but
+that is missing or unreadable is shown as unavailable. Other reports stay under
+**Tests & coverage**. Both surfaces are read-only, never dispatch Patchgate and
+grant no review, merge, gate or release authority. Upload the receipt JSON as a
+`review` report to retain it for a run.
 
 ### Retained receipt directory
 
@@ -304,13 +355,18 @@ nickel export --format json --output "$KILN_REVIEWS_PROFILE" "$KILN_REVIEWS_NCL"
 kiln-web-service check --profile "$KILN_SERVICE_PROFILE" --reviews "$KILN_REVIEWS_PROFILE"
 ```
 
-`/api/reviews` returns the label, each receipt's name, byte count, BLAKE3,
-effect/candidate/report identities, per-decision counts and the producer's
-`isolated` and `authorizes_acceptance` claims; `/api/reviews/NAME` returns the
-verbatim document. Non-receipt entries, symlinks, oversized files and documents
-with another schema are listed under `skipped` with a reason, never as empty
-success. The directory is server-owned; names are bounded and traversal is
-rejected. Readers are authenticated viewers/operators; workers are denied.
+`/api/reviews` returns the label, plus each receipt's name, byte count, BLAKE3,
+effect, candidate and report identities, per-decision counts, normalized
+decisions, and the producer's `isolated` and `authorizes_acceptance` claims.
+For listing, it adds two facts read from Patchgate's native report:
+`first_change_message` (the first line of the first normalized change's
+recorded message, at most 160 characters) and `latest_decision_at_ms` (the
+latest RFC 3339 decision time among the native records). Both are null when the
+report cannot be read. `/api/reviews/NAME` returns the verbatim document.
+Non-receipt entries, symlinks, oversized files and documents with another
+schema are listed under `skipped` with a reason, never as empty success. The
+directory is server-owned; names are bounded and traversal is rejected. Readers
+are authenticated viewers/operators; workers are denied.
 
 ### Produce and retain one receipt
 

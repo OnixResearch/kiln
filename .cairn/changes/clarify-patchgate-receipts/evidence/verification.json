@@ -1,0 +1,101 @@
+{
+  "schema": "kiln.patchgate-receipts.verification.v1",
+  "observed_on": "2026-11-13",
+  "scope": "The Patchgate receipts page, the shared receipt sheet in a run's Reviews tab, and the bounded first-change message and latest-decision time added to the authenticated receipt inventory. Not a qualification of Patchgate, the complete web service or any deployment.",
+  "owner": "Kiln web-service and dashboard maintainers",
+  "capability": {
+    "consumer": "Operators and reviewers reading retained Patchgate receipts in the live console",
+    "outcome": "Find a receipt by its reviewed change or decision, then read what was decided, by whom, why and when before the exact identities",
+    "durable_contribution": "One receipt presentation shared by the directory page and the run tab, with one tested vocabulary for all nine normalized decisions",
+    "repeatability": "Repository-owned Node and Rust tests plus the bounded browser observations below"
+  },
+  "authority": {
+    "boundary": "Working-copy implementation and verification only",
+    "not_granted": ["lifecycle acceptance", "spec synchronization", "archive", "commit", "publication", "deployment", "receipt production", "review or merge authority"]
+  },
+  "source": {
+    "parent_revision": "3a1db8495e1a",
+    "state": "Uncommitted working-copy change clarify-patchgate-receipts",
+    "rust_verification_boundary": "Rust tests and Clippy ran after the Rust formatting changes. Subsequent edits were receipt JavaScript presentation fixes, exercised by the final Node rail and browser checks, not Rust semantic changes."
+  },
+  "environment": {
+    "platform": "x86_64-linux, one host",
+    "rustc": "1.88.0 (6b00bc388 2025-06-23)",
+    "cargo": "1.88.0 (873a06493 2025-05-10)",
+    "cargo_target_dir": "/home/brittonr/.cargo-target-kiln-full",
+    "openssl": "Existing Nix store OpenSSL 3.6.4 development output via pkg-config-wrapper 0.29.2, not the flake derivation",
+    "node": "Host Node v26.8.1, not the flake nodejs",
+    "browser": "Headless Chromium 157 via the omp browser helper",
+    "cairn": "Host executable with the repository's generated Cairn policy",
+    "nix_develop": "Attempt produced no output and was canceled before reaching Cargo. The prior graphics-standard change recorded a busy evaluation cache; that cause was not established for this attempt. Host-toolchain verification was used instead."
+  },
+  "rails": [
+    {
+      "command": "node --check crates/kiln-web-service/src/receipts.js",
+      "exit_code": 0
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs tests/kiln-identity.test.mjs tests/work-views.test.mjs",
+      "exit_code": 0,
+      "passed": 63,
+      "failed": 0,
+      "scope": "Final receipt JavaScript, native-context handling, decision and tally boundaries, list ordering and filtering, and the shared identity checks including receipts.css"
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service",
+      "exit_code": 0,
+      "passed": 390,
+      "failed": 0,
+      "ignored": 1,
+      "receipt_tests_observed": [
+        "retained_receipts_are_listed_with_exact_identities_and_decisions",
+        "list_facts_name_a_receipt_by_its_first_change_and_order_it_by_its_latest_decision",
+        "unconfigured_and_unsafe_receipt_requests_stay_explicit"
+      ]
+    },
+    {
+      "command": "cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo fmt -p kiln-web-service -- --check -l",
+      "exit_code": 0,
+      "formatting": "rustfmt --edition 2024 on the two changed review Rust files; no unrelated formatting"
+    }
+  ],
+  "browser_review": {
+    "method": "Real working-tree console assets served by a throwaway loopback Node preview. /api/reviews and /api/reviews/NAME proxied to the real kiln_web_service::reviews::Browser in a throwaway Rust stores backend over a private receipt directory. The directory held seven readable receipts and four entries the API skipped. Run-bound report envelopes and the other console endpoints used synthetic preview data; the empty-directory case also used the real Rust reviews API, and unconfigured and unavailable cases used explicit preview responses.",
+    "boundary": "Synthetic receipts, one headless Chromium, and a local preview, not the deployed kiln-web-service executable, the actual Patchgate execution, Firefox, Safari, a physical touch device or a screen reader",
+    "appearances": ["1440px light", "1440px dark", "390px light", "390px dark"],
+    "observations": {
+      "decisions": "Accepted, rejected, escalated, blocked, waiting, pending, removed, reverted and unknown inspected in the legend, receipt list and selected sheets. Unrecognized values remain unrecognized; unreadable native reports retain their normalized decisions.",
+      "information_order": "Headline and tally, evidence-only statement, changes and their recorded context, review context, exact identities, verbatim native report and complete receipt",
+      "producer_claims": "Receipt claiming acceptance authority and lacking isolation shows both warnings; Kiln grants no acceptance authority",
+      "filters": "Needs attention returned five of seven preview receipts; toolchain returned inbox-review-0040.json; unmatched text showed an explicit zero-match state; Clear filters restored all seven",
+      "url_state": "Text and decision filter parameters committed to the URL and restored on reload",
+      "hidden_selection": "Filtering to toolchain while inbox-review-0042.json was selected left Serve on port 9090 selected, showed the selected-receipt-hidden notice, and retained both selection and filter after reload",
+      "keyboard": "ArrowDown and ArrowUp move between visible receipt links. Side-by-side selection keeps row focus; stacked selection moves to the receipt title; All receipts returns focus to the opened row",
+      "copy": "Change hash copy control reported Change hash copied",
+      "headline": "A receipt without a recorded message uses its file name as the headline without repeating it in the meta line",
+      "run_receipts": "Retained receipt uses the shared sheet and shows its run binding and Download exact receipt control. Declared-but-missing report says unavailable with no decision inferred. A run without a receipt explicitly says it is not a clean review and leaves its other reports under Tests & coverage",
+      "absence": "Empty directory, no configured directory, unavailable inventory and an exact missing receipt each read explicitly. Missing receipt is not substituted; its error statement is not duplicated",
+      "error_punctuation": "An API message lacking terminal punctuation reads as a separate sentence from the recovery guidance",
+      "narrow": {
+        "width": 390,
+        "appearances": ["light", "dark"],
+        "horizontal_overflow_px": 0,
+        "visible_controls_under_44px": 0
+      },
+      "console_errors": 0,
+      "off_origin_requests": 0,
+      "request_sample": "79 requests recorded in the keyboard, copy and headline inspection; all remained on the preview origin"
+    }
+  },
+  "not_run": [
+    {"rail": "Nix dev-shell or flake checks", "reason": "Dev-shell attempt canceled before reaching Cargo; host-toolchain rails are reported without claiming flake equivalence"},
+    {"rail": "Workspace-wide Rust, Octet, Bombadil and full web-service smoke rails", "reason": "Outside this receipt-presentation and inventory projection change; focused crate and Node rails ran"},
+    {"rail": "Downloading a run-bound artifact end to end", "reason": "The preview used synthetic run-report envelopes. The receipt reuses the existing authenticated artifact downloader; only the real control and binding were inspected here"},
+    {"rail": "Physical touch device and screen-reader operation", "reason": "Only Chromium viewport, focus, target geometry and keyboard observations are claimed"},
+    {"rail": "Patchgate execution, publication and deployment", "reason": "Not part of this read-only presentation change and not authorized by it"}
+  ]
+}

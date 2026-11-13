@@ -1145,9 +1145,9 @@
     // r[impl kiln.dashboard.source.view] Source reads, caches and selections live in source.js.
     window.KilnSource?.clear();
     $("source-content").replaceChildren();
-    $("reviews-list").replaceChildren();
-    $("reviews-detail").replaceChildren();
-    $("reviews-status").textContent = "";
+    // r[impl kiln.dashboard.reviews.view] Receipt reads and filters live in receipts.js.
+    window.KilnReceipts?.clear();
+    $("receipts-content").replaceChildren();
     // r[impl kiln.dashboard.workers.view.scenario.cleared]
     $("workers-content").replaceChildren();
     $("worker-search").value = "";
@@ -1295,7 +1295,7 @@
       cob: params.get("cob") || "", cob_repo: params.get("cob_repo") || "", cob_kind: params.get("cob_kind") || "",
       src: params.get("src") || "", rev: params.get("rev") || "", spath: params.get("spath") || "", sfile: params.get("sfile") || "", sq: (params.get("sq") || "").slice(0, 256),
       sview: ["history", "changes"].includes(params.get("sview")) ? params.get("sview") : "", sline: (params.get("sline") || "").slice(0, 32),
-      receipt: (params.get("receipt") || "").slice(0, 128),
+      receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(workerStatuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
@@ -1335,6 +1335,7 @@
     if (previous?.page === "code-review" && state.route.page !== "code-review") window.KilnCodeReview?.clear();
     if (previous?.page === "project" && state.route.page !== "project") window.KilnProject?.clear();
     if (previous?.page === "source" && state.route.page !== "source") window.KilnSource?.clear();
+    if (previous?.page === "reviews" && state.route.page !== "reviews") window.KilnReceipts?.clear();
     // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
     if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
@@ -1466,6 +1467,7 @@
     ["Worker target", "A configured execution target with project admission slots. It is not a discovered machine or a health check."],
     ["Retained", "Kept by this service within its bounds. Views show retained records, not a complete history."],
     ["Evidence", "Recorded source, execution, report, review and provenance facts for a run. Evidence is not acceptance or release authority."],
+    ["Receipt", "Patchgate's recorded review of inbox changes: one decision per change and Patchgate's own report, kept byte for byte. A receipt never accepts or merges a change."],
     ["Viewer and operator", "Viewers read. Operators can also enroll projects and start, cancel, approve and rerun runs; the service checks every request again."],
   ]);
   // One Guide sheet: a framed panel with its section title.
@@ -1924,14 +1926,21 @@
       if (!window.KilnSource) { $("source-content").replaceChildren(element("p", "Source browser is loading.", "small")); return; }
       await window.KilnSource.load($("source-content"), { api, navigate, route });
     }
-    if (route.page === "reviews") await loadReviewsPage();
+    // r[impl kiln.dashboard.reviews.view] The Patchgate receipts page renders through receipts.js.
+    if (route.page === "reviews") {
+      if (!window.KilnReceipts) { $("receipts-content").replaceChildren(element("p", "Patchgate receipts are loading.", "small")); return; }
+      await window.KilnReceipts.load($("receipts-content"), { api, navigate, route });
+    }
     if (route.page === "runs") await loadRunView();
   }
   async function loadRunView() {
     const route = state.route;
     if (!route.run || route.page !== "runs") return;
     if (route.view === "tests") await renderEndpoint(`${pathFor(route.run)}/reports`, "reports-content", renderReports);
-    if (route.view === "reviews") await renderEndpoint(`${pathFor(route.run)}/reports`, "reviews-content", renderReviews);
+    if (route.view === "reviews") await renderEndpoint(`${pathFor(route.run)}/reports`, "reviews-content", (parent, result) => {
+      if (!window.KilnReceipts) { parent.append(element("p", "Patchgate receipts are loading.", "small")); return; }
+      window.KilnReceipts.renderRun(parent, result, { download: (artifact, button) => downloadArtifact(result.run_id || route.run, artifact, button) });
+    });
     if (route.view === "compare") {
       void loadRunChoices();
       if (route.other) await renderEndpoint(`${pathFor(route.run)}/compare?${new URLSearchParams({ other: route.other })}`, "compare-content", renderComparison);
@@ -2286,91 +2295,6 @@
     }
     for (const boundary of result.non_claims || []) parent.append(element("p", boundary, "small"));
     void attachPatchSources(parent, object);
-  }
-  // r[impl kiln.dashboard.reviews.view]
-  function retainedDecisionLabel(decision) {
-    if (typeof decision !== "string" || !decision) return "Unknown (not recorded)";
-    return ["accepted", "rejected", "escalated", "blocked"].includes(decision) ? decision : `Unrecognized decision: ${decision}`;
-  }
-  function reviewDecisionBadges(parent, counts) {
-    const badges = element("div", undefined, "badges");
-    for (const [decision, count] of Object.entries(counts || {}).sort()) {
-      badges.append(decisionPill(decision, `${retainedDecisionLabel(decision)} · ${count}`));
-    }
-    if (!badges.childElementCount) badges.append(element("span", "No review rows recorded", "state-badge"));
-    parent.append(badges);
-  }
-  async function loadReviewsPage() {
-    const route = state.route;
-    const current = beginBrowsingLoad("reviews", route);
-    $("reviews-list").replaceChildren();
-    const detail = $("reviews-detail"); detail.replaceChildren();
-    if (route.receipt) {
-      browsingClear(detail, "Clear selected receipt", { receipt: "" });
-      detail.append(element("p", `Selected receipt: ${route.receipt}`, "identity"), element("p", "Loading retained receipt…", "small"));
-    } else detail.append(element("h2", "Select a receipt"), element("p", "Choose a retained receipt. No receipt is selected automatically.", "small"));
-    $("reviews-status").textContent = "Reading retained receipts…";
-    let inventory = null;
-    try { inventory = await api("/api/reviews"); }
-    catch (error) { if (!current() || isAborted(error)) return; $("reviews-status").textContent = `Receipt inventory unavailable: ${explain(error)}. Exact selection is inspected independently.`; }
-    if (!current()) return;
-    const list = $("reviews-list");
-    const receipts = Array.isArray(inventory?.receipts) ? inventory.receipts : [];
-    if (inventory) $("reviews-status").textContent = inventory.configured
-      ? `${receipts.length} retained receipt${receipts.length === 1 ? "" : "s"} in ${text(inventory.label)}${(inventory.skipped || []).length ? ` · ${inventory.skipped.length} entry(ies) skipped` : ""}`
-      : "No receipt directory is configured. The operator must admit a separate --reviews policy; this is not proof that no receipt exists.";
-    for (const skipped of inventory?.skipped || []) list.append(element("p", `Skipped retained entry: ${text(typeof skipped === "string" ? skipped : JSON.stringify(skipped))}. No verdict is inferred.`, "warning"));
-    for (const receipt of receipts) {
-      const link = element("a", undefined, "run-choice cob-choice");
-      link.href = `?${new URLSearchParams({ ...state.route, page: "reviews", receipt: receipt.name })}`;
-      if (receipt.name === route.receipt) link.setAttribute("aria-current", "true");
-      const head = element("div", undefined, "cob-head");
-      head.append(element("span", text(receipt.provider_profile), "cob-type"), element("span", `${text(receipt.bytes)} bytes`, "cob-repo"));
-      link.append(head, element("strong", text(receipt.name), "cob-title"));
-      const summary = element("span", `${Object.entries(receipt.decision_counts || {}).map(([d, c]) => `${retainedDecisionLabel(d)} ${c}`).join(" · ") || "no decisions"} · acceptance authority ${receipt.authorizes_acceptance === true ? "producer claim, not granted" : receipt.authorizes_acceptance === false ? "none" : "unknown (not recorded)"}`, "small");
-      link.append(summary);
-      link.addEventListener("click", (event) => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); navigate({ page: "reviews", receipt: receipt.name }); } });
-      list.append(link);
-    }
-    if (inventory && !receipts.length) list.append(element("p", inventory.configured ? "No receipts are retained in the configured directory." : "No receipt directory is configured.", "small"));
-    if (!route.receipt) return;
-    const content = element("div", undefined, "view-stack");
-    detail.replaceChildren();
-    browsingClear(detail, "Clear selected receipt", { receipt: "" });
-    detail.append(element("p", `Selected receipt: ${route.receipt}`, "identity"), content);
-    if (inventory && !receipts.some((receipt) => receipt.name === route.receipt)) detail.append(element("p", "This exact receipt is not in the current inventory. No other receipt was substituted.", "warning"));
-    content.append(element("p", "Loading retained receipt…", "small"));
-    let record;
-    try { record = await api(`/api/reviews/${encodeURIComponent(route.receipt)}`); }
-    catch (error) { if (!isAborted(error) && current()) content.replaceChildren(element("p", `Receipt unavailable: ${explain(error)}`, "warning")); return; }
-    if (!current()) return;
-    content.replaceChildren();
-    const document = record.document;
-    const heading = section(text(record.name), content, "record-card");
-    const facts = element("dl", undefined, "facts");
-    const observation = document.observation || {};
-    addFacts(facts, [["Retained bytes", record.bytes], ["BLAKE3", record.blake3], ["Effect", observation.effect_id], ["Candidate", observation.candidate_id], ["Report identity", observation.report_identity], ["Acceptance authority", observation.authorizes_acceptance === true ? "producer claims authority (not granted)" : observation.authorizes_acceptance === false ? "none" : "Unknown (not recorded)"], ["Isolated", observation.isolated === true ? "yes" : observation.isolated === false ? "no" : "Unknown (not recorded)"]]);
-    heading.append(facts);
-    const reviews = Array.isArray(observation.reviews) ? observation.reviews : [];
-    reviewDecisionBadges(heading, reviews.reduce((counts, row) => { const decision = typeof row?.decision === "string" ? row.decision : ""; counts[decision] = (counts[decision] || 0) + 1; return counts; }, Object.create(null)));
-    if (reviews.length) {
-      const table = element("table", undefined, "review-table");
-      const head = element("tr");
-      for (const label of ["Change", "Decision"]) head.append(element("th", label));
-      const thead = element("thead"); thead.append(head); table.append(thead);
-      const body = element("tbody");
-      for (const row of reviews) {
-        const line = element("tr");
-        const decision = element("td");
-        decision.append(decisionPill(row?.decision, retainedDecisionLabel(row?.decision)));
-        line.append(element("td", renderChangeRef(row?.change), "review-change"), decision);
-        body.append(line);
-      }
-      table.append(body); heading.append(table);
-    }
-    if (typeof document.native_report === "string") { const details = element("details"); details.append(element("summary", "Retained native report · verbatim text"), element("pre", document.native_report, "identity")); heading.append(details); }
-    const raw = element("details"); raw.append(element("summary", "Complete retained receipt fields"), element("pre", JSON.stringify(document, null, 2), "identity")); heading.append(raw);
-    for (const boundary of record.non_claims || []) detail.append(element("p", boundary, "small"));
   }
   // r[impl kiln.web.minimal_console]
   // r[impl kiln.dashboard.complete.overview]
@@ -3163,99 +3087,6 @@
         else renderEvidence(card, report.evidence);
       }
     }
-  }
-  // r[impl kiln.dashboard.reviews.view]
-  function patchgateReceipts(result) {
-    const records = Array.isArray(result.reports) ? result.reports : [];
-    return records.filter((record) => {
-      const report = record.report || record;
-      return report?.kind === "review" && report?.evidence?.document?.schema === "kiln.patchgate.review.v1";
-    });
-  }
-  // Producer decisions are evidence, not CI outcomes; map them to semantic tones only.
-  function decisionPill(decision, label) {
-    const status = decision === "accepted" ? "success" : decision === "rejected" || decision === "blocked" ? "failure" : decision === "escalated" ? "warning" : "unknown";
-    return statePill(status, label, typeof decision === "string" && decision ? `Recorded decision: ${decision}` : "Decision not recorded");
-  }
-  function renderChangeRef(change) {
-    if (!change || typeof change !== "object") return text(change);
-    return `${text(change.provider_namespace)}/${text(change.native_kind)}/${text(change.native_id)}`;
-  }
-  function renderPatchgateReceipt(parent, runId, record, report, document) {
-    const observation = document.observation || {};
-    const reviews = Array.isArray(observation.reviews) ? observation.reviews : [];
-    const counts = new Map();
-    for (const row of reviews) counts.set(row.decision, (counts.get(row.decision) || 0) + 1);
-    const card = section(`Patchgate review · ${reviews.length} change${reviews.length === 1 ? "" : "s"}`, parent, "record-card");
-    const badges = element("div", undefined, "badges");
-    for (const [decision, count] of [...counts.entries()].sort()) {
-      badges.append(decisionPill(decision, `${text(decision)} · ${count}`));
-    }
-    if (!counts.size) badges.append(element("span", "No review rows recorded", "state-badge"));
-    badges.append(element("span", observation.authorizes_acceptance === true ? "Producer claims acceptance authority (not granted)" : "Acceptance authority: none", "state-badge"));
-    badges.append(element("span", observation.isolated === true ? "Isolated execution recorded" : "Isolation not recorded", "state-badge"));
-    card.append(badges);
-    const facts = element("dl", undefined, "facts");
-    addFacts(facts, [
-      ["Effect", observation.effect_id],
-      ["Candidate", observation.candidate_id],
-      ["Candidate root", observation.candidate_root],
-      ["Pipeline revision", observation.pipeline_revision],
-      ["Policy identity", observation.policy_identity],
-      ["Provider profile", observation.provider_profile],
-      ["Native binding", observation.native_binding_identity],
-      ["Report identity", observation.report_identity],
-      ["Request identity", document.request_identity],
-      ["Retained native report bytes", typeof document.native_report === "string" ? document.native_report.length : null],
-      ["Recorded", when(record.recorded_at_ms)],
-      ["Source revision", record.source_revision],
-      ["Report record", record.id]
-    ]);
-    card.append(facts);
-    if (reviews.length) {
-      const table = element("table", undefined, "review-table");
-      const head = element("tr");
-      for (const heading of ["Change", "Decision"]) head.append(element("th", heading));
-      const thead = element("thead");
-      thead.append(head);
-      table.append(thead);
-      const body = element("tbody");
-      for (const row of reviews) {
-        const line = element("tr");
-        const decision = element("td");
-        decision.append(decisionPill(row.decision, text(row.decision)));
-        line.append(element("td", renderChangeRef(row.change), "review-change"), decision);
-        body.append(line);
-      }
-      table.append(body);
-      card.append(table);
-    }
-    if (typeof document.native_report === "string") {
-      const details = element("details");
-      details.append(element("summary", `Retained native Patchgate report · ${document.native_report.length} bytes · preserved verbatim`));
-      details.append(element("pre", document.native_report, "identity"));
-      card.append(details);
-    }
-    if (report.evidence?.claim_boundary) card.append(element("p", report.evidence.claim_boundary, "small"));
-    if (runId) card.append(runLink(runId, "Inspect this exact run", "pipeline"));
-  }
-  // r[impl kiln.web.page_consistency.scenario.states] Absence is an explicit empty state that keeps the non-claim inline; with receipts, the boundary moves into a disclosure.
-  function renderReviews(parent, result) {
-    const boundary = "A retained receipt proves only that Kiln admitted and preserved that review evidence for this run. Rejected, escalated, blocked, waiting, pending, removed, reverted and unknown decisions stay distinct; absence of a receipt is not a clean review.";
-    const receipts = patchgateReceipts(result);
-    if (!receipts.length) {
-      parent.append(emptyState("No retained Patchgate receipt", "No retained Patchgate review receipt for this run. Upload a kiln.patchgate.review.v1 document as a review report to retain one. Absence of a receipt is not a clean review."));
-      parent.append(aboutView("What a receipt proves", boundary));
-      return;
-    }
-    parent.append(aboutView("What a receipt proves", boundary));
-    const runId = result.run_id || state.route.run;
-    for (const record of receipts) {
-      const report = record.report || record;
-      renderPatchgateReceipt(parent, runId, record, report, report.evidence.document);
-    }
-    const other = (result.reports || []).filter((record) => !receipts.includes(record));
-    if (other.length) parent.append(element("p", `${other.length} other retained report(s) are shown under Tests & coverage.`, "small"));
   }
   // r[impl kiln.dashboard.complete.evidence]
   function renderEvidence(parent, result) {

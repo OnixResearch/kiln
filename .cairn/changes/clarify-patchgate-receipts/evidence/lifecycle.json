@@ -1,0 +1,139 @@
+{
+  "schema": "kiln.patchgate-receipts.lifecycle.v1",
+  "observed_on": "2026-11-13",
+  "scope": "Planning gates, validation, generated-policy freshness and traceability for clarify-patchgate-receipts, after its verified implementation tasks were checked off. No lifecycle acceptance, specification synchronization, archive, commit, publication or deployment.",
+  "review": "Agentic self-review, not independent approval",
+  "results": [
+    {
+      "label": "proposal gate",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "clarify-patchgate-receipts",
+        "--root",
+        ".",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "afee1cda725e966333369876f5327d696dc0906be029e02e6b2c2a87b7df3405",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "c5d00364011651e077801c82427160908389808835f667c52f3af182d44e9bb6"
+    },
+    {
+      "label": "design gate",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "clarify-patchgate-receipts",
+        "--root",
+        ".",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "94d760cca828c2ebf749585620641a540d55bede4466181869486ff5367dc8d6",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "0b3319c70e2fa9f7a9f75fa68c9fa03b46186b750ce5321034aefb3f50eb898b"
+    },
+    {
+      "label": "tasks gate",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "clarify-patchgate-receipts",
+        "--root",
+        ".",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "40679b974e2f797fbf6eafa89bd7ab60ff555a9ab660967a64b9700e0e535c92",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "904a290f3c23999c203f30296de52599fd20851c4454a651723334e53fbf466b"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "/home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "issues": [],
+      "receipt_hash": "5c4dbe9da767a160150f918643fc9ad1eae908cfcf7d10102316a307adea7b6b"
+    },
+    {
+      "label": "policy freshness",
+      "command": [
+        "cairn",
+        "policy",
+        "export",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": "policy fresh: cairn-policy/generated/cairn-policy.json"
+    },
+    {
+      "label": "development policy export",
+      "command": [
+        "cairn",
+        "policy",
+        "export",
+        "--source",
+        "cairn-policy/development-coverage.ncl",
+        "--output",
+        "target/development-coverage-policy.json"
+      ],
+      "exit_code": 0,
+      "output": "wrote target/development-coverage-policy.json"
+    },
+    {
+      "label": "traceability coverage",
+      "command": [
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "target/development-coverage-policy.json",
+        "--profile",
+        "kiln-active-development",
+        "--json"
+      ],
+      "exit_code": 0,
+      "valid": true,
+      "verdict": "pass",
+      "input_hash": "d965a5d71d13e65ee3fcb9deaa40f7a6f9e11cc7ba0e2f3793001c9aa5e0c7f0",
+      "policy_hash": "fa762b086b9cf8ffc864ce6b701e02f5b59861a811e567169c35bc4c439b84a4",
+      "receipt_hash": "d1e40074f9c49120106ad3c814be4694d99f0175407a48d0683357dc53fc7d29",
+      "requirements": 1772,
+      "referenced": 1772,
+      "missing": [],
+      "dangling": [],
+      "source_summary": {
+        "evidence_files": 715,
+        "evidence_manifest_hash": "689859206df341be38c5edede2a92e0c28bd7a2194f7763e9aa28e60e974a253",
+        "requirement_files": 145,
+        "requirement_manifest_hash": "ee994c6bb8700479fbf36ce2a99b91dacd3641f6c94c8039872f24665b7267ea"
+      }
+    }
+  ]
+}

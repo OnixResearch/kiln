@@ -33,6 +33,7 @@ const context = { window: {}, document };
 vm.runInNewContext(asset("icons.js"), context);
 vm.runInNewContext(asset("ui.js"), context);
 vm.runInNewContext(asset("source.js"), context);
+vm.runInNewContext(asset("receipts.js"), context);
 const ui = context.window.KilnUi;
 const icons = context.window.KilnIcons;
 // Review-query route normalization must mirror the service's trimmed, bounded,
@@ -317,7 +318,7 @@ test("static placeholders hydrate into icons that keep their classes", () => {
 
 // r[verify kiln.web.design_system]
 test("every icon the console names is in the reviewed list", () => {
-  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js"];
+  const sources = ["web.html", "web.js", "ui.js", "work.js", "work-board.js", "work-interaction.js", "code-review.js", "project.js", "source.js", "receipts.js"];
   const used = new Set();
   for (const name of sources) {
     const text = asset(name);
@@ -946,4 +947,136 @@ test("diff identity admits only the requested base, interdiff or commit range", 
   assert.equal(diffMatches({ old_commit: "m", new_commit: "c2" }, r2, null, { from: "m", to: "c2" }, null), true);
   assert.equal(diffMatches({ old_commit: "b2", new_commit: "c2" }, r2, null, { from: "m", to: "c2" }, null), false);
   assert.equal(diffMatches({ old_commit: "b2", new_commit: "c2" }, undefined, null, null, null), false);
+});
+
+const receipts = context.window.KilnReceipts;
+const NINE = ["accepted", "rejected", "escalated", "blocked", "waiting", "pending", "removed", "reverted", "unknown"];
+
+// r[verify kiln.dashboard.reviews.view.scenario.decisions]
+test("each of the nine admitted decisions reads in its own words; other values never read as accepted", () => {
+  assert.deepEqual([...receipts.decisions].map((entry) => entry.key), NINE);
+  const tones = Object.fromEntries(NINE.map((key) => [key, receipts.decision(key).tone]));
+  assert.deepEqual(tones, { accepted: "success", rejected: "failure", escalated: "warning", blocked: "warning", waiting: "queued", pending: "queued", removed: "cancelled", reverted: "cancelled", unknown: "unknown" });
+  const labels = NINE.map((key) => receipts.decision(key).label);
+  assert.equal(new Set(labels).size, 9);
+  for (const key of NINE) {
+    const entry = receipts.decision(key);
+    assert.equal(entry.key, key);
+    assert.doesNotMatch(entry.label, /unrecognized|not recorded/i, key);
+    assert.ok(entry.meaning.length > 20, key);
+    // Every decision but acceptance carries Patchgate's next step.
+    assert.equal(Boolean(entry.next), key !== "accepted", key);
+  }
+  const merged = receipts.decision("merged");
+  assert.deepEqual([merged.key, merged.label, merged.tone, merged.recorded], ["unrecognized", "Unrecognized: merged", "unknown", "merged"]);
+  const long = receipts.decision("x".repeat(80));
+  assert.equal(long.recorded, "x".repeat(80));
+  assert.ok(long.label.length <= "Unrecognized: ".length + 48 && long.label.endsWith("…"));
+  // Names that exist on every object's prototype are not decisions.
+  for (const value of ["toString", "__proto__", "constructor", "Accepted", " accepted"]) assert.equal(receipts.decision(value).key, "unrecognized", value);
+  for (const value of [null, undefined, "", 3, {}, ["accepted"]]) assert.deepEqual([receipts.decision(value).key, receipts.decision(value).label], ["missing", "Not recorded"], String(value));
+  for (const value of ["merged", "toString", null]) assert.notEqual(receipts.decision(value).tone, "success");
+  assert.deepEqual([...receipts.filters].map((filter) => filter.key), ["", "attention", ...NINE]);
+});
+
+// r[verify kiln.dashboard.reviews.view.scenario.decisions]
+test("a tally puts what needs a person first and keeps distinct unrecognized values apart", () => {
+  const rows = ["accepted", "rejected", "accepted", "merged", null, "escalated", "merged", "other", "waiting"].map((decision) => ({ decision }));
+  assert.deepEqual(plain(receipts.tally(rows).map((row) => [row.key, row.label, row.count])), [
+    ["rejected", "Rejected", 1], ["escalated", "Escalated", 1], ["unrecognized", "Unrecognized: merged", 2], ["unrecognized", "Unrecognized: other", 1],
+    ["missing", "Not recorded", 1], ["waiting", "Waiting", 1], ["accepted", "Accepted", 2],
+  ]);
+  for (const value of [undefined, null, "rows", {}]) assert.deepEqual(plain(receipts.tally(value)), [], String(value));
+});
+
+const nativeReceipt = (report) => ({ schema: "kiln.patchgate.review.v1", observation: { reviews: [] }, native_report: typeof report === "string" ? report : JSON.stringify(report) });
+
+// r[verify kiln.dashboard.reviews.view.scenario.context]
+test("Patchgate's report is read for each change, its records and the review context", () => {
+  const configuration = { source: "main", path: "patchgate.json", sha256: "f".repeat(64), values: { policy_path: "POLICY.md", protected: ["src/**"], documentation_paths: ["docs/*", "*.md"] } };
+  const context = receipts.nativeContext(nativeReceipt({
+    dry_run: true, authorizes_acceptance: false,
+    main: { channel: "main", state: "M".repeat(53) }, inbox: { channel: "inbox", state: "I".repeat(53) }, configuration,
+    items: [
+      { hash: "AAA", message: "Clarify the guide", paths: ["docs/guide.md", 7], state: "accepted", reason: "", needs: [], decided: true, merge: null, note: "" },
+      { hash: "BBB", message: "Serve on port 9090", paths: ["server.conf"], state: "blocked", reason: "A prerequisite has a blocked or terminal state.", needs: [["AAA", "rejected"], ["CCC"], "bad", [7, "x"]], decided: false, merge: { hash: "MMM" }, note: "check" },
+      { hash: "AAA", message: "A duplicate is ignored" },
+    ],
+    records: [
+      { hash: "AAA", decision: "accept", by: "gate", reason: "Only documentation paths.", at: "2026-10-28T12:21:25+00:00", provenance: { requests: [], verifiers: { schema_version: 1, patchgate: "0.1.0", pijul: "pijul 1.0.0-beta.24", nix: null } }, verification: { results: [{ check: "build" }, { check: "" }] } },
+      { hash: "BBB", decision: "escalate", by: "model", model: "gemma", at: "5", coverage: { planned_pages: 2, complete: false, pages: [{ index: 0, decision: "accept" }] }, provenance: { requests: [{}, {}] } },
+    ],
+    review_usage: { requests: 2, max_requests: 128, elapsed_seconds: 0.25, timeout_seconds: 900, stop: null },
+  }));
+  assert.equal(context.status, "read");
+  assert.equal(context.changes.size, 2);
+  const first = context.changes.get("AAA");
+  assert.deepEqual([first.message, [...first.paths], first.decided, first.record.by, first.record.reason, first.record.atMs, [...first.record.checks]], ["Clarify the guide", ["docs/guide.md"], true, "gate", "Only documentation paths.", Date.parse("2026-10-28T12:21:25Z"), ["build"]]);
+  const second = context.changes.get("BBB");
+  assert.deepEqual(plain(second.needs), [{ hash: "AAA", state: "rejected" }, { hash: "CCC" }]);
+  assert.deepEqual([second.merge, second.note, second.record.model, second.record.modelRequests], ["MMM", "check", "gemma", 2]);
+  // A time without an RFC 3339 offset is not an instant, even where Date.parse would guess one.
+  assert.equal(second.record.atMs, null);
+  assert.deepEqual(plain(second.record.coverage), { planned: 2, reviewed: 1, complete: false, accepted: 1, rejected: 0, escalated: 0 });
+  assert.deepEqual([context.report.dryRun, context.report.main.channel, context.report.inbox.state.length, context.report.configuration.policy, [...context.report.configuration.protected]], [true, "main", 53, "POLICY.md", ["src/**"]]);
+  assert.deepEqual(plain(context.report.usage), { requests: 2, maxRequests: 128, elapsedSeconds: 0.25, timeoutSeconds: 900, stop: null });
+  assert.deepEqual(plain(context.report.verifiers), { patchgate: "0.1.0", pijul: "pijul 1.0.0-beta.24", nix: null });
+});
+
+// r[verify kiln.dashboard.reviews.view.scenario.context]
+test("an unreadable, absent or hostile report never removes a decision or reaches the prototype", () => {
+  const text = receipts.nativeContext(nativeReceipt("patchgate 0.4\nreview: accepted\n"));
+  assert.deepEqual([text.status, text.changes.size, text.bytes], ["unreadable", 0, 31]);
+  for (const value of ["[1,2]", "\"report\"", "null", "{"]) assert.equal(receipts.nativeContext(nativeReceipt(value)).status, "unreadable", value);
+  for (const document of [{ schema: "kiln.patchgate.review.v1" }, { native_report: 5 }, null, "receipt"]) {
+    const absent = receipts.nativeContext(document);
+    assert.deepEqual([absent.status, absent.bytes, absent.changes.size], ["absent", null, 0]);
+  }
+  const hostile = receipts.nativeContext(nativeReceipt('{"__proto__":{"polluted":true},"items":[{"hash":"__proto__","message":"proto"},{"hash":"constructor","message":5,"paths":"src"}],"records":{"hash":"x"},"main":{"channel":7}}'));
+  assert.equal(hostile.status, "read");
+  // The reader runs in the module's realm, so that realm's prototype is the one that must stay clean.
+  assert.equal(vm.runInNewContext("({}).polluted", context), undefined);
+  assert.equal(hostile.changes.get("__proto__").message, "proto");
+  assert.deepEqual([hostile.changes.get("constructor").message, [...hostile.changes.get("constructor").paths], hostile.changes.get("constructor").record], [null, [], null]);
+  assert.equal(hostile.report.main, null);
+});
+
+test("a decider reads as Patchgate's rules, a model or a person", () => {
+  const cases = [
+    [{ by: "gate" }, "Patchgate rules, no model"], [{ by: "model", model: "gemma" }, "Model gemma"], [{ by: "model" }, "A model"],
+    [{ by: "human", user: "britton" }, "A person (britton)"], [{ by: "human" }, "A person"], [{ by: "gate", reused: true }, "Patchgate rules, no model · reused an earlier verdict"],
+    [{ by: "lane" }, "lane"], [{ by: null }, null], [null, null],
+  ];
+  for (const [record, label] of cases) assert.equal(receipts.decider(record), label, JSON.stringify(record));
+});
+
+// r[verify kiln.dashboard.reviews.view.scenario.find]
+test("receipts list newest decision first and filter by text and decision", () => {
+  const receipt = (name, at, decisions, extra = {}) => ({ name, latest_decision_at_ms: at, decisions: decisions.map((decision, index) => ({ change: { native_id: `${name.toUpperCase()}${index}HASH` }, decision })), isolated: true, authorizes_acceptance: false, ...extra });
+  const rows = receipts.listRows({ receipts: [
+    receipt("older.json", 100, ["accepted"], { first_change_message: "Clarify the guide", candidate_id: "candidate-guide" }),
+    receipt("newer.json", 300, ["escalated", "accepted"]),
+    receipt("untimed-b.json", null, ["waiting"]),
+    receipt("untimed-a.json", "300", []),
+    receipt("older.json", 900, ["rejected"]),
+    { latest_decision_at_ms: 500 },
+    receipt("claims.json", 50, ["accepted"], { authorizes_acceptance: true, isolated: false }),
+  ] });
+  assert.deepEqual(plain(rows.map((row) => row.name)), ["newer.json", "older.json", "claims.json", "untimed-a.json", "untimed-b.json"]);
+  const named = Object.fromEntries(rows.map((row) => [row.name, row]));
+  assert.deepEqual([named["older.json"].message, named["newer.json"].changes, named["untimed-a.json"].atMs], ["Clarify the guide", 2, null]);
+  assert.deepEqual([named["claims.json"].claimsAuthority, named["claims.json"].isolated, named["older.json"].claimsAuthority, named["older.json"].isolated], [true, false, false, true]);
+  const visible = (query, filter) => plain(rows.filter((row) => receipts.matches(row, query, filter)).map((row) => row.name));
+  assert.deepEqual(visible("", ""), plain(rows.map((row) => row.name)));
+  assert.deepEqual(visible("GUIDE", ""), ["older.json"]);
+  assert.deepEqual(visible("newer.json1h", ""), ["newer.json"]);
+  assert.deepEqual(visible(" candidate-guide ", ""), ["older.json"]);
+  assert.deepEqual(visible("", "accepted"), ["newer.json", "older.json", "claims.json"]);
+  // Escalated and an empty receipt need attention; waiting and accepted alone do not.
+  assert.deepEqual(visible("", "attention"), ["newer.json", "untimed-a.json"]);
+  assert.deepEqual(visible("guide", "escalated"), []);
+  for (const value of [undefined, null, {}, { receipts: "x" }]) assert.deepEqual(plain(receipts.listRows(value)), [], String(value));
+  assert.deepEqual(plain(receipts.normalizeRoute({ receipt: "a.json", receipt_q: "q".repeat(300), receipt_decision: "attention" })), { receipt: "a.json", q: "q".repeat(256), decision: "attention" });
+  assert.equal(receipts.normalizeRoute({ receipt_decision: "everything" }).decision, "");
+  assert.deepEqual(plain(receipts.normalizeRoute(undefined)), { receipt: "", q: "", decision: "" });
 });

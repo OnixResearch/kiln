@@ -18,6 +18,8 @@ const MAX_RECEIPT_BYTES: usize = 1_048_576;
 const MAX_NAME_BYTES: usize = 128;
 const MAX_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
 const RECEIPT_SCHEMA: &str = "kiln.patchgate.review.v1";
+// A list names a receipt by at most this many characters of its first change's recorded message.
+const MAX_LIST_MESSAGE_CHARS: usize = 160;
 
 const NON_CLAIMS: [&str; 3] = [
     "A retained receipt proves only that this directory holds those bytes; Kiln did not re-run the review.",
@@ -238,6 +240,7 @@ fn summary(name: &str, bytes: Vec<u8>, document: Value) -> Value {
             *counts.entry(decision.to_owned()).or_default() += 1;
         }
     }
+    let (first_change_message, latest_decision_at_ms) = producer_list_facts(&document, &reviews);
     json!({
         "name":name,
         "bytes":bytes.len(),
@@ -252,5 +255,71 @@ fn summary(name: &str, bytes: Vec<u8>, document: Value) -> Value {
         "decision_counts":counts,
         "decisions":reviews,
         "native_report_bytes":document.get("native_report").and_then(Value::as_str).map(str::len),
+        "first_change_message":first_change_message,
+        "latest_decision_at_ms":latest_decision_at_ms,
     })
+}
+
+// r[impl kiln.dashboard.reviews.view.scenario.find] The list names a receipt by its first normalized change's message
+// and orders it by its latest decision, both as the producer recorded them in the native report. Neither is verified,
+// both are bounded, and both are null when the native report is not a readable JSON object.
+fn producer_list_facts(document: &Value, reviews: &[Value]) -> (Option<String>, Option<i64>) {
+    let Some(native) = document
+        .get("native_report")
+        .and_then(Value::as_str)
+        .and_then(|text| serde_json::from_str::<Value>(text).ok())
+        .filter(Value::is_object)
+    else {
+        return (None, None);
+    };
+    let first_change = reviews
+        .first()
+        .and_then(|row| row.pointer("/change/native_id"))
+        .and_then(Value::as_str);
+    let message = first_change.and_then(|hash| {
+        native
+            .get("items")
+            .and_then(Value::as_array)?
+            .iter()
+            .find(|item| item.get("hash").and_then(Value::as_str) == Some(hash))?
+            .get("message")
+            .and_then(Value::as_str)
+            .and_then(list_message)
+    });
+    let latest = native
+        .get("records")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|record| record.get("at").and_then(Value::as_str))
+        .filter_map(|at| at.parse::<jiff::Timestamp>().ok())
+        .map(|at| at.as_millisecond())
+        .max();
+    (message, latest)
+}
+
+// The first line, control characters as spaces, cut to the list bound with a closing ellipsis.
+fn list_message(message: &str) -> Option<String> {
+    let line: String = message
+        .lines()
+        .next()?
+        .chars()
+        .map(|character| {
+            if character.is_control() {
+                ' '
+            } else {
+                character
+            }
+        })
+        .collect();
+    let line = line.trim();
+    if line.is_empty() {
+        return None;
+    }
+    if line.chars().count() <= MAX_LIST_MESSAGE_CHARS {
+        return Some(line.to_owned());
+    }
+    let mut bounded: String = line.chars().take(MAX_LIST_MESSAGE_CHARS - 1).collect();
+    bounded.push('…');
+    Some(bounded)
 }

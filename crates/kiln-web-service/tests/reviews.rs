@@ -181,3 +181,112 @@ fn unconfigured_and_unsafe_receipt_requests_stay_explicit() {
         .unwrap_or_else(|error| unreachable!("{error}"));
     assert_eq!(get(&missing_directory, "/api/reviews").status, 503);
 }
+
+fn receipt_with(first_change: &str, native_report: &str) -> Value {
+    let mut document = receipt("accepted");
+    if let Some(change) = document.pointer_mut("/observation/reviews/0/change/native_id") {
+        *change = json!(first_change);
+    }
+    if let Some(native) = document.get_mut("native_report") {
+        *native = json!(native_report);
+    }
+    document
+}
+
+fn list_facts(browser: &Browser, name: &str) -> (Value, Value) {
+    let inventory = value(&get(browser, "/api/reviews"));
+    let row = inventory
+        .get("receipts")
+        .and_then(Value::as_array)
+        .and_then(|rows| {
+            rows.iter()
+                .find(|row| row.get("name").and_then(Value::as_str) == Some(name))
+        })
+        .cloned()
+        .unwrap_or_else(|| unreachable!("receipt {name}"));
+    (
+        row.get("first_change_message")
+            .cloned()
+            .unwrap_or(Value::Null),
+        row.get("latest_decision_at_ms")
+            .cloned()
+            .unwrap_or(Value::Null),
+    )
+}
+
+// r[verify kiln.dashboard.reviews.view.scenario.find]
+#[test]
+fn list_facts_name_a_receipt_by_its_first_change_and_order_it_by_its_latest_decision() {
+    let root = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let write = |name: &str, document: &Value| {
+        std::fs::write(
+            root.path().join(name),
+            serde_json::to_vec(document).unwrap_or_else(|error| unreachable!("{error}")),
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    };
+    // Items arrive in inbox order; the list names the first normalized change, not the first item. Times compare as
+    // instants, so +02:00 at 14:00 is earlier than 12:21:25Z; unparseable times are ignored.
+    let native = json!({
+        "items": [
+            {"hash": "BBB", "message": "Another change"},
+            {"hash": "AAA", "message": "Clarify the\tguide\nSecond line of the message"}
+        ],
+        "records": [
+            {"hash": "AAA", "at": "2026-10-28T12:21:25+00:00"},
+            {"hash": "BBB", "at": "2026-10-28T14:00:00+02:00"},
+            {"hash": "CCC", "at": "yesterday"},
+            {"hash": "DDD", "at": 5}
+        ]
+    });
+    write("full.json", &receipt_with("AAA", &native.to_string()));
+    let long = "x".repeat(200);
+    write(
+        "long.json",
+        &receipt_with(
+            "AAA",
+            &json!({"items": [{"hash": "AAA", "message": long}]}).to_string(),
+        ),
+    );
+    write(
+        "other.json",
+        &receipt_with(
+            "AAA",
+            &json!({"items": [{"hash": "BBB", "message": "Not this one"}], "records": []})
+                .to_string(),
+        ),
+    );
+    write(
+        "blank.json",
+        &receipt_with(
+            "AAA",
+            &json!({"items": [{"hash": "AAA", "message": "\nSecond line only"}]}).to_string(),
+        ),
+    );
+    write(
+        "text.json",
+        &receipt_with("AAA", "patchgate 0.4\nreview: accepted\n"),
+    );
+    write("bare.json", &receipt("accepted"));
+    let browser =
+        Browser::new(Some(profile(root.path()))).unwrap_or_else(|error| unreachable!("{error}"));
+
+    assert_eq!(
+        list_facts(&browser, "full.json"),
+        (json!("Clarify the guide"), json!(1_793_190_085_000_i64))
+    );
+    let (message, latest) = list_facts(&browser, "long.json");
+    let bounded = message
+        .as_str()
+        .unwrap_or_else(|| unreachable!("bounded message"));
+    assert_eq!(bounded.chars().count(), 160);
+    assert!(bounded.ends_with('…'));
+    assert_eq!(latest, Value::Null);
+    for name in ["other.json", "blank.json", "text.json", "bare.json"] {
+        assert_eq!(
+            list_facts(&browser, name),
+            (Value::Null, Value::Null),
+            "{name}"
+        );
+    }
+}
