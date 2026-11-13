@@ -1,1 +1,90 @@
-:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#101114;color:#e4e5e9;font-size:14px}*{box-sizing:border-box}body{margin:0;display:grid;grid-template-columns:236px 1fr;min-height:100vh}aside{position:sticky;top:0;height:100vh;padding:28px 18px;border-right:1px solid #2b2d33;background:#141519}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#f2f3f5;font-weight:800;font-size:27px}.brand:first-letter{color:#ed9d59}.brand span{font-size:22px}.eyebrow{font-size:10px;letter-spacing:.15em;font-weight:700;color:#91949e;margin-top:30px}nav{display:grid;gap:5px;margin-top:15px}nav a{padding:11px 12px;border-radius:6px;color:#a6a9b3;text-decoration:none}nav a:hover{background:#24262d;color:#fff}nav a[aria-current=page]{background:#2a2725;color:#f4b37f;border-left:2px solid #ed9d59}.connection{margin-top:42px;display:flex;align-items:center;gap:9px;font-size:12px}.dot{width:7px;height:7px;border-radius:50%;background:#e7a460}.muted{color:#9296a2;font-size:12px;line-height:1.7}main{width:100%;max-width:1390px;padding:35px 45px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}header .eyebrow{margin:0}h1{font-size:28px;letter-spacing:-.04em;margin:10px 0}h2{font-size:15px;margin:0}.badge{border:1px solid #363940;background:#1c1e24;border-radius:20px;padding:6px 10px;font-size:11px;color:#b8bdca;white-space:nowrap}.identity{display:flex;gap:24px;flex-wrap:wrap;margin:22px 0;color:#9fa3af;font-size:11px;overflow-wrap:anywhere}.identity strong{color:#d6d9e1;margin-right:8px}.notice{padding:13px 15px;border:1px solid #393026;border-radius:7px;background:#211c17;color:#cbb39a;font-size:12px;line-height:1.6}.panel{border:1px solid #30323a;border-radius:9px;margin-top:23px;background:#17191e;padding:23px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:20px}.section-heading p{margin:7px 0 0}.fields{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{display:grid;gap:9px;color:#adb1bd;font-size:12px;margin-bottom:18px}input,select,textarea{width:100%;border:1px solid #383b45;border-radius:5px;background:#101216;color:#dedfe5;padding:11px;font:inherit;outline-offset:3px}textarea{resize:vertical;font-family:ui-monospace,monospace;line-height:1.6}.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}button{background:#e4a16d;color:#1b1410;border:1px solid #efb78b;border-radius:5px;font-size:12px;font-weight:700;padding:11px 15px;cursor:pointer}button.secondary{background:#24262d;color:#bfc3ce;border-color:#414550}button:disabled{opacity:.5;cursor:wait}pre{font:12px/1.75 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;color:#b8c3d5;max-height:650px;overflow:auto;margin:0}#status{font-size:11px;color:#a8b2c0}#status.error{color:#f49b8e}#status.success{color:#93c9aa}table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px}th,td{text-align:left;padding:10px;border-bottom:1px solid #30323a;max-width:280px;overflow-wrap:anywhere}th{color:#8f96a5;font-weight:500}footer{margin:24px 0;color:#6f7583;font-size:11px}@media(max-width:850px){body{grid-template-columns:1fr}aside{position:relative;height:auto;border-bottom:1px solid #30323a}aside nav{grid-template-columns:repeat(2,1fr)}aside .connection{margin-top:16px}main{padding:24px 18px}.fields{grid-template-columns:1fr}header{align-items:start;flex-direction:column}}
+/* r[impl kiln.identity.shared] Hosted bridge page. Colours, type, scale and the brand mark come from identity.css,
+   which bridge.rs serves ahead of this sheet in the same /app.css response. */
+* { box-sizing: border-box; }
+body { margin: 0; display: grid; grid-template-columns: 15rem minmax(0, 1fr); min-height: 100vh; font-size: .875rem; line-height: 1.55; color: var(--foreground); background: radial-gradient(64rem 26rem at 22% -14%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 72%) no-repeat var(--background); }
+h1, h2, p { margin: 0; }
+h1 { font-size: clamp(1.6rem, 1.2rem + 1.2vw, 2.25rem); line-height: 1.15; letter-spacing: -.035em; font-weight: 700; margin-top: .35rem; }
+h2 { font-size: 1rem; font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.eyebrow { font: 500 .6875rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+.muted { color: var(--muted-foreground); font-size: .8125rem; line-height: 1.6; }
+
+/* Navigation is one soot band in both appearances; the lit mark sits at its head. */
+aside { color-scheme: dark; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; padding: 1.6rem 1rem 1.25rem; border-right: 1px solid var(--border); background: var(--sidebar); color: var(--foreground); }
+.brand { display: flex; align-items: center; gap: .75rem; padding: 0 .35rem; color: var(--foreground); font-size: 1.35rem; font-weight: 700; letter-spacing: -.035em; text-decoration: none; }
+.brand .brand-mark { font-size: 2.25rem; }
+aside > .eyebrow { margin: 2.2rem .6rem .6rem; }
+nav { display: grid; gap: 2px; }
+nav a { padding: .55rem .7rem; border-radius: var(--radius); color: var(--muted-foreground); font-size: .8125rem; font-weight: 520; text-decoration: none; }
+nav a:hover { background: var(--list-hover); color: var(--foreground); }
+/* The current destination is its row's own fill and weight; the ember dot is the only signal colour in the band. */
+nav a[aria-current="page"] { display: flex; align-items: center; justify-content: space-between; gap: .5rem; background: var(--list-active); color: var(--foreground); font-weight: 650; }
+nav a[aria-current="page"]::after { content: ""; flex: 0 0 auto; width: .4rem; height: .4rem; border-radius: 50%; background: var(--primary); }
+.connection { display: flex; align-items: center; gap: .55rem; margin-top: auto; padding: 1.25rem .6rem .6rem; border-top: 1px solid var(--border); font-size: .78rem; color: var(--foreground); }
+.dot { flex: 0 0 auto; width: .5rem; height: .5rem; border-radius: 50%; background: var(--queued); }
+.connection[data-state="connected"] .dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent); }
+.connection[data-state="unavailable"] { color: var(--warning); }
+.connection[data-state="unavailable"] .dot { background: var(--warning); }
+aside > .muted { padding: 0 .6rem; font-size: .72rem; }
+
+main { width: 100%; max-width: 84rem; min-width: 0; padding: 2.2rem clamp(1rem, 4vw, 2.75rem); }
+main > header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.25rem; padding-bottom: 1.4rem; }
+main > header .muted { max-width: 60ch; margin-top: .5rem; font-size: .875rem; }
+.badge { flex: 0 0 auto; border: 1px solid var(--border); background: var(--muted); border-radius: var(--radius-pill); padding: .15rem .6rem; font-size: .72rem; font-weight: 550; color: var(--muted-foreground); white-space: nowrap; }
+.identity { display: flex; gap: .4rem 1.75rem; flex-wrap: wrap; margin: 1.4rem 0 1.1rem; color: var(--muted-foreground); font: .72rem/1.6 var(--mono); overflow-wrap: anywhere; }
+.identity:empty { display: none; }
+.identity strong { margin-right: .5rem; color: var(--foreground); font: 600 .72rem var(--sans); }
+.notice { margin-top: 1.1rem; padding: .65rem .9rem; border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); border-left-width: 3px; border-left-color: var(--warning); border-radius: var(--radius); background: var(--warning-background); color: var(--foreground); font-size: .8125rem; line-height: 1.6; }
+/* Panels are flat: a fill and a hairline. */
+.panel { min-width: 0; margin-top: 1.25rem; padding: 1.4rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--group-box); }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+.section-heading p { margin-top: .35rem; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+label { display: grid; gap: .4rem; margin-bottom: 1rem; color: var(--foreground); font-size: .75rem; font-weight: 600; }
+input, select, textarea { width: 100%; min-height: var(--control-height); padding: .5rem .7rem; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font: 450 .8125rem/1.5 var(--sans); }
+input:hover, select:hover, textarea:hover { border-color: var(--foreground); }
+input, textarea { font-family: var(--mono); }
+textarea { resize: vertical; line-height: 1.6; }
+.actions { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+button { min-height: var(--control-height); padding: .45rem .9rem; border: 1px solid var(--border-emphasis); border-radius: var(--radius); background: var(--secondary); color: var(--foreground); font: 600 .8125rem/1.3 var(--sans); cursor: pointer; }
+button:hover:not(:disabled) { background: var(--accent); }
+/* The one commit of the page is a glazed ember tile. */
+button[type="submit"] { border-color: var(--ember-deep); background: var(--primary-fill); color: var(--primary-foreground); font-weight: 650; box-shadow: inset 0 1px 0 var(--glaze); }
+button[type="submit"]:hover:not(:disabled) { background: var(--primary-fill-hover); }
+button:disabled { opacity: .55; cursor: wait; }
+#status { font-size: .78rem; color: var(--muted-foreground); text-align: right; overflow-wrap: anywhere; }
+#status.error { color: var(--danger); }
+#status.success { color: var(--success); }
+/* Record rows keep whole words: a table wider than its panel scrolls inside this region, which web.js labels and makes
+   focusable while it holds rows. A value longer than a cell (a peer identity) still wraps inside its cell. */
+#records { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: .8125rem; }
+th, td { max-width: 20rem; padding: .55rem .7rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; overflow-wrap: break-word; }
+th { background: var(--table-head); color: var(--muted-foreground); font: 500 .6875rem/1.5 var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+tbody tr:hover td { background: var(--list-hover); }
+/* The recorded response reads as retained output: the same soot surface as the console's log panel. */
+pre { color-scheme: dark; max-height: 40rem; margin: 0; padding: 1rem; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--editor-background); color: var(--editor-foreground); font: .75rem/1.7 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* r[impl kiln.identity.contrast] The panel is dark in both appearances, so its focus ring takes the dark value and is
+   drawn inside the panel's edge, on the panel's own surface. */
+pre:focus-visible { outline-offset: -2px; }
+footer { margin: 1.5rem 0; color: var(--muted-foreground); font: .6875rem var(--mono); }
+/* r[impl kiln.identity.touch_targets] r[impl kiln.identity.touch_targets.scenario.narrow]
+   Touch layout: every control is at least 44px tall. */
+@media (max-width: 60rem) {
+  nav a { display: flex; align-items: center; }
+  nav a, input, select, textarea, button, .brand { min-height: 2.75rem; }
+}
+@media (max-width: 53rem) {
+  body { grid-template-columns: minmax(0, 1fr); }
+  aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 1rem; }
+  aside > .eyebrow { margin-top: 1.25rem; }
+  nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  nav + .connection { margin-top: 1rem; }
+  main { padding: 1.5rem 1rem; }
+  main > header { align-items: flex-start; flex-direction: column; gap: .75rem; }
+  .fields { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .section-heading { align-items: flex-start; flex-direction: column; gap: .5rem; }
+  #status { text-align: left; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button, nav a { transition: background-color var(--motion-fast), color var(--motion-fast), border-color var(--motion-fast); }
+}

@@ -1492,7 +1492,9 @@ integration**, **More work**, **Inspect** and **Administration** groups; labels
 stay available to assistive technology while it is collapsed. **Keep navigation
 expanded** at the bottom pins it open beside the content for this page session
 (the URL is unchanged). Escape collapses an unpinned expansion and returns focus.
-The active page has a selected row fill and an acid-yellow icon. Rail destinations
+Group headings keep their place while the rail is collapsed and fade in when it
+expands, so no destination moves under the pointer. The active page has a
+selected row fill and an ember icon tile. Rail destinations
 and run tabs are links, so they open in a new tab and keep browser history;
 commands stay buttons. Secondary groups open automatically for
 a selected deep link. Existing page URLs remain valid; the Kiln brand returns to
@@ -1501,23 +1503,54 @@ configured execution provider; recorded evidence is not acceptance authority)
 is in the account menu. Pages sit in a centred column under a large page title.
 
 <!-- r[impl kiln.web.visual_design] -->
-The live console uses quiet off-white/charcoal surfaces, restrained borders,
-subtle elevation, icon-labelled navigation and acid-yellow emphasis reserved for
-each view's single primary action. Yellow marks actions and emphasis, not
-successful execution; success, failure, running, queued, cancelled, unknown and
-warning states keep distinct semantic colors, icons and text. Every page has one
-title row with one quiet **Refresh** icon button that refreshes and reconnects
-live observations. The top bar holds the search/command trigger (**Ctrl K**), a
-live-connection indicator and an account menu with the signed-in identity,
-**Appearance & settings** and **Clear session**. **Settings → Appearance** keeps
-Light, Dark and System modes; **Density** changes spacing without shrinking mobile
-touch targets, and reduced-motion preferences disable transitions and loading
-shimmer. The token layer and shared components live in `web.css`; `ui.js` (served
-at `/ui.js` and loaded before the other scripts) provides `window.KilnUi`
-presentation helpers. `work.css`, `work-interaction.css` and `code-review.css`
-build on the same tokens. These assets are maintained by Kiln's
-web-service/dashboard owners; they do not change the offline catalog or request
-external fonts or image assets.
+<!-- r[impl kiln.identity.shared] -->
+The live console presents the Kiln identity that it shares with the offline
+catalog, the offline report and the hosted bridge page: warm porcelain surfaces
+in light appearance and soot in dark, a dark navigation rail in both, flat
+panels with hairline boundaries, and ember emphasis reserved for each view's
+single primary action, the current navigation tile and keyboard focus. Ember
+marks actions and emphasis, not successful execution; success, failure,
+running, queued, cancelled, unknown and warning states keep distinct semantic
+colors, icons and text. The brand mark is a kiln arch drawn in CSS, and
+`/favicon.svg` carries the same shape. Every page has one title row over a
+graduated rule, with one quiet **Refresh** icon button that refreshes and
+reconnects live observations.
+
+The top bar holds the search/command trigger (**Ctrl K**), the running count, a
+live-connection indicator and an account menu with the signed-in identity, an
+**Appearance** switch (System, Light, Dark), **Appearance & settings** and
+**Clear session**. The switch and **Settings → Appearance** write the same URL
+state. **Density** changes spacing without shrinking mobile touch targets.
+Menus and dialogs arrive with one short fade; page changes are immediate, and a
+reduced-motion preference removes every transition and animation.
+
+<!-- r[impl kiln.web.live_activity] -->
+<!-- r[impl kiln.web.live_activity.scenario.count] -->
+<!-- r[impl kiln.web.live_activity.scenario.stale] -->
+While the last admitted live snapshot reports running runs, the top bar shows
+**N running** on every page and the door of the brand mark glows. The count
+links to the retained-run list filtered to pending runs, where each row states
+running, queued or awaiting approval. Queued, awaiting-approval, unknown and
+finished runs are not counted. The count and the glow are hidden before the
+first snapshot, while live observation is stale or disconnected, and after the
+session is cleared. They read one snapshot; they are not a worker health check.
+
+<!-- r[impl kiln.web.request_feedback] -->
+<!-- r[impl kiln.web.request_feedback.scenario.slow] -->
+A read or mutation that stays in flight for more than a moment draws a moving
+ember line on the lower edge of the top bar and marks the page busy for
+assistive technology. The line clears when no such request remains, whether the
+request succeeded, failed, timed out or was aborted. It states waiting only,
+never progress or success. The live-observation poll and log following do not
+show it.
+
+The identity lives in `crates/kiln-dashboard/src/render/identity.css`, served to
+the console at `/identity.css` and loaded first. Shared console components live
+in `web.css`; `ui.js` (served at `/ui.js` and loaded before the other scripts)
+provides `window.KilnUi` presentation helpers. `work.css`,
+`work-interaction.css`, `code-review.css`, `project.css` and `source.css` build
+on the same tokens. These assets are maintained by Kiln's web-service/dashboard
+owners and request no external font or image.
 
 <!-- r[impl kiln.web.design_system] -->
 <!-- r[impl kiln.web.design_system.scenario.provenance] -->
@@ -1549,8 +1582,12 @@ which `ui.js` replaces on load (`KilnUi.hydrateIcons(root)` does the same for
 inserted markup), and `KilnUi.disclosureSummary(label, icon)` builds a
 disclosure summary with its turning chevron.
 
-Colour tokens use GPUI Kit's semantic theme names with dots written as hyphens;
-Kiln's palette values are unchanged. Former names were removed, not aliased:
+Colour tokens use GPUI Kit's semantic theme names with dots written as hyphens.
+The values are Kiln's palette, declared once in `identity.css` for every
+surface. Each colour is one `light-dark(light, dark)` declaration, so the two
+appearances cannot drift. A region that is dark in both appearances (the
+navigation rail, the log panel) sets `color-scheme: dark` instead of restating
+tokens. Former names were removed, not aliased:
 
 | Former token | GPUI Kit token | CSS custom property |
 | --- | --- | --- |
@@ -1566,7 +1603,7 @@ Kiln's palette values are unchanged. Former names were removed, not aliased:
 | `--border-strong` | list.active.border; Kiln extension | `--list-active-border`; `--border-emphasis` |
 | `--sidebar` | sidebar.background | `--sidebar` |
 | `--focus` | ring | `--ring` |
-| `--signal`, `--signal-strong`, `--signal-text` | primary.background, primary.hover.background, primary.foreground | `--primary` (acid yellow), `--primary-hover`, `--primary-foreground` |
+| `--signal`, `--signal-strong`, `--signal-text` | primary.background, primary.hover.background, primary.foreground | `--primary` (ember), `--primary-hover`, `--primary-foreground` |
 | `--olive` | link; progress.bar.background; syntax string | `--link`; `--progress-bar`; `--syntax-string` |
 | `--accent` | syntax number | `--syntax-number` |
 | `--status-success`, `--status-failure`, `--status-warning`, `--status-running` (and `-bg`) | success, danger, warning, info (and `.background`) | `--success`, `--danger`, `--warning`, `--info` (and `-background`) |
@@ -1576,9 +1613,27 @@ Kiln's palette values are unchanged. Former names were removed, not aliased:
 Text on a state's `-background` uses the state colour itself, so no separate
 `-foreground` exists for states. `--hero`, `--olive-soft` and `--accent-soft`
 were unused by the live console and were removed. Spacing, type, radius, shadow,
-motion and layout sizes keep their names. The shared `catalog.css` of the
-offline report keeps its own names; one block in `web.css` points those names
-at the semantic tokens for the catalog rules that also style the live console.
+motion and layout sizes keep their names. Kiln extensions beyond the table are
+`--syntax-<class>` for each server token class, `--code-selection` for selected
+source lines, and the brand colours `--ember-bright`, `--ember-deep`,
+`--flame`, `--soot`, `--glaze`, `--shade`, `--primary-fill` and
+`--primary-fill-hover`. The offline catalog's `catalog.css`, which also styles
+the console shell, uses the same names; no stylesheet maps one vocabulary onto
+another.
+
+<!-- r[impl kiln.identity.contrast] -->
+`tests/kiln-identity.test.mjs` holds the identity. Every declared text, status,
+action, focus, boundary and syntax pair must meet its contrast floor in both
+appearances: 4.5:1 for text, 3:1 for the focus ring and the input boundary.
+Ember must stay apart from the success, failure, running and warning colours.
+No surface stylesheet may declare a colour literal or use a token that nothing
+defines. After changing a value in `identity.css`, run:
+
+```sh
+node --test tests/kiln-identity.test.mjs
+```
+
+`light-dark()` needs Chromium 123, Firefox 120 or Safari 17.5.
 
 <!-- r[impl kiln.web.readable_observations] -->
 Outcomes appear as status pills with an icon and a human label (for example a
@@ -1601,6 +1656,14 @@ the page or section heading; short decision-relevant warnings stay inline. Empty
 and unconfigured sections show an explicit state with guidance instead of a
 blank area. Row actions such as **Logs**, **Browse runs** and run links share one
 bordered action style and are at least 44px tall on touch layouts.
+
+<!-- r[impl kiln.web.visual_design.scenario.lists] -->
+The Overview project list, a project's run history and the code-review change
+list are tables while their own region is wider than 48rem (768px). In a
+narrower region, on a phone or portrait tablet or beside a second column on a
+small desktop, each row stacks into lines, so a project name or a change title
+is not squeezed into a narrow column. A status label is shown whole, and
+**Logs** and **Pipeline** never wrap.
 
 The operator-authorized [visual-design deployment receipt](../.cairn/archive/1970-01-01-align-blacksmith-visual-design/evidence/deployment.json)
 binds the published source, committed executable, unchanged profiles/state and
@@ -1687,7 +1750,10 @@ sort only the loaded page and say so; service filters, cursor paging and the
 URL-restored selection are unchanged. Rows are keyboard focusable: arrow keys
 move between rows and Enter opens one. On screens at least 90rem wide the
 selected run opens beside the table (rows then stack compactly); narrower
-screens open it below. **Hide run list** collapses the table beside an open run.
+screens open it below. The table also stacks its rows when its region is 48rem
+or narrower, with the sort controls above them; on a phone the status and the
+start time each take a line. **Hide run list** collapses the table beside an
+open run.
 The run header shows the outcome pill and phase above a facts grid. Open **Exact
 source & execution identities** for complete values, including exact local/UTC
 timestamps. **Rerun…** (exact revision) and **Cancel run…** appear in the header

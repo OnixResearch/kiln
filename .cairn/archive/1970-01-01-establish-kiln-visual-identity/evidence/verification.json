@@ -1,0 +1,795 @@
+{
+  "schema": "kiln.visual-identity.verification.v1",
+  "scope": "Presentation of the live console, the offline catalog and report and the hosted bridge page: one shared identity stylesheet, two console signals (running count, request feedback), narrow layouts and their checks. Not a qualification of the web service, the hosted bridge, any deployment or any CI execution",
+  "owner": "Kiln web-service and dashboard maintainers",
+  "observed_on": "2026-11-12",
+  "authority": {
+    "instruction": "makke the UI and UX beautiful and unique",
+    "reading": "change the presentation of the browser surfaces in this repository, in the working copy",
+    "not_read_as": [
+      "commit",
+      "synchronization of the delta into accepted specifications",
+      "archive",
+      "publication to Radicle or a mirror",
+      "deployment of any service"
+    ]
+  },
+  "source": {
+    "parent_revision": "35a58b968e8553a9535837a42fe7d60d1d7a9ba9",
+    "state": "uncommitted jj working copy on top of the parent revision",
+    "changed_paths": 53,
+    "changed_paths_outside_evidence": 35,
+    "manifest": {
+      "blake3": "583e98c0c21e0aaa40544ad6e770d34fc05061453820e20a63902cf0b1da3db0",
+      "method": "BLAKE3 of the b3sum listing of the changed paths outside evidence/, sorted by path, as they stood when the Cargo, Python and node rails below ran"
+    }
+  },
+  "environment": {
+    "platform": "x86_64-linux, one host",
+    "toolchain": "rustc 1.88.0 and cargo 1.88.0 (rust-overlay rust-minimal 1.88.0 with clippy and rustfmt, from rust-toolchain.toml) in the default dev shell's package set without nixfmt, entered with nix develop --impure -f on a throwaway expression over the same flake inputs. nix develop path:$PWD could not instantiate nixfmt: a path lock among its Haskell inputs was held by an orphaned nix-daemon worker queued behind about 350 auto-GC runs. No rail uses nixfmt",
+    "node": "v26.8.1 from the host, not the flake nodejs",
+    "python": "3.14.6 from the same shell",
+    "browser": "Chromium 157.0.8103.38, headless",
+    "cairn": "host executable that accepts cairn-policy/generated/cairn-policy.json; it reports no version",
+    "nix": "2.36.0",
+    "jj": "0.47.1"
+  },
+  "rails": [
+    {
+      "command": "cargo fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo clippy --locked -p kiln-dashboard -p kiln-web-service -p kiln-hosted -p onix-kiln-cli --all-targets -- -D warnings",
+      "exit_code": 0,
+      "warnings": 0
+    },
+    {
+      "command": "cargo test --locked -p kiln-dashboard",
+      "exit_code": 0,
+      "result_lines": 4,
+      "passed": 43,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service",
+      "exit_code": 0,
+      "result_lines": 19,
+      "passed": 389,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "command": "cargo test --locked -p kiln-hosted",
+      "exit_code": 0,
+      "result_lines": 6,
+      "passed": 123,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "command": "cargo test --locked -p onix-kiln-cli",
+      "exit_code": 0,
+      "result_lines": 2,
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "command": "KILN_DASHBOARD_EXECUTABLE=<debug kiln-dashboard> python3 -m unittest discover -s scripts -p test_dashboard_publish.py",
+      "exit_code": 0,
+      "tests": 9,
+      "ok": true
+    },
+    {
+      "command": "KILN_DASHBOARD_EXECUTABLE=<debug kiln-dashboard> python3 -m unittest discover -s scripts -p test_dashboard_refresh.py",
+      "exit_code": 0,
+      "tests": 17,
+      "ok": true
+    },
+    {
+      "command": "node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs",
+      "exit_code": 0,
+      "tests": 53,
+      "pass": 53,
+      "fail": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node --check on the 13 console, hosted and offline scripts",
+      "exit_code": 0,
+      "files": 13
+    }
+  ],
+  "ignored_tests": [
+    {
+      "test": "unikernel::tests::native_confinement_gate_smoke",
+      "reason": "requires real KVM, pinned native kernel and user systemd; operator smoke only"
+    },
+    {
+      "test": "worker::streaming::tests::stream_child_entry",
+      "reason": "exec adapter launched only by worker process tests"
+    }
+  ],
+  "flake_check": {
+    "command": "nix build path:$PWD#checks.x86_64-linux.live-console-ui --no-link --option min-free 0 --builders ''",
+    "exit_code": 0,
+    "derivation": "/nix/store/i0c53gybw4rqk7dpfncjs9y73k8bpzf0-kiln-live-console-ui.drv",
+    "output": "/nix/store/zc9kxpq0yclnwiz5qkh5rmwihphn3f01-kiln-live-console-ui",
+    "node": "nodejs 24.18.1 from the flake nixpkgs, inside the build sandbox",
+    "tests": 53,
+    "pass": 53,
+    "fail": 0,
+    "note": "Built on this host. The host's remote-build hook failed before building (its load lock file name exceeds the file-name limit), so builders were disabled for this call; min-free 0 kept the call out of the queued auto-GC runs."
+  },
+  "offline_documents": {
+    "report": {
+      "command": "cargo run -p kiln-dashboard --example preview",
+      "bytes": 65791,
+      "blake3": "26733ee3589acd0b80c19cd1a11fdb48bb0f736b4b8c84ae421a7f4388b80901",
+      "second_render_identical": true
+    },
+    "catalog": {
+      "command": "kiln-dashboard --catalog config/dashboard-kiln.json --profile fixtures/dashboard/profile-v1.json --format html",
+      "bytes": 2031265,
+      "blake3": "5aef6c4a8fa08958f41328f7d03d92e19ec64630381933aafaf01ca1eda347ed",
+      "second_render_identical": true,
+      "embedded_reports": 7
+    },
+    "bound": "rendered outside the repository and not retained; the same inputs render the same bytes"
+  },
+  "lifecycle": {
+    "native_receipts": "lifecycle.json",
+    "profile": "spec-driven",
+    "review_is_independent": false,
+    "synchronized_or_archived": false
+  },
+  "browser_review": {
+    "method": "The console and the hosted page were served by a throwaway Node server outside the repository. It reads the real assets from the working tree on every request, sends the response policies of server.rs and bridge.rs (minus HSTS) and answers the API from synthetic data shaped from the service serializers. Its 20 console routes equal the static routes of server.rs. The catalog and the report are the rendered files above, served from a local static server. Every count below is from the final asset bytes.",
+    "bound": "Synthetic data and one headless Chromium. Not the kiln-web-service or kiln-hosted executables, not a deployment, not Firefox or Safari, not a touch device and not a screen reader",
+    "console": {
+      "observed_at": "2026-11-13T03:15:32.618Z",
+      "pages": 24,
+      "widths": [
+        320,
+        768,
+        1440,
+        1920
+      ],
+      "appearances": [
+        "light",
+        "dark"
+      ],
+      "loads": 192,
+      "document_overflow": 0,
+      "console_errors": 0,
+      "off_origin_requests": 0,
+      "text_contrast_failures": 0,
+      "unhydrated_icons": 0,
+      "requests_per_load": [
+        22,
+        28
+      ],
+      "loads_with_a_control_under_44px": {
+        "count": 2,
+        "where": [
+          "code-review-change@768/light:340",
+          "code-review-change@768/dark:340"
+        ],
+        "what": "line permalinks of the code-review diff, 32px tall between 481px and 960px; an existing rule this change leaves as it is",
+        "sizes": [
+          "71x32",
+          "94x32"
+        ]
+      },
+      "parent_revision_same_harness": {
+        "loads": 192,
+        "loads_with_a_control_under_44px": 60,
+        "by_width": {
+          "320": 25,
+          "768": 35,
+          "1440": 0,
+          "1920": 0
+        },
+        "document_overflow": 0,
+        "console_errors": 0
+      },
+      "states": {
+        "empty": {
+          "loads": 40,
+          "document_overflow": 0,
+          "console_errors": 0,
+          "off_origin_requests": 0,
+          "controls_under_44px": 0,
+          "text_contrast_failures": 0,
+          "loads_showing_a_notice": 0
+        },
+        "unavailable": {
+          "loads": 40,
+          "document_overflow": 0,
+          "console_errors": 0,
+          "off_origin_requests": 0,
+          "controls_under_44px": 0,
+          "text_contrast_failures": 0,
+          "loads_showing_a_notice": 40
+        },
+        "signedout": {
+          "loads": 8,
+          "document_overflow": 0,
+          "console_errors": 0,
+          "off_origin_requests": 0,
+          "controls_under_44px": 0,
+          "text_contrast_failures": 0,
+          "loads_showing_a_notice": 0
+        },
+        "viewer": {
+          "loads": 16,
+          "document_overflow": 0,
+          "console_errors": 0,
+          "off_origin_requests": 0,
+          "controls_under_44px": 0,
+          "text_contrast_failures": 0,
+          "loads_showing_a_notice": 0
+        }
+      },
+      "ordinary_word_broken_inside_the_word": {
+        "pages_scanned": 96,
+        "found": 0,
+        "excluded": "hashes and identifiers, which wrap by design"
+      },
+      "assets": {
+        "/": "38806 bytes sha256:ecf6d0adca047f45",
+        "/identity.css": "8560 bytes sha256:f49de7ac4d24cbc7",
+        "/catalog.css": "30243 bytes sha256:ac132183d04fbd0c",
+        "/web.css": "82867 bytes sha256:bad8a7df02cd487d",
+        "/code-review.css": "30877 bytes sha256:a41b0b51a35a004c",
+        "/project.css": "10085 bytes sha256:f38f31dda11c6315",
+        "/work.css": "33139 bytes sha256:9d96a6b3d0212cc9",
+        "/work-interaction.css": "11397 bytes sha256:94d5ba4ed946c1aa",
+        "/source.css": "17202 bytes sha256:1ccfa1e993249f47",
+        "/web.js": "249306 bytes sha256:5c9f1c13898ae7ca",
+        "/ui.js": "35247 bytes sha256:0fb19ae3d0fb7c27",
+        "/code-review.js": "161359 bytes sha256:94c2a2fcf5ebed55",
+        "/work.js": "107814 bytes sha256:0f1b91f88d8bca51",
+        "/project.js": "28103 bytes sha256:1ae6e0baca579f43",
+        "/source.js": "63003 bytes sha256:17259f9df92eb5cc",
+        "/favicon.svg": "467 bytes sha256:358feba00f4a5b74"
+      }
+    },
+    "console_tables": {
+      "observed_at": "2026-11-13T03:10:47.601Z",
+      "tables": [
+        "overview",
+        "project",
+        "code-review",
+        "runs"
+      ],
+      "rows": {
+        "overview": 6,
+        "project": 4,
+        "code-review": 25,
+        "runs": 25
+      },
+      "widths": 63,
+      "range": "320px to 1920px",
+      "loads": 252,
+      "ordinary_word_broken": 0,
+      "status_label_cut": 0,
+      "text_past_its_cell": 0,
+      "scroll_inside_the_table_region": 0,
+      "overlapping_cells": 0,
+      "document_overflow": 0,
+      "first_sampled_width_of_each_mode": {
+        "overview": [
+          "320:stacked",
+          "853:table",
+          "1200:stacked",
+          "1345:table"
+        ],
+        "project": [
+          "320:stacked",
+          "853:table"
+        ],
+        "code-review": [
+          "320:stacked",
+          "853:table",
+          "1144:stacked",
+          "1412:table"
+        ],
+        "runs": [
+          "320:stacked",
+          "801:table"
+        ]
+      },
+      "narrowest_second_column_in_table_mode_px": {
+        "overview": 200,
+        "project": 152,
+        "code-review": 179,
+        "runs": 141
+      }
+    },
+    "focus_rings": {
+      "method": "each focusable element focused in turn; the ring colour against the surface it is drawn on (the element itself for an inset ring)",
+      "console": {
+        "observed_at": "2026-11-13T03:22:37.954Z",
+        "pages": [
+          "overview",
+          "runs",
+          "run-failed-logs",
+          "run-running-pipeline",
+          "project",
+          "workers",
+          "settings",
+          "work",
+          "work-board",
+          "source",
+          "code-review",
+          "code-review-change"
+        ],
+        "loads": 48,
+        "elements": 5340,
+        "without_a_ring": 0,
+        "below_3_to_1": 0,
+        "lowest_ratio_light": 4.21,
+        "lowest_ratio_dark": 7.34
+      },
+      "offline_and_hosted": {
+        "loads": 32,
+        "elements": 572,
+        "without_a_ring": 0,
+        "below_3_to_1": 0,
+        "lowest_ratio": 4.59,
+        "ring_drawn_on_the_field_wrapper": 16
+      },
+      "found_and_fixed": "the hosted response panel and the catalog index table are dark in both appearances; their ring, drawn outside on the light page, measured 2.06:1. It is now drawn inside the region"
+    },
+    "live_activity": [
+      {
+        "label": "two running, one queued, one awaiting approval",
+        "ok": true,
+        "shown": true,
+        "count": "2",
+        "name": "2 running runs in the last live snapshot; opens pending runs",
+        "firing": true,
+        "connection": "connected",
+        "status": "Live · authenticated"
+      },
+      {
+        "label": "one running",
+        "ok": true,
+        "shown": true,
+        "count": "1",
+        "name": "1 running run in the last live snapshot; opens pending runs",
+        "firing": true,
+        "connection": "connected",
+        "status": "Live · authenticated"
+      },
+      {
+        "label": "no run running",
+        "ok": true,
+        "shown": false,
+        "count": "0",
+        "name": "0 running runs in the last live snapshot; opens pending runs",
+        "firing": false,
+        "connection": "connected",
+        "status": "Live · authenticated"
+      },
+      {
+        "label": "two running again",
+        "ok": true,
+        "shown": true,
+        "count": "2",
+        "name": "2 running runs in the last live snapshot; opens pending runs",
+        "firing": true,
+        "connection": "connected",
+        "status": "Live · authenticated"
+      },
+      {
+        "label": "live read fails",
+        "ok": true,
+        "shown": false,
+        "count": "0",
+        "name": "0 running runs in the last live snapshot; opens pending runs",
+        "firing": false,
+        "connection": "stale",
+        "status": "Stale · reconnect 1/6"
+      },
+      {
+        "label": "stays removed while stale",
+        "ok": true,
+        "samples": 18,
+        "failedReads": 2
+      },
+      {
+        "label": "server heartbeat: observation current again",
+        "ok": true,
+        "shown": true,
+        "count": "2",
+        "name": "2 running runs in the last live snapshot; opens pending runs",
+        "firing": true,
+        "connection": "connected",
+        "status": "Live · authenticated"
+      },
+      {
+        "label": "session cleared",
+        "ok": true,
+        "shown": false,
+        "count": "0",
+        "name": "0 running runs in the last live snapshot; opens pending runs",
+        "firing": false,
+        "connection": "stale",
+        "status": "Not connected"
+      },
+      {
+        "label": "stays removed after the session ends",
+        "ok": true,
+        "samples": 12
+      }
+    ],
+    "live_activity_link": "?page=runs&view=pipeline&outcome=Pending&order=desc&theme=dark&density=comfortable",
+    "request_feedback": [
+      {
+        "label": "slow read: indication while in flight",
+        "ok": true,
+        "busy": true,
+        "ariaBusy": "true",
+        "lineOpacity": 1,
+        "lineAnimation": "kiln-busy",
+        "toggles": 2,
+        "notice": ""
+      },
+      {
+        "label": "slow read: gone after it settles",
+        "ok": true,
+        "busy": false,
+        "ariaBusy": null,
+        "lineOpacity": 0,
+        "lineAnimation": "none",
+        "toggles": 5,
+        "notice": ""
+      },
+      {
+        "label": "live poll alone shows nothing",
+        "ok": true,
+        "liveReads": 4,
+        "samples": 91,
+        "toggles": 0
+      },
+      {
+        "label": "failed read: indication while in flight",
+        "ok": true,
+        "busy": true,
+        "ariaBusy": "true",
+        "lineOpacity": 1,
+        "lineAnimation": "kiln-busy",
+        "toggles": 1,
+        "notice": ""
+      },
+      {
+        "label": "failed read: gone after the failure",
+        "ok": true,
+        "busy": false,
+        "ariaBusy": null,
+        "lineOpacity": 0,
+        "lineAnimation": "none",
+        "toggles": 2,
+        "notice": "mock_failure: The run list could not be read."
+      },
+      {
+        "label": "aborted read: indication while in flight",
+        "ok": true
+      },
+      {
+        "label": "aborted read: gone within 3 s of clearing the session (reads take 4 s)",
+        "ok": true,
+        "busy": false,
+        "ariaBusy": null,
+        "lineOpacity": 0,
+        "lineAnimation": "none",
+        "toggles": 3,
+        "notice": "Signed out. Private views and pending requests were cleared."
+      }
+    ],
+    "reduced_motion": {
+      "no_preference": {
+        "matches": false,
+        "motion": "180ms",
+        "motionFast": "120ms",
+        "firing": true,
+        "door": "kiln-fire",
+        "runningIcon": "kiln-live-pulse",
+        "countShown": true,
+        "countText": "1",
+        "animatedElements": 4,
+        "longestTransitionMs": 180
+      },
+      "reduce": {
+        "matches": true,
+        "motion": "0ms",
+        "motionFast": "0ms",
+        "firing": true,
+        "door": "none",
+        "runningIcon": "none",
+        "countShown": true,
+        "countText": "1",
+        "animatedElements": 0,
+        "longestTransitionMs": 0
+      },
+      "request_line_under_reduce": {
+        "busy": true,
+        "opacity": "1",
+        "animation": "none"
+      }
+    },
+    "offline_and_hosted": {
+      "observed_at": "2026-11-13T02:53:03.171Z",
+      "widths": [
+        320,
+        768,
+        900,
+        1440,
+        1920
+      ],
+      "appearances": [
+        "light",
+        "dark"
+      ],
+      "catalog": {
+        "pages": 6,
+        "loads": 60,
+        "document_overflow": 0,
+        "console_errors": 0,
+        "off_origin_requests": 0,
+        "controls_under_44px": 0,
+        "text_contrast_failures": 0,
+        "requests_per_load": 1
+      },
+      "report": {
+        "loads": 10,
+        "document_overflow": 0,
+        "console_errors": 0,
+        "off_origin_requests": 0,
+        "controls_under_44px": 0,
+        "text_contrast_failures": 0,
+        "requests_per_load": 1
+      },
+      "hosted": {
+        "pages": 8,
+        "loads": 80,
+        "document_overflow": 0,
+        "console_errors": 0,
+        "off_origin_requests": 0,
+        "controls_under_44px": 0,
+        "text_contrast_failures": 0,
+        "requests_per_load": 6
+      },
+      "opened_states_at_320_and_768": {
+        "checked": 34,
+        "with_a_finding": 0,
+        "kinds": {
+          "catalog:overview": 2,
+          "catalog:projects": 2,
+          "catalog:settings": 2,
+          "catalog:menu-open": 2,
+          "catalog:search-open": 2,
+          "catalog:help-dialog": 2,
+          "report:run-selected": 2,
+          "report:help-dialog": 2,
+          "catalog-embedded-report:runs": 4,
+          "catalog-embedded-report:activity": 4,
+          "catalog-embedded-report:evidence": 4,
+          "no-js:catalog": 2,
+          "no-js:report": 2,
+          "no-js:hosted": 2
+        }
+      },
+      "without_javascript": {
+        "no-js:catalog@320": {
+          "overflow": 0,
+          "small": 0,
+          "scripted": false,
+          "links": 22,
+          "visibleButtons": 0,
+          "frames": 7,
+          "framesOverflowing": 0,
+          "framesWithSmall": 0,
+          "textLength": 6224
+        },
+        "no-js:report@320": {
+          "overflow": 0,
+          "small": 0,
+          "scripted": false,
+          "links": 1,
+          "visibleButtons": 0,
+          "frames": 0,
+          "framesOverflowing": 0,
+          "framesWithSmall": 0,
+          "textLength": 5148
+        },
+        "no-js:hosted@320": {
+          "overflow": 0,
+          "small": 0,
+          "scripted": false,
+          "links": 9,
+          "visibleButtons": 2,
+          "frames": 0,
+          "framesOverflowing": 0,
+          "framesWithSmall": 0,
+          "textLength": 888
+        },
+        "no-js:catalog@768": {
+          "overflow": 0,
+          "small": 0,
+          "scripted": false,
+          "links": 22,
+          "visibleButtons": 0,
+          "frames": 7,
+          "framesOverflowing": 0,
+          "framesWithSmall": 0,
+          "textLength": 6236
+        },
+        "no-js:report@768": {
+          "overflow": 0,
+          "small": 0,
+          "scripted": false,
+          "links": 1,
+          "visibleButtons": 0,
+          "frames": 0,
+          "framesOverflowing": 0,
+          "framesWithSmall": 0,
+          "textLength": 5159
+        },
+        "no-js:hosted@768": {
+          "overflow": 0,
+          "small": 0,
+          "scripted": false,
+          "links": 9,
+          "visibleButtons": 2,
+          "frames": 0,
+          "framesOverflowing": 0,
+          "framesWithSmall": 0,
+          "textLength": 888
+        }
+      },
+      "ordinary_word_broken_inside_the_word": {
+        "pages_scanned": 45,
+        "found": 0
+      },
+      "report_run_table_at_320": {
+        "columns": [
+          128,
+          148,
+          128,
+          60
+        ],
+        "outcomeContent": 129,
+        "widestOutcomeName": 119,
+        "outcomeLines": [
+          "Success:1",
+          "DomainFailure:1",
+          "Pending:1",
+          "Unknown:1",
+          "Success:1",
+          "Cancelled:1"
+        ]
+      },
+      "hosted_record_rows": {
+        "startedAt": "2026-11-13T03:25:24.423Z",
+        "loads": 32,
+        "widths": [
+          320,
+          768,
+          900,
+          1440
+        ],
+        "withTable": 28,
+        "withoutTable": [
+          "overview@320",
+          "overview@768",
+          "overview@900",
+          "overview@1440"
+        ],
+        "regionAttributesMatchTable": true,
+        "scrollingInsideRegion": 12,
+        "documentOverflow": 0,
+        "smallTargets": 0,
+        "contrast": 0,
+        "errors": [],
+        "tokensWrappedInsideACell": {
+          "pages": [
+            "team@320",
+            "team@768",
+            "team@900",
+            "team@1440"
+          ],
+          "allAreHexIdentities": true,
+          "distinct": 6
+        },
+        "keyboard": {
+          "reachedByTab": true,
+          "focusVisible": true,
+          "outline": "solid 2px",
+          "before": 0,
+          "scrollLeftAfterTwoArrowKeys": 80,
+          "afterRejectedRequest": {
+            "table": false,
+            "tabindex": null,
+            "role": null,
+            "label": null,
+            "statusClass": "error"
+          },
+          "afterNextAcceptedRequest": {
+            "table": true,
+            "tabindex": "0",
+            "role": "region",
+            "label": "Recorded response rows",
+            "statusClass": "success"
+          }
+        }
+      },
+      "sandbox_console_message": {
+        "loads": 8,
+        "of": 60,
+        "text": "SecurityError: Failed to read a named property 'Function' from 'Window': Blocked a frame with origin \"null\"",
+        "attribution": "excluded from the error counts. A page with seven sandboxed srcdoc frames and no Kiln script raised the same message in 2 of 16 loads in this browser. That is evidence by experiment, not proof that no Kiln script contributes"
+      }
+    }
+  },
+  "defects_found_and_fixed": [
+    "code-review change list blank for a principal with saved personal views (undeclared variable)",
+    "work board status lane headings read [object HTMLSpanElement]",
+    "catalog, report and hosted controls under 44px at 320px and 768px, with and without JavaScript",
+    "catalog top bar 4px wider than a 320px screen once its icon buttons were 44px",
+    "report outcome column too narrow for DomainFailure at the restyled type size",
+    "hosted record values broken inside the word after the restyle",
+    "focus ring of two dark regions at 2.06:1 on the light page",
+    "console project names, change titles, Logs and Pipeline broken inside the word, and Awaiting approval cut, in narrow table regions",
+    "project run history at 320px: an unbroken revision ran 26px into the neighbouring cell"
+  ],
+  "known_remaining": [
+    "Line permalinks of the code-review diff are 32px tall between 481px and 960px (340 links on the reviewed change at 768px)",
+    "A word wider than its line still breaks, by design, so that nothing overflows",
+    "The pinned index widget keeps its own row height and its own colours if its cell-style serialisation changes",
+    "With JavaScript disabled the hosted page still shows its two form buttons; the page is a script application and this change does not alter that",
+    "cairn traceability coverage under the accepted profile, and so cairn release-readiness, fail until the delta is synchronized (lifecycle.json)"
+  ],
+  "not_exercised": [
+    "cargo test --locked --workspace and cargo clippy --locked --workspace: the three changed crates and the CLI that embeds the dashboard were run instead",
+    "nix build .#checks.x86_64-linux.octet and nix flake check: only the live-console-ui check, whose command this change edits, was built",
+    "scripts/check-nickel-fixtures.sh: no Nickel fixture or configuration under its roots changed",
+    "The Bombadil terminal rails and the web-service, workspace and review smoke scripts",
+    "The kiln-web-service and kiln-hosted executables serving these assets, TLS, authentication and any deployment",
+    "Firefox, Safari, a touch device, a screen reader, forced-colors mode and print",
+    "aarch64-linux"
+  ],
+  "non_claims": [
+    "A browser review over synthetic data shows presentation; it is not evidence of CI execution, of service behaviour or of deployed bytes",
+    "Contrast is computed from resolved colours on flat backgrounds; text over a gradient is measured against the nearest solid layer",
+    "Passing declared-reference coverage under the development profile is linkage, not acceptance of the requirements",
+    "Agentic self-review, not independent approval. Nothing here is lifecycle acceptance or release eligibility"
+  ],
+  "screenshots": {
+    "files": [
+      "before-console-overview-1440-light.png",
+      "catalog-overview-1440-light.png",
+      "catalog-projects-320-light.png",
+      "catalog-runs-1440-dark.png",
+      "console-code-review-1440-dark.png",
+      "console-code-review-768-dark.png",
+      "console-failed-run-1440-light.png",
+      "console-overview-1440-dark.png",
+      "console-overview-1440-light.png",
+      "console-overview-320-light.png",
+      "console-runs-320-light.png",
+      "console-sign-in-1440-dark.png",
+      "console-work-board-1440-light.png",
+      "hosted-projects-320-light.png",
+      "hosted-runs-1440-dark.png",
+      "report-1440-light.png",
+      "report-320-dark.png"
+    ],
+    "bytes": 2786167,
+    "note": "before-console-overview-1440-light.png is the parent revision in the same harness; the others are the final bytes"
+  }
+}

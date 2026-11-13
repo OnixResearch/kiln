@@ -159,6 +159,46 @@ test("live progress reports recorded elapsed time and finished node counts only"
   assert.deepEqual({ ...ui.nodeProgress([null, { state: "Completed" }, { state: "completed" }]) }, { complete: 1, total: 2 });
 });
 
+// r[verify kiln.web.live_activity]
+// r[verify kiln.web.live_activity.scenario.count]
+test("live activity counts only runs the snapshot reports as running", () => {
+  const running = { id: "a", outcome: "Pending", phase: "active" };
+  const snapshot = [
+    running, { id: "b", outcome: "Pending", phase: "active" },
+    { id: "c", outcome: "Pending", phase: "queued" }, { id: "d", outcome: "Pending", phase: "awaiting_approval" },
+    { id: "e", outcome: "Pending", phase: "unknown" }, { id: "f", outcome: "Pending" }, { id: "g", outcome: null, phase: "queued" },
+    { id: "h", outcome: "Success", phase: "completed" }, { id: "i", outcome: "DomainFailure", phase: "completed" },
+    { id: "j", outcome: "Cancelled", phase: "completed" }, { id: "k", outcome: "Unknown", phase: "completed" }, { id: "l", outcome: "FutureOutcome", phase: "active" },
+  ];
+  assert.deepEqual({ ...ui.liveActivity(snapshot) }, { running: 2 });
+  // The count is the status rule's: every counted run is one the console labels Running, and no other is.
+  assert.deepEqual(snapshot.filter((run) => ui.outcomeStatus(run.outcome, run.phase).status === "running").map((run) => run.id), ["a", "b"]);
+  assert.deepEqual({ ...ui.liveActivity(snapshot.filter((run) => run.phase !== "active")) }, { running: 0 });
+  // A finished run whose phase still reads active is not running: the outcome decides.
+  assert.deepEqual({ ...ui.liveActivity([{ outcome: "Success", phase: "active" }, { outcome: "TimedOut", phase: "active" }]) }, { running: 0 });
+  assert.deepEqual({ ...ui.liveActivity([]) }, { running: 0 });
+  // Not a snapshot list, or entries that are not runs: nothing is counted and nothing throws.
+  for (const value of [null, undefined, "runs", 3, {}, { length: 2, 0: running, 1: running }]) assert.deepEqual({ ...ui.liveActivity(value) }, { running: 0 });
+  assert.deepEqual({ ...ui.liveActivity([null, undefined, "Pending", 7, [], {}, running]) }, { running: 1 });
+});
+
+// r[verify kiln.web.live_activity.scenario.stale]
+test("a running count is presented only while live observation is current", () => {
+  const admitted = ui.liveActivity([{ outcome: "Pending", phase: "active" }, { outcome: "Pending", phase: "active" }, { outcome: "Pending", phase: "queued" }]).running;
+  assert.equal(ui.presentedRunning(admitted, true), 2);
+  // Stale or disconnected observation presents none; the admitted count itself is kept by the caller, so a
+  // recovered connection presents it again without a new snapshot.
+  assert.equal(ui.presentedRunning(admitted, false), 0);
+  assert.equal(ui.presentedRunning(admitted, true), 2);
+  // No snapshot admitted yet (null) and nothing running present none even while current.
+  assert.equal(ui.presentedRunning(null, true), 0);
+  assert.equal(ui.presentedRunning(0, true), 0);
+  // Only the literal `true` states current observation: a status message or any other truthy value does not.
+  for (const current of [undefined, null, 0, 1, "Live · authenticated", {}, []]) assert.equal(ui.presentedRunning(admitted, current), 0);
+  // A value that is not a count is never presented as one.
+  for (const value of [undefined, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53, "2", true, {}, [2]]) assert.equal(ui.presentedRunning(value, true), 0);
+});
+
 // r[verify kiln.web.runs_table]
 test("runs group by local calendar day; unrecorded instants have no day", () => {
   const now = new Date(2026, 9, 29, 12, 0).getTime();

@@ -1736,7 +1736,7 @@
             pkgs.runCommand "kiln-live-console-ui" { nativeBuildInputs = [ pkgs.nodejs ]; }
               ''
                 ${copySource}
-                node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs
+                node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs
                 touch "$out"
               '';
           # Property-based terminal rail for the operator dashboard. The

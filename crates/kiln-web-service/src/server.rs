@@ -897,10 +897,16 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             "/source.css" => ("text/css; charset=utf-8", include_bytes!("source.css")),
             // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
+            // r[impl kiln.identity.shared] The shared identity, then the catalog shell it styles.
+            "/identity.css" => (
+                "text/css; charset=utf-8",
+                include_bytes!("../../kiln-dashboard/src/render/identity.css"),
+            ),
             "/catalog.css" => (
                 "text/css; charset=utf-8",
                 include_bytes!("../../kiln-dashboard/src/render/catalog.css"),
             ),
+            "/favicon.svg" => ("image/svg+xml", include_bytes!("favicon.svg")),
             _ => return error_response(404, "not_found"),
         };
         ApiResponse {

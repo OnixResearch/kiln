@@ -173,6 +173,15 @@ server, network connection, framework, or external font is needed. Run and
 attempt identifiers and journal-derived text remain escaped, inert data, not
 executable script or markup.
 
+<!-- r[impl kiln.identity.shared] -->
+<!-- r[impl kiln.identity.shared.scenario.surfaces] -->
+The report and the catalog embed the shared Kiln identity
+(`crates/kiln-dashboard/src/render/identity.css`) ahead of their own stylesheet
+in the one inline style. It is the same palette, type, scale and kiln-arch brand
+mark that the live console and the hosted bridge page load, in light and dark,
+and it references no font or image. A catalog carries one copy per embedded
+report inside its rendered-size bound.
+
 The page shows the same admitted facts as the terminal report: the observed
 state revision, the profile identities, the declared journal identity, the
 recorded canonical view identities, the redacted fields, and the declared
@@ -181,9 +190,14 @@ drilldown; the projection, redaction, and identity rules do not change. The same
 admitted input and selection render the same bytes. Terminal output and CLI
 command usage are unchanged.
 
+<!-- r[impl kiln.identity.touch_targets] -->
 The responsive console places admitted state counts above a run list and a
 selected-run/attempt inspector. On narrow screens these surfaces stack; wide
-tables scroll within their own regions. Recent activity and expandable evidence
+tables scroll within their own regions. At 960px and narrower, in the report and
+in the catalog, buttons, links, fields, selects and disclosure headings are at
+least 44px tall in both densities. The rows of the catalog's index table keep
+the pinned widget's own height; the project cards and the HTML navigation reach
+the same histories. Recent activity and expandable evidence
 sections retain exact provenance, canonical view identities, profile redactions
 and non-claims. The run list's paging bounds remain below the rows, and selected
 details keep their own canonical identity and truncation facts.
@@ -316,6 +330,12 @@ At narrow widths the table shows one repository/history column. **HTML repositor
 and history navigation** remains an accessible alternative. If WASM initialization
 fails, the page reports the failure and opens that navigation. Without JavaScript,
 all report sections and ordinary links remain readable.
+
+The widget writes its own cell colours inline. `catalog.css` restates the three
+it uses (header, row, chosen row) from the identity through attribute
+selectors. If a regenerated widget serialises a cell style differently, those
+selectors stop matching and the table shows the widget's colours again; nothing
+else depends on them.
 
 JavaScript, WASM and dependency notices are embedded in the same bounded HTML;
 opening the file does not fetch modules, fonts, WASM or data. Existing atomic
@@ -455,8 +475,12 @@ page reload; `watchexec` is what rebuilds source. A failed build is reported by
 Cargo and leaves the last successfully generated page in place. Stop the watcher
 with Ctrl-C; the output remains a local file and no provider has been contacted.
 
-Presentation sources are `crates/kiln-dashboard/src/render/html.rs`, `html.css`
-and `html.js`. The preview generator is `crates/kiln-dashboard/examples/preview.rs`.
+Presentation sources are `crates/kiln-dashboard/src/render/identity.css` (shared
+identity), `html.rs`, `html.css` and `html.js`; the catalog shell is
+`crates/kiln-dashboard/src/catalog.rs` with `render/catalog.css` and
+`catalog.js`. The preview generator is `crates/kiln-dashboard/examples/preview.rs`.
+`node --test tests/kiln-identity.test.mjs` checks the identity's contrast floor
+and that neither stylesheet declares a colour of its own.
 Use `cargo test --locked -p kiln-dashboard` and
 `cargo clippy --locked -p kiln-dashboard -p onix-kiln-cli --all-targets -- -D warnings`
 inside the dev shell for focused checks. Inspect both color schemes, a narrow

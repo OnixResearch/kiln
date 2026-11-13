@@ -170,12 +170,17 @@ async fn exchange(
                 )
                 .await
             }
+            // r[impl kiln.identity.shared] The shared identity leads the page stylesheet in one same-origin response.
             "/app.css" => {
                 response(
                     &mut stream,
                     200,
                     "text/css; charset=utf-8",
-                    include_bytes!("web.css"),
+                    concat!(
+                        include_str!("../../kiln-dashboard/src/render/identity.css"),
+                        include_str!("web.css")
+                    )
+                    .as_bytes(),
                 )
                 .await
             }

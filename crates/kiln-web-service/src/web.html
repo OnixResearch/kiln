@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="color-scheme" content="light dark">
   <title>Kiln · Live workspace</title>
+  <!-- r[impl kiln.identity.shared] The shared identity loads first; the mark and favicon are Kiln artwork from this origin. -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/identity.css">
   <!-- icons.js (pinned Lucide data) then ui.js load first so every deferred view script can use window.KilnUi. -->
   <!-- r[impl kiln.web.design_system] -->
   <!-- r[impl kiln.web.design_system.scenario.local] Icons are same-origin data; no remote asset is requested. -->
@@ -17,7 +19,7 @@
 <!-- r[impl kiln.web.console_layout] Compact icon rail: labels stay in the DOM (visually hidden while collapsed, always announced) and appear on hover, keyboard focus or pinning; below 60rem it is the navigation drawer. -->
 <!-- r[impl kiln.web.console_layout.scenario.navigation] -->
 <aside id="app-sidebar" class="app-sidebar app-rail" aria-label="Workspace navigation">
-  <a class="brand" href="/?page=work"><span class="brand-mark" aria-hidden="true">K</span><span class="nav-text brand-text">Kiln</span></a>
+  <a class="brand" href="/?page=work"><span class="brand-mark" aria-hidden="true"></span><span class="nav-text brand-text">Kiln</span></a>
   <nav class="app-navigation" aria-label="Main">
     <section class="nav-group" aria-labelledby="nav-work"><h2 id="nav-work" class="nav-label">Work</h2>
       <a data-page="work" href="?page=work"><span class="icon" data-icon="circle-alert" aria-hidden="true"></span><span class="nav-text">Issues</span></a>
@@ -62,11 +64,14 @@
       <button id="work-command-open" class="command-trigger" type="button" aria-label="Open command and search palette" aria-keyshortcuts="Control+K"><span class="icon" data-icon="search" aria-hidden="true"></span><span class="command-label">Search &amp; commands</span><span class="command-label-short" aria-hidden="true">Search</span><kbd>Ctrl K</kbd></button>
     </div>
     <div class="session-tools">
+      <!-- r[impl kiln.web.live_activity] Shown by web.js only while the last admitted live snapshot reports running runs. -->
+      <a id="live-activity" class="status-pill is-live live-activity" data-status="running" href="?page=runs&amp;outcome=Pending" hidden><span class="icon" data-icon="loader-circle" aria-hidden="true"></span><span id="live-activity-count">0</span><span class="live-activity-word"> running</span><span class="sr-only"> <span id="live-activity-unit">runs</span> in the last live snapshot; opens pending runs</span></a>
       <span id="connection-status" class="live-indicator" role="status" hidden>Not connected</span>
       <div class="account">
         <button id="account-button" class="account-button quiet" type="button" aria-expanded="false" aria-controls="account-menu"><span id="account-avatar" class="account-avatar" aria-hidden="true">?</span><span class="sr-only">Account: </span><span id="auth-status" class="account-label">Signed out</span><span class="icon account-chevron" data-icon="chevron-down" aria-hidden="true"></span></button>
         <div id="account-menu" class="menu account-menu" hidden>
           <div class="menu-section"><p id="account-name" class="menu-title">Not signed in</p><p id="account-role" class="meta">Network identity is checked automatically, or connect with an access token.</p></div>
+          <div class="menu-section menu-appearance"><p id="appearance-label" class="meta">Appearance</p><div id="theme-switch" class="segmented" role="group" aria-labelledby="appearance-label"><button type="button" data-theme-choice="system" aria-pressed="true">System</button><button type="button" data-theme-choice="light" aria-pressed="false">Light</button><button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button></div></div>
           <button id="account-settings" class="menu-item" type="button" hidden>Appearance &amp; settings</button>
           <button id="logout" class="menu-item menu-item-danger" type="button" hidden>Clear session</button>
           <div class="menu-section menu-boundary"><p class="meta">Authenticated live service. Actions affect the configured execution provider. Recorded evidence is not acceptance authority.</p></div>
@@ -76,11 +81,11 @@
   </header>
   <main id="main" class="app-main" tabindex="-1">
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
-    <section id="login-panel" class="login-panel panel" aria-labelledby="login-title"><span class="brand-mark login-mark" aria-hidden="true">K</span><p class="eyebrow">Private live workspace</p><h1 id="login-title">Your work, live.</h1><p>Network identity is checked automatically. Alternatively, connect with an admitted viewer or operator bearer.</p><form id="login-form" autocomplete="off"><label for="operator-token">Access token</label><input id="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help"><p id="token-help" class="small">Kept only in page memory; never saved or included in a URL. Clearing the session erases private views and pending requests.</p><button id="login-button" class="primary" type="submit">Connect to service</button></form><p class="boundary">This public shell contains no private execution data.</p></section>
+    <section id="login-panel" class="login-panel panel" aria-labelledby="login-title"><span class="brand-mark login-mark" aria-hidden="true"></span><p class="eyebrow">Private live workspace</p><h1 id="login-title">Your work, live.</h1><p>Network identity is checked automatically. Alternatively, connect with an admitted viewer or operator bearer.</p><form id="login-form" autocomplete="off"><label for="operator-token">Access token</label><input id="operator-token" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" required pattern="[0-9A-Fa-f]{64}" minlength="64" maxlength="64" aria-describedby="token-help"><p id="token-help" class="small">Kept only in page memory; never saved or included in a URL. Clearing the session erases private views and pending requests.</p><button id="login-button" class="primary" type="submit">Connect to service</button></form><p class="boundary">This public shell contains no private execution data.</p></section>
     <!-- r[impl kiln.web.console_layout] Centred page frame: every page inherits the width, rhythm and one large page header. -->
     <!-- r[impl kiln.web.page_consistency] Long boundary and non-claim copy sits in labelled .about-view disclosures beside its section heading; text is unchanged and reachable. -->
     <div id="workspace" class="page-frame" hidden>
-      <header class="page-header"><div class="page-header-text"><p id="workspace-eyebrow" class="page-eyebrow">Continuous integration</p><h1 id="workspace-title" class="page-title">Overview</h1><p id="observation-note" class="page-description">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="page-actions"><div id="page-primary-action" class="cluster"></div><button id="refresh-all" class="icon-button quiet" type="button" aria-label="Refresh" title="Refresh and reconnect live observations"><span class="icon" data-icon="refresh-cw" aria-hidden="true"></span></button></div></header>
+      <header class="page-header kiln-rule"><div class="page-header-text"><p id="workspace-eyebrow" class="page-eyebrow">Continuous integration</p><h1 id="workspace-title" class="page-title">Overview</h1><p id="observation-note" class="page-description">Finite snapshots are observations, not a complete history. Unknown historical timing stays unknown.</p></div><div class="page-actions"><div id="page-primary-action" class="cluster"></div><button id="refresh-all" class="icon-button quiet" type="button" aria-label="Refresh" title="Refresh and reconnect live observations"><span class="icon" data-icon="refresh-cw" aria-hidden="true"></span></button></div></header>
       <section data-panel="overview" id="overview-panel" class="view-stack"><div id="overview-content" class="view-stack"></div></section>
       <section data-panel="work" hidden class="view-stack"><div id="work-content" class="view-stack"></div></section>
       <section data-panel="planning" hidden class="view-stack"><div id="planning-content" class="view-stack"></div></section>

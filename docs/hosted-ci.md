@@ -132,6 +132,15 @@ admin API or allow untrusted local processes to use it. It binds loopback,
 checks Host/Origin and serves private no-store assets without a browser bearer
 token. `/session` exposes public connection identities, not private key bytes.
 
+<!-- r[impl kiln.identity.shared] -->
+<!-- r[impl kiln.identity.touch_targets] -->
+The page carries the Kiln identity that the live console and the offline
+documents use, and follows the browser's light or dark preference. Its
+stylesheet is one response from the bridge's own origin, and it requests no font
+or image. At 960px and narrower its navigation links, fields and buttons are at
+least 44px tall. A table of recorded rows that is wider than its panel scrolls
+inside its own region, which takes keyboard focus while it holds rows.
+
 Customer transport uses ALPN `kiln.customer.v1`, a single bounded JSON request
 per bidirectional QUIC stream, four-byte big-endian frame length, EOF after the
 frame, 1 MiB frames, at most 32 active exchanges and a 30-second exchange bound.

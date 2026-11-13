@@ -137,13 +137,17 @@
 .cr-pager > span { flex: 1 1 10rem; text-align: center; }
 /* The side column is too narrow for a three-part pager row: the summary leads, the buttons share the next row. */
 .cr-aside .cr-pager > span { order: -1; flex-basis: 100%; }
-@media (max-width: 40rem) {
+/* r[impl kiln.web.visual_design.scenario.lists] r[impl kiln.web.page_consistency] The change list stacks with the
+   other stacking tables (web.css): the title takes the row. */
+@container data-table (max-width: 48rem) {
   .data-table-stack.cr-change-table tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .cr-change-table td[data-label="Change"], .cr-change-table td[data-label="State"] { grid-column: 1 / -1; }
   .cr-change-table td[data-label="State"] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
   .cr-change-table td[data-label="State"]::before { flex-basis: 100%; }
   .cr-change-table td:not([data-label="Change"])::before { content: attr(data-label); display: block; color: var(--muted-foreground); font-size: var(--text-xs); font-weight: 600; }
   .cr-change-table td .chip { margin-left: 0; }
+}
+@media (max-width: 40rem) {
   /* r[impl kiln.web.page_consistency] Personal views read as a full-width stacked choice; search spans the row. */
   .cr-views > .segmented { width: 100%; }
   .cr-views > .segmented > button { flex: 1 1 auto; }

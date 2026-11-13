@@ -1,0 +1,132 @@
+/* r[impl kiln.identity.shared] Kiln identity: the one palette, type, scale and brand mark for every browser surface.
+ * Included first by the live console (/identity.css), the offline catalog and report (inline) and the hosted
+ * bridge page (joined into /app.css). Surface stylesheets declare no colour of their own.
+ *
+ * Token names follow GPUI Kit's semantic theme names with dots written as hyphens (docs/operator.md has the table).
+ * Each colour is declared once as light-dark(light, dark). A region that is dark in both appearances (navigation
+ * rail, log panel, catalog hero) sets `color-scheme: dark` and restates `color`, because an inherited computed
+ * colour does not resolve again.
+ * crates/kiln-web-service/src/favicon.svg restates ember and soot; keep it in step with --primary and --soot.
+ */
+/* r[impl kiln.identity.contrast] Pairs and ratios are held by tests/kiln-identity.test.mjs. */
+:root {
+  color-scheme: light dark;
+
+  /* Clay and soot: warm neutral surfaces, boundaries and text. */
+  --background: light-dark(#f4f1eb, #131110);
+  --foreground: light-dark(#1d1916, #f3ece4);
+  --muted: light-dark(#ece7df, #221e1b);
+  --muted-foreground: light-dark(#655d54, #ab9f93);
+  --secondary: light-dark(#fffdf9, #1b1816);
+  --group-box: light-dark(#fffdf9, #1b1816);
+  --popover: light-dark(#fffdf9, #201c19);
+  --accent: light-dark(#e7e0d6, #2b2622);
+  --list-hover: light-dark(#ebe5dc, #2b2622);
+  --list-active: light-dark(#ece7df, #292421);
+  --list-active-border: light-dark(#b9ad9d, #5d5146);
+  --table-head: light-dark(#f0ebe3, #201c19);
+  --border: light-dark(#e1d9cd, #312b26);
+  --border-emphasis: light-dark(#b9ad9d, #5d5146);
+  --input-border: light-dark(#8f8475, #746759);
+  --sidebar: #181513;
+  --link: var(--foreground);
+
+  /* Ember: action emphasis, focus and the live-activity signal. Never a status. */
+  --primary: #ff6a2b;
+  --primary-hover: light-dark(#f55a17, #ff7f47);
+  --primary-foreground: #2b1004;
+  --ring: light-dark(#c2410c, #ff9a62);
+  --progress-bar: var(--primary);
+  --ember-bright: #ff9255;
+  --ember-deep: #dd4a12;
+  --flame: #ffd58a;
+  --soot: #151210;
+  --glaze: rgb(255 255 255 / 36%);
+  --shade: rgb(0 0 0 / 24%);
+  /* The glazed fill of a primary action and of the current navigation tile, over a solid ember so text keeps its
+     surface where a gradient is not painted. */
+  --primary-fill: linear-gradient(var(--ember-bright), var(--primary) 62%) var(--primary);
+  --primary-fill-hover: linear-gradient(var(--primary), var(--primary-hover)) var(--primary-hover);
+
+  /* Glazes: status colours keep their meanings. Text on a status background uses the status colour itself. */
+  --success: light-dark(#17673f, #8ed6a6); --success-background: light-dark(#e3f2e8, #16291f);
+  --danger: light-dark(#a8182d, #ff98a6); --danger-background: light-dark(#fbe9ea, #3a1c20);
+  --info: light-dark(#1d4fb0, #9dbcff); --info-background: light-dark(#e7eefb, #19263f);
+  --warning: light-dark(#8a4f00, #f1c56c); --warning-background: light-dark(#fcefd8, #352a14);
+  --queued: light-dark(#5f564d, #c9bdb0); --queued-background: light-dark(#ece7df, #2a2521);
+  --cancelled: light-dark(#5a544e, #a8a098); --cancelled-background: light-dark(#e9e4dd, #252120);
+  --unknown: light-dark(#6d591b, #d9c78f); --unknown-background: light-dark(#f3eedb, #2f2a1a);
+
+  /* Log and terminal surfaces are dark in both appearances. */
+  --editor-background: #0e0c0b;
+  --editor-foreground: #ece5dc;
+  --editor-muted-foreground: #a59b8e;
+
+  /* Server token classes (kiln.highlight.v1); each reaches 4.5:1 on code surfaces and diff rows. */
+  --syntax-keyword: light-dark(#7b3aa8, #c9a8f5);
+  --syntax-string: light-dark(#17673f, #8ed6a6);
+  --syntax-comment: light-dark(#69635a, #a59b8e);
+  --syntax-number: light-dark(#b23a1e, #ffa98a);
+  --syntax-constant: light-dark(#96500a, #f1c56c);
+  --syntax-type: light-dark(#0b6a72, #7fd4cc);
+  --syntax-function: light-dark(#1d4fb0, #9dbcff);
+  --syntax-macro: light-dark(#8a2d78, #eaa0d8);
+  --syntax-attribute: light-dark(#6d591b, #d9c78f);
+  --syntax-property: light-dark(#3e5873, #b4c6dc);
+  --syntax-variable: light-dark(#3a342e, #e0d8cd);
+  --syntax-operator: light-dark(#5a534a, #cdc3b6);
+  --syntax-punctuation: light-dark(#635b52, #b8ad9f);
+  --syntax-tag: light-dark(#9b2f5c, #f39bb8);
+  --syntax-escape: light-dark(#8c5a00, #f0b46a);
+  --syntax-heading: light-dark(#7b3aa8, #c9a8f5);
+  --syntax-link: light-dark(#0b6a72, #7fd4cc);
+  --code-selection: light-dark(#ffddcc, #362219);
+
+  /* Elevation is for stacked layers only: menus, dialogs, the expanded rail. */
+  --shadow-sm: 0 1px 2px light-dark(rgb(40 28 18 / 7%), rgb(0 0 0 / 36%));
+  --shadow-md: 0 1px 2px light-dark(rgb(40 28 18 / 7%), rgb(0 0 0 / 36%)), 0 6px 18px light-dark(rgb(40 28 18 / 9%), rgb(0 0 0 / 32%));
+  --shadow-overlay: 0 2px 6px light-dark(rgb(40 28 18 / 10%), rgb(0 0 0 / 42%)), 0 20px 48px light-dark(rgb(40 28 18 / 20%), rgb(0 0 0 / 52%));
+  --shadow: var(--shadow-sm);
+  --overlay: rgb(19 17 16 / 56%);
+
+  /* Type: the platform interface font; monospace for identifiers, shortcuts and aligned numbers. */
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", "Noto Sans", sans-serif;
+  --mono: "Berkeley Mono", ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --text-xs: .75rem; --text-sm: .8125rem; --text-md: .875rem; --text-lg: 1rem; --text-xl: 1.25rem; --text-2xl: 1.5rem;
+
+  /* Scale. */
+  --space-1: .25rem; --space-2: .5rem; --space-3: .75rem; --space-4: 1rem; --space-5: 1.5rem; --space-6: 2rem;
+  --space: 1.25rem;
+  --radius-sm: .3rem; --radius: .45rem; --radius-lg: .7rem; --radius-pill: 999px;
+  --control-height: 2.5rem;
+  --motion-fast: 120ms; --motion: 180ms;
+
+  font-family: var(--sans);
+  font-synthesis: none;
+  background: var(--background);
+  color: var(--foreground);
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-reduced-motion: reduce) { :root { --motion-fast: 0ms; --motion: 0ms; } }
+
+::selection { background: color-mix(in srgb, var(--primary) 32%, transparent); }
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+/* Brand mark: a kiln arch with its firing door. Drawn here so it renders with no image request; size it with font-size. */
+.brand-mark { position: relative; display: inline-block; flex: 0 0 auto; width: 1em; height: 1em; overflow: hidden; border-radius: 50% 50% 20% 20% / 58% 58% 15% 15%; background: linear-gradient(160deg, var(--ember-bright), var(--primary) 52%, var(--ember-deep)); box-shadow: inset 0 .05em 0 var(--glaze), inset 0 -.05em 0 var(--shade); font-size: 2rem; line-height: 1; user-select: none; }
+.brand-mark::after { content: ""; position: absolute; left: 31%; right: 31%; bottom: 13%; height: 45%; border-radius: 50% 50% 12% 12% / 62% 62% 10% 10%; background: var(--soot); box-shadow: inset 0 .04em .05em var(--shade); }
+/* r[impl kiln.web.live_activity] The door glows only while the last admitted live snapshot reports running work. */
+:root[data-firing] .brand-mark::after { background: radial-gradient(120% 105% at 50% 100%, var(--flame), var(--ember-bright) 46%, var(--ember-deep) 78%, var(--soot)); animation: kiln-fire 2.4s ease-in-out infinite; }
+@keyframes kiln-fire { 0%, 100% { filter: brightness(.92); } 50% { filter: brightness(1.22); } }
+@media (prefers-reduced-motion: reduce) { :root[data-firing] .brand-mark::after { animation: none; } }
+
+/* Pyrometer rule: a graduated boundary under a page heading, with a short ember reading at its start. */
+.kiln-rule { position: relative; border-bottom: 1px solid var(--border); }
+.kiln-rule::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 7px; pointer-events: none; background: linear-gradient(var(--primary), var(--primary)) left bottom / 2.5rem 2px no-repeat, repeating-linear-gradient(90deg, var(--border-emphasis) 0 1px, transparent 1px 2.5rem) left bottom / 100% 7px no-repeat, repeating-linear-gradient(90deg, var(--border-emphasis) 0 1px, transparent 1px .5rem) left bottom / 100% 4px no-repeat; mask-image: linear-gradient(90deg, var(--soot), transparent min(32rem, 72%)); }
+
+@media (forced-colors: active) {
+  .brand-mark { forced-color-adjust: none; background: ButtonText; box-shadow: none; }
+  .brand-mark::after, :root[data-firing] .brand-mark::after { background: ButtonFace; box-shadow: none; animation: none; }
+  .kiln-rule::after { display: none; }
+}

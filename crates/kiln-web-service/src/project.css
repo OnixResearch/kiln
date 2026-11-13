@@ -75,10 +75,15 @@ a.pp-timeline-run[data-status="unknown"] { border-style: dashed; }
 @media (max-width: 60rem) {
   .pp-actions a, .pp-all-runs { min-height: 2.75rem; }
 }
+@container data-table (max-width: 48rem) {
+  .pp-runs-table td[data-label="Started"]::before, .pp-runs-table td[data-label="Revision"]::before { content: attr(data-label) " "; color: var(--muted-foreground); font-size: var(--text-xs); }
+}
+/* r[impl kiln.web.visual_design.scenario.lists] In a phone-width region each fact takes a line: an unbroken
+   revision or a start time no longer runs past a half-width cell into its neighbour. */
+@container data-table (max-width: 24rem) { .data-table-stack.pp-runs-table tr { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 40rem) {
   .pp-health { padding: var(--space-4); gap: var(--space-4); }
   .pp-axis { min-width: 2.75rem; }
-  .pp-runs-table td[data-label="Started"]::before, .pp-runs-table td[data-label="Revision"]::before { content: attr(data-label) " "; color: var(--muted-foreground); font-size: var(--text-xs); }
 }
 @media (min-width: 75rem) {
   .pp-health { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); align-items: start; gap: var(--space-5) var(--space-6); }

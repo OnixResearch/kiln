@@ -95,7 +95,7 @@ p.src-highlight { margin: 0; color: var(--muted-foreground); font-size: var(--te
 .src-code tr:last-child td { padding-bottom: var(--space-2); }
 .src-file.is-wrapped .src-lc { white-space: pre-wrap; overflow-wrap: anywhere; }
 .src-file.is-wrapped .src-code { width: 100%; }
-tr.is-selected > .src-lc { background: color-mix(in srgb, var(--primary) var(--code-selection-tint), var(--group-box)); }
+tr.is-selected > .src-lc { background: var(--code-selection); }
 tr.is-selected > .src-ln { background: var(--primary); color: var(--primary-foreground); font-weight: 650; }
 .src-line-note { margin: var(--space-3) var(--space-4) 0; }
 

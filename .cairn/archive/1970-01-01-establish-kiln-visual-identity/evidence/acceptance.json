@@ -1,0 +1,91 @@
+{
+  "schema": "kiln.visual-identity.acceptance.v1",
+  "observed_on": "2026-11-13",
+  "authority": {
+    "instruction": "commit and push, then deploy",
+    "decision": "Asked whether to accept before the commit, the operator chose: accept now (cairn sync --execute and archive the change, drop its roots from the development coverage overlay, then commit)",
+    "reason_asked": "Accepted traceability coverage (1748/1748) and release readiness passed on the parent revision and would fail on main with this change in flight"
+  },
+  "synchronization": {
+    "command": "cairn sync establish-kiln-visual-identity --root . --policy \"$PWD/cairn-policy/generated/cairn-policy.json\" --execute",
+    "dry_run_plan_hash": "98e71bc18caba464e83860d15352677fbba6e45769d60b3eb2b3457f1aa2ee1c",
+    "receipt_hash": "0a196715bcb84e085e7d939544856f5a8a1f523e5ddca0b15697048780b259a5",
+    "mutated": true,
+    "documents": [
+      {
+        "destination": ".cairn/specs/live-console-design/spec.md",
+        "accepted_before_exists": true,
+        "operations": [
+          "modified kiln.web.visual_design",
+          "added kiln.web.live_activity",
+          "added kiln.web.request_feedback"
+        ],
+        "delta_hash": "78cc9e5e3b114177d87422bb392833a0414e94ea5b319a0600b2e66979f839a8",
+        "expected_after_hash": "63bb6977988639df0344dc6ab5a110ad20ee40daa722eb5e3ca9be4a1bfdb47b"
+      },
+      {
+        "destination": ".cairn/specs/visual-identity/spec.md",
+        "accepted_before_exists": false,
+        "operations": [
+          "added kiln.identity.shared",
+          "added kiln.identity.contrast",
+          "added kiln.identity.touch_targets"
+        ],
+        "delta_hash": "178f0bee04e914b749bd9d8b236df27cfdca3f7f9ab8225662ef1be15b32cf38",
+        "expected_after_hash": "438a8d06b1f3e0c26f17a6a2315809349afb45f3465a789dc458eadb7fc9d66f"
+      }
+    ],
+    "accepted_files_after": {
+      ".cairn/specs/live-console-design/spec.md": "63bb6977988639df0344dc6ab5a110ad20ee40daa722eb5e3ca9be4a1bfdb47b",
+      ".cairn/specs/visual-identity/spec.md": "438a8d06b1f3e0c26f17a6a2315809349afb45f3465a789dc458eadb7fc9d66f"
+    }
+  },
+  "archive": {
+    "command": "cairn archive establish-kiln-visual-identity --root . --policy \"$PWD/cairn-policy/generated/cairn-policy.json\" --execute",
+    "receipt_hash": "eb4c0c21e9474326bbd4d0a9fc4c86904a166e54b90ccaffd9310d90b837d99c",
+    "destination": [
+      "./.cairn/archive/1970-01-01-establish-kiln-visual-identity"
+    ],
+    "mutation_manifest_hash": "a296e8fa85a7970008f3b2f240113592b995a66ea65e92b3c895c06d442e2034"
+  },
+  "development_coverage_overlay": "cairn-policy/development-coverage.ncl names no in-flight roots after the archive",
+  "after_acceptance": {
+    "validate": {
+      "command": "cairn validate --root . --policy \"$PWD/cairn-policy/generated/cairn-policy.json\"",
+      "valid": true,
+      "changes": 7,
+      "specs_validated": 142,
+      "issues": 0,
+      "receipt_hash": "7d6068755e2d9edd6a54fe519052d7e2567fbb764ee626c5f7e05d878ee1ac15"
+    },
+    "traceability_coverage_accepted": {
+      "command": "cairn traceability coverage --root . --policy \"$PWD/cairn-policy/generated/cairn-policy.json\" --json",
+      "verdict": "pass",
+      "profile_id": "cairn-default",
+      "requirements": 1762,
+      "referenced": 1762,
+      "missing": 0,
+      "dangling": 0,
+      "receipt_hash": "64a4ecc471cdbe95e45db5fce07b1223cd4fd22e68f3256f1e8fca1446499f56"
+    },
+    "traceability_coverage_development": {
+      "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+      "verdict": "pass",
+      "requirements": 1762,
+      "referenced": 1762,
+      "dangling": 0
+    },
+    "release_readiness": {
+      "command": "cairn release-readiness --root .",
+      "valid": true,
+      "verdict": "pass",
+      "failed_checks": [],
+      "receipt_hash": "41908633eff533099fef3b5e5e4e30235d95b7abedfe5fb44f8bbf8685e819f2"
+    }
+  },
+  "non_claims": [
+    "Acceptance is the operator's decision in this session; the review behind it is agentic self-review, not independent approval",
+    "Passing coverage is declared linkage between requirements and their markers, not proof that the requirements hold",
+    "Release readiness passing here is the local Cairn verdict for this tree; it does not publish, tag or release anything"
+  ]
+}

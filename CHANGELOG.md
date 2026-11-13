@@ -77,6 +77,13 @@ entry describes the source tree prepared for the first tagged release.
 - Operator-approved untrusted pull-request runs held in a durable blocked state
   and confined to declared runners without secrets, plus a source browser.
   (exercised locally; not a hostile-code sandbox)
+- One Kiln identity stylesheet shared by the live console, the offline catalog
+  and report and the hosted bridge page, with a check that holds its contrast
+  floor and rejects colours declared outside it. The console shows a running
+  count from the last live snapshot and feedback for requests in flight, and its
+  tables stack by the width of their own region. The offline documents and the
+  hosted page keep 44px controls at 960px and narrower. (node tests; reviewed in
+  a browser over synthetic data, not a running service)
 
 **Change review**
 

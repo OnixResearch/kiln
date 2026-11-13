@@ -28,6 +28,8 @@
     projects: { available: [], enrolled: [] }, runs: [], selected: null, run: null,
     observedAt: 0, connected: false, liveVersion: "0", liveTimer: null,
     liveController: null, liveGeneration: 0, liveFailures: 0,
+    // Running count of the last admitted live snapshot (null before one), and requests in flight outside background polls.
+    liveRunning: null, busy: 0,
     logTimer: null, logGeneration: 0, logBusy: false, logNext: "0", logKey: "",
     artifactsGeneration: 0, confirm: null, mutation: false, detailGeneration: 0,
     principal: null, permissions: {}, route: null, nextCursor: null, total: 0,
@@ -100,12 +102,34 @@
     if (error instanceof TypeError) return "The service could not be reached. Its current state is unavailable.";
     return error.message || "The service response was unavailable.";
   }
+  // r[impl kiln.web.live_activity]
+  // r[impl kiln.web.live_activity.scenario.count]
+  // r[impl kiln.web.live_activity.scenario.stale]
+  // KilnUi decides the count to present; this only draws it. connection() is the one place that states whether
+  // observation is current. A heartbeat means service state has not moved since the stored snapshot, so the stored
+  // count is current again after a recovered connection.
+  function showLiveActivity(current) {
+    const running = ui.presentedRunning(state.liveRunning, current);
+    $("live-activity-count").textContent = String(running);
+    $("live-activity-unit").textContent = running === 1 ? "run" : "runs";
+    $("live-activity").hidden = running === 0;
+    document.documentElement.toggleAttribute("data-firing", running > 0);
+  }
   function connection(message, healthy) {
     state.connected = healthy;
     $("connection-status").textContent = message;
     $("connection-status").title = message;
     $("connection-status").dataset.state = healthy ? "connected" : "stale";
+    showLiveActivity(healthy);
     updateControlButtons();
+  }
+  // r[impl kiln.web.request_feedback]
+  // r[impl kiln.web.request_feedback.scenario.slow]
+  // One counter at the fetch boundary: the top-bar line and the busy state follow it and clear when it reaches zero.
+  function setBusy(delta) {
+    state.busy = Math.max(0, state.busy + delta);
+    document.documentElement.toggleAttribute("data-busy", state.busy > 0);
+    if (state.busy > 0) $("main").setAttribute("aria-busy", "true"); else $("main").removeAttribute("aria-busy");
   }
   function pathFor(id) { return `/api/runs/${encodeURIComponent(id)}`; }
   function shortIdentity(value) {
@@ -154,7 +178,8 @@
   }
 
   // r[impl kiln.dashboard.complete.access]
-  async function api(target, { method = "GET", body, kind = "json", controller = new AbortController(), bootstrap = false } = {}) {
+  // `quiet` marks a background observation poll (the live snapshot poll, log following): it shows no request feedback.
+  async function api(target, { method = "GET", body, kind = "json", controller = new AbortController(), bootstrap = false, quiet = kind === "sse" } = {}) {
     if (!state.session && !bootstrap) throw new DOMException("Signed out", "AbortError");
     const epoch = state.epoch;
     const headers = { Accept: kind === "sse" ? "text/event-stream" : kind === "blob" ? "application/octet-stream" : "application/json" };
@@ -162,6 +187,7 @@
     if (body !== undefined) headers["Content-Type"] = "application/json";
     state.requests.add(controller);
     const timeout = setTimeout(() => controller.abort(new DOMException("Request timed out", "TimeoutError")), REQUEST_TIMEOUT_MS);
+    if (!quiet) setBusy(1);
     try {
       const response = await fetch(target, {
         method, headers, body: body === undefined ? undefined : JSON.stringify(body),
@@ -198,6 +224,8 @@
     } finally {
       clearTimeout(timeout);
       state.requests.delete(controller);
+      // Success, rejection, timeout and abort all pass here, so the indication cannot outlive its request.
+      if (!quiet) setBusy(-1);
     }
   }
 
@@ -713,6 +741,7 @@
         if (BigInt(snapshot.version) < BigInt(state.liveVersion)) throw new Error("The live version moved backwards. Refresh to re-establish service state.");
         const versionChanged = String(snapshot.version) !== state.liveVersion;
         state.liveVersion = String(snapshot.version);
+        state.liveRunning = ui.liveActivity(snapshot.runs).running;
         connection("Live · authenticated", true);
         const incoming = new Map(snapshot.runs.map((run) => [run.id, run]));
         if (!versionChanged) renderRunList();
@@ -749,6 +778,7 @@
   async function refreshAll() {
     notice("");
     state.liveVersion = "0";
+    state.liveRunning = null;
     startLive();
     await Promise.all([loadProjects(), loadRuns(), state.selected ? loadDetail() : Promise.resolve(), loadPage()]);
   }
@@ -922,7 +952,7 @@
       const readBytes = Math.min(LOG_READ_BYTES, maximum);
       const query = new URLSearchParams({ node_id: node, stream, cursor, max_bytes: String(readBytes) });
       if (search) query.set("q", search);
-      const result = await api(`${pathFor(id)}/logs?${query}`);
+      const result = await api(`${pathFor(id)}/logs?${query}`, { quiet: follow });
       if (generation !== state.logGeneration || id !== state.selected) return;
       if (result.node_id !== node || result.stream !== stream || typeof result.text !== "string") throw new Error("The returned log identity does not match the selected node and stream.");
       const expectedSource = stream === "diagnostic" ? "native-provider" : "worker-capture";
@@ -1082,6 +1112,7 @@
     state.liveGeneration++;
     state.liveController = null;
     state.liveVersion = "0";
+    state.liveRunning = null;
     state.liveFailures = 0;
     stopLogFollow();
     for (const timer of state.urlTimers) clearTimeout(timer);
@@ -1193,6 +1224,9 @@
   }
   const pages = ["overview", "projects", "project", "workers", "runs", "cobs", "source", "reviews", "code-review", "activity", "feeds", "evidence", "automation", "operations", "settings", "work", "planning", "inbox", "triage", "workviews"];
   const views = ["pipeline", "logs", "artifacts", "tests", "reviews", "compare", "activity", "evidence"];
+  // r[impl kiln.web.live_activity] The running count opens the pending-run list with no other filter or selection,
+  // where each row states whether it is running, queued or awaiting approval.
+  const PENDING_RUNS = Object.freeze({ page: "runs", outcome: "Pending", project: "", q: "", source: "", cursor: "", run: "", node: "" });
   // Navigation group shown as the page-header eyebrow; matches the rail sections.
   const pageGroups = Object.freeze({
     work: "Work", inbox: "Work", planning: "Work", triage: "Work", workviews: "Work", "code-review": "Review",
@@ -1303,6 +1337,7 @@
     document.documentElement.dataset.theme = route.theme;
     document.documentElement.dataset.density = route.density;
     $("app-theme").value = route.theme;
+    for (const node of $("theme-switch").children) node.setAttribute("aria-pressed", String(node.dataset.themeChoice === route.theme));
     $("app-density").value = route.density;
     for (const node of document.querySelectorAll("[data-panel]")) node.hidden = node.dataset.panel !== route.page;
     // The project history page belongs to the CI projects destination in the rail.
@@ -1311,6 +1346,7 @@
     const routeHref = (patch) => `?${new URLSearchParams(Object.entries({ ...route, ...patch }).filter(([, value]) => value))}`;
     for (const node of document.querySelectorAll("a[data-page]")) node.href = routeHref({ page: node.dataset.page });
     for (const node of document.querySelectorAll("a[data-view]")) node.href = routeHref({ view: node.dataset.view });
+    $("live-activity").href = routeHref(PENDING_RUNS);
     for (const node of document.querySelectorAll("[data-page]")) { if (node.dataset.page === navPage) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current"); }
     for (const group of document.querySelectorAll(".app-navigation details")) {
       if (group.querySelector('[aria-current="page"]')) group.open = true;
@@ -3347,6 +3383,8 @@
   for (const node of document.querySelectorAll("a[data-view]")) node.addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate({ view: node.dataset.view }); } });
   for (const mode of ["exact", "latest", "failed"]) $("rerun-" + mode).addEventListener("click", () => { void prepareRerun(mode); });
   for (const id of ["app-theme", "app-density"]) $(id).addEventListener("change", () => navigate({ [id === "app-theme" ? "theme" : "density"]: $(id).value }));
+  for (const node of $("theme-switch").children) node.addEventListener("click", () => navigate({ theme: node.dataset.themeChoice }));
+  $("live-activity").addEventListener("click", (event) => { if (plainClick(event)) { event.preventDefault(); navigate(PENDING_RUNS); } });
   $("app-menu-toggle").addEventListener("click", () => setMenu($("app-menu-toggle").getAttribute("aria-expanded") !== "true"));
   $("app-menu-backdrop").addEventListener("click", () => setMenu(false, true));
   window.matchMedia("(max-width: 60rem)").addEventListener("change", () => setMenu(false));

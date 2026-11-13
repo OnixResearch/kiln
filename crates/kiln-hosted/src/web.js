@@ -24,17 +24,22 @@ const pages = {
   secrets:{title:"Secrets & identity",description:"Manage scoped secret references. Secret values and job capabilities are never returned through this administration surface.",ops:[["secrets.list",{project:"demo"}],["secrets.discovery",{}],["secrets.jwks",{}],["secrets.register",{project:"demo",name:"deploy",resolver:"reviewed-resolver",expected_revision:0,expires_ms:Date.now()+86400000}],["secrets.revoke",{project:"demo",name:"deploy",expected_revision:1}]]},
   operations:{title:"Operations",description:"Incident admission holds, retained support observations and content retention separate from financial/replay evidence.",ops:[["operations.health",{}],["operations.hold.get",{}],["operations.audit.list",{after:0,limit:100}],["operations.hold.set",{held:true,reason:"Operator incident hold",expected_revision:0}],["operations.support.record",{subject:"incident",observation:"Operator observation"}],["operations.backup",{backup_id:"operator-snapshot"}],["operations.retention.sweep",{limit:100}]]}
 };
+// Rows of the recorded response. The container is a labelled, focusable scroll region only while it holds a table.
 function renderRecords(value){
-  $("records").replaceChildren();
+  const records=$("records");
+  records.replaceChildren();records.removeAttribute("tabindex");records.removeAttribute("role");records.removeAttribute("aria-label");
   const rows=Array.isArray(value)?value:Object.values(value||{}).find(Array.isArray);
   if(!rows?.length||typeof rows[0]!=="object"||rows[0]===null)return;
   const keys=[...new Set(rows.slice(0,50).flatMap(Object.keys))].slice(0,7);
   const table=document.createElement("table"),head=document.createElement("thead"),tr=document.createElement("tr");
   keys.forEach(key=>{const th=document.createElement("th");th.textContent=key;tr.append(th);});head.append(tr);table.append(head);
-  const body=document.createElement("tbody");rows.slice(0,50).forEach(row=>{const tr=document.createElement("tr");keys.forEach(key=>{const td=document.createElement("td");td.textContent=typeof row[key]==="object"?JSON.stringify(row[key]):String(row[key]??"—");tr.append(td);});body.append(tr);});table.append(body);$("records").append(table);
+  const body=document.createElement("tbody");rows.slice(0,50).forEach(row=>{const tr=document.createElement("tr");keys.forEach(key=>{const td=document.createElement("td");td.textContent=typeof row[key]==="object"?JSON.stringify(row[key]):String(row[key]??"—");tr.append(td);});body.append(tr);});table.append(body);records.append(table);
+  records.tabIndex=0;records.setAttribute("role","region");records.setAttribute("aria-label","Recorded response rows");
 }
 function newIdentity(){$("request-id").value=uuid();}
 function chooseOperation(){const page=pages[location.hash.slice(1)]||pages.overview;const operation=page.ops.find(([action])=>action===$("operation").value);$("input").value=JSON.stringify(operation?.[1]||{},null,2);$("operation-title").textContent=$("operation").value;newIdentity();}
+// The connection line carries its state for the stylesheet: "connected" after an authenticated reply, "unavailable" when the session cannot be established.
+function connection(message,state){$("connection-state").textContent=message;$("connection-state").parentElement.dataset.state=state;}
 function navigate(){
   const key=Object.hasOwn(pages,location.hash.slice(1))?location.hash.slice(1):"overview",page=pages[key];
   document.querySelectorAll("nav a").forEach(link=>{if(link.hash==="#"+key)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");});
@@ -53,9 +58,9 @@ async function request(event){
     const response=await fetch("/rpc",{method:"POST",headers:{"Content-Type":"application/json","X-Kiln-Local-Client":"1"},body:JSON.stringify(envelope)});
     const result=await response.json();if(!response.ok||result.error)throw new Error(result.error||`HTTP ${response.status}`);
     $("result").textContent=JSON.stringify(result.result,null,2);renderRecords(result.result);$("status").textContent="Recorded response · "+envelope.request_id;$("status").className="success";
-    $("connection-state").textContent="Iroh connected";
+    connection("Iroh connected","connected");
     if(action==="system.info"){$("role").textContent=result.result.role;}
-  }catch(error){$("result").textContent=error.message;$("records").replaceChildren();$("status").textContent="Operation rejected or outcome unavailable · retain request identity";$("status").className="error";}
+  }catch(error){$("result").textContent=error.message;renderRecords(null);$("status").textContent="Operation rejected or outcome unavailable · retain request identity";$("status").className="error";}
   finally{$("send").disabled=false;}
 }
 $("request-form").addEventListener("submit",request);$("operation").addEventListener("change",chooseOperation);$("new-request").addEventListener("click",newIdentity);window.addEventListener("hashchange",navigate);
@@ -67,7 +72,7 @@ $("request-form").addEventListener("submit",request);$("operation").addEventList
     for(const [label,key]of[["Client peer","peer"],["Server peer","server"]]){const p=document.createElement("span"),strong=document.createElement("strong");strong.textContent=label;p.append(strong,document.createTextNode(session[key]));$("identity").append(p);}
     const identityResponse=await fetch("/rpc",{method:"POST",headers:{"Content-Type":"application/json","X-Kiln-Local-Client":"1"},body:JSON.stringify({schema:"kiln.hosted.v1",organization:session.organization,request_id:uuid(),action:"system.info",input:{}})});
     const identity=await identityResponse.json();if(!identityResponse.ok||identity.error)throw new Error(identity.error||"Current identity unavailable");
-    $("role").textContent=identity.result.role;$("connection-state").textContent="Iroh connected";
+    $("role").textContent=identity.result.role;connection("Iroh connected","connected");
     await request();
-  }catch(error){$("connection-state").textContent="Connection unavailable";$("result").textContent=error.message;}
+  }catch(error){connection("Connection unavailable","unavailable");$("result").textContent=error.message;}
 })();

@@ -8,9 +8,9 @@ The Kiln profile reports declared reference coverage, not executable conformance
 
 `development-coverage.ncl` is an explicit development-only overlay. Its
 `kiln-active-development` profile adds selected pending delta-spec roots to the
-accepted profile. After the 2026-10-29 acceptance every selected change was
-archived, so its root list is empty; add a pending change's root only while it
-remains active. Kiln-owned JavaScript/CSS/HTML, browser Rust and operator
+accepted profile. The root list in that file names the delta-spec roots of
+changes in flight; add a pending change's root only while it remains active,
+and remove it when the change is archived. Kiln-owned JavaScript/CSS/HTML, browser Rust and operator
 documentation are now part of the accepted `cairn-default` evidence surface.
 `related` operator procedure references do not discharge implementation or
 executable-evidence obligations, so a report may still expose genuine missing links.

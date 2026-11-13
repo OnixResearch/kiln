@@ -595,8 +595,8 @@
     const column = el("section", undefined, "work-board-column"); column.dataset.status = lane.status;
     const heading = el("h3", undefined, "work-board-heading"); heading.id = `work-board-${crypto.randomUUID()}`; column.setAttribute("aria-labelledby", heading.id);
     const ciLanes = p.lane_by === "ci_project";
-    const laneTitle = other ? (ciLanes ? "No linked CI project" : "Other statuses") : lane.ci ? lane.ci.label : workStatus(lane.status);
-    heading.append(el("span", laneTitle), el("span", String(lane.total), "work-count"));
+    const laneTitle = other ? el("span", ciLanes ? "No linked CI project" : "Other statuses") : lane.ci ? el("span", lane.ci.label) : workStatus(lane.status);
+    heading.append(laneTitle, el("span", String(lane.total), "work-count"));
     column.append(heading);
     const note = el("p", undefined, "meta work-board-note");
     if (other) note.textContent = ciLanes

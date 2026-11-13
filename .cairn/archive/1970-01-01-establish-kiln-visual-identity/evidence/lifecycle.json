@@ -1,0 +1,252 @@
+{
+  "scope": "Planning gates, validation, traceability and a synchronization dry run for the establish-kiln-visual-identity change on the uncommitted working copy. No synchronization, archive, commit, publication or deployment",
+  "review": "Agentic self-review, not independent approval",
+  "observed_on": "2026-11-12",
+  "results": [
+    {
+      "label": "proposal",
+      "command": [
+        "cairn",
+        "gate",
+        "proposal",
+        "establish-kiln-visual-identity",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "2bb8d137b9d32c063df5ad5441568361f73cf623957f4103940e2471be53a916",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b2258d0afb0ed622390bf75fbbbccc7c5ce27592a40368e75953cc406e4659bf"
+    },
+    {
+      "label": "design",
+      "command": [
+        "cairn",
+        "gate",
+        "design",
+        "establish-kiln-visual-identity",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "b02d57bd4d51310a9540860175ee0de3e6e1b6fedb45aff589619fa82e6bb0e7",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "2f796b38624cc70cdf9638431f6b82e9768ace1bf7a76b0428770105fada8990"
+    },
+    {
+      "label": "tasks",
+      "command": [
+        "cairn",
+        "gate",
+        "tasks",
+        "establish-kiln-visual-identity",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "PASS",
+      "issues": [],
+      "input_hash": "30a12c8ce7c8c393f8bdb9ee40e17ab6a7e6bd1a8912c5813d268da24c3ee84e",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "4b4ffb9ec4d3ddc53c464243d66a904ea8fe66bbfafa850379e9ded36be72b03"
+    },
+    {
+      "label": "validate",
+      "command": [
+        "cairn",
+        "validate",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "changes": 8,
+      "specs_validated": 143,
+      "issues": [],
+      "change_issues": [],
+      "spec_issues": [],
+      "substance_issues": [],
+      "profile_issues": [],
+      "receipt_hash": "0820d14914dd02bc529014503452d2c3b09105ee0d2d4212e4d66d7eaed86e47"
+    },
+    {
+      "label": "policy freshness",
+      "command": [
+        "cairn",
+        "policy",
+        "export",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": "policy fresh: cairn-policy/generated/cairn-policy.json"
+    },
+    {
+      "label": "traceability coverage, development profile",
+      "command": [
+        "cairn",
+        "policy",
+        "export",
+        "--source",
+        "cairn-policy/development-coverage.ncl",
+        "--output",
+        "target/development-coverage-policy.json",
+        "&&",
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "target/development-coverage-policy.json",
+        "--profile",
+        "kiln-active-development",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": true,
+      "verdict": "pass",
+      "profile_id": "kiln-active-development",
+      "requirements": 1762,
+      "referenced": 1762,
+      "missing": [],
+      "dangling": [],
+      "input_hash": "819880ea9c93e8f1aa1da0091c22c9a358cea62571003c2be225683d2a8656f9",
+      "policy_hash": "73fbf610e07b68e0bb2ab3d580d4ebfa23825508c2bbde15ce6d11966c55b285",
+      "receipt_hash": "049be56edbe86708894fea59eed44599abc4dc571063429041fde59533a59db5",
+      "note": "The profile adds this change's two delta-spec roots to the accepted profile. A pass is declared linkage, not acceptance."
+    },
+    {
+      "label": "traceability coverage, accepted profile",
+      "command": [
+        "cairn",
+        "traceability",
+        "coverage",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json",
+        "--json"
+      ],
+      "exit_code": 1,
+      "stderr": "error: traceability coverage failed",
+      "valid": false,
+      "verdict": "fail",
+      "profile_id": "cairn-default",
+      "requirements": 1748,
+      "referenced": 1748,
+      "missing": [],
+      "dangling": [
+        "kiln.identity.contrast",
+        "kiln.identity.contrast.scenario.palette",
+        "kiln.identity.contrast.scenario.regression",
+        "kiln.identity.shared",
+        "kiln.identity.shared.scenario.ownership",
+        "kiln.identity.shared.scenario.surfaces",
+        "kiln.identity.touch_targets",
+        "kiln.identity.touch_targets.scenario.narrow",
+        "kiln.web.live_activity",
+        "kiln.web.live_activity.scenario.count",
+        "kiln.web.live_activity.scenario.stale",
+        "kiln.web.request_feedback",
+        "kiln.web.request_feedback.scenario.slow",
+        "kiln.web.visual_design.scenario.lists"
+      ],
+      "input_hash": "e477fc1f99870de29123b5f97117c3735d4faa5562a41ccb583d54a394acb1aa",
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "receipt_hash": "b26afc52e2528ea73f9fc3bd02d23170358ad8e94f789f6cb4a756266c323977",
+      "note": "Fails while the delta is not synchronized: the dangling identifiers are exactly this change's added requirements and scenarios. No accepted requirement lost a reference."
+    },
+    {
+      "label": "release readiness",
+      "command": [
+        "cairn",
+        "release-readiness",
+        "--root",
+        "."
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "valid": false,
+      "verdict": "fail",
+      "onix_release_ready": false,
+      "checks": 14,
+      "failed_checks": [
+        "traceability_coverage"
+      ],
+      "skipped_or_absent": 7,
+      "receipt_hash": "3b99fe85fcd0bb5f224092fd886daf9b6b3a5414a53fd1a4944d929788a7637d",
+      "note": "The one failed check is the accepted-profile traceability coverage above."
+    },
+    {
+      "label": "sync, dry run",
+      "command": [
+        "cairn",
+        "sync",
+        "establish-kiln-visual-identity",
+        "--root",
+        ".",
+        "--policy",
+        "$PWD/cairn-policy/generated/cairn-policy.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "dry_run": true,
+      "mutated": false,
+      "blocked": false,
+      "reasons": [],
+      "actions": [
+        "sync_delta_spec",
+        "sync_delta_spec"
+      ],
+      "merge_preflight": [
+        {
+          "destination": ".cairn/specs/live-console-design/spec.md",
+          "accepted_before_exists": true,
+          "blocked": false,
+          "operations": [
+            "modified kiln.web.visual_design",
+            "added kiln.web.live_activity",
+            "added kiln.web.request_feedback"
+          ],
+          "delta_hash": "78cc9e5e3b114177d87422bb392833a0414e94ea5b319a0600b2e66979f839a8",
+          "expected_after_hash": "63bb6977988639df0344dc6ab5a110ad20ee40daa722eb5e3ca9be4a1bfdb47b"
+        },
+        {
+          "destination": ".cairn/specs/visual-identity/spec.md",
+          "accepted_before_exists": false,
+          "blocked": false,
+          "operations": [
+            "added kiln.identity.shared",
+            "added kiln.identity.contrast",
+            "added kiln.identity.touch_targets"
+          ],
+          "delta_hash": "178f0bee04e914b749bd9d8b236df27cfdca3f7f9ab8225662ef1be15b32cf38",
+          "expected_after_hash": "438a8d06b1f3e0c26f17a6a2315809349afb45f3465a789dc458eadb7fc9d66f"
+        }
+      ],
+      "plan_hash": "b4801a3b5421423a0f28641435a47c8f11071b64be2c2a75b629d321f38f47d2",
+      "receipt_hash": "3aeeacd8696b8a1c0afc1c44e486f66822513fb6a592e674f7d397c639100642",
+      "note": "Not executed. Synchronization is lifecycle acceptance and stays with the operator."
+    }
+  ]
+}

@@ -54,6 +54,7 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
         "<title>Kiln dashboard {}</title>\n<style>\n",
         escape(&report.profile_id)
     ));
+    out.push_str(IDENTITY);
     out.push_str(STYLE);
     out.push_str(r##"</style>
 </head>
@@ -61,7 +62,7 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
 <a class="skip-link" href="#main-content">Skip to dashboard</a>
 <div class="app-shell">
   <aside class="sidebar" aria-label="Kiln dashboard">
-    <div class="brand"><span class="brand-mark" aria-hidden="true">K</span><span>Kiln<span class="brand-caption">CI control plane</span></span></div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>Kiln<span class="brand-caption">CI control plane</span></span></div>
     <p class="nav-label">Workspace</p>
     <nav class="section-nav js-only" aria-label="Dashboard sections">
       <button type="button" data-jump="run-workspace"><span aria-hidden="true">01</span> Runs</button>
@@ -83,7 +84,7 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
       </div>
     </header>
     <main id="main-content" tabindex="-1">
-      <header class="page-heading">
+      <header class="page-heading kiln-rule">
         <div>
           <p class="eyebrow">Continuous integration</p>
           <h1>Run overview</h1>
@@ -205,6 +206,9 @@ pub fn render_html_with_refresh(html: &HtmlReport, refresh_seconds: Option<u64>)
     out
 }
 
+// r[impl kiln.identity.shared]
+// The shared identity (palette, type, scale, brand mark) precedes the report stylesheet in the one inline style.
+const IDENTITY: &str = include_str!("identity.css");
 // r[impl kiln.observe.dashboard.html.console]
 // r[impl kiln.observe.dashboard.html.console.scenario.responsive]
 const STYLE: &str = include_str!("html.css");

@@ -656,7 +656,7 @@
       const list = node("ul", null, "cr-saved-views"); list.setAttribute("aria-label", "Saved personal views");
       for (const view of savedViews) {
         const savedRoute = savedViewRoute(view), applied = savedRoute.review_view === kind && savedRoute.review_q === (state.route.review_q || "") && savedRoute.review_status === (state.route.review_status || "") && savedRoute.review_advisory === (state.route.review_advisory || "") && savedRoute.review_agent === (state.route.review_agent || "") && savedRoute.review_agent_harness === (state.route.review_agent_harness || "") && savedRoute.review_agent_model === (state.route.review_agent_model || "");
-        const apply = button(view.name, () => { clearFields("search"); route(savedRoute); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
+        const li = node("li"), apply = button(view.name, () => { clearFields("search"); route(savedRoute); }, "chip"); apply.setAttribute("aria-pressed", String(applied));
         li.append(apply, iconOnly(writeButton(`Delete view ${view.name}…`, () => command({ type: "delete_view", id: view.id }, null, { title: `Delete personal view "${view.name}"?`, verb: "Delete view", danger: true, facts: [["Name", view.name], ["Query", JSON.stringify(view.query)]] }), "quiet"), icon("x"))); list.append(li);
       }
       views.append(list);

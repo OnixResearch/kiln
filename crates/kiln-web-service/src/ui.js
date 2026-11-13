@@ -585,7 +585,22 @@
     }
     return list;
   }
+  // r[impl kiln.web.live_activity]
+  // r[impl kiln.web.live_activity.scenario.count]
+  // Running work in one live snapshot, by the same rule that labels a run Running. Queued, awaiting-approval,
+  // unknown and finished runs are not running; a snapshot that is not a list, and entries that are not runs, count nothing.
+  function liveActivity(runs) {
+    let running = 0;
+    if (Array.isArray(runs)) for (const run of runs) if (run !== null && typeof run === "object" && outcomeStatus(run.outcome, run.phase).status === "running") running++;
+    return { running };
+  }
+  // r[impl kiln.web.live_activity.scenario.stale]
+  // The running count to present: the last admitted snapshot's count, and only while live observation is current.
+  // No admitted snapshot (null), stale or disconnected observation, and any value that is not a count present none.
+  function presentedRunning(running, current) {
+    return current === true && Number.isSafeInteger(running) && running > 0 ? running : 0;
+  }
 
-  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList });
+  window.KilnUi = Object.freeze({ agentText, agentTextLimit: AGENT_TEXT_BYTES, utf8Bytes, outcomeStatus, statusPill, formatDuration, durationElement, formatRelative, timeElement, icon, statusIcon, hydrateIcons, disclosureSummary, errorLines, durationPoints, elapsedSince, nodeProgress, localDay, tokenFragments, highlightLines, fragmentsFrom, languageLabel, appendFragments, graphLabel, scopeSummary, groupProjects, reasonText, affectedSummary, skipText, ciProjects, untrustedSummary, affectedDecisions, reasonList, liveActivity, presentedRunning });
   if (typeof document !== "undefined") hydrateIcons(document);
 })();

@@ -179,11 +179,13 @@ impl CatalogRenderer {
         let mut out = String::from(
             "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Kiln · Observation workspace</title><style>",
         );
+        // r[impl kiln.identity.shared] The shared identity precedes the shell stylesheet in the one inline style.
+        out.push_str(include_str!("render/identity.css"));
         out.push_str(include_str!("render/catalog.css"));
         out.push_str(r##"</style></head><body>
 <a class="skip-link" href="#app-main">Skip to workspace</a>
 <aside id="app-sidebar" class="app-sidebar" aria-label="Workspace sidebar">
-  <a class="brand" href="#app-main" aria-label="Kiln observation workspace"><span class="brand-mark" aria-hidden="true">k</span><span>Kiln<span class="brand-caption">Observation workspace</span></span></a>
+  <a class="brand" href="#app-main" aria-label="Kiln observation workspace"><span class="brand-mark" aria-hidden="true"></span><span>Kiln<span class="brand-caption">Observation workspace</span></span></a>
   <div class="workspace-card"><span class="workspace-avatar" aria-hidden="true">K</span><div><strong>Local workspace</strong><span class="workspace-caption"><span class="status-dot" aria-hidden="true"></span> Offline · Read only</span></div></div>
   <p class="nav-label app-only">Workspace</p>
   <nav class="app-navigation app-only" aria-label="Main navigation">
@@ -225,9 +227,9 @@ impl CatalogRenderer {
     </div>
   </header>
   <main id="app-main" class="app-main" tabindex="-1">
-    <div class="page-heading"><div><p class="eyebrow">Local observation</p><h1 id="app-title">Workspace overview</h1><p id="app-subtitle">Explore your declared projects and independently admitted histories.</p></div><button type="button" id="app-refresh" class="button button-secondary app-only"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5 M20 12a8 8 0 1 1-2-6"/></svg>Reload report</button></div>
+    <div class="page-heading kiln-rule"><div><p class="eyebrow">Local observation</p><h1 id="app-title">Workspace overview</h1><p id="app-subtitle">Explore your declared projects and independently admitted histories.</p></div><button type="button" id="app-refresh" class="button button-secondary app-only"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5 M20 12a8 8 0 1 1-2-6"/></svg>Reload report</button></div>
     <section data-app-panel="overview" class="overview-panel" aria-label="Workspace overview">
-      <div class="welcome-card"><div><span class="eyebrow">A clear view of your CI</span><h2>Your workspace, at a glance.</h2><p>Browse the catalog, choose a history, and follow the evidence. Every report keeps its own admitted state and observation identity.</p><button type="button" class="button button-primary app-only" data-app-route="projects">Explore projects <span aria-hidden="true">→</span></button></div><div class="welcome-art" aria-hidden="true"><span class="art-orbit orbit-one"></span><span class="art-orbit orbit-two"></span><span class="art-core">k</span><span class="art-node node-one"></span><span class="art-node node-two"></span><span class="art-node node-three"></span></div></div>
+      <div class="welcome-card"><div><span class="eyebrow">A clear view of your CI</span><h2>Your workspace, at a glance.</h2><p>Browse the catalog, choose a history, and follow the evidence. Every report keeps its own admitted state and observation identity.</p><button type="button" class="button button-primary app-only" data-app-route="projects">Explore projects <span aria-hidden="true">→</span></button></div><div class="welcome-art" aria-hidden="true"><span class="art-heat"></span><span class="brand-mark"></span></div></div>
       <div class="inventory-grid">
 "##);
         let history_count: usize = catalog
