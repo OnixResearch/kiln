@@ -2829,6 +2829,14 @@ checks over the local origin, and the rollback package. The tailnet origin was
 unavailable before and after that activation, so it was not exercised.
 Publication readbacks are in the neighbouring `publication.json`.
 
+The [technical graphics standard deployment receipt](../.cairn/changes/adopt-technical-graphics-standard/evidence/deployment.json)
+binds local source commit `a79c6337`, which is not published, to the running
+package and all twenty served asset identities. It records CA-verified local
+and tailnet health, anonymous refusal, authorized reads, preserved runs,
+retained files and work refs, desktop and 390px browser checks over the local
+origin, and the rollback package. Lattice was failed before that activation and
+was stopped again after one identical failed restart.
+
 #### Non-mutating evaluation and isolated proof
 
 Run these after integration, not while sibling changes are in flight:
