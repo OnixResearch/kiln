@@ -1,15 +1,15 @@
-//! Firecracker shell for `kind = "firecracker"` hosted runners.
+//! Firecracker and Cloud Hypervisor host shell for reviewed microVM runners.
 //!
-//! Each job gets its own microVM inside the attempt's systemd unit, with that
-//! unit's limits and owned cleanup. The shell builds the read-only source image,
-//! spawns `firecracker` (from a config file for a cold boot, or through the API
-//! socket for a snapshot restore), serves exactly one guest vsock session, and
-//! journals the job result before it stops the unit. Decisions come from the
-//! pure `kiln_microvm` core; this module only performs the requested effects.
+//! Per-job cold boot/warm restore uses the existing attempt-owned systemd unit,
+//! serves one guest vsock session, journals results before cleanup, and retains
+//! uncertain cleanup. The opt-in `retained` submodule reuses these backend,
+//! confinement and cleanup mechanisms; it does not add a VMM supervisor or
+//! distributed placement owner. Its selected Aspen authority currently refuses
+//! unsupported retained mutations before host effects.
 //!
-//! The Firecracker jailer is not used: it needs root for chroot, cgroup and uid
-//! changes. Firecracker runs unprivileged in the user-manager unit with its
-//! built-in seccomp filters.
+//! Firecracker runs unprivileged without the root jailer and uses its built-in
+//! seccomp filters. None of these declarations qualifies hostile isolation or
+//! real two-host migration.
 use std::ffi::OsString;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, ErrorKind, Read, Write};
@@ -49,6 +49,10 @@ use crate::execution::{
     infrastructure_failure_state, manager_request, step_observation, unit_command,
 };
 use crate::fleet::Executable;
+
+mod paired;
+pub mod retained;
+pub mod transfer;
 
 /// Operator-owned snapshot/restore warm pool for one Firecracker runner.
 #[derive(Clone, Debug, Serialize, Deserialize)]

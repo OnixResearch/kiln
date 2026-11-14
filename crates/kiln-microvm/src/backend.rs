@@ -176,7 +176,7 @@ pub fn cloud_hypervisor_cold_boot(
         "--memory".into(),
         format!("size={}M", policy.memory_mib),
         "--disk".into(),
-        format!("path={},readonly=on", paths.source_image),
+        format!("path={},readonly=on,image_type=raw", paths.source_image),
         "--vsock".into(),
         format!("cid={GUEST_CID},socket={}", paths.vsock),
         "--serial".into(),
@@ -239,5 +239,28 @@ mod tests {
         assert!(CloudHypervisor.capabilities().confinement.landlock);
         assert!(Firecracker.capabilities().admits_arch("x86_64"));
         assert!(!Firecracker.capabilities().admits_arch("riscv64"));
+        let policy = MachinePolicy {
+            vcpus: 1,
+            memory_mib: 256,
+            boot_timeout_ms: 5_000,
+            source_image_mib: 16,
+            warm_slots: None,
+            guest_shell: "/bin/sh",
+        };
+        let argv = cloud_hypervisor_cold_boot(
+            "/nix/store/ch/bin/cloud-hypervisor",
+            &ColdBootPaths {
+                kernel: "/nix/store/kernel",
+                initrd: "/nix/store/initrd",
+                source_image: "/run/ci/source.raw",
+                vsock: "/run/ci/vsock.sock",
+            },
+            &policy,
+        );
+        assert!(
+            argv.iter()
+                .any(|arg| arg == "path=/run/ci/source.raw,readonly=on,image_type=raw")
+        );
+        assert!(!argv.iter().any(|arg| arg == "--net"));
     }
 }

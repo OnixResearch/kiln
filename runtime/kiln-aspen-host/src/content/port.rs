@@ -56,7 +56,12 @@ impl AspenContentPort for MoltenContentPort {
             )
             .map_err(molten_failure("aspen_content_put_verified"))?;
             self.index.insert(digest, put.manifest_ref);
+            self.index_pending = true;
+        }
+        // r[impl kiln.aspen_runtime.content_index_retry]
+        if self.index_pending {
             self.persist_index()?;
+            self.index_pending = false;
         }
         verification_receipt(reference, bytes.len())
     }

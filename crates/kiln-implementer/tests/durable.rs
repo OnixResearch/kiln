@@ -458,6 +458,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
     let path = directory.path().join("implementation.db");
     let mut work = work();
     work.base = Some(reference("commit", "base"));
+    work.terminal_policy = TerminalPolicy::VerifiedIntegrated;
     let mut implementer = open(path.as_path());
     implementer
         .admit(&work, None)
@@ -613,6 +614,11 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         merge_commit: merge_commit.clone(),
         base_ref: publication.base_branch.clone(),
         base_head: merge_commit,
+        mapping: kiln_core::implementation::IntegrationMapping {
+            expected_base: publication.base.clone(),
+            candidate_tree: publication.tree.clone(),
+            landed_tree: publication.tree.clone(),
+        },
     };
     let integration_identity = implementer
         .record_integration(&work, &attempt.identity, attempt.fence, &integration)
@@ -637,6 +643,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         integration: integration_identity,
         source: source.clone(),
         action: SourceAction::Close,
+        expected_observed_revision: work.revision,
     };
     let source_receipt = SourceStatusReceipt {
         schema: SOURCE_STATUS_SCHEMA.to_string(),
@@ -647,6 +654,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         integration: source_plan.integration.clone(),
         source,
         state: "closed".to_string(),
+        observed_revision: work.revision,
     };
     let source_identity = implementer
         .record_source_status(
@@ -681,4 +689,237 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
             .is_none(),
         "verified work must not be reclaimed"
     );
+}
+
+// r[verify kiln.implementation.unknown_barrier.scenario.restart]
+#[test]
+fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
+-> Result<(), Box<dyn std::error::Error>> {
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let work = work();
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let plan = content('d');
+    store.reserve_dispatch(&attempt.identity, attempt.fence, 1, &plan, &provider())?;
+    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan)?);
+    drop(store);
+    let mut store = open(&path);
+    assert!(store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
+    store.recover(LEASE)?;
+    assert!(store.claim_next(LEASE, LEASE)?.is_none());
+    assert_eq!(store.recover(LEASE)?.active, vec![attempt.identity.clone()]);
+    let termination = reference("termination", "observed-stopped");
+    assert!(
+        store
+            .reconcile_unknown(&attempt.identity, attempt.fence + 1, &termination)
+            .is_err()
+    );
+    store.reconcile_unknown(&attempt.identity, attempt.fence, &termination)?;
+    store.reconcile_unknown(&attempt.identity, attempt.fence, &termination)?;
+    assert!(
+        store
+            .reconcile_unknown(
+                &attempt.identity,
+                attempt.fence,
+                &reference("termination", "other")
+            )
+            .is_err()
+    );
+    let next = store
+        .claim_next(LEASE, LEASE)?
+        .ok_or("missing replacement")?;
+    assert_eq!(next.ordinal, 2);
+    assert!(next.fence > attempt.fence);
+    assert!(
+        store
+            .authorize_current(&attempt.identity, attempt.fence, LEASE)
+            .is_err()
+    );
+    Ok(())
+}
+
+// r[verify kiln.implementation.current_authority.scenario.cancelled]
+#[test]
+fn cancelled_and_superseded_attempts_lose_unexpired_authority_atomically()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::{AttemptPhase, SupersessionRule};
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let mut work = work();
+    store.admit(&work, None)?;
+    let old = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    work.revision += 1;
+    work.title.push_str(" changed");
+    store.admit_with_supersession(&work, None, SupersessionRule::AbortActive, 1)?;
+    assert_eq!(
+        store
+            .attempt(&old.identity)?
+            .ok_or("missing prior attempt")?
+            .phase,
+        AttemptPhase::Superseded
+    );
+    assert!(
+        store
+            .authorize_current(&old.identity, old.fence, 2)
+            .is_err()
+    );
+    assert!(
+        store
+            .reserve_dispatch(&old.identity, old.fence, 2, &content('d'), &provider())
+            .is_err()
+    );
+    let next = store.claim_next(2, LEASE)?.ok_or("missing replacement")?;
+    store.cancel(&next.identity, next.fence, 3, "operator cancelled")?;
+    assert!(
+        store
+            .authorize_current(&next.identity, next.fence, 4)
+            .is_err()
+    );
+    assert!(
+        store
+            .start_execution(&next.identity, next.fence, 4, &reference("run", "late"))
+            .is_err()
+    );
+    Ok(())
+}
+
+// r[verify kiln.implementation.supersession.scenario.frozen]
+#[test]
+fn finish_active_resolves_only_its_exact_frozen_work_across_restart()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::SupersessionRule;
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("work.db");
+    let original = work();
+    let mut store = open(&path);
+    store.admit(&original, None)?;
+    let attempt = store.claim_next(10, LEASE)?.ok_or("claim missing")?;
+    assert_eq!(
+        store.active_work(&attempt.identity, attempt.fence, 11)?,
+        original
+    );
+    store.reserve_dispatch(
+        &attempt.identity,
+        attempt.fence,
+        11,
+        &content('d'),
+        &provider(),
+    )?;
+    store.start_execution(
+        &attempt.identity,
+        attempt.fence,
+        11,
+        &reference("run", "original"),
+    )?;
+    let mut newer = original.clone();
+    newer.revision += 1;
+    newer.title.push_str(" changed requirements");
+    newer
+        .acceptance
+        .first_mut()
+        .ok_or("acceptance missing")?
+        .statement = "new acceptance must not rewrite running work".into();
+    store.admit_with_supersession(&newer, None, SupersessionRule::FinishActive, 12)?;
+    drop(store);
+    let mut store = open(&path);
+    assert_eq!(
+        store.active_work(&attempt.identity, attempt.fence, 13)?,
+        original
+    );
+    assert_eq!(store.work()?.current().next(), Some(&newer));
+    assert_eq!(
+        store
+            .attempt(&attempt.identity)?
+            .ok_or("attempt missing")?
+            .superseded_by,
+        Some(newer.revision)
+    );
+    assert!(
+        store
+            .active_work(&attempt.identity, attempt.fence + 1, 13)
+            .is_err()
+    );
+    store.produce_candidate(
+        &attempt.identity,
+        attempt.fence,
+        13,
+        &reference("candidate", "frozen"),
+    )?;
+    store.begin_verification(&attempt.identity, attempt.fence, 14)?;
+    assert_eq!(
+        store.active_work(&attempt.identity, attempt.fence, 15)?,
+        original
+    );
+    let publication_error = store
+        .attempts()?
+        .authorize_publication(&attempt.identity, attempt.fence)
+        .err()
+        .ok_or("superseded publication unexpectedly admitted")?;
+    assert_eq!(
+        publication_error.code.as_str(),
+        "implementation_fence_stale"
+    );
+    store.cancel(
+        &attempt.identity,
+        attempt.fence,
+        16,
+        "stop frozen verification",
+    )?;
+    assert!(
+        store
+            .active_work(&attempt.identity, attempt.fence, 17)
+            .is_err()
+    );
+    let replacement = store.claim_next(17, LEASE)?.ok_or("replacement missing")?;
+    assert_eq!(
+        store.active_work(&replacement.identity, replacement.fence, 18)?,
+        newer
+    );
+    assert!(
+        store
+            .active_work(&attempt.identity, attempt.fence, 18)
+            .is_err()
+    );
+    Ok(())
+}
+
+// r[verify kiln.implementation.current_authority.scenario.cancelled]
+#[test]
+fn abort_active_replaced_and_expired_fences_never_resolve_history()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::SupersessionRule;
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("work.db");
+    let original = work();
+    let mut store = open(&path);
+    store.admit(&original, None)?;
+    let old = store.claim_next(0, 100)?.ok_or("claim missing")?;
+    let mut newer = original;
+    newer.revision += 1;
+    newer.title.push_str(" new");
+    store.admit_with_supersession(&newer, None, SupersessionRule::AbortActive, 1)?;
+    assert!(store.active_work(&old.identity, old.fence, 2).is_err());
+    let replacement = store.claim_next(2, 100)?.ok_or("replacement missing")?;
+    assert_eq!(
+        store.active_work(&replacement.identity, replacement.fence, 3)?,
+        newer
+    );
+    assert!(store.active_work(&old.identity, old.fence, 3).is_err());
+    assert!(
+        store
+            .active_work(&replacement.identity, replacement.fence, 102)
+            .is_err()
+    );
+    drop(store);
+    let mut store = open(&path);
+    assert!(store.active_work(&old.identity, old.fence, 4).is_err());
+    assert!(
+        store
+            .active_work(&replacement.identity, replacement.fence, 102)
+            .is_err()
+    );
+    Ok(())
 }

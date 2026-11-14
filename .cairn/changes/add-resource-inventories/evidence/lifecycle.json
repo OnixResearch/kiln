@@ -1,0 +1,10 @@
+{
+  "scope": "Prerequisite planning gates only, before product edits. No tests, builds, linters, formatters, runtime campaigns, provider contact, publication or deployment run by inventory worker.",
+  "change": "add-resource-inventories",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "results": [
+    {"stage":"proposal","command":"cairn gate proposal add-resource-inventories --root . --policy cairn-policy/generated/cairn-policy.json","exit_code":0,"valid":true,"verdict":"PASS","issues":[],"input_hash":"332855281fdb527e6aa558e6efb454d2ca3fd8e0792b6b8b6a17253dcd12d207","receipt_hash":"27077d1707f1885f413c16f2e0be44b7b6b1a323f12988f7cd550ca87f6ee569"},
+    {"stage":"design","command":"cairn gate design add-resource-inventories --root . --policy cairn-policy/generated/cairn-policy.json","exit_code":0,"valid":true,"verdict":"PASS","issues":[],"input_hash":"c8ab30698f90180f5d47d17c3b6aba5f1d018ca84a7d6c3b5f7cc27837f42ec1","receipt_hash":"20779f5f1c5228c7b8e47c3487b74af7e53696bfefc0a0d134e579995fa099d1"},
+    {"stage":"tasks","command":"cairn gate tasks add-resource-inventories --root . --policy cairn-policy/generated/cairn-policy.json","exit_code":0,"valid":true,"verdict":"PASS","issues":[],"input_hash":"744dd3996f6318d875c9efad2801ca8969a8c83105fdb82082b805763d467dd4","receipt_hash":"683788e83ec3c03b24ca234c1dc9e479fac8551b172da0ee030052bfc0bb056e"}
+  ]
+}

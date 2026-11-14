@@ -5,11 +5,15 @@
 //! JSON rows in SQLite and uses an immediate transaction for every mutation, so
 //! two schedulers cannot both claim one work unit.
 //!
-//! Execution, workspace lifecycle and cancellation remain provider concerns.
-//! This crate never runs a worker, verifies a candidate, publishes a pull
-//! request, or grants release authority.
+//! Execution and cancellation remain Lattice/provider concerns. Dedicated
+//! trusted acquisition/verification modules run frozen profiles; canonical
+//! Engine admission and separately journaled provider effects retain authority.
 
+pub mod admission;
+pub mod observation;
+pub mod publication_effects;
 pub mod queue;
+pub mod verification;
 
 pub use queue::{DeliveryQueue, QueuedDelivery};
 
@@ -78,8 +82,217 @@ impl Implementer {
         work: &ImplementationWork,
         mapping: Option<&SourceMapping>,
     ) -> Result<AdmissionDecision, String> {
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(text)?
+            .as_millis();
+        let now_ms = u64::try_from(now_ms).map_err(text)?;
+        self.admit_with_supersession(
+            work,
+            mapping,
+            kiln_core::implementation::SupersessionRule::AbortActive,
+            now_ms,
+        )
+    }
+
+    /// Admit a source observation and apply its configured supersession rule in
+    /// the same transaction. The old attempt's contract is never rewritten.
+    // r[impl kiln.implementation.current_authority]
+    pub fn admit_with_supersession(
+        &mut self,
+        work: &ImplementationWork,
+        mapping: Option<&SourceMapping>,
+        rule: kiln_core::implementation::SupersessionRule,
+        now_ms: u64,
+    ) -> Result<AdmissionDecision, String> {
         let enrollment = self.enrollment.clone();
-        self.with_ledgers(|ledger, _| ledger.admit(work, mapping, &enrollment))
+        self.with_ledgers(|ledger, attempts| {
+            let decision = ledger.admit(work, mapping, &enrollment)?;
+            if matches!(decision, AdmissionDecision::Superseded { .. }) {
+                attempts.supersede(&work.canonical_key()?, work.revision, rule, now_ms)?;
+            }
+            Ok(decision)
+        })
+    }
+
+    /// Transactional currentness observation, not a physical resource grant.
+    /// A caller must separately reserve its effect before external transport.
+    pub fn authorize_current(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+    ) -> Result<ImplementationAttempt, String> {
+        self.with_ledgers(|_, attempts| {
+            if !attempts.is_current(identity, fence, now_ms) {
+                return Err(kiln_core::types::Diagnostic::new(
+                    "implementation_fence_stale",
+                    "attempt.fence",
+                    "attempt does not own the current unexpired claim",
+                ));
+            }
+            attempts.get(identity).cloned().ok_or_else(|| {
+                kiln_core::types::Diagnostic::new(
+                    "implementation_attempt_missing",
+                    "attempt.identity",
+                    "attempt is not retained",
+                )
+            })
+        })
+    }
+
+    /// Resolve the frozen contract for one current active unexpired claim.
+    /// Historical work is available only for an explicitly retained FinishActive
+    /// supersession; this never authorizes publication of superseded results.
+    // r[impl kiln.implementation.current_authority]
+    pub fn active_work(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+    ) -> Result<ImplementationWork, String> {
+        self.with_ledgers(|work, attempts| {
+            let refusal = || kiln_core::types::Diagnostic::new(
+                "implementation_frozen_work_stale", "attempt.work",
+                "frozen work requires a current active claim and explicit finish-active lineage",
+            );
+            if !attempts.is_current(identity, fence, now_ms) { return Err(refusal()); }
+            let attempt = attempts.get(identity).ok_or_else(refusal)?;
+            let current = work.get(&attempt.canonical_key).ok_or_else(refusal)?;
+            if current.identity()? == attempt.work_identity && current.revision == attempt.work_revision {
+                return Ok(current.clone());
+            }
+            if attempt.superseded_by != Some(current.revision) || current.revision <= attempt.work_revision {
+                return Err(refusal());
+            }
+            let mut frozen = work.superseded().iter().filter(|retained| {
+                retained.revision == attempt.work_revision && retained.base == attempt.base
+                    && retained.identity().is_ok_and(|id| id == attempt.work_identity)
+                    && retained.canonical_key().is_ok_and(|key| key == attempt.canonical_key)
+            });
+            let retained = frozen.next().ok_or_else(refusal)?;
+            if frozen.next().is_some() { return Err(refusal()); }
+            Ok(retained.clone())
+        })
+    }
+
+    /// Record an independently observed provider termination; never infer it
+    /// from a timeout, expired lease, failed cancellation or missing process.
+    pub fn reconcile_unknown(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        termination: &kiln_core::types::ExternalRef,
+    ) -> Result<(), String> {
+        self.with_ledgers(|_, attempts| attempts.reconcile_unknown(identity, fence, termination))
+    }
+
+    /// Retain immutable operator-admitted resource/profile requirements for an
+    /// exact current work version. Readiness never grants provider resources.
+    pub fn attach_work_needs(
+        &mut self,
+        attachment: &kiln_core::inventory::WorkNeedsAttachment,
+    ) -> Result<ContentId, String> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (work, _) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (admission, _) =
+            load::<kiln_core::fair_admission::AdmissionLedger>(&transaction, "fair-admission-v1")?;
+        let policy = admission
+            .policy
+            .as_ref()
+            .ok_or("requirements need a current admitted policy")?
+            .identity()
+            .map_err(diagnostic)?;
+        let current = work
+            .current()
+            .find(|work| {
+                work.identity()
+                    .is_ok_and(|id| id == attachment.work_identity)
+                    && work.revision == attachment.work_revision
+            })
+            .ok_or("requirements do not bind current admitted work")?;
+        attachment
+            .validate_for(
+                &current.identity().map_err(diagnostic)?,
+                current.revision,
+                &policy,
+            )
+            .map_err(text)?;
+        let identity = attachment.identity().map_err(text)?;
+        let key = format!(
+            "needs:{}:{}",
+            attachment.work_identity.as_str(),
+            policy.as_str()
+        );
+        let (existing, version) =
+            load::<Option<kiln_core::inventory::WorkNeedsAttachment>>(&transaction, &key)?;
+        if existing
+            .as_ref()
+            .is_some_and(|existing| existing != attachment)
+        {
+            return Err("work version already has different admitted requirements".to_string());
+        }
+        if existing.is_none() {
+            save(&transaction, &key, version, &Some(attachment))?;
+        }
+        transaction.commit().map_err(text)?;
+        Ok(identity)
+    }
+
+    /// Return only requirements matching the current work and caller-selected
+    /// policy. Historical attachments remain auditable but cannot explain new work.
+    pub fn work_needs(
+        &mut self,
+        work_identity: &ContentId,
+        policy_identity: &ContentId,
+    ) -> Result<Option<kiln_core::inventory::WorkNeedsAttachment>, String> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (work, _) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (admission, _) =
+            load::<kiln_core::fair_admission::AdmissionLedger>(&transaction, "fair-admission-v1")?;
+        let policy = admission
+            .policy
+            .as_ref()
+            .ok_or("requirements need a current admitted policy")?
+            .identity()
+            .map_err(diagnostic)?;
+        if &policy != policy_identity {
+            return Err("requirements policy is no longer current".into());
+        }
+        let current = work
+            .current()
+            .find(|work| work.identity().is_ok_and(|id| &id == work_identity))
+            .ok_or("work identity is not current")?;
+        let key = format!("needs:{}:{}", work_identity.as_str(), policy.as_str());
+        let (attachment, _) =
+            load::<Option<kiln_core::inventory::WorkNeedsAttachment>>(&transaction, &key)?;
+        if let Some(attachment) = &attachment {
+            attachment
+                .validate_for(work_identity, current.revision, policy_identity)
+                .map_err(text)?;
+        }
+        transaction.commit().map_err(text)?;
+        Ok(attachment)
+    }
+
+    /// Returns true after possible prior dispatch; caller MUST recover instead
+    /// of dispatching. Intent is committed before this returns to transport.
+    pub fn begin_dispatch_transport(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ContentId,
+    ) -> Result<bool, String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.begin_dispatch_transport(identity, fence, now_ms, plan)
+        })
     }
 
     /// Claim the highest-ranked eligible work unit that is not already claimed.
@@ -92,6 +305,7 @@ impl Implementer {
         lease_ms: u64,
     ) -> Result<Option<ImplementationAttempt>, String> {
         self.with_ledgers(|ledger, attempts| {
+            attempts.expire(now_ms)?;
             let ranked = ledger.ranked();
             for row in ranked {
                 let Some(work) = ledger
@@ -112,6 +326,7 @@ impl Implementer {
                             "implementation_already_claimed"
                                 | "implementation_budget_exhausted"
                                 | "implementation_already_verified"
+                                | "implementation_reconciliation_required"
                         ) => {}
                     Err(error) => return Err(error),
                 }
@@ -151,9 +366,27 @@ impl Implementer {
         now_ms: u64,
         plan: &ImplementationDispatchPlan,
     ) -> Result<DispatchReservation, String> {
+        if let Some(execution) = &plan.execution {
+            let retained =
+                self.work_needs(&plan.work_identity, &execution.requirements.policy_identity)?;
+            if retained.as_ref() != Some(&execution.requirements) {
+                return Err("dispatch requirements differ from current admitted attachment".into());
+            }
+        }
         self.with_ledgers(|_, attempts| {
             attempts.reserve_dispatch_plan(work, identity, fence, now_ms, plan)
         })
+    }
+
+    pub fn dispatch_plan(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<ImplementationDispatchPlan>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.dispatch_plan(identity).cloned()))
+    }
+
+    pub fn dispatch_requires_recovery(&mut self, identity: &ContentId) -> Result<bool, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.dispatch_requires_recovery(identity)))
     }
 
     pub fn dispatch_reservation(
@@ -386,7 +619,7 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
-        self.with_ledgers(|_, attempts| attempts.cancel(identity, fence, now_ms, cause))
+        self.cancel_with_admission(identity, fence, now_ms, cause)
     }
 
     pub fn supersede(
@@ -409,6 +642,7 @@ impl Implementer {
             let active = attempts
                 .attempts()
                 .filter(|attempt| attempt.phase.is_active())
+                .chain(attempts.unresolved())
                 .map(|attempt| attempt.identity.clone())
                 .collect();
             Ok(Recovery { expired, active })
@@ -494,4 +728,8 @@ fn save<T: serde::Serialize>(
 
 fn text(error: impl std::fmt::Display) -> String {
     error.to_string()
+}
+
+fn diagnostic(error: kiln_core::types::Diagnostic) -> String {
+    format!("{}: {}", error.code, error.message)
 }

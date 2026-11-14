@@ -29,6 +29,9 @@ pub struct Options {
     pub workers: Option<PathBuf>,
     pub work: Option<PathBuf>,
     pub code_review: Option<PathBuf>,
+    pub inventory: Option<PathBuf>,
+    pub implementation_work: Option<PathBuf>,
+    pub artifact_previews: Option<PathBuf>,
 }
 
 impl Options {
@@ -44,10 +47,25 @@ impl Options {
             .map(crate::automation::AutomationProfile::load)
             .transpose()
     }
+
+    fn observation_inputs(&self) -> Result<(), String> {
+        if let Some(path) = &self.inventory {
+            let input = crate::inventory::InventoryInput::load(path)?;
+            kiln_core::inventory::admit_snapshot(&input.profile, &input.snapshot)
+                .map_err(str::to_owned)?;
+        }
+        if let Some(path) = &self.implementation_work {
+            kiln_implementer::observation::ImplementationObservation::open(path)
+                .map_err(|_| "implementation work observation unavailable".to_owned())?;
+        }
+        Ok(())
+    }
 }
 
 #[path = "server/admission.rs"]
 mod admission;
+#[path = "server/inventory.rs"]
+mod inventory_api;
 #[path = "server/notify.rs"]
 mod notify;
 
@@ -59,6 +77,7 @@ pub fn check(path: &Path) -> Result<(), String> {
 
 pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
+    options.observation_inputs()?;
     let access = options.access_profile()?;
     let access_agents = access.agent_bindings();
     let _credentials = Credentials::load(&profile, access)?;
@@ -96,7 +115,8 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
             .transpose()?,
     )?;
     let review_profile = load_review_profile(options, access_agents)?;
-    let _code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
+    let mut code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
+    code_review.configure_previews(options.artifact_previews.as_deref())?;
     if let Some(cache) = &_cache {
         cache.preflight_for(&profile)?;
     }
@@ -143,6 +163,7 @@ fn load_review_profile(
 
 pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
+    options.observation_inputs()?;
     let access = options.access_profile()?;
     let access_identity = access.identity()?;
     let access_agents = access.agent_bindings();
@@ -187,7 +208,8 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
             .transpose()?,
     )?;
     let review_profile = load_review_profile(options, access_agents)?;
-    let code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
+    let mut code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
+    code_review.configure_previews(options.artifact_previews.as_deref())?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;
     let listener = TcpListener::bind(profile.listen_address)
@@ -223,6 +245,8 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         reviews: &reviews,
         work: &work,
         code_review: &code_review,
+        inventory: options.inventory.as_deref(),
+        implementation_work: options.implementation_work.as_deref(),
     };
     // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
     notify::ready()?;
@@ -448,6 +472,8 @@ struct Context<'a> {
     reviews: &'a crate::reviews::Browser,
     work: &'a crate::work::Workspace,
     code_review: &'a crate::code_review::Workspace,
+    inventory: Option<&'a Path>,
+    implementation_work: Option<&'a Path>,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -737,6 +763,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             .target
             .split_once('?')
             .map_or(request.target.as_str(), |(path, _)| path);
+        if path == "/api/inventory" {
+            return inventory_api::response(&request, context, &principal);
+        }
         if path == "/api/feeds" || path.starts_with("/api/feeds/") {
             if principal.role == crate::engine::Role::Worker {
                 return denied(&request, context, Some(&principal), 403, "feeds_forbidden");
@@ -868,6 +897,10 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 include_bytes!("code-review.js"),
             ),
             "/code-review.css" => ("text/css; charset=utf-8", include_bytes!("code-review.css")),
+            "/preview-review.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("preview-review.js"),
+            ),
             "/work-interaction.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("work-interaction.js"),
@@ -907,6 +940,11 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 include_bytes!("workers.js"),
             ),
             "/workers.css" => ("text/css; charset=utf-8", include_bytes!("workers.css")),
+            "/inventory.js" => (
+                "text/javascript; charset=utf-8",
+                include_bytes!("inventory.js"),
+            ),
+            "/inventory.css" => ("text/css; charset=utf-8", include_bytes!("inventory.css")),
             // r[impl kiln.web.deploy.runtime] Minimal health exposes no private state.
             "/healthz" => ("application/json", b"{\"status\":\"ok\"}"),
             // r[impl kiln.identity.shared] The shared identity, then the catalog shell it styles.

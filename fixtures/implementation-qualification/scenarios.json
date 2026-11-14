@@ -1,0 +1,16 @@
+{
+  "schema": "kiln.implementation-qualification-scenarios.v1",
+  "bug": {"fixture": "bug", "protected_paths": ["acceptance.py", "requirements.txt"], "permitted_paths": ["src/ranges.py"], "reproducer": "acceptance", "expected": "baseline_failed_candidate_passed"},
+  "feature": {"fixture": "feature", "protected_paths": ["acceptance.py", "requirements.txt"], "permitted_paths": ["src/labels.py"], "reproducer": null, "expected": "candidate_passed"},
+  "linked-sources": {"expected": "one_current_canonical_task_claim", "requires": ["exact GitHub/Cairn source mapping", "independent duplicate delivery and source sequences"]},
+  "expired-stale-worker": {"expected": "replacement_fence_excludes_old_worker", "requires": ["real provider termination or unknown-outcome barrier", "old native handoff rejected"]},
+  "zero-exit-noop": {"expected": "rejected", "requires": ["actual zero-exit worker", "unchanged buggy source", "independent failing checks"]},
+  "forged-evidence": {"expected": "rejected", "requires": ["worker-written false success manifest", "candidate deletes Cairn without completion authority", "candidate archives Cairn without completion authority", "actual canonical Engine/Cairn refusal for each adversarial variant"]},
+  "skipped-checks": {"expected": "rejected", "requires": ["missing required artifact or acceptance coverage", "actual verifier diagnostic"]},
+  "weakened-policy": {"expected": "rejected", "requires": ["actual candidate changes protected acceptance or policy Git object", "independent protection diagnostic"]},
+  "source-policy-movement": {"expected": "replan_or_reverification_required", "requires": ["new source/spec/policy version", "old evidence rejected"]},
+  "target-movement": {"expected": "replan_or_reverification_required", "requires": ["actual changed integration target", "stale candidate publication admission rejected"]},
+  "restart-possible-effects": {"expected": "same_provider_execution_observed_no_duplicate_dispatch", "requires": ["lattice-crash stops owned parent before native acknowledgement", "actual retained worker artifacts and ledger fence observation", "lattice-recover --recover true", "remote branch/PR/integration/source effects separately approved"]},
+  "descendant-cancellation": {"expected": "no_observed_incarnation_survives_before_reuse", "requires": ["actual worker with descendant", "SIGTERM to admitted transport parent propagates through exact native cancel", "native recovery observation", "actual pre-cancel mutation and post-cancel quiescence", "quarantine on missing evidence"]},
+  "already-satisfied": {"expected": "unchanged_source_independently_verified", "requires": ["explicit VerifiedOrAlreadySatisfied policy", "allow_already_satisfied profile", "baseline and candidate acceptance pass"]}
+}

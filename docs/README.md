@@ -46,6 +46,7 @@ The sections below group the maintained documents by the question they answer.
 - [Mantle build](mantle-build.md): one exact build cohort; Kiln keeps candidate and CI truth.
 - [Aspen runtime backend](aspen-runtime-backend.md): workload-neutral substrate; Kiln keeps CI meaning.
 - [Kiln Aspen host](../runtime/kiln-aspen-host/README.md): deployable shell for private Kiln-on-Aspen cohorts.
+- [Artifact readiness](artifact-readiness.md): opt-in real hosted/Nix phase measurements and matched-cohort analysis; no unmeasured speedup claim.
 - [celld event store](celld-event-store.md): versioned Worker entry for the pinned celld SQLite API.
 
 ## Gates, review and merge checks
@@ -61,6 +62,7 @@ The sections below group the maintained documents by the question they answer.
 - [HTTP observation](http-observation.md): serves accepted views over bounded HTTPS; read-only.
 - [Iroh observation](iroh-observation.md): serves accepted views to enrolled iroh peers; read-only.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
+- [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
 
 ## Hosted composition and commercial plan
 
@@ -69,11 +71,13 @@ The sections below group the maintained documents by the question they answer.
 
 ## Implementation-work service
 
-- [Implementation work admission](implementation-work.md): a bounded contract; admission does not execute work.
-- [Implementer service](implementer-service.md): ownership split and prerequisites; a design boundary, not a service.
-- [Implementation runbook](implementation-runbook.md): composes the local pipeline; no live-worker qualification.
-- [Retained sessions](retained-sessions.md): lifecycle core for an opt-in session; not a VMM supervisor.
-- [Migration bridge](migration-bridge.md): admission only for one Cloud Hypervisor bridge over Iroh.
+- [Implementation work admission](implementation-work.md): exact work, claims, frozen requirements and provider boundaries.
+- [Implementer service](implementer-service.md): ownership split and deployment prerequisites.
+- [Implementation runbook](implementation-runbook.md): admitted Lattice/OMP dispatch, independent canonical CI verification and journaled publication; no unattended GitHub landing qualification.
+- [Qualification](implementation-qualification.md): actual-consumer campaign commands, frozen acceptance controls and explicit external prerequisites.
+- [Fair admission](fair-admission.md): opt-in queues, reservation accounting, finite parent budgets and conservative unknown-effect reconciliation.
+- [Retained sessions](retained-sessions.md): opt-in host-effect journal and paired checkpoints; selected producer capabilities remain prerequisites.
+- [Migration bridge](migration-bridge.md): exact handoff/fencing and bounded direct Iroh transport; no two-host or live-migration qualification.
 
 ## Hosting, pins, licensing and assurance
 

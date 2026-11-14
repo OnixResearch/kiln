@@ -493,6 +493,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "cairn-core"
+version = "0.1.0"
+dependencies = [
+ "artifact-auth-core",
+ "blake3",
+ "iddqd",
+ "preserves 4.996.0",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "cairn-gate-contract"
 version = "0.1.0"
 dependencies = [
@@ -2693,7 +2706,7 @@ dependencies = [
  "kiln-codec",
  "kiln-provider-api",
  "onix-kiln-core",
- "preserves",
+ "preserves 5.0.0-rc.7",
  "serde",
  "serde_json",
  "tempfile",
@@ -2705,7 +2718,9 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "bounded-exec",
+ "cairn-core",
  "cairn-gate-contract",
+ "git2 0.20.4",
  "kiln-codec",
  "kiln-implementer",
  "kiln-provider-api",
@@ -2799,6 +2814,7 @@ dependencies = [
  "bounded-exec",
  "git2 0.20.4",
  "hmac 0.12.1",
+ "kiln-adapter-cairn",
  "kiln-adapter-git",
  "kiln-adapter-lattice",
  "kiln-codec",
@@ -2843,6 +2859,7 @@ dependencies = [
  "iroh",
  "kiln-adapter-lattice",
  "kiln-codec",
+ "kiln-microvm",
  "kiln-provider-api",
  "lattice-workflow-contract",
  "lattice-workflow-transport",
@@ -2886,6 +2903,8 @@ dependencies = [
 name = "kiln-adapter-lattice"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "bounded-exec",
  "kiln-codec",
  "kiln-implementer",
  "kiln-provider-api",
@@ -2894,6 +2913,7 @@ dependencies = [
  "onix-kiln-core",
  "serde",
  "serde_json",
+ "signal-hook",
  "tempfile",
 ]
 
@@ -3112,7 +3132,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "onix-kiln-core",
- "preserves",
+ "preserves 5.0.0-rc.7",
  "serde",
  "serde_json",
 ]
@@ -3187,6 +3207,7 @@ dependencies = [
  "kiln-provider-api",
  "kiln-web-service",
  "libc",
+ "nix 0.30.1",
  "onix-kiln-core",
  "rusqlite",
  "rustix 1.1.4",
@@ -3204,6 +3225,10 @@ dependencies = [
 name = "kiln-implementer"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "bounded-exec",
+ "git2 0.20.4",
+ "kiln-provider-api",
  "onix-kiln-core",
  "rusqlite",
  "serde",
@@ -3370,12 +3395,14 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "bounded-exec-core",
+ "ed25519-dalek 2.2.0",
  "fs2",
  "getrandom 0.3.4",
  "git2 0.20.4",
  "git2 0.21.0",
  "hmac 0.12.1",
  "jiff",
+ "kiln-adapter-cairn",
  "kiln-adapter-git",
  "kiln-adapter-github",
  "kiln-adapter-http-observe",
@@ -3385,6 +3412,7 @@ dependencies = [
  "kiln-build-graph",
  "kiln-codec",
  "kiln-highlight",
+ "kiln-implementer",
  "kiln-observe-core",
  "kiln-provider-api",
  "lattice-workflow-transport",
@@ -3999,6 +4027,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "num"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
+dependencies = [
+ "num-bigint",
+ "num-complex",
+ "num-integer",
+ "num-iter",
+ "num-rational",
+ "num-traits",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4025,6 +4067,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-complex"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "num-conv"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4045,6 +4096,17 @@ version = "0.1.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c92800bd69a1eac91786bcfe9da64a897eb72911b8dc3095decbd07429e8048b"
 dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
+dependencies = [
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -4587,6 +4649,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "preserves"
+version = "4.996.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c921411091a6e538644181cee222cf93963bf792d2ed22dc072a7df9361cc12"
+dependencies = [
+ "base64 0.13.1",
+ "dtoa",
+ "lazy_static",
+ "num",
+ "regex",
+ "serde",
+ "serde_bytes",
 ]
 
 [[package]]

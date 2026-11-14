@@ -108,6 +108,147 @@ Cairn owns lifecycle gate meaning. Kiln owns candidate identity, gate compositio
 
 A passing Cairn result can satisfy one configured Kiln gate condition. It cannot mutate lifecycle files, merge source, publish an artifact, execute a release, or override another gate.
 
+### Independent implementation acceptance (#46)
+
+Implementation acceptance uses `kiln_implementer::verification::verify_candidate`,
+not a worker success manifest. Its consumer must load an operator-admitted
+`kiln.verification-profile.v1` and `VerifierAuthority`, execute that profile,
+retain the returned observation even when nonpassing, and only then admit the
+candidate. `VerificationRun` is intentionally not deserializable. Replaying a
+reserved handoff does not execute it again; `reservation.json` remains explicit
+unknown evidence if the controller dies before retaining its observation.
+
+`materialize_candidate(work, attempt, dispatch, profile, authority, candidate_root,
+host_receipt_bytes)` bridges the real Lattice host snapshot to Git before
+verification. It independently reads the exact Git baseline and retained worker
+workspace, ignores only root `.git`/`.jj`, and recomputes native
+`lattice.candidate-receipt.v1` BLAKE3 tree/diff framing and complete changed paths
+(including deletions). Non-UTF8 paths, symlinks, hardlinks, special files,
+unsupported mode changes, more than 50,000 entries or 512 MiB are refused. A
+produced host receipt must match the retained dispatch/workspace/work/fence in
+full. Its success claims never become acceptance evidence. The bridge writes a
+real deterministic commit/tree through a private in-memory Git index, retaining
+only `refs/kiln/implementation-candidates/<attempt>` in trusted acquisition. No
+worker `.git`, hooks, filters, index, refs or commit claims are consulted. Exact
+objects are fetched into fresh verification snapshots from that trusted local
+acquisition; no remote or target branch is changed. Empty produced receipts
+remain invalid. No-change acquisition requires the distinct honest host
+`lattice.unchanged-candidate-observation.v1`, matching actual baseline/candidate
+bytes, both explicit no-change policies and candidate equal to the real baseline
+commit. It remains a proposal for independent verification, never native worker
+success or an invented produced receipt.
+
+The canonical service consumer is
+`Engine::verify_implementation_candidate`, which reads current durable work,
+attempt and handoff, executes the admitted profile, then calls
+`Engine::record_implementation_verification`. The latter accepts only the actual
+non-deserializable in-process `VerificationRun`, rechecks current fencing and
+source enrollment, invokes the native Cairn evaluator where required, and
+persists ordinary `RunRecord` canonical events, `WorkflowObservation` and retained
+artifact/report bytes. Its result is derived through the existing
+`code_review_ci` projection before implementation-ledger admission. Failed and
+unknown observations remain visible; no shadow success table is used.
+
+The reviewed project's workflow must exactly match the executed check names,
+kinds and prerequisite edges. Pin each operation with
+`Engine::implementation_verification_operation(profile, check_id)`; a Cairn
+workflow additionally includes the reserved native-completion node depending on
+all acceptance nodes. This prevents an acceptance-only subset from claiming full
+unrelated project CI. Native `SourceResolution` stays unchanged. A serde-default
+optional controller-created provenance record binds the exact acquisition path,
+enrolled repository alias, handoff/work/version/fence/profile, actual observation
+and independent receipt; only validated protected-verifier records receive that
+alias in canonical CI. Missing historical provenance is not an invented mapping.
+Ordinary runs are unchanged. Protected `kiln-independent-verifier-v1` records
+cannot enter Lattice polling/recovery, automatic/manual retry or provider
+controls; fresh attempts require fresh frozen verification through the controller.
+
+For qualification configuration, the native constructor avoids reimplementing
+profile or operation identities in another language:
+
+```console
+cargo run --locked -p kiln-web-service --example implementation_verification_profile -- \
+  --template dedicated-service-template.json \
+  --verification-profile frozen-verification-profile.json \
+  --project verification-project --output canonical-service-profile.json
+```
+
+Supply an explicit dedicated ServiceProfile template whose selected workflow
+`nodes` and `edges` are empty. The constructor refuses to replace any existing CI
+graph, preserves all other projects and service/transport/source/bounds fields,
+derives every frozen check and native Cairn dependency, and uses
+`Engine::validate_implementation_verification_project` (the runtime all-check
+relation) followed by native service-profile admission. It writes a new file
+without overwriting an existing one. Its output is configuration only with
+`checks_executed: false` and `effects_executed: false`, never accepted evidence.
+No unrelated project CI may be relabeled as this dedicated verification graph.
+
+The Linux shell checks its actual effective filesystem UID through `/proc/self`;
+it never switches credentials. The enrolled acquisition repository and scratch
+directory, including ancestors, must not be worker-owned or group/world writable.
+Worker and verifier UIDs must differ. Programs, Cairn policy and registry inputs
+are bounded, byte-hashed immutable `/nix/store` inputs, not executables selected
+from the candidate. The environment is cleared and reconstructed from the frozen
+profile. `derived_environment_identity()` and `derived_toolchain_identity()`
+identify the actual environment map and hash-checked verifier program cohort.
+This is an authority boundary, **not hostile-code sandbox qualification**; a live
+operator must additionally isolate candidate execution and protect verifier
+credentials and retained evidence.
+
+The shell independently resolves exact Git baseline/candidate commits and tree,
+the complete NUL-delimited non-renamed changed-path set, and protected source
+objects. Missing paths, substituted commits/trees, unsupported submodules and
+weakened protected definitions fail closed. Each check gets a fresh private
+snapshot. Required artifacts must be absent before execution, then present as
+nonempty regular files without symlink components. Controller-retained bytes,
+stdout/stderr and execution receipts are re-read before admission; a worker's
+proposed artifact identity cannot fill a missing result. Timeout, crash, skipped
+prerequisites, output-limit and incomplete evidence never become passing checks.
+
+Every acceptance obligation must map to a frozen executed case. A bug profile's
+selected reproducer uses identical admitted program/argv/environment on baseline
+and candidate: ordinary repair needs a known nonzero baseline exit and a passing
+candidate. An empty patch additionally requires
+`VerifiedOrAlreadySatisfied`, profile authorization, candidate equal to baseline,
+and independently passing cases (including the same reproducer on both snapshots
+when present). Empty source, task checkboxes and process exit zero alone are not
+already-satisfied evidence.
+
+For Cairn work, call
+`kiln_adapter_cairn::acceptance::verify_cairn_completion` with the actual returned
+`VerificationRun`. It converts retained execution observations to Cairn's
+`AgentExecutionResult` and calls the pinned producer's
+`evaluate_authoritative_agent_completion`; there is no second completion checker.
+The admitted contract binds current immutable registry/policy JSON, exact
+required argv/prerequisites, selection, and the independently derived final
+subject. The outer handoff additionally binds work/version, full change/task
+aliases and source/spec versions, attempt/fence, repository, base and candidate
+tree. Neither native report nor typed check can transfer to another envelope.
+The retained producer report is `cairn-completion.json`; its bare BLAKE3 receipt
+identity becomes the canonical `CiCheck` named
+`cairn-authoritative-completion`, kind `cairn-agent-completion-v2`. Other checks
+remain canonical `CiFact`/`CiCheck`, consumed through existing attempt admission
+and review/integration queues. A moved target still needs a fresh queue candidate
+and applicable CI; this adapter grants no landing authority.
+
+Cairn lifecycle source defaults to exact baseline `.cairn` tree protection.
+Source-changing sync/archive may be staged **before review** only when the trusted
+controller has independently prepared and frozen its exact `.cairn` Git tree in
+`CairnAcceptance.prepared_lifecycle_tree` in the admitted profile. Other explicit
+protected paths remain unchanged; acceptance, policy, registry and check selection
+remain frozen outside the worker. This field authorizes exact reviewed source,
+not proof that a lifecycle command ran. A worker deletion/archive or arbitrary
+task edit has no such authority. No post-review source sync/archive is performed.
+Without independently prepared exact source, that lifecycle mode is unsupported.
+
+The authoritative evaluator is from the same pinned Cairn source revision above;
+`cairn-core` is a linked AGPL producer dependency, not just the permissive gate
+interchange crate. A CLI response with `checks_executed: false` remains validation
+only and is never execution evidence. The operator must supply the frozen
+verifier programs/material, private separate-UID execution service and enrolled
+repository before the real bug/feature pilot. No pilot, test execution, remote
+effect, lifecycle execution or hostile-isolation qualification is claimed here.
+
 ## Non-claims
 
 Passing adapter checks do not prove:

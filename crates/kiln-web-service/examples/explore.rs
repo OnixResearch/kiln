@@ -18,6 +18,8 @@ mod automation;
 mod ci;
 #[path = "explore/feeds.rs"]
 mod feeds;
+#[path = "explore/inventory.rs"]
+mod inventory;
 #[path = "explore/receipt.rs"]
 mod receipt;
 #[path = "explore/review.rs"]
@@ -251,6 +253,7 @@ impl Workspace {
             Example::new("Appearance, density and session", "/?page=settings", "Switch light/dark/system and comfortable/compact density. Clear session removes private views; reload reconnects the synthetic local identity."),
             Example::new("Retained activity and audit decisions", "/?page=activity", "Inspect events from the seeded local commands, filter them and follow an exact run."),
             Example::new("Capacity and retention", "/?page=operations", "Inspect occupied slots, queued requests, retention limits and local state. No pruning or real worker operation occurs."),
+            Example::new("Agents, worker instances, compute and serving", "/?page=workers", "Inspect four distinct synthetic observation families and exact-work readiness. Use the fictional all-a 64-hex work identity to explore a disconnected, non-authorizing explanation; no provider is contacted."),
         ]);
         Ok(Self {
             ci,
@@ -273,6 +276,10 @@ impl Workspace {
                 200,
                 json!({"synthetic":true,"examples":self.examples}),
             ));
+        }
+        // r[impl kiln.inventory.consumers]
+        if path == "/api/inventory" {
+            return inventory::response(&req.method, &req.target);
         }
         if path.starts_with("/api/feeds") || path.starts_with("/feeds") {
             return self
@@ -382,6 +389,7 @@ fn asset(path: &str) -> ApiResponse {
                 "code-review.js" => JS, "code-review.css" => CSS, "project.js" => JS, "project.css" => CSS,
                 "source.js" => JS, "source.css" => CSS, "receipts.js" => JS, "receipts.css" => CSS,
                 "workers.js" => JS, "workers.css" => CSS,
+                "inventory.js" => JS, "inventory.css" => CSS, "preview-review.js" => JS,
             }
         }
     }

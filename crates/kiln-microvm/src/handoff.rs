@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use crate::retained::{OwnerToken, Placement, RetainedSession, RetainedState};
 use kiln_core::types::{ContentId, Diagnostic, ExternalRef};
 
-pub const CHECKPOINT_SCHEMA: &str = "kiln.checkpoint-manifest.v1";
-pub const HANDOFF_SCHEMA: &str = "kiln.paused-handoff.v1";
+pub const CHECKPOINT_SCHEMA: &str = "kiln.checkpoint-manifest.v2";
+pub const HANDOFF_SCHEMA: &str = "kiln.paused-handoff.v2";
 pub const MAX_CAUSE_BYTES: usize = 512;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -21,6 +21,9 @@ pub struct CheckpointProfile {
     pub kernel: ContentId,
     pub hypervisor: ContentId,
     pub cpu: ContentId,
+    pub initrd: ContentId,
+    pub devices: ContentId,
+    pub memory_backing: ContentId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -37,6 +40,7 @@ pub struct CheckpointObjects {
 pub struct CheckpointManifest {
     pub schema: String,
     pub session: ContentId,
+    pub vm: ContentId,
     pub work: ContentId,
     pub work_revision: u64,
     pub attempt: ContentId,
@@ -51,9 +55,11 @@ pub struct CheckpointManifest {
 }
 
 /// Facts the shell resolved independently before accepting a checkpoint.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CheckpointExpectation {
     pub session: ContentId,
+    pub vm: ContentId,
     pub work: ContentId,
     pub work_revision: u64,
     pub attempt: ContentId,
@@ -64,6 +70,7 @@ pub struct CheckpointExpectation {
     pub operation: ContentId,
     pub disk: ContentId,
     pub disk_generation: u64,
+    pub profile: CheckpointProfile,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -92,6 +99,8 @@ pub struct PausedHandoff {
     /// Exact independently observed target-admission receipt.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target_receipt: Option<ExternalRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_evidence: Option<crate::retained::drain::CutoverEvidence>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cause: Option<String>,
 }
@@ -128,6 +137,7 @@ impl PausedHandoff {
             phase: HandoffPhase::Intent,
             manifest: None,
             target_receipt: None,
+            target_evidence: None,
             cause: None,
         })
     }
@@ -188,7 +198,8 @@ impl PausedHandoff {
         expected.work_revision = session.identity.work_revision;
         expected.attempt = session.identity.attempt.clone();
         expected.fence = session.identity.fence;
-        expected.execution = session.identity.session.clone();
+        expected.execution = session.identity.execution.clone();
+        expected.vm = session.identity.vm.clone();
         let identity = admit_checkpoint(&manifest, &expected)?;
         self.manifest = Some(manifest);
         self.phase = HandoffPhase::ObjectsVerified;
@@ -202,9 +213,33 @@ impl PausedHandoff {
         owner: &OwnerToken,
         target_owner: &OwnerToken,
         receipt: &ExternalRef,
+        cutover: &crate::retained::drain::CutoverEvidence,
     ) -> Result<(), Diagnostic> {
         self.authorize(session, owner, &[HandoffPhase::ObjectsVerified])?;
         receipt.validate()?;
+        use crate::retained::drain::{
+            AfterDispatch, DispatchObservation, VmObservation, after_dispatch,
+        };
+        let observed = DispatchObservation {
+            sender_exit: None,
+            source: VmObservation::Paused,
+            destination: VmObservation::Paused,
+            destination_ever_wrote: false,
+        };
+        if after_dispatch(
+            session,
+            &self.operation,
+            &self.target,
+            Some(cutover),
+            &observed,
+        ) != AfterDispatch::TargetOwned
+        {
+            return Err(refusal(
+                "handoff_fencing_unconfirmed",
+                "handoff.target",
+                "target admission requires exact durable placement/acknowledgement and source volume/effect fencing",
+            ));
+        }
         let manifest = self.manifest.as_ref().ok_or_else(|| {
             refusal(
                 "handoff_manifest_missing",
@@ -226,6 +261,7 @@ impl PausedHandoff {
             ));
         }
         self.target_receipt = Some(receipt.clone());
+        self.target_evidence = Some(cutover.clone());
         self.phase = HandoffPhase::TargetAdmitted;
         Ok(())
     }
@@ -238,6 +274,33 @@ impl PausedHandoff {
         target_owner: &OwnerToken,
     ) -> Result<(), Diagnostic> {
         self.authorize(session, owner, &[HandoffPhase::TargetAdmitted])?;
+        use crate::retained::drain::{
+            AfterDispatch, DispatchObservation, VmObservation, after_dispatch,
+        };
+        let observed = DispatchObservation {
+            sender_exit: None,
+            source: VmObservation::Unknown,
+            destination: VmObservation::Unknown,
+            destination_ever_wrote: false,
+        };
+        if self
+            .target_receipt
+            .as_ref()
+            .is_none_or(|receipt| receipt.validate().is_err())
+            || after_dispatch(
+                session,
+                &self.operation,
+                &self.target,
+                self.target_evidence.as_ref(),
+                &observed,
+            ) != AfterDispatch::TargetOwned
+        {
+            return Err(refusal(
+                "handoff_resume_evidence",
+                "handoff.resume",
+                "resume requires the persisted exact durable placement/fencing/acknowledgement evidence",
+            ));
+        }
         if target_owner.session != session.identity.session
             || target_owner.fence != session.identity.fence
             || target_owner.host != self.target.host
@@ -259,7 +322,18 @@ impl PausedHandoff {
         session: &RetainedSession,
         owner: &OwnerToken,
     ) -> Result<(), Diagnostic> {
-        self.authorize(session, owner, &[HandoffPhase::Resumed])?;
+        session.authorize_identity(owner)?;
+        if self.schema != HANDOFF_SCHEMA
+            || self.phase != HandoffPhase::Resumed
+            || session.state != RetainedState::Retired
+            || session.placement != self.source
+        {
+            return Err(refusal(
+                "handoff_source_not_retired",
+                "handoff.source",
+                "source retirement requires observed cleanup of the exact source placement",
+            ));
+        }
         self.phase = HandoffPhase::SourceRetired;
         Ok(())
     }
@@ -299,7 +373,7 @@ impl PausedHandoff {
             ));
         }
         session.authorize(owner)?;
-        if !allowed.contains(&self.phase) {
+        if session.placement != self.source || !allowed.contains(&self.phase) {
             return Err(refusal(
                 "handoff_phase",
                 "handoff.phase",
@@ -318,6 +392,7 @@ pub fn admit_checkpoint(
 ) -> Result<ContentId, Diagnostic> {
     if manifest.schema != CHECKPOINT_SCHEMA
         || manifest.session != expected.session
+        || manifest.vm != expected.vm
         || manifest.work != expected.work
         || manifest.work_revision != expected.work_revision
         || manifest.attempt != expected.attempt
@@ -329,6 +404,7 @@ pub fn admit_checkpoint(
         || manifest.disk_generation == 0
         || manifest.disk_generation != expected.disk_generation
         || manifest.objects.disk != expected.disk
+        || manifest.profile != expected.profile
     {
         return Err(refusal(
             "handoff_manifest_binding",
@@ -339,6 +415,7 @@ pub fn admit_checkpoint(
     validate_target(&manifest.source, &manifest.target)?;
     let identities = [
         &manifest.session,
+        &manifest.vm,
         &manifest.work,
         &manifest.attempt,
         &manifest.execution,
@@ -347,6 +424,9 @@ pub fn admit_checkpoint(
         &manifest.profile.kernel,
         &manifest.profile.hypervisor,
         &manifest.profile.cpu,
+        &manifest.profile.initrd,
+        &manifest.profile.devices,
+        &manifest.profile.memory_backing,
         &manifest.objects.ram,
         &manifest.objects.device_state,
         &manifest.objects.disk,
@@ -374,6 +454,7 @@ pub fn admit_checkpoint(
     for value in [
         CHECKPOINT_SCHEMA,
         manifest.session.as_str(),
+        manifest.vm.as_str(),
         manifest.work.as_str(),
     ] {
         push(&mut bytes, value)?;
@@ -392,6 +473,9 @@ pub fn admit_checkpoint(
         &manifest.profile.kernel,
         &manifest.profile.hypervisor,
         &manifest.profile.cpu,
+        &manifest.profile.initrd,
+        &manifest.profile.devices,
+        &manifest.profile.memory_backing,
     ] {
         push(&mut bytes, identity.as_str())?;
     }
@@ -413,6 +497,13 @@ fn validate_target(source: &Placement, target: &Placement) -> Result<(), Diagnos
         || source.host == target.host
         || target.generation <= source.generation
         || target.generation == 0
+        || source.generation == 0
+        || [&source.host, &target.host].into_iter().any(|host| {
+            host.len() > crate::retained::MAX_HOST_BYTES
+                || host
+                    .chars()
+                    .any(|character| character.is_control() || character.is_whitespace())
+        })
     {
         return Err(refusal(
             "handoff_target",
@@ -450,10 +541,29 @@ mod tests {
             .unwrap_or_else(|_| unreachable!())
     }
 
+    fn cutover(session: &RetainedSession) -> crate::retained::drain::CutoverEvidence {
+        crate::retained::drain::CutoverEvidence {
+            operation: content('4'),
+            session: session.identity.session.clone(),
+            execution: session.identity.execution.clone(),
+            vm: session.identity.vm.clone(),
+            attempt: session.identity.attempt.clone(),
+            fence: session.identity.fence,
+            source: session.placement.clone(),
+            target: target(),
+            durable_target_commit: Some(content('e')),
+            source_volume_fenced: Some(content('f')),
+            source_effects_fenced: Some(content('5')),
+            destination_durable_ack: Some(content('6')),
+        }
+    }
+
     fn session() -> RetainedSession {
         RetainedSession::admit(
             SessionIdentity {
                 session: content('1'),
+                execution: content('e'),
+                vm: content('f'),
                 work: content('2'),
                 work_revision: 3,
                 attempt: content('3'),
@@ -503,11 +613,12 @@ mod tests {
         CheckpointManifest {
             schema: CHECKPOINT_SCHEMA.to_string(),
             session: session.identity.session.clone(),
+            vm: session.identity.vm.clone(),
             work: session.identity.work.clone(),
             work_revision: session.identity.work_revision,
             attempt: session.identity.attempt.clone(),
             fence: session.identity.fence,
-            execution: session.identity.session.clone(),
+            execution: session.identity.execution.clone(),
             source: session.placement.clone(),
             target,
             operation: content('4'),
@@ -516,6 +627,9 @@ mod tests {
                 kernel: content('6'),
                 hypervisor: content('7'),
                 cpu: content('8'),
+                initrd: content('9'),
+                devices: content('e'),
+                memory_backing: content('f'),
             },
             disk_generation: 11,
             objects: CheckpointObjects {
@@ -530,16 +644,26 @@ mod tests {
     fn expectation(session: &RetainedSession) -> CheckpointExpectation {
         CheckpointExpectation {
             session: session.identity.session.clone(),
+            vm: session.identity.vm.clone(),
             work: session.identity.work.clone(),
             work_revision: session.identity.work_revision,
             attempt: session.identity.attempt.clone(),
             fence: session.identity.fence,
-            execution: session.identity.session.clone(),
+            execution: session.identity.execution.clone(),
             source: session.placement.clone(),
             target: target(),
             operation: content('4'),
             disk: content('c'),
             disk_generation: 11,
+            profile: CheckpointProfile {
+                image: content('5'),
+                kernel: content('6'),
+                hypervisor: content('7'),
+                cpu: content('8'),
+                initrd: content('9'),
+                devices: content('e'),
+                memory_backing: content('f'),
+            },
         }
     }
 
@@ -576,14 +700,36 @@ mod tests {
         };
         let receipt =
             ExternalRef::new("lattice", "candidate", "target").unwrap_or_else(|_| unreachable!());
+        let mut unfenced = cutover(&session);
+        unfenced.source_volume_fenced = None;
+        assert!(
+            handoff
+                .record_target_admitted(&session, &owner, &target_owner, &receipt, &unfenced)
+                .is_err()
+        );
+        assert_eq!(handoff.phase, HandoffPhase::ObjectsVerified);
         handoff
-            .record_target_admitted(&session, &owner, &target_owner, &receipt)
+            .record_target_admitted(
+                &session,
+                &owner,
+                &target_owner,
+                &receipt,
+                &cutover(&session),
+            )
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(handoff.phase, HandoffPhase::TargetAdmitted);
         assert_eq!(handoff.target_receipt.as_ref(), Some(&receipt));
         handoff
             .record_resumed(&session, &owner, &target_owner)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(handoff.record_source_retired(&session, &owner).is_err());
+        session
+            .begin_retire(&owner)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(handoff.record_source_retired(&session, &owner).is_err());
+        session
+            .observe_retired(&owner, true)
+            .unwrap_or_else(|_| unreachable!());
         handoff
             .record_source_retired(&session, &owner)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
@@ -642,7 +788,7 @@ mod tests {
             ExternalRef::new("lattice", "candidate", "target").unwrap_or_else(|_| unreachable!());
         assert!(
             handoff
-                .record_target_admitted(&session, &owner, &stale, &receipt)
+                .record_target_admitted(&session, &owner, &stale, &receipt, &cutover(&session))
                 .is_err()
         );
         assert_eq!(handoff.phase, HandoffPhase::ObjectsVerified);
@@ -657,6 +803,18 @@ mod tests {
         manifest.disk_generation += 1;
         assert!(admit_checkpoint(&manifest, &expectation(&session)).is_err());
         manifest.disk_generation = 11;
+        let profile = manifest.profile.clone();
+        manifest.profile.memory_backing = content('1');
+        assert!(admit_checkpoint(&manifest, &expectation(&session)).is_err());
+        manifest.profile = profile;
+        let execution = manifest.execution.clone();
+        manifest.execution = manifest.session.clone();
+        assert!(admit_checkpoint(&manifest, &expectation(&session)).is_err());
+        manifest.execution = execution;
+        assert!(admit_checkpoint(&manifest, &expectation(&session)).is_ok());
+        manifest.schema = "kiln.checkpoint-manifest.v1".to_string();
+        assert!(admit_checkpoint(&manifest, &expectation(&session)).is_err());
+        manifest.schema = CHECKPOINT_SCHEMA.to_string();
         manifest.objects.workspace = manifest.objects.ram.clone();
         assert!(admit_checkpoint(&manifest, &expectation(&session)).is_err());
     }

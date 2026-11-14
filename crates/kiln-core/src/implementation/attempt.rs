@@ -176,6 +176,15 @@ pub struct AttemptLedger {
     current: BTreeMap<String, String>,
     /// Canonical work key to consumed attempt budget across lineage.
     consumed: BTreeMap<String, u8>,
+    /// Explicit provider termination observations for ambiguous outcomes. An
+    /// absent observation is a retry barrier, not evidence of worker death.
+    #[serde(default)]
+    resolved_unknown: BTreeMap<String, ExternalRef>,
+    /// Transport intent persisted before dispatch; repeat invocations recover.
+    #[serde(default)]
+    dispatch_started: alloc::collections::BTreeSet<String>,
+    #[serde(default)]
+    dispatch_plans: BTreeMap<String, super::ImplementationDispatchPlan>,
 }
 
 impl AttemptLedger {
@@ -215,6 +224,19 @@ impl AttemptLedger {
         }
         let canonical_key = work.canonical_key()?;
         let work_identity = work.identity()?;
+        if self.attempts.values().any(|attempt| {
+            attempt.canonical_key == canonical_key
+                && attempt.failure == Some(FailureClass::Unknown)
+                && !self
+                    .resolved_unknown
+                    .contains_key(attempt.identity.as_str())
+        }) {
+            return Err(refusal(
+                "implementation_reconciliation_required",
+                "attempt.workflow",
+                "an unknown provider outcome must be reconciled before another attempt",
+            ));
+        }
         if let Some(active) = self.current(&canonical_key)
             && active.phase.is_active()
             && active.lease_until_ms > now_ms
@@ -342,7 +364,12 @@ impl AttemptLedger {
         plan: &ContentId,
         provider_profile: &ProviderProfileId,
     ) -> CoreResult<DispatchReservation> {
-        self.require_phase(identity, fence, now_ms, &[AttemptPhase::Claimed])?;
+        self.require_phase(
+            identity,
+            fence,
+            now_ms,
+            &[AttemptPhase::Claimed, AttemptPhase::Executing],
+        )?;
         let attempt = self.attempt_mut(identity)?;
         if let Some(existing) = &attempt.dispatch {
             if &existing.plan == plan && &existing.provider_profile == provider_profile {
@@ -376,7 +403,22 @@ impl AttemptLedger {
             let attempt = self.authorized(identity, fence, now_ms)?;
             super::admit_dispatch_plan(work, attempt, plan)?
         };
-        self.reserve_dispatch(identity, fence, now_ms, &digest, &plan.provider_profile)
+        let reservation =
+            self.reserve_dispatch(identity, fence, now_ms, &digest, &plan.provider_profile)?;
+        self.dispatch_plans
+            .insert(identity.as_str().to_string(), plan.clone());
+        Ok(reservation)
+    }
+
+    pub fn dispatch_plan(
+        &self,
+        identity: &ContentId,
+    ) -> Option<&super::ImplementationDispatchPlan> {
+        self.dispatch_plans.get(identity.as_str())
+    }
+
+    pub fn dispatch_requires_recovery(&self, identity: &ContentId) -> bool {
+        self.dispatch_started.contains(identity.as_str())
     }
 
     /// Opt-in observation of one attempt without retaining it.
@@ -468,7 +510,12 @@ impl AttemptLedger {
         now_ms: u64,
         workflow: &ExternalRef,
     ) -> CoreResult<()> {
-        self.require_phase(identity, fence, now_ms, &[AttemptPhase::Claimed])?;
+        self.require_phase(
+            identity,
+            fence,
+            now_ms,
+            &[AttemptPhase::Claimed, AttemptPhase::Executing],
+        )?;
         workflow.validate()?;
         let attempt = self.attempt_mut(identity)?;
         if attempt.dispatch.is_none() {
@@ -847,11 +894,23 @@ impl AttemptLedger {
         handoff: &super::CandidateHandoff,
         verification: &super::CandidateVerification,
     ) -> CoreResult<ContentId> {
-        let existing = self.authorized(identity, fence, now_ms)?;
-        if let Some(existing) = &existing.verification {
-            if existing == verification {
-                let attempt = self.authorized(identity, fence, now_ms)?;
-                return super::admit_candidate_verification(work, attempt, handoff, verification);
+        let existing = self.get(identity).ok_or_else(|| {
+            refusal(
+                "implementation_attempt_missing",
+                "attempt.identity",
+                "attempt is not retained",
+            )
+        })?;
+        if existing.fence != fence {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt fence is stale",
+            ));
+        }
+        if let Some(retained) = &existing.verification {
+            if retained == verification {
+                return super::admit_candidate_verification(work, existing, handoff, verification);
             }
             return Err(refusal(
                 "implementation_verification_conflict",
@@ -994,11 +1053,19 @@ impl AttemptLedger {
             .map(|attempt| attempt.identity.clone())
             .collect();
         for identity in identities {
+            let unacknowledged = self.dispatch_started.contains(identity.as_str())
+                && self
+                    .get(&identity)
+                    .is_some_and(|attempt| attempt.workflow.is_none());
             let canonical_key = {
                 let attempt = self.attempt_mut(&identity)?;
                 attempt.phase = AttemptPhase::Blocked;
                 attempt.ended_at_ms = Some(now_ms);
                 attempt.cause = Some("lease_expired".to_string());
+                if unacknowledged {
+                    attempt.failure = Some(FailureClass::Unknown);
+                    attempt.cause = Some("dispatch_outcome_unknown".to_string());
+                }
                 attempt.canonical_key.clone()
             };
             self.clear_current(&canonical_key);
@@ -1042,6 +1109,75 @@ impl AttemptLedger {
         Ok(Some(active.identity))
     }
 
+    /// Reserve transport before dispatch. True means recovery is mandatory.
+    // r[impl kiln.implementation.unknown_barrier]
+    pub fn begin_dispatch_transport(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ContentId,
+    ) -> CoreResult<bool> {
+        let attempt = self.authorized(identity, fence, now_ms)?;
+        if attempt.dispatch.as_ref().map(|reserved| &reserved.plan) != Some(plan) {
+            return Err(refusal(
+                "implementation_dispatch_reservation_missing",
+                "attempt.dispatch",
+                "transport requires the exact durable dispatch reservation",
+            ));
+        }
+        Ok(!self.dispatch_started.insert(identity.as_str().to_string()))
+    }
+
+    /// Retain an independently observed provider termination after an unknown
+    /// outcome. This does not accept a candidate or refund consumed budget.
+    // r[impl kiln.implementation.unknown_barrier]
+    pub fn reconcile_unknown(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        termination: &ExternalRef,
+    ) -> CoreResult<()> {
+        termination.validate()?;
+        let attempt = self.get(identity).ok_or_else(|| {
+            refusal(
+                "implementation_attempt_missing",
+                "attempt.identity",
+                "attempt is not retained",
+            )
+        })?;
+        if attempt.fence != fence || attempt.failure != Some(FailureClass::Unknown) {
+            return Err(refusal(
+                "implementation_reconciliation_binding",
+                "attempt.fence",
+                "termination observation does not bind an unknown attempt and fence",
+            ));
+        }
+        if let Some(existing) = self.resolved_unknown.get(identity.as_str()) {
+            if existing == termination {
+                return Ok(());
+            }
+            return Err(refusal(
+                "implementation_reconciliation_conflict",
+                "attempt.workflow",
+                "a different termination observation is already retained",
+            ));
+        }
+        self.resolved_unknown
+            .insert(identity.as_str().to_string(), termination.clone());
+        Ok(())
+    }
+
+    /// Unknown provider outcomes requiring independent termination observation.
+    pub fn unresolved(&self) -> impl Iterator<Item = &ImplementationAttempt> {
+        self.attempts.values().filter(|attempt| {
+            attempt.failure == Some(FailureClass::Unknown)
+                && !self
+                    .resolved_unknown
+                    .contains_key(attempt.identity.as_str())
+        })
+    }
+
     /// Whether a result for this attempt may still be admitted.
     #[must_use]
     pub fn is_current(&self, identity: &ContentId, fence: u64, now_ms: u64) -> bool {
@@ -1054,6 +1190,24 @@ impl AttemptLedger {
                     .get(attempt.canonical_key.as_str())
                     .is_some_and(|current| current == identity.as_str())
         })
+    }
+
+    /// Verify terminal candidate authority independently of the worker lease.
+    /// A superseded/replaced attempt cannot publish a previously valid result.
+    pub fn authorize_publication(
+        &self,
+        identity: &ContentId,
+        fence: u64,
+    ) -> CoreResult<&ImplementationAttempt> {
+        let attempt = self.authorized_fence(identity, fence)?;
+        if attempt.phase != AttemptPhase::Verified {
+            return Err(refusal(
+                "implementation_attempt_unverified",
+                "attempt.phase",
+                "publication requires an independently verified attempt",
+            ));
+        }
+        Ok(attempt)
     }
 
     fn authorized_fence(
@@ -1073,6 +1227,17 @@ impl AttemptLedger {
                 "implementation_fence_stale",
                 "attempt.fence",
                 "attempt fence is stale",
+            ));
+        }
+        if attempt.superseded_by.is_some()
+            || self.attempts.values().any(|other| {
+                other.canonical_key == attempt.canonical_key && other.fence > attempt.fence
+            })
+        {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt was superseded or replaced and cannot publish",
             ));
         }
         Ok(attempt)
@@ -1103,6 +1268,13 @@ impl AttemptLedger {
                 "implementation_lease_expired",
                 "attempt.lease",
                 "attempt lease has expired",
+            ));
+        }
+        if !self.is_current(identity, fence, now_ms) {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt no longer owns the current active claim",
             ));
         }
         Ok(attempt)

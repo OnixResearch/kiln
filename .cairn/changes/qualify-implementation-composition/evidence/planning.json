@@ -1,0 +1,14 @@
+{
+  "schema": "kiln.implementation-qualification-planning.v1",
+  "change": "qualify-implementation-composition",
+  "policy": "cairn-policy/generated/cairn-policy.json",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "gates": {
+    "proposal": {"verdict": "PASS", "input_hash": "70f635bf8d43545a2645685b817c374bd2a5a17aeb8277fb66d4e6259f97d54d", "receipt_hash": "5709b38771225d04c71c9024e4668793a4d78c062c8c77785929b3d339a0e6a9"},
+    "design": {"verdict": "PASS", "input_hash": "1e219f16570cbff7ef234ee57533576efa011f179b75bd4907272a4b425a8cc6", "receipt_hash": "5f84245efb94794805eeec5f0dcc3ab9c7c952df1678dd0d7ffbb67f7f1b64bd"},
+    "tasks": {"verdict": "PASS", "input_hash": "85069cf8c42eaeef8b0f7d1ed748330ab1cd602b93e3b41df7663bcbb6cecf84", "receipt_hash": "0151e8d7bb93cd4d7403d9ee530f1fb9d7799e4a9b9cece2cd03ca70fc93742e"}
+  },
+  "runtime_campaign": "not_run",
+  "build_test_lint_format": "not_run_parent_owned",
+  "remote_effects": "not_authorized_not_exercised"
+}

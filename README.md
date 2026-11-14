@@ -124,6 +124,11 @@ Alternatively run
 The operator guide also covers the separate `website-exploration` package and
 supervised loopback user service; these never replace the authenticated website.
 
+The `kiln-web-exploration-bombadil` flake app runs bounded, read-only browser
+properties with the existing pinned Bombadil tool. It owns a disposable example
+by default; an explicit URL attaches only after native example admission.
+See [browser exploration commands and evidence](docs/operator.md#property-based-browser-exploration).
+
 The operated private-tailnet examples are at
 <https://britton-desktop.bison-tailor.ts.net:9444/examples>. Access uses existing
 registered Tailscale identities and the same private Kiln CA as the CI website;
@@ -175,7 +180,7 @@ a production claim, and no receipt validates later source.
 | Change review | Patch sets, exact diffs with interdiff, Jujutsu change-ID and stack intake, revision-bound approvals, exact-candidate required-CI merge automation | Exercised locally | [Operator guide](docs/operator.md#optional-interactive-change-review) |
 | Observation | Bounded read-only views over HTTPS or iroh; local terminal and HTML dashboard | Fixture-tested and exercised locally | [Projection](docs/observation-projection.md), [Dashboard](docs/observation-dashboard.md) |
 | Hosted composition (optional) | Scoped accounts, GitHub repository connections, reviewed pipelines, spend admission, per-job microVM execution profiles | Exercised locally; not a qualified service | [Operator procedure](docs/hosted-ci.md) |
-| Implementation work | GitHub issue and Cairn intake, claims, candidate verification, pull-request publication, guarded landing | Fixture-tested | [Runbook](docs/implementation-runbook.md) |
+| Implementation work | Durable GitHub/Cairn intake, exact claims and recovery, admitted isolated Lattice dispatch, independent canonical CI verification, and journaled PR/integration observations; unattended GitHub landing fails closed | Live-worker and remote-effect qualification remain separate | [Runbook](docs/implementation-runbook.md), [qualification](docs/implementation-qualification.md) |
 
 [Detailed status](docs/status.md) keeps the complete ledger: every implemented
 area, each integration procedure with its retained receipt, and the

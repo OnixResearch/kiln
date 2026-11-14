@@ -45,7 +45,10 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-conformance` | Shared positive and negative provider gates. |
 | `kiln-cli` (package `onix-kiln-cli`) | Local operator shell. |
 | `kiln-dashboard` | Local read-only operator shell over one canonical Kiln journal: event-identity recomputation, canonical replay, and a deterministic bounded report over the accepted observation projection. |
-| `kiln-web-service` | Explicit single-tenant HTTPS application composition over existing core/Git/Lattice ports, durable intake and recovery, separate operator/worker authority, exact-source job shell, captured output and real artifact transport; not an extension of read-only observation authority. |
+| `kiln-implementer` | SQLite owner for exact work, fenced attempts, attached requirements, opt-in admission and publication journals; independent Git candidate capture and trusted verification execution remain outside the editing worker. |
+| `kiln-microvm` | Bounded VM/session contracts, retained checkpoint and handoff admission; provider effects and compatibility evidence remain explicit. |
+| `kiln-hosted` | Optional hosted execution shell, retained-session effects and opt-in cache-readiness observations; no global scheduling or model-serving authority. |
+| `kiln-web-service` | Single-tenant HTTPS application composition, canonical implementation-verification bridge, explicit read-only inventory v2 and exact artifact-preview projection, alongside existing CI/work/review surfaces; preview and inventory observations never become CI or dispatch authority. |
 
 Two packages carry the stack's `onix-` prefix because crates.io holds unrelated crates under the unprefixed names. `crates/kiln-core` is package `onix-kiln-core` with library `kiln_core`; `crates/kiln-cli` is package `onix-kiln-cli` with binary `kiln`. Cargo selects them as `-p onix-kiln-core` and `-p onix-kiln-cli`. Dependents keep the key and declare `kiln-core = { package = "onix-kiln-core", ... }`; a consumer that pins Kiln by Git revision changes its declaration when its pin first includes the rename. Every other package under `crates/` is named after its directory.
 

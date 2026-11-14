@@ -7,6 +7,8 @@ rust-version.workspace = true
 publish = false
 
 [dependencies]
+blake3.workspace = true
+bounded-exec.workspace = true
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
 kiln-codec.workspace = true
@@ -15,6 +17,7 @@ lattice-workflow-contract.workspace = true
 lattice-workflow-transport.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+signal-hook = "0.3.18"
 
 [[bin]]
 name = "kiln-lattice-dispatch"

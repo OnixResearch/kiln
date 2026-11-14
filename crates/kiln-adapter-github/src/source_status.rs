@@ -1,14 +1,14 @@
-//! Idempotent source-issue closure after verified integration.
+//! Read-only source-issue reconciliation after exact verified integration.
 //!
-//! Only the exact GitHub issue bound by an admitted source-status plan is
-//! mutated. The client reads first, closes when open, and re-reads; it never
-//! comments, reopens, edits other fields or mutates pull requests.
+//! GitHub's ordinary issue PATCH has no qualified source-version CAS. It must
+//! not close a concurrently edited/reopened issue from stale admission. Observe
+//! externally closed state; leave an open source for operator reconciliation.
 
 use std::io::Read;
 use std::time::Duration;
 
 use kiln_core::implementation::SourceStatusPlan;
-use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
+use kiln_provider_api::PortResult;
 use serde::Deserialize;
 
 use crate::secret::ResolvedSecret;
@@ -18,6 +18,12 @@ use crate::{domain, infrastructure};
 const API: &str = "https://api.github.com";
 const API_VERSION: &str = "2022-11-28";
 const MAX_RESPONSE_BYTES: usize = 512 * 1024;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GithubSourceObservation {
+    pub state: String,
+    pub revision: u64,
+}
 
 pub struct GithubSourceStatusClient {
     token: ResolvedSecret,
@@ -118,44 +124,55 @@ impl GithubSourceStatusClient {
         Ok(issue.state)
     }
 
-    /// Close the exact source issue if it is open; re-read the final state.
-    // r[impl kiln.github.source_status]
-    pub fn close(&self, plan: &SourceStatusPlan) -> PortResult<String> {
+    /// Observe an explicit provider update sequence for the durable receipt.
+    /// This does not pretend that REST bytes equal an admitted webhook hash.
+    pub fn observe_exact(&self, plan: &SourceStatusPlan) -> PortResult<GithubSourceObservation> {
         let (owner, repository, number) = issue_parts(plan)?;
-        let url = format!(
+        let issue: RawIssue = self.get(&format!(
             "{}/repos/{owner}/{repository}/issues/{number}",
             self.endpoint
-        );
-        let current: RawIssue = self.get(&url)?;
-        reject_pull_request(&current)?;
-        if current.state == "closed" {
-            return Ok(current.state);
-        }
-        if current.state != "open" {
+        ))?;
+        reject_pull_request(&issue)?;
+        let revision = issue
+            .updated_at
+            .as_deref()
+            .and_then(crate::implementation::timestamp_millis)
+            .ok_or_else(|| {
+                domain(
+                    "github_source_version_unknown",
+                    "source.updated_at",
+                    "source observation has no exact update sequence",
+                )
+            })?;
+        if revision != plan.expected_observed_revision
+            || !matches!(issue.state.as_str(), "open" | "closed")
+        {
             return Err(domain(
-                "github_source_state",
-                "source.state",
-                "source issue state is unsupported",
+                "github_source_version_stale",
+                "source.updated_at",
+                "source observation is stale or malformed",
             ));
         }
-        let body = serde_json::json!({"state": "closed"}).to_string();
-        let closed: RawIssue = self.patch(&url, &body)?;
-        reject_pull_request(&closed)?;
-        if closed.state != "closed" {
-            return Err(PortFailure::Unknown(InfrastructureFailure {
-                code: "github_source_close_unknown".to_string(),
-                message: "source close response did not observe a closed issue".to_string(),
-            }));
+        Ok(GithubSourceObservation {
+            state: issue.state,
+            revision,
+        })
+    }
+
+    /// Reconcile an externally closed issue. No PATCH is issued: read-then-close
+    /// would race source edits and the raw-webhook source hash is not a REST
+    /// issue version. The current work ledger remains the outer authority.
+    // r[impl kiln.github.source_status]
+    pub fn close(&self, plan: &SourceStatusPlan) -> PortResult<String> {
+        let state = self.observe_exact(plan)?.state;
+        if state != "closed" {
+            return Err(domain(
+                "github_source_conditional_update_unqualified",
+                "source.version",
+                "source is open; automatic closure lacks a qualified source-version guard",
+            ));
         }
-        let observed: RawIssue = self.get(&url)?;
-        reject_pull_request(&observed)?;
-        if observed.state != "closed" {
-            return Err(PortFailure::Unknown(InfrastructureFailure {
-                code: "github_source_close_unknown".to_string(),
-                message: "source close read-back did not observe a closed issue".to_string(),
-            }));
-        }
-        Ok(observed.state)
+        Ok(state)
     }
 
     fn get<T: serde::de::DeserializeOwned>(&self, url: &str) -> PortResult<T> {
@@ -180,46 +197,6 @@ impl GithubSourceStatusClient {
                 "source.http",
                 "GitHub source issue was not found",
             )),
-            Err(ureq::Error::Status(status, _)) => Err(infrastructure(
-                "github_source_status",
-                &format!("GitHub source returned HTTP {status}"),
-            )),
-            Err(_) => Err(infrastructure(
-                "github_source_transport",
-                "GitHub source transport failed",
-            )),
-        }
-    }
-
-    fn patch<T: serde::de::DeserializeOwned>(&self, url: &str, body: &str) -> PortResult<T> {
-        let token = self.token.as_str()?;
-        match self
-            .agent
-            .patch(url)
-            .set("Authorization", &format!("Bearer {token}"))
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", API_VERSION)
-            .set("Content-Type", "application/json")
-            .set("User-Agent", "kiln")
-            .send_string(body)
-        {
-            Ok(response) => self.decode(response),
-            Err(ureq::Error::Status(401 | 403, _)) => Err(domain(
-                "github_source_unauthorized",
-                "source.http",
-                "GitHub source credentials were refused",
-            )),
-            Err(ureq::Error::Status(404, _)) => Err(domain(
-                "github_source_not_found",
-                "source.http",
-                "GitHub source issue was not found",
-            )),
-            Err(ureq::Error::Status(422 | 409, _)) => {
-                Err(PortFailure::Unknown(InfrastructureFailure {
-                    code: "github_source_close_conflict".to_string(),
-                    message: "source close conflicted and needs reconciliation".to_string(),
-                }))
-            }
             Err(ureq::Error::Status(status, _)) => Err(infrastructure(
                 "github_source_status",
                 &format!("GitHub source returned HTTP {status}"),
@@ -319,6 +296,8 @@ struct RawIssue {
     state: String,
     #[serde(default)]
     pull_request: Option<serde_json::Value>,
+    #[serde(default)]
+    updated_at: Option<String>,
 }
 
 #[cfg(test)]
@@ -356,6 +335,10 @@ mod tests {
                     .unwrap_or_else(|_| unreachable!()),
             },
             action: SourceAction::Close,
+            expected_observed_revision: crate::implementation::timestamp_millis(
+                "2026-11-13T00:00:00Z",
+            )
+            .unwrap_or_else(|| unreachable!()),
         }
     }
 
@@ -398,30 +381,15 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.github.source_status] r[verify kiln.github.source_status.scenario.close]
-    fn closes_an_open_issue_and_reads_back_closed() {
-        let (endpoint, server) = serve(vec![
-            ("200 OK", "{\"state\":\"open\"}".to_string()),
-            ("200 OK", "{\"state\":\"closed\"}".to_string()),
-            ("200 OK", "{\"state\":\"closed\"}".to_string()),
-        ]);
+    // r[verify kiln.publication.atomicity]
+    fn refuses_open_source_without_racing_a_patch() {
+        let (endpoint, server) = serve(vec![("200 OK", "{\"state\":\"open\"}".to_string())]);
         let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
-        assert_eq!(
-            client
-                .close(&plan())
-                .unwrap_or_else(|error| unreachable!("{error:?}")),
-            "closed"
-        );
+        assert!(client.close(&plan()).is_err());
         let requests = server.join().unwrap_or_else(|_| unreachable!());
-        assert!(
-            requests.first().is_some_and(
-                |request| request.starts_with("GET /repos/octocat/hello-world/issues/7")
-            )
-        );
-        assert!(requests.get(1).is_some_and(|request| {
-            request.starts_with("PATCH /repos/octocat/hello-world/issues/7")
-        }));
+        assert_eq!(requests.len(), 1);
+        assert!(requests.iter().all(|request| request.starts_with("GET ")));
     }
 
     #[test]
@@ -502,7 +470,10 @@ mod tests {
     #[test]
     // r[verify kiln.github.source_status] r[verify kiln.github.source_status.scenario.closed]
     fn already_closed_issue_is_idempotent() {
-        let (endpoint, server) = serve(vec![("200 OK", "{\"state\":\"closed\"}".to_string())]);
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            "{\"state\":\"closed\",\"updated_at\":\"2026-11-13T00:00:00Z\"}".to_string(),
+        )]);
         let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(
@@ -513,5 +484,43 @@ mod tests {
         );
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert_eq!(requests.len(), 1);
+    }
+
+    #[test]
+    fn exact_source_observation_retains_version_and_refuses_stale_or_unknown() {
+        let observed_at = "2026-11-13T00:00:00Z";
+        let revision =
+            crate::implementation::timestamp_millis(observed_at).unwrap_or_else(|| unreachable!());
+        for (body, minimum, accepted) in [
+            (
+                serde_json::json!({"state":"closed", "updated_at":observed_at}),
+                revision,
+                true,
+            ),
+            (
+                serde_json::json!({"state":"closed", "updated_at":observed_at}),
+                revision + 1,
+                false,
+            ),
+            (serde_json::json!({"state":"closed"}), revision, false),
+        ] {
+            let (endpoint, server) = serve(vec![("200 OK", body.to_string())]);
+            let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
+                .unwrap_or_else(|_| unreachable!());
+            let mut plan = plan();
+            plan.expected_observed_revision = minimum;
+            let observed = client.observe_exact(&plan);
+            assert_eq!(observed.is_ok(), accepted);
+            if let Ok(observed) = observed {
+                assert_eq!(observed.revision, revision);
+            }
+            assert!(
+                server
+                    .join()
+                    .unwrap_or_else(|_| unreachable!())
+                    .iter()
+                    .all(|request| request.starts_with("GET "))
+            );
+        }
     }
 }

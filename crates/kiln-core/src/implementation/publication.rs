@@ -88,6 +88,9 @@ pub struct SourceStatusPlan {
     pub integration: ContentId,
     pub source: super::SourceRef,
     pub action: SourceAction,
+    /// Explicitly admitted provider revision for the later closed observation.
+    /// A newer unrelated edit/reopen cannot silently satisfy this operation.
+    pub expected_observed_revision: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -101,6 +104,8 @@ pub struct SourceStatusReceipt {
     pub integration: ContentId,
     pub source: super::SourceRef,
     pub state: String,
+    /// Provider-observed source update sequence, not the admitted webhook hash.
+    pub observed_revision: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -118,16 +123,27 @@ pub struct IntegrationReceipt {
     pub merge_commit: ExternalRef,
     pub base_ref: String,
     pub base_head: ExternalRef,
+    pub mapping: IntegrationMapping,
+}
+
+/// Provider-observed mapping for the supported exact two-parent merge. The
+/// provider separately checks ordered parents and final target ancestry.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IntegrationMapping {
+    pub expected_base: ExternalRef,
+    pub candidate_tree: ExternalRef,
+    pub landed_tree: ExternalRef,
 }
 
 /// Deterministic implementation branch name for one work/attempt pair.
 #[must_use]
 pub fn branch_for(work: &ContentId, attempt: &ContentId) -> String {
-    format!(
-        "kiln/impl-{}-{}",
-        work.as_str().chars().take(16).collect::<String>(),
-        attempt.as_str().chars().take(16).collect::<String>()
-    )
+    let mut hash = blake3::Hasher::new();
+    hash.update(b"kiln.implementation-branch.v1\0");
+    hash.update(work.as_str().as_bytes());
+    hash.update(attempt.as_str().as_bytes());
+    format!("kiln/impl-{}", hash.finalize().to_hex())
 }
 
 /// Admit a publication plan for an exactly verified attempt.
@@ -167,7 +183,10 @@ pub fn admit_publication_plan(
         || plan.candidate != handoff.candidate
         || plan.tree != handoff.tree
         || plan.branch != branch_for(&work.identity()?, &attempt.identity)
-        || work.terminal_policy != TerminalPolicy::VerifiedPullRequest
+        || !matches!(
+            work.terminal_policy,
+            TerminalPolicy::VerifiedPullRequest | TerminalPolicy::VerifiedIntegrated
+        )
         || !bounded(&plan.title, MAX_TITLE_BYTES)
         || !bounded(&plan.body, MAX_BODY_BYTES)
     {
@@ -219,7 +238,15 @@ pub fn admit_integration(
             "integration requires a retained pull request identity",
         )
     })?;
-    if attempt.phase != super::AttemptPhase::Verified
+    if work.terminal_policy != TerminalPolicy::VerifiedIntegrated
+        || attempt.phase != super::AttemptPhase::Verified
+        || record.schema != PUBLICATION_SCHEMA
+        || publication.work_identity != work.identity()?
+        || publication.work_revision != work.revision
+        || publication.attempt != attempt.identity
+        || publication.fence != attempt.fence
+        || attempt.work_identity != publication.work_identity
+        || attempt.work_revision != publication.work_revision
         || !matches!(
             record.phase,
             PublicationPhase::PullRequestPublished
@@ -238,6 +265,9 @@ pub fn admit_integration(
         || receipt.candidate != publication.candidate
         || receipt.pull_request != *pull_request
         || receipt.base_ref != publication.base_branch
+        || receipt.mapping.expected_base != publication.base
+        || receipt.mapping.candidate_tree != publication.tree
+        || receipt.mapping.landed_tree != publication.tree
         || !commit_identity(&receipt.merge_commit)
         || !commit_identity(&receipt.base_head)
     {
@@ -265,6 +295,9 @@ pub fn admit_integration(
         &receipt.pull_request,
         &receipt.merge_commit,
         &receipt.base_head,
+        &receipt.mapping.expected_base,
+        &receipt.mapping.candidate_tree,
+        &receipt.mapping.landed_tree,
     ] {
         push_external(&mut bytes, reference)?;
     }
@@ -321,8 +354,11 @@ fn admit_source_status_plan_with(
         || plan.fence != attempt.fence
         || plan.integration != integration_identity
         || plan.action != SourceAction::Close
+        || plan.expected_observed_revision == 0
+        || plan.expected_observed_revision < plan.work_revision
         || !work.aliases.iter().any(|alias| alias == &plan.source)
         || plan.source.kind != super::WorkSourceKind::GitHubIssue
+        || work.terminal_policy != TerminalPolicy::VerifiedIntegrated
     {
         return Err(refusal(
             "implementation_source_status_plan",
@@ -341,6 +377,7 @@ fn admit_source_status_plan_with(
     }
     bytes.extend_from_slice(&plan.work_revision.to_be_bytes());
     bytes.extend_from_slice(&plan.fence.to_be_bytes());
+    bytes.extend_from_slice(&plan.expected_observed_revision.to_be_bytes());
     push_str(&mut bytes, plan.source.kind.as_str())?;
     push_external(&mut bytes, &plan.source.source)?;
     push_str(&mut bytes, &plan.source.native_id)?;
@@ -367,6 +404,7 @@ pub fn admit_source_status_receipt(
         || receipt.attempt != plan.attempt
         || receipt.fence != plan.fence
         || receipt.integration != plan.integration
+        || receipt.observed_revision != plan.expected_observed_revision
         || receipt.source != plan.source
         || receipt.state != "closed"
     {
@@ -389,6 +427,7 @@ pub fn admit_source_status_receipt(
     }
     bytes.extend_from_slice(&receipt.work_revision.to_be_bytes());
     bytes.extend_from_slice(&receipt.fence.to_be_bytes());
+    bytes.extend_from_slice(&receipt.observed_revision.to_be_bytes());
     push_str(&mut bytes, receipt.source.kind.as_str())?;
     push_external(&mut bytes, &receipt.source.source)?;
     push_str(&mut bytes, &receipt.source.native_id)?;
@@ -703,7 +742,8 @@ mod tests {
     #[test]
     // r[verify kiln.implementation.source_status] r[verify kiln.implementation.source_status.scenario.close] r[verify kiln.implementation.source_status.scenario.refused]
     fn admits_source_close_only_after_integration() {
-        let work = work();
+        let mut work = work();
+        work.terminal_policy = TerminalPolicy::VerifiedIntegrated;
         let mut attempt = make_attempt(&work);
         let plan = make_plan(&work, &attempt);
         let pull_request = ExternalRef::new("github", "pull_request", "octocat/hello-world#9")
@@ -723,6 +763,11 @@ mod tests {
             merge_commit: merge_commit.clone(),
             base_ref: plan.base_branch.clone(),
             base_head: merge_commit,
+            mapping: IntegrationMapping {
+                expected_base: plan.base.clone(),
+                candidate_tree: plan.tree.clone(),
+                landed_tree: plan.tree.clone(),
+            },
         };
         attempt.publication = Some(PublicationRecord {
             schema: PUBLICATION_SCHEMA.to_string(),
@@ -757,6 +802,7 @@ mod tests {
             integration: integration_identity,
             source: source.clone(),
             action: SourceAction::Close,
+            expected_observed_revision: work.revision,
         };
         assert!(admit_source_status_plan(&work, &attempt, &source_plan).is_ok());
         let receipt = SourceStatusReceipt {
@@ -768,6 +814,7 @@ mod tests {
             integration: source_plan.integration.clone(),
             source,
             state: "closed".to_string(),
+            observed_revision: source_plan.work_revision,
         };
         assert!(admit_source_status_receipt(&work, &attempt, &source_plan, &receipt).is_ok());
         let mut wrong = receipt;
@@ -782,7 +829,8 @@ mod tests {
     #[test]
     // r[verify kiln.implementation.integration] r[verify kiln.implementation.integration.scenario.exact] r[verify kiln.implementation.integration.scenario.refused]
     fn admits_exact_integration_for_the_published_candidate() {
-        let work = work();
+        let mut work = work();
+        work.terminal_policy = TerminalPolicy::VerifiedIntegrated;
         let attempt = make_attempt(&work);
         let plan = make_plan(&work, &attempt);
         let pull_request = ExternalRef::new("github", "pull_request", "octocat/hello-world#9")
@@ -811,6 +859,11 @@ mod tests {
             base_ref: plan.base_branch.clone(),
             base_head: ExternalRef::new("git", "commit", &"c".repeat(40))
                 .unwrap_or_else(|_| unreachable!()),
+            mapping: IntegrationMapping {
+                expected_base: plan.base.clone(),
+                candidate_tree: plan.tree.clone(),
+                landed_tree: plan.tree.clone(),
+            },
         };
         assert!(admit_integration(&work, &attempt, &record, &receipt).is_ok());
         let mut wrong = receipt.clone();

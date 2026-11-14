@@ -57,7 +57,7 @@ let Acceptance =
 in
 let TerminalPolicy =
   std.contract.from_predicate (fun value =>
-    value == "verified_pull_request" || value == "verified_or_already_satisfied"
+    value == "verified_pull_request" || value == "verified_or_already_satisfied" || value == "verified_integrated"
   )
 in
 let Identifier =

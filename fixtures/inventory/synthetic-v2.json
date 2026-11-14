@@ -1,0 +1,441 @@
+{
+  "profile": {
+    "schema": "kiln.observe.inventory.v2",
+    "principal": "operator",
+    "sources": [
+      {
+        "source": "agents",
+        "producer": "lattice",
+        "scope": "tenant-pilot",
+        "kind": "agents",
+        "minimum_generation": 7
+      },
+      {
+        "source": "workers",
+        "producer": "lattice",
+        "scope": "tenant-pilot",
+        "kind": "workers",
+        "minimum_generation": 7
+      },
+      {
+        "source": "compute",
+        "producer": "aspen",
+        "scope": "tenant-pilot",
+        "kind": "compute",
+        "minimum_generation": 7
+      },
+      {
+        "source": "serving",
+        "producer": "animus",
+        "scope": "tenant-pilot",
+        "kind": "serving",
+        "minimum_generation": 7
+      },
+      {
+        "source": "policy",
+        "producer": "kiln",
+        "scope": "tenant-pilot",
+        "kind": "policy",
+        "minimum_generation": 7
+      }
+    ],
+    "max_items": 128,
+    "max_candidates": 32,
+    "max_age_ms": 5000,
+    "include_evidence": true
+  },
+  "snapshot": {
+    "schema": "kiln.observe.inventory.v2",
+    "principal": "operator",
+    "synthetic": true,
+    "sources": [
+      {
+        "source": "agents",
+        "producer": "lattice",
+        "scope": "tenant-pilot",
+        "generation": 7,
+        "observed_at_ms": 1000,
+        "valid_until_ms": 10000,
+        "complete": true,
+        "next_page": null,
+        "unavailable_reason": null
+      },
+      {
+        "source": "workers",
+        "producer": "lattice",
+        "scope": "tenant-pilot",
+        "generation": 7,
+        "observed_at_ms": 1000,
+        "valid_until_ms": 10000,
+        "complete": true,
+        "next_page": null,
+        "unavailable_reason": null
+      },
+      {
+        "source": "compute",
+        "producer": "aspen",
+        "scope": "tenant-pilot",
+        "generation": 7,
+        "observed_at_ms": 1000,
+        "valid_until_ms": 10000,
+        "complete": true,
+        "next_page": null,
+        "unavailable_reason": null
+      },
+      {
+        "source": "serving",
+        "producer": "animus",
+        "scope": "tenant-pilot",
+        "generation": 7,
+        "observed_at_ms": 1000,
+        "valid_until_ms": 10000,
+        "complete": true,
+        "next_page": null,
+        "unavailable_reason": null
+      },
+      {
+        "source": "policy",
+        "producer": "kiln",
+        "scope": "tenant-pilot",
+        "generation": 7,
+        "observed_at_ms": 1000,
+        "valid_until_ms": 10000,
+        "complete": true,
+        "next_page": null,
+        "unavailable_reason": null
+      }
+    ],
+    "agents": [
+      {
+        "meta": {
+          "reference": {
+            "source": "agents",
+            "id": "implementation"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "profile_revision": "profile-r1",
+        "task_families": [
+          "rust-fix"
+        ],
+        "output_contracts": [
+          "candidate-v1"
+        ],
+        "harnesses": [
+          "omp"
+        ],
+        "tools": [
+          "edit"
+        ],
+        "permitted_models": [
+          "model-artifact-r1"
+        ],
+        "authority": "allowed",
+        "revisions": {
+          "desired": "profile-r1",
+          "prepared": "profile-r1",
+          "qualified": "profile-r1",
+          "selected_for_new_sessions": "profile-r1",
+          "preparation_failure": null,
+          "generation": 2,
+          "evidence": [
+            "preparation-evidence"
+          ]
+        },
+        "qualifications": [
+          {
+            "profile_revision": "profile-r1",
+            "task_family": "rust-fix",
+            "subject": "profile-subject-r1",
+            "corpus": "rust-corpus-r1",
+            "protocol": "qualification-v1",
+            "evidence": "qualification-evidence",
+            "verified_contracts": [
+              "candidate-v1"
+            ],
+            "accepted_outcomes": 8,
+            "attempted_outcomes": 10,
+            "measured_cost_microunits": 17,
+            "unknown_use": true,
+            "limitations": [
+              "synthetic-not-live"
+            ],
+            "valid_until_ms": 10000,
+            "authority": "allowed"
+          }
+        ]
+      }
+    ],
+    "workers": [
+      {
+        "meta": {
+          "reference": {
+            "source": "workers",
+            "id": "worker-a"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "incarnation": "worker-a-inc1",
+        "session": "worker-a-session",
+        "definition": {
+          "source": "agents",
+          "id": "implementation"
+        },
+        "pinned_revision": "profile-r1",
+        "attempt": null,
+        "fence": null,
+        "execution": {
+          "source": "compute",
+          "id": "cpu-host"
+        },
+        "execution_grant": null,
+        "workspace": "worker-a-workspace",
+        "model_services": [
+          {
+            "source": "serving",
+            "id": "shared-service"
+          }
+        ],
+        "lifecycle": "idle"
+      },
+      {
+        "meta": {
+          "reference": {
+            "source": "workers",
+            "id": "worker-b"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "incarnation": "worker-b-inc1",
+        "session": "worker-b-session",
+        "definition": {
+          "source": "agents",
+          "id": "implementation"
+        },
+        "pinned_revision": "profile-r1",
+        "attempt": null,
+        "fence": null,
+        "execution": {
+          "source": "compute",
+          "id": "cpu-host"
+        },
+        "execution_grant": null,
+        "workspace": "worker-b-workspace",
+        "model_services": [
+          {
+            "source": "serving",
+            "id": "shared-service"
+          }
+        ],
+        "lifecycle": "idle"
+      }
+    ],
+    "compute": [
+      {
+        "meta": {
+          "reference": {
+            "source": "compute",
+            "id": "cpu-host"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "host": "execution-host",
+        "device": null,
+        "pool": "cpu-pool",
+        "kind": "cpu",
+        "health": "healthy",
+        "sandbox": [
+          "microvm-v1"
+        ],
+        "backends": [
+          "cpu-linux"
+        ],
+        "accounting_pools": [
+          {
+            "source": "compute",
+            "id": "cpu-pool"
+          },
+          {
+            "source": "compute",
+            "id": "execution-memory"
+          }
+        ],
+        "qualification": [
+          "cpu-cohort-evidence"
+        ]
+      },
+      {
+        "meta": {
+          "reference": {
+            "source": "compute",
+            "id": "accelerator"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "host": "model-host",
+        "device": "gpu-0",
+        "pool": "serving-memory",
+        "kind": "accelerator",
+        "health": "healthy",
+        "sandbox": [],
+        "backends": [
+          "remote-api"
+        ],
+        "accounting_pools": [
+          {
+            "source": "compute",
+            "id": "serving-memory"
+          }
+        ],
+        "qualification": [
+          "serving-cohort-evidence"
+        ]
+      }
+    ],
+    "pools": [
+      {
+        "meta": {
+          "reference": {
+            "source": "compute",
+            "id": "cpu-pool"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "unit": "cpu_millicores",
+        "capacity": 4000,
+        "allocatable": 4000,
+        "reserved": 0,
+        "allocations": [],
+        "accounting_complete": true
+      },
+      {
+        "meta": {
+          "reference": {
+            "source": "compute",
+            "id": "execution-memory"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "unit": "memory_bytes",
+        "capacity": 16000,
+        "allocatable": 12000,
+        "reserved": 4000,
+        "allocations": [],
+        "accounting_complete": true
+      },
+      {
+        "meta": {
+          "reference": {
+            "source": "compute",
+            "id": "serving-memory"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "unit": "memory_bytes",
+        "capacity": 16000,
+        "allocatable": 10000,
+        "reserved": 2000,
+        "allocations": [
+          {
+            "allocation": "model-allocation-1",
+            "consumer": {
+              "source": "serving",
+              "id": "shared-service"
+            },
+            "amount": 4000
+          }
+        ],
+        "accounting_complete": true
+      }
+    ],
+    "models": [
+      {
+        "meta": {
+          "reference": {
+            "source": "serving",
+            "id": "shared-service"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "artifact": "model-artifact-r1",
+        "artifact_available": true,
+        "artifact_verification_evidence": null,
+        "configuration": "serving-config-r1",
+        "claimed_model": "model-name-claim",
+        "deployment": "deployment-remote-1",
+        "endpoint_alias": "remote-model",
+        "replicas": [
+          "replica-1"
+        ],
+        "state": "warm",
+        "backend": "remote-api",
+        "routing_permission": "allowed",
+        "routing_policy_ref": "policy-r1",
+        "tools": [
+          "edit"
+        ],
+        "modalities": [
+          "text"
+        ],
+        "context_tokens": 64000,
+        "available_requests": 2,
+        "queue_reason": null,
+        "measurement": "serving-measurement-7",
+        "accounting_pools": [
+          {
+            "source": "compute",
+            "id": "serving-memory"
+          }
+        ],
+        "compute_devices": [
+          {
+            "source": "compute",
+            "id": "accelerator"
+          }
+        ]
+      }
+    ],
+    "admissions": [],
+    "policies": [
+      {
+        "meta": {
+          "reference": {
+            "source": "policy",
+            "id": "work-policy"
+          },
+          "observed_at_ms": 1000,
+          "valid_until_ms": 10000,
+          "unknown_fields": []
+        },
+        "work_version": "work-r1",
+        "policy_ref": "policy-r1",
+        "permission": "allowed",
+        "owner_reason": null,
+        "waiting_until_ms": null,
+        "queue_position": null,
+        "tenant_limit_remaining": 2,
+        "campaign_limit_remaining": 2,
+        "parent_budget_remaining": 100
+      }
+    ],
+    "attempts": []
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "schema": "kiln.topbar-ui-verification.v1",
+  "package_source": "/nix/store/n8ss88hyyhs9j0jwc16kj31fwm29dgvc-source",
+  "rebuilt_example": "/nix/store/w1cxf2s60k9c6v62mb7907644fdnz8xg-kiln-website-exploration-0.1.0/bin/kiln-website-exploration",
+  "css_blake3": "065da161ca93a740f6f9150aa370d80010a56cd665c9245b586ffbda93564573",
+  "unchanged_bombadil_specification_blake3": "9ef6e8239e1660c45515b06b514f00852a918d89b08abd3fea4d6e3e2e07a440",
+  "browser": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.0.0 Safari/537.36",
+    "devicePixelRatio": 1.25,
+    "viewport": {
+      "width": 1440,
+      "height": 768
+    },
+    "url": "http://127.0.0.1:42245/?page=cobs&cob_repository=examples&cob_type=xyz.radicle.patch&cob=d2c5e04678bbd3a26e23464cdd48aaab3be8ab68&cob_repo=examples&cob_kind=xyz.radicle.patch"
+  },
+  "states": [
+    {
+      "viewport": 390,
+      "pinned": false,
+      "documentWidth": 375,
+      "headerColumns": "154.281px 87.9844px 92.7344px",
+      "breadcrumb": {
+        "width": 102.28125,
+        "height": 15.59375,
+        "left": 64,
+        "right": 166.28125
+      },
+      "account": {
+        "width": 44,
+        "height": 44,
+        "left": 319,
+        "right": 363
+      },
+      "search": {
+        "width": 87.984375,
+        "height": 44,
+        "left": 174.28125,
+        "right": 262.265625
+      },
+      "searchFocusRestored": true,
+      "accountMenu": {
+        "left": 59,
+        "right": 363,
+        "identity": "Synthetic example operator",
+        "expanded": "true"
+      },
+      "accountFocusRestored": true,
+      "paletteOpenedAndDismissed": true
+    },
+    {
+      "viewport": 768,
+      "pinned": false,
+      "documentWidth": 753,
+      "headerColumns": "492.281px 87.9844px 124.734px",
+      "breadcrumb": {
+        "width": 226.203125,
+        "height": 15.59375,
+        "left": 232.21875,
+        "right": 458.421875
+      },
+      "account": {
+        "width": 44,
+        "height": 44,
+        "left": 693,
+        "right": 737
+      },
+      "search": {
+        "width": 87.984375,
+        "height": 44,
+        "left": 516.28125,
+        "right": 604.265625
+      },
+      "searchFocusRestored": true,
+      "accountMenu": {
+        "left": 433,
+        "right": 737,
+        "identity": "Synthetic example operator",
+        "expanded": "true"
+      },
+      "accountFocusRestored": true,
+      "paletteOpenedAndDismissed": true
+    },
+    {
+      "viewport": 1024,
+      "pinned": false,
+      "documentWidth": 1009,
+      "headerColumns": "303.172px 226.656px 303.172px",
+      "breadcrumb": {
+        "width": 172.375,
+        "height": 15.59375,
+        "left": 234.796875,
+        "right": 407.171875
+      },
+      "account": {
+        "width": 168.84375,
+        "height": 40,
+        "left": 800.15625,
+        "right": 969
+      },
+      "search": {
+        "width": 226.65625,
+        "height": 40,
+        "left": 423.171875,
+        "right": 649.828125
+      },
+      "searchFocusRestored": true,
+      "accountMenu": {
+        "left": 665,
+        "right": 969,
+        "identity": "Synthetic example operator",
+        "expanded": "true"
+      },
+      "accountFocusRestored": true,
+      "paletteOpenedAndDismissed": true
+    },
+    {
+      "viewport": 1024,
+      "pinned": true,
+      "documentWidth": 1009,
+      "headerColumns": "207.172px 226.656px 207.172px",
+      "breadcrumb": {
+        "width": 113.140625,
+        "height": 15.59375,
+        "left": 390.03125,
+        "right": 503.171875
+      },
+      "account": {
+        "width": 82.0625,
+        "height": 40,
+        "left": 886.9375,
+        "right": 969
+      },
+      "search": {
+        "width": 226.65625,
+        "height": 40,
+        "left": 519.171875,
+        "right": 745.828125
+      },
+      "searchFocusRestored": true,
+      "accountMenu": {
+        "left": 665,
+        "right": 969,
+        "identity": "Synthetic example operator",
+        "expanded": "true"
+      },
+      "accountFocusRestored": true,
+      "paletteOpenedAndDismissed": true
+    },
+    {
+      "viewport": 1440,
+      "pinned": false,
+      "documentWidth": 1425,
+      "headerColumns": "511.172px 226.656px 511.172px",
+      "breadcrumb": {
+        "width": 226.203125,
+        "height": 15.59375,
+        "left": 268.21875,
+        "right": 494.421875
+      },
+      "account": {
+        "width": 239.171875,
+        "height": 40,
+        "left": 1145.828125,
+        "right": 1385
+      },
+      "search": {
+        "width": 226.65625,
+        "height": 40,
+        "left": 631.171875,
+        "right": 857.828125
+      },
+      "searchFocusRestored": true,
+      "accountMenu": {
+        "left": 1081,
+        "right": 1385,
+        "identity": "Synthetic example operator",
+        "expanded": "true"
+      },
+      "accountFocusRestored": true,
+      "paletteOpenedAndDismissed": true
+    },
+    {
+      "viewport": 1440,
+      "pinned": true,
+      "documentWidth": 1425,
+      "headerColumns": "415.172px 226.656px 415.172px",
+      "breadcrumb": {
+        "width": 226.203125,
+        "height": 15.59375,
+        "left": 460.21875,
+        "right": 686.421875
+      },
+      "account": {
+        "width": 179.078125,
+        "height": 40,
+        "left": 1205.921875,
+        "right": 1385
+      },
+      "search": {
+        "width": 226.65625,
+        "height": 40,
+        "left": 727.171875,
+        "right": 953.828125
+      },
+      "searchFocusRestored": true,
+      "accountMenu": {
+        "left": 1081,
+        "right": 1385,
+        "identity": "Synthetic example operator",
+        "expanded": "true"
+      },
+      "accountFocusRestored": true,
+      "paletteOpenedAndDismissed": true
+    }
+  ],
+  "screenshots": [
+    {
+      "path": ".cairn/changes/fix-console-topbar-overflow/evidence/topbar-390.png",
+      "css_viewport_width": 390
+    },
+    {
+      "path": ".cairn/changes/fix-console-topbar-overflow/evidence/topbar-1024.png",
+      "css_viewport_width": 1024
+    }
+  ],
+  "non_claims": [
+    "Browser measurements and menu/palette interactions over one rebuilt synthetic cohort, not exhaustive UI or provider correctness",
+    "The deployed example is observed separately; no deployment or managed-service restart is authorized"
+  ]
+}

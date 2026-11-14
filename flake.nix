@@ -283,6 +283,23 @@
           '';
           meta.description = "Disposable loopback-only Kiln website exploration with synthetic examples";
         });
+      # r[impl kiln.web.exploration.browser_property_rail.scenario.cohort]
+      webExplorationBombadilPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        pkgs.writeShellApplication {
+          name = "kiln-web-exploration-bombadil";
+          text = ''
+            exec ${pkgs.python3}/bin/python3 ${./scripts/web-exploration-bombadil.py} \
+              --bombadil ${bombadilPackageFor system}/bin/bombadil \
+              --program ${websiteExplorationPackageFor system}/bin/kiln-website-exploration \
+              --browser ${pkgs.chromium}/bin/chromium \
+              --specification ${./checks/bombadil/kiln-web-exploration.spec.ts} \
+              "$@"
+          '';
+        };
       # Standalone Cairn intake binary from the adapter package.
       kilnCairnIntakePackageFor =
         system:
@@ -709,6 +726,8 @@
           kiln-cairn-intake = kilnCairnIntakePackageFor system;
           web-service = webServicePackageFor system;
           website-exploration = websiteExplorationPackageFor system;
+          bombadil = bombadilPackageFor system;
+          web-exploration-bombadil = webExplorationBombadilPackageFor system;
           kiln-aspen-host = kilnAspenHostPackageFor system;
           kiln-radicle-nix-provider = kilnRadicleNixProviderPackageFor system;
           dashboard-tools = dashboardToolsPackageFor system;
@@ -805,6 +824,16 @@
           type = "app";
           program = "${websiteExplorationPackageFor system}/bin/kiln-website-exploration";
           meta.description = "Explore the real console with isolated synthetic examples on IPv4 loopback";
+        };
+        bombadil = {
+          type = "app";
+          program = "${bombadilPackageFor system}/bin/bombadil";
+          meta.description = "Run the existing pinned Bombadil property-testing tool";
+        };
+        kiln-web-exploration-bombadil = {
+          type = "app";
+          program = "${webExplorationBombadilPackageFor system}/bin/kiln-web-exploration-bombadil";
+          meta.description = "Run bounded read-only browser properties on real Kiln website examples";
         };
         kiln-nix-cache = {
           type = "app";
@@ -2178,6 +2207,15 @@
               pkgs.esbuild
               pkgs.b3sum
             ];
+          };
+          web-testing = pkgs.mkShell {
+            packages = [
+              pkgs.python3
+              pkgs.chromium
+              (bombadilPackageFor system)
+              (websiteExplorationPackageFor system)
+            ];
+            CHROME = "${pkgs.chromium}/bin/chromium";
           };
           default = pkgs.mkShell {
             packages = [

@@ -1,10 +1,10 @@
 # Implementation work admission
 
-Kiln can run exact candidate CI, but logged intent is not yet an admitted
-implementation job. `kiln-core` now owns a bounded, versioned admission contract
-that a future worker, Lattice attempt, and forge publisher can consume. It is a
-boundary only: admission does not claim, execute, verify, publish, or complete
-work.
+Kiln owns versioned intake, durable claims/fences, bounded dispatch, independent
+candidate acceptance and recoverable publication. Lattice owns one execution;
+provider grants and model-service admissions remain separate. The actual shell
+consumers and current qualification boundaries are in
+[the implementation runbook](implementation-runbook.md).
 
 ## Contract
 
@@ -55,8 +55,9 @@ stale worker cannot register or publish after a lease expires and a replacement
 claims the work.
 
 Claims carry bounded leases. Expiry blocks the attempt with `lease_expired`,
-revokes its fence and consumes the budget; a replacement may claim only while
-the lineage still has attempts.
+revokes its fence and consumes budget. Replacement remains bounded by lineage;
+an unacknowledged possible dispatch or explicit unknown provider outcome must be
+reconciled before retry. Lease expiry is not provider death or a usage refund.
 
 Before transport, an attempt reserves exactly one dispatch binding: provider
 profile, admitted plan identity, deterministic effect identity and idempotency
@@ -65,7 +66,9 @@ A dispatch plan binds the work identity/revision, attempt/fence,
 repository/base, isolated workspace, provider profile, admitted paths/effects,
 cancellation-only controls, deadline, token/invocation budgets and expected
 output contract. Work must admit every path and effect, the deadline must fit
-the attempt budget, and network or credential access is refused. Repeating the same reservation is idempotent; a different plan or profile
+the attempt budget. Ambient credentials are refused; network is available only
+for the explicitly bound model-service route and qualified provider namespace.
+Repeating the same reservation is idempotent; a different plan or profile
 for the live attempt, a stale fence, or an expired lease is refused. The
 reservation survives restart. Dispatch acknowledgement and reconciliation
 require the reservation, fill the single observed workflow run, accept an equal
@@ -78,20 +81,35 @@ Implementation, infrastructure and unknown failure classes stay distinct.
 Supersession applies `AbortActive` (revoke the attempt) or `FinishActive` (let it
 finish and record the newer revision) without mutating the frozen contract. The
 ledger serializes, so attempt lineage and consumed budget survive restart.
+Capture and canonical verification resolve that contract through the one
+transactional `Implementer::active_work` accessor. Historical lookup requires
+the exact current active/unexpired fence plus retained FinishActive lineage;
+AbortActive, cancelled, replaced and expired claims cannot read history as
+current authority. Publication still refuses superseded results.
 
-This is the Kiln-owned state machine only. It does not execute a Lattice
-workflow, cancel a run, create a workspace, verify a candidate, or publish. The
-Lattice implementation route and worker contract remain external work.
+The state machine is pure; the durable shell persists transport intent before
+calling the separately admitted real worker route. Cancellation, workspace
+isolation and observed teardown remain Lattice/provider responsibilities.
 
 ## Lattice request dispatch
 
-`kiln-adapter-lattice` can bind an operator-supplied `lattice.workflow-request`
-to the reserved implementation attempt. The request must carry the reservation
-plan as effect/idempotency identity, the attempt/fence, expected output, exact
-repository/base, cancel-only controls, and an agent/local/custom graph. The
-selected Lattice capability profile is validated before transport. A disconnected
-acceptance remains unknown; an equal accepted execution can be reconciled before
-retry. Kiln does not create the implementation workflow or choose a worker.
+The existing configured graph route remains an explicit compatibility profile;
+it gains no physical-resource/model-service qualification. Strong implementation
+execution uses `kiln-lattice-dispatch --worker-request` and the separately adopted
+immutable Lattice `implementation-attempt` CLI, not a widened review graph.
+
+`DispatchExecutionBindings` retains exact current `WorkNeedsAttachment`, selected
+worker/execution/model/request-admission references and the frozen native request
+digest with the attempt/fence. The durable plan survives restart. Readiness is
+read-only; actual current owner grants, generation, runtime deadline, work/fence,
+source/spec/profile and request bytes are checked before transport.
+
+Transport intent is committed before execution. Re-entry calls native recovery,
+never blindly dispatches; explicit recovery refuses a missing prior intent. Raw
+events and actual candidate observations are retained separately. Unsupported
+namespace/credential/model-service routes fail closed. Source-cohort adoption,
+workspace/kernel/egress and real model qualification are explicit operator
+prerequisites, not inferred from a configured executable.
 
 ## Verified-PR publication
 
@@ -99,7 +117,7 @@ retry. Kiln does not create the implementation workflow or choose a worker.
 binds the exact candidate handoff and verification receipt, work/version,
 attempt/fence, repository, frozen base, target base branch, candidate/tree, a
 deterministic `kiln/impl-<work>-<attempt>` branch, and bounded PR title/body. The work must use
-the verified-pull-request terminal policy. Preparation performs no remote
+the verified-pull-request or explicit verified-integrated terminal policy. Preparation performs no remote
 effect.
 
 `PublicationRecord` then records observed branch and pull-request identities in
@@ -121,11 +139,14 @@ projection and nonempty unique checks that all pass. Repeating an equal receipt
 is idempotent; partial, failed, stale or differently bound evidence is refused.
 Acceptance moves the attempt to the terminal `verified` state. A verified work
 version cannot be claimed again; a new source version remains separately
-claimable. Verification does not execute checks, create CI facts or publish
+claimable. Pure receipt admission does not execute checks, create CI facts or publish
 anything.
 
-`kiln-implementer verify --verification-file FILE` records the receipt against
-the retained handoff and current work/attempt.
+Only `kiln-web-service verify-implementation` executes and admits verification
+through the existing canonical Engine. The removed direct implementer verification
+path cannot import a caller-supplied success envelope. Frozen programs run in a
+separate verifier UID with private source/scratch; Cairn work invokes the existing
+native authoritative evaluator over actual observations and exact outer bindings.
 
 ## Candidate handoff
 
@@ -138,11 +159,12 @@ references. Every changed path must be inside a work-permitted path, evidence
 identities must be unique, and candidate and tree must differ. Repeating the same
 handoff is idempotent; a different handoff is refused.
 
-`kiln-implementer handoff --handoff-file FILE` admits the handoff and moves the
-attempt to `candidate-produced`. This is an envelope check only: evidence
-outcomes are observations, the worker is not trusted, and an admitted handoff is
-not an accepted candidate or a passing check. The independent verifier and Cairn
-authoritative completion evaluation remain separate work.
+`capture-candidate` independently recomputes actual native snapshot/diff/path
+facts and materializes real Git commit/tree objects before retaining a handoff.
+The low-level `handoff` command admits only the proposal envelope, never acceptance.
+Worker assertions/checklists/exit status are not checks. Honest unchanged native
+observations require both explicit already-satisfied policies and independently
+executed verification; an empty Produced receipt remains invalid.
 
 ## GitHub issue intake
 
@@ -217,21 +239,24 @@ digest supersedes the previous work. Its `--policy` file is a
 }
 ```
 
-## What is not implemented yet
+## Qualification boundaries
 
-The adapters that produce these records are separate work:
+The implementation runbook and `docs/implementation-qualification.md` distinguish
+source/fixture coverage from real bug/feature/no-change, model, cancellation and
+remote-effect evidence. No live qualification is asserted by this document.
 
-- The GitHub polling schedule and webhook service wiring. Normalization
-  and admission are implemented; the service does not yet receive, persist or
-  poll them.
-- Cairn intake. It must consume Cairn `OnixResearch/cairn#1`'s versioned
-  implementation-ready snapshot; that producer is unimplemented. This contract
-  intentionally does not fork Cairn lifecycle or readiness semantics.
-- The Mneme OpenSpec consumer qualification.
-- Claims, execution, candidate acceptance, and publication (issues #45–#48).
+Current authenticated-model credential delivery, automatic GitHub landing and
+conditional source mutation are unqualified and fail closed. Verified-PR remains
+different from exact independently observed integration; `VerifiedIntegrated` is
+the explicit landed terminal policy. Source closure and reviewed Cairn lifecycle
+observations are separately journaled, exact-version effects; no post-review
+source lifecycle mutation or missing-directory completion is inferred.
 
-The core admission modules remain pure, tested boundaries with no dispatch
-authority.
+Work/resource requirements are sealed against the existing canonical admission
+policy and exact current work version. `ImplementationObservation` implements a
+bounded SQLite read-only port: no schema creation, claim or reservation from GET.
+Missing current attachments, stale work/policy and malformed records remain
+distinct. A policy/source change cannot reuse historical requirements.
 
 ## Attempt metrics
 

@@ -1,0 +1,1877 @@
+{
+  "schema": "kiln.readiness.analysis.v1",
+  "cells": [
+    {
+      "identity": {
+        "cache_state": "cold-local-miss",
+        "delay_ms": 0,
+        "delay_phase": null,
+        "profile": "readiness-cache-v1",
+        "profile_identity": "1db8b5444ce5f0978ed660e1d0fbd74036623daf09698ee95318400c994d3b59",
+        "provider": "hosted-local",
+        "runner_identity": "303f691075891ed66df52c89fac77226470278365d159026ebc4f1acbcc5e983",
+        "source_identity": "7e5a11eb780aff3f3c30f2fb0d95b01b5791e02e99d99dae500a1faac040105e",
+        "workload": {
+          "fanout": 0,
+          "files": 1,
+          "id": "one-file",
+          "payload_bytes": 65536,
+          "symlinks": 0
+        }
+      },
+      "attempts": 1,
+      "statuses": {
+        "complete": 1
+      },
+      "phases": {
+        "evaluation_preflight": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 345670,
+            "min_ns": 345670,
+            "max_ns": 345670,
+            "ecdf": [
+              [
+                345670,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "queue_admission": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 9647,
+            "min_ns": 9647,
+            "max_ns": 9647,
+            "ecdf": [
+              [
+                9647,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "store_open_manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 1473657,
+            "min_ns": 1473657,
+            "max_ns": 1473657,
+            "ecdf": [
+              [
+                1473657,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 997000,
+            "min_ns": 997000,
+            "max_ns": 997000,
+            "ecdf": [
+              [
+                997000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 1233000,
+            "min_ns": 1233000,
+            "max_ns": 1233000,
+            "ecdf": [
+              [
+                1233000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "lookup_transfer_decode": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 156153,
+            "min_ns": 156153,
+            "max_ns": 156153,
+            "ecdf": [
+              [
+                156153,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "restore": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 1569107,
+            "min_ns": 1569107,
+            "max_ns": 1569107,
+            "ecdf": [
+              [
+                1569107,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 1228000,
+            "min_ns": 1228000,
+            "max_ns": 1228000,
+            "ecdf": [
+              [
+                1228000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "setup": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 71264,
+            "min_ns": 71264,
+            "max_ns": 71264,
+            "ecdf": [
+              [
+                71264,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 333000,
+            "min_ns": 333000,
+            "max_ns": 333000,
+            "ecdf": [
+              [
+                333000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "execution": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 4277792,
+            "min_ns": 4277792,
+            "max_ns": 4277792,
+            "ecdf": [
+              [
+                4277792,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 2941000,
+            "min_ns": 2941000,
+            "max_ns": 2941000,
+            "ecdf": [
+              [
+                2941000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication_collection": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 25452550,
+            "min_ns": 25452550,
+            "max_ns": 25452550,
+            "ecdf": [
+              [
+                25452550,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 23293000,
+            "min_ns": 23293000,
+            "max_ns": 23293000,
+            "ecdf": [
+              [
+                23293000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 2083000,
+            "min_ns": 2083000,
+            "max_ns": 2083000,
+            "ecdf": [
+              [
+                2083000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 24611630,
+            "min_ns": 24611630,
+            "max_ns": 24611630,
+            "ecdf": [
+              [
+                24611630,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 23552000,
+            "min_ns": 23552000,
+            "max_ns": 23552000,
+            "ecdf": [
+              [
+                23552000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 147000,
+            "min_ns": 147000,
+            "max_ns": 147000,
+            "ecdf": [
+              [
+                147000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "cache_save_publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 22890619,
+            "min_ns": 22890619,
+            "max_ns": 22890619,
+            "ecdf": [
+              [
+                22890619,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 20074000,
+            "min_ns": 20074000,
+            "max_ns": 20074000,
+            "ecdf": [
+              [
+                20074000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 2999000,
+            "min_ns": 2999000,
+            "max_ns": 2999000,
+            "ecdf": [
+              [
+                2999000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 73814142,
+            "min_ns": 73814142,
+            "max_ns": 73814142,
+            "ecdf": [
+              [
+                73814142,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 67916000,
+            "min_ns": 67916000,
+            "max_ns": 67916000,
+            "ecdf": [
+              [
+                67916000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 5234000,
+            "min_ns": 5234000,
+            "max_ns": 5234000,
+            "ecdf": [
+              [
+                5234000,
+                1.0
+              ]
+            ]
+          }
+        }
+      },
+      "errors": [],
+      "output_identities": [
+        "70ff942c316810ac5ffe7081fc049dba30713646b1d6d7272cd5948ad5579804"
+      ],
+      "attribution_errors": []
+    },
+    {
+      "identity": {
+        "cache_state": "warm-local-hit",
+        "delay_ms": 0,
+        "delay_phase": null,
+        "profile": "readiness-cache-v1",
+        "profile_identity": "1db8b5444ce5f0978ed660e1d0fbd74036623daf09698ee95318400c994d3b59",
+        "provider": "hosted-local",
+        "runner_identity": "303f691075891ed66df52c89fac77226470278365d159026ebc4f1acbcc5e983",
+        "source_identity": "7e5a11eb780aff3f3c30f2fb0d95b01b5791e02e99d99dae500a1faac040105e",
+        "workload": {
+          "fanout": 0,
+          "files": 1,
+          "id": "one-file",
+          "payload_bytes": 65536,
+          "symlinks": 0
+        }
+      },
+      "attempts": 1,
+      "statuses": {
+        "complete": 1
+      },
+      "phases": {
+        "evaluation_preflight": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 219411,
+            "min_ns": 219411,
+            "max_ns": 219411,
+            "ecdf": [
+              [
+                219411,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "queue_admission": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 3356,
+            "min_ns": 3356,
+            "max_ns": 3356,
+            "ecdf": [
+              [
+                3356,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "store_open_manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 203632,
+            "min_ns": 203632,
+            "max_ns": 203632,
+            "ecdf": [
+              [
+                203632,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "lookup_transfer_decode": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 15741676,
+            "min_ns": 15741676,
+            "max_ns": 15741676,
+            "ecdf": [
+              [
+                15741676,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 14693000,
+            "min_ns": 14693000,
+            "max_ns": 14693000,
+            "ecdf": [
+              [
+                14693000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 994000,
+            "min_ns": 994000,
+            "max_ns": 994000,
+            "ecdf": [
+              [
+                994000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 13945314,
+            "min_ns": 13945314,
+            "max_ns": 13945314,
+            "ecdf": [
+              [
+                13945314,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 12840000,
+            "min_ns": 12840000,
+            "max_ns": 12840000,
+            "ecdf": [
+              [
+                12840000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 23000,
+            "min_ns": 23000,
+            "max_ns": 23000,
+            "ecdf": [
+              [
+                23000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "materialization": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 8121799,
+            "min_ns": 8121799,
+            "max_ns": 8121799,
+            "ecdf": [
+              [
+                8121799,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 7051000,
+            "min_ns": 7051000,
+            "max_ns": 7051000,
+            "ecdf": [
+              [
+                7051000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 1001000,
+            "min_ns": 1001000,
+            "max_ns": 1001000,
+            "ecdf": [
+              [
+                1001000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "restore": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 31485016,
+            "min_ns": 31485016,
+            "max_ns": 31485016,
+            "ecdf": [
+              [
+                31485016,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 29633000,
+            "min_ns": 29633000,
+            "max_ns": 29633000,
+            "ecdf": [
+              [
+                29633000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 2012000,
+            "min_ns": 2012000,
+            "max_ns": 2012000,
+            "ecdf": [
+              [
+                2012000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "setup": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 561,
+            "min_ns": 561,
+            "max_ns": 561,
+            "ecdf": [
+              [
+                561,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "execution": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 2771053,
+            "min_ns": 2771053,
+            "max_ns": 2771053,
+            "ecdf": [
+              [
+                2771053,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 2866000,
+            "min_ns": 2866000,
+            "max_ns": 2866000,
+            "ecdf": [
+              [
+                2866000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication_collection": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 9060822,
+            "min_ns": 9060822,
+            "max_ns": 9060822,
+            "ecdf": [
+              [
+                9060822,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 8948000,
+            "min_ns": 8948000,
+            "max_ns": 8948000,
+            "ecdf": [
+              [
+                8948000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 11000,
+            "min_ns": 11000,
+            "max_ns": 11000,
+            "ecdf": [
+              [
+                11000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "cache_save_publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 14936474,
+            "min_ns": 14936474,
+            "max_ns": 14936474,
+            "ecdf": [
+              [
+                14936474,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 13876000,
+            "min_ns": 13876000,
+            "max_ns": 13876000,
+            "ecdf": [
+              [
+                13876000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 18000,
+            "min_ns": 18000,
+            "max_ns": 18000,
+            "ecdf": [
+              [
+                18000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 31095474,
+            "min_ns": 31095474,
+            "max_ns": 31095474,
+            "ecdf": [
+              [
+                31095474,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 29858000,
+            "min_ns": 29858000,
+            "max_ns": 29858000,
+            "ecdf": [
+              [
+                29858000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 1030000,
+            "min_ns": 1030000,
+            "max_ns": 1030000,
+            "ecdf": [
+              [
+                1030000,
+                1.0
+              ]
+            ]
+          }
+        }
+      },
+      "errors": [],
+      "output_identities": [
+        "70ff942c316810ac5ffe7081fc049dba30713646b1d6d7272cd5948ad5579804"
+      ],
+      "attribution_errors": []
+    },
+    {
+      "identity": {
+        "cache_state": "cold-local-miss",
+        "delay_ms": 0,
+        "delay_phase": null,
+        "profile": "readiness-cache-v1",
+        "profile_identity": "1db8b5444ce5f0978ed660e1d0fbd74036623daf09698ee95318400c994d3b59",
+        "provider": "hosted-local",
+        "runner_identity": "303f691075891ed66df52c89fac77226470278365d159026ebc4f1acbcc5e983",
+        "source_identity": "c2e3233eccda0036597d442994c66696565515b30877be3c394018d8f5686bc5",
+        "workload": {
+          "fanout": 0,
+          "files": 256,
+          "id": "many-files",
+          "payload_bytes": 65536,
+          "symlinks": 0
+        }
+      },
+      "attempts": 1,
+      "statuses": {
+        "complete": 1
+      },
+      "phases": {
+        "evaluation_preflight": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 224260,
+            "min_ns": 224260,
+            "max_ns": 224260,
+            "ecdf": [
+              [
+                224260,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "queue_admission": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 3918,
+            "min_ns": 3918,
+            "max_ns": 3918,
+            "ecdf": [
+              [
+                3918,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "store_open_manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 233969,
+            "min_ns": 233969,
+            "max_ns": 233969,
+            "ecdf": [
+              [
+                233969,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "lookup_transfer_decode": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 50705,
+            "min_ns": 50705,
+            "max_ns": 50705,
+            "ecdf": [
+              [
+                50705,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "restore": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 261150,
+            "min_ns": 261150,
+            "max_ns": 261150,
+            "ecdf": [
+              [
+                261150,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "setup": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 899900,
+            "min_ns": 899900,
+            "max_ns": 899900,
+            "ecdf": [
+              [
+                899900,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 996000,
+            "min_ns": 996000,
+            "max_ns": 996000,
+            "ecdf": [
+              [
+                996000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "execution": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 4677112,
+            "min_ns": 4677112,
+            "max_ns": 4677112,
+            "ecdf": [
+              [
+                4677112,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 4895000,
+            "min_ns": 4895000,
+            "max_ns": 4895000,
+            "ecdf": [
+              [
+                4895000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication_collection": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 22781314,
+            "min_ns": 22781314,
+            "max_ns": 22781314,
+            "ecdf": [
+              [
+                22781314,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 16877000,
+            "min_ns": 16877000,
+            "max_ns": 16877000,
+            "ecdf": [
+              [
+                16877000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 5922000,
+            "min_ns": 5922000,
+            "max_ns": 5922000,
+            "ecdf": [
+              [
+                5922000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 10464287,
+            "min_ns": 10464287,
+            "max_ns": 10464287,
+            "ecdf": [
+              [
+                10464287,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 9950000,
+            "min_ns": 9950000,
+            "max_ns": 9950000,
+            "ecdf": [
+              [
+                9950000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 12000,
+            "min_ns": 12000,
+            "max_ns": 12000,
+            "ecdf": [
+              [
+                12000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "cache_save_publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 23395387,
+            "min_ns": 23395387,
+            "max_ns": 23395387,
+            "ecdf": [
+              [
+                23395387,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 22863000,
+            "min_ns": 22863000,
+            "max_ns": 22863000,
+            "ecdf": [
+              [
+                22863000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 1004000,
+            "min_ns": 1004000,
+            "max_ns": 1004000,
+            "ecdf": [
+              [
+                1004000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 57112644,
+            "min_ns": 57112644,
+            "max_ns": 57112644,
+            "ecdf": [
+              [
+                57112644,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 49690000,
+            "min_ns": 49690000,
+            "max_ns": 49690000,
+            "ecdf": [
+              [
+                49690000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 6938000,
+            "min_ns": 6938000,
+            "max_ns": 6938000,
+            "ecdf": [
+              [
+                6938000,
+                1.0
+              ]
+            ]
+          }
+        }
+      },
+      "errors": [],
+      "output_identities": [
+        "70ff942c316810ac5ffe7081fc049dba30713646b1d6d7272cd5948ad5579804"
+      ],
+      "attribution_errors": []
+    },
+    {
+      "identity": {
+        "cache_state": "warm-local-hit",
+        "delay_ms": 0,
+        "delay_phase": null,
+        "profile": "readiness-cache-v1",
+        "profile_identity": "1db8b5444ce5f0978ed660e1d0fbd74036623daf09698ee95318400c994d3b59",
+        "provider": "hosted-local",
+        "runner_identity": "303f691075891ed66df52c89fac77226470278365d159026ebc4f1acbcc5e983",
+        "source_identity": "c2e3233eccda0036597d442994c66696565515b30877be3c394018d8f5686bc5",
+        "workload": {
+          "fanout": 0,
+          "files": 256,
+          "id": "many-files",
+          "payload_bytes": 65536,
+          "symlinks": 0
+        }
+      },
+      "attempts": 1,
+      "statuses": {
+        "complete": 1
+      },
+      "phases": {
+        "evaluation_preflight": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 240471,
+            "min_ns": 240471,
+            "max_ns": 240471,
+            "ecdf": [
+              [
+                240471,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "queue_admission": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 2514,
+            "min_ns": 2514,
+            "max_ns": 2514,
+            "ecdf": [
+              [
+                2514,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "store_open_manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 236524,
+            "min_ns": 236524,
+            "max_ns": 236524,
+            "ecdf": [
+              [
+                236524,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "lookup_transfer_decode": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 22728184,
+            "min_ns": 22728184,
+            "max_ns": 22728184,
+            "ecdf": [
+              [
+                22728184,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 22858000,
+            "min_ns": 22858000,
+            "max_ns": 22858000,
+            "ecdf": [
+              [
+                22858000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 4000,
+            "min_ns": 4000,
+            "max_ns": 4000,
+            "ecdf": [
+              [
+                4000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "manifest_validation": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 20813008,
+            "min_ns": 20813008,
+            "max_ns": 20813008,
+            "ecdf": [
+              [
+                20813008,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 20738000,
+            "min_ns": 20738000,
+            "max_ns": 20738000,
+            "ecdf": [
+              [
+                20738000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 5000,
+            "min_ns": 5000,
+            "max_ns": 5000,
+            "ecdf": [
+              [
+                5000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "materialization": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 18946835,
+            "min_ns": 18946835,
+            "max_ns": 18946835,
+            "ecdf": [
+              [
+                18946835,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 10983000,
+            "min_ns": 10983000,
+            "max_ns": 10983000,
+            "ecdf": [
+              [
+                10983000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 7930000,
+            "min_ns": 7930000,
+            "max_ns": 7930000,
+            "ecdf": [
+              [
+                7930000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "restore": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 52614929,
+            "min_ns": 52614929,
+            "max_ns": 52614929,
+            "ecdf": [
+              [
+                52614929,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 44636000,
+            "min_ns": 44636000,
+            "max_ns": 44636000,
+            "ecdf": [
+              [
+                44636000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 7934000,
+            "min_ns": 7934000,
+            "max_ns": 7934000,
+            "ecdf": [
+              [
+                7934000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "setup": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 511,
+            "min_ns": 511,
+            "max_ns": 511,
+            "ecdf": [
+              [
+                511,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 0,
+            "min_ns": 0,
+            "max_ns": 0,
+            "ecdf": [
+              [
+                0,
+                1.0
+              ]
+            ]
+          }
+        },
+        "execution": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 4318157,
+            "min_ns": 4318157,
+            "max_ns": 4318157,
+            "ecdf": [
+              [
+                4318157,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 2980000,
+            "min_ns": 2980000,
+            "max_ns": 2980000,
+            "ecdf": [
+              [
+                2980000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 992000,
+            "min_ns": 992000,
+            "max_ns": 992000,
+            "ecdf": [
+              [
+                992000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication_collection": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 20292110,
+            "min_ns": 20292110,
+            "max_ns": 20292110,
+            "ecdf": [
+              [
+                20292110,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 14793000,
+            "min_ns": 14793000,
+            "max_ns": 14793000,
+            "ecdf": [
+              [
+                14793000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 5937000,
+            "min_ns": 5937000,
+            "max_ns": 5937000,
+            "ecdf": [
+              [
+                5937000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "cache_save_publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 22175636,
+            "min_ns": 22175636,
+            "max_ns": 22175636,
+            "ecdf": [
+              [
+                22175636,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 21886000,
+            "min_ns": 21886000,
+            "max_ns": 21886000,
+            "ecdf": [
+              [
+                21886000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 12000,
+            "min_ns": 12000,
+            "max_ns": 12000,
+            "ecdf": [
+              [
+                12000,
+                1.0
+              ]
+            ]
+          }
+        },
+        "publication": {
+          "elapsed_ns": {
+            "n": 1,
+            "median_ns": 53167957,
+            "min_ns": 53167957,
+            "max_ns": 53167957,
+            "ecdf": [
+              [
+                53167957,
+                1.0
+              ]
+            ]
+          },
+          "user_cpu_ns": {
+            "n": 1,
+            "median_ns": 46622000,
+            "min_ns": 46622000,
+            "max_ns": 46622000,
+            "ecdf": [
+              [
+                46622000,
+                1.0
+              ]
+            ]
+          },
+          "system_cpu_ns": {
+            "n": 1,
+            "median_ns": 5954000,
+            "min_ns": 5954000,
+            "max_ns": 5954000,
+            "ecdf": [
+              [
+                5954000,
+                1.0
+              ]
+            ]
+          }
+        }
+      },
+      "errors": [],
+      "output_identities": [
+        "70ff942c316810ac5ffe7081fc049dba30713646b1d6d7272cd5948ad5579804"
+      ],
+      "attribution_errors": []
+    }
+  ],
+  "optimization_decision": "insufficient-evidence",
+  "reason": "This baseline has no reviewed candidate optimization, matched semantic work, or complexity/retention evidence; no speedup or go claim is authorized.",
+  "quantile_method": "nearest-rank; p95 >=20 complete attempts; p99 >=100; no failed or absent times imputed",
+  "phase_aggregation": "sum repeated same-name phases per attempt; distinct inclusive parent phases are not additive"
+}

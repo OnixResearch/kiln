@@ -78,6 +78,21 @@ reference before the port returns; publication failure is a storage failure, not
 a successful effect. The store verifies reads and supports exact-content
 round trips across reopen and live Iroh publication.
 
+Verified chunks and an acknowledged reference mapping are separate states. A failed
+index publication remains pending, including on an equal same-process retry; no
+put receipt is returned until exclusive no-follow staging, payload synchronization,
+same-parent replacement and parent synchronization all complete. Reopening a
+visible nonempty index requires reconciliation before a new put acknowledgement,
+including after a post-rename parent-sync failure. Existing verified reads remain
+available while a new mapping is pending.
+
+The fixed `kiln-content-index.v1.json.tmp` stage has one bounded creation attempt.
+A colliding directory/file is left untouched and publication fails; an operator
+must separately establish ownership before removing an interrupted stage. The
+publisher never rolls back a destination after rename. These are bounded local
+filesystem observations, not a multi-file transaction, a concurrent-writer
+protocol, or a guarantee of chunk-store/device survival after power loss.
+
 `gossip` defines bounded, non-authoritative hints: a hint names a kind, scope,
 sender, epoch, expiry and optional content reference. Messages, content size,
 lifetime, event count, recent-hint count and join time are bounded; duplicate

@@ -12,6 +12,7 @@ impl Engine {
             (
                 run.outcome().is_terminal(),
                 !self.storage_failed
+                    && super::verification::validate_record_provenance(run).is_ok()
                     && run.outcome() == Outcome::Success
                     && run.untrusted.as_ref().is_none_or(|gate| {
                         gate.satisfies_required_ci(run.source.exact_revision.native_id.as_str())
@@ -52,6 +53,8 @@ impl Engine {
             .runs
             .values()
             .map(|run| {
+                let trusted_provenance =
+                    super::verification::validate_record_provenance(run).is_ok();
                 let checks = run
                     .plan
                     .nodes
@@ -104,11 +107,18 @@ impl Engine {
                     .collect();
                 CiFact {
                     project: run.project_id.clone(),
-                    repository: run.source.repository.native_id.as_str().to_owned(),
+                    repository: run
+                        .implementation_verification
+                        .as_ref()
+                        .filter(|_| run.is_independent_verification() && trusted_provenance)
+                        .map(|provenance| provenance.repository_alias.clone())
+                        .unwrap_or_else(|| run.source.repository.native_id.as_str().to_owned()),
                     revision: run.source.exact_revision.native_id.as_str().to_owned(),
                     run_id: run.id.clone(),
                     ordinal: run.ordinal,
-                    success: !self.storage_failed && run.outcome() == Outcome::Success,
+                    success: !self.storage_failed
+                        && run.outcome() == Outcome::Success
+                        && trusted_provenance,
                     full_run: run.selected_nodes.is_empty(),
                     clean: run.dirty_snapshot.is_none(),
                     scope_identity: run.scope.as_ref().map(|scope| scope.identity.clone()),

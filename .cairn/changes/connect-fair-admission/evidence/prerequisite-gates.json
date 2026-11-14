@@ -1,0 +1,35 @@
+{
+  "change": "connect-fair-admission",
+  "scope": "pre-implementation structural prerequisite gates only",
+  "policy": "cairn-policy/generated/cairn-policy.json",
+  "observed_before_product_edits": true,
+  "gates": [
+    {
+      "stage": "proposal",
+      "verdict": "PASS",
+      "valid": true,
+      "input_hash": "0f6eb09fdb049dd11ac4d7a0efc91e36b4b5c372ca6bfe1168a2f04ef6ee372b",
+      "receipt_hash": "a129f1b878ed21a064a73ac3154d1c5e54cf96b9dec670aa8735b27676d5fce8"
+    },
+    {
+      "stage": "design",
+      "verdict": "PASS",
+      "valid": true,
+      "input_hash": "b7e153eeb5911110b27b63fdbe0768aa000cca5acdb3cf82fa7c401ee0e96788",
+      "receipt_hash": "f9f4ad207c9ca22ca9b5ed5669a48948a5da5caa2598cad39e2873a22aa8facd"
+    },
+    {
+      "stage": "tasks",
+      "verdict": "PASS",
+      "valid": true,
+      "input_hash": "14901e260182a8fda63a1262dc439b411f2e15b8a212fd9052146d796868195a",
+      "receipt_hash": "38ecdf91b7a1dd07cd7ae4911b676a01d482e78c9157c4ae5904c64ab196abbc"
+    }
+  ],
+  "product_checks_executed_by_worker": [],
+  "non_claims": [
+    "later lifecycle input edits require final integration-owner gate checks",
+    "structural prerequisites do not establish Rust or Nickel correctness",
+    "no real serving, physical reservation, cross-host or crash campaign was executed"
+  ]
+}

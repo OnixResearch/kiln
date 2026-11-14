@@ -1,0 +1,1 @@
+Fix clamp(value, lower, upper) to return the nearest inclusive bound when outside the interval, preserve values within it, and reject reversed bounds. Do not edit protected acceptance.py or requirements.txt. Implement only src/ranges.py. The frozen baseline demonstrably fails acceptance.py; the same independent command must pass the actual candidate.

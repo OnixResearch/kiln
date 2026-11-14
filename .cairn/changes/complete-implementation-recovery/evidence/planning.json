@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.implementation-planning-evidence.v1",
+  "change": "complete-implementation-recovery",
+  "gates": [
+    {"stage":"proposal","valid":true,"verdict":"PASS","receipt_hash":"263b7cc00a49e9a22be0224f171f620bbe73728d7527e45541f3533c213e19e2"},
+    {"stage":"design","valid":true,"verdict":"PASS","receipt_hash":"d2a6445b597e912591e720f4f2740c86eb1cfec077aa53b0a02ceb6f6903ab66"},
+    {"stage":"tasks","valid":true,"verdict":"PASS","receipt_hash":"8c6cda7e03f134391f0a1bef504f14f143776da3e4e6ab6ca65ce8466b586251"}
+  ],
+  "lattice_consumer_change": "execute-admitted-implementation-attempt",
+  "lattice_gates": [
+    {"stage":"proposal","valid":true,"verdict":"PASS","receipt_hash":"d79713c987fe8be1483213b2c635ae71b37d28c5fc46acbeac825c79af5ee3d4"},
+    {"stage":"design","valid":true,"verdict":"PASS","receipt_hash":"dd4e5fb07d1efcb6a6052def6d9951112c7d068552919a18d4ef66deef18a6c9"},
+    {"stage":"tasks","valid":true,"verdict":"PASS","receipt_hash":"e63c84acdce96ded1d3507d2c2c7ad4ce1ca910e10a52ffbbccf91555729b2ec"}
+  ],
+  "lattice_source": {
+    "baseline":"c6da59566a896f432f8c3a8f419033364e376cf2",
+    "published":false,
+    "archive":"/run/user/1555/kiln-issues-implementer/lattice-source.tar",
+    "archive_blake3":"eeecc1d01cdf786dbd788b3b5aaed7af8a01b7bda1445a1b8985e46069803c06",
+    "source_nar":"sha256-vrb0cXx+NH085klhATwx/ACRWaHPe2+8MP8HeQ1/bn0=",
+    "scope":"Exact current nonignored tracked and untracked working source, including preexisting local corrections; no fabricated producer commit. Normal Kiln MIT contract imports unchanged."
+  },
+  "product_checks_executed":false,
+  "runtime_campaigns_executed":false,
+  "remote_effects_executed":false,
+  "non_claims":["Planning gates establish structural policy facts only.","Source archive identities do not establish correctness or live qualification.","No tests, build, lint, formatting, model, publication, landing, deployment, source closure, Cairn sync/archive or service restart was executed."]
+}

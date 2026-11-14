@@ -1,0 +1,831 @@
+{
+  "schema": "kiln.web-exploration-bombadil-verification.v1",
+  "owner": "Kiln web-service/dashboard maintainers",
+  "tool": {
+    "revision": "832faf4d953e2c56d1d901aca1bb2c3c3170221d",
+    "version": "bombadil 0.7.10",
+    "separately_executed": true,
+    "blake3": "5c770f6ff67fb11758a3267b39bf3b04542db2f2113a9acdd5cf2cbfd3455903",
+    "executable": "/nix/store/538xznqb8insnbg0rvf9gpvc7x57al13-bombadil-x86_64-unknown-linux-musl-0.7.10/bin/bombadil"
+  },
+  "final_source_blake3": {
+    "checks/bombadil/kiln-web-exploration.spec.ts": "9ef6e8239e1660c45515b06b514f00852a918d89b08abd3fea4d6e3e2e07a440",
+    "scripts/web-exploration-bombadil.py": "c2dba2bb78771e2b215b2e5b560a43d4a590c966baefe7cab87fcad8f2ac49ed",
+    "flake.nix": "65bea2eff5d3a401c42aeafcadbb4b9a889d0de066d04f150ca967b457be2d94",
+    "flake.lock": "2caea648ccc7ccf6b10ee2f95aa2774f4ba8a3378d110a273d1209ac6da2d141",
+    "cairn-policy/development-coverage.ncl": "20e769c1611563e70fa016b015760615184319092a3c480660f96b93608d18f6",
+    "target/bombadil-tool/bin/bombadil": "5c770f6ff67fb11758a3267b39bf3b04542db2f2113a9acdd5cf2cbfd3455903"
+  },
+  "earlier_specification_blake3": [
+    "2bb48f8f706f3f92af9dfc1734c6da4bb015e68fb25f0a283e59bb6934b1d4cb  target/bombadil-web-owned-runtime-fixed/kiln-web-exploration.spec.ts",
+    "2bb48f8f706f3f92af9dfc1734c6da4bb015e68fb25f0a283e59bb6934b1d4cb  target/bombadil-web-deployed-runtime-fixed/kiln-web-exploration.spec.ts"
+  ],
+  "earlier_campaigns": [
+    {
+      "mode": "owned",
+      "time_limit_seconds": 90,
+      "native_exit_code": 0,
+      "report": "target/bombadil-web-owned-runtime-fixed/report.json",
+      "trace": "target/bombadil-web-owned-runtime-fixed/trace",
+      "observed": {
+        "records": 704,
+        "violations": 0,
+        "actions": {
+          "Initial": 1,
+          "Custom:filter-example-index": 49,
+          "SetViewport": 34,
+          "Reload": 17,
+          "Custom:open-example-route": 253,
+          "Wait": 338,
+          "Back": 12
+        },
+        "ready_index_states": 135,
+        "settled_console_states": 230,
+        "settled_pages": [
+          "activity",
+          "automation",
+          "cobs",
+          "code-review",
+          "evidence",
+          "feeds",
+          "guide",
+          "operations",
+          "overview",
+          "planning",
+          "project",
+          "projects",
+          "reviews",
+          "runs",
+          "settings",
+          "source",
+          "triage",
+          "work",
+          "workers"
+        ],
+        "settled_run_views": [
+          "activity",
+          "artifacts",
+          "compare",
+          "evidence",
+          "logs",
+          "pipeline",
+          "reviews",
+          "tests"
+        ],
+        "viewports": [
+          "1024",
+          "1440",
+          "390",
+          "768"
+        ],
+        "themes": [
+          "dark",
+          "light",
+          "system"
+        ],
+        "filter_queries": [
+          "",
+          "  APPEARANCE,  ",
+          "  ATTENTION  ",
+          "  BLOCKED  ",
+          "  CAPACITY  ",
+          "  COMPARE  ",
+          "  CURRENT  ",
+          "  PATCHGATE  ",
+          "  RAW  ",
+          "  RETAINED  ",
+          "  RUN  ",
+          "  SAVED  ",
+          "  SOURCE  ",
+          "  STRUCTURAL  ",
+          "  WIP  ",
+          "  WORKERS:  ",
+          "Abandoned",
+          "CI",
+          "Compare",
+          "Current",
+          "Duplicate",
+          "Exact",
+          "Patchgate",
+          "Raw",
+          "Requests",
+          "Run",
+          "Saved",
+          "Self-declared",
+          "Source",
+          "Team"
+        ],
+        "zero_result_queries": 0,
+        "inflight_states": 339,
+        "page_snapshot_records": 704
+      }
+    },
+    {
+      "mode": "deployed",
+      "time_limit_seconds": 90,
+      "native_exit_code": 0,
+      "report": "target/bombadil-web-deployed-runtime-fixed/report.json",
+      "trace": "target/bombadil-web-deployed-runtime-fixed/trace",
+      "observed": {
+        "records": 779,
+        "violations": 0,
+        "actions": {
+          "Initial": 1,
+          "Wait": 499,
+          "SetViewport": 15,
+          "Custom:open-example-route": 204,
+          "Custom:filter-example-index": 38,
+          "Reload": 10,
+          "Back": 12
+        },
+        "ready_index_states": 105,
+        "settled_console_states": 174,
+        "settled_pages": [
+          "activity",
+          "cobs",
+          "code-review",
+          "evidence",
+          "feeds",
+          "inbox",
+          "operations",
+          "overview",
+          "planning",
+          "project",
+          "projects",
+          "reviews",
+          "runs",
+          "settings",
+          "source",
+          "triage",
+          "work",
+          "workers"
+        ],
+        "settled_run_views": [
+          "activity",
+          "artifacts",
+          "compare",
+          "evidence",
+          "logs",
+          "pipeline",
+          "reviews",
+          "tests"
+        ],
+        "viewports": [
+          "1024",
+          "1440",
+          "390",
+          "768"
+        ],
+        "themes": [
+          "dark",
+          "light",
+          "system"
+        ],
+        "filter_queries": [
+          "",
+          "  CAPACITY  ",
+          "  COMPARE  ",
+          "  FEED  ",
+          "  FEEDS:  ",
+          "  ISSUE  ",
+          "  ISSUES:  ",
+          "  OVERVIEW:  ",
+          "  RUN  ",
+          "  SNOOZED  ",
+          "  SOURCE  ",
+          "  SUBMITTED  ",
+          "  TEAM  ",
+          "  WIP  ",
+          "Accepted",
+          "Appearance,",
+          "Artifacts",
+          "Attention",
+          "Capacity",
+          "Compare",
+          "Current",
+          "Declined",
+          "Duplicate",
+          "Feed",
+          "Feeds:",
+          "Initiative",
+          "Patchgate",
+          "Private",
+          "Run",
+          "Saved",
+          "Source",
+          "Team",
+          "Tests",
+          "WIP"
+        ],
+        "zero_result_queries": 0,
+        "inflight_states": 500,
+        "page_snapshot_records": 779
+      }
+    }
+  ],
+  "admission_negative": {
+    "origin": "https://localhost:9443",
+    "outcome": "refused",
+    "http_status": 404,
+    "browser_launched": false,
+    "report": "target/bombadil-web-refused-nonexample/report.json"
+  },
+  "pure_boundary_exercise": {
+    "accepted_origins": 3,
+    "refused_origins": 6,
+    "accepted_catalogs": 1,
+    "refused_catalogs": 3
+  },
+  "attached_process_baseline": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=3140209\nExecMainStartTimestamp=Fri 2026-11-13 14:47:13 EST\n\nId=kiln-website-exploration.service\nActiveState=active\nSubState=running\nMainPID=3466032\nExecMainStartTimestamp=Fri 2026-11-13 16:48:26 EST\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nMainPID=3840272\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=3840257\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n",
+  "diagnostics": [
+    {
+      "kind": "harness_initialization",
+      "observed": "URL is not defined in the non-browser property runtime",
+      "resolution": "URL parsing moved into browser extractor/action callbacks; subsequent native campaigns passed."
+    },
+    {
+      "kind": "storage",
+      "observed": "Nix dependency realization and the latest report write failed with ENOSPC; an attached attempt refused HTTP 503 before browser launch.",
+      "authority": "User explicitly authorized Nix GC of up to 8 GiB of unrooted store paths; managed services must remain unchanged."
+    },
+    {
+      "kind": "pinned_browser_loader_contamination",
+      "observed": "/nix/store/br2lz8l0r22x01klq534iqdz1j5axbxx-chromium-unwrapped-151.0.7922.75/libexec/chromium/chromium: /nix/store/qqiqd3ah10x8hzsif4j1y4xc1miw23nx-glibc-2.42-67/lib/libm.so.6: version `GLIBC_2.43' not found (required by /nix/store/sna9yw41jddpb2wbnp6v8a5cdj2xm8v5-libvorbis-1.3.7/lib/libvorbis.so.0)\n/nix/store/br2lz8l0r22x01klq534iqdz1j5axbxx-chromium-unwrapped-151.0.7922.75/libexec/chromium/chromium: /nix/store/qqiqd3ah10x8hzsif4j1y4xc1miw23nx-glibc-2.42-67/lib/libm.so.6: version `GLIBC_2.43' not found (required by /nix/store/zllvn25rjq0xcbaxigy1w3qycd5nf4y6-libopus-1.6.1/lib/libopus.so.0)\n/nix/store/br2lz8l0r22x01klq534iqdz1j5axbxx-chromium-unwrapped-151.0.7922.75/libexec/chromium/chromium: /nix/store/qqiqd3ah10x8hzsif4j1y4xc1miw23nx-glibc-2.42-67/lib/libm.so.6: version `GLIBC_2.43' not found (required by /nix/store/zb9rd5lni5cij4kljm97l1xjlhjv8nln-lame-4.0-lib/lib/libmp3lame.so.0)\n/nix/store/br2lz8l0r22x01klq534iqdz1j5axbxx-chromium-unwrapped-151.0.7922.75/libexec/chromium/chromium: /nix/store/qqiqd3ah10x8hzsif4j1y4xc1miw23nx-glibc-2.42-67/lib/libm.so.6: version `GLIBC_2.44' not found (required by /nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/libmvec.so.1)\n/nix/store/br2lz8l0r22x01klq534iqdz1j5axbxx-chromium-unwrapped-151.0.7922.75/libexec/chromium/chromium: /nix/store/qqiqd3ah10x8hzsif4j1y4xc1miw23nx-glibc-2.42-67/lib/libm.so.6: version `GLIBC_2.43' not found (required by /nix/store/pqyiidz5mi73wv5f91d48s9plcqyj5bz-glibc-2.44-57/lib/libmvec.so.1)\n",
+      "negative_exit_code": 1,
+      "isolated_version_command": "env -u LD_LIBRARY_PATH -u LD_PRELOAD -u LD_AUDIT /nix/store/ghvr17543vw7ykqalnc0dj60gaagbqip-chromium-151.0.7922.75/bin/chromium --version",
+      "isolated_version_output": "Chromium 151.0.7922.75",
+      "resolution": "Runner child environments remove LD_LIBRARY_PATH, LD_PRELOAD and LD_AUDIT; pins, libraries, sandboxing and system environment remain unchanged."
+    }
+  ],
+  "non_claims": [
+    "Bounded random exploration, not exhaustive feature coverage",
+    "Synthetic execution/feed examples, not CI or provider correctness",
+    "No production, release, source-trust, remote-provider or service-reconfiguration authority",
+    "Native replay is best-effort and does not survive reset example identities"
+  ],
+  "storage_cleanup": {
+    "command": "nix-store --gc --max-freed 8589934592",
+    "authorized_limit_bytes": 8589934592,
+    "completed": false,
+    "observed": "Timed out after 600 seconds after reaching deleting garbage and deleting unused links; no freed-byte total was returned.",
+    "post_command_capacity": "8.3 GiB available, observed by df after the bounded command",
+    "final_freed_byte_total_available": false
+  },
+  "unexpected_host_maintenance": {
+    "trigger": "nix-store --realise ... --add-root target/bombadil-web-build-source-root --indirect",
+    "observed_message": "running auto-GC to free 131442278400 bytes",
+    "manual_cleanup_authority_bytes": 8589934592,
+    "larger_request_was_explicitly_authorized": false,
+    "actual_automatic_deleted_bytes": "not returned by the command",
+    "response": "All subsequent Nix commands explicitly set min-free=0; shared daemon and unrelated workers were not stopped or reconfigured."
+  },
+  "operator_recovery": {
+    "authorized_action": "Restart only kiln-website-exploration.service and reset disposable example state",
+    "command": "systemctl --user restart kiln-website-exploration.service",
+    "before_main_pid": 3466032,
+    "after_main_pid": 3956518,
+    "after_started_at": "Fri 2026-11-13 19:45:38 EST",
+    "reason": "Engine persistence failure latches storage_failed=true; session GET remains 503 after disk space is restored.",
+    "runner_restarts_attached_services": false,
+    "other_service_restarts_authorized": false
+  },
+  "final_deployed": {
+    "report": {
+      "schema": "kiln.web-exploration-bombadil.v1",
+      "mode": "attach",
+      "started_at": 1794618945.5020607,
+      "time_limit_seconds": 90,
+      "browser_arguments": [
+        "--ignore-certificate-errors-spki-list=+/Axxs0G+nBhneF8jFBMVUbr9ntrUPokJf/sQwhdsr8="
+      ],
+      "outcome": "pass",
+      "non_claims": [
+        "Bounded property exploration, not exhaustive coverage or CI/provider correctness",
+        "Reset example identities prevent guaranteed replay against a fresh cohort",
+        "No production, release, provider-execution or attached-service mutation authority"
+      ],
+      "removed_loader_variables": [
+        "LD_LIBRARY_PATH"
+      ],
+      "origin": "https://britton-desktop.bison-tailor.ts.net:9444",
+      "admission": {
+        "examples": 80,
+        "tls_hostname_verified": true,
+        "ca_certificate": "/home/brittonr/.config/kiln/web-service/credentials/ca.pem",
+        "redirects": "refused",
+        "ambient_proxies": "disabled"
+      },
+      "tool_version": "bombadil 0.7.10",
+      "browser": "/nix/store/ghvr17543vw7ykqalnc0dj60gaagbqip-chromium-151.0.7922.75/bin/chromium",
+      "command": [
+        "/nix/store/538xznqb8insnbg0rvf9gpvc7x57al13-bombadil-x86_64-unknown-linux-musl-0.7.10/bin/bombadil",
+        "browser",
+        "test",
+        "--headless",
+        "--exit-on-violation",
+        "--time-limit",
+        "90s",
+        "--output-path",
+        "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-deployed-pinned-rooted/trace",
+        "https://britton-desktop.bison-tailor.ts.net:9444/examples",
+        "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-deployed-pinned-rooted/kiln-web-exploration.spec.ts"
+      ],
+      "native_exit_code": 0,
+      "trace": "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-deployed-pinned-rooted/trace",
+      "tool_cleanup": {
+        "owned": true,
+        "pid": 448317,
+        "escalated": false,
+        "exit_code": 0
+      },
+      "example_cleanup": {
+        "owned": false
+      },
+      "finished_at": 1794619035.6542463
+    },
+    "observed": {
+      "records": 964,
+      "violations": 0,
+      "actions": {
+        "Initial": 1,
+        "Custom:filter-example-index": 42,
+        "Custom:open-example-route": 244,
+        "Wait": 633,
+        "SetViewport": 28,
+        "Back": 9,
+        "Reload": 7
+      },
+      "ready_index_states": 115,
+      "settled_console_states": 215,
+      "settled_pages": [
+        "activity",
+        "automation",
+        "cobs",
+        "code-review",
+        "evidence",
+        "feeds",
+        "guide",
+        "inbox",
+        "operations",
+        "overview",
+        "planning",
+        "project",
+        "projects",
+        "reviews",
+        "runs",
+        "settings",
+        "source",
+        "triage",
+        "work",
+        "workers",
+        "workviews"
+      ],
+      "settled_run_views": [
+        "activity",
+        "artifacts",
+        "compare",
+        "evidence",
+        "logs",
+        "pipeline",
+        "reviews",
+        "tests"
+      ],
+      "viewports": [
+        "1024",
+        "1440",
+        "390",
+        "768"
+      ],
+      "themes": [
+        "dark",
+        "light",
+        "system"
+      ],
+      "filter_queries": [
+        "",
+        "  ATTENTION  ",
+        "  CAPACITY  ",
+        "  COMPARE  ",
+        "  CURRENT  ",
+        "  EXACT  ",
+        "  FEED  ",
+        "  ISSUE  ",
+        "  MILESTONE  ",
+        "  PIPELINE  ",
+        "  PRIVATE  ",
+        "  SAVED  ",
+        "  SOURCE  ",
+        "  TEAM  ",
+        "Appearance,",
+        "Evidence",
+        "Initiative",
+        "Private",
+        "Submitted",
+        "Tests",
+        "WIP",
+        "__bombadil_missing_feature__"
+      ],
+      "zero_result_queries": 10,
+      "inflight_states": 634,
+      "page_snapshot_records": 964
+    },
+    "report_path": "target/bombadil-web-deployed-pinned-rooted/report.json"
+  },
+  "packaging": {
+    "flake_app": "kiln-web-exploration-bombadil",
+    "tool_app": "bombadil",
+    "development_shell": "web-testing",
+    "frozen_source": "/nix/store/9adqi2kg6xg3bffc5x8nibv821g0hf4x-source",
+    "entrypoint_and_shell_evaluated": true,
+    "package_build_exit_code": 0,
+    "packaged_owned_campaign_native_exit_code": 2,
+    "browser": "Chromium 151.0.7922.75",
+    "build_scratch": "/run/kiln-bombadil-build-lhSOTBxZ",
+    "sandbox_disabled": false,
+    "temporary_gc_roots_removed": true,
+    "packaged_runner_matches_workspace_blake3": "c2dba2bb78771e2b215b2e5b560a43d4a590c966baefe7cab87fcad8f2ac49ed",
+    "packaged_specification_matches_workspace_blake3": "9ef6e8239e1660c45515b06b514f00852a918d89b08abd3fea4d6e3e2e07a440"
+  },
+  "loader_isolation_smoke": {
+    "report_path": "target/bombadil-web-loader-isolated-smoke/report.json",
+    "report": {
+      "schema": "kiln.web-exploration-bombadil.v1",
+      "mode": "owned",
+      "started_at": 1794618423.2644336,
+      "time_limit_seconds": 15,
+      "browser_arguments": [],
+      "outcome": "pass",
+      "non_claims": [
+        "Bounded property exploration, not exhaustive coverage or CI/provider correctness",
+        "Reset example identities prevent guaranteed replay against a fresh cohort",
+        "No production, release, provider-execution or attached-service mutation authority"
+      ],
+      "removed_loader_variables": [
+        "LD_LIBRARY_PATH"
+      ],
+      "example_command": [
+        "/nix/store/gnxk09rzfx5qvflcnap17gn79lr5z37m-kiln-website-exploration-0.1.0/bin/kiln-website-exploration",
+        "--port",
+        "0"
+      ],
+      "origin": "http://127.0.0.1:44597",
+      "admission": {
+        "examples": 80,
+        "tls_hostname_verified": false,
+        "ca_certificate": null,
+        "redirects": "refused",
+        "ambient_proxies": "disabled"
+      },
+      "tool_version": "bombadil 0.7.10",
+      "browser": "/nix/store/ghvr17543vw7ykqalnc0dj60gaagbqip-chromium-151.0.7922.75/bin/chromium",
+      "command": [
+        "/nix/store/538xznqb8insnbg0rvf9gpvc7x57al13-bombadil-x86_64-unknown-linux-musl-0.7.10/bin/bombadil",
+        "browser",
+        "test",
+        "--headless",
+        "--exit-on-violation",
+        "--time-limit",
+        "15s",
+        "--output-path",
+        "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-loader-isolated-smoke/trace",
+        "http://127.0.0.1:44597/examples",
+        "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-loader-isolated-smoke/kiln-web-exploration.spec.ts"
+      ],
+      "native_exit_code": 0,
+      "trace": "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-loader-isolated-smoke/trace",
+      "tool_cleanup": {
+        "owned": true,
+        "pid": 333528,
+        "escalated": false,
+        "exit_code": 0
+      },
+      "example_cleanup": {
+        "owned": true,
+        "pid": 333433,
+        "escalated": false,
+        "exit_code": 0
+      },
+      "finished_at": 1794618438.7495565
+    }
+  },
+  "final_owned": {
+    "report": {
+      "schema": "kiln.web-exploration-bombadil.v1",
+      "mode": "owned",
+      "started_at": 1794618750.782976,
+      "time_limit_seconds": 90,
+      "browser_arguments": [],
+      "outcome": "violation",
+      "non_claims": [
+        "Bounded property exploration, not exhaustive coverage or CI/provider correctness",
+        "Reset example identities prevent guaranteed replay against a fresh cohort",
+        "No production, release, provider-execution or attached-service mutation authority"
+      ],
+      "removed_loader_variables": [
+        "LD_LIBRARY_PATH"
+      ],
+      "example_command": [
+        "/nix/store/a6pqjhs49z0q1k59ihja4frzq5iixyvs-kiln-website-exploration-0.1.0/bin/kiln-website-exploration",
+        "--port",
+        "0"
+      ],
+      "origin": "http://127.0.0.1:44729",
+      "admission": {
+        "examples": 80,
+        "tls_hostname_verified": false,
+        "ca_certificate": null,
+        "redirects": "refused",
+        "ambient_proxies": "disabled"
+      },
+      "tool_version": "bombadil 0.7.10",
+      "browser": "/nix/store/ghvr17543vw7ykqalnc0dj60gaagbqip-chromium-151.0.7922.75/bin/chromium",
+      "command": [
+        "/nix/store/538xznqb8insnbg0rvf9gpvc7x57al13-bombadil-x86_64-unknown-linux-musl-0.7.10/bin/bombadil",
+        "browser",
+        "test",
+        "--headless",
+        "--exit-on-violation",
+        "--time-limit",
+        "90s",
+        "--output-path",
+        "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-owned-pinned-final/trace",
+        "http://127.0.0.1:44729/examples",
+        "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-owned-pinned-final/kiln-web-exploration.spec.ts"
+      ],
+      "native_exit_code": 2,
+      "trace": "/home/brittonr/git/OnixResearch/kiln/target/bombadil-web-owned-pinned-final/trace",
+      "tool_cleanup": {
+        "owned": true,
+        "pid": 415183,
+        "escalated": false,
+        "exit_code": 2
+      },
+      "example_cleanup": {
+        "owned": true,
+        "pid": 415037,
+        "escalated": false,
+        "exit_code": 0
+      },
+      "finished_at": 1794618756.017693
+    },
+    "observed": {
+      "records": 37,
+      "violations": 1,
+      "actions": {
+        "Initial": 1,
+        "Custom:open-example-route": 12,
+        "Wait": 24
+      },
+      "ready_index_states": 3,
+      "settled_console_states": 10,
+      "settled_pages": [
+        "automation",
+        "cobs",
+        "code-review",
+        "feeds",
+        "planning",
+        "triage",
+        "work"
+      ],
+      "settled_run_views": [],
+      "viewports": [
+        "1024"
+      ],
+      "themes": [
+        "dark",
+        "light",
+        "system"
+      ],
+      "filter_queries": [
+        ""
+      ],
+      "zero_result_queries": 0,
+      "inflight_states": 24,
+      "page_snapshot_records": 37
+    },
+    "report_path": "target/bombadil-web-owned-pinned-final/report.json"
+  },
+  "findings": [
+    {
+      "id": "topbar-intrinsic-grid-overflow",
+      "status": "confirmed_ui_defect_reported_without_weakening_property",
+      "property": "fitsTheViewport",
+      "page": "Raw collaboration history",
+      "reproduce": "Open the packaged example index, choose Raw collaboration: Example exact-source patch at 1024×768",
+      "observed_viewport_width": 1024,
+      "observed_document_width": 1071,
+      "overflow_pixels": 47,
+      "offending_element": ".app-topbar > .session-tools",
+      "offending_right_edge": 1070.8125,
+      "source_locations": [
+        "crates/kiln-web-service/src/web.css:232",
+        "crates/kiln-web-service/src/web.css:272"
+      ],
+      "diagnosis": "The topbar grid requires max-content minimum tracks for the long location and session tools; the 256px account flex item cannot shrink. The header itself is 945px wide while its computed tracks are 390.422px, 144px and 400.391px.",
+      "browser_dom_evidence": {
+        "viewport": 1024,
+        "documentWidth": 1071,
+        "overflowing": [
+          {
+            "tag": "div",
+            "id": "",
+            "classes": "session-tools",
+            "left": 670.421875,
+            "right": 1070.8125,
+            "width": 400.390625,
+            "scrollWidth": 400,
+            "clientWidth": 400,
+            "text": "1 running run in the last live snapshot; opens pending runs\n      Live · authenticated\n      \n        SAccount: Synthetic example ",
+            "display": "flex",
+            "gridTemplateColumns": "none",
+            "minWidth": "0px",
+            "whiteSpace": "normal",
+            "overflowX": "visible",
+            "position": "static",
+            "parent": {
+              "tag": "header",
+              "id": "",
+              "classes": "app-topbar"
+            }
+          },
+          {
+            "tag": "div",
+            "id": "",
+            "classes": "account",
+            "left": 814.8125,
+            "right": 1070.8125,
+            "width": 256,
+            "scrollWidth": 256,
+            "clientWidth": 256,
+            "text": "SAccount: Synthetic example operator · operator\n        \n          Synthetic example operatoroperator · Trusted network identity\n ",
+            "display": "block",
+            "gridTemplateColumns": "none",
+            "minWidth": "auto",
+            "whiteSpace": "normal",
+            "overflowX": "visible",
+            "position": "relative",
+            "parent": {
+              "tag": "div",
+              "id": "",
+              "classes": "session-tools"
+            }
+          },
+          {
+            "tag": "button",
+            "id": "account-button",
+            "classes": "account-button quiet",
+            "left": 814.8125,
+            "right": 1070.8125,
+            "width": 256,
+            "scrollWidth": 254,
+            "clientWidth": 254,
+            "text": "SAccount: Synthetic example operator · operator",
+            "display": "inline-flex",
+            "gridTemplateColumns": "none",
+            "minWidth": "0px",
+            "whiteSpace": "normal",
+            "overflowX": "visible",
+            "position": "static",
+            "parent": {
+              "tag": "div",
+              "id": "",
+              "classes": "account"
+            }
+          },
+          {
+            "tag": "svg",
+            "id": "",
+            "classes": "[object SVGAnimatedString]",
+            "left": 1048.234375,
+            "right": 1062.625,
+            "width": 14.390625,
+            "scrollWidth": 14,
+            "clientWidth": 14,
+            "text": "",
+            "display": "block",
+            "gridTemplateColumns": "none",
+            "minWidth": "auto",
+            "whiteSpace": "normal",
+            "overflowX": "hidden",
+            "position": "static",
+            "parent": {
+              "tag": "button",
+              "id": "account-button",
+              "classes": "account-button quiet"
+            }
+          },
+          {
+            "tag": "path",
+            "id": "",
+            "classes": "[object SVGAnimatedString]",
+            "left": 1051.83203125,
+            "right": 1059.02734375,
+            "width": 7.1953125,
+            "scrollWidth": 0,
+            "clientWidth": 0,
+            "text": "",
+            "display": "inline",
+            "gridTemplateColumns": "none",
+            "minWidth": "0px",
+            "whiteSpace": "normal",
+            "overflowX": "visible",
+            "position": "static",
+            "parent": {
+              "tag": "svg",
+              "id": "",
+              "classes": {}
+            }
+          },
+          {
+            "tag": "span",
+            "id": "auth-status",
+            "classes": "account-label",
+            "left": 855.8125,
+            "right": 1040.234375,
+            "width": 184.421875,
+            "scrollWidth": 235,
+            "clientWidth": 184,
+            "text": "Synthetic example operator · operator",
+            "display": "block",
+            "gridTemplateColumns": "none",
+            "minWidth": "0px",
+            "whiteSpace": "nowrap",
+            "overflowX": "hidden",
+            "position": "static",
+            "parent": {
+              "tag": "button",
+              "id": "account-button",
+              "classes": "account-button quiet"
+            }
+          }
+        ]
+      },
+      "temporary_css_diagnostic": {
+        "before": {
+          "documentWidth": 1071,
+          "viewport": 1024,
+          "headerWidth": 945,
+          "columns": "390.422px 144px 400.391px",
+          "inlineColumns": ""
+        },
+        "changed": {
+          "documentWidth": 1009,
+          "columns": "0px 432.609px 400.391px"
+        },
+        "restored": {
+          "documentWidth": 1071,
+          "columns": "390.422px 144px 400.391px"
+        }
+      },
+      "diagnostic_caution": "Changing only the first grid minimum to zero removes overflow but collapses the location track to zero; that is not a suitable production fix. The temporary style was restored, reproducing 1071px.",
+      "source_ui_edited": false,
+      "scope": "This change adds and exercises the browser rail; the confirmed website layout finding is retained, not hidden or advertised as fixed.",
+      "native_screenshot": "target/bombadil-web-owned-pinned-final/trace/screenshots/1794618755941161.jpeg",
+      "native_trace": "target/bombadil-web-owned-pinned-final/trace/trace.jsonl"
+    }
+  ],
+  "teardown_verification": {
+    "owned_process_groups": [
+      {
+        "pid": 415183,
+        "group_alive": false
+      },
+      {
+        "pid": 415037,
+        "group_alive": false
+      },
+      {
+        "pid": 448317,
+        "group_alive": false
+      }
+    ],
+    "protected_services_unchanged": true,
+    "attached_example_preserved_after_authorized_recovery": true,
+    "final_units": "Id=kiln-web-service.service\nActiveState=active\nSubState=running\nMainPID=3140209\nExecMainStartTimestamp=Fri 2026-11-13 14:47:13 EST\n\nId=kiln-website-exploration.service\nActiveState=active\nSubState=running\nMainPID=3956518\nExecMainStartTimestamp=Fri 2026-11-13 19:45:38 EST\n\nId=kiln-tailnet-proxy.service\nActiveState=active\nSubState=running\nMainPID=3840272\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n\nId=kiln-web-proxy-auth.service\nActiveState=active\nSubState=running\nMainPID=3840257\nExecMainStartTimestamp=Fri 2026-11-13 11:54:54 EST\n"
+  },
+  "overall_result": "Browser rail implemented and exercised; deployed campaign passed and the fresh packaged campaign confirmed a website layout violation.",
+  "trace_blake3": {
+    "target/bombadil-web-owned-pinned-final/trace/trace.jsonl": "afede67ba4bdf1c87782ee6972a67e714804d98e1eb151136895aadd13ab3680",
+    "target/bombadil-web-deployed-pinned-rooted/trace/trace.jsonl": "6b2b85564e3a0579aae2173c8a8fdfd2a7350eab0f085e3db49fc9053b43b42d"
+  },
+  "cleanup": {
+    "diagnostic_browser_tab_closed": true,
+    "diagnostic_browser_service_stopped": true,
+    "diagnostic_example_service_stopped": true,
+    "diagnostic_launcher_removed": true,
+    "diagnostic_profile_removed": true,
+    "temporary_source_and_package_gc_roots_removed": true,
+    "retained_artifacts": "Native context, staged specifications, reports, logs and trace/screenshot directories under target/; generated verification and lifecycle receipts in this change package."
+  },
+  "lifecycle_summary": {
+    "design_gate": "PASS",
+    "tasks_gate": "PASS",
+    "validate_exit_code": 0,
+    "traceability_verdict": "pass",
+    "traceability_requirements": 1787,
+    "traceability_referenced": 1787,
+    "traceability_missing": [],
+    "traceability_dangling": [],
+    "receipt": ".cairn/changes/add-bombadil-web-exploration/evidence/lifecycle.json"
+  }
+}

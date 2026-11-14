@@ -98,6 +98,8 @@ pub enum TerminalPolicy {
     VerifiedPullRequest,
     /// An independently verified already-satisfied result is also terminal.
     VerifiedOrAlreadySatisfied,
+    /// Work completion requires exact independently observed integration.
+    VerifiedIntegrated,
 }
 
 impl TerminalPolicy {
@@ -105,6 +107,7 @@ impl TerminalPolicy {
         match self {
             Self::VerifiedPullRequest => "verified_pull_request",
             Self::VerifiedOrAlreadySatisfied => "verified_or_already_satisfied",
+            Self::VerifiedIntegrated => "verified_integrated",
         }
     }
 }

@@ -1,0 +1,26 @@
+test content::tests::missing_content_is_an_infrastructure_failure ... ok
+test content::tests::identity_mismatch_is_rejected_before_writing ... ok
+test content::tests::read_bound_is_enforced_before_assembly ... ok
+test content::tests::exact_round_trip_survives_reopen ... ok
+content-index failure=Create populated=false retries=4 recovered=true
+test content::tests::obstructed_index_stage_cannot_be_acknowledged_by_equal_retry ... ok
+test content::tests::live_iroh_blobs_publishes_the_port_store ... ok
+test content::tests::live_iroh_blobs_transfer_preserves_exact_identity ... ok
+content-index failure=Create populated=true retries=4 recovered=true
+content-index failure=Write populated=false retries=4 recovered=true
+content-index failure=Write populated=true retries=4 recovered=true
+content-index failure=PayloadSync populated=false retries=4 recovered=true
+content-index failure=PayloadSync populated=true retries=4 recovered=true
+content-index failure=Rename populated=false retries=4 recovered=true
+content-index failure=Rename populated=true retries=4 recovered=true
+content-index failure=ParentSync populated=false retries=4 recovered=true
+content-index failure=ParentSync populated=true retries=4 recovered=true
+test content::tests::publication_failures_stay_pending_until_the_barrier_recovers ... ok
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.83s

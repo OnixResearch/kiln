@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.topbar-host-safety.v1",
+  "system_config": "/etc/nix/nix.conf",
+  "resolved_source": "/nix/store/8d3ilzz4v5l10akl06nqbvy1f7a16zs8-nix.conf",
+  "min_free_bytes": 107374182400,
+  "max_free_bytes": 137438953472,
+  "check_interval_seconds": 5,
+  "prior_automatic_request_bytes": 131442278400,
+  "explanation": "Configured automatic collection targets 128 GiB available when free space falls below 100 GiB. It is distinct from the earlier explicit 8 GiB max-freed command.",
+  "inferred_trigger_available_bytes": 5996675072,
+  "invocation_policy": "Every Nix command uses --option min-free 0; one local build, four cores, secure /run scratch, explicit temporary roots; no shared cleanup or host changes.",
+  "observed_shared_free": "5.0 GiB",
+  "observed_runtime_free": "47 GiB",
+  "observed_memory_available": "56 GiB",
+  "host_policy_modified": false,
+  "shared_cleanup_requested": false,
+  "config_blake3": "94d25698f3dc059e1e2e9be445bd187d82fc5412221ff5c5369eea0edddcd1bc",
+  "inference_note": "The available-byte value at the earlier trigger is inferred as configured max-free minus the reported request; no historical filesystem snapshot is claimed.",
+  "observed_post_build_shared_free": "582 MiB reported by df -h",
+  "observed_post_build_runtime_free": "47 GiB reported by df -h",
+  "remaining_risk": "The shared pool remains critically constrained. No further heavy build or shared cleanup is implied; additional storage or policy changes require separate operator authorization.",
+  "config_blake3_after": "94d25698f3dc059e1e2e9be445bd187d82fc5412221ff5c5369eea0edddcd1bc"
+}

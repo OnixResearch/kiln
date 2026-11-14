@@ -7,7 +7,6 @@
 //! Kiln and Aspen policy decisions.
 
 use std::collections::BTreeMap;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use kiln_adapter_aspen::CONTENT_REFERENCE_KIND;
@@ -19,6 +18,9 @@ use molten::content_store_adapter::{
     LiveIrohPublication, content_command,
 };
 
+#[cfg(test)]
+mod fault;
+mod index;
 mod live;
 mod port;
 mod support;
@@ -49,6 +51,9 @@ pub struct MoltenContentPort {
     root: CapabilityChunkRoot,
     chunk_size: u64,
     index: BTreeMap<String, String>,
+    index_pending: bool,
+    #[cfg(test)]
+    index_failure: Option<fault::IndexFailure>,
     profile: ContentAdapterProfile,
     live_profile: ContentAdapterProfile,
     live: Option<LiveIrohPublication>,
@@ -61,6 +66,7 @@ impl std::fmt::Debug for MoltenContentPort {
             .field("root_path", &self.root_path)
             .field("chunk_size", &self.chunk_size)
             .field("index_entries", &self.index.len())
+            .field("index_pending", &self.index_pending)
             .field("live_publication", &self.live.is_some())
             .finish_non_exhaustive()
     }
@@ -86,6 +92,7 @@ impl MoltenContentPort {
         let root =
             open_capability_chunk_root(&root_path).map_err(molten_failure("aspen_content_root"))?;
         let index = load_index(&root_path)?;
+        let is_index_pending = !index.is_empty();
         let profile = build_profile(chunk_size)?;
         let live_profile = build_profile_for(ContentAdapterClass::IrohBlobs, chunk_size)?;
         Ok(Self {
@@ -93,12 +100,16 @@ impl MoltenContentPort {
             root,
             chunk_size,
             index,
+            index_pending: is_index_pending,
+            #[cfg(test)]
+            index_failure: None,
             profile,
             live_profile,
             live: None,
         })
     }
 
+    // r[impl kiln.aspen_runtime.content_index_retry]
     fn persist_index(&self) -> Result<(), PortFailure> {
         let encoded = serde_json::to_vec_pretty(&self.index).map_err(|error| {
             infrastructure(
@@ -106,32 +117,25 @@ impl MoltenContentPort {
                 format!("content index could not be encoded: {error}"),
             )
         })?;
-        let temporary = self.root_path.join(format!("{INDEX_FILE}.tmp"));
-        let final_path = self.root_path.join(INDEX_FILE);
-        let mut file = std::fs::File::create(&temporary).map_err(|error| {
+        let directory = std::fs::File::open(&self.root_path).map_err(|error| {
             infrastructure(
-                "aspen_content_index_write",
-                format!("content index could not be created: {error}"),
+                "aspen_content_index_open",
+                format!("content index parent could not be opened: {error}"),
             )
         })?;
-        file.write_all(&encoded).map_err(|error| {
-            infrastructure(
-                "aspen_content_index_write",
-                format!("content index could not be written: {error}"),
-            )
-        })?;
-        file.sync_all().map_err(|error| {
-            infrastructure(
-                "aspen_content_index_sync",
-                format!("content index could not be synchronized: {error}"),
-            )
-        })?;
-        std::fs::rename(&temporary, &final_path).map_err(|error| {
-            infrastructure(
-                "aspen_content_index_publish",
-                format!("content index could not be published: {error}"),
-            )
-        })
+        let publication =
+            durable_file_publication::shell::LinuxDirectory::from_open_directory(directory)
+                .map_err(|error| {
+                    infrastructure(
+                        "aspen_content_index_open",
+                        format!("content index parent could not be admitted: {error}"),
+                    )
+                })?;
+        #[cfg(not(test))]
+        let mut publication = publication;
+        #[cfg(test)]
+        let mut publication = fault::FailingPublication::new(publication, self.index_failure);
+        index::publish(&mut publication, &encoded)
     }
 
     fn verify_reference_shape(reference: &ExternalRef) -> Result<(), PortFailure> {

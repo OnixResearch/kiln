@@ -1,0 +1,134 @@
+{
+  "schema": "kiln.readiness.run.v1",
+  "revision": "baff137e15573cc22bf079ac4e2abb4934e9979f",
+  "source_files": {
+    "/home/brittonr/git/OnixResearch/kiln/scripts/artifact-readiness.py": "55af221e87606cc8609e2aa6910f8ca3873d50268a744b89a5a82dbd96a34313",
+    "scripts/artifact_readiness_analysis.py": "1ed3612c9e6024aabe8de47eeadcfd914a5e5a314b1ec0c5dd2193d48df1f399",
+    "benchmarks/artifact-readiness/cohort.ncl": "0e0a03a7d4df8d6eb3e59ef2c0e475296c135750a62408c17d0031163eae3c85",
+    "benchmarks/artifact-readiness/contract.ncl": "d2bfbc9c0af581034a354a642b3934081b54d70c4f6055a634d2ba11e9ade074",
+    "crates/kiln-hosted/src/cache.rs": "98a4aa98afda029271ebebf2fdb9cb1983b1576ebe3f79883288a87180a81a81",
+    "crates/kiln-hosted/src/cache/readiness.rs": "e4971321c010d41717bc0948f5c9e159f62455a6bdf5c20f896530e5686513a4",
+    "crates/kiln-hosted/examples/artifact-readiness.rs": "0b1b3aea146700ba2519889775552dccfd1f5197394d9f884d31d9e93adbf1cf"
+  },
+  "tools": {
+    "nickel": {
+      "path": "/nix/store/0s4n29h8l3xwv7iswpraiwd9jidxpk7s-nickel-1.18.0/bin/nickel",
+      "blake3": "c5eb32b2e260b9506ac3369fa2414823a1c4fb592760bfe36acb9f460af309b1",
+      "version": "nickel-lang-cli nickel 1.18.0 (rev cargore)"
+    },
+    "b3sum": {
+      "path": "/nix/store/0by3mqkn4gk970s8h0ns546jcm8hfl7w-b3sum-1.8.7/bin/b3sum",
+      "blake3": "827e1a120331e82e9360d564b7decb920066594600db140e19820aae4c30d9ba",
+      "version": "b3sum 1.8.7"
+    },
+    "jj": {
+      "path": "/nix/store/9i19qqbdnyr5yx17h6dck90arn68rslr-jj/bin/jj",
+      "blake3": "13c7848ee8bf442ed2e799d6e9c78a807f1f0e5b53f26590924be1c556621a53",
+      "version": "jj 0.47.1"
+    },
+    "nix-instantiate": {
+      "path": "/nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin/nix",
+      "blake3": "0e670a46c789a33272d9193080b91affe8023af27bcfa9fad76d3d959178a8e7",
+      "version": "nix (Nix) 2.36.0"
+    },
+    "nix-store": {
+      "path": "/nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin/nix",
+      "blake3": "0e670a46c789a33272d9193080b91affe8023af27bcfa9fad76d3d959178a8e7",
+      "version": "nix (Nix) 2.36.0"
+    },
+    "nix": {
+      "path": "/nix/store/6rwk5j1qqk7na4la5m2ka34p734braxa-nix-2.36.0/bin/nix",
+      "blake3": "0e670a46c789a33272d9193080b91affe8023af27bcfa9fad76d3d959178a8e7",
+      "version": "nix (Nix) 2.36.0"
+    }
+  },
+  "runner": {
+    "hostname": "britton-desktop",
+    "machine": "x86_64",
+    "kernel": "6.18.60",
+    "cpu_identity": [
+      "address sizes\t: 48 bits physical, 48 bits virtual",
+      "cache size\t: 1024 KB",
+      "cpu family\t: 26",
+      "flags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good amd_lbr_v2 nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpuid_fault cpb cat_l3 cdp_l3 hw_pstate ssbd mba perfmon_v2 ibrs ibpb stibp ibrs_enhanced vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk avx_vnni avx512_bf16 clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif x2avic v_spec_ctrl vnmi avx512vbmi umip pku ospke avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid bus_lock_detect movdiri movdir64b overflow_recov succor smca fsrm avx512_vp2intersect flush_l1d amd_lbr_pmc_freeze",
+      "microcode\t: 0xb404035",
+      "model\t\t: 68",
+      "model name\t: AMD Ryzen 9 9950X3D 16-Core Processor",
+      "stepping\t: 0",
+      "vendor_id\t: AuthenticAMD"
+    ],
+    "filesystem_device": 89,
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ],
+    "kernel_page_cache": "uncontrolled; no drop-caches"
+  },
+  "runner_identity": "303f691075891ed66df52c89fac77226470278365d159026ebc4f1acbcc5e983",
+  "command": [
+    "scripts/artifact-readiness.py",
+    "--output",
+    "/run/user/1555/kiln-issues-readiness-native-tail-20261114",
+    "--nix-builder",
+    "/nix/store/kwyi4bq5s2qgwbhz6cs4gjy57c2zdxws-bash-interactive-5.3p20/bin/bash",
+    "--nix-coreutils",
+    "/nix/store/khp7klnw72ax5qxhlf2g884cplvvg4w6-uutils-coreutils-0.12.0",
+    "--nix-build-directory",
+    "/run",
+    "--workload",
+    "one-file",
+    "--workload",
+    "many-files",
+    "--workload",
+    "many-symlinks",
+    "--workload",
+    "shared-fanout",
+    "--samples",
+    "30"
+  ],
+  "samples_override": 30,
+  "providers": {
+    "hosted": null,
+    "nix_builder": "/nix/store/kwyi4bq5s2qgwbhz6cs4gjy57c2zdxws-bash-interactive-5.3p20/bin/bash",
+    "nix_coreutils": "/nix/store/khp7klnw72ax5qxhlf2g884cplvvg4w6-uutils-coreutils-0.12.0",
+    "nix_build_directory": "/run"
+  },
+  "decision_predeclared": {
+    "maximum_retained_byte_growth": 0,
+    "minimum_p95_saving_fraction": 0.2,
+    "minimum_p95_saving_ms": 5,
+    "minimum_samples": 30,
+    "proposal": "Reduce regular-file materialization overhead by changing archive layout; implementation and retention review required before go"
+  },
+  "remote_object_tier": "absent: no admitted provider configured"
+}

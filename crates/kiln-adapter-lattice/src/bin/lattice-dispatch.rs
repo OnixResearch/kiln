@@ -2,6 +2,10 @@
 //! reserved implementation attempt.
 
 #[cfg(target_os = "linux")]
+#[path = "../worker.rs"]
+mod worker;
+
+#[cfg(target_os = "linux")]
 use std::collections::BTreeMap;
 #[cfg(target_os = "linux")]
 use std::path::{Path, PathBuf};
@@ -38,6 +42,15 @@ fn run() -> Result<(), ()> {
         Ok(flags) => flags,
         Err(error) => return fail(&error),
     };
+    if flags.contains_key("--worker-request") {
+        return match worker::run(&flags) {
+            Ok(observation) => {
+                println!("{observation}");
+                Ok(())
+            }
+            Err(error) => fail(&error),
+        };
+    }
     let database = match required_path(&flags, "--database") {
         Ok(path) => path,
         Err(error) => return fail(&error),
@@ -113,8 +126,11 @@ fn run() -> Result<(), ()> {
         Ok(None) => return fail("dispatch attempt is not retained"),
         Err(error) => return fail(&error),
     };
-    if attempt.phase != AttemptPhase::Claimed {
-        return fail("dispatch attempt is not claimed");
+    if !matches!(
+        attempt.phase,
+        AttemptPhase::Claimed | AttemptPhase::Executing
+    ) {
+        return fail("dispatch attempt is neither claimed nor executing");
     }
     let attempts = match implementer.attempts() {
         Ok(attempts) => attempts,
@@ -144,6 +160,52 @@ fn run() -> Result<(), ()> {
     let recover = flags
         .get("--recover")
         .is_some_and(|value| matches!(value.as_str(), "true" | "1"));
+    let recover = match implementer.dispatch_requires_recovery(&attempt.identity) {
+        Ok(previous) => recover || previous,
+        Err(error) => return fail(&error),
+    };
+    if !recover {
+        let admission = match implementer.admission_snapshot() {
+            Ok(value) => value,
+            Err(error) => return fail(&error),
+        };
+        if admission.policy.is_some() {
+            let Some(item) = admission.items.get(&dispatch.work_identity) else {
+                return fail("queued dispatch work is missing");
+            };
+            if wall_clock_ms()
+                .checked_add(u64::from(dispatch.deadline_minutes) * 60 * 1000)
+                .is_none_or(|end| end > item.deadline_ms)
+            {
+                return fail("dispatch runtime exceeds its parent queue deadline");
+            }
+        }
+        let fresh: Vec<kiln_core::fair_admission::EligibilityInput> =
+            match flags.get("--admission-observations") {
+                Some(path) => match read_json(Path::new(path)) {
+                    Ok(fresh) => fresh,
+                    Err(error) => return fail(&error),
+                },
+                None => Vec::new(),
+            };
+        if let Err(error) = implementer.admission_before_transport(
+            &attempt.identity,
+            attempt.fence,
+            &fresh,
+            wall_clock_ms(),
+        ) {
+            return fail(&error);
+        }
+    }
+    let recover = match implementer.begin_dispatch_transport(
+        &attempt.identity,
+        attempt.fence,
+        wall_clock_ms(),
+        &reservation.plan,
+    ) {
+        Ok(previously_started) => recover || previously_started,
+        Err(error) => return fail(&error),
+    };
     let accepted = if recover {
         recover_implementation_request(&mut exchange, &profile, &request)
     } else {
@@ -160,6 +222,11 @@ fn run() -> Result<(), ()> {
         };
     if let Err(error) =
         implementer.start_execution(&attempt.identity, attempt.fence, wall_clock_ms(), &workflow)
+    {
+        return fail(&error);
+    }
+    if let Err(error) =
+        implementer.admission_execution_observed(&attempt.identity, attempt.fence, wall_clock_ms())
     {
         return fail(&error);
     }
@@ -210,7 +277,16 @@ fn required_positive(flags: &BTreeMap<String, String>, key: &str) -> Result<usiz
 
 #[cfg(target_os = "linux")]
 fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, String> {
-    let bytes = std::fs::read(path).map_err(|_| format!("{} is unreadable", path.display()))?;
+    use std::io::Read;
+    let file =
+        std::fs::File::open(path).map_err(|_| format!("{} is unreadable", path.display()))?;
+    let mut bytes = Vec::new();
+    file.take(16 * 1024 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "bounded input read failed".to_string())?;
+    if bytes.len() > 16 * 1024 * 1024 {
+        return Err("JSON input exceeds 16MiB admission bound".into());
+    }
     serde_json::from_slice(&bytes).map_err(|_| format!("{} is not valid JSON", path.display()))
 }
 

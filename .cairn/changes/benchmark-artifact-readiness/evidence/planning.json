@@ -1,0 +1,15 @@
+{
+  "schema": "kiln.readiness.planning-evidence.v1",
+  "change": "benchmark-artifact-readiness",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "gates": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "97d9c4382da7fb1b227ec84c2234766ee21c7e7257c2dcb0ae2c53150f243d1e"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "35936368c6c3e302b1a547f79ac1944838bf4cf2a9a476437436cdea7b15efca"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "408bb01242cb5f9a1b4a5b9f700084be4a4cb17008019be68b04416197b6b9e8"}
+  ],
+  "ordering": "All three native planning gates passed before product edits. Tasks were subsequently marked implemented; coordinated runtime verification remains unchecked.",
+  "issue_comments": "GitHub comments endpoint returned an empty array.",
+  "runtime_campaigns": [],
+  "verification": "No build, benchmark, test, lint or formatter run during implementation.",
+  "non_claims": ["No performance result", "No remote tier parity", "No VM or guest hydration qualification", "No production qualification"]
+}

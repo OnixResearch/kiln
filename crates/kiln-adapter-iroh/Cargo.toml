@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 iroh = { version = "=0.95.1", default-features = false }
+kiln-microvm = { path = "../kiln-microvm" }
 lattice-workflow-contract.workspace = true
 libc = "0.2"
 lattice-workflow-transport.workspace = true

@@ -9,8 +9,15 @@ publish = false
 [features]
 # Compile-time-only host fault harness; no configuration/environment switch.
 cache-fault-tests = []
+# Opt-in synchronous timing/attribution harness; never enabled by the service.
+cache-readiness-bench = ["dep:nix"]
+
+[[example]]
+name = "artifact-readiness"
+required-features = ["cache-readiness-bench"]
 
 [dependencies]
+nix = { version = "=0.30.1", features = ["resource"], optional = true }
 base64.workspace = true
 blake3.workspace = true
 bounded-exec.workspace = true
@@ -28,7 +35,7 @@ kiln-web-service = { path = "../kiln-web-service" }
 libc = "0.2"
 rusqlite.workspace = true
 serde.workspace = true
-rustix = { version = "=1.1.4", features = ["fs"] }
+rustix = { version = "=1.1.4", features = ["fs", "net"] }
 serde_json.workspace = true
 sha2 = "0.10.9"
 signal-hook = "0.3.18"

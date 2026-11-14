@@ -1,0 +1,14 @@
+{
+  "change": "integrate-retained-mobility",
+  "policy": "cairn-policy/generated/cairn-policy.json",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "gates": [
+    {"stage":"proposal","command":"cairn gate proposal integrate-retained-mobility --root . --policy cairn-policy/generated/cairn-policy.json","valid":true,"verdict":"PASS","receipt_hash":"accc8447cf3fac43bea078bdb241da51aea54d8d27044ab2304e3f94ccb2012d"},
+    {"stage":"design","command":"cairn gate design integrate-retained-mobility --root . --policy cairn-policy/generated/cairn-policy.json","valid":true,"verdict":"PASS","receipt_hash":"467afe51f4f2a13cc81cc539b0953a0c67e5fb7ba72a5614b3442a92ce85e4e3"},
+    {"stage":"tasks","command":"cairn gate tasks integrate-retained-mobility --root . --policy cairn-policy/generated/cairn-policy.json","valid":true,"verdict":"PASS","receipt_hash":"89439a747dbce5f6ceff94abba1d13fb469fab50735b5f70b5abd317387a7228"}
+  ],
+  "ordering": "All three repaired prerequisite gates passed before product edits. The first design/tasks attempt reported missing delta/concurrency/linkage; the package was corrected and all three gates rerun.",
+  "implementation_checks_run": [],
+  "not_run": ["builds", "tests", "clippy", "formatters", "VMM startup", "Iroh runtime campaign", "two-host stopped or live migration", "deployment or service activation"],
+  "non_claims": ["A gate pass is not implementation, runtime or hardware qualification.", "The selected Aspen provider remains unsupported for retained current-placement/resource fencing and cross-host migration streams."]
+}

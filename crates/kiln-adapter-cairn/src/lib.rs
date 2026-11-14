@@ -1,5 +1,7 @@
+pub mod acceptance;
 mod adapter;
 pub mod implementation;
+pub mod lifecycle_observation;
 mod machine;
 mod mapping;
 mod profile;

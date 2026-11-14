@@ -61,6 +61,7 @@ pub fn admit_candidate_verification(
         || verification.run.repository != work.repository
         || verification.run.revision != handoff.candidate.native_id.as_str()
         || verification.run.ordinal == 0
+        || !identifier(&verification.run.run_id, MAX_CHECK_NAME_BYTES)
         || !verification.run.terminal
         || !verification.run.success
         || !verification.run.full_run
@@ -92,7 +93,7 @@ pub fn admit_candidate_verification(
             || check
                 .artifact_digest
                 .as_deref()
-                .is_some_and(|digest| !hex(digest))
+                .is_none_or(|digest| !hex(digest))
         {
             return Err(refusal(
                 "implementation_verification_checks",
@@ -369,7 +370,7 @@ mod tests {
 
     #[test]
     // r[verify kiln.implementation.verification.scenario.refused]
-    fn refuses_failed_partial_or_mismatched_evidence() {
+    fn refuses_failed_partial_or_mismatched_evidence() -> Result<(), &'static str> {
         let work = work();
         let mut ledger = AttemptLedger::default();
         let attempt = ledger
@@ -395,5 +396,26 @@ mod tests {
         let mut wrong = make_receipt(&work, &handoff, &handoff_identity);
         wrong.run.revision = "b".repeat(40);
         assert!(admit_candidate_verification(&work, &attempt, &handoff, &wrong).is_err());
+        let mut missing_artifact = make_receipt(&work, &handoff, &handoff_identity);
+        missing_artifact
+            .run
+            .checks
+            .first_mut()
+            .ok_or("verification check missing")?
+            .artifact_digest = None;
+        assert!(
+            admit_candidate_verification(&work, &attempt, &handoff, &missing_artifact).is_err()
+        );
+        let mut duplicate = make_receipt(&work, &handoff, &handoff_identity);
+        duplicate.run.checks.push(
+            duplicate
+                .run
+                .checks
+                .first()
+                .ok_or("verification check missing")?
+                .clone(),
+        );
+        assert!(admit_candidate_verification(&work, &attempt, &handoff, &duplicate).is_err());
+        Ok(())
     }
 }

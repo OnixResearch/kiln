@@ -1,0 +1,186 @@
+{
+  "schema": "kiln.local-integration-observation.v1",
+  "date": "2026-11-14",
+  "maintenance_owner": "Kiln core, implementation, adapter and web maintainers; onix-core deployment maintainers",
+  "scope": {
+    "issues": [
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      57,
+      58,
+      59,
+      60,
+      61
+    ],
+    "local_implementation_only": true,
+    "release_qualified": false,
+    "remote_effects_authorized": false,
+    "issues_closed": false,
+    "local_checks_complete": true
+  },
+  "durable_capability": "Repository-owned implementations, actual bounded local consumers and replayable acceptance/qualification inputs; external authority and missing provider contracts remain explicit",
+  "observed_checks": [
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-adapter-cairn --lib",
+      "passed": 24
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-adapter-lattice --all-targets",
+      "passed": 22
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-implementer --test durable finish_active_resolves_only_its_exact_frozen_work_across_restart",
+      "passed": 1
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-implementer --lib verification:: -- --include-ignored",
+      "passed": 9,
+      "includes_actual_private_git_and_frozen_oracle": true,
+      "git": "/nix/store/xgw813vgzl2q0696sq45adpj0xd690jq-git-2.56.0/bin/git",
+      "shell": "/nix/store/kwyi4bq5s2qgwbhz6cs4gjy57c2zdxws-bash-interactive-5.3p20/bin/bash"
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p onix-kiln-core --lib",
+      "passed": 267
+    },
+    {
+      "command": "cargo +1.88.0 clippy --offline --locked --workspace --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo +1.88.0 fmt --all --check",
+      "exit_code": 0
+    }
+  ],
+  "lifecycle": [
+    {
+      "name": "validate",
+      "command": "cairn validate --root . --policy /home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json",
+      "exit_code": 0,
+      "valid": true,
+      "receipt_hash": "4282ce16451505dfd28ead4bdc555a9c64f8443de6bde828469617c2fbdb1615",
+      "changes": 23
+    },
+    {
+      "name": "coverage",
+      "command": "cairn traceability coverage --root . --policy /home/brittonr/git/OnixResearch/kiln/cairn-policy/generated/cairn-policy.json --json",
+      "exit_code": 1,
+      "valid": false,
+      "verdict": "fail",
+      "receipt_hash": "ca36b828233629ab0a0b65ea6755c838eefb2554a8140a016dd04775c6253ac6",
+      "missing": [
+        "kiln.github.landing.merge.scenario.landed",
+        "kiln.github.landing.merge.scenario.refused",
+        "kiln.github.landing.merge_ancestry",
+        "kiln.github.landing.merge_ancestry.scenario.advanced",
+        "kiln.github.source_status.scenario.close"
+      ],
+      "dangling": [
+        "kiln.admission.bounded",
+        "kiln.admission.durable",
+        "kiln.aspen_runtime.content_index_retry",
+        "kiln.aspen_runtime.content_index_retry.scenario.barrier",
+        "kiln.aspen_runtime.content_index_retry.scenario.fault",
+        "kiln.aspen_runtime.content_index_retry.scenario.preserved",
+        "kiln.aspen_runtime.content_index_retry.scenario.recovery",
+        "kiln.dashboard.reviews.view.scenario.context",
+        "kiln.dashboard.reviews.view.scenario.decisions",
+        "kiln.dashboard.reviews.view.scenario.find",
+        "kiln.dashboard.workers.view.scenario.detail",
+        "kiln.dashboard.workers.view.scenario.heartbeat",
+        "kiln.dashboard.workers.view.scenario.register",
+        "kiln.hosted.mobility.runtime",
+        "kiln.hosted.mobility.runtime.scenario.durable",
+        "kiln.hosted.mobility.runtime.scenario.replay",
+        "kiln.identity.graphics_standard",
+        "kiln.identity.graphics_standard.scenario.regression",
+        "kiln.identity.graphics_standard.scenario.surfaces",
+        "kiln.implementation.current_authority",
+        "kiln.implementation.current_authority.scenario.cancelled",
+        "kiln.implementation.recovery_cli",
+        "kiln.implementation.recovery_cli.scenario.distinct",
+        "kiln.implementation.unknown_barrier",
+        "kiln.implementation.unknown_barrier.scenario.restart",
+        "kiln.implementation.verification.scenario.forged",
+        "kiln.implementation.verification.scenario.independent",
+        "kiln.implementation_qualification.approval",
+        "kiln.implementation_qualification.real_stages",
+        "kiln.implementation_qualification.scoped_evidence",
+        "kiln.inventory.consumers",
+        "kiln.inventory.separation",
+        "kiln.preview.exact",
+        "kiln.preview.review",
+        "kiln.preview.runtime",
+        "kiln.publication.atomicity",
+        "kiln.publication.atomicity.scenario.unsupported",
+        "kiln.publication.exact",
+        "kiln.publication.exact.scenario.external",
+        "kiln.publication.recovery",
+        "kiln.publication.recovery.scenario.crash",
+        "kiln.readiness.benchmark",
+        "kiln.readiness.benchmark.scenario.controls",
+        "kiln.readiness.benchmark.scenario.evidence",
+        "kiln.readiness.benchmark.scenario.identity",
+        "kiln.readiness.benchmark.scenario.phases",
+        "kiln.web.exploration",
+        "kiln.web.exploration.browser_property_rail",
+        "kiln.web.exploration.browser_property_rail.scenario.cohort",
+        "kiln.web.exploration.browser_property_rail.scenario.evidence",
+        "kiln.web.exploration.browser_property_rail.scenario.isolation",
+        "kiln.web.exploration.browser_property_rail.scenario.properties",
+        "kiln.web.exploration.scenario.admission",
+        "kiln.web.exploration.scenario.coverage",
+        "kiln.web.exploration.scenario.deploy",
+        "kiln.web.exploration.scenario.local",
+        "kiln.web.exploration.scenario.repeat",
+        "kiln.web.exploration.scenario.tailnet",
+        "kiln.web.readable_observations.scenario.pending",
+        "kiln.web.topbar_containment",
+        "kiln.web.topbar_containment.scenario.controls",
+        "kiln.web.topbar_containment.scenario.evidence",
+        "kiln.web.topbar_containment.scenario.host_safety",
+        "kiln.web.topbar_containment.scenario.location",
+        "kiln.web.wayfinding",
+        "kiln.web.wayfinding.scenario.orientation",
+        "kiln.web.wayfinding.scenario.register"
+      ]
+    },
+    {
+      "name": "release-readiness",
+      "command": "cairn release-readiness --root .",
+      "exit_code": 0,
+      "valid": false,
+      "verdict": "fail",
+      "receipt_hash": "2c4a29536e9f1067ad0179c5c52984abc24d3f5c70e4b1cc92faad48719e0e0b",
+      "failed_checks": [
+        "traceability_coverage"
+      ]
+    }
+  ],
+  "retained_observations": {
+    "artifact_preview": "../../add-exact-artifact-previews/evidence/browser-verification.json",
+    "readiness_benchmark": "../../benchmark-artifact-readiness/evidence/verification.json"
+  },
+  "missing_qualification": [
+    "A selected immutable isolated worker/model execution cohort, authenticated credential delivery, real grants and independent verifier/canonical store authority",
+    "An operator-approved exact remote repository/credentials/object publication route, plus a provider capable of atomic candidate-and-base landing",
+    "Provider-owned durable placement/resource and writer fences, a retained Lattice execution/reconnect gateway, and authorized compatible cross-host execution/migration observations",
+    "A genuine current canonical CI build/product/source binding and independently selected signing/runtime policy for normal artifact preview acceptance"
+  ],
+  "non_claims": [
+    "No production deployment, remote publication, atomic landing, live migration or issue closure",
+    "Engine-only preview execution is not canonical CI artifact qualification",
+    "Thirty baseline attempts per benchmark cell do not authorize any speedup or optimization claim",
+    "Release-readiness verdict is fail even though its CLI exit code is zero",
+    "This local observation is not a sealed source qualification, production authorization or native gate override"
+  ]
+}

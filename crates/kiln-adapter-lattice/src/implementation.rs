@@ -40,7 +40,10 @@ pub fn admit_implementation_request(
             "implementation dispatch requires an exact base",
         ));
     };
-    if attempt.phase != AttemptPhase::Claimed
+    if !matches!(
+        attempt.phase,
+        AttemptPhase::Claimed | AttemptPhase::Executing
+    ) || dispatch.execution.is_some()
         || attempt.dispatch.as_ref() != Some(reservation)
         || request.schema != REQUEST_SCHEMA
         || request.graph.schema != GRAPH_SCHEMA
@@ -162,17 +165,17 @@ fn exchange_implementation_request<T: WorkflowExchangePort>(
         }));
     }
     let accepted: WorkflowAccepted = serde_json::from_slice(&response.body).map_err(|_| {
-        infrastructure(
-            "implementation_lattice_response",
-            "Lattice acceptance response is malformed",
-        )
+        PortFailure::Unknown(InfrastructureFailure {
+            code: "implementation_lattice_response".into(),
+            message: "Lattice response is malformed after possible dispatch; reconcile".into(),
+        })
     })?;
     validate_accepted(request, &accepted).map_err(|_| {
-        domain(
-            "implementation_lattice_acceptance",
-            "implementation.acceptance",
-            "Lattice acceptance does not match the request",
-        )
+        PortFailure::Unknown(InfrastructureFailure {
+            code: "implementation_lattice_acceptance".into(),
+            message: "Lattice response linkage is unproven after possible dispatch; reconcile"
+                .into(),
+        })
     })?;
     Ok(accepted)
 }
@@ -288,6 +291,7 @@ mod tests {
             token_budget: 1000,
             invocation_budget: 10,
             expected_output: content('e'),
+            execution: None,
         }
     }
 
@@ -453,6 +457,7 @@ mod tests {
                 token_budget: 1000,
                 invocation_budget: 10,
                 expected_output: content('e'),
+                execution: None,
             },
             &DispatchReservation {
                 schema: kiln_core::implementation::DISPATCH_SCHEMA.to_string(),

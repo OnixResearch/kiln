@@ -371,6 +371,11 @@
   }
   function render(inventory, items, route) {
     const page = element("div", undefined, "workers-page");
+    if (window.KilnInventory) {
+      const observed = element("div", undefined, "workers-observed-inventories");
+      observed.dataset.inventoryRoot = "true";
+      page.append(observed);
+    }
     if (!route.worker) page.append(summary(inventory), register(inventory, items, route));
     else {
       page.append(detail(inventory, items, route));
@@ -415,6 +420,8 @@
       model = { inventory, rows: rows(inventory) };
       applied = { q: route.q, status: route.status };
       root.replaceChildren(render(inventory, model.rows, route));
+      const observed = root.querySelector("[data-inventory-root]");
+      if (observed) void window.KilnInventory.load(observed, ctx);
       if (prior === route.worker) for (const node of root.querySelectorAll("details[data-worker-disclosure]")) if (open.has(node.dataset.workerDisclosure)) node.open = open.get(node.dataset.workerDisclosure);
       shown = route;
       if (focus.startsWith("#")) root.querySelector(focus)?.focus({ preventScroll: true });
@@ -438,12 +445,18 @@
       const retry = element("button", "Try again"); retry.type = "button";
       retry.addEventListener("click", () => { if (context?.isCurrent()) void load(root, context); });
       panel.append(element("h2", "Workers unavailable"), failure, retry); root.replaceChildren(panel);
+      if (window.KilnInventory) {
+        const observed = element("div", undefined, "workers-observed-inventories");
+        root.prepend(observed);
+        void window.KilnInventory.load(observed, ctx);
+      }
     } finally {
       if (live()) root.removeAttribute("aria-busy");
     }
   }
   // r[impl kiln.dashboard.workers.view.scenario.cleared]
   function clear() {
+    window.KilnInventory?.clear();
     generation += 1;
     clearTimeout(filterTimer);
     mounted?.replaceChildren();

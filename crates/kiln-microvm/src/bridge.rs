@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use crate::retained::Placement;
 use kiln_core::types::{ContentId, Diagnostic};
 
-pub const BRIDGE_SCHEMA: &str = "kiln.migration-bridge.v1";
-pub const MAX_SOCKET_BYTES: usize = 256;
+pub const BRIDGE_SCHEMA: &str = "kiln.migration-bridge.v2";
+pub const MAX_SOCKET_BYTES: usize = 107;
 pub const MAX_STREAM_BYTES: u64 = 1 << 40;
 pub const MAX_DEADLINE_MS: u64 = 24 * 60 * 60 * 1_000;
 
@@ -48,6 +48,8 @@ pub struct MigrationBridgePlan {
     pub schema: String,
     pub operation: ContentId,
     pub session: ContentId,
+    pub execution: ContentId,
+    pub vm: ContentId,
     pub attempt: ContentId,
     pub fence: u64,
     pub checkpoint: ContentId,
@@ -69,6 +71,8 @@ pub struct MigrationBridgePlan {
 pub struct BridgeExpectation {
     pub operation: ContentId,
     pub session: ContentId,
+    pub execution: ContentId,
+    pub vm: ContentId,
     pub attempt: ContentId,
     pub fence: u64,
     pub checkpoint: ContentId,
@@ -87,9 +91,30 @@ pub fn admit_bridge(
     plan: &MigrationBridgePlan,
     expected: &BridgeExpectation,
 ) -> Result<ContentId, Diagnostic> {
+    BridgeEndpoint::new(plan.source_endpoint.id)?;
+    BridgeEndpoint::new(plan.target_endpoint.id)?;
+    for placement in [&plan.source, &plan.target] {
+        if placement.generation == 0
+            || placement.host.is_empty()
+            || placement.host.len() > crate::retained::MAX_HOST_BYTES
+            || placement
+                .host
+                .chars()
+                .any(|character| character.is_control() || character.is_whitespace())
+        {
+            return Err(refusal(
+                "bridge_placement",
+                "bridge.plan",
+                "bridge placement is malformed",
+            ));
+        }
+    }
     if plan.schema != BRIDGE_SCHEMA
         || plan.operation != expected.operation
         || plan.session != expected.session
+        || plan.execution != expected.execution
+        || plan.vm != expected.vm
+        || plan.fence == 0
         || plan.attempt != expected.attempt
         || plan.fence != expected.fence
         || plan.checkpoint != expected.checkpoint
@@ -120,6 +145,8 @@ pub fn admit_bridge(
     for identity in [
         &plan.operation,
         &plan.session,
+        &plan.execution,
+        &plan.vm,
         &plan.attempt,
         &plan.checkpoint,
     ] {
@@ -132,6 +159,8 @@ pub fn admit_bridge(
         BRIDGE_SCHEMA,
         plan.operation.as_str(),
         plan.session.as_str(),
+        plan.execution.as_str(),
+        plan.vm.as_str(),
     ] {
         push(&mut bytes, value)?;
     }
@@ -159,7 +188,10 @@ fn validate_socket(path: &str, field: &str) -> Result<(), Diagnostic> {
         || path.len() > MAX_SOCKET_BYTES
         || !path.starts_with('/')
         || path.chars().any(char::is_control)
-        || path.split('/').any(|part| part == "..")
+        || path
+            .split('/')
+            .skip(1)
+            .any(|part| part.is_empty() || part == "." || part == "..")
     {
         return Err(refusal(
             "bridge_socket",
@@ -219,6 +251,8 @@ mod tests {
             schema: BRIDGE_SCHEMA.to_string(),
             operation: content('1'),
             session: content('2'),
+            execution: content('5'),
+            vm: content('6'),
             attempt: content('3'),
             fence: 7,
             checkpoint: content('4'),
@@ -241,6 +275,8 @@ mod tests {
         BridgeExpectation {
             operation: plan.operation,
             session: plan.session,
+            execution: plan.execution,
+            vm: plan.vm,
             attempt: plan.attempt,
             fence: plan.fence,
             checkpoint: plan.checkpoint,
@@ -305,5 +341,34 @@ mod tests {
     #[test]
     fn rejects_zero_endpoints() {
         assert!(BridgeEndpoint::new([0; 32]).is_err());
+    }
+
+    #[test]
+    fn rejects_legacy_missing_identity_and_noncanonical_resources() {
+        let mut candidate = plan();
+        candidate.schema = "kiln.migration-bridge.v1".to_string();
+        assert!(admit_bridge(&candidate, &expectation()).is_err());
+        candidate = plan();
+        candidate.vm = content('f');
+        assert!(admit_bridge(&candidate, &expectation()).is_err());
+        candidate = plan();
+        candidate.execution = candidate.session.clone();
+        assert!(admit_bridge(&candidate, &expectation()).is_err());
+        candidate = plan();
+        candidate.source_endpoint.id = [0; 32];
+        let mut expected = expectation();
+        expected.source_endpoint = candidate.source_endpoint;
+        assert!(admit_bridge(&candidate, &expected).is_err());
+        for path in [
+            "/run/kiln/./source.sock",
+            "/run//kiln/source.sock",
+            "/run/kiln/source.sock/",
+        ] {
+            candidate = plan();
+            candidate.source_socket = path.to_string();
+            expected = expectation();
+            expected.source_socket = path.to_string();
+            assert!(admit_bridge(&candidate, &expected).is_err());
+        }
     }
 }

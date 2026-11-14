@@ -83,6 +83,7 @@ pub struct LandingReceipt {
     pub merge_commit: String,
     pub base_ref: String,
     pub base_head: String,
+    pub mapping: kiln_core::implementation::IntegrationMapping,
 }
 
 /// Admit a read-only observation as exact landing evidence.
@@ -95,15 +96,22 @@ pub fn admit_landing(
     plan: &LandingPlan,
     observation: &LandingObservation,
 ) -> Result<(), Diagnostic> {
+    admit_landing_evidence(plan, observation, false)
+}
+
+fn admit_landing_evidence(
+    plan: &LandingPlan,
+    observation: &LandingObservation,
+    integrated: bool,
+) -> Result<(), Diagnostic> {
     admit_plan(plan)?;
     let pull = &observation.pull;
     if pull.number != plan.pull_number
-        || pull.state != "open"
-        || pull.merged
-        || pull.mergeable != Some(true)
+        || (!integrated && (pull.state != "open" || pull.merged || pull.mergeable != Some(true)))
+        || (integrated && (pull.state != "closed" || !pull.merged))
         || pull.head_sha != plan.head_sha
         || pull.base_ref != plan.base_ref
-        || observation.base_head != plan.base_head
+        || (!integrated && observation.base_head != plan.base_head)
         || !commit(&observation.base_head)
     {
         return Err(refusal(
@@ -361,6 +369,12 @@ impl GithubLandingClient {
     /// Read on-demand evidence. No remote mutation occurs.
     // r[impl kiln.github.landing]
     pub fn observe(&self, plan: &LandingPlan) -> PortResult<LandingObservation> {
+        let observation = self.read_observation(plan)?;
+        admit_landing(plan, &observation)?;
+        Ok(observation)
+    }
+
+    fn read_observation(&self, plan: &LandingPlan) -> PortResult<LandingObservation> {
         admit_plan(plan)?;
         let pull: RawPull = self.get_json(&format!(
             "{}/repos/{}/{}/pulls/{}",
@@ -386,6 +400,15 @@ impl GithubLandingClient {
                 "landing.reviews",
                 "review pagination is incomplete or exceeds its bound",
             ));
+        }
+        if reviews
+            .iter()
+            .any(|review| review.commit_id.as_deref() != Some(plan.head_sha.as_str()))
+        {
+            return Err(PortFailure::Unknown(InfrastructureFailure {
+                code: "github_landing_review_revision".into(),
+                message: "review does not bind the exact candidate revision".into(),
+            }));
         }
         let base: RawRef = self.get_json(&format!(
             "{}/repos/{}/{}/git/ref/heads/{}",
@@ -430,69 +453,20 @@ impl GithubLandingClient {
                 .collect(),
             base_head: base.object.sha,
         };
-        admit_landing(plan, &observation)?;
         Ok(observation)
     }
 
-    /// Merge one exact ready pull request using a merge commit and read back
-    /// the landed result. This is a high-impact effect and is not called by
-    /// observation-only code.
-    // r[impl kiln.github.landing.merge]
+    /// No available GitHub route atomically compares the admitted target head.
+    /// The REST PR head guard is not a base guard. Keep the PR ready for review;
+    /// even a successful readiness observation cannot authorize this mutation.
+    // r[impl kiln.publication.atomicity]
     pub fn land(&self, plan: &LandingPlan) -> PortResult<LandingReceipt> {
-        if let Some(receipt) = self.recover_landed(plan)? {
-            return Ok(receipt);
-        }
-        let _observation = self.observe(plan)?;
-        let (owner, repository) = landing_repository(plan)?;
-        let body = serde_json::json!({
-            "sha": plan.head_sha,
-            "merge_method": "merge",
-        })
-        .to_string();
-        let response = self.post(
-            &format!(
-                "{}/repos/{owner}/{repository}/pulls/{}/merge",
-                self.endpoint, plan.pull_number
-            ),
-            &body,
-        );
-        match response {
-            Ok(response) => {
-                let merged: RawMerge = self.decode(response)?;
-                if !merged.merged {
-                    return Err(domain(
-                        "github_landing_not_merged",
-                        "landing.merge",
-                        "GitHub did not merge the pull request",
-                    ));
-                }
-                self.verify_merged(plan)
-            }
-            Err(HttpError::Status(405 | 409 | 422)) => {
-                // The head or mergeability changed; do not blindly retry.
-                self.verify_merged(plan)
-            }
-            Err(HttpError::Status(401 | 403)) => Err(domain(
-                "github_landing_unauthorized",
-                "landing.merge",
-                "GitHub landing credentials were refused",
-            )),
-            Err(HttpError::Status(404)) => Err(domain(
-                "github_landing_not_found",
-                "landing.merge",
-                "GitHub pull request was not found",
-            )),
-            Err(_) => self.verify_merged(plan),
-        }
-    }
-
-    fn verify_merged(&self, plan: &LandingPlan) -> PortResult<LandingReceipt> {
-        self.recover_landed(plan)?.ok_or_else(|| {
-            PortFailure::Unknown(InfrastructureFailure {
-                code: "github_landing_merge_unknown".to_string(),
-                message: "merge response is unknown and no merged result is observable".to_string(),
-            })
-        })
+        admit_plan(plan)?;
+        Err(domain(
+            "github_landing_unqualified_atomicity",
+            "landing.strategy",
+            "unattended landing is unsupported: no qualified atomic target guard; retain PR-ready",
+        ))
     }
 
     /// Recover an already landed result without issuing another merge.
@@ -502,6 +476,7 @@ impl GithubLandingClient {
     /// read-back.
     // r[impl kiln.github.landing.merge]
     pub fn recover_landed(&self, plan: &LandingPlan) -> PortResult<Option<LandingReceipt>> {
+        admit_plan(plan)?;
         let (owner, repository) = landing_repository(plan)?;
         let pull: RawPull = self.get_json(&format!(
             "{}/repos/{owner}/{repository}/pulls/{}",
@@ -530,15 +505,31 @@ impl GithubLandingClient {
                 "observed merged pull request does not match the exact candidate/base",
             ));
         }
-        let base: RawRef = self.get_json(&format!(
-            "{}/repos/{owner}/{repository}/git/ref/heads/{}",
-            self.endpoint,
-            encode(&plan.base_ref)
+        if !commit(merge_commit) {
+            return Err(domain(
+                "github_landing_merge_identity",
+                "landing.merge",
+                "malformed merge commit identity",
+            ));
+        }
+        // A merged flag and ancestry are insufficient. The supported external
+        // mapping has exact frozen base/head parents and the reviewed tree.
+        let merge: RawCommit = self.get_json(&format!(
+            "{}/repos/{owner}/{repository}/git/commits/{merge_commit}",
+            self.endpoint
         ))?;
-        if base.object.sha != merge_commit {
+        let candidate: RawCommit = self.get_json(&format!(
+            "{}/repos/{owner}/{repository}/git/commits/{}",
+            self.endpoint, plan.head_sha
+        ))?;
+        admit_merge_mapping(plan, merge_commit, &merge, &candidate)?;
+        let observation = self.read_observation(plan)?;
+        admit_landing_evidence(plan, &observation, true)?;
+        let base_head = observation.base_head;
+        if base_head != merge_commit {
             let compare: RawCompare = self.get_json(&format!(
                 "{}/repos/{owner}/{repository}/compare/{merge_commit}...{}",
-                self.endpoint, base.object.sha
+                self.endpoint, base_head
             ))?;
             if !matches!(compare.status.as_str(), "ahead" | "identical")
                 || compare.merge_base_commit.sha != merge_commit
@@ -558,21 +549,13 @@ impl GithubLandingClient {
             candidate_head: plan.head_sha.clone(),
             merge_commit: merge_commit.to_string(),
             base_ref: plan.base_ref.clone(),
-            base_head: base.object.sha,
+            base_head,
+            mapping: kiln_core::implementation::IntegrationMapping {
+                expected_base: ExternalRef::new("git", "commit", &plan.base_head)?,
+                candidate_tree: ExternalRef::new("git", "tree", &candidate.tree.sha)?,
+                landed_tree: ExternalRef::new("git", "tree", &merge.tree.sha)?,
+            },
         }))
-    }
-
-    fn post(&self, url: &str, body: &str) -> Result<ureq::Response, HttpError> {
-        let token = self.token.as_str().map_err(|_| HttpError::Other)?;
-        self.agent
-            .post(url)
-            .set("Authorization", &format!("Bearer {token}"))
-            .set("Accept", "application/vnd.github+json")
-            .set("X-GitHub-Api-Version", API_VERSION)
-            .set("Content-Type", "application/json")
-            .set("User-Agent", "kiln")
-            .send_string(body)
-            .map_err(HttpError::from_ureq)
     }
 
     fn decode<T: serde::de::DeserializeOwned>(&self, response: ureq::Response) -> PortResult<T> {
@@ -673,9 +656,41 @@ struct RawRefObject {
     sha: String,
 }
 #[derive(Deserialize)]
-struct RawMerge {
-    merged: bool,
+struct RawCommit {
+    sha: String,
+    tree: RawRefObject,
+    parents: Vec<RawRefObject>,
 }
+
+fn admit_merge_mapping(
+    plan: &LandingPlan,
+    merge_sha: &str,
+    merge: &RawCommit,
+    candidate: &RawCommit,
+) -> PortResult<()> {
+    if merge.sha != merge_sha
+        || candidate.sha != plan.head_sha
+        || merge.parents.len() != 2
+        || merge
+            .parents
+            .first()
+            .is_none_or(|parent| parent.sha != plan.base_head)
+        || merge
+            .parents
+            .get(1)
+            .is_none_or(|parent| parent.sha != plan.head_sha)
+        || !commit(&candidate.tree.sha)
+        || merge.tree.sha != candidate.tree.sha
+    {
+        return Err(domain(
+            "github_landing_merge_mapping",
+            "landing.merge",
+            "external merge does not preserve exact admitted base, head and reviewed tree",
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Deserialize)]
 struct RawCompare {
     status: String,
@@ -690,6 +705,8 @@ struct RawChecks {
 struct RawReview {
     user: RawUser,
     state: String,
+    #[serde(default)]
+    commit_id: Option<String>,
 }
 #[derive(Deserialize)]
 struct RawUser {
@@ -701,20 +718,6 @@ struct RawCheck {
     head_sha: String,
     status: String,
     conclusion: Option<String>,
-}
-
-enum HttpError {
-    Status(u16),
-    Other,
-}
-
-impl HttpError {
-    fn from_ureq(error: ureq::Error) -> Self {
-        match error {
-            ureq::Error::Status(status, _) => Self::Status(status),
-            _ => Self::Other,
-        }
-    }
 }
 
 fn landing_repository(plan: &LandingPlan) -> PortResult<(&str, &str)> {
@@ -739,7 +742,22 @@ fn has_next_link(link: Option<&str>) -> PortResult<bool> {
     let Some(link) = link else {
         return Ok(false);
     };
-    if link.len() > 2048 || link.chars().any(char::is_control) {
+    if link.len() > 2048
+        || link.chars().any(char::is_control)
+        || !link.split(',').all(|part| {
+            let part = part.trim();
+            part.starts_with('<')
+                && part.contains(">; rel=\"")
+                && [
+                    "rel=\"next\"",
+                    "rel=\"prev\"",
+                    "rel=\"first\"",
+                    "rel=\"last\"",
+                ]
+                .iter()
+                .any(|relation| part.ends_with(*relation))
+        })
+    {
         return Err(domain(
             "github_landing_link",
             "landing.link",
@@ -852,6 +870,7 @@ mod tests {
                 .unwrap_or_else(|_| unreachable!())
         );
         assert!(has_next_link(Some(&"x".repeat(2049))).is_err());
+        assert!(has_next_link(Some("malformed page metadata")).is_err());
     }
 
     #[test]
@@ -862,7 +881,7 @@ mod tests {
             ("200 OK", checks_body()),
             (
                 "200 OK",
-                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
+                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED", "commit_id": "a".repeat(40)}])
                     .to_string(),
             ),
             (
@@ -889,89 +908,56 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.github.landing.merge] r[verify kiln.github.landing.merge.scenario.landed]
-    fn lands_one_exact_pull_request_and_reads_back_the_merge() {
-        let (endpoint, server) = serve(vec![
-            ("200 OK", pull_body()),
-            ("200 OK", pull_body()),
-            ("200 OK", checks_body()),
-            (
-                "200 OK",
-                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
-                    .to_string(),
-            ),
-            (
-                "200 OK",
-                serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string(),
-            ),
-            (
-                "200 OK",
-                serde_json::json!({"merged": true, "sha": "c".repeat(40)}).to_string(),
-            ),
-            (
-                "200 OK",
-                serde_json::json!({
-                    "number": 7,
-                    "user": {"login": "author"},
-                    "state": "closed",
-                    "merged": true,
-                    "merge_commit_sha": "c".repeat(40),
-                    "mergeable": false,
-                    "head": {"sha": "a".repeat(40)},
-                    "base": {"ref": "main"}
-                })
-                .to_string(),
-            ),
-            (
-                "200 OK",
-                serde_json::json!({"object": {"sha": "c".repeat(40)}}).to_string(),
-            ),
-        ]);
+    // r[verify kiln.publication.atomicity.scenario.unsupported]
+    fn unattended_landing_refuses_before_transport_even_with_ready_plan() {
+        let (endpoint, server) = serve(vec![]);
         let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
-        let receipt = client
-            .land(&plan())
-            .unwrap_or_else(|error| unreachable!("{error:?}"));
-        assert_eq!(receipt.merge_commit, "c".repeat(40));
-        assert_eq!(receipt.base_head, "c".repeat(40));
-        let requests = server.join().unwrap_or_else(|_| unreachable!());
-        assert!(
-            requests.get(5).is_some_and(|request| {
-                request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
-            }),
-            "{requests:?}"
-        );
+        assert!(matches!(client.land(&plan()), Err(PortFailure::Domain(_))));
+        assert!(server.join().unwrap_or_else(|_| unreachable!()).is_empty());
+    }
+
+    fn merged_pull() -> String {
+        serde_json::json!({"number": 7, "user": {"login": "author"}, "state": "closed",
+            "merged": true, "merge_commit_sha": "c".repeat(40), "mergeable": false,
+            "head": {"sha": "a".repeat(40)}, "base": {"ref": "main"}})
+        .to_string()
+    }
+
+    fn commit_body(sha: char, tree: char, parents: &[char]) -> String {
+        serde_json::json!({"sha": sha.to_string().repeat(40),
+            "tree": {"sha": tree.to_string().repeat(40)},
+            "parents": parents.iter().map(|parent| serde_json::json!({"sha": parent.to_string().repeat(40)})).collect::<Vec<_>>()}).to_string()
     }
 
     #[test]
-    // r[verify kiln.github.landing.merge.scenario.landed]
-    fn recovers_an_already_landed_result_without_a_second_merge() {
-        let merged = serde_json::json!({
-            "number": 7,
-            "user": {"login": "author"},
-            "state": "closed",
-            "merged": true,
-            "merge_commit_sha": "c".repeat(40),
-            "mergeable": false,
-            "head": {"sha": "a".repeat(40)},
-            "base": {"ref": "main"}
-        })
-        .to_string();
-        let (endpoint, server) = serve(vec![
-            ("200 OK", merged),
-            (
-                "200 OK",
-                serde_json::json!({"object": {"sha": "c".repeat(40)}}).to_string(),
-            ),
-        ]);
-        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
-            .unwrap_or_else(|_| unreachable!());
-        let receipt = client
-            .land(&plan())
-            .unwrap_or_else(|error| unreachable!("{error:?}"));
-        assert_eq!(receipt.merge_commit, "c".repeat(40));
-        let requests = server.join().unwrap_or_else(|_| unreachable!());
-        assert!(requests.iter().all(|request| request.starts_with("GET ")));
+    // r[verify kiln.publication.exact.scenario.external]
+    fn reconciles_external_exact_merge_and_advanced_target_without_mutation() {
+        for advanced in [false, true] {
+            let mut responses = vec![
+                ("200 OK", merged_pull()),
+                ("200 OK", commit_body('c', 'e', &['b', 'a'])),
+                ("200 OK", commit_body('a', 'e', &['b'])),
+                ("200 OK", merged_pull()),
+                ("200 OK", checks_body()),
+                ("200 OK", serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED", "commit_id": "a".repeat(40)}]).to_string()),
+                ("200 OK", serde_json::json!({"object": {"sha": if advanced {"d"} else {"c"}.repeat(40)}}).to_string()),
+            ];
+            if advanced {
+                responses.push(("200 OK", serde_json::json!({"status": "ahead", "merge_base_commit": {"sha": "c".repeat(40)}}).to_string()));
+            }
+            let (endpoint, server) = serve(responses);
+            let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+                .unwrap_or_else(|_| unreachable!());
+            let receipt = client
+                .recover_landed(&plan())
+                .unwrap_or_else(|error| unreachable!("{error:?}"))
+                .unwrap_or_else(|| unreachable!());
+            assert_eq!(receipt.merge_commit, "c".repeat(40));
+            assert_eq!(receipt.mapping.candidate_tree, receipt.mapping.landed_tree);
+            let requests = server.join().unwrap_or_else(|_| unreachable!());
+            assert!(requests.iter().all(|request| request.starts_with("GET ")));
+        }
     }
 
     #[test]
@@ -992,69 +978,36 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.github.landing.merge.scenario.refused]
-    fn refuses_or_reconciles_a_merge_that_does_not_land() {
-        let (endpoint, server) = serve(vec![
-            ("200 OK", pull_body()),
-            ("200 OK", pull_body()),
-            ("200 OK", checks_body()),
-            (
-                "200 OK",
-                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED"}])
-                    .to_string(),
-            ),
-            (
-                "200 OK",
-                serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string(),
-            ),
-            ("405 Method Not Allowed", "{}".to_string()),
-            ("200 OK", pull_body()),
-        ]);
+    // r[verify kiln.publication.exact.scenario.external]
+    fn refuses_base_race_squash_changed_tree_and_unknown_merge_mapping() {
+        for (parents, tree) in [
+            (vec!['d', 'a'], 'e'),
+            (vec!['b'], 'e'),
+            (vec!['b', 'a'], 'f'),
+        ] {
+            let (endpoint, server) = serve(vec![
+                ("200 OK", merged_pull()),
+                ("200 OK", commit_body('c', tree, &parents)),
+                ("200 OK", commit_body('a', 'e', &['b'])),
+            ]);
+            let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+                .unwrap_or_else(|_| unreachable!());
+            assert!(client.recover_landed(&plan()).is_err());
+            let requests = server.join().unwrap_or_else(|_| unreachable!());
+            assert!(requests.iter().all(|request| request.starts_with("GET ")));
+        }
+        let mut unknown: serde_json::Value =
+            serde_json::from_str(&merged_pull()).unwrap_or_else(|_| unreachable!());
+        *unknown
+            .get_mut("merge_commit_sha")
+            .unwrap_or_else(|| unreachable!()) = serde_json::Value::Null;
+        let (endpoint, server) = serve(vec![("200 OK", unknown.to_string())]);
         let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
-        assert!(client.land(&plan()).is_err());
-        let requests = server.join().unwrap_or_else(|_| unreachable!());
-        assert!(requests.get(5).is_some_and(|request| {
-            request.starts_with("POST /repos/octocat/hello-world/pulls/7/merge")
-        }));
-    }
-
-    #[test]
-    // r[verify kiln.github.landing.merge_ancestry] r[verify kiln.github.landing.merge_ancestry.scenario.advanced]
-    fn recovers_a_landed_result_after_the_base_advances() {
-        let merged = serde_json::json!({
-            "number": 7,
-            "user": {"login": "author"},
-            "state": "closed",
-            "merged": true,
-            "merge_commit_sha": "c".repeat(40),
-            "mergeable": false,
-            "head": {"sha": "a".repeat(40)},
-            "base": {"ref": "main"}
-        })
-        .to_string();
-        let (endpoint, server) = serve(vec![
-            ("200 OK", merged),
-            (
-                "200 OK",
-                serde_json::json!({"object": {"sha": "d".repeat(40)}}).to_string(),
-            ),
-            (
-                "200 OK",
-                serde_json::json!({
-                    "status": "ahead",
-                    "merge_base_commit": {"sha": "c".repeat(40)}
-                })
-                .to_string(),
-            ),
-        ]);
-        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
-            .unwrap_or_else(|_| unreachable!());
-        let receipt = client
-            .land(&plan())
-            .unwrap_or_else(|error| unreachable!("{error:?}"));
-        assert_eq!(receipt.merge_commit, "c".repeat(40));
-        assert_eq!(receipt.base_head, "d".repeat(40));
+        assert!(matches!(
+            client.recover_landed(&plan()),
+            Err(PortFailure::Unknown(_))
+        ));
         let _ = server.join();
     }
 

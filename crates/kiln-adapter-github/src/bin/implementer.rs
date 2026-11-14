@@ -4,8 +4,11 @@
 //! work once. `run` repeats that drain on a bounded interval until a stop signal
 //! or an explicit iteration count. `status` reports retained work and attempt
 //! counts. `claim`, `cancel`, `reserve` and `start` own the durable attempt and
-//! dispatch-reservation transitions. No command performs provider transport,
-//! verification or publication.
+//! dispatch-reservation transitions. Exact recovery, admission and candidate
+//! capture use their owning native consumers; independent verification belongs
+//! to the canonical web-service Engine, never an imported success report.
+//! r[impl kiln.implementation.recovery_cli]
+//! r[impl kiln.implementation.recovery_cli.scenario.distinct]
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -42,7 +45,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|handoff|verify|prepare-publication|publish|land|close-source|source-status|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|admission|admission-status|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -63,14 +66,306 @@ fn run() -> Result<(), ()> {
         "start" => start(&flags),
         "reconcile" => reconcile(&flags),
         "handoff" => handoff(&flags),
-        "verify" => verify(&flags),
+        "capture-candidate" => capture_candidate(&flags),
+        "prepare-verification-profile" => prepare_verification_profile(&flags),
+        "prepare-needs" => prepare_needs(&flags),
         "prepare-publication" => prepare_publication(&flags),
         "publish" => publish(&flags),
-        "land" => land(&flags),
+        "land" => fail(
+            "unattended landing is unsupported: ordinary GitHub merge cannot atomically guard the target; remain PR-ready",
+        ),
+        "recover-integration" => recover_integration(&flags),
         "close-source" => close_source(&flags),
         "source-status" => source_status(&flags),
         "metrics" => metrics(&flags),
+        "recover" => recover_attempts(&flags),
+        "reconcile-termination" => reconcile_termination(&flags),
+        "attach-needs" => attach_needs(&flags),
+        "needs" => show_needs(&flags),
+        "admission" => admission_command(&flags),
+        "admission-status" => admission_status(&flags),
+        "observe-cairn-lifecycle" => observe_cairn_lifecycle(&flags),
+        "inspect-work" => inspect_work(&flags),
         _ => fail("unknown command"),
+    }
+}
+
+fn inspect_work(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<serde_json::Value, String> {
+        let identity = required_identity(flags, "--work")?;
+        let ledger = open_implementer(flags)?.work()?;
+        let work = ledger
+            .current()
+            .find(|work| work.identity().is_ok_and(|id| id == identity))
+            .ok_or("work is not current")?;
+        let acceptance = kiln_core::implementation::acceptance_digest(work)
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        Ok(serde_json::json!({"work":work,"identity":identity,"acceptance_digest":acceptance}))
+    })();
+    match result {
+        Ok(value) => {
+            println!("{value}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn observe_cairn_lifecycle(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    use kiln_implementer::publication_effects::{
+        CairnLifecycleBinding, PublicationEffectKind, PublicationEffectResult,
+    };
+    let result = (|| -> Result<kiln_implementer::publication_effects::PublicationEffectReservation,String> {
+        let identity = required_identity(flags,"--attempt")?;
+        let fence = required_positive_u64(flags,"--fence")?;
+        let binding:CairnLifecycleBinding = read_json(&required_path(flags,"--binding-file")?)?;
+        let repository = required_path(flags,"--repository")?;
+        let report = required_path(flags,"--authoritative-report")?;
+        let receipt_path = required_value(flags,"--receipt-path")?;
+        let mut store = open_implementer(flags)?;
+        let attempt = store.attempt(&identity)?.ok_or("attempt is not retained")?;
+        let ledger = store.work()?;
+        let work = ledger.current().find(|work|work.identity().is_ok_and(|id|id==attempt.work_identity)).ok_or("work is not current")?;
+        store.consume_publication_effect(work,&identity,fence,PublicationEffectKind::CairnLifecycle(binding.clone()),
+            |_,publication| {
+                let observed=kiln_adapter_cairn::lifecycle_observation::observe_reviewed_lifecycle(
+                    &repository,publication,&binding,&receipt_path,&report,
+                )?;
+                Ok(Some(PublicationEffectResult::CairnLifecycle(observed)))
+            })
+    })();
+    match result {
+        Ok(value) => match serde_json::to_string(&value) {
+            Ok(json) => {
+                println!("{json}");
+                Ok(())
+            }
+            Err(_) => fail("lifecycle observation encoding failed"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+fn prepare_needs(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<kiln_core::types::ContentId, String> {
+        let identity = required_identity(flags, "--work")?;
+        let mut needs: kiln_core::inventory::WorkNeeds =
+            read_json(&required_path(flags, "--needs-file")?)?;
+        let mut store = open_implementer(flags)?;
+        let ledger = store.work()?;
+        let work = ledger
+            .current()
+            .find(|work| work.identity().is_ok_and(|id| id == identity))
+            .ok_or("work is not current")?;
+        let admission = store.admission_snapshot()?;
+        let policy = admission
+            .policy
+            .ok_or("needs require current admitted policy")?
+            .identity()
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        needs.work_version = identity.as_str().into();
+        needs.policy_ref = policy.as_str().into();
+        let attachment =
+            kiln_core::inventory::WorkNeedsAttachment::new(identity, work.revision, policy, needs)
+                .map_err(str::to_string)?;
+        let identity = attachment.identity().map_err(str::to_string)?;
+        let bytes = serde_json::to_vec_pretty(&attachment).map_err(|error| error.to_string())?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(required_path(flags, "--output")?)
+            .map_err(|error| error.to_string())?;
+        std::io::Write::write_all(&mut file, &bytes).map_err(|error| error.to_string())?;
+        file.sync_all().map_err(|error| error.to_string())?;
+        Ok(identity)
+    })();
+    match result {
+        Ok(identity) => {
+            println!(
+                "{{\"requirements\":\"{}\",\"admitted\":false}}",
+                identity.as_str()
+            );
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn prepare_verification_profile(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<kiln_core::types::ContentId, String> {
+        let mut profile: kiln_implementer::verification::VerificationProfile =
+            read_json(&required_path(flags, "--profile")?)?;
+        profile.environment_identity = profile.derived_environment_identity()?;
+        profile.toolchain = profile.derived_toolchain_identity()?;
+        let identity = profile.identity()?;
+        let bytes = serde_json::to_vec_pretty(&profile).map_err(|error| error.to_string())?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(required_path(flags, "--output")?)
+            .map_err(|error| error.to_string())?;
+        std::io::Write::write_all(&mut file, &bytes).map_err(|error| error.to_string())?;
+        file.sync_all().map_err(|error| error.to_string())?;
+        Ok(identity)
+    })();
+    match result {
+        Ok(identity) => {
+            println!(
+                "{{\"verification_profile\":\"{}\",\"checks_executed\":false}}",
+                identity.as_str()
+            );
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn capture_candidate(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<kiln_core::types::ContentId, String> {
+        use kiln_implementer::verification::{
+            VerificationProfile, VerifierAuthority, materialize_candidate,
+        };
+        let identity = required_identity(flags, "--attempt")?;
+        let fence = required_positive_u64(flags, "--fence")?;
+        let dispatch: kiln_core::implementation::ImplementationDispatchPlan =
+            read_json(&required_path(flags, "--dispatch-plan")?)?;
+        let profile: VerificationProfile = read_json(&required_path(flags, "--profile")?)?;
+        let authority: VerifierAuthority = read_json(&required_path(flags, "--authority")?)?;
+        let candidate_root = required_path(flags, "--candidate-root")?;
+        let receipt_file = required_path(flags, "--host-receipt")?;
+        let metadata = std::fs::metadata(&receipt_file).map_err(|error| error.to_string())?;
+        if metadata.len() > 2 * 1024 * 1024 {
+            return Err("host receipt exceeds admission bound".into());
+        }
+        let host_receipt = std::fs::read(&receipt_file).map_err(|error| error.to_string())?;
+        let mut implementer = open_implementer(flags)?;
+        let attempt = implementer.authorize_current(&identity, fence, wall_clock_ms())?;
+        if implementer.dispatch_plan(&identity)?.as_ref() != Some(&dispatch) {
+            return Err("capture dispatch differs from retained bounded plan".into());
+        }
+        let work = implementer.active_work(&identity, fence, wall_clock_ms())?;
+        let handoff = materialize_candidate(
+            &work,
+            &attempt,
+            &dispatch,
+            &profile,
+            &authority,
+            &candidate_root,
+            &host_receipt,
+        )?;
+        let bytes = serde_json::to_vec_pretty(&handoff).map_err(|error| error.to_string())?;
+        let output = required_path(flags, "--handoff-output")?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(output)
+            .map_err(|error| error.to_string())?;
+        std::io::Write::write_all(&mut file, &bytes).map_err(|error| error.to_string())?;
+        file.sync_all().map_err(|error| error.to_string())?;
+        implementer.admit_candidate_handoff(&work, &identity, fence, wall_clock_ms(), &handoff)
+    })();
+    match result {
+        Ok(identity) => {
+            println!("{{\"handoff\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn admission_command(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<kiln_implementer::admission::AdmissionResult, String> {
+        let command = read_json(&required_path(flags, "--command-file")?)?;
+        open_implementer(flags)?.admission_apply(command, wall_clock_ms())
+    })();
+    match result {
+        Ok(result) => match serde_json::to_string(&result) {
+            Ok(json) => {
+                println!("{json}");
+                Ok(())
+            }
+            Err(_) => fail("admission encoding failed"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+fn admission_status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    match open_implementer(flags).and_then(|mut store| store.admission_snapshot()) {
+        Ok(result) => match serde_json::to_string(&result) {
+            Ok(json) => {
+                println!("{json}");
+                Ok(())
+            }
+            Err(_) => fail("admission encoding failed"),
+        },
+        Err(error) => fail(&error),
+    }
+}
+
+fn recover_attempts(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = open_implementer(flags).and_then(|mut store| store.recover(wall_clock_ms()));
+    match result {
+        Ok(recovery) => {
+            let expired: Vec<_> = recovery.expired.iter().map(|id| id.as_str()).collect();
+            let active: Vec<_> = recovery.active.iter().map(|id| id.as_str()).collect();
+            println!(
+                "{}",
+                serde_json::json!({"expired":expired,"reconcile":active,"project_complete":false})
+            );
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn reconcile_termination(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<(), String> {
+        let attempt = required_identity(flags, "--attempt")?;
+        let fence = required_positive_u64(flags, "--fence")?;
+        let observed: kiln_core::types::ExternalRef =
+            read_json(&required_path(flags, "--termination-file")?)?;
+        open_implementer(flags)?.reconcile_unknown(&attempt, fence, &observed)
+    })();
+    match result {
+        Ok(()) => {
+            println!("{{\"termination_observed\":true}}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn attach_needs(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<kiln_core::types::ContentId, String> {
+        let attachment: kiln_core::inventory::WorkNeedsAttachment =
+            read_json(&required_path(flags, "--needs-file")?)?;
+        open_implementer(flags)?.attach_work_needs(&attachment)
+    })();
+    match result {
+        Ok(identity) => {
+            println!("{{\"requirements\":\"{}\"}}", identity.as_str());
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+fn show_needs(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<Option<kiln_core::inventory::WorkNeedsAttachment>, String> {
+        let work = required_identity(flags, "--work")?;
+        let policy = required_identity(flags, "--policy-identity")?;
+        open_implementer(flags)?.work_needs(&work, &policy)
+    })();
+    match result {
+        Ok(attachment) => match serde_json::to_string(&attachment) {
+            Ok(json) => {
+                println!("{json}");
+                Ok(())
+            }
+            Err(_) => fail("requirements encoding failed"),
+        },
+        Err(error) => fail(&error),
     }
 }
 
@@ -385,43 +680,82 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         );
         return Ok(());
     }
+    let ledger = match implementer.work() {
+        Ok(ledger) => ledger,
+        Err(error) => return fail(&error),
+    };
+    let Some(work) = ledger
+        .current()
+        .find(|work| {
+            work.identity()
+                .is_ok_and(|identity| identity == plan.work_identity)
+        })
+        .cloned()
+    else {
+        return fail("publication work identity is not current");
+    };
+    use kiln_implementer::publication_effects::{
+        EffectDispatch, PublicationEffectKind, PublicationEffectResult,
+    };
     let client =
         match kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms) {
             Ok(client) => client,
             Err(_) => return fail("publication transport configuration is invalid"),
         };
-    let branch = match client.ensure_branch(&plan) {
-        Ok(branch) => branch,
-        Err(error) => return fail(&format!("{error:?}")),
-    };
-    if let Err(error) = implementer.record_branch_published(&plan.attempt, plan.fence, &branch) {
-        return fail(&error);
-    }
-    let outcome = match client.ensure_pull_request(&plan) {
-        Ok(outcome) => outcome,
-        Err(error) => return fail(&format!("{error:?}")),
-    };
-    if let Err(error) = implementer.record_pull_request_published(
+    let branch = implementer.consume_publication_effect(
+        &work,
         &plan.attempt,
         plan.fence,
-        &outcome.pull_request,
-        &outcome.branch_head,
-    ) {
-        return fail(&error);
-    }
-    println!(
-        "{{\"branch_head\":\"{}\",\"pull_request\":\"{}\",\"number\":{},\"merged\":{},\"html_url\":{}}}",
-        outcome.branch_head.native_id.as_str(),
-        outcome.pull_request.native_id.as_str(),
-        outcome.number,
-        outcome.merged,
-        serde_json::to_string(&outcome.html_url).unwrap_or_else(|_| "\"\"".to_string())
+        PublicationEffectKind::Branch,
+        |dispatch, _| {
+            let head = match dispatch {
+                EffectDispatch::FirstDispatch => client
+                    .ensure_branch(&plan)
+                    .and_then(|_| client.reconcile_branch(&plan)),
+                EffectDispatch::ReconcileOnly => client.reconcile_branch(&plan),
+            }
+            .map_err(|error| format!("{error:?}"))?;
+            Ok(head.map(PublicationEffectResult::Branch))
+        },
     );
+    match branch {
+        Ok(reservation) if reservation.observed.is_some() => {}
+        Ok(_) => return fail("branch outcome remains unknown; reconcile before continuing"),
+        Err(error) => return fail(&error),
+    }
+    match implementer.consume_publication_effect(
+        &work,
+        &plan.attempt,
+        plan.fence,
+        PublicationEffectKind::PullRequest,
+        |dispatch, _| {
+            let outcome = match dispatch {
+                EffectDispatch::FirstDispatch => client
+                    .ensure_pull_request(&plan)
+                    .and_then(|_| client.reconcile_pull_request(&plan)),
+                EffectDispatch::ReconcileOnly => client.reconcile_pull_request(&plan),
+            }
+            .map_err(|error| format!("{error:?}"))?;
+            Ok(outcome.map(|outcome| PublicationEffectResult::PullRequest {
+                pull_request: outcome.pull_request,
+                head: outcome.branch_head,
+            }))
+        },
+    ) {
+        Ok(reservation) if reservation.observed.is_some() => {
+            println!(
+                "{}",
+                serde_json::to_string(&reservation).unwrap_or_else(|_| "null".into())
+            );
+        }
+        Ok(_) => return fail("pull request outcome remains unknown; reconcile before retry"),
+        Err(error) => return fail(&error),
+    }
     Ok(())
 }
 
 // r[impl kiln.implementation.integration] r[impl kiln.github.landing.merge]
-fn land(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+fn recover_integration(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let publication_file = match required_path(flags, "--publication-file") {
         Ok(path) => path,
         Err(error) => return fail(&error),
@@ -490,6 +824,7 @@ fn land(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         || landing.owner != owner
         || landing.head_sha != plan.candidate.native_id.as_str()
         || landing.base_ref != plan.base_branch
+        || landing.base_head != plan.base.native_id.as_str()
         || !pull_request
             .native_id
             .as_str()
@@ -515,31 +850,49 @@ fn land(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(client) => client,
         Err(_) => return fail("landing transport configuration is invalid"),
     };
-    let landed = match client.land(&landing) {
-        Ok(landed) => landed,
-        Err(error) => return fail(&format!("{error:?}")),
-    };
-    let receipt = kiln_core::implementation::IntegrationReceipt {
-        schema: kiln_core::implementation::INTEGRATION_SCHEMA.to_string(),
-        work_identity: plan.work_identity.clone(),
-        work_revision: plan.work_revision,
-        attempt: plan.attempt.clone(),
-        fence: plan.fence,
-        handoff: plan.handoff.clone(),
-        verification: plan.verification.clone(),
-        candidate: plan.candidate.clone(),
-        pull_request: landed.pull_request.clone(),
-        merge_commit: kiln_core::types::ExternalRef::new("git", "commit", &landed.merge_commit)
-            .unwrap_or_else(|_| unreachable!()),
-        base_ref: landed.base_ref.clone(),
-        base_head: kiln_core::types::ExternalRef::new("git", "commit", &landed.base_head)
-            .unwrap_or_else(|_| unreachable!()),
-    };
-    match implementer.record_integration(&work, &plan.attempt, plan.fence, &receipt) {
-        Ok(identity) => {
-            println!("{{\"integration\":\"{}\"}}", identity.as_str());
+    use kiln_implementer::publication_effects::{PublicationEffectKind, PublicationEffectResult};
+    match implementer.consume_publication_effect(
+        &work,
+        &plan.attempt,
+        plan.fence,
+        PublicationEffectKind::Integration,
+        |_, _| {
+            let Some(landed) = client
+                .recover_landed(&landing)
+                .map_err(|error| format!("{error:?}"))?
+            else {
+                return Ok(None);
+            };
+            let commit = |value: &str| {
+                kiln_core::types::ExternalRef::new("git", "commit", value)
+                    .map_err(|error| format!("{error:?}"))
+            };
+            let receipt = kiln_core::implementation::IntegrationReceipt {
+                schema: kiln_core::implementation::INTEGRATION_SCHEMA.to_string(),
+                work_identity: plan.work_identity.clone(),
+                work_revision: plan.work_revision,
+                attempt: plan.attempt.clone(),
+                fence: plan.fence,
+                handoff: plan.handoff.clone(),
+                verification: plan.verification.clone(),
+                candidate: plan.candidate.clone(),
+                pull_request: landed.pull_request.clone(),
+                merge_commit: commit(&landed.merge_commit)?,
+                base_ref: landed.base_ref.clone(),
+                base_head: commit(&landed.base_head)?,
+                mapping: landed.mapping,
+            };
+            Ok(Some(PublicationEffectResult::Integration(receipt)))
+        },
+    ) {
+        Ok(reservation) if reservation.observed.is_some() => {
+            println!(
+                "{}",
+                serde_json::to_string(&reservation).unwrap_or_else(|_| "null".into())
+            );
             Ok(())
         }
+        Ok(_) => fail("external integration is not independently established"),
         Err(error) => fail(&error),
     }
 }
@@ -606,6 +959,7 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             || retained.fence != plan.fence
             || retained.integration != plan.integration
             || retained.source != plan.source
+            || retained.observed_revision != plan.expected_observed_revision
         {
             return fail("source-status plan differs from the reconciled receipt");
         }
@@ -621,24 +975,45 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(client) => client,
         Err(_) => return fail("source-status transport configuration is invalid"),
     };
-    let state = match client.close(&plan) {
-        Ok(state) => state,
-        Err(error) => return fail(&format!("{error:?}")),
-    };
-    let receipt = kiln_core::implementation::SourceStatusReceipt {
-        schema: kiln_core::implementation::SOURCE_STATUS_SCHEMA.to_string(),
-        work_identity: plan.work_identity.clone(),
-        work_revision: plan.work_revision,
-        attempt: plan.attempt.clone(),
-        fence: plan.fence,
-        integration: plan.integration.clone(),
-        source: plan.source.clone(),
-        state,
-    };
-    match implementer.record_source_status(&work, &plan.attempt, plan.fence, &plan, &receipt) {
-        Ok(identity) => {
-            println!("{{\"source_status\":\"{}\"}}", identity.as_str());
+    use kiln_implementer::publication_effects::{PublicationEffectKind, PublicationEffectResult};
+    match implementer.consume_publication_effect(
+        &work,
+        &plan.attempt,
+        plan.fence,
+        PublicationEffectKind::SourceStatus(plan.clone()),
+        |_, _| {
+            let observed = client
+                .observe_exact(&plan)
+                .map_err(|error| format!("{error:?}"))?;
+            if observed.state != "closed" {
+                return Ok(None);
+            }
+            let receipt = kiln_core::implementation::SourceStatusReceipt {
+                schema: kiln_core::implementation::SOURCE_STATUS_SCHEMA.to_string(),
+                work_identity: plan.work_identity.clone(),
+                work_revision: plan.work_revision,
+                attempt: plan.attempt.clone(),
+                fence: plan.fence,
+                integration: plan.integration.clone(),
+                source: plan.source.clone(),
+                state: observed.state,
+                observed_revision: observed.revision,
+            };
+            Ok(Some(PublicationEffectResult::SourceStatus {
+                plan: plan.clone(),
+                receipt,
+            }))
+        },
+    ) {
+        Ok(reservation) if reservation.observed.is_some() => {
+            println!(
+                "{}",
+                serde_json::to_string(&reservation).unwrap_or_else(|_| "null".into())
+            );
             Ok(())
+        }
+        Ok(_) => {
+            fail("source remains open; automatic source mutation has no qualified version guard")
         }
         Err(error) => fail(&error),
     }
@@ -830,56 +1205,6 @@ fn reconcile(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
 }
 
-// r[impl kiln.implementation.verification]
-fn verify(flags: &BTreeMap<String, String>) -> Result<(), ()> {
-    let verification_file = match required_path(flags, "--verification-file") {
-        Ok(path) => path,
-        Err(error) => return fail(&error),
-    };
-    let verification: kiln_core::implementation::CandidateVerification =
-        match read_json(&verification_file) {
-            Ok(verification) => verification,
-            Err(error) => return fail(&error),
-        };
-    let mut implementer = match open_implementer(flags) {
-        Ok(implementer) => implementer,
-        Err(error) => return fail(&error),
-    };
-    let work = match implementer.work() {
-        Ok(work) => work,
-        Err(error) => return fail(&error),
-    };
-    let Some(work) = work
-        .current()
-        .find(|work| {
-            work.identity()
-                .is_ok_and(|identity| identity == verification.work_identity)
-        })
-        .cloned()
-    else {
-        return fail("verification work identity is not current");
-    };
-    let handoff = match implementer.candidate_handoff(&verification.attempt) {
-        Ok(Some(handoff)) => handoff,
-        Ok(None) => return fail("candidate handoff is not retained"),
-        Err(error) => return fail(&error),
-    };
-    match implementer.record_verification(
-        &work,
-        &verification.attempt,
-        verification.fence,
-        wall_clock_ms(),
-        &handoff,
-        &verification,
-    ) {
-        Ok(identity) => {
-            println!("{{\"verified\":\"{}\"}}", identity.as_str());
-            Ok(())
-        }
-        Err(error) => fail(&error),
-    }
-}
-
 // r[impl kiln.implementation.candidate_handoff]
 fn handoff(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let handoff_file = match required_path(flags, "--handoff-file") {
@@ -894,20 +1219,11 @@ fn handoff(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
     };
-    let work = match implementer.work() {
-        Ok(work) => work,
-        Err(error) => return fail(&error),
-    };
-    let Some(work) = work
-        .current()
-        .find(|work| {
-            work.identity()
-                .is_ok_and(|identity| identity == handoff.work_identity)
-        })
-        .cloned()
-    else {
-        return fail("candidate handoff work identity is not current");
-    };
+    let work =
+        match implementer.active_work(&handoff.attempt_identity, handoff.fence, wall_clock_ms()) {
+            Ok(work) => work,
+            Err(error) => return fail(&error),
+        };
     match implementer.admit_candidate_handoff(
         &work,
         &handoff.attempt_identity,
@@ -1346,7 +1662,17 @@ fn optional_positive(flags: &BTreeMap<String, String>, key: &str) -> Result<Opti
 }
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T, String> {
-    let bytes = std::fs::read(path).map_err(|_| format!("{} is unreadable", path.display()))?;
+    use std::io::Read;
+    const MAX_INPUT_BYTES: u64 = 16 * 1024 * 1024;
+    let file =
+        std::fs::File::open(path).map_err(|_| format!("{} is unreadable", path.display()))?;
+    let mut bytes = Vec::new();
+    file.take(MAX_INPUT_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "bounded input read failed".to_string())?;
+    if bytes.len() as u64 > MAX_INPUT_BYTES {
+        return Err("JSON input exceeds 16MiB admission bound".into());
+    }
     serde_json::from_slice(&bytes).map_err(|_| format!("{} is not valid JSON", path.display()))
 }
 

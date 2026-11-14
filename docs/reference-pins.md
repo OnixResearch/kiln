@@ -42,7 +42,7 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Import | Exact producer revision | Consumed scope | Source record |
 |---|---|---|---|
 | Lattice | `70496e67c7fd4a8b05914161a8e09de2759bebc8` | MIT workflow contract and Unix transport | [`vendor/lattice.source.json`](../vendor/lattice.source.json) |
-| Cairn | `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f` | `MIT OR Apache-2.0` gate contract and pinned producer fixtures | [`vendor/cairn.source.json`](../vendor/cairn.source.json) |
+| Cairn | `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f` | `MIT OR Apache-2.0` gate contract, authoritative `cairn-core` completion evaluator and pinned producer fixtures | Gate/fixtures: [`vendor/cairn.source.json`](../vendor/cairn.source.json); evaluator: [`vendor/cairn-verifier.source.json`](../vendor/cairn-verifier.source.json) |
 | Valence | `220307a371e7bc4e3309447b09447d0fe6c4db5f` | MPL-2.0 `valence-core` | [`vendor/valence.source.json`](../vendor/valence.source.json) |
 | Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
 | Bounded Exec | `29dac88ecded94457572db3fdfaaaab95fa91525` | AGPL-3.0-or-later shell and core | [`vendor/bounded-exec.source.json`](../vendor/bounded-exec.source.json) |

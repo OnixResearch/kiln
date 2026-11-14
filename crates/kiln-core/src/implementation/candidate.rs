@@ -132,7 +132,9 @@ pub fn admit_candidate_handoff(
             .iter()
             .all(|item| valid_hex(&item.identity))
         || handoff.candidate == handoff.tree
-        || handoff.changed_paths.is_empty()
+        || (handoff.changed_paths.is_empty()
+            && (work.terminal_policy != super::TerminalPolicy::VerifiedOrAlreadySatisfied
+                || handoff.base.as_ref() != Some(&handoff.candidate)))
         || handoff.changed_paths.len() > MAX_CHANGED_PATHS
         || handoff.evidence.is_empty()
         || handoff.evidence.len() > MAX_CANDIDATE_EVIDENCE
@@ -476,5 +478,22 @@ mod tests {
                 .admit_candidate_handoff(&work, &attempt.identity, attempt.fence, 3, &handoff)
                 .is_ok()
         );
+    }
+
+    #[test]
+    fn empty_candidate_requires_explicit_policy_and_exact_baseline() {
+        let mut work = work();
+        work.terminal_policy = TerminalPolicy::VerifiedOrAlreadySatisfied;
+        work.base = Some(reference("commit", "unchanged"));
+        let (_, attempt) = executing(&work);
+        let mut candidate = handoff(&work, &attempt);
+        candidate.base = work.base.clone();
+        candidate.candidate = work.base.clone().unwrap_or_else(|| unreachable!());
+        candidate.changed_paths.clear();
+        assert!(admit_candidate_handoff(&work, &attempt, &candidate).is_ok());
+        candidate.candidate = reference("commit", "different");
+        assert!(admit_candidate_handoff(&work, &attempt, &candidate).is_err());
+        work.terminal_policy = TerminalPolicy::VerifiedPullRequest;
+        assert!(admit_candidate_handoff(&work, &attempt, &candidate).is_err());
     }
 }

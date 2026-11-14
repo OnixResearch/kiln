@@ -1,0 +1,35 @@
+{
+  "schema": "kiln.preview.implementation-evidence.v1",
+  "issue": "https://github.com/OnixResearch/kiln/issues/58",
+  "issue_comments_observed": 0,
+  "prerequisite_gates": {
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "proposal": {"verdict": "PASS", "receipt_hash": "ead55bfb81832e96e2c1b173f36e8965ea356652850f5202e9f7719bc1ac417f"},
+    "design": {"verdict": "PASS", "receipt_hash": "c0841905b0dc763c04dbe9b3eef40eb4d3039d8f3f392c7294a3959c524e1cbd"},
+    "tasks": {"verdict": "PASS", "receipt_hash": "b8d75dde70c1a9186baedba6f4814c4868d058e3d5bc6ca3a222a87a2cbe65d5"}
+  },
+  "actual_public_engine_acquisition": {
+    "source_revision": "7e7e793594cb58efb48279b17b4e15bbc6fbe91b",
+    "source": "https://github.com/fzakaria/trynix/tree/7e7e793594cb58efb48279b17b4e15bbc6fbe91b",
+    "release": "engine-20260913-2056",
+    "site_module_directory": "js.2665d2d35976",
+    "files": 28,
+    "bytes": 54948129,
+    "owned_tree": "/run/user/1555/kiln-issues-preview-engine",
+    "runtime_pins": "crates/kiln-web-service/src/preview/engine_pins.rs",
+    "claim": "Already-built public bytes acquired and hashed; not a browser execution or CI qualification. Existing matching engine blobs reused read-only from /nix/store."
+  },
+  "actual_public_cli_acquisition": {
+    "store_path": "/nix/store/vk1ih0la8pfs92v8cy5vkv48kgmi14db-trynix-emubench-static-x86_64-unknown-linux-musl-1",
+    "cache": "https://trynix.dev/examples/cache",
+    "key": "trynix-examples-1:dZOV2uGWvjHo6IC5ZqCCu0dmIRzLm9pyOQJBDnBsXRY=",
+    "nar_size": 1556888,
+    "nar_sha256_sri": "sha256-5M4u/leEpb3bsspjlwNYRLb6zYSvKr5zudQJT1G9hcE=",
+    "runtime_references": [],
+    "owned_store_root": "/run/user/1555/kiln-issues-preview-store",
+    "claim": "Exact existing public product copied with Nix required signatures into owned store; no build/shared-store mutation. Native read-only metadata observed. Not a canonical Kiln CI artifact."
+  },
+  "verification_not_run_by_worker": ["build", "Rust tests", "Node tests", "Nickel policy checks", "formatters", "browser campaign"],
+  "coordinated_verification_owner": "parent integration agent",
+  "non_claims": ["No canonical CI plan/receipt/run/source authority fabricated", "No production or hostile-isolation qualification", "No deployment/publication/service restart/shared GC", "No Redox or new browser VMM", "No scheduled crash-cleanup service activated"]
+}

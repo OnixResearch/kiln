@@ -17,6 +17,22 @@ use serde::{Deserialize, Serialize};
 
 static OWNER: Mutex<()> = Mutex::new(());
 
+#[cfg(feature = "cache-readiness-bench")]
+pub mod readiness;
+
+#[inline]
+fn observed<T>(phase: &'static str, operation: impl FnOnce() -> T) -> T {
+    #[cfg(feature = "cache-readiness-bench")]
+    {
+        readiness::phase(phase, operation)
+    }
+    #[cfg(not(feature = "cache-readiness-bench"))]
+    {
+        let _ = phase;
+        operation()
+    }
+}
+
 #[cfg(feature = "cache-fault-tests")]
 std::thread_local! {
     static RETURN_HOOK: std::cell::Cell<Option<fn(&str)>> = const { std::cell::Cell::new(None) };
@@ -234,11 +250,15 @@ fn key<'a>(
 }
 fn store<T>(
     config: &HostedCacheConfig,
+    phase: &'static str,
     operation: impl FnOnce(&mut CacheStore) -> Result<T, String>,
 ) -> Result<T, String> {
-    let _owner = OWNER.lock().map_err(|_| "cache owner lock unavailable")?;
-    let mut store = CacheStore::open(config.profile()?)?;
-    operation(&mut store)
+    let _owner =
+        observed("queue_admission", || OWNER.lock()).map_err(|_| "cache owner lock unavailable")?;
+    let mut store = observed("store_open_manifest_validation", || {
+        CacheStore::open(config.profile()?)
+    })?;
+    observed(phase, || operation(&mut store))
 }
 
 /// Source snapshots must not already contain any declared output root. This
@@ -249,16 +269,24 @@ pub fn restore(
     context: &Context<'_>,
 ) -> Result<(CacheKey, CacheObservation), String> {
     let started = Instant::now();
-    let (key, policy) = key(config, context)?;
-    require_absent_outputs(context.workspace, policy)?;
-    let restored = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
+    let (key, policy) = observed("evaluation_preflight", || key(config, context))?;
+    observed("evaluation_preflight", || {
+        require_absent_outputs(context.workspace, policy)
+    })?;
+    let restored = store(config, "lookup_transfer_decode", |store| {
+        store.restore(&key, context.now_ms / 1000)
+    })?;
     let entry_blake3 = restored.entry.as_ref().map(|entry| entry.blake3.clone());
     let (outcome, bytes) = if let Some(envelope) = restored.entry {
         if envelope.entry.key != key {
             return Err("tenant/source/config cache key mismatch".into());
         }
-        let bytes = envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)?;
-        restore_local(context.workspace, &envelope, policy)?;
+        let bytes = observed("manifest_validation", || {
+            envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)
+        })?;
+        observed("materialization", || {
+            restore_local(context.workspace, &envelope, policy)
+        })?;
         (
             "hit",
             u64::try_from(bytes).map_err(|_| "cache size conversion failed")?,
@@ -293,7 +321,9 @@ pub fn restore_image(
     let started = Instant::now();
     let (key, policy) = key(config, context)?;
     require_absent_outputs(context.workspace, policy)?;
-    let restored = store(config, |store| store.restore(&key, context.now_ms / 1000))?;
+    let restored = store(config, "lookup_transfer_decode", |store| {
+        store.restore(&key, context.now_ms / 1000)
+    })?;
     let Some(envelope) = restored.entry else {
         return Ok((
             key.clone(),
@@ -396,8 +426,12 @@ fn record(
     envelope: &CacheEnvelope,
     started: Instant,
 ) -> Result<CacheObservation, String> {
-    let bytes = envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)?;
-    let published = store(config, |store| store.publish(envelope, now_ms / 1000))?;
+    let bytes = observed("manifest_validation", || {
+        envelope.verify(policy.maximum_entry_bytes, policy.maximum_files)
+    })?;
+    let published = store(config, "cache_save_publication", |store| {
+        store.publish(envelope, now_ms / 1000)
+    })?;
     Ok(CacheObservation {
         key: original.identity()?,
         outcome: if published { "published" } else { "retained" }.into(),
@@ -417,11 +451,13 @@ pub fn publish(
     original: &CacheKey,
 ) -> Result<CacheObservation, String> {
     let started = Instant::now();
-    let (current, policy) = key(config, context)?;
+    let (current, policy) = observed("evaluation_preflight", || key(config, context))?;
     if current != *original {
         return Err("cache source changed during job".into());
     }
-    let envelope = collect_local(context.workspace, original, policy)?;
+    let envelope = observed("publication_collection", || {
+        collect_local(context.workspace, original, policy)
+    })?;
     record(config, policy, context.now_ms, original, &envelope, started)
 }
 
@@ -705,5 +741,53 @@ mod tests {
             .unwrap_or_else(|| unreachable!("fixture policy exists"));
         policy.worker.paths = vec!["input".into()];
         assert!(overlap.validate(work.path()).is_err());
+    }
+
+    #[cfg(feature = "cache-readiness-bench")]
+    #[test]
+    fn readiness_delay_wraps_actual_materialization_without_changing_cache_identity() {
+        let root = private_root();
+        let source = private_root();
+        let destination = private_root();
+        let cache = settings(root.path());
+        ok(std::fs::write(source.path().join("input"), b"source-v1"));
+        ok(std::fs::write(
+            destination.path().join("input"),
+            b"source-v1",
+        ));
+        let (key, miss) = ok(restore(&cache, &context(source.path(), "org", "config")));
+        assert_eq!(miss.outcome, "miss");
+        ok(std::fs::create_dir(source.path().join("build-cache")));
+        ok(std::fs::write(
+            source.path().join("build-cache/output"),
+            b"product",
+        ));
+        let published = ok(publish(
+            &cache,
+            &context(source.path(), "org", "config"),
+            &key,
+        ));
+        let (restored, observations) = ok(readiness::capture(
+            Some(("materialization".into(), 20)),
+            || restore(&cache, &context(destination.path(), "org", "config")),
+        ));
+        let (restored_key, hit) = ok(restored);
+        assert_eq!(restored_key, key);
+        assert_eq!(hit.outcome, "hit");
+        assert_eq!(hit.entry_blake3, published.entry_blake3);
+        assert_eq!(
+            ok(std::fs::read(destination.path().join("build-cache/output"))),
+            b"product"
+        );
+        let delayed = observations
+            .iter()
+            .filter(|sample| sample.injected_delay_ms != 0)
+            .collect::<Vec<_>>();
+        assert_eq!(delayed.len(), 1);
+        let delayed = delayed
+            .first()
+            .unwrap_or_else(|| unreachable!("one delayed sample"));
+        assert_eq!(delayed.phase, "materialization");
+        assert!(delayed.elapsed_ns >= 20_000_000);
     }
 }

@@ -1,0 +1,48 @@
+{
+  "decision": {
+    "maximum_retained_byte_growth": 0,
+    "minimum_p95_saving_fraction": 0.2,
+    "minimum_p95_saving_ms": 5,
+    "minimum_samples": 30,
+    "proposal": "Reduce regular-file materialization overhead by changing archive layout; implementation and retention review required before go"
+  },
+  "samples": 3,
+  "schema": "kiln.readiness.cohort.v1",
+  "workloads": [
+    {
+      "fanout": 0,
+      "files": 1,
+      "id": "one-file",
+      "payload_bytes": 65536,
+      "symlinks": 0
+    },
+    {
+      "fanout": 0,
+      "files": 256,
+      "id": "many-files",
+      "payload_bytes": 65536,
+      "symlinks": 0
+    },
+    {
+      "fanout": 0,
+      "files": 1,
+      "id": "many-symlinks",
+      "payload_bytes": 65536,
+      "symlinks": 256
+    },
+    {
+      "fanout": 4,
+      "files": 1,
+      "id": "shared-fanout",
+      "payload_bytes": 65536,
+      "symlinks": 0
+    },
+    {
+      "fanout": 0,
+      "files": 1,
+      "id": "larger-bytes",
+      "payload_bytes": 262144,
+      "symlinks": 0
+    }
+  ]
+}

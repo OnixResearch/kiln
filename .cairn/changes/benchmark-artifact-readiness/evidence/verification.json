@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.readiness.local-verification.v1",
+  "issue": 59,
+  "maintenance_owner": "Kiln hosted cache and Nix adapter maintainers",
+  "immediate_consumer": "scripts/artifact-readiness.py and scripts/artifact_readiness_analysis.py",
+  "durable_capability": "Reproducible bounded phase observations and independent matched-cohort analysis over actual supported provider paths",
+  "retained_evidence": [
+    {"provider": "nix-local", "samples": "native-nix-samples.jsonl", "blake3": "142ed8803d5d3935db22bafcd67eb649ed3495b6af655a9ff58957a89c65768a", "analysis": "native-nix-analysis.json", "metadata": "native-nix-metadata.json", "cohort": "native-nix-cohort.json", "workloads": ["one-file", "many-files", "many-symlinks", "shared-fanout"], "cache_states": ["cold-local-miss", "warm-local-hit"], "attempts_per_cell": 1},
+    {"provider": "hosted-local", "samples": "hosted-local-samples.jsonl", "blake3": "7d0e9eea3b32e4dc885056be6f828630adb2ba53d6c498a5a1256f2c7b3d99eb", "analysis": "hosted-local-analysis.json", "metadata": "hosted-local-metadata.json", "cohort": "hosted-local-cohort.json", "workloads": ["one-file", "many-files"], "cache_states": ["cold-local-miss", "warm-local-hit"], "attempts_per_cell": 1},
+    {"provider": "hosted-local", "samples": "hosted-delayed-samples.jsonl", "blake3": "3f1ff2bc443b7e96f1de9dddfa7b7c393bcffb7f181d21f05296054cc63e72ee", "analysis": "hosted-delayed-analysis.json", "metadata": "hosted-delayed-metadata.json", "cohort": "hosted-delayed-cohort.json", "workloads": ["many-files"], "delay_phase": "materialization", "delay_ms": 100, "attempts_per_cell": 1},
+    {"provider": "nix-local", "samples": "native-nix-tail-samples.jsonl", "blake3": "5b616c4e11db147728274f68a700a3696be17cc528f81dbe906cf0e7b59f0942", "analysis": "native-nix-tail-analysis.json", "metadata": "native-nix-tail-metadata.json", "cohort": "native-nix-tail-cohort.json", "cells": 8, "attempts_per_cell": 30, "complete_attempts": 240, "failed_attempts": 0, "attribution_errors": 0},
+    {"provider": "hosted-local", "samples": "hosted-local-tail-samples.jsonl", "blake3": "62b1327d9c1d5ead1f4f3b67c4d18b394ce4f3fc78fa92fffdf482b351971621", "analysis": "hosted-local-tail-analysis.json", "metadata": "hosted-local-tail-metadata.json", "cohort": "hosted-local-tail-cohort.json", "cells": 4, "attempts_per_cell": 30, "complete_attempts": 120, "failed_attempts": 0, "attribution_errors": 0}
+  ],
+  "independent_analysis_command": "python3 -B scripts/artifact_readiness_analysis.py .cairn/changes/benchmark-artifact-readiness/evidence/native-nix-samples.jsonl",
+  "predeclared_decision": {"minimum_samples": 30, "minimum_p95_saving_ms": 5, "minimum_p95_saving_fraction": 0.2, "maximum_retained_byte_growth": 0},
+  "observed_optimization_decision": "insufficient-evidence",
+  "non_claims": [
+    "Thirty complete attempts per tail-cohort cell support the reported baseline median, p95 and ECDF; no p99 or speedup claim follows",
+    "No reviewed optimization or matched candidate complexity/retention evidence exists",
+    "Absent remote/object-tier data is not a zero-time result or a local-parity claim",
+    "CPU and elapsed time remain separate; inclusive phases are not additive",
+    "Kernel page cache was uncontrolled; no shared cache drop, GC or host policy changed",
+    "Raw samples and environment/source/tool hashes are retained separately from derived reports"
+  ]
+}

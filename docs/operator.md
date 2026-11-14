@@ -1607,6 +1607,112 @@ detail data when adding a view. Focused checks are
 `cargo clippy --locked -p kiln-web-service --example explore -- -D warnings`,
 plus actual browser navigation, edits, downloads and narrow/dark presentation.
 
+#### Property-based browser exploration
+
+<!-- r[impl kiln.web.exploration.browser_property_rail] -->
+<!-- r[impl kiln.web.exploration.browser_property_rail.scenario.cohort] -->
+Use the existing pinned, separately executed Bombadil tool against the real
+console, not the offline report:
+
+```console
+nix run path:.#kiln-web-exploration-bombadil -- \
+  --time-limit 90 --output-path /tmp/kiln-web-bombadil
+```
+
+The default starts its own packaged example on a free loopback port, admits its
+native catalog and synthetic session, then runs headless browser exploration.
+The runner terminates only its owned example and removes its private stores on
+exit. The output directory must be absent or empty; existing traces are never
+overwritten. `nix develop path:.#web-testing` supplies the same separately pinned
+tool, Chromium, Python and example without enlarging the default Rust shell.
+
+<!-- r[verify kiln.web.exploration.browser_property_rail.scenario.properties] -->
+Properties check case/trim/zero-result index search, public page and exact-run/tab
+selection after loading, a bounded loading deadline, same-origin navigation,
+explicit appearance restoration and horizontal viewport fit, plus upstream
+HTTP/JavaScript/console error properties. Generated interactions navigate native
+catalog links and run tabs, search, reload, traverse safe history and change
+viewport/appearance. They do not submit forms, clear a session, operate runs or
+edit issues, reviews, feeds or any other server state. No application-private
+function or unrestricted default click/input generator is used.
+
+<!-- r[verify kiln.web.exploration.browser_property_rail.scenario.isolation] -->
+Attach to the existing example only when explicitly selected:
+
+```console
+nix run path:.#kiln-web-exploration-bombadil -- \
+  --url https://britton-desktop.bison-tailor.ts.net:9444 \
+  --ca-certificate "$HOME/.config/kiln/web-service/credentials/ca.pem" \
+  --time-limit 90 --output-path /tmp/kiln-web-bombadil-attached
+```
+
+Attach mode never stops or restarts that service. Admission uses normal CA and
+hostname verification, bounded native JSON, no redirects and no ambient proxy
+or credential fallback. A non-example CI origin is refused before browser
+launch. Chromium must also trust the example certificate: the CA argument
+configures admission, not the browser. If a test-only browser needs an exception,
+explicitly supply `--browser-arg=--ignore-certificate-errors-spki-list=...` for
+the reviewed certificate's base64 SHA-256 SPKI. This option affects only the
+owned browser; it is recorded, and does not replace CA-checked admission or
+authorize a global trust change. The retained receipt records the exact option
+used for the private-tailnet exercise.
+
+Child environments strip `LD_LIBRARY_PATH`, `LD_PRELOAD` and `LD_AUDIT` so a
+development shell cannot replace the pinned executables' runtime libraries.
+Removed variable names are recorded, not their values. No host environment,
+loader configuration or sandbox setting is changed.
+
+<!-- r[verify kiln.web.exploration.browser_property_rail.scenario.evidence] -->
+Keep `report.json`, `bombadil.log`, the staged specification/native context and
+`trace/` together. Native exit 0 is success, 2 is a property violation, and other
+failures remain errors; inspect property snapshots and actual actions rather
+than treating tool startup as coverage. Open the retained trace with:
+
+```console
+nix run path:.#bombadil -- browser inspect /tmp/kiln-web-bombadil/trace
+```
+
+Native `browser test --reproduce` is best-effort and requires the same surviving
+origin/context. An owned origin is stopped at campaign end; a fresh example has
+new identities, so identical replay across resets is not promised. Random
+exploration is bounded, not exhaustive feature coverage or CI/provider,
+production or release qualification. The [browser campaign receipt](../.cairn/changes/add-bombadil-web-exploration/evidence/verification.json)
+retains observed results and non-claims. Kiln web-service/dashboard maintainers
+own `checks/bombadil/kiln-web-exploration.spec.ts`,
+`scripts/web-exploration-bombadil.py` and the flake tool/runner entries.
+
+<!-- r[verify kiln.web.topbar_containment] -->
+<!-- r[verify kiln.web.topbar_containment.scenario.location] -->
+<!-- r[verify kiln.web.topbar_containment.scenario.controls] -->
+<!-- r[verify kiln.web.topbar_containment.scenario.evidence] -->
+The long-location header regression is exercised through **Raw collaboration:
+Example exact-source patch**, not a copied volatile object ID. The rebuilt
+header keeps flexible outer tracks, intrinsic search width and elided labels;
+it does not hide document overflow or collapse the location to zero. The
+[cross-width UI receipt](../.cairn/changes/fix-console-topbar-overflow/evidence/ui-verification.json)
+records 390/768/1024/1440px geometry, desktop pinned navigation, usable account
+menus, command-palette interactions, focus restoration and mobile target sizes.
+The [campaign receipt](../.cairn/changes/fix-console-topbar-overflow/evidence/verification.json)
+keeps the unchanged Bombadil property outcomes. Observing the deployed example
+does not deploy this local fix. Kiln web-service/dashboard maintainers own the
+header and this regression check.
+
+<!-- r[impl kiln.web.topbar_containment.scenario.host_safety] -->
+<!-- r[verify kiln.web.topbar_containment.scenario.host_safety] -->
+Before building on a constrained shared host, inspect configured GC thresholds
+and current capacity. A manual `--max-freed` limit does **not** cap a separate
+automatic collection triggered by the host's `min-free`/`max-free` policy.
+For bounded verification work, apply `--option min-free 0` to every Nix
+invocation, including `nix-store` root registrations. Use one build job and
+secure root-owned runtime scratch when appropriate; retain temporary package
+roots until the campaigns finish. Do not change host policy, perform shared
+cleanup or restart managed services without separate authorization. The
+[read-only host diagnosis](../.cairn/changes/fix-console-topbar-overflow/evidence/host-safety.json)
+records the exercised host's source-backed settings and capacity; that policy
+remains operator-owned and unchanged.
+
+#### Managed loopback examples
+
 <!-- r[impl kiln.web.exploration.scenario.deploy] -->
 The dedicated `website-exploration` flake package and
 `kiln-website-exploration` app contain the same standalone example, not the
@@ -3286,6 +3392,72 @@ credential provisioning and worker isolation remain operator responsibilities.
   capacity and retained usage. A near-limit warning precedes intake exhaustion;
   it does not prune state, promise placement or convert unknown provider state
   into healthy capacity.
+
+#### Agent, worker, compute and serving observations
+
+The optional `--inventory INPUT` service argument enables authenticated
+`GET /api/inventory`. The operator supplies bounded normalized observations and
+an explicit principal/source/generation policy; this endpoint neither discovers
+providers nor authenticates raw remote producer messages. Unconfigured input is
+503, not an empty or healthy fleet. Worker-scoped credentials cannot enumerate it.
+
+The Workers page keeps four distinct families: agent definitions, actual worker
+instances, compute devices/shared resource pools, and model-serving services.
+Configured, healthy, idle, reserved and executing are independent facts. A shared
+pool is counted once; references to it do not add capacity. Missing, stale,
+partial, rejected and unsupported producer facts retain their reasons. Existing
+`/api/workers` remains the configured CI admission-slot projection described below.
+
+`GET /api/inventory?work=WORK_BLAKE3` joins only the canonical current work's
+immutable requirements attachment. Configure `--implementation-work DATABASE`
+for that read-only lookup; arbitrary query-supplied needs or filesystem paths
+are not accepted. Missing requirements stay unknown, and stale work/attachments
+are refused. Explanations are not dispatch grants: the actual consumer rechecks
+work, attempt, fence, policy and exact owner grants before transport.
+
+For an offline projection of the explicitly synthetic example:
+
+```console
+cargo run --locked -p kiln-web-service --example inventory -- fixtures/inventory/synthetic-v2.json operator 2000 json
+```
+
+Use `html` for escaped script-free output. Equal admitted inputs, requirements,
+principal and time share the same projection identity across CLI, HTML and API.
+The example performs no provider discovery and does not qualify a real fleet.
+Kiln core/provider/web maintainers own the contracts and consumers; qualified
+Lattice, Aspen/Molten and Animus observations remain independent prerequisites.
+
+#### Exact artifact browser previews
+
+Review can project an explicitly configured `--artifact-previews CATALOG` over
+the exact current source and retained successful canonical run. A check digest
+is not a product path or launch URL. The preview module independently admits
+the exact plan, observation, current binding and operator-selected policy;
+complete runtime closure, native NAR hashes and required trusted signatures
+must agree before export. Missing or moved evidence is a preview-only failure.
+
+The `artifact-preview` example's `produce` and `serve` commands consume actual
+canonical build inputs; they never build, realize, sign or publish a substitute.
+They use an existing content-pinned TryNix Linux engine on a separate disposable
+loopback capability origin, never the authenticated console origin. Payload,
+output, starts, requests and expiry are finite; normal shutdown removes owned
+exports/catalogs. Its `cleanup` command reconciles expired owned leases after
+crashes. The selected deployment must schedule that cleanup before claiming
+finite crash retention. Browser iframe removal releases its engine worker.
+
+For engine-only rehearsal, `fixtures/artifact-preview/engine-cohort.ncl` selects
+one already-built signed static CLI and requires an explicit finite Unix expiry.
+`artifact-preview engine-cohort` verifies and executes that exact selection;
+it publishes no review catalog and invents no CI run, candidate or build receipt.
+Discovery, hydration, guest boot and program readiness remain separate in
+`window.kilnPreviewObservation`. Clean/warm engine evidence cannot qualify an
+absent canonical build binding. Unsupported browsers, engines, network guests
+and Redox remain explicit refusals; previews never alter CI/review/merge evidence.
+
+The retained [clean/warm engine-only observations](../.cairn/changes/add-exact-artifact-previews/evidence/browser-verification.json)
+record the exact signed CLI and all four phases in an initially empty isolated
+browser context. Each launch resets its own observations; cancellation and
+expiry remain explicit preview-only results.
 
 #### Worker target inventory
 

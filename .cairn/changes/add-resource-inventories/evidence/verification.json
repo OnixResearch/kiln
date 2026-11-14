@@ -1,0 +1,34 @@
+{
+  "schema": "kiln.inventory.local-verification.v1",
+  "issue": 60,
+  "scope": "Admitted read-only inventory contracts and local consumers, not a live fleet",
+  "maintenance_owner": "Kiln core/provider/web maintainers",
+  "immediate_consumer": "Workers console and explicit-file inventory CLI/HTML",
+  "durable_capability": "One bounded versioned semantic projection across API, CLI and offline HTML, preserving exact work and independent provider authority",
+  "checks": [
+    {"command": "cargo +1.88.0 test --offline --locked --workspace", "passed": true, "tests_passed": 1721, "ignored": 11, "output": "artifact://500", "scope": "Integrated workspace before final CLI safe-access refactor"},
+    {"command": "cargo +1.88.0 test --offline --locked -p kiln-web-service --lib inventory::", "passed": true, "tests_passed": 5, "scope": "After CLI safe-access refactor; bounded file/principal input, distinct work failures and identical inert API/offline projection"},
+    {"command": "node --test tests/inventory-ui.test.mjs tests/artifact-preview.test.mjs tests/live-console-ui.test.mjs", "passed": true, "tests_passed": 70},
+    {"command": "inventory fixtures/inventory/synthetic-v2.json operator 2000 json|html", "passed": true, "projection_identity": "0d8cf1516c5c50f307a937ff2172d2760d86a84cc274db2f3ae0a0af34500e56", "html_same_identity": true, "html_scripts_or_network_resources": false}
+  ],
+  "real_browser": {
+    "origin": "http://127.0.0.1:18794",
+    "data": "explicitly synthetic disconnected exploration fixture",
+    "families_rendered": ["Agents", "Workers", "Compute", "Models / Serving"],
+    "exact_work": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "explanation": "synthetic_disconnected; two combinations blocked/unknown; no dispatch authorization",
+    "refresh_retains_work_selection": true,
+    "mobile_viewport_css_pixels": 390,
+    "mobile_document_scroll_width_css_pixels": 390,
+    "offline_failure_keeps_unknown_not_zero": true,
+    "retry_restores_exact_work": true,
+    "clear_session_inventory_rows": 0,
+    "clear_session_private_worker_text": false
+  },
+  "non_claims": [
+    "No live provider collector or fleet qualified",
+    "No physical resource, model route, inference grant or dispatch authority follows from display-time readiness",
+    "No selected-campaign controller or later issue #62 implementation is claimed",
+    "No source lifecycle synchronization, archive, deployment or remote mutation performed"
+  ]
+}

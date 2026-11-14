@@ -8,7 +8,20 @@ let ActiveRoots = [
   ".cairn/changes/clarify-patchgate-receipts/specs/patchgate-review-adapter/spec.md",
   ".cairn/changes/clarify-workers-page/specs/dashboard-workers/spec.md",
   ".cairn/changes/add-website-exploration-examples/specs/website-exploration/spec.md",
-] in
+  ".cairn/changes/add-bombadil-web-exploration/specs/web-exploration-bombadil/spec.md",
+  ".cairn/changes/fix-console-topbar-overflow/specs/live-console-design/spec.md",
+  ".cairn/changes/complete-implementation-recovery/specs/implementation-work/spec.md",
+  ".cairn/changes/complete-independent-verification/specs/independent-verification/spec.md",
+  ".cairn/changes/recover-exact-publication/specs/publication-recovery/spec.md",
+  ".cairn/changes/qualify-implementation-composition/specs/implementation-qualification/spec.md",
+  ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
+  ".cairn/changes/fix-content-index-retry/specs/aspen-runtime-backend/spec.md",
+  ".cairn/changes/add-exact-artifact-previews/specs/artifact-preview/spec.md",
+  ".cairn/changes/benchmark-artifact-readiness/specs/artifact-readiness/spec.md",
+  ".cairn/changes/add-resource-inventories/specs/resource-inventory/spec.md",
+  ".cairn/changes/connect-fair-admission/specs/fair-admission/spec.md",
+]
+in
 let Active =
   Accepted
   & {
@@ -24,7 +37,15 @@ let Active =
           }
         )
         ActiveRoots,
-    evidence_sources | force = Accepted.evidence_sources,
+    evidence_sources | force =
+      Accepted.evidence_sources
+      @ [
+        {
+          root = "docs/implementation-runbook.md",
+          source_kind = "tool_source",
+          extensions = ["md"],
+        },
+      ],
   }
 in
 let NegativeControl =

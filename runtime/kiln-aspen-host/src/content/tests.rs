@@ -12,6 +12,8 @@ use molten::content_store_adapter::{
 use super::support::build_profile_for;
 use super::{MoltenContentPort, OBJECT_KIND};
 
+mod retry;
+
 fn reference(bytes: &[u8]) -> ExternalRef {
     let Ok(reference) = ExternalRef::new(
         "molten",

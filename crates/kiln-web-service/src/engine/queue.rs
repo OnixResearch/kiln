@@ -249,6 +249,9 @@ impl Engine {
             return Ok(response);
         }
         let prior = self.state.runs.get(id).ok_or("run missing")?;
+        if prior.is_independent_verification() {
+            return error(409, "verification_requires_fresh_fenced_profile_execution");
+        }
         if !prior.outcome().is_terminal() {
             return error(409, "rerun_outcome_unknown_or_active");
         }
@@ -339,6 +342,14 @@ impl Engine {
     // required CI for the exact revision.
     // r[impl kiln.dashboard.complete.reruns] r[impl kiln.web.retry_failed]
     pub(super) fn auto_retry_failed(&mut self, id: &str) -> Result<(), String> {
+        if self
+            .state
+            .runs
+            .get(id)
+            .is_some_and(RunRecord::is_independent_verification)
+        {
+            return Ok(());
+        }
         let Some(project) = self
             .state
             .runs
@@ -531,6 +542,7 @@ impl Engine {
             node_timing: BTreeMap::new(),
             reports: Vec::new(),
             untrusted: None,
+            implementation_verification: None,
             state: State::default(),
         };
         self.attach_untrusted(&mut record)?;
@@ -562,14 +574,16 @@ impl Engine {
             .state
             .runs
             .values()
-            .filter(|r| !r.outcome().is_terminal() && !r.waiting())
+            .filter(|r| {
+                !r.is_independent_verification() && !r.outcome().is_terminal() && !r.waiting()
+            })
             .map(|r| r.project_id.clone())
             .collect();
         let mut queued: Vec<_> = self
             .state
             .runs
             .values()
-            .filter(|r| r.phase == "queued")
+            .filter(|r| !r.is_independent_verification() && r.phase == "queued")
             .map(|r| (r.ordinal, r.id.clone(), r.project_id.clone()))
             .collect();
         queued.sort();

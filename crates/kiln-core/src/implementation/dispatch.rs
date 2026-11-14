@@ -47,6 +47,16 @@ pub struct DispatchControls {
     pub resume: bool,
 }
 
+/// Exact provider facts selected for the explicit implementation worker route.
+/// These references retain provider grants; they do not grant resources.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchExecutionBindings {
+    pub requirements: crate::inventory::WorkNeedsAttachment,
+    pub attempt: crate::inventory::AttemptBinding,
+    pub worker_request: ContentId,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ImplementationDispatchPlan {
@@ -67,6 +77,10 @@ pub struct ImplementationDispatchPlan {
     pub token_budget: u64,
     pub invocation_budget: u32,
     pub expected_output: ContentId,
+    /// Absence is the explicit legacy configured-route compatibility profile;
+    /// it conveys no model-service or physical-allocation qualification.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution: Option<DispatchExecutionBindings>,
 }
 
 /// Admit a plan against the exact work and attempt it names.
@@ -110,11 +124,17 @@ pub fn admit_dispatch_plan(
             "implementation dispatch admits cancellation only",
         ));
     }
-    if plan.workspace.network || plan.workspace.credentials {
+    if plan.workspace.credentials
+        || (plan.workspace.network
+            && plan.execution.as_ref().is_none_or(|execution| {
+                execution.attempt.model_services.is_empty()
+                    || execution.attempt.request_admissions.is_empty()
+            }))
+    {
         return Err(refusal(
             "implementation_dispatch_workspace",
             "dispatch.workspace",
-            "implementation dispatch admits no network or credentials",
+            "network requires explicit model-service admissions; ambient credentials are refused",
         ));
     }
     if plan.deadline_minutes == 0
@@ -154,6 +174,60 @@ pub fn admit_dispatch_plan(
             ));
         }
     }
+    if let Some(execution) = &plan.execution {
+        execution
+            .requirements
+            .validate_for(
+                &plan.work_identity,
+                plan.work_revision,
+                &execution.requirements.policy_identity,
+            )
+            .map_err(|_| {
+                refusal(
+                    "implementation_dispatch_requirements",
+                    "dispatch.execution.requirements",
+                    "requirements do not bind the exact admitted work version",
+                )
+            })?;
+        let binding = &execution.attempt;
+        if binding.work_version != plan.work_identity.as_str()
+            || binding.attempt != plan.attempt_identity.as_str()
+            || binding.fence != plan.fence
+            || execution.worker_request.validate().is_err()
+            || binding.model_services.len() > crate::inventory::MAX_REQUIREMENTS
+            || binding.request_admissions.len() > crate::inventory::MAX_REQUIREMENTS
+        {
+            return Err(refusal(
+                "implementation_dispatch_execution",
+                "dispatch.execution",
+                "execution, model admission or worker references are crossed or unbounded",
+            ));
+        }
+        let mut seen = BTreeSet::new();
+        for reference in core::iter::once(&binding.worker)
+            .chain(core::iter::once(&binding.execution_grant))
+            .chain(binding.model_services.iter())
+            .chain(binding.request_admissions.iter())
+        {
+            if reference.source.is_empty()
+                || reference.id.is_empty()
+                || reference.source.len() > crate::inventory::MAX_PUBLIC_TEXT
+                || reference.id.len() > crate::inventory::MAX_PUBLIC_TEXT
+                || reference
+                    .source
+                    .chars()
+                    .chain(reference.id.chars())
+                    .any(char::is_control)
+                || !seen.insert((reference.source.as_str(), reference.id.as_str()))
+            {
+                return Err(refusal(
+                    "implementation_dispatch_execution",
+                    "dispatch.execution",
+                    "provider references are malformed, duplicated or ambiguous",
+                ));
+            }
+        }
+    }
     let mut bytes = Vec::new();
     push_str(&mut bytes, DISPATCH_PLAN_SCHEMA)?;
     push_str(&mut bytes, plan.work_identity.as_str())?;
@@ -184,6 +258,36 @@ pub fn admit_dispatch_plan(
     bytes.extend_from_slice(&plan.deadline_minutes.to_be_bytes());
     bytes.extend_from_slice(&plan.token_budget.to_be_bytes());
     bytes.extend_from_slice(&plan.invocation_budget.to_be_bytes());
+    if let Some(execution) = &plan.execution {
+        push_str(&mut bytes, "kiln.implementation-execution-bindings.v1")?;
+        bytes.push(u8::from(plan.workspace.network));
+        push_str(
+            &mut bytes,
+            execution
+                .requirements
+                .identity()
+                .map_err(|_| {
+                    refusal(
+                        "implementation_dispatch_requirements",
+                        "dispatch.execution",
+                        "requirements identity is invalid",
+                    )
+                })?
+                .as_str(),
+        )?;
+        push_str(&mut bytes, execution.worker_request.as_str())?;
+        let binding = &execution.attempt;
+        for reference in core::iter::once(&binding.worker)
+            .chain(core::iter::once(&binding.execution_grant))
+            .chain(binding.model_services.iter())
+            .chain(binding.request_admissions.iter())
+        {
+            push_str(&mut bytes, &reference.source)?;
+            push_str(&mut bytes, &reference.id)?;
+        }
+        bytes.extend_from_slice(&(binding.model_services.len() as u64).to_be_bytes());
+        bytes.extend_from_slice(&(binding.request_admissions.len() as u64).to_be_bytes());
+    }
     content_identity(&bytes)
 }
 
@@ -275,6 +379,7 @@ mod tests {
             token_budget: 10_000,
             invocation_budget: 10,
             expected_output: content('e'),
+            execution: None,
         }
     }
 
@@ -358,5 +463,105 @@ mod tests {
                 format!("implementation_dispatch_{field}")
             );
         }
+    }
+
+    #[test]
+    fn exact_worker_model_and_request_bindings_survive_reservation_and_reject_crossing() {
+        use crate::inventory::{
+            AttemptBinding, FactRef, ResourceRequirement, WorkNeeds, WorkNeedsAttachment,
+        };
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let mut bound = plan(&work, &attempt);
+        let policy = content('1');
+        let reference = |id: &str| FactRef {
+            source: "provider-v1".into(),
+            id: id.into(),
+        };
+        let needs = WorkNeeds {
+            work_version: attempt.work_identity.as_str().into(),
+            task_family: "feature".into(),
+            output_contract: "candidate-v1".into(),
+            definition: reference("definition"),
+            profile_revision: "worker-v1".into(),
+            policy_ref: policy.as_str().into(),
+            harness: "omp-jsonl".into(),
+            tools: vec!["edit".into()],
+            sandbox: "bubblewrap".into(),
+            execution_backend: "cpu-linux".into(),
+            model_backend: "remote-api".into(),
+            context_tokens: 1024,
+            execution_resources: vec![ResourceRequirement {
+                unit: "cpu".into(),
+                amount: 1,
+            }],
+            modalities: vec!["text".into()],
+            model_artifact: Some("model-v1".into()),
+            qualification_subject: "subject".into(),
+            qualification_corpus: "corpus".into(),
+            qualification_protocol: "v1".into(),
+        };
+        bound.execution = Some(DispatchExecutionBindings {
+            requirements: WorkNeedsAttachment::new(
+                attempt.work_identity.clone(),
+                work.revision,
+                policy,
+                needs,
+            )
+            .unwrap_or_else(|_| unreachable!()),
+            attempt: AttemptBinding {
+                work_version: attempt.work_identity.as_str().into(),
+                attempt: attempt.identity.as_str().into(),
+                fence: attempt.fence,
+                worker: reference("worker"),
+                execution_grant: reference("cpu-grant"),
+                model_services: vec![reference("shared-model")],
+                request_admissions: vec![reference("request-grant")],
+            },
+            worker_request: content('a'),
+        });
+        bound.workspace.network = true;
+        let digest =
+            admit_dispatch_plan(&work, &attempt, &bound).unwrap_or_else(|_| unreachable!());
+        ledger
+            .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &bound)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(ledger.dispatch_plan(&attempt.identity), Some(&bound));
+        let mut crossed = bound.clone();
+        crossed
+            .execution
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .attempt
+            .fence += 1;
+        assert!(admit_dispatch_plan(&work, &attempt, &crossed).is_err());
+        let mut missing = bound.clone();
+        missing
+            .execution
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .attempt
+            .request_admissions
+            .clear();
+        assert!(admit_dispatch_plan(&work, &attempt, &missing).is_err());
+        let mut changed = bound.clone();
+        changed
+            .execution
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .worker_request = content('b');
+        assert_ne!(
+            admit_dispatch_plan(&work, &attempt, &changed).unwrap_or_else(|_| unreachable!()),
+            digest
+        );
+        assert!(
+            ledger
+                .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 2, &changed)
+                .is_err()
+        );
+        assert_eq!(ledger.dispatch_plan(&attempt.identity), Some(&bound));
     }
 }

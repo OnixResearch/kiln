@@ -294,6 +294,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         token_budget: 10_000,
         invocation_budget: 10,
         expected_output: content('e'),
+        execution: None,
     };
     let plan_digest = kiln_core::implementation::admit_dispatch_plan(&work, &stored_attempt, &plan)
         .unwrap_or_else(|_| unreachable!());

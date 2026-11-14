@@ -1,0 +1,28 @@
+{
+  "schema": "kiln.admission.local-verification.v1",
+  "issue": 61,
+  "scope": "Deterministic core and selected durable admission consumers; no live fairness qualification",
+  "maintenance_owner": "Kiln core/implementer maintainers",
+  "immediate_consumers": ["kiln-implementer admission", "kiln-implementer admission-status", "kiln-lattice-dispatch"],
+  "durable_capability": "Opt-in bounded queues over canonical work, immediate owner-receipt debits, finite parent lineage and persisted pre-effect admission/reconciliation",
+  "checks": [
+    {"command": "cargo +1.88.0 test --offline --locked --workspace", "passed": true, "tests_passed": 1721, "ignored": 11, "output": "artifact://500"},
+    {"command": "cargo +1.88.0 test --offline --locked -p kiln-implementer --test admission --test observation --test durable", "passed": true, "tests_passed": 27, "output": "artifact://515", "scope": "Claim representation plus actual SQLite admission, recovery and current-work observation paths"},
+    {"command": "scripts/check-nickel-fixtures.sh", "passed": true, "positive": 81, "negative": 573}
+  ],
+  "behavioral_scope": [
+    "Bounded campaign ranking reuses WeightedScalar/DominantShare",
+    "Explicit stale/incomplete/incompatible outcomes and retained competitor eligibility",
+    "Finite parent transfers and duplicate-safe owner operation accounting",
+    "Shared physical allocation references do not duplicate worker request charges",
+    "Intent-before-owner effects, reopen/reconciliation and conservative cancellation/unknown debits",
+    "Provider rejection and changed claim/generation/deadline block stale transport"
+  ],
+  "non_claims": [
+    "No physical allocation or serving provider implemented by Kiln",
+    "No model loaded, worker dispatched or provider capacity reserved during verification",
+    "No live competing-campaign or cross-host fairness guarantee",
+    "Real owner aggregate serving admission and resource grants remain independently qualified producer prerequisites",
+    "No production, billing, preemption or arbitrary heterogeneous latency/share guarantee"
+  ]
+}

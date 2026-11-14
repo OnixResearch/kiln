@@ -1,3 +1,5 @@
+mod implementation_verification_cli;
+
 fn main() {
     // The streaming helper must retain non-UTF-8 reviewed command arguments.
     if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("stream-child")) {
@@ -17,6 +19,7 @@ fn main() {
             }
         },
         Some(command @ ("serve" | "check")) => service(command, arguments),
+        Some("verify-implementation") => implementation_verification_cli::run(arguments),
         Some("proxy-auth") => {
             match (
                 arguments.next().as_deref(),
@@ -50,6 +53,10 @@ fn usage() -> i32 {
     eprintln!(
         "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
     );
+    eprintln!(
+        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--artifact-previews <catalog>]"
+    );
+    eprintln!("       kiln-web-service verify-implementation --help");
     2
 }
 
@@ -135,6 +142,9 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--reviews" => &mut options.reviews,
             "--cache" => &mut options.cache,
             "--workers" => &mut options.workers,
+            "--inventory" => &mut options.inventory,
+            "--implementation-work" => &mut options.implementation_work,
+            "--artifact-previews" => &mut options.artifact_previews,
             "--work" => &mut options.work,
             "--code-review" => &mut options.code_review,
             _ => return usage(),

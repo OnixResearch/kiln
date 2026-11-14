@@ -85,6 +85,19 @@ entry describes the source tree prepared for the first tagged release.
   changes to the original CI origin, Tailscale Serve routes or Funnel exposure.
   (deployed as a separate local user service; browser and packaged checks passed;
   not CI/provider execution or production qualification)
+- A pinned Bombadil browser rail over the real exploration console, with native
+  catalog/session admission, read-only route/filter/history/tab/viewport actions,
+  semantic selection/readiness/layout and HTTP/JavaScript properties, retained
+  traces and explicit owned-versus-attached lifecycle. Dedicated tool/runner apps
+  and a `web-testing` shell reuse the existing pin without production crate
+  dependencies. Bounded campaigns do not establish exhaustive coverage,
+  CI/provider correctness or release authority.
+  (exercised with retained native success and layout-violation traces)
+- A contained topbar for long workspace/page breadcrumbs and pinned navigation.
+  Search uses intrinsic width, outer tracks and account controls can shrink,
+  and labels elide without removing their accessible names or hiding document
+  overflow. (rebuilt-browser geometry and account/palette keyboard interactions
+  verified at mobile, tablet and desktop widths)
 - Single-tenant HTTPS workspace with logs, reruns, signed triggers, schedules and
   notifications. (exercised locally with TLS 1.3; not production deployment)
 - Operator-approved untrusted pull-request runs held in a durable blocked state
@@ -122,6 +135,17 @@ entry describes the source tree prepared for the first tagged release.
   availability, and the Overview shares the same slot-state vocabulary. (Node
   and Rust tests; live and synthetic browser review; CA-verified local and
   tailnet deployment of the committed package, without worker execution)
+- Opt-in inventory v2 separates agent definitions, worker instances, compute and
+  shared resource pools, and model-serving services. Authenticated console and
+  explicit-file JSON/HTML consumers share exact-work explanations, freshness,
+  rollout/qualification and reservation-versus-usage semantics. Existing worker
+  v1 continues to describe configured project admission slots, not machines.
+- Exact artifact-preview admission and review actions, with native complete
+  runtime-closure/NAR/signature verification and a separately hosted disposable
+  TryNix Linux engine. Engine-only rehearsal never invents a canonical CI build;
+  unsupported engines, moved candidates and partial evidence fail preview-only.
+  Clean-cache and warm engine-only Linux CLI launches are exercised; qualification
+  against a genuine current canonical CI artifact remains separate.
 
 **Change review**
 
@@ -144,11 +168,40 @@ entry describes the source tree prepared for the first tagged release.
   pipelines and invoice drafts. (exercised locally; not a qualified paid service)
 - Firecracker, Cloud Hypervisor and QEMU profiles and workload JWTs. (exercised
   locally; namespace backend trusted jobs only; `hostile_isolation_claim:false`)
+- Opt-in retained Cloud Hypervisor host-effect journaling, paired local
+  checkpoints, exact handoff/fencing receipts and bounded direct Iroh migration
+  transport. Missing producer compatibility remains unsupported; no live or
+  two-host migration qualification follows from local contracts.
+- Real hosted/Nix artifact-readiness measurement with exact cohorts, separate
+  elapsed/CPU observations, cold/warm controls, retained failures and independent
+  matched-cell analysis. An insufficient baseline cannot recommend a speedup.
 
 **Implementation work**
 
-- GitHub issue and Cairn intake with claims, reservations, candidate handoff,
-  CI verification and guarded landing. (fixture-tested; no live deployment)
+- Atomic GitHub/Cairn intake/supersession, fenced attempts, immutable requirements,
+  actual admitted isolated Lattice/OMP dispatch, durable cancellation/recovery,
+  independently captured Git candidates and canonical Engine verification using
+  the pinned native Cairn authoritative completion evaluator.
+- Durable branch/PR effects and independent integration/source/Cairn observations,
+  with reconciliation-only crash recovery. Unsafe ordinary GitHub merge and
+  unconditional source closure are removed; no unattended landing is qualified.
+- Opt-in bounded queues, reservation-time fairness accounting, parent budgets,
+  exact owner grants and conservative unknown-effect reconciliation. Physical
+  deployment and worker-request resource dimensions remain separate.
+- Native-consumer qualification campaigns and frozen positive/negative controls,
+  plus an opt-in onix-core deployment/guest composition. Actual model routes,
+  isolation/grants, immutable executables, canonical writer access and approved
+  remote effects remain explicit prerequisites; no deployment was performed.
+
+### Fixed
+
+- Keep verified content-index updates pending across equal `put_exact` retries
+  until payload synchronization, exact replacement and parent synchronization
+  complete. Persistent create/write/sync/rename faults cannot become a successful
+  retry acknowledgement; published mappings survive failed additions and exact
+  readback survives recovery/reopen. Eight focused real-port tests include the
+  ten-case empty/populated index failure matrix. No power-loss guarantee is
+  inferred from successful filesystem synchronization.
 
 ### Packaging and installation
 

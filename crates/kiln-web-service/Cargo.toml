@@ -11,6 +11,7 @@ base64.workspace = true
 blake3.workspace = true
 bounded-exec.workspace = true
 bounded-exec-core.workspace = true
+ed25519-dalek.workspace = true
 fs2.workspace = true
 git2.workspace = true
 cob-git2.workspace = true
@@ -23,6 +24,7 @@ hmac = "0.12.1"
 # Calendar schedules: exact pin with only the bundled IANA tzdb (jiff-tzdb
 # 0.1.8, tzdb 2026c); host zoneinfo is never read. See LICENSES.md.
 jiff = { version = "=0.2.35", default-features = false, features = ["std", "tzdb-bundle-always"] }
+kiln-adapter-cairn.workspace = true
 kiln-adapter-git.workspace = true
 kiln-adapter-github = { path = "../kiln-adapter-github" }
 kiln-adapter-http-observe.workspace = true
@@ -33,6 +35,7 @@ kiln-build-graph.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-highlight.workspace = true
+kiln-implementer.workspace = true
 kiln-observe-core.workspace = true
 kiln-provider-api.workspace = true
 lattice-workflow-transport.workspace = true

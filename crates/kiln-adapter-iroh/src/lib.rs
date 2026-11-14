@@ -1,6 +1,7 @@
 //! Authenticated Iroh transport for the existing native Lattice workflow contract.
 //! CI consumers use their existing Unix workflow port through a controller-local proxy.
 
+pub mod migration;
 mod profile;
 mod transport;
 

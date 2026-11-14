@@ -53,6 +53,7 @@ exclude = [
   "vendor/lattice/crates/lattice-workflow-contract",
   "vendor/lattice/crates/lattice-workflow-contract/transport",
   "vendor/cairn",
+  "vendor/cairn-verifier",
   "vendor/valence",
   "vendor/artifact",
   "vendor/bounded-exec",
@@ -123,6 +124,7 @@ sanakirja = "=2.0.0-beta"
 lattice-workflow-contract = { path = "vendor/lattice/crates/lattice-workflow-contract" }
 lattice-workflow-transport = { path = "vendor/lattice/crates/lattice-workflow-contract/transport" }
 cairn-gate-contract = { path = "vendor/cairn/crates/cairn-gate-contract" }
+cairn-core = { path = "vendor/cairn-verifier/crates/cairn-core" }
 bounded-exec = { path = "vendor/bounded-exec/crates/bounded-exec" }
 bounded-exec-core = { path = "vendor/bounded-exec/crates/bounded-exec-core" }
 # Package `onix-kiln-core`; the key and the library name stay `kiln-core`/`kiln_core`.

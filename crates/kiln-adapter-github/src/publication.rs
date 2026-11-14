@@ -113,10 +113,15 @@ impl GithubPublicationClient {
     /// Ensure the exact candidate branch exists at the candidate commit.
     // r[impl kiln.github.publication]
     pub fn ensure_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
-        self.ensure_branch_at(plan, 0)
+        match self.reconcile_branch(plan)? {
+            Some(head) => Ok(head),
+            None => self.create_branch(plan),
+        }
     }
 
-    fn ensure_branch_at(&self, plan: &PublicationPlan, retries: u8) -> PortResult<ExternalRef> {
+    /// Reconciliation is read-only, including an absent result. Absence never
+    /// itself grants transport authority; the durable shell owns that decision.
+    pub fn reconcile_branch(&self, plan: &PublicationPlan) -> PortResult<Option<ExternalRef>> {
         validate_plan(plan)?;
         let (owner, repository) = repository_parts(&plan.repository)?;
         let path = format!(
@@ -131,17 +136,17 @@ impl GithubPublicationClient {
                     return Err(domain(
                         "github_publication_branch_conflict",
                         "publication.branch",
-                        "existing branch head differs from the candidate",
+                        "existing branch head differs from the candidate; overwrite is forbidden",
                     ));
                 }
-                commit_ref(&raw.object.sha)
+                Ok(Some(commit_ref(&raw.object.sha)?))
             }
-            Err(HttpError::Status(404)) => self.create_branch(plan, retries),
+            Err(HttpError::Status(404)) => Ok(None),
             Err(error) => Err(error.into_failure()),
         }
     }
 
-    fn create_branch(&self, plan: &PublicationPlan, retries: u8) -> PortResult<ExternalRef> {
+    fn create_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
         let (owner, repository) = repository_parts(&plan.repository)?;
         let body = serde_json::json!({
             "ref": format!("refs/heads/{}", plan.branch),
@@ -153,39 +158,49 @@ impl GithubPublicationClient {
             &body,
         ) {
             Ok(response) => {
-                let raw: RawRef = self.decode(response)?;
+                let raw: RawRef = self.decode(response).map_err(|_| {
+                    unknown(
+                        "github_publication_branch_unknown",
+                        "branch mutation response is unreadable; reconcile before retry",
+                    )
+                })?;
                 if raw.object.sha != plan.candidate.native_id.as_str() {
-                    return Err(infrastructure(
-                        "github_publication_branch",
-                        "GitHub created a branch at a different head",
+                    return Err(unknown(
+                        "github_publication_branch_unknown",
+                        "branch mutation reported an unexpected head; reconcile without overwrite",
                     ));
                 }
                 commit_ref(&raw.object.sha)
             }
-            Err(HttpError::Status(422 | 409)) if retries == 0 => self.ensure_branch_at(plan, 1),
-            Err(HttpError::Status(422 | 409)) => Err(PortFailure::Unknown(InfrastructureFailure {
-                code: "github_publication_branch_race".to_string(),
-                message: "branch creation raced and remained unreconciled".to_string(),
-            })),
-            Err(error) => Err(error.into_failure()),
+            Err(HttpError::Status(422 | 409)) => self.reconcile_branch(plan)?.ok_or_else(|| {
+                unknown(
+                    "github_publication_branch_race",
+                    "branch creation raced and remained unobserved",
+                )
+            }),
+            Err(error) => Err(error.into_mutation_failure()),
         }
     }
 
     /// Ensure exactly one open PR exists for the candidate branch and base.
     // r[impl kiln.github.publication]
     pub fn ensure_pull_request(&self, plan: &PublicationPlan) -> PortResult<PublicationOutcome> {
-        self.ensure_pull_request_at(plan, 0)
+        if let Some(outcome) = self.reconcile_pull_request(plan)? {
+            return Ok(outcome);
+        }
+        self.create_pull_request(plan)
     }
 
-    fn ensure_pull_request_at(
+    /// Inspect all PR states so closed or externally merged PRs cannot be
+    /// mistaken for absence after a crash. Any incomplete page is unknown.
+    pub fn reconcile_pull_request(
         &self,
         plan: &PublicationPlan,
-        retries: u8,
-    ) -> PortResult<PublicationOutcome> {
+    ) -> PortResult<Option<PublicationOutcome>> {
         validate_plan(plan)?;
         let (owner, repository) = repository_parts(&plan.repository)?;
         let list = format!(
-            "{}/repos/{owner}/{repository}/pulls?state=open&head={}:{}&base={}&per_page=100",
+            "{}/repos/{owner}/{repository}/pulls?state=all&head={}:{}&base={}&per_page=100",
             self.endpoint,
             encode(owner),
             encode(&plan.branch),
@@ -198,29 +213,22 @@ impl GithubPublicationClient {
                 message: "pull request reconciliation is incomplete across pages".to_string(),
             }));
         }
-        let mut pulls: Vec<RawPull> = self.decode(response)?;
-        pulls.retain(|pull| pull.head.r#ref == plan.branch && pull.base.r#ref == plan.base_branch);
-        let mut open: Vec<&RawPull> = pulls
-            .iter()
-            .filter(|pull| pull.state == "open" && !pull.merged)
-            .collect();
-        let mut merged: Vec<&RawPull> = pulls.iter().filter(|pull| pull.merged).collect();
-        if open.len() > 1 || merged.len() > 1 {
-            return Err(PortFailure::Unknown(InfrastructureFailure {
-                code: "github_publication_ambiguous".to_string(),
-                message: "more than one matching pull request exists".to_string(),
-            }));
-        }
-        if let Some(pull) = open.pop().or_else(|| merged.pop()) {
-            return outcome(plan, pull);
-        }
-        if pulls.iter().any(|pull| pull.state == "closed") {
-            return Err(domain(
-                "github_publication_pr_closed",
-                "publication.pull_request",
-                "an unmerged closed pull request already exists for this candidate",
+        let pulls: Vec<RawPull> = self.decode(response)?;
+        if pulls.len() > 100 || pulls.len() > 1 {
+            return Err(unknown(
+                "github_publication_ambiguous",
+                "more than one matching pull request or incomplete result exists",
             ));
         }
+        match pulls.first() {
+            Some(pull) => Ok(Some(outcome(plan, pull)?)),
+            None => Ok(None),
+        }
+    }
+
+    fn create_pull_request(&self, plan: &PublicationPlan) -> PortResult<PublicationOutcome> {
+        validate_plan(plan)?;
+        let (owner, repository) = repository_parts(&plan.repository)?;
         let body = serde_json::json!({
             "title": plan.title,
             "body": plan.body,
@@ -233,17 +241,23 @@ impl GithubPublicationClient {
             &body,
         ) {
             Ok(response) => {
-                let pull: RawPull = self.decode(response)?;
+                let pull: RawPull = self.decode(response).map_err(|_| {
+                    unknown(
+                        "github_publication_pr_unknown",
+                        "PR mutation response is unreadable; reconcile before retry",
+                    )
+                })?;
                 outcome(plan, &pull)
             }
-            Err(HttpError::Status(422 | 409)) if retries == 0 => {
-                self.ensure_pull_request_at(plan, 1)
+            Err(HttpError::Status(422 | 409)) => {
+                self.reconcile_pull_request(plan)?.ok_or_else(|| {
+                    unknown(
+                        "github_publication_pr_race",
+                        "pull request creation raced and remained unreconciled",
+                    )
+                })
             }
-            Err(HttpError::Status(422 | 409)) => Err(PortFailure::Unknown(InfrastructureFailure {
-                code: "github_publication_pr_race".to_string(),
-                message: "pull request creation raced and remained unreconciled".to_string(),
-            })),
-            Err(error) => Err(error.into_failure()),
+            Err(error) => Err(error.into_mutation_failure()),
         }
     }
 
@@ -353,7 +367,22 @@ fn has_next_link(link: Option<&str>) -> PortResult<bool> {
     let Some(link) = link else {
         return Ok(false);
     };
-    if link.len() > 2048 || link.chars().any(char::is_control) {
+    if link.len() > 2048
+        || link.chars().any(char::is_control)
+        || !link.split(',').all(|part| {
+            let part = part.trim();
+            part.starts_with('<')
+                && part.contains(">; rel=\"")
+                && [
+                    "rel=\"next\"",
+                    "rel=\"prev\"",
+                    "rel=\"first\"",
+                    "rel=\"last\"",
+                ]
+                .iter()
+                .any(|relation| part.ends_with(*relation))
+        })
+    {
         return Err(domain(
             "github_publication_link",
             "publication.link",
@@ -367,9 +396,11 @@ fn has_next_link(link: Option<&str>) -> PortResult<bool> {
 }
 
 fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutcome> {
-    if pull.head.sha != plan.candidate.native_id.as_str()
+    if pull.number == 0
+        || pull.head.r#ref != plan.branch
+        || pull.head.sha != plan.candidate.native_id.as_str()
         || pull.base.r#ref != plan.base_branch
-        || !(pull.state == "open" || (pull.state == "closed" && pull.merged))
+        || !(pull.state == "open" || (pull.state == "closed" && pull.is_merged()))
     {
         return Err(domain(
             "github_publication_pr_conflict",
@@ -386,7 +417,7 @@ fn outcome(plan: &PublicationPlan, pull: &RawPull) -> PortResult<PublicationOutc
         )?,
         number: pull.number,
         html_url: pull.html_url.clone(),
-        merged: pull.merged,
+        merged: pull.is_merged(),
     })
 }
 
@@ -427,6 +458,16 @@ impl HttpError {
         }
     }
 
+    fn into_mutation_failure(self) -> PortFailure {
+        match self {
+            Self::Status(401 | 403 | 404) => self.into_failure(),
+            _ => unknown(
+                "github_publication_mutation_unknown",
+                "mutation transport outcome is unknown; reconcile before any retry",
+            ),
+        }
+    }
+
     fn into_failure(self) -> PortFailure {
         match self {
             Self::Status(401 | 403) => domain(
@@ -448,6 +489,13 @@ impl HttpError {
     }
 }
 
+fn unknown(code: &str, message: &str) -> PortFailure {
+    PortFailure::Unknown(InfrastructureFailure {
+        code: code.to_string(),
+        message: message.to_string(),
+    })
+}
+
 #[derive(Deserialize)]
 struct RawRef {
     object: RawObject,
@@ -460,10 +508,19 @@ struct RawObject {
 struct RawPull {
     number: u64,
     state: String,
+    #[serde(default)]
     merged: bool,
+    #[serde(default)]
+    merged_at: Option<String>,
     html_url: String,
     head: RawHead,
     base: RawBase,
+}
+
+impl RawPull {
+    fn is_merged(&self) -> bool {
+        self.merged || self.merged_at.is_some()
+    }
 }
 #[derive(Deserialize)]
 struct RawHead {
@@ -495,6 +552,7 @@ mod tests {
                 .unwrap_or_else(|_| unreachable!())
         );
         assert!(has_next_link(Some(&"x".repeat(2049))).is_err());
+        assert!(has_next_link(Some("malformed page metadata")).is_err());
     }
 
     fn token() -> ResolvedSecret {
@@ -735,5 +793,105 @@ mod tests {
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert!(client.ensure_pull_request(&plan).is_err());
         let _ = server.join();
+    }
+
+    #[test]
+    // r[verify kiln.publication.recovery.scenario.crash]
+    fn lost_mutation_ack_reconciles_branch_and_pr_without_another_post() {
+        let (endpoint, server) = serve(vec![
+            ("404 Not Found", "{}".into()),
+            ("201 Created", "lost or truncated body".into()),
+            ("200 OK", branch_ref()),
+            ("200 OK", "[]".into()),
+            ("201 Created", "lost or truncated body".into()),
+            (
+                "200 OK",
+                serde_json::json!([pull(9, &"a".repeat(40))]).to_string(),
+            ),
+        ]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        let plan = plan();
+        assert!(client.ensure_branch(&plan).is_err());
+        assert!(
+            client
+                .reconcile_branch(&plan)
+                .unwrap_or_else(|_| unreachable!())
+                .is_some()
+        );
+        assert!(client.ensure_pull_request(&plan).is_err());
+        assert_eq!(
+            client
+                .reconcile_pull_request(&plan)
+                .unwrap_or_else(|_| unreachable!())
+                .unwrap_or_else(|| unreachable!())
+                .number,
+            9
+        );
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            requests
+                .iter()
+                .filter(|request| request.starts_with("POST "))
+                .count(),
+            2
+        );
+        assert!(
+            requests
+                .last()
+                .is_some_and(|request| request.contains("state=all"))
+        );
+    }
+
+    #[test]
+    fn incomplete_page_and_open_plus_merged_matches_cannot_authorize_creation() {
+        let (endpoint, server) = serve(vec![(
+            "200 OK\r\nLink: <https://api.github.com/pulls?page=2>; rel=\"next\"",
+            "[]".into(),
+        )]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            client.ensure_pull_request(&plan()),
+            Err(PortFailure::Unknown(_))
+        ));
+        assert!(
+            server
+                .join()
+                .unwrap_or_else(|_| unreachable!())
+                .iter()
+                .all(|request| request.starts_with("GET "))
+        );
+        let mut merged = pull(10, &"a".repeat(40));
+        *merged.get_mut("state").unwrap_or_else(|| unreachable!()) = serde_json::json!("closed");
+        // GitHub's list route exposes merged_at, not necessarily merged.
+        merged
+            .as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .remove("merged");
+        merged
+            .as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .insert(
+                "merged_at".into(),
+                serde_json::json!("2026-11-13T00:00:00Z"),
+            );
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            serde_json::json!([pull(9, &"a".repeat(40)), merged]).to_string(),
+        )]);
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            client.ensure_pull_request(&plan()),
+            Err(PortFailure::Unknown(_))
+        ));
+        assert!(
+            server
+                .join()
+                .unwrap_or_else(|_| unreachable!())
+                .iter()
+                .all(|request| request.starts_with("GET "))
+        );
     }
 }

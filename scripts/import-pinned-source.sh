@@ -4,7 +4,7 @@ set -euo pipefail
 # A checkout is only an import input. Read the pinned Git object, never its
 # mutable working tree. Runtime Cargo/Nix acquisition uses the committed bytes.
 if (( $# != 2 )); then
-  printf 'usage: %s <lattice|cairn|valence|artifact|bounded-exec|mantle|ucan|subwayrat> <source-checkout>\n' "$0" >&2
+  printf 'usage: %s <lattice|cairn|cairn-verifier|valence|artifact|bounded-exec|mantle|ucan|subwayrat> <source-checkout>\n' "$0" >&2
   exit 2
 fi
 name=$1
@@ -16,6 +16,9 @@ case "$name" in
   cairn)
     source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
+  cairn-verifier)
+    source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
+    archive_blake3=068e403844cbbd718e4ced8d0848b84cbfc7eff66d601a8a85b5231f747f5e3d ;;
   valence)
     source_commit=220307a371e7bc4e3309447b09447d0fe6c4db5f
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;

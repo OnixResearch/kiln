@@ -1,0 +1,12 @@
+{
+  "change": "recover-exact-publication",
+  "policy": "cairn-policy/generated/cairn-policy.json",
+  "prerequisite_gates": [
+    {"command": "cairn gate proposal recover-exact-publication --root . --policy cairn-policy/generated/cairn-policy.json", "verdict": "PASS"},
+    {"command": "cairn gate design recover-exact-publication --root . --policy cairn-policy/generated/cairn-policy.json", "verdict": "PASS"},
+    {"command": "cairn gate tasks recover-exact-publication --root . --policy cairn-policy/generated/cairn-policy.json", "verdict": "PASS"}
+  ],
+  "planning_note": "Initial design/tasks attempts rejected a malformed delta-spec requirement layout; corrected to native ADDED Requirements/Requirement/Scenario blocks and all three prerequisite gates passed before product edits.",
+  "verification": "No tests, builds, lint, formatting, campaigns, remote effects or live qualification executed. Parent owns coordinated verification.",
+  "remote_authority": "No pushes, PR creation, merges, issue mutations, lifecycle source execution or publication were authorized or performed."
+}

@@ -1,0 +1,223 @@
+use crate::AuthenticatedEvidenceReport;
+
+use super::{
+    push_classification, valid_blake3, CairnArtifactAuthCompatibilityClassification,
+    CairnArtifactAuthCompatibilityDimension, CairnArtifactAuthCompatibilityDisposition,
+    CairnArtifactAuthReport,
+};
+
+pub(super) fn classify_preimages(
+    legacy: &str,
+    standalone: Option<&str>,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    let Some(standalone) = standalone else {
+        push_classification(
+            output,
+            CairnArtifactAuthCompatibilityDimension::Preimage,
+            "artifact_auth.compatibility.preimage.missing",
+            Some(legacy),
+            None,
+            CairnArtifactAuthCompatibilityDisposition::Blocking,
+        );
+        return;
+    };
+    let is_pair_valid = valid_blake3(legacy) && valid_blake3(standalone);
+    let (code, disposition) = if !is_pair_valid {
+        (
+            "artifact_auth.compatibility.preimage.malformed",
+            CairnArtifactAuthCompatibilityDisposition::Blocking,
+        )
+    } else if legacy == standalone {
+        (
+            "artifact_auth.compatibility.preimage.domain_not_distinct",
+            CairnArtifactAuthCompatibilityDisposition::Blocking,
+        )
+    } else {
+        (
+            "artifact_auth.compatibility.preimage.schema_mapped",
+            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped,
+        )
+    };
+    push_classification(
+        output,
+        CairnArtifactAuthCompatibilityDimension::Preimage,
+        code,
+        Some(legacy),
+        Some(standalone),
+        disposition,
+    );
+}
+
+pub(super) fn classify_identities(
+    standalone_preimage: Option<&str>,
+    legacy: &AuthenticatedEvidenceReport,
+    standalone: &CairnArtifactAuthReport,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    classify_equal_identity(
+        "artifact_auth.compatibility.identity.subject",
+        &legacy.measured_subject_hash,
+        &standalone.measured_subject_hash,
+        output,
+    );
+    classify_equal_identity(
+        "artifact_auth.compatibility.identity.producer",
+        &legacy.producer,
+        &standalone.producer,
+        output,
+    );
+    classify_equal_identity(
+        "artifact_auth.compatibility.identity.key_label",
+        &legacy.key_id,
+        &standalone.key_id,
+        output,
+    );
+    classify_key_encoding(standalone, output);
+    classify_authentication_identity(legacy, standalone, output);
+    classify_standalone_identity_set(standalone_preimage, standalone, output);
+}
+
+pub(super) fn classify_decisions(
+    legacy: &AuthenticatedEvidenceReport,
+    standalone: &CairnArtifactAuthReport,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    let is_report_pair_well_formed = legacy.passed == legacy.issues.is_empty()
+        && standalone.decision_passed == standalone.issues.is_empty();
+    let is_decision_equal = legacy.passed == standalone.decision_passed;
+    let is_rejection_context_explained = legacy.passed
+        || legacy
+            .issues
+            .iter()
+            .any(|issue| shared_rejection_context(&issue.code));
+    push_classification(
+        output,
+        CairnArtifactAuthCompatibilityDimension::Decision,
+        "artifact_auth.compatibility.decision.outcome",
+        Some(if legacy.passed { "passed" } else { "rejected" }),
+        Some(if standalone.decision_passed {
+            "passed"
+        } else {
+            "rejected"
+        }),
+        if is_report_pair_well_formed && is_decision_equal && is_rejection_context_explained {
+            CairnArtifactAuthCompatibilityDisposition::Equal
+        } else {
+            CairnArtifactAuthCompatibilityDisposition::Blocking
+        },
+    );
+}
+
+fn shared_rejection_context(code: &str) -> bool {
+    matches!(
+        code,
+        "authenticated_inputs.measured_digest_mismatch"
+            | "authenticated_inputs.signature_parent_mismatch"
+            | "authenticated_inputs.signature_parent_unlinked"
+            | "authenticated_inputs.signer_revoked"
+            | "authenticated_inputs.signature_purpose_unauthorized"
+            | "authenticated_inputs.signature_purpose_mismatch"
+    )
+}
+
+fn classify_equal_identity(
+    code: &str,
+    legacy: &str,
+    standalone: &str,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    let disposition = if legacy == standalone {
+        CairnArtifactAuthCompatibilityDisposition::Equal
+    } else {
+        CairnArtifactAuthCompatibilityDisposition::Blocking
+    };
+    push_classification(
+        output,
+        CairnArtifactAuthCompatibilityDimension::Identity,
+        code,
+        Some(legacy),
+        Some(standalone),
+        disposition,
+    );
+}
+
+fn classify_key_encoding(
+    standalone: &CairnArtifactAuthReport,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    let legacy = &standalone.legacy_public_key_blake3;
+    let raw = &standalone.standalone_public_key_blake3;
+    let is_valid_and_distinct = valid_blake3(legacy) && valid_blake3(raw) && legacy != raw;
+    push_classification(
+        output,
+        CairnArtifactAuthCompatibilityDimension::Identity,
+        "artifact_auth.compatibility.identity.public_key_encoding_mapped",
+        Some(legacy),
+        Some(raw),
+        if is_valid_and_distinct {
+            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+        } else {
+            CairnArtifactAuthCompatibilityDisposition::Blocking
+        },
+    );
+}
+
+fn classify_authentication_identity(
+    legacy: &AuthenticatedEvidenceReport,
+    standalone: &CairnArtifactAuthReport,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    let is_authentication_identity_valid =
+        match (&legacy.authentication_hash, &standalone.authentication_hash) {
+            (Some(left), Some(right)) => valid_blake3(left) && valid_blake3(right) && left != right,
+            (None, None) => !legacy.passed && !standalone.decision_passed,
+            _ => false,
+        };
+    push_classification(
+        output,
+        CairnArtifactAuthCompatibilityDimension::Identity,
+        "artifact_auth.compatibility.identity.decision_schema_mapped",
+        legacy.authentication_hash.as_deref(),
+        standalone.authentication_hash.as_deref(),
+        if is_authentication_identity_valid {
+            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+        } else {
+            CairnArtifactAuthCompatibilityDisposition::Blocking
+        },
+    );
+}
+
+fn classify_standalone_identity_set(
+    standalone_preimage: Option<&str>,
+    standalone: &CairnArtifactAuthReport,
+    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+) {
+    let is_statement_match = standalone_preimage
+        .zip(standalone.standalone_statement_blake3.as_deref())
+        .is_some_and(|(expected, actual)| expected == actual && valid_blake3(actual));
+    let is_decision_identity_set_valid = valid_blake3(&standalone.standalone_policy_blake3)
+        && valid_blake3(&standalone.standalone_scope_blake3)
+        && valid_blake3(&standalone.standalone_decision_blake3);
+    let is_verified_key_set_valid = if standalone.decision_passed {
+        standalone.standalone_verified_key_blake3
+            == vec![standalone.standalone_public_key_blake3.clone()]
+    } else {
+        standalone
+            .standalone_verified_key_blake3
+            .iter()
+            .all(|identity| valid_blake3(identity))
+    };
+    push_classification(
+        output,
+        CairnArtifactAuthCompatibilityDimension::Identity,
+        "artifact_auth.compatibility.identity.standalone_set",
+        None,
+        standalone.standalone_statement_blake3.as_deref(),
+        if is_statement_match && is_decision_identity_set_valid && is_verified_key_set_valid {
+            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+        } else {
+            CairnArtifactAuthCompatibilityDisposition::Blocking
+        },
+    );
+}

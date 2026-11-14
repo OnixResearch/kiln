@@ -1,0 +1,12 @@
+{
+  "change": "complete-independent-verification",
+  "command": "cairn gate <stage> complete-independent-verification --root . --policy cairn-policy/generated/cairn-policy.json",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "gates": [
+    {"stage":"proposal","valid":true,"verdict":"PASS","receipt_hash":"140662c7d121d778835e073bfe06dc45e9e63bb49cf89b0a233e7b3bce4f7432"},
+    {"stage":"design","valid":true,"verdict":"PASS","receipt_hash":"ecb94f6bbe88e117002918ded0fe5f7fdad11167406a7b50038cbef785a0bfb6"},
+    {"stage":"tasks","valid":true,"verdict":"PASS","receipt_hash":"5fec0b5ac42dd0b97eeca9793138bba921ff40f24495cae5882114c9c330a330"}
+  ],
+  "scope": "Prerequisite planning gate observations before product edits; not runtime verification. Initial missing-delta-spec refusal was corrected before these passing gates.",
+  "checks_not_run": ["tests", "build", "lint", "formatter", "real bug/feature pilot", "hostile-isolation qualification"]
+}

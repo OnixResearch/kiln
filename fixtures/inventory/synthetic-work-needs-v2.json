@@ -1,0 +1,36 @@
+{
+  "work_version": "work-r1",
+  "task_family": "rust-fix",
+  "output_contract": "candidate-v1",
+  "definition": {
+    "source": "agents",
+    "id": "implementation"
+  },
+  "profile_revision": "profile-r1",
+  "policy_ref": "policy-r1",
+  "harness": "omp",
+  "tools": [
+    "edit"
+  ],
+  "sandbox": "microvm-v1",
+  "execution_backend": "cpu-linux",
+  "model_backend": "remote-api",
+  "context_tokens": 16000,
+  "execution_resources": [
+    {
+      "unit": "cpu_millicores",
+      "amount": 1000
+    },
+    {
+      "unit": "memory_bytes",
+      "amount": 4000
+    }
+  ],
+  "modalities": [
+    "text"
+  ],
+  "model_artifact": "model-artifact-r1",
+  "qualification_subject": "profile-subject-r1",
+  "qualification_corpus": "rust-corpus-r1",
+  "qualification_protocol": "qualification-v1"
+}

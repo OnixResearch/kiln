@@ -772,6 +772,20 @@
     }
     if (!matching.length) card.append(node("p", "No canonical exact-source CI evidence is present in this retained response for the selected revision. Missing evidence is not success; inspect the checklist's exact blocked reason.", "cr-notice"));
   }
+  // r[impl kiln.preview.review] The dedicated module receives only service
+  // projections. No artifact-digest-to-URL inference and no CI mutation route.
+  function drawPreviews(root) {
+    const card = panel(root, "Exact artifact previews", "artifact-previews", true);
+    const c = state.detail.change, r = arr(c.revisions).find(item => item.id === revision());
+    const epoch = state.epoch, id = selected(), selectedRevision = revision();
+    const rows = state.detail.artifact_previews, previewError = state.detail.artifact_previews_error;
+    const runs = arr(state.detail.ci_runs).filter(f => f.project === c.project && f.repository === c.repository && f.revision === r?.commit && f.success === true && f.full_run === true && f.clean === true).map(f => f.run_id);
+    import("/preview-review.js").then(module => {
+      if (!active(epoch, id) || revision() !== selectedRevision || !card.isConnected) return;
+      if (previewError) card.append(node("p", `Preview unavailable: ${String(previewError).slice(0, 256)}. CI evidence is unchanged.`, "cr-notice"));
+      module.renderPreviews(card, rows, { project: c.project, repository: c.repository, revision: r?.commit, currentRevision: current()?.commit, runs, isCurrent: () => active(epoch, id) && revision() === selectedRevision && current()?.commit === r?.commit });
+    }).catch(() => { if (card.isConnected) card.append(node("p", "Preview adapter unavailable. CI evidence is unchanged.", "cr-muted")); });
+  }
   function drawDetail(root) {
     const c = state.detail.change, r = arr(c.revisions).find(item => item.id === revision());
     if (revision() !== current()?.id) root.append(node("p", "Historical revision selected. Comments and drafts retain this exact revision and comparison base. Optional votes always apply to the current revision shown in the publication confirmation; provider actions require the current revision.", "cr-notice"));
@@ -792,7 +806,7 @@
     for (const [value, text] of [["unified", "Unified"], ["split", "Side by side"]]) { const b = button(text, () => { state.mode = value; for (const other of modes.children) other.setAttribute("aria-pressed", String(other === b)); drawDiff(); }); b.setAttribute("aria-pressed", String(state.mode === value)); modes.append(b); }
     modeField.append(modeLabel, modes); controls.append(modeField); diff.append(controls, node("div", null, "cr-diff-host")); drawDiff();
     drawDiscussion(main); drawSuggestions(main);
-    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
+    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawPreviews(aside); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
     drawQueue(aside, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
     drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
   }

@@ -197,6 +197,10 @@ pub struct RunRecord {
     /// Untrusted pull-request gate bound to this run's exact source commit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub untrusted: Option<kiln_core::untrusted::UntrustedGate>,
+    /// Trusted controller-created provenance for exact independent verification.
+    /// Historical/ordinary runs have no such mapping.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub implementation_verification: Option<super::verification::VerificationProvenance>,
     #[serde(skip)]
     pub state: State,
 }
@@ -257,6 +261,10 @@ pub struct RunView {
     pub untrusted: Option<kiln_core::untrusted::UntrustedSummary>,
 }
 impl RunRecord {
+    pub(super) fn is_independent_verification(&self) -> bool {
+        self.plan.provider_profile.as_str() == super::verification::VERIFIER_PROVIDER
+    }
+
     pub(super) fn dispatch_binding(&self) -> kiln_provider_api::WorkflowDispatchBinding {
         kiln_provider_api::WorkflowDispatchBinding {
             run_id: self.id.clone(),
@@ -290,6 +298,7 @@ impl RunRecord {
             kiln_core::workflow::admit_workflow_observation(&self.plan, obs)
                 .map_err(|_| "stored observation rejected")?;
         }
+        super::verification::validate_record_provenance(self)?;
         super::telemetry::validate(self)?;
         Ok(())
     }
@@ -364,6 +373,13 @@ impl RunRecord {
         self.apply(command)
     }
     pub fn capabilities(&self) -> WorkflowControls {
+        if self.is_independent_verification() {
+            return WorkflowControls {
+                cancel: false,
+                pause: false,
+                resume: false,
+            };
+        }
         let available = self.phase == "active"
             && self.outcome() == Outcome::Pending
             && self.error_code.is_none();

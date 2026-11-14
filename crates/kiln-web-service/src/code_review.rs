@@ -361,6 +361,7 @@ pub struct Workspace {
     profile: Option<Profile>,
     /// Service projects on the review repository, primary project first.
     projects: Vec<crate::profile::ProjectProfile>,
+    preview_catalog: Option<std::path::PathBuf>,
     gate: Mutex<()>,
 }
 
@@ -487,6 +488,7 @@ impl Workspace {
         Ok(Self {
             profile,
             projects: Vec::new(),
+            preview_catalog: None,
             gate: Mutex::new(()),
         })
     }
@@ -517,9 +519,21 @@ impl Workspace {
         Ok(Self {
             profile,
             projects,
+            preview_catalog: None,
             gate: Mutex::new(()),
         })
     }
+    /// Configure only an operator-owned catalog; requests cannot select its path.
+    pub fn configure_previews(&mut self, catalog: Option<&std::path::Path>) -> Result<(), String> {
+        if catalog.is_some() && self.profile.is_none() {
+            return Err("artifact previews require configured code review".to_owned());
+        }
+        self.preview_catalog = catalog
+            .map(crate::preview::service::validate_catalog_path)
+            .transpose()?;
+        Ok(())
+    }
+
     /// Affected decision for a revision's exact base and commit; `None` when
     /// no project on the review repository is scoped (today's behaviour).
     fn review_evaluation(
@@ -882,11 +896,45 @@ impl Workspace {
             })
             .map(|thread| (thread.id.clone(), thread_outcome(&provider, change, thread)))
             .collect();
+        // r[impl kiln.preview.review]
+        let (artifact_previews, artifact_previews_error) =
+            if let Some(catalog) = &self.preview_catalog {
+                let revision = change.current()?.commit.as_str();
+                let successful_runs: Vec<_> = ci_runs
+                    .iter()
+                    .filter(|fact| {
+                        fact.project == change.project
+                            && fact.repository == change.repository
+                            && fact.revision == revision
+                            && fact.success
+                            && fact.terminal
+                            && fact.full_run
+                            && fact.clean
+                            && !fact.run_id.is_empty()
+                    })
+                    .map(|fact| fact.run_id.clone())
+                    .collect();
+                match u64::try_from(now_ms) {
+                    Ok(now) => crate::preview::service::review_entries(
+                        catalog,
+                        &change.project,
+                        &change.repository,
+                        revision,
+                        &successful_runs,
+                        now / MILLIS_PER_SECOND as u64,
+                    )
+                    .map_or_else(|error| (Vec::new(), Some(error)), |entries| (entries, None)),
+                    Err(_) => (Vec::new(), Some("preview_clock_invalid".to_owned())),
+                }
+            } else {
+                (Vec::new(), None)
+            };
         response(
             json!({"change":enriched(change,&state,principal,&agents,&profile.agent_metadata,&thread_outcomes),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
                 "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
                 "noise":noise::published(profile.review.as_ref()),
+                "artifact_previews":artifact_previews,"artifact_previews_error":artifact_previews_error,
                 "jj_evolog":jj_intake::evolog(&state,change),"jj_stack":jj_intake::stack_view(&state,change)}),
         )
     }

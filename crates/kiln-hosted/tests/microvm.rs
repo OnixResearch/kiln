@@ -27,6 +27,37 @@ const ORG: &str = "microvm-org";
 const PROJECT: &str = "alpha";
 const WORKSPACE: &str = "checkout";
 
+/// The negative admission rail is always runnable. The explicit required gate
+/// must FAIL, not skip or print a green migration receipt, while the selected
+/// provider lacks the real two-host capability and its workload campaign.
+#[test]
+fn retained_migration_required_cannot_skip_unqualified_provider() {
+    let capability = kiln_microvm::retained::drain::require_live_capability();
+    if std::env::var("KILN_MICROVM_MIGRATION_REQUIRED").as_deref() != Ok("1") {
+        assert!(
+            capability.is_err(),
+            "newly supported migration needs the real repeated two-host workload/fault campaign before this gate can change"
+        );
+        return;
+    }
+    let host = prerequisites()
+        .unwrap_or_else(|error| fail("required migration local prerequisites", error));
+    assert!(
+        host.guest_ch.is_some(),
+        "required migration needs an immutable CH guest manifest"
+    );
+    match capability {
+        Err(error) => fail(
+            "required migration provider prerequisites unavailable; no migration executed",
+            error,
+        ),
+        Ok(()) => fail(
+            "required migration campaign unavailable",
+            "cannot qualify from capability or transport success alone",
+        ),
+    }
+}
+
 fn fail(context: &str, error: impl std::fmt::Debug) -> ! {
     unreachable!("{context}: {error:?}")
 }

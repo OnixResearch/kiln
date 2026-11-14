@@ -11,7 +11,9 @@ use kiln_core::types::{ContentId, Diagnostic};
 
 use crate::backend::{Capabilities, NetworkCapability};
 
-pub const RETAINED_SESSION_SCHEMA: &str = "kiln.retained-session.v1";
+pub mod drain;
+
+pub const RETAINED_SESSION_SCHEMA: &str = "kiln.retained-session.v2";
 pub const MAX_HOST_BYTES: usize = 256;
 pub const MAX_CAUSE_BYTES: usize = 512;
 pub const MAX_VCPUS: u16 = 256;
@@ -21,6 +23,8 @@ pub const MAX_MEMORY_MIB: u32 = 1_048_576;
 #[serde(deny_unknown_fields)]
 pub struct SessionIdentity {
     pub session: ContentId,
+    pub execution: ContentId,
+    pub vm: ContentId,
     pub work: ContentId,
     pub work_revision: u64,
     pub attempt: ContentId,
@@ -53,6 +57,8 @@ pub enum RetainedState {
     MigratedAway,
     /// Ownership, confinement or cleanup is unknown; capacity stays occupied.
     ReconcileRequired,
+    /// Cleanup requested but not yet independently observed; capacity is held.
+    Retiring,
     Retired,
 }
 
@@ -128,6 +134,8 @@ impl RetainedSession {
         resources: RetainedResources,
     ) -> Result<Self, Diagnostic> {
         identity.session.validate()?;
+        identity.execution.validate()?;
+        identity.vm.validate()?;
         identity.work.validate()?;
         identity.attempt.validate()?;
         validate_host(&placement.host, "retained.host")?;
@@ -162,7 +170,7 @@ impl RetainedSession {
         self.state != RetainedState::Retired
     }
 
-    pub(crate) fn authorize(&self, owner: &OwnerToken) -> Result<(), Diagnostic> {
+    pub(crate) fn authorize_identity(&self, owner: &OwnerToken) -> Result<(), Diagnostic> {
         owner.session.validate()?;
         validate_host(&owner.host, "retained.owner.host")?;
         if self.schema != RETAINED_SESSION_SCHEMA
@@ -177,6 +185,11 @@ impl RetainedSession {
                 "owner token does not hold the current placement and fence",
             ));
         }
+        Ok(())
+    }
+
+    pub(crate) fn authorize(&self, owner: &OwnerToken) -> Result<(), Diagnostic> {
+        self.authorize_identity(owner)?;
         if self.state == RetainedState::Retired {
             return Err(refusal(
                 "retained_session_retired",
@@ -261,22 +274,43 @@ impl RetainedSession {
     pub fn observe_migrated_away(
         &mut self,
         owner: &OwnerToken,
+        evidence: &drain::CutoverEvidence,
     ) -> Result<RetainedEffect, Diagnostic> {
         self.authorize(owner)?;
         self.require(RetainedState::Migrating)?;
-        if self.migration.is_none() {
-            return Err(refusal(
+        let intent = self.migration.as_ref().ok_or_else(|| {
+            refusal(
                 "retained_migration_missing",
                 "retained.migration",
                 "migrated-away observation has no migration intent",
+            )
+        })?;
+        let target = Placement {
+            host: intent.target_host.clone(),
+            generation: intent.target_generation,
+        };
+        let unknown = drain::DispatchObservation {
+            sender_exit: None,
+            source: drain::VmObservation::Unknown,
+            destination: drain::VmObservation::Unknown,
+            destination_ever_wrote: false,
+        };
+        if drain::after_dispatch(self, &intent.intent, &target, Some(evidence), &unknown)
+            != drain::AfterDispatch::TargetOwned
+        {
+            return Err(refusal(
+                "retained_cutover_unconfirmed",
+                "retained.migration",
+                "migrated-away requires exact durable target acknowledgement, placement commit and source resource fencing",
             ));
         }
         self.state = RetainedState::MigratedAway;
         Ok(RetainedEffect::Retire)
     }
 
-    /// Retire a paused or migrated-away source. Running sessions must pause.
-    pub fn retire(&mut self, owner: &OwnerToken) -> Result<RetainedEffect, Diagnostic> {
+    /// Request cleanup without releasing the source reservation. The shell must
+    /// journal this transition before requesting an owned host effect.
+    pub fn begin_retire(&mut self, owner: &OwnerToken) -> Result<RetainedEffect, Diagnostic> {
         self.authorize(owner)?;
         if !matches!(
             self.state,
@@ -285,11 +319,40 @@ impl RetainedSession {
             return Err(refusal(
                 "retained_retire_phase",
                 "retained.state",
-                "only a paused or migrated-away session may be retired",
+                "only a paused or migrated-away session may request retirement",
             ));
         }
-        self.state = RetainedState::Retired;
+        self.state = RetainedState::Retiring;
         Ok(RetainedEffect::Retire)
+    }
+
+    /// Only observed absence of the exact owned process/cgroup and released
+    /// resource attachments releases capacity. A send result or lost lease is
+    /// never sufficient. Reconciliation may supply this observation later.
+    pub fn observe_retired(
+        &mut self,
+        owner: &OwnerToken,
+        cleanup_observed: bool,
+    ) -> Result<(), Diagnostic> {
+        self.authorize(owner)?;
+        if !matches!(
+            self.state,
+            RetainedState::Retiring | RetainedState::ReconcileRequired
+        ) {
+            return Err(refusal(
+                "retained_retire_observation_phase",
+                "retained.state",
+                "retirement observation requires cleanup intent or reconciliation",
+            ));
+        }
+        if cleanup_observed {
+            self.state = RetainedState::Retired;
+            self.cause = None;
+        } else {
+            self.state = RetainedState::ReconcileRequired;
+            self.cause = Some("cleanup_unobserved".to_string());
+        }
+        Ok(())
     }
 
     /// Mark an uncertain ownership/confinement/cleanup observation. Capacity
@@ -357,6 +420,8 @@ mod tests {
     fn identity() -> SessionIdentity {
         SessionIdentity {
             session: content('1'),
+            execution: content('4'),
+            vm: content('5'),
             work: content('2'),
             work_revision: 4,
             attempt: content('3'),
@@ -457,9 +522,29 @@ mod tests {
             .begin_migration(&token, "host-b".to_string(), 2, content('4'))
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(session.state, RetainedState::Migrating);
+        let mut evidence = drain::CutoverEvidence {
+            operation: content('4'),
+            session: session.identity.session.clone(),
+            execution: session.identity.execution.clone(),
+            vm: session.identity.vm.clone(),
+            attempt: session.identity.attempt.clone(),
+            fence: session.identity.fence,
+            source: session.placement.clone(),
+            target: Placement {
+                host: "host-b".to_string(),
+                generation: 2,
+            },
+            durable_target_commit: Some(content('5')),
+            source_volume_fenced: Some(content('6')),
+            source_effects_fenced: Some(content('7')),
+            destination_durable_ack: None,
+        };
+        assert!(session.observe_migrated_away(&token, &evidence).is_err());
+        assert!(session.occupies_capacity());
+        evidence.destination_durable_ack = Some(content('8'));
         assert_eq!(
             session
-                .observe_migrated_away(&token)
+                .observe_migrated_away(&token, &evidence)
                 .unwrap_or_else(|error| unreachable!("{error:?}")),
             RetainedEffect::Retire
         );
@@ -467,11 +552,21 @@ mod tests {
         assert!(session.resume(&token).is_err());
         assert!(session.occupies_capacity());
         session
-            .retire(&token)
+            .begin_retire(&token)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(session.state, RetainedState::Retiring);
+        assert!(session.occupies_capacity());
+        session
+            .observe_retired(&token, false)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(session.occupies_capacity());
+        assert!(session.resume(&token).is_err());
+        session
+            .observe_retired(&token, true)
+            .unwrap_or_else(|_| unreachable!());
         assert_eq!(session.state, RetainedState::Retired);
         assert!(!session.occupies_capacity());
-        assert!(session.retire(&token).is_err());
+        assert!(session.begin_retire(&token).is_err());
     }
 
     #[test]

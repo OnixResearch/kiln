@@ -28,6 +28,7 @@ pub use worker_status::WorkerStatusProfile;
 mod change_review;
 mod feeds;
 pub(crate) mod untrusted;
+mod verification;
 mod workers;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
@@ -218,6 +219,9 @@ impl Engine {
     // r[impl kiln.web.lifecycle]
     fn refresh(&mut self, id: &str) -> Result<(), String> {
         let record = self.state.runs.get(id).ok_or("run missing")?;
+        if record.is_independent_verification() {
+            return Ok(());
+        }
         if record.outcome().is_terminal() || record.waiting() {
             return Ok(());
         }

@@ -1,0 +1,138 @@
+{
+  "schema": "kiln.preview.local-browser-verification.v1",
+  "issue": 58,
+  "maintenance_owner": "Kiln preview core/web maintainers",
+  "immediate_consumer": "Explicit artifact-preview consumer and opted-in exact review projection",
+  "durable_capability": "Exact descriptor/runtime admission with native NAR/signature verification and disposable existing Linux engine",
+  "qualification": "engine-only; no canonical CI binding",
+  "engine_identity": "b114a874c62fdb1d2d74df0af625a433f782ea841ac558f925bdd96d4abd25e5",
+  "engine_source_revision": "7e7e793594cb58efb48279b17b4e15bbc6fbe91b",
+  "root_path": "/nix/store/vk1ih0la8pfs92v8cy5vkv48kgmi14db-trynix-emubench-static-x86_64-unknown-linux-musl-1",
+  "arguments": [
+    "noop"
+  ],
+  "public_cache_key": "trynix-examples-1:dZOV2uGWvjHo6IC5ZqCCu0dmIRzLm9pyOQJBDnBsXRY=",
+  "browser": {
+    "cacheIsolation": "new Chrome BrowserContext; no preexisting cookies, storage or HTTP cache",
+    "launches": [
+      {
+        "cache": "empty-incognito-context",
+        "observation": {
+          "identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc",
+          "phases": [
+            {
+              "type": "phase",
+              "phase": "artifact discovery",
+              "outcome": "ready",
+              "elapsed_ms": 19.264999985694885,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            },
+            {
+              "type": "phase",
+              "phase": "payload hydration",
+              "outcome": "ready",
+              "elapsed_ms": 2072.560000002384,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            },
+            {
+              "type": "phase",
+              "phase": "guest boot",
+              "outcome": "ready",
+              "elapsed_ms": 1513.25,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            },
+            {
+              "type": "phase",
+              "phase": "program readiness",
+              "outcome": "ready",
+              "elapsed_ms": 308.77000001072884,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            }
+          ],
+          "result": {
+            "type": "result",
+            "status": 0,
+            "output": "emubench: done",
+            "error": null,
+            "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+          }
+        },
+        "remainingFrames": 0,
+        "status": "Exact artifact finished successfully. Preview only; CI evidence is unchanged."
+      },
+      {
+        "cache": "warm-same-context",
+        "observation": {
+          "identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc",
+          "phases": [
+            {
+              "type": "phase",
+              "phase": "artifact discovery",
+              "outcome": "ready",
+              "elapsed_ms": 19.700000017881393,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            },
+            {
+              "type": "phase",
+              "phase": "payload hydration",
+              "outcome": "ready",
+              "elapsed_ms": 1961.8799999952316,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            },
+            {
+              "type": "phase",
+              "phase": "guest boot",
+              "outcome": "ready",
+              "elapsed_ms": 1347.4200000166893,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            },
+            {
+              "type": "phase",
+              "phase": "program readiness",
+              "outcome": "ready",
+              "elapsed_ms": 305.52500000596046,
+              "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+            }
+          ],
+          "result": {
+            "type": "result",
+            "status": 0,
+            "output": "emubench: done",
+            "error": null,
+            "preview_identity": "b265f8eb80ea7023fa3712f924d44084f46459629324873ae3ad053fb8a900cc"
+          }
+        },
+        "remainingFrames": 0,
+        "status": "Exact artifact finished successfully. Preview only; CI evidence is unchanged."
+      }
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-web-service --lib preview::",
+      "passed": true,
+      "tests_passed": 7
+    },
+    {
+      "command": "node --test tests/artifact-preview.test.mjs tests/inventory-ui.test.mjs",
+      "passed": true,
+      "tests_passed": 16
+    }
+  ],
+  "repairs": [
+    "Map pinned terminal relative WASM URL to its verified manifest member",
+    "Serve native application/wasm without a charset parameter",
+    "Reset per-launch observations and reject previous frame messages",
+    "Record explicit stop/expiry failures without changing CI evidence"
+  ],
+  "automation_boundary": "Domain-filtered automation sessions stalled native worker imports; direct managed and new isolated BrowserContext executions passed. Browser CSP and provider authority were unchanged.",
+  "remaining_prerequisites": [
+    "Normal produce/serve/review qualification needs genuine current admitted canonical CI build/product/source records and independently selected signing/runtime policy",
+    "An engine-only signed public CLI cannot be relabeled as that CI artifact"
+  ],
+  "non_claims": [
+    "No build, signing, publication, CI/review/merge rewrite or Redox qualification",
+    "No cold/warm timing speedup claim",
+    "No production or hostile-isolation qualification"
+  ]
+}
