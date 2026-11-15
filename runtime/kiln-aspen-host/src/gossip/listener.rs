@@ -87,36 +87,7 @@ impl GossipListener {
     where
         S: FnMut(GossipHint) + Send + 'static,
     {
-        profile.admit()?;
-        let relays = profile
-            .relay_urls
-            .iter()
-            .map(|url| url.parse::<RelayUrl>().map_err(|_| GossipError::Bind))
-            .collect::<Result<Vec<_>, _>>()?;
-        let relay_mode = if relays.is_empty() {
-            RelayMode::Disabled
-        } else {
-            RelayMode::Custom(RelayMap::from_iter(relays))
-        };
-        let Ok(builder) = Endpoint::builder(presets::Minimal)
-            .secret_key(secret_key)
-            .relay_mode(relay_mode)
-            .address_lookup(lookup)
-            .alpns(vec![iroh_gossip::ALPN.to_vec()])
-            .clear_ip_transports()
-            .bind_addr(profile.bind_address)
-        else {
-            return Err(GossipError::Bind);
-        };
-        let Ok(endpoint) = builder.bind().await else {
-            return Err(GossipError::Bind);
-        };
-        let gossip = Gossip::builder()
-            .max_message_size(profile.max_message_bytes)
-            .spawn(endpoint.clone());
-        let router = Router::builder(endpoint.clone())
-            .accept(iroh_gossip::ALPN, gossip.clone())
-            .spawn();
+        let (endpoint, router, gossip) = bind_listener(&profile, secret_key, lookup).await?;
         let topic = TopicId::from_bytes(profile.topic_id());
         let join = timeout(
             Duration::from_millis(profile.join_timeout_ms),
@@ -175,7 +146,6 @@ impl GossipListener {
             shutdown: Some(shutdown_tx),
         })
     }
-
     #[must_use]
     pub fn id(&self) -> iroh::EndpointId {
         self.endpoint.id()
@@ -204,6 +174,44 @@ impl GossipListener {
             .map_err(|_| GossipError::Transport);
         result.and(stopped)
     }
+}
+
+async fn bind_listener(
+    profile: &GossipProfile,
+    secret_key: iroh::SecretKey,
+    lookup: MemoryLookup,
+) -> Result<(Endpoint, Router, Gossip), GossipError> {
+    profile.admit()?;
+    let relays = profile
+        .relay_urls
+        .iter()
+        .map(|url| url.parse::<RelayUrl>().map_err(|_| GossipError::Bind))
+        .collect::<Result<Vec<_>, _>>()?;
+    let relay_mode = if relays.is_empty() {
+        RelayMode::Disabled
+    } else {
+        RelayMode::Custom(RelayMap::from_iter(relays))
+    };
+    let Ok(builder) = Endpoint::builder(presets::Minimal)
+        .secret_key(secret_key)
+        .relay_mode(relay_mode)
+        .address_lookup(lookup)
+        .alpns(vec![iroh_gossip::ALPN.to_vec()])
+        .clear_ip_transports()
+        .bind_addr(profile.bind_address)
+    else {
+        return Err(GossipError::Bind);
+    };
+    let Ok(endpoint) = builder.bind().await else {
+        return Err(GossipError::Bind);
+    };
+    let gossip = Gossip::builder()
+        .max_message_size(profile.max_message_bytes)
+        .spawn(endpoint.clone());
+    let router = Router::builder(endpoint.clone())
+        .accept(iroh_gossip::ALPN, gossip.clone())
+        .spawn();
+    Ok((endpoint, router, gossip))
 }
 
 impl Drop for GossipListener {

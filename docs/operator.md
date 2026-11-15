@@ -1607,6 +1607,46 @@ detail data when adding a view. Focused checks are
 `cargo clippy --locked -p kiln-web-service --example explore -- -D warnings`,
 plus actual browser navigation, edits, downloads and narrow/dark presentation.
 
+#### Stable exploration cases and capture
+
+<!-- r[impl kiln.web.exploration.cases] -->
+`/examples.json` carries stable `case_id`, versioned `recipe`, BLAKE3-derived
+`recipe_revision`, source identity, presentation/interaction requirements and
+resolved runtime subjects for named cases. Restarting creates new runtime IDs
+for the same logical case. `GET /examples/cases/<case_id>?recipe=<revision>&workspace=<identity>`
+resolves a case in the running workspace; an unknown case is 404, and a moved
+recipe or another workspace's identity is 409. The examples index includes a
+keyboard-operable case/theme/density/viewport selector with narrow and dark
+presentation support.
+
+Capture one case from a running explorer with the workspace identity and recipe
+revision from `/examples.json`:
+
+```console
+python3 scripts/explore-capture.py --browser ABS_CHROMIUM \
+  --origin http://127.0.0.1:PORT --case case.run.failed \
+  --workspace WORKSPACE --recipe-revision RECIPE_REVISION --out-dir NEW_DIR \
+  --viewport 390x844 --theme dark --density compact
+```
+
+The helper drives Chromium over its DevTools pipe with a disposable profile and
+an exact emulated viewport. It writes `screenshot.png`, `semantic.json` and
+`manifest.json` only after the document is complete, the main landmark is
+present, every exact subject identity is in the document, no region is busy and
+fonts are loaded; otherwise it refuses and names the unmet conditions. Count,
+size and time limits are named constants. Compare two captures with
+`node scripts/explore-compare.mjs LEFT/manifest.json RIGHT/manifest.json`. It
+reports every case, recipe, theme, density, viewport, browser, readiness, font
+and resource incompatibility and lists changed runtime subjects without
+normalizing them away. Synthetic execution remains visibly synthetic and is not
+CI, provider, review-acceptance or deployment evidence. The Kiln-to-Rats
+migration comparison cohort remains blocked on #67/#68 and is not simulated.
+The retained [exploration case evidence](../.cairn/archive/1970-01-01-add-stable-exploration-cases/evidence/verification.json)
+captures every named case from two clean starts with identical recipe
+revisions, changed runtime subjects and no incompatibility, records the capture
+refusals, and includes a Bombadil run that reached its time limit without a
+property violation after the narrow-index repair.
+
 #### Property-based browser exploration
 
 <!-- r[impl kiln.web.exploration.browser_property_rail] -->
@@ -3429,22 +3469,63 @@ Lattice, Aspen/Molten and Animus observations remain independent prerequisites.
 
 #### Exact artifact browser previews
 
-Review can project an explicitly configured `--artifact-previews CATALOG` over
-the exact current source and retained successful canonical run. A check digest
-is not a product path or launch URL. The preview module independently admits
-the exact plan, observation, current binding and operator-selected policy;
-complete runtime closure, native NAR hashes and required trusted signatures
-must agree before export. Missing or moved evidence is a preview-only failure.
+Review can project an explicitly configured `--artifact-previews CATALOG` only
+when its exact source, currently selected successful run and retained canonical
+product record all agree with the descriptor. A check digest is not a product
+path or launch URL. The preview module verifies the full runtime closure, native
+NAR hashes and required trusted signatures before export. Missing, moved, stale
+or incomplete evidence is a preview-only failure.
 
-The `artifact-preview` example's `produce` and `serve` commands consume actual
-canonical build inputs; they never build, realize, sign or publish a substitute.
-They use an existing content-pinned TryNix Linux engine on a separate disposable
-loopback capability origin, never the authenticated console origin. Payload,
-output, starts, requests and expiry are finite; normal shutdown removes owned
-exports/catalogs. Its `cleanup` command reconciles expired owned leases after
-crashes. The selected deployment must schedule that cleanup before claiming
-finite crash retention. Browser iframe removal releases its engine worker.
+The loopback launch path binds both an independent secret capability token and
+the exact descriptor identity. Knowing the public descriptor identity does not
+grant launch access, and a capability for another descriptor is not admitted.
 
+The opt-in `run-build` action creates a new exact-source canonical Engine run
+whose sole node is the native Nix BuildPort. Its profile and node identity come
+only from the trusted service profile's `canonical_nix_build` configuration;
+the Engine constructs the operation-bound `BuildEffectPlan`, records the run and
+plan before dispatch, then retains the provider's actual observation and maps
+that result through normal workflow admission and journal transitions. It never
+adds a build to a completed workflow run. The configured Nix derivation and
+outputs must be the reviewed source-bound build for the selected source run.
+
+The separate `produce` action is read-only over that retained canonical Build
+run. It accepts no build profile, plan or observation JSON; it admits only the
+profile-bound plan and actual retained product/store observation. The selected
+root must be an exact required product with a complete verified runtime closure.
+Caller-authored observation/current-binding JSON and check digests never grant
+build or launch authority.
+
+Both commands use the existing canonical Engine store lock; stop the service first.
+
+The producer releases the canonical store lock after validating and preparing the
+retained descriptor, before its disposable preview server begins serving; the
+review service can then reopen the same canonical store while that preview is
+live.
+
+Example invocation:
+
+```console
+cargo run --locked -p kiln-web-service --example artifact-preview -- run-build \
+  SERVICE_PROFILE SUCCESSFUL_SOURCE_RUN_ID UNIQUE_REQUEST_ID
+cargo run --locked -p kiln-web-service --example artifact-preview -- produce \
+  SERVICE_PROFILE CANONICAL_BUILD_RUN_ID BUILD_NODE SELECTION.json \
+  PREBUILT_TRYNIX_TREE ENGINE_MANIFEST.json ABS_NIX ABS_NIX_STORE \
+  OWNED_SCRATCH NEW_CATALOG.json
+```
+
+The producer uses an existing content-pinned TryNix Linux engine on a separate
+disposable loopback capability origin, never the authenticated console origin.
+Payload, output, starts, requests and expiry are finite; normal shutdown removes
+owned exports/catalogs. Its `cleanup` command reconciles expired owned leases
+after crashes. The selected deployment must schedule that cleanup before
+claiming finite crash retention. The native Build run remains a separate
+selected-node run and is excluded from full-CI selection. Review derives its
+displayed CI run from the validated parent source run while retaining the
+descriptor's exact Build run and attempt. Only a matching retained build record
+for the exact currently selected successful source CI run appears on review. The browser
+receives no repository secrets or build-only inputs. Preview failures remain
+separate observations and never revise CI, review or merge evidence.
 For engine-only rehearsal, `fixtures/artifact-preview/engine-cohort.ncl` selects
 one already-built signed static CLI and requires an explicit finite Unix expiry.
 `artifact-preview engine-cohort` verifies and executes that exact selection;
@@ -3454,10 +3535,65 @@ Discovery, hydration, guest boot and program readiness remain separate in
 absent canonical build binding. Unsupported browsers, engines, network guests
 and Redox remain explicit refusals; previews never alter CI/review/merge evidence.
 
-The retained [clean/warm engine-only observations](../.cairn/changes/add-exact-artifact-previews/evidence/browser-verification.json)
+The retained [clean/warm engine-only observations](../.cairn/archive/1970-01-01-add-exact-artifact-previews/evidence/browser-verification.json)
 record the exact signed CLI and all four phases in an initially empty isolated
 browser context. Each launch resets its own observations; cancellation and
 expiry remain explicit preview-only results.
+
+The retained [canonical CI-bound browser cohort](../.cairn/archive/1970-01-01-add-exact-artifact-previews/evidence/canonical-browser-verification.json)
+launches the exact Nix build product of the review's selected successful CI run
+from the real review action. It records the producer and review executables,
+the admitted descriptor and launch capability shape, clean and warm launches in
+an isolated browser context, refused capability/descriptor substitutions,
+unchanged review state and removed catalog/scratch after shutdown. It is a
+single-host local cohort, not production or hostile-isolation qualification.
+
+<!-- r[impl kiln.preview.comparison] -->
+To compare preview evidence, append an owner-controlled directory (owned by the
+producer's user, not group- or world-writable) as the producer's optional
+`OWNED_OBSERVATIONS_DIR` argument. After each launch the preview page posts
+only its phases and bounded result to its own loopback origin. The server
+refuses foreign origins, non-JSON or undeclared-length bodies, reports over
+64 KiB, unknown, repeated or out-of-order phases, unknown outcomes and output
+beyond the descriptor limit. It composes a `kiln.preview.observation.v1` record
+from the admitted descriptor, so the browser never supplies the binding, engine,
+platform or invocation, and names the record by a domain-tagged BLAKE3 identity.
+Records expire after 30 days. A directory holding 256 records refuses new ones
+instead of evicting; `artifact-preview cleanup-observations DIR` removes expired
+records. Engine-only rehearsal retains nothing.
+
+Start the service with `--preview-observations DIR` to read that directory.
+Review re-verifies each record's owner, mode, size, schema and identity; one
+tampered record withholds every observation for the change, and the error stays
+preview-only. Review projects up to 32 unexpired records whose project,
+repository and revision commit match the change. A record is current only when
+it binds the current revision commit and a retained canonical build record
+derived from the selected successful CI run; every other record is historical.
+
+`GET /api/code-review/changes/<id>/preview-comparison?baseline=<identity>&candidate=<identity>`
+returns a `kiln.preview.comparison.v1` body. Its identity is derived from both
+record identities and the `kiln.preview.comparison-rules.v1` rule version. The
+body lists every engine, platform, argument or executable difference, reports
+`same_observation` for a record compared with itself and states whether exit
+status and output match. A malformed identity returns
+`400 preview_comparison_subject_invalid`. An unknown, expired or unprojected
+subject returns `404 preview_baseline_unavailable` or
+`404 preview_candidate_unavailable`. A historical candidate returns
+`409 preview_candidate_not_current`. No other record is substituted.
+
+The review page restores a pair from
+`review_preview_compare=<baseline>~<candidate>` and shows both exact identities,
+phases and bounded outputs side by side; narrow review panes stack the lanes.
+Responses for an earlier pair or a moved candidate are ignored, and the baseline
+lane never offers a launch. Observations are untrusted browser reports. They
+never change CI, review, merge or implementation-completion state.
+
+The retained [comparison browser cohort](../.cairn/archive/1970-01-01-compare-preview-evidence/evidence/browser-comparison.json)
+launched the exact canonical CI-bound artifact twice, retained both reports and
+compared them through the review page by form and by deep link at narrow and
+wide widths. Forged report submissions and forged retained records were
+refused, and review state was unchanged. Both observations bind the current
+revision, so a historical baseline and a moved candidate are unit-tested only.
 
 #### Worker target inventory
 
@@ -4525,3 +4661,40 @@ physical-placement prerequisites. Completed
 feature packages are archived; the qualification operation and unfinished
 attested-agent metadata work remain active. No new push or deployment occurred.
 
+
+## Selected campaign progress and blockers
+
+The selected-campaign projection is a separate versioned contract
+(`kiln.selected-campaign-projection.v1`); it does not change resource inventory
+v2. It reads only an existing canonical campaign snapshot and its stored
+version. A campaign snapshot records admitted owner observations, not independent
+provider truth. Stages, blockers, evidence, input freshness, current work/attempt
+bindings, pending effects and remaining obligations are displayed as observations;
+a proposed next action is not a reservation, dispatch, successor, landing or
+lifecycle grant.
+
+The payload exposes a stable digest of the repository binding rather than a raw
+repository path. Campaign/member IDs are retained because they are the exact
+selection identities; treat them as operator data.
+
+The offline consumer accepts an explicit canonical database and exact
+campaign selector:
+
+```sh
+kiln-web-service campaign-projection DATABASE CAMPAIGN_ID [json|html]
+```
+
+
+Live, CLI and offline consumers can use the same optional resource composition
+helper with a principal-admitted inventory projection. The final identity hashes
+the full bounded redacted semantic payload after canonical current-work and
+optional resource joins, with its own identity field cleared during hashing.
+If no resource projection is admitted, work/attempt/resource joins remain unknown;
+the separate resource inventory continues to report its own unavailable state.
+Offline HTML is inert and uses the same bounded semantic projection as CLI JSON;
+it performs no discovery or network request. A missing campaign is reported as
+missing, while a missing member observation remains visible with unknown stage.
+Worker capability, execution capacity, model admission and aggregate-budget
+exhaustion require their own current owner observations; absent evidence must not
+be interpreted as a free slot or exhausted budget. Inventory source failures
+remain independent and are not used to hide campaign data.

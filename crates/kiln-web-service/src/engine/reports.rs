@@ -38,6 +38,12 @@ pub(super) fn validate(run: &RunRecord) -> Result<(), String> {
     if run.reports.len() > reports::MAX_REPORTS {
         return Err("report retention exceeded".into());
     }
+    // The independent verifier retains exact native check bytes, not uploaded
+    // normalized report envelopes. Its provenance validator binds every raw
+    // record to the canonical source, check, receipt and retained artifact.
+    if run.is_independent_verification() {
+        return super::verification::validate_check_reports(run);
+    }
     let mut names = BTreeSet::new();
     let mut total = 0usize;
     for record in &run.reports {

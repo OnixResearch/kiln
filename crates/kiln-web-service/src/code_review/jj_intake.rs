@@ -554,7 +554,7 @@ fn desired_dependencies(
     }])
 }
 
-fn author_text(value: Option<&str>) -> String {
+fn author_text(value: Result<&str, git2::Error>) -> String {
     let mut text: String = value
         .unwrap_or("")
         .chars()
@@ -587,8 +587,18 @@ fn describe<'r>(
     let observed = Observed {
         change_id: change_id.into(),
         commit: oid.to_string(),
-        title: commit.summary().unwrap_or("").trim().to_owned(),
-        description: commit.body().unwrap_or("").trim().to_owned(),
+        title: commit
+            .summary()
+            .unwrap_or(None)
+            .unwrap_or("")
+            .trim()
+            .to_owned(),
+        description: commit
+            .body()
+            .unwrap_or(None)
+            .unwrap_or("")
+            .trim()
+            .to_owned(),
         observation: RevisionObservation {
             source: source.into(),
             change_id: change_id.into(),

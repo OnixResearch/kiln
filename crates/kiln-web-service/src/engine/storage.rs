@@ -158,6 +158,100 @@ impl Store {
     ) -> Result<(Self, DurableState, StateLock), String> {
         Self::open_bound(profile, false)
     }
+
+    pub(super) fn open_read_only(
+        profile: &ServiceProfile,
+    ) -> Result<(Store, DurableState), String> {
+        let directory = &profile.state_directory;
+        let directory_meta = std::fs::symlink_metadata(directory)
+            .map_err(|_| "service state directory unavailable")?;
+        if !directory_meta.is_dir()
+            || directory_meta.file_type().is_symlink()
+            || directory_meta.uid() != nix::unistd::geteuid().as_raw()
+            || directory_meta.mode() & 0o777 != 0o700
+        {
+            return Err("service state directory is not private".into());
+        }
+        for ancestor in directory.ancestors() {
+            let metadata = std::fs::symlink_metadata(ancestor)
+                .map_err(|_| "service state ancestor unavailable")?;
+            if metadata.file_type().is_symlink()
+                || (metadata.mode() & 0o022 != 0 && metadata.mode() & 0o1000 == 0)
+            {
+                return Err("service state ancestors permit replacement".into());
+            }
+        }
+        let path = directory.join("service.sqlite");
+        let metadata =
+            std::fs::symlink_metadata(&path).map_err(|_| "service database unavailable")?;
+        let database_bound = u64::try_from(profile.bounds.max_state_bytes)
+            .unwrap_or(u64::MAX)
+            .saturating_add(16 * 1024 * 1024);
+        if !metadata.is_file()
+            || metadata.file_type().is_symlink()
+            || metadata.uid() != nix::unistd::geteuid().as_raw()
+            || metadata.mode() & 0o777 != 0o600
+            || metadata.nlink() != 1
+            || metadata.len() > database_bound
+        {
+            return Err("service database is not a bounded private regular file".into());
+        }
+        let connection = Connection::open_with_flags(
+            &path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(|_| "service database cannot be opened read-only")?;
+        connection
+            .busy_timeout(std::time::Duration::from_millis(500))
+            .map_err(|_| "database timeout admission failed")?;
+        connection
+            .execute_batch("BEGIN DEFERRED")
+            .map_err(|_| "canonical CI read snapshot unavailable")?;
+        let version: i64 = connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .map_err(|_| "database version unavailable")?;
+        if version != 1 {
+            return Err("service database schema version unsupported".into());
+        }
+        let state_length: i64 = connection
+            .query_row(
+                "SELECT length(state) FROM service_state WHERE id=1",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|_| "durable state length unavailable")?;
+        if state_length < 0
+            || u64::try_from(state_length).unwrap_or(u64::MAX)
+                > profile.bounds.max_state_bytes as u64
+        {
+            return Err("durable state exceeds its configured bound".into());
+        }
+        let (binding, bytes): (String, Vec<u8>) = connection
+            .query_row(
+                "SELECT profile,state FROM service_state WHERE id=1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(|_| "durable state unavailable")?;
+        if binding != super::identity(profile)?.as_str() || bytes.len() != state_length as usize {
+            return Err("durable profile binding or state size conflict".into());
+        }
+        let mut state: DurableState =
+            serde_json::from_slice(&bytes).map_err(|_| "durable state is malformed")?;
+        validate(&state, &profile.bounds)?;
+        if state
+            .enrolled
+            .iter()
+            .any(|id| !profile.projects.iter().any(|project| &project.id == id))
+        {
+            return Err("stored enrollment is not allowlisted".into());
+        }
+        validate_restored_runs(profile, &mut state)?;
+        connection
+            .execute_batch("COMMIT")
+            .map_err(|_| "canonical CI read snapshot could not finish")?;
+        Ok((Store { connection }, state))
+    }
     // r[impl kiln.web.lifecycle]
     fn open_bound(
         profile: &ServiceProfile,
@@ -250,116 +344,7 @@ impl Store {
         {
             return Err("stored enrollment is not allowlisted".into());
         }
-        for (id, run) in &mut state.runs {
-            run.restore()?;
-            let project = profile
-                .projects
-                .iter()
-                .find(|p| p.id == run.project_id)
-                .ok_or("stored project missing")?;
-            let source = kiln_core::workflow::WorkflowSourceContext {
-                provider: kiln_core::types::Alias::new("git").map_err(|_| "git alias invalid")?,
-                repository: run.source.repository.clone(),
-                revision: kiln_core::types::ExternalRef::new(
-                    "git",
-                    "revision",
-                    run.source.exact_revision.native_id.as_str(),
-                )
-                .map_err(|_| "stored native revision invalid")?,
-            };
-            if id != &run.id
-                || run.id != format!("web-run-{}", run.plan.idempotency_key.as_str())
-                || run.pipeline_identity != super::identity(&project.workflow)?
-                || run.plan
-                    != super::model::selected_plan(
-                        super::model::workflow_plan(
-                            project,
-                            &run.plan.idempotency_key,
-                            &run.pipeline_identity,
-                            Some(source),
-                        )?,
-                        &run.selected_nodes,
-                    )?
-                || (run.phase == "terminal") != run.outcome().is_terminal()
-            {
-                return Err("stored execution linkage conflicts with reviewed profile".into());
-            }
-        }
-        for run in state.runs.values() {
-            super::untrusted::validate_stored(run)?;
-            if !matches!(
-                run.phase.as_str(),
-                "queued"
-                    | super::untrusted::AWAITING_APPROVAL
-                    | "dispatch_reserved"
-                    | "control_reserved"
-                    | "active"
-                    | "unknown"
-                    | "terminal"
-            ) || (run.phase == "queued" || run.phase == super::untrusted::AWAITING_APPROVAL)
-                && (run.observation.is_some()
-                    || run.outcome() != kiln_core::domain::Outcome::Pending
-                    || !run.artifacts.is_empty()
-                    || !run.logs.is_empty()
-                    || !run.reports.is_empty())
-            {
-                return Err("stored queue phase conflicts with execution".into());
-            }
-            if let Some(parent_id) = &run.parent_run_id {
-                let parent = state
-                    .runs
-                    .get(parent_id)
-                    .ok_or("stored retry parent missing")?;
-                if parent.ordinal >= run.ordinal
-                    || parent.project_id != run.project_id
-                    || !parent.outcome().is_terminal()
-                {
-                    return Err("stored retry parent conflict".into());
-                }
-                if !run.selected_nodes.is_empty() {
-                    let observation = parent
-                        .observation
-                        .as_ref()
-                        .ok_or("stored failed retry observation missing")?;
-                    let mut selected: std::collections::BTreeSet<String> = observation
-                        .nodes
-                        .iter()
-                        .filter(|n| n.state == kiln_core::workflow::WorkflowNodeState::Failed)
-                        .map(|n| n.node_id.as_str().into())
-                        .collect();
-                    if selected.is_empty()
-                        || observation
-                            .nodes
-                            .iter()
-                            .any(|n| n.state == kiln_core::workflow::WorkflowNodeState::Unknown)
-                        || run.source != parent.source
-                    {
-                        return Err("stored failed retry source or outcome conflict".into());
-                    }
-                    let project = profile
-                        .projects
-                        .iter()
-                        .find(|p| p.id == run.project_id)
-                        .ok_or("stored retry project missing")?;
-                    loop {
-                        let before = selected.len();
-                        for edge in &project.workflow.edges {
-                            if selected.contains(&edge.source) {
-                                selected.insert(edge.target.clone());
-                            }
-                        }
-                        if selected.len() == before {
-                            break;
-                        }
-                    }
-                    if selected.into_iter().collect::<Vec<_>>() != run.selected_nodes {
-                        return Err("stored retry selection conflict".into());
-                    }
-                }
-            } else if !run.selected_nodes.is_empty() {
-                return Err("stored retry selection has no parent".into());
-            }
-        }
+        validate_restored_runs(profile, &mut state)?;
         reconcile_retained_storage(profile, &state, "artifacts")?;
         reconcile_retained_storage(profile, &state, "logs")?;
         for run in state.runs.values() {
@@ -418,6 +403,135 @@ impl Store {
         tx.commit()
             .map_err(|_| "durable state commit failed".to_owned())
     }
+}
+fn validate_restored_runs(
+    profile: &ServiceProfile,
+    state: &mut DurableState,
+) -> Result<(), String> {
+    for run in state.runs.values_mut() {
+        run.restore()?;
+    }
+    for (id, run) in &state.runs {
+        if run.preview_build.is_some() && run.implementation_verification.is_some()
+            || run.implementation_verification.is_some() && !run.is_independent_verification()
+        {
+            return Err("stored engine execution mixes canonical provenance".into());
+        }
+        let project = profile
+            .projects
+            .iter()
+            .find(|project| project.id == run.project_id)
+            .ok_or("stored project missing")?;
+        if run.is_canonical_nix_build() {
+            super::change_review::validate_canonical_nix_build_record(
+                profile,
+                &state.runs,
+                id,
+                run,
+            )?;
+        } else if run.is_independent_verification() {
+            super::verification::validate_stored_verification_record(profile, project, id, run)?;
+        } else {
+            let source = kiln_core::workflow::WorkflowSourceContext {
+                provider: kiln_core::types::Alias::new("git").map_err(|_| "git alias invalid")?,
+                repository: run.source.repository.clone(),
+                revision: kiln_core::types::ExternalRef::new(
+                    "git",
+                    "revision",
+                    run.source.exact_revision.native_id.as_str(),
+                )
+                .map_err(|_| "stored native revision invalid")?,
+            };
+            if id != &run.id
+                || run.id != format!("web-run-{}", run.plan.idempotency_key.as_str())
+                || run.pipeline_identity != super::identity(&project.workflow)?
+                || run.plan
+                    != super::model::selected_plan(
+                        super::model::workflow_plan(
+                            project,
+                            &run.plan.idempotency_key,
+                            &run.pipeline_identity,
+                            Some(source),
+                        )?,
+                        &run.selected_nodes,
+                    )?
+            {
+                return Err("stored execution linkage conflicts with reviewed profile".into());
+            }
+        }
+        if (run.phase == "terminal") != run.outcome().is_terminal() {
+            return Err("stored execution phase conflicts with outcome".into());
+        }
+        super::untrusted::validate_stored(run)?;
+        if !matches!(
+            run.phase.as_str(),
+            "queued"
+                | super::untrusted::AWAITING_APPROVAL
+                | "dispatch_reserved"
+                | "control_reserved"
+                | "active"
+                | "unknown"
+                | "terminal"
+        ) || (run.phase == "queued" || run.phase == super::untrusted::AWAITING_APPROVAL)
+            && (run.observation.is_some()
+                || run.outcome() != kiln_core::domain::Outcome::Pending
+                || !run.artifacts.is_empty()
+                || !run.logs.is_empty()
+                || !run.reports.is_empty())
+        {
+            return Err("stored queue phase conflicts with execution".into());
+        }
+        if let Some(parent_id) = &run.parent_run_id {
+            let parent = state
+                .runs
+                .get(parent_id)
+                .ok_or("stored retry parent missing")?;
+            if parent.ordinal >= run.ordinal
+                || parent.project_id != run.project_id
+                || !parent.outcome().is_terminal()
+            {
+                return Err("stored retry parent conflict".into());
+            }
+            if !run.is_engine_owned_execution() && !run.selected_nodes.is_empty() {
+                let observation = parent
+                    .observation
+                    .as_ref()
+                    .ok_or("stored failed retry observation missing")?;
+                let mut selected: std::collections::BTreeSet<String> = observation
+                    .nodes
+                    .iter()
+                    .filter(|node| node.state == kiln_core::workflow::WorkflowNodeState::Failed)
+                    .map(|node| node.node_id.as_str().into())
+                    .collect();
+                if selected.is_empty()
+                    || observation
+                        .nodes
+                        .iter()
+                        .any(|node| node.state == kiln_core::workflow::WorkflowNodeState::Unknown)
+                    || run.source != parent.source
+                {
+                    return Err("stored failed retry source or outcome conflict".into());
+                }
+                loop {
+                    let before = selected.len();
+                    for edge in &project.workflow.edges {
+                        if selected.contains(&edge.source) {
+                            selected.insert(edge.target.clone());
+                        }
+                    }
+                    if selected.len() == before {
+                        break;
+                    }
+                }
+                if selected.into_iter().collect::<Vec<_>>() != run.selected_nodes {
+                    return Err("stored retry selection conflict".into());
+                }
+            }
+        } else if !run.selected_nodes.is_empty() {
+            return Err("stored retry selection has no parent".into());
+        }
+    }
+    Ok(())
 }
 fn validate(state: &DurableState, b: &ServiceBounds) -> Result<(), String> {
     super::snapshots::validate(state, b.max_runs)?;

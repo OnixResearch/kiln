@@ -550,6 +550,7 @@ mod tests {
             ended_at_ms: Some(20),
             phase: AttemptPhase::Verified,
             dispatch: None,
+            dispatch_request_binding: None,
             workflow: Some(
                 ExternalRef::new("lattice", "run", "one").unwrap_or_else(|_| unreachable!()),
             ),
@@ -652,6 +653,7 @@ mod tests {
             ended_at_ms: Some(20),
             phase: AttemptPhase::Verified,
             dispatch: None,
+            dispatch_request_binding: None,
             workflow: None,
             candidate: Some(handoff.candidate.clone()),
             handoff: Some(handoff.clone()),

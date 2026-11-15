@@ -561,7 +561,7 @@ fn git_log(policy: &SourcePolicy, limit: usize, offset: usize) -> Result<ApiResp
         let author = commit.author();
         entries.push(json!({
             "id": oid.to_string(),
-            "summary": brief(commit.summary().unwrap_or(""), MAX_SUMMARY_CHARS),
+            "summary": brief(commit.summary().unwrap_or(None).unwrap_or(""), MAX_SUMMARY_CHARS),
             "author": brief(
                 &format!(
                     "{} <{}>",
@@ -628,8 +628,8 @@ fn git_tree(
     let mut entries = Vec::new();
     for entry in tree.iter() {
         let name = match entry.name() {
-            Some(name) => name,
-            None => return error(503, "source_unavailable"),
+            Ok(name) => name,
+            Err(_) => return error(503, "source_unavailable"),
         };
         let kind = match entry.kind() {
             Some(ObjectType::Blob) if entry.filemode() == 0o120000 => "symlink",

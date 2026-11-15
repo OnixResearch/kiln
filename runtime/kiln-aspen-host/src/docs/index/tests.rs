@@ -56,7 +56,7 @@ async fn cache_index_round_trip_and_ticket_are_bounded() {
         unreachable!("cache index verified blob");
     };
     assert_eq!(verified, value.to_vec());
-    let ticket = index.share(true).await;
+    let ticket = index.share(CacheIndexShareMode::Write).await;
     let Ok(ticket) = ticket else {
         unreachable!("cache index share");
     };

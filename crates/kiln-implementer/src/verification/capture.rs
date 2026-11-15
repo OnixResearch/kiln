@@ -292,7 +292,7 @@ fn collect_baseline(
     total: &mut u64,
 ) -> Result<(), String> {
     for entry in tree.iter() {
-        let name = entry.name().ok_or("non UTF8 baseline path")?;
+        let name = entry.name().map_err(|_| "non UTF8 baseline path")?;
         let path = if prefix.is_empty() {
             name.into()
         } else {

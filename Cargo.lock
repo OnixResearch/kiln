@@ -1017,7 +1017,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
 dependencies = [
  "data-encoding",
- "syn 3.0.3",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1715,21 +1715,6 @@ dependencies = [
 
 [[package]]
 name = "git2"
-version = "0.20.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b88256088d75a56f8ecfa070513a775dd9107f6530ef14919dac831af9cfe2b"
-dependencies = [
- "bitflags 2.13.1",
- "libc",
- "libgit2-sys",
- "log",
- "openssl-probe 0.1.6",
- "openssl-sys",
- "url",
-]
-
-[[package]]
-name = "git2"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddddbf932745a6be37109b6112d3ee09696106f848449069d3a57bba937ab82e"
@@ -1738,6 +1723,9 @@ dependencies = [
  "libc",
  "libgit2-sys",
  "log",
+ "openssl-probe 0.1.6",
+ "openssl-sys",
+ "url",
 ]
 
 [[package]]
@@ -1858,7 +1846,7 @@ name = "heartwood-canonical"
 version = "0.1.0"
 dependencies = [
  "fast-glob",
- "git2 0.21.0",
+ "git2",
  "indexmap 2.14.0",
  "log",
  "nonempty",
@@ -2720,7 +2708,7 @@ dependencies = [
  "bounded-exec",
  "cairn-core",
  "cairn-gate-contract",
- "git2 0.20.4",
+ "git2",
  "kiln-codec",
  "kiln-implementer",
  "kiln-provider-api",
@@ -2771,7 +2759,7 @@ dependencies = [
 name = "kiln-adapter-git"
 version = "0.1.0"
 dependencies = [
- "git2 0.20.4",
+ "git2",
  "kiln-codec",
  "kiln-provider-api",
  "onix-kiln-core",
@@ -2785,7 +2773,7 @@ dependencies = [
  "base64 0.22.1",
  "blake3",
  "bounded-exec",
- "git2 0.20.4",
+ "git2",
  "hmac 0.12.1",
  "kiln-adapter-git",
  "kiln-adapter-lattice",
@@ -2812,7 +2800,7 @@ dependencies = [
  "base64 0.22.1",
  "blake3",
  "bounded-exec",
- "git2 0.20.4",
+ "git2",
  "hmac 0.12.1",
  "kiln-adapter-cairn",
  "kiln-adapter-git",
@@ -2939,6 +2927,7 @@ dependencies = [
  "bounded-exec",
  "kiln-nix-store",
  "kiln-provider-api",
+ "nix 0.30.1",
  "nix-derivation",
  "onix-kiln-core",
  "serde",
@@ -3012,7 +3001,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "bounded-exec",
- "git2 0.21.0",
+ "git2",
  "heartwood-canonical",
  "kiln-adapter-aspen",
  "kiln-adapter-cob",
@@ -3227,7 +3216,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "bounded-exec",
- "git2 0.20.4",
+ "git2",
+ "kiln-adapter-git",
  "kiln-provider-api",
  "onix-kiln-core",
  "rusqlite",
@@ -3348,7 +3338,7 @@ dependencies = [
  "blake3",
  "bounded-exec",
  "fs2",
- "git2 0.21.0",
+ "git2",
  "kiln-adapter-aspen",
  "kiln-adapter-http-observe",
  "kiln-adapter-nix",
@@ -3398,8 +3388,7 @@ dependencies = [
  "ed25519-dalek 2.2.0",
  "fs2",
  "getrandom 0.3.4",
- "git2 0.20.4",
- "git2 0.21.0",
+ "git2",
  "hmac 0.12.1",
  "jiff",
  "kiln-adapter-cairn",
@@ -3408,6 +3397,7 @@ dependencies = [
  "kiln-adapter-http-observe",
  "kiln-adapter-jj",
  "kiln-adapter-lattice",
+ "kiln-adapter-nix",
  "kiln-adapter-webhook",
  "kiln-build-graph",
  "kiln-codec",
@@ -4167,11 +4157,19 @@ dependencies = [
 name = "onix-kiln-cli"
 version = "0.1.0"
 dependencies = [
+ "bounded-exec",
+ "git2",
+ "kiln-adapter-cairn",
+ "kiln-adapter-git",
  "kiln-codec",
  "kiln-dashboard",
+ "kiln-implementer",
  "kiln-standalone",
+ "kiln-web-service",
  "onix-kiln-core",
+ "serde",
  "serde_json",
+ "signal-hook",
 ]
 
 [[package]]
@@ -4187,7 +4185,7 @@ dependencies = [
 name = "onix-radicle-cob-git-store"
 version = "0.2.0"
 dependencies = [
- "git2 0.21.0",
+ "git2",
  "nonempty",
  "radicle-cob",
  "radicle-crypto",
@@ -4794,7 +4792,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a6b295464ff130975fc151feb8aef4d6fd22ddd1da2a5a2a561f283c7abd41e"
 dependencies = [
  "fastrand",
- "git2 0.21.0",
+ "git2",
  "log",
  "nonempty",
  "radicle-crypto",
@@ -4813,7 +4811,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "077e01c4da810fed233fa67ce87b94fe0dd6ffa03b6640e3b71caa9769a5ec9f"
 dependencies = [
- "git2 0.21.0",
+ "git2",
  "multibase",
  "radicle-crypto",
  "radicle-oid",
@@ -4876,7 +4874,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a0b9a4cbe2b75f8d95a4c887836b909542da704673e708d3b85186a4664400c"
 dependencies = [
- "git2 0.21.0",
+ "git2",
  "serde",
 ]
 
@@ -6138,7 +6136,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",

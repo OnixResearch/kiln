@@ -46,6 +46,72 @@ pub fn observe_reviewed_lifecycle(
     {
         return Err("lifecycle outer candidate/attempt binding differs".into());
     }
+    observe_lifecycle_at_tree(
+        repository,
+        AcceptedSource {
+            candidate: &publication.plan.candidate,
+            accepted: &integration.merge_commit,
+            tree: &publication.plan.tree,
+            repository: &publication.plan.repository,
+        },
+        binding,
+        receipt_path,
+        authoritative_report_path,
+    )
+}
+
+/// Consume independently retained native-Git receipt data without manufacturing a PR record.
+pub fn observe_native_git_lifecycle(
+    repository: &Path,
+    native: &kiln_core::implementation::NativeGitReceipt,
+    binding: &CairnLifecycleBinding,
+    receipt_path: &str,
+    authoritative_report_path: &Path,
+) -> Result<CairnLifecycleObservation, String> {
+    if native.schema != kiln_core::implementation::NATIVE_GIT_RECEIPT_SCHEMA
+        || native.resulting_commit != native.candidate
+        || binding.source.kind != WorkSourceKind::CairnTask
+        || binding.candidate != native.candidate
+        || binding.handoff != native.handoff
+        || binding.verification != native.verification
+    {
+        return Err("native lifecycle receipt does not bind the exact accepted candidate".into());
+    }
+    observe_lifecycle_at_tree(
+        repository,
+        AcceptedSource {
+            candidate: &native.candidate,
+            accepted: &native.resulting_commit,
+            tree: &native.tree,
+            repository: &native.repository,
+        },
+        binding,
+        receipt_path,
+        authoritative_report_path,
+    )
+}
+
+/// Exact reviewed candidate, accepted commit and tree whose lifecycle receipt is observed.
+struct AcceptedSource<'a> {
+    candidate: &'a ExternalRef,
+    accepted: &'a ExternalRef,
+    tree: &'a ExternalRef,
+    repository: &'a str,
+}
+
+fn observe_lifecycle_at_tree(
+    repository: &Path,
+    source: AcceptedSource<'_>,
+    binding: &CairnLifecycleBinding,
+    receipt_path: &str,
+    authoritative_report_path: &Path,
+) -> Result<CairnLifecycleObservation, String> {
+    let AcceptedSource {
+        candidate: candidate_ref,
+        accepted: accepted_ref,
+        tree: expected_tree,
+        repository: repository_id,
+    } = source;
     let change = binding
         .source
         .native_id
@@ -60,17 +126,13 @@ pub fn observe_reviewed_lifecycle(
         return Err("Cairn change identity is malformed".into());
     }
     let repo = Repository::open(repository).map_err(text)?;
-    let candidate = repo
-        .find_commit(commit_oid(&binding.candidate)?)
-        .map_err(text)?;
-    let accepted = repo
-        .find_commit(commit_oid(&integration.merge_commit)?)
-        .map_err(text)?;
+    let candidate = repo.find_commit(commit_oid(candidate_ref)?).map_err(text)?;
+    let accepted = repo.find_commit(commit_oid(accepted_ref)?).map_err(text)?;
     let candidate_tree = candidate.tree().map_err(text)?;
     let accepted_tree = accepted.tree().map_err(text)?;
-    if publication.plan.tree.provider_namespace.as_str() != "git"
-        || publication.plan.tree.native_kind.as_str() != "tree"
-        || candidate_tree.id().to_string() != publication.plan.tree.native_id.as_str()
+    if expected_tree.provider_namespace.as_str() != "git"
+        || expected_tree.native_kind.as_str() != "tree"
+        || candidate_tree.id().to_string() != expected_tree.native_id.as_str()
         || accepted_tree.id() != candidate_tree.id()
     {
         return Err("accepted lifecycle source is not the reviewed candidate tree".into());
@@ -106,8 +168,7 @@ pub fn observe_reviewed_lifecycle(
         || canonical_json_hash(&authoritative) != expected_hash
         || authoritative.get("schema").and_then(Value::as_str) != Some("cairn.agent-completion.v2")
         || authoritative.get("valid").and_then(Value::as_bool) != Some(true)
-        || authoritative.get("repository_id").and_then(Value::as_str)
-            != Some(publication.plan.repository.as_str())
+        || authoritative.get("repository_id").and_then(Value::as_str) != Some(repository_id)
         || authoritative.get("policy_hash") != receipt.get("policy_hash")
     {
         return Err(
@@ -125,7 +186,7 @@ pub fn observe_reviewed_lifecycle(
     verify_after_manifest(&repo, &accepted_tree, change, binding.action, mutation)?;
     Ok(CairnLifecycleObservation {
         binding: binding.clone(),
-        observed_tree: publication.plan.tree.clone(),
+        observed_tree: expected_tree.clone(),
         lifecycle_policy,
         lifecycle_receipt: ExternalRef::new(
             "cairn",

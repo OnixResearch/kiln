@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{SocketAddrV4, TcpListener, TcpStream};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -14,6 +14,8 @@ use serde_json::{Value, json};
 
 #[path = "explore/automation.rs"]
 mod automation;
+#[path = "explore/campaign.rs"]
+mod campaign;
 #[path = "explore/ci.rs"]
 mod ci;
 #[path = "explore/feeds.rs"]
@@ -29,7 +31,7 @@ mod work;
 #[path = "explore/workers.rs"]
 mod workers;
 
-type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
+type Result<T = (), E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
 const ACTOR: &str = "local:operator";
 const DEFAULT_PORT: u16 = 8787;
 const MAX_HEADER_BYTES: usize = 16_384;
@@ -37,26 +39,211 @@ const MAX_BODY_BYTES: usize = 524_288;
 const REQUEST_DEADLINE: Duration = Duration::from_secs(3);
 const ACCEPT_INTERVAL: Duration = Duration::from_millis(25);
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Clone)]
+struct PresentationRequirements {
+    theme: String,
+    density: String,
+    viewport: String,
+    themes: Vec<String>,
+    densities: Vec<String>,
+    viewports: Vec<String>,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct InteractionRequirements {
+    keyboard: bool,
+    narrow: bool,
+    dark: bool,
+}
+
+#[derive(serde::Serialize, Clone)]
+struct RecipeIdentity {
+    id: String,
+    version: String,
+    revision: String,
+}
+
+#[derive(Clone)]
+struct NamedCase {
+    case_id: String,
+    recipe: (String, String),
+    presentation: PresentationRequirements,
+    interaction: InteractionRequirements,
+    subjects: Vec<(String, String)>,
+    seeder_source: Vec<u8>,
+}
+
+#[derive(serde::Serialize, Clone)]
 struct Example {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    case_id: Option<String>,
     title: String,
     href: String,
     detail: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recipe: Option<RecipeIdentity>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_revision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    presentation: Option<PresentationRequirements>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    interaction: Option<InteractionRequirements>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    subjects: std::collections::BTreeMap<String, String>,
 }
+
 impl Example {
     fn new(title: impl Into<String>, href: impl Into<String>, detail: impl Into<String>) -> Self {
         Self {
+            case_id: None,
             title: title.into(),
             href: href.into(),
             detail: detail.into(),
+            recipe: None,
+            source_revision: None,
+            presentation: None,
+            interaction: None,
+            subjects: std::collections::BTreeMap::new(),
+        }
+    }
+    fn explorer_source_bytes() -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(include_bytes!("explore.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/automation.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/campaign.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/ci.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/feeds.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/receipt.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/review.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/work.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/workers.rs"));
+        bytes.extend_from_slice(include_bytes!("explore/index.html"));
+        bytes.extend_from_slice(include_bytes!("explore/index.js"));
+        bytes.extend_from_slice(include_bytes!("explore/example.css"));
+        bytes
+    }
+    fn explorer_source_revision() -> String {
+        blake3::hash(&Self::explorer_source_bytes())
+            .to_hex()
+            .to_string()
+    }
+    fn named(
+        case: NamedCase,
+        title: impl Into<String>,
+        href: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Self {
+        let title = title.into();
+        let href = href.into();
+        let detail = detail.into();
+        let (recipe_id, recipe_version) = &case.recipe;
+        let mut hasher = blake3::Hasher::new();
+        let mut update_field = |bytes: &[u8]| {
+            hasher.update(&(bytes.len() as u64).to_be_bytes());
+            hasher.update(bytes);
+        };
+        update_field(case.case_id.as_bytes());
+        update_field(recipe_id.as_bytes());
+        update_field(recipe_version.as_bytes());
+        update_field(case.presentation.theme.as_bytes());
+        update_field(case.presentation.density.as_bytes());
+        update_field(case.presentation.viewport.as_bytes());
+        for value in &case.presentation.themes {
+            update_field(value.as_bytes());
+        }
+        for value in &case.presentation.densities {
+            update_field(value.as_bytes());
+        }
+        for value in &case.presentation.viewports {
+            update_field(value.as_bytes());
+        }
+        update_field(if case.interaction.keyboard {
+            b"1"
+        } else {
+            b"0"
+        });
+        update_field(if case.interaction.narrow { b"1" } else { b"0" });
+        update_field(if case.interaction.dark { b"1" } else { b"0" });
+        update_field(&case.seeder_source);
+        let recipe_revision = hasher.finalize().to_hex().to_string();
+        let mut subjects_map = std::collections::BTreeMap::new();
+        for (k, v) in &case.subjects {
+            subjects_map.insert(k.clone(), v.clone());
+        }
+        Self {
+            case_id: Some(case.case_id.clone()),
+            title,
+            href,
+            detail,
+            recipe: Some(RecipeIdentity {
+                id: recipe_id.clone(),
+                version: recipe_version.clone(),
+                revision: recipe_revision,
+            }),
+            source_revision: Some(Self::explorer_source_revision()),
+            presentation: Some(case.presentation.clone()),
+            interaction: Some(case.interaction.clone()),
+            subjects: subjects_map,
         }
     }
 }
+
 fn now_ms() -> Result<u64> {
     Ok(u64::try_from(
         SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis(),
     )?)
 }
+
+fn valid_case_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 64
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'.' || b == b'-')
+}
+fn valid_hex64(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
+// r[impl kiln.web.exploration.cases.resolution] Unknown cases are 404; moved recipes and other workspaces are 409.
+fn resolve_case(
+    examples: &[Example],
+    workspace_id: &str,
+    case_id: &str,
+    recipe: &str,
+    workspace: &str,
+) -> Result<Value, (u16, &'static str)> {
+    if !valid_case_id(case_id) || !valid_hex64(recipe) || !valid_hex64(workspace) {
+        return Err((400, "Malformed case resolution input"));
+    }
+    if workspace != workspace_id {
+        return Err((409, "Example case belongs to a different workspace"));
+    }
+    let example = examples
+        .iter()
+        .find(|example| example.case_id.as_deref() == Some(case_id))
+        .ok_or((404, "Unknown exploration case"))?;
+    let recipe_identity = example
+        .recipe
+        .as_ref()
+        .ok_or((404, "Exploration case has no recipe"))?;
+    if recipe != recipe_identity.revision {
+        return Err((409, "Recipe revision moved or removed"));
+    }
+    Ok(json!({
+        "workspace": workspace_id,
+        "case_id": example.case_id,
+        "recipe": recipe_identity,
+        "source_revision": example.source_revision,
+        "subjects": example.subjects,
+        "route": example.href,
+        "synthetic": true,
+    }))
+}
+
 fn accepted(response: ApiResponse) -> Result<Value> {
     if !(200..300).contains(&response.status) {
         return Err(format!(
@@ -232,7 +419,9 @@ struct Workspace {
     work: work::Seed,
     review: review::Seed,
     feeds: feeds::Feeds,
+    campaign: PathBuf,
     examples: Vec<Example>,
+    workspace_id: String,
 }
 impl Workspace {
     // r[impl kiln.web.exploration] r[impl kiln.web.exploration.scenario.local]
@@ -241,6 +430,7 @@ impl Workspace {
         let work = work::seed(root, &ci.engine.work_ci_facts(), &ci.runs)?;
         let review = review::seed(root, &mut ci.engine)?;
         let feeds = feeds::Feeds::seed(&format!("http://127.0.0.1:{port}"))?;
+        let campaign = campaign::seed(root)?;
         let mut examples = std::mem::take(&mut ci.examples);
         let mut work = work;
         let mut review = review;
@@ -254,13 +444,20 @@ impl Workspace {
             Example::new("Retained activity and audit decisions", "/?page=activity", "Inspect events from the seeded local commands, filter them and follow an exact run."),
             Example::new("Capacity and retention", "/?page=operations", "Inspect occupied slots, queued requests, retention limits and local state. No pruning or real worker operation occurs."),
             Example::new("Agents, worker instances, compute and serving", "/?page=workers", "Inspect four distinct synthetic observation families and exact-work readiness. Use the fictional all-a 64-hex work identity to explore a disconnected, non-authorizing explanation; no provider is contacted."),
+            Example::new("Selected Cairn campaign: planning, review and lifecycle waits", "/?page=workers&campaign=synthetic-selected-cairn", "Inspect every selected member, partial enumeration, stale review/check evidence, distinct completion goals and unknown aggregate budget. This synthetic campaign uses the real canonical store and read-only projection, not live Cairn or worker evidence."),
         ]);
+        let mut random = [0u8; 16];
+        getrandom::fill(&mut random)
+            .map_err(|e| format!("random workspace id unavailable: {e}"))?;
+        let workspace_id = blake3::hash(&random).to_hex().to_string();
         Ok(Self {
             ci,
             work,
             review,
             feeds,
+            campaign,
             examples,
+            workspace_id,
         })
     }
     fn route(&mut self, req: &Request) -> Result<ApiResponse> {
@@ -274,12 +471,47 @@ impl Workspace {
         if path == "/examples.json" && req.method == "GET" {
             return Ok(json(
                 200,
-                json!({"synthetic":true,"examples":self.examples}),
+                // r[impl kiln.web.exploration.cases.synthetic] Every catalog response is marked synthetic.
+                json!({"synthetic":true,"workspace":self.workspace_id,"examples":self.examples}),
             ));
+        }
+        if let Some(rest) = path.strip_prefix("/examples/cases/") {
+            if req.method != "GET" {
+                return Ok(error(405, "This resource is read-only"));
+            }
+            let case_id = rest.trim_matches('/');
+            let query = req.target.split('?').nth(1).unwrap_or_default();
+            let mut recipe_param = None;
+            let mut workspace_param = None;
+            for pair in query.split('&') {
+                let mut parts = pair.splitn(2, '=');
+                let key = parts.next().unwrap_or_default();
+                let value = parts.next().unwrap_or_default();
+                match key {
+                    "recipe" => recipe_param = Some(value.to_string()),
+                    "workspace" => workspace_param = Some(value.to_string()),
+                    _ => {}
+                }
+            }
+            let recipe = recipe_param.unwrap_or_default();
+            let workspace = workspace_param.unwrap_or_default();
+            match resolve_case(
+                &self.examples,
+                &self.workspace_id,
+                case_id,
+                &recipe,
+                &workspace,
+            ) {
+                Ok(value) => return Ok(json(200, value)),
+                Err((status, message)) => return Ok(error(status, message)),
+            }
         }
         // r[impl kiln.inventory.consumers]
         if path == "/api/inventory" {
             return inventory::response(&req.method, &req.target);
+        }
+        if path == "/api/implementation/campaigns" {
+            return campaign::response(&self.campaign, &req.method, &req.target);
         }
         if path.starts_with("/api/feeds") || path.starts_with("/feeds") {
             return self
@@ -555,5 +787,175 @@ mod tests {
         ] {
             assert_eq!(asset(path).status, 404);
         }
+    }
+
+    // r[verify kiln.web.exploration.cases]
+    #[test]
+    fn plain_examples_have_no_case_identity() {
+        let example = Example::new("Title", "/?page=overview", "detail");
+        assert!(example.case_id.is_none());
+        assert!(example.recipe.is_none());
+    }
+
+    // r[verify kiln.web.exploration.cases]
+    #[test]
+    fn recipe_revision_ignores_runtime_inputs() {
+        let presentation = PresentationRequirements {
+            theme: "system".into(),
+            density: "comfortable".into(),
+            viewport: "wide".into(),
+            themes: vec!["light".into(), "dark".into(), "system".into()],
+            densities: vec!["comfortable".into(), "compact".into()],
+            viewports: vec!["narrow".into(), "wide".into()],
+        };
+        let interaction = InteractionRequirements {
+            keyboard: true,
+            narrow: true,
+            dark: true,
+        };
+        let case = NamedCase {
+            case_id: "case.test".into(),
+            recipe: ("explore.case.test".into(), "v1".into()),
+            presentation: presentation.clone(),
+            interaction: interaction.clone(),
+            subjects: vec![("run".into(), "runtime-a".into())],
+            seeder_source: b"source-a".to_vec(),
+        };
+        let first = Example::named(case.clone(), "A", "/?page=runs&run=runtime-a", "detail");
+        let case2 = NamedCase {
+            subjects: vec![("run".into(), "runtime-b".into())],
+            ..case
+        };
+        let second = Example::named(case2, "B", "/?page=runs&run=runtime-b", "other");
+        assert_eq!(
+            first.recipe.as_ref().unwrap().revision,
+            second.recipe.as_ref().unwrap().revision
+        );
+    }
+
+    // r[verify kiln.web.exploration.cases]
+    #[test]
+    fn recipe_revision_changes_with_source_or_requirements() {
+        let presentation = PresentationRequirements {
+            theme: "system".into(),
+            density: "comfortable".into(),
+            viewport: "wide".into(),
+            themes: vec!["light".into(), "dark".into(), "system".into()],
+            densities: vec!["comfortable".into(), "compact".into()],
+            viewports: vec!["narrow".into(), "wide".into()],
+        };
+        let interaction = InteractionRequirements {
+            keyboard: true,
+            narrow: true,
+            dark: true,
+        };
+        let base = NamedCase {
+            case_id: "case.test".into(),
+            recipe: ("explore.case.test".into(), "v1".into()),
+            presentation: presentation.clone(),
+            interaction: interaction.clone(),
+            subjects: vec![],
+            seeder_source: b"source-a".to_vec(),
+        };
+        let first = Example::named(base.clone(), "A", "/x", "d");
+        let mut changed = base.clone();
+        changed.seeder_source = b"source-b".to_vec();
+        let second = Example::named(changed, "A", "/x", "d");
+        assert_ne!(
+            first.recipe.as_ref().unwrap().revision,
+            second.recipe.as_ref().unwrap().revision
+        );
+
+        let mut changed2 = base.clone();
+        changed2.presentation.theme = "dark".into();
+        let third = Example::named(changed2, "A", "/x", "d");
+        assert_ne!(
+            first.recipe.as_ref().unwrap().revision,
+            third.recipe.as_ref().unwrap().revision
+        );
+    }
+
+    // r[verify kiln.web.exploration.cases.resolution]
+    #[test]
+    fn resolve_case_outcomes() {
+        let presentation = PresentationRequirements {
+            theme: "system".into(),
+            density: "comfortable".into(),
+            viewport: "wide".into(),
+            themes: vec!["light".into(), "dark".into(), "system".into()],
+            densities: vec!["comfortable".into(), "compact".into()],
+            viewports: vec!["narrow".into(), "wide".into()],
+        };
+        let interaction = InteractionRequirements {
+            keyboard: true,
+            narrow: true,
+            dark: true,
+        };
+        let case = NamedCase {
+            case_id: "case.test".into(),
+            recipe: ("explore.case.test".into(), "v1".into()),
+            presentation,
+            interaction,
+            subjects: vec![("run".into(), "run-1".into())],
+            seeder_source: b"source".to_vec(),
+        };
+        let example = Example::named(case, "A", "/?page=runs&run=run-1", "d");
+        let examples = vec![example.clone()];
+        let workspace = "a".repeat(64);
+        let recipe = example.recipe.as_ref().unwrap().revision.clone();
+        let ok = resolve_case(&examples, &workspace, "case.test", &recipe, &workspace).unwrap();
+        assert_eq!(ok["workspace"], workspace);
+        assert_eq!(ok["subjects"]["run"], "run-1");
+        assert_eq!(
+            resolve_case(&examples, &workspace, "case.missing", &recipe, &workspace)
+                .unwrap_err()
+                .0,
+            404
+        );
+        let wrong_recipe = "0".repeat(64);
+        assert_eq!(
+            resolve_case(
+                &examples,
+                &workspace,
+                "case.test",
+                &wrong_recipe,
+                &workspace
+            )
+            .unwrap_err()
+            .0,
+            409
+        );
+        let other_workspace = "1".repeat(64);
+        assert_eq!(
+            resolve_case(
+                &examples,
+                &workspace,
+                "case.test",
+                &recipe,
+                &other_workspace
+            )
+            .unwrap_err()
+            .0,
+            409
+        );
+        assert_eq!(
+            resolve_case(&examples, &workspace, "bad case", &recipe, &workspace)
+                .unwrap_err()
+                .0,
+            400
+        );
+        let malformed_workspace = "w".repeat(64);
+        assert_eq!(
+            resolve_case(
+                &examples,
+                &workspace,
+                "case.test",
+                &recipe,
+                &malformed_workspace
+            )
+            .unwrap_err()
+            .0,
+            400
+        );
     }
 }

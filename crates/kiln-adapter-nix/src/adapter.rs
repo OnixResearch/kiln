@@ -18,7 +18,7 @@ use crate::mapping::{
     NormalizedBuild, gc_root_directory, log_identity, lower_request, normalize_realisation,
     shell_outcome,
 };
-use crate::profile::{NixBuildProfile, PINNED_NIX_CONFIG, admit_profile};
+use crate::profile::{NixBuildProfile, PINNED_NIX_CONFIG, admit_native_store_root, admit_profile};
 use crate::runtime::{NixBuildProcessOutput, NixBuildRuntime, ProcessInvocation};
 use crate::wire::{BuildRequest, parse_realisation_roots};
 
@@ -41,6 +41,7 @@ pub struct NixBuildAdapter<R> {
 impl<R: NixBuildRuntime> NixBuildAdapter<R> {
     pub fn new(profile: NixBuildProfile, runtime: R) -> PortResult<Self> {
         admit_profile(&profile)?;
+        admit_native_store_root(profile.runtime.store_root.as_deref())?;
         verify_runtime(&profile, &runtime)?;
         Ok(Self {
             profile,
@@ -347,16 +348,45 @@ impl<R: NixBuildRuntime> BuildPort for NixBuildAdapter<R> {
     }
 }
 
+pub(crate) fn physical_store_path(
+    profile: &NixBuildProfile,
+    logical: &std::path::Path,
+) -> PortResult<PathBuf> {
+    let Some(root) = profile.runtime.store_root.as_ref() else {
+        return Ok(logical.to_path_buf());
+    };
+    let relative = logical
+        .strip_prefix(&profile.runtime.store_path)
+        .map_err(|_| {
+            domain(
+                "nix_store_path",
+                "nix.store_path",
+                "Nix path is outside the logical store",
+            )
+        })?;
+    let mut components = relative.components();
+    if !matches!(components.next(), Some(std::path::Component::Normal(_)))
+        || components.next().is_some()
+    {
+        return Err(domain(
+            "nix_store_path",
+            "nix.store_path",
+            "Nix physical-path mapping requires one direct logical store member",
+        ));
+    }
+    Ok(root.join("nix/store").join(relative))
+}
+
 // r[impl kiln.nix_build.execution]
 // r[impl kiln.nix_store.derivation]
 fn validate_profile_derivation<R: NixBuildRuntime>(
     profile: &NixBuildProfile,
     runtime: &R,
 ) -> PortResult<()> {
-    let Ok(bytes) = runtime.read_derivation(
-        &profile.runtime.derivation_path,
-        profile.limits.max_derivation_bytes,
-    ) else {
+    let physical_derivation = physical_store_path(profile, &profile.runtime.derivation_path)?;
+    let Ok(bytes) =
+        runtime.read_derivation(&physical_derivation, profile.limits.max_derivation_bytes)
+    else {
         // Runtimes that cannot read derivation bytes keep the pre-existing
         // contract; the composition path performs a hard admission.
         return Ok(());
@@ -408,11 +438,9 @@ fn attach_store_facts<R: NixBuildRuntime>(
         max_outputs: profile.limits.max_required_products,
         ..DerivationBounds::DEFAULT
     };
+    let physical_derivation = physical_store_path(profile, &profile.runtime.derivation_path)?;
     let admitted = match runtime
-        .read_derivation(
-            &profile.runtime.derivation_path,
-            profile.limits.max_derivation_bytes,
-        )
+        .read_derivation(&physical_derivation, profile.limits.max_derivation_bytes)
         .and_then(|bytes| {
             admit(
                 &bytes,
@@ -445,8 +473,9 @@ fn attach_store_facts<R: NixBuildRuntime>(
         else {
             continue;
         };
+        let physical_target = physical_store_path(profile, target)?;
         let Ok(Some(facts)) = runtime.store_object_facts(
-            target,
+            &physical_target,
             &admitted.reference_candidates,
             admitted.reference_complete,
             nar_bounds,
@@ -669,10 +698,9 @@ fn verify_runtime<R: NixBuildRuntime>(profile: &NixBuildProfile, runtime: &R) ->
             "Nix store executable identity differs from the admitted profile",
         ));
     }
-    let derivation = runtime.file_identity(
-        &profile.runtime.derivation_path,
-        profile.limits.max_derivation_bytes,
-    )?;
+    let physical_derivation = physical_store_path(profile, &profile.runtime.derivation_path)?;
+    let derivation =
+        runtime.file_identity(&physical_derivation, profile.limits.max_derivation_bytes)?;
     if derivation != profile.runtime.derivation_identity {
         return Err(domain(
             "nix_derivation_identity",
@@ -683,14 +711,23 @@ fn verify_runtime<R: NixBuildRuntime>(profile: &NixBuildProfile, runtime: &R) ->
     Ok(())
 }
 
+// r[impl kiln.preview.owned_store] Every Nix reader and writer selects the owned root explicitly; none falls back to the host store.
+fn store_arguments(profile: &NixBuildProfile) -> Vec<OsString> {
+    crate::profile::store_uri(profile.runtime.store_root.as_deref())
+        .map(|uri| vec![OsString::from("--store"), OsString::from(uri)])
+        .unwrap_or_default()
+}
+
 fn preflight_invocation(profile: &NixBuildProfile) -> ProcessInvocation {
+    let mut args = store_arguments(profile);
+    args.extend([
+        OsString::from("--realise"),
+        OsString::from("--dry-run"),
+        profile.runtime.derivation_path.clone().into_os_string(),
+    ]);
     ProcessInvocation {
         program: profile.runtime.nix_store_executable_path.clone(),
-        args: vec![
-            OsString::from("--realise"),
-            OsString::from("--dry-run"),
-            profile.runtime.derivation_path.clone().into_os_string(),
-        ],
+        args,
         current_dir: profile.runtime.home_base.clone(),
         environment: vec![
             (
@@ -718,15 +755,17 @@ fn preflight_invocation(profile: &NixBuildProfile) -> ProcessInvocation {
 }
 
 fn invocation(profile: &NixBuildProfile, gc_root: &std::path::Path) -> ProcessInvocation {
+    let mut args = store_arguments(profile);
+    args.extend([
+        OsString::from("--add-root"),
+        gc_root.join("root").into_os_string(),
+        OsString::from("--indirect"),
+        OsString::from("--realise"),
+        profile.runtime.derivation_path.clone().into_os_string(),
+    ]);
     ProcessInvocation {
         program: profile.runtime.nix_store_executable_path.clone(),
-        args: vec![
-            OsString::from("--add-root"),
-            gc_root.join("root").into_os_string(),
-            OsString::from("--indirect"),
-            OsString::from("--realise"),
-            profile.runtime.derivation_path.clone().into_os_string(),
-        ],
+        args,
         current_dir: profile.runtime.home_base.clone(),
         environment: vec![
             (
@@ -754,16 +793,18 @@ fn invocation(profile: &NixBuildProfile, gc_root: &std::path::Path) -> ProcessIn
 }
 
 fn check_invocation(profile: &NixBuildProfile) -> ProcessInvocation {
+    let mut args = store_arguments(profile);
+    args.extend([
+        OsString::from("--realise"),
+        OsString::from("--check"),
+        // Keep a differing rebuild beside the realised output instead of
+        // discarding it; the build's own roots and outputs are untouched.
+        OsString::from("-K"),
+        profile.runtime.derivation_path.clone().into_os_string(),
+    ]);
     ProcessInvocation {
         program: profile.runtime.nix_store_executable_path.clone(),
-        args: vec![
-            OsString::from("--realise"),
-            OsString::from("--check"),
-            // Keep a differing rebuild beside the realised output instead of
-            // discarding it; the build's own roots and outputs are untouched.
-            OsString::from("-K"),
-            profile.runtime.derivation_path.clone().into_os_string(),
-        ],
+        args,
         current_dir: profile.runtime.home_base.clone(),
         environment: vec![
             (

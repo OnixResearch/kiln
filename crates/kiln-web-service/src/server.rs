@@ -32,6 +32,7 @@ pub struct Options {
     pub inventory: Option<PathBuf>,
     pub implementation_work: Option<PathBuf>,
     pub artifact_previews: Option<PathBuf>,
+    pub preview_observations: Option<PathBuf>,
 }
 
 impl Options {
@@ -117,6 +118,7 @@ pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> 
     let review_profile = load_review_profile(options, access_agents)?;
     let mut code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     code_review.configure_previews(options.artifact_previews.as_deref())?;
+    code_review.configure_preview_observations(options.preview_observations.as_deref())?;
     if let Some(cache) = &_cache {
         cache.preflight_for(&profile)?;
     }
@@ -210,6 +212,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let review_profile = load_review_profile(options, access_agents)?;
     let mut code_review = crate::code_review::Workspace::for_service(review_profile, &profile)?;
     code_review.configure_previews(options.artifact_previews.as_deref())?;
+    code_review.configure_preview_observations(options.preview_observations.as_deref())?;
     let tls = tls_config(&profile)?;
     admission::runtime_inputs(&profile)?;
     let listener = TcpListener::bind(profile.listen_address)
@@ -766,6 +769,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         if path == "/api/inventory" {
             return inventory_api::response(&request, context, &principal);
         }
+        if path == "/api/implementation/campaigns" {
+            return inventory_api::campaign_response(&request, context, &principal);
+        }
         if path == "/api/feeds" || path.starts_with("/api/feeds/") {
             if principal.role == crate::engine::Role::Worker {
                 return denied(&request, context, Some(&principal), 403, "feeds_forbidden");
@@ -787,7 +793,8 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 Err(_) => return error_response(503, "service_unavailable"),
             };
             let ci = engine.code_review_ci();
-            return context.code_review.response(
+            let preview_builds = engine.canonical_preview_builds();
+            return context.code_review.response_with_preview_builds(
                 &request.method,
                 &request.target,
                 &request.body,
@@ -797,6 +804,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                     now_ms: now,
                     ci: &ci,
                 },
+                &preview_builds,
             );
         }
         // r[impl kiln.work.authority] r[impl kiln.work.monorepo.facts]

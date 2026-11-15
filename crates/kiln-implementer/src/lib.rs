@@ -10,6 +10,10 @@
 //! Engine admission and separately journaled provider effects retain authority.
 
 pub mod admission;
+pub mod campaign;
+pub mod campaign_consumer;
+pub mod campaign_operator;
+pub mod native_publication;
 pub mod observation;
 pub mod publication_effects;
 pub mod queue;

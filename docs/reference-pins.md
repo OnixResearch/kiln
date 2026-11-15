@@ -168,6 +168,21 @@ recheck Rust 1.88 compilation, native peer/unknown-outcome conformance, and the
 workspace gates when changing this cohort. This is compatibility evidence,
 not a cryptographic audit or security guarantee.
 
+### Unified Git binding (2026-11-15)
+
+The current root and web-service fuzz locks select one `git2 0.21.0` cohort.
+Local Git, GitHub and COB consumers now use that binding directly; the former
+`cob-git2` alias is removed. The Rust source-profile constant and Nickel profile
+pin the same version. Native `libgit2-sys 0.18.7+1.9.6`, SHA-1 object admission
+and repository-format version zero are unchanged.
+
+This is an explicit API cutover, not a same-line lock refresh. The native
+empty-remote publication fixture exposed `0.20.4` constructing a Rust slice
+from a null remote-head pointer with length zero. `0.21.0` returns the valid
+empty list. Its fallible string accessors now preserve each caller's existing
+rejection or optional-display boundary. The dated audit and update observations
+below remain historical; this cutover is not a new security-audit result.
+
 ### Root registry dependency maintenance (2026-10-23)
 
 This maintenance changes only the root workspace registry cohort, not immutable

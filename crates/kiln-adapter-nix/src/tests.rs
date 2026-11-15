@@ -21,6 +21,7 @@ use kiln_nix_store::nar::{NarBounds, StoreObjectFacts};
 use kiln_provider_api::{BuildPort, InfrastructureFailure, PortFailure, PortResult};
 
 use super::*;
+use crate::adapter::physical_store_path;
 use crate::mapping::gc_root_directory;
 use crate::profile::admit_profile;
 
@@ -105,6 +106,7 @@ fn profile_with_outputs(outputs: Vec<NixOutputBinding>) -> NixBuildProfile {
             plan_identity: content('3'),
             policy_identity: content('4'),
             store_path: PathBuf::from(STORE_PATH),
+            store_root: None,
             gc_root_base: PathBuf::from(GC_ROOT_BASE),
             home_base: PathBuf::from(HOME_PATH),
             worker_identity: content('5'),
@@ -212,7 +214,7 @@ impl NixBuildRuntime for FakeRuntime {
             Ok(self.executable_identity.clone())
         } else if path == Path::new(PINNED_NIX_STORE_EXECUTABLE_PATH) {
             Ok(self.nix_store_identity.clone())
-        } else if path == Path::new(DRV_PATH) {
+        } else if path.file_name() == Path::new(DRV_PATH).file_name() {
             Ok(self.derivation_identity.clone())
         } else {
             Ok(content('9'))
@@ -230,7 +232,7 @@ impl NixBuildRuntime for FakeRuntime {
     }
 
     fn read_derivation(&self, path: &Path, _max_bytes: u64) -> PortResult<Vec<u8>> {
-        if path == Path::new(DRV_PATH) {
+        if path.file_name() == Path::new(DRV_PATH).file_name() {
             if let Some(bytes) = &self.derivation_bytes {
                 return Ok(bytes.clone());
             }
@@ -349,6 +351,7 @@ fn flat_profile_config_is_admitted() {
         plan_identity: profile.runtime.plan_identity.clone(),
         policy_identity: profile.runtime.policy_identity.clone(),
         store_path: profile.runtime.store_path.clone(),
+        store_root: profile.runtime.store_root.clone(),
         gc_root_base: profile.runtime.gc_root_base.clone(),
         home_base: profile.runtime.home_base.clone(),
         worker_identity: profile.runtime.worker_identity.clone(),
@@ -358,10 +361,115 @@ fn flat_profile_config_is_admitted() {
         rebuild_check: false,
         required_non_claims: profile.required_non_claims.clone(),
     };
-    let built = config.into_profile().unwrap_or_else(|_| unreachable!());
+    assert!(config.clone().into_profile().is_ok());
+    let owned = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let mut owned_config = config;
+    owned_config.store_root = Some(owned.path().to_path_buf());
+    assert!(owned_config.into_profile().is_ok());
+}
+
+// r[verify kiln.preview.owned_store]
+#[cfg(unix)]
+#[test]
+fn owned_store_root_is_admitted_and_keeps_logical_identity_separate_from_physical_reads() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let root = directory.path();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(root, std::fs::Permissions::from_mode(0o700))
+        .unwrap_or_else(|_| unreachable!());
+    for child in ["nix/store", "nix/var/nix/db"] {
+        std::fs::create_dir_all(root.join(child)).unwrap_or_else(|_| unreachable!());
+    }
+    let mut profile = profile();
+    profile.runtime.store_root = Some(root.to_path_buf());
+    assert!(admit_profile(&profile).is_ok());
+
+    let logical = Path::new(OUT_PATH);
+    let physical = physical_store_path(&profile, logical).unwrap_or_else(|_| unreachable!());
     assert_eq!(
-        built.runtime.expected_outputs,
-        profile.runtime.expected_outputs
+        physical,
+        root.join("nix/store").join(
+            logical
+                .file_name()
+                .unwrap_or_else(|| unreachable!("logical store path has a file name"))
+        )
+    );
+    assert_eq!(
+        profile
+            .runtime
+            .expected_outputs
+            .first()
+            .unwrap_or_else(|| unreachable!("profile has an expected output"))
+            .path,
+        logical
+    );
+    assert!(physical_store_path(&profile, Path::new("/tmp/outside")).is_err());
+    assert!(physical_store_path(&profile, &logical.join("nested")).is_err());
+    let adapter = NixBuildAdapter::new(
+        profile,
+        FakeRuntime::with_roots(Vec::new(), BTreeMap::new()),
+    );
+    assert!(adapter.is_ok());
+}
+
+// r[verify kiln.preview.owned_store]
+#[cfg(unix)]
+#[test]
+fn invalid_owned_store_roots_fail_closed_in_the_correct_admission_layer() {
+    let mut profile = profile();
+    for root in ["/", "/tmp/a/../b", "/tmp/store?system-fallback"] {
+        profile.runtime.store_root = Some(PathBuf::from(root));
+        assert!(
+            admit_profile(&profile).is_err(),
+            "accepted invalid root {root}"
+        );
+    }
+
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let missing = directory.path().join("missing-owned-store");
+    profile.runtime.store_root = Some(missing);
+    assert!(admit_profile(&profile).is_ok());
+    assert!(
+        NixBuildAdapter::new(
+            profile.clone(),
+            FakeRuntime::with_roots(Vec::new(), BTreeMap::new()),
+        )
+        .is_err()
+    );
+
+    let public = directory.path().join("public");
+    std::fs::create_dir(&public).unwrap_or_else(|_| unreachable!());
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&public, std::fs::Permissions::from_mode(0o755))
+        .unwrap_or_else(|_| unreachable!());
+    for child in ["nix/store", "nix/var/nix/db"] {
+        std::fs::create_dir_all(public.join(child)).unwrap_or_else(|_| unreachable!());
+    }
+    profile.runtime.store_root = Some(public);
+    assert!(admit_profile(&profile).is_ok());
+    assert!(
+        NixBuildAdapter::new(
+            profile,
+            FakeRuntime::with_roots(Vec::new(), BTreeMap::new()),
+        )
+        .is_err()
+    );
+
+    let private = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    for child in ["nix/store", "nix/var/nix/db"] {
+        std::fs::create_dir_all(private.path().join(child)).unwrap_or_else(|_| unreachable!());
+    }
+    let link = directory.path().join("store-link");
+    std::os::unix::fs::symlink(private.path(), &link).unwrap_or_else(|_| unreachable!());
+    let mut linked_profile = self::profile();
+    linked_profile.runtime.store_root = Some(link);
+    assert!(admit_profile(&linked_profile).is_ok());
+    assert!(
+        NixBuildAdapter::new(
+            linked_profile,
+            FakeRuntime::with_roots(Vec::new(), BTreeMap::new()),
+        )
+        .is_err()
     );
 }
 
@@ -433,14 +541,17 @@ fn successful_build_is_recorded_and_readable() {
             .iter()
             .any(|value| value.to_str() == Some("--realise"))
     );
+    assert!(
+        !invocation
+            .args
+            .iter()
+            .any(|value| value.to_str() == Some("--store"))
+    );
     assert_eq!(
         invocation.args.last().and_then(|value| value.to_str()),
         Some(DRV_PATH)
     );
     assert_eq!(invocation.current_dir, PathBuf::from(HOME_PATH));
-    assert!(invocation.environment.iter().any(|(name, value)| {
-        name.to_str() == Some("NIX_CONFIG") && value.to_str() == Some(PINNED_NIX_CONFIG)
-    }));
     let gc_root = gc_root_directory(adapter.profile_binding(), &plan.effect_id)
         .unwrap_or_else(|_| unreachable!());
     assert!(

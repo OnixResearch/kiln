@@ -36,6 +36,7 @@ The sections below group the maintained documents by the question they answer.
 - [GitHub landing observation](github-landing-observation.md): reads one pull request and its check runs into bounded landing evidence; strictly read-only.
 - [Repository feeds](repository-feeds.md): read-only Atom and RSS observations, not CI evidence.
 - [GitHub CI adapter](operator.md#github-ci-adapter): operator procedure for webhook intake and exact-source jobs.
+- [iMessage receiver feasibility](imessage-receiver-feasibility.md): documented no-go for an OpenBubbles receiver; a typed contract kept for a separately licensed one.
 
 ## Execution and builds
 
@@ -61,6 +62,7 @@ The sections below group the maintained documents by the question they answer.
 - [Observation projection](observation-projection.md): bounded, deterministic, read-only views; no authority.
 - [HTTP observation](http-observation.md): serves accepted views over bounded HTTPS; read-only.
 - [Iroh observation](iroh-observation.md): serves accepted views to enrolled iroh peers; read-only.
+- [HTTP API contract](http-api-contract.md): GET-only OpenAPI contract for runs, bindings and artifacts, validated against real responses; lockstep only.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
 - [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
 

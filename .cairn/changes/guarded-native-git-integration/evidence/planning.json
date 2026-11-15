@@ -1,0 +1,24 @@
+{
+  "schema": "kiln.native-git.planning.v1",
+  "change": "guarded-native-git-integration",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "preimplementation": {
+    "verdict": "PASS",
+    "gates": {
+      "proposal": {"input_hash": "308059c3059c8c5c932f00a38dbca7d05813c62a48e9dd8c787b2f0a9391e18a", "receipt_hash": "f59014aa387867639d2d42840cfa7ada835b216cc1e1697ba2e93c06492523ba"},
+      "design": {"input_hash": "67060deae373e874495c44c5eaebe29bc6b8b47a5d0b22377ba1d35dee6586d6", "receipt_hash": "0cc31a221ede3dc5fe83a8aa26df2e3c849fd181e663e360e6b1bb5b1e8728db"},
+      "tasks": {"input_hash": "04dac6e3bec915e17e9d7e159fd281bc5591b1a7354a33303bdaeb650be20872", "receipt_hash": "1be277c1cc235f032ace95a9822cdae9b52fcf392e937511578d54f7857a65d1"}
+    }
+  },
+  "final": {
+    "verdict": "PASS",
+    "gates": {
+      "proposal": {"input_hash": "9e1995dc33994f60ed1f0284d31cda50de17b2ff8a26a88d1ba8326325b18e60", "receipt_hash": "ba3a6c8595669f3060bddc1c4ee6555ddaa43dd5295385e865cb41596ae739a3"},
+      "design": {"input_hash": "30e04972efd8ee5496d9654ffe2d1237a2b754b3990bee3af4b04926d8c004f4", "receipt_hash": "d6873e75a611b73e5289b011aa9c1aadac96d7e263cfac35690dba23958d2b7e"},
+      "tasks": {"input_hash": "e25a92b172bfeeeccee64001c42122386105f4676bd1bb1a96ef3859cf7ad2d6", "receipt_hash": "b12072412f47db24634bcb0b9104064ea6abb42993012854a192ca6fd4e058f6"}
+    },
+    "completed_tasks": 9
+  },
+  "qualification": "No live remote effect or provider qualification was performed."
+}

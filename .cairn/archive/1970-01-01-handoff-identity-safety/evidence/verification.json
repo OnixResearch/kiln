@@ -1,0 +1,48 @@
+{
+  "schema": "kiln.handoff-identity-safety-verification.v1",
+  "maintenance_owner": "Kiln hosted/microVM maintainers",
+  "source": {
+    "jj_working_copy_commit": "c746ae0e4b576c644f9a7295c671bf2c603ad5db",
+    "files_blake3": {
+      "crates/kiln-microvm/src/handoff.rs": "364f917d3f29ff45002d03163aec57aa917ea5377137e0bb7634e7624a5aad45",
+      "crates/kiln-microvm/src/retained.rs": "3ae63e2aaed7e4c96d228cec51d5e148ae86a890fb3c8f967f475969f6ca73f2",
+      "crates/kiln-hosted/src/microvm/retained.rs": "13688a36bd3e93703b3b63be6651bb5af9cb5e39757e027c6ab34aced7908014"
+    }
+  },
+  "checks": [
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-microvm --lib -- handoff:: retained::",
+      "passed": true,
+      "tests_passed": 15,
+      "log": "focused-tests.log"
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-hosted --lib -- microvm::retained::",
+      "passed": true,
+      "tests_passed": 9,
+      "log": "focused-tests.log"
+    },
+    {
+      "command": "cairn gate proposal handoff-identity-safety --root . --policy cairn-policy/generated/cairn-policy.json",
+      "passed": true,
+      "verdict": "PASS"
+    },
+    {
+      "command": "cairn gate design handoff-identity-safety --root . --policy cairn-policy/generated/cairn-policy.json",
+      "passed": true,
+      "verdict": "PASS"
+    },
+    {
+      "command": "cairn gate tasks handoff-identity-safety --root . --policy cairn-policy/generated/cairn-policy.json",
+      "passed": true,
+      "verdict": "PASS"
+    }
+  ],
+  "not_run": [
+    "No native VMM, Cloud Hypervisor, two-host or provider qualification was run; no live VMM or provider effect occurred.",
+    "Selected Aspen remains local-only; distributed placement and fencing authority are outside this change."
+  ],
+  "non_claims": [
+    "Pure-fixture refusal and ordering tests do not establish provider currentness, durable commit truth or effective resource fencing."
+  ]
+}

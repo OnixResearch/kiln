@@ -2,7 +2,6 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use cob_git2 as git2;
 use kiln_core::types::{Diagnostic, ExternalRef};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 use onix_radicle_cob_git_store::{GitCobStore, GitCobStoreError};

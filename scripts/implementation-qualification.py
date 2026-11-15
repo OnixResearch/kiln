@@ -211,6 +211,7 @@ class Runner:
         self.output = Path(output).resolve()
         self.output.mkdir(mode=0o700, parents=False, exist_ok=False)
         self.programs = {}
+        self.frozen = {}
         self.receipt = {"schema": SCHEMA, "scope": "local-only", "scenarios": {},
                         "verified_pr": "not_exercised_requires_operator_approval",
                         "landing": "not_exercised_requires_provider_qualification_and_operator_approval",
@@ -231,6 +232,22 @@ class Runner:
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise ValueError("b3sum did not return a BLAKE3 identity")
         return digest
+
+    def freeze(self, path, expected, label):
+        path = Path(path).resolve(strict=True)
+        actual = self.digest(path)
+        if actual != expected:
+            raise ValueError(f"{label}: identity differs")
+        self.frozen[str(path)] = (expected, label)
+        return path
+
+    def assert_frozen(self):
+        for path, (expected, label) in self.frozen.items():
+            try:
+                if self.digest(path) != expected:
+                    raise Missing(f"{label}: frozen input changed during campaign")
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                raise Missing(f"{label}: frozen input unavailable during campaign: {error}") from error
 
     def preflight(self, live=False):
         missing = []
@@ -256,9 +273,7 @@ class Runner:
         if "b3sum" in self.programs:
             for name, path in self.programs.items():
                 try:
-                    actual = self.digest(path)
-                    if actual != self.inputs["programs"][name]["blake3"]:
-                        raise ValueError("executable BLAKE3 differs from reviewed cohort")
+                    self.freeze(path, self.inputs["programs"][name]["blake3"], f"programs.{name}")
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     missing.append(f"programs.{name}: {error}")
         if live:
@@ -278,8 +293,7 @@ class Runner:
                     missing.append(f"{name}: retained path and expected BLAKE3 required")
                 elif "b3sum" in self.programs:
                     try:
-                        if self.digest(Path(item["path"]).resolve(strict=True)) != item["blake3"]:
-                            missing.append(f"{name}: identity differs")
+                        self.freeze(item["path"], item["blake3"], name)
                     except (OSError, ValueError, subprocess.SubprocessError) as error:
                         missing.append(f"{name}: {error}")
             if isinstance(self.inputs.get("cohort"), dict) and "path" in self.inputs["cohort"]:
@@ -303,8 +317,7 @@ class Runner:
                         missing.append(f"{scenario.get('name')}: exact canonical CI service profile/node/Cairn mapping required")
                     elif "b3sum" in self.programs:
                         try:
-                            if self.digest(item["path"]) != item["blake3"]:
-                                missing.append(f"{scenario.get('name')}: canonical CI profile changed")
+                            self.freeze(item["path"], item["blake3"], f"{scenario.get('name')}: canonical CI profile")
                         except (OSError, ValueError, subprocess.SubprocessError) as error:
                             missing.append(f"{scenario.get('name')}: canonical CI profile: {error}")
             if not self.inputs.get("scenarios"):
@@ -530,13 +543,14 @@ class Runner:
             label = f"{index:03d}-{stage}"
             captures["stage"] = {"input": str(self.input_root / f"{name}-{label}.json"),
                                  "prepared_request": str(self.input_root / f"{name}-{label}.prepared.json")}
+            self.assert_frozen()
             step = expand(step, captures)
             if step.get("input_template"):
                 if stage not in ("drain", "cairn-intake", "reserve-plan", "prepare-needs", "attach-needs", "admission", "lattice-prepare", "prepare-verification-profile"):
                     raise ValueError("only native configuration/preparation commands accept input templates; never handoff, CI or effect evidence")
                 template = step["input_template"]
-                if self.digest(template["path"]) != template["blake3"]:
-                    raise ValueError("admitted protocol input template changed")
+                self.freeze(template["path"], template["blake3"], f"{name}/{label}: protocol input template")
+                self.assert_frozen()
                 path = Path(captures["stage"]["input"])
                 put(path, expand(load(template["path"]), captures))
                 if os.geteuid() == 0:
@@ -568,6 +582,7 @@ class Runner:
                 if Path(service_profile).resolve(strict=True) != Path(canonical["path"]).resolve(strict=True) or self.digest(service_profile) != canonical["blake3"]:
                     raise Missing("canonical verification must use the exact admitted native CI service profile")
             program, prefix = STAGES[stage]
+            self.assert_frozen()
             role = "worker" if stage in ("lattice-run", "lattice-recover", "lattice-cancel", "lattice-crash") else "verifier" if stage in ("verify", "capture-candidate", "prepare-verification-profile", "prepare-needs", "lattice-prepare") else "coordinator"
             result = self.command(name, label, [self.programs[program], *prefix, *step["arguments"]],
                                   expected=step["exit_code"], contains=step.get("stderr_contains"),

@@ -165,7 +165,7 @@ impl RadicleSourceSelection {
 
     /// Admit fixed policy without reading the repository or following refs.
     pub fn admit(&self) -> PortResult<()> {
-        let placeholder = cob_git2::Oid::ZERO_SHA1.to_string();
+        let placeholder = git2::Oid::ZERO_SHA1.to_string();
         admit_source_profile(&self.profile(placeholder.clone(), placeholder))?;
         if RepoId::from_str(&self.repository_id).is_err()
             || PublicKey::from_str(&self.signer_node_id).is_err()
@@ -195,7 +195,7 @@ impl RadicleSourceSelection {
         }
         super::protocol::parse_oid(revision.native_id.as_str(), "radicle_source.revision")?;
         let repository =
-            cob_git2::Repository::open(&self.repository_path).map_err(super::error::git_failure)?;
+            git2::Repository::open(&self.repository_path).map_err(super::error::git_failure)?;
         let sigrefs = super::protocol::reference_target(
             &repository,
             &format!("refs/namespaces/{}/refs/rad/sigrefs", self.signer_node_id),

@@ -312,12 +312,10 @@ fn acquire_source(
         if entry.level() != git2::ConfigLevel::Local
             || !matches!(
                 entry.name(),
-                Some(
-                    "core.repositoryformatversion"
-                        | "core.filemode"
-                        | "core.bare"
-                        | "core.logallrefupdates"
-                )
+                Ok("core.repositoryformatversion"
+                    | "core.filemode"
+                    | "core.bare"
+                    | "core.logallrefupdates")
             )
         {
             return Err(source_failure());
@@ -397,7 +395,7 @@ fn validate_checkout_tree(
     maximum_path_bytes: usize,
 ) -> PortResult<()> {
     for entry in tree {
-        let name = entry.name().ok_or_else(source_failure)?;
+        let name = entry.name().map_err(|_| source_failure())?;
         let path_bytes = prefix_bytes
             .checked_add(name.len())
             .ok_or_else(source_failure)?;
@@ -438,7 +436,7 @@ fn materialize_tree(
 ) -> PortResult<()> {
     use std::os::unix::fs::PermissionsExt;
     for entry in tree {
-        let path = destination.join(entry.name().ok_or_else(source_failure)?);
+        let path = destination.join(entry.name().map_err(|_| source_failure())?);
         if entry.filemode() == 0o040_000 {
             fs::create_dir(&path).map_err(|_| job_io())?;
             let child = repository

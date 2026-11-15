@@ -1,0 +1,45 @@
+error: unclosed table, expected `]`
+ --> ../../../../../.cargo/git/checkouts/aspen-3f90b5724b0540d4/22f8ded/crates/molten-node-host/tests/fixtures/node-host-boundary/malformed/Cargo.toml:1:9
+  |
+1 | [package
+  |         ^
+[kache] the cache index could not be opened after retries (opening index database /var/cache/kache-nix/user-brittonr/index.db: disk I/O error: Error code 4618: disk I/O error).
+[kache] Caching is disabled for this build — compilation still succeeds,
+[kache] just without cache hits or stores (everything builds uncached).
+[kache] This is usually a storage issue: the cache directory is on a
+[kache] filesystem that doesn't support reliable file locking, or it is
+[kache] being accessed from more than one machine at the same time.
+[kache] → set KACHE_CACHE_DIR to a fast, local, single-machine path
+   Compiling kiln-aspen-host v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-aspen-host)
+[kache] the cache index could not be opened after retries (opening index database /var/cache/kache-nix/user-brittonr/index.db: disk I/O error: Error code 4618: disk I/O error).
+[kache] Caching is disabled for this build — compilation still succeeds,
+[kache] just without cache hits or stores (everything builds uncached).
+[kache] This is usually a storage issue: the cache directory is on a
+[kache] filesystem that doesn't support reliable file locking, or it is
+[kache] being accessed from more than one machine at the same time.
+[kache] → set KACHE_CACHE_DIR to a fast, local, single-machine path
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.00s
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_aspen_host-5f9baaec6ade24f5)
+
+running 8 tests
+test content::tests::missing_content_is_an_infrastructure_failure ... ok
+test content::tests::identity_mismatch_is_rejected_before_writing ... ok
+test content::tests::read_bound_is_enforced_before_assembly ... ok
+test content::tests::exact_round_trip_survives_reopen ... ok
+content-index failure=Create populated=false retries=4 recovered=true
+test content::tests::retry::obstructed_index_stage_cannot_be_acknowledged_by_equal_retry ... ok
+test content::tests::live_iroh_blobs_publishes_the_port_store ... ok
+test content::tests::live_iroh_blobs_transfer_preserves_exact_identity ... ok
+content-index failure=Create populated=true retries=4 recovered=true
+content-index failure=Write populated=false retries=4 recovered=true
+content-index failure=Write populated=true retries=4 recovered=true
+content-index failure=PayloadSync populated=false retries=4 recovered=true
+content-index failure=PayloadSync populated=true retries=4 recovered=true
+content-index failure=Rename populated=false retries=4 recovered=true
+content-index failure=Rename populated=true retries=4 recovered=true
+content-index failure=ParentSync populated=false retries=4 recovered=true
+content-index failure=ParentSync populated=true retries=4 recovered=true
+test content::tests::retry::publication_failures_stay_pending_until_the_barrier_recovers ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.32s
+

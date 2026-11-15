@@ -1,8 +1,8 @@
 use kiln_adapter_aspen::protocol::CallbackEffectPlan;
 use kiln_adapter_radicle::plan_trigger;
-use kiln_core::types::ExternalRef;
+use kiln_core::types::{EffectId, ExternalRef};
 use kiln_core::workflow::WorkflowObservation;
-use kiln_provider_api::WorkflowPort;
+use kiln_provider_api::{TriggerRequest, WorkflowPort};
 use molten::fabric::{CanonicalFabricPortBinding, FabricPortError, FabricPortResult};
 use molten::system_extension::{CanonicalEffectCompletion, TypedEffectRequest};
 
@@ -51,6 +51,15 @@ impl LatticeEffectPort {
                 eprintln!("Kiln Aspen host dispatch-intent persistence failed: {error}");
                 FabricPortError::storage(error.to_string())
             })?;
+        self.dispatch_workflow(&host_operation_id, trigger, plan)
+    }
+
+    fn dispatch_workflow(
+        &mut self,
+        host_operation_id: &ExternalRef,
+        trigger: TriggerRequest,
+        plan: &CallbackEffectPlan,
+    ) -> FabricPortResult<WorkflowObservation> {
         let mut record = plan_trigger(&self.radicle, trigger).map_err(map_provider_failure)?;
         if record.event_identity != plan.request_identity.as_str()
             || record.plan.idempotency_key != plan.request_identity
@@ -64,7 +73,7 @@ impl LatticeEffectPort {
         let mut observation = match self.lattice.dispatch(&record.plan) {
             Ok(observation) => observation,
             Err(error) => {
-                self.mark_uncertain(&host_operation_id)?;
+                self.mark_uncertain(host_operation_id)?;
                 eprintln!(
                     "Kiln Aspen host Lattice dispatch failed: {}",
                     provider_failure_code(&error),
@@ -72,16 +81,25 @@ impl LatticeEffectPort {
                 return Err(map_provider_failure(error));
             }
         };
+        self.observe_workflow(host_operation_id, &record.plan.effect_id, &mut observation)
+    }
+
+    fn observe_workflow(
+        &mut self,
+        host_operation_id: &ExternalRef,
+        effect_id: &EffectId,
+        observation: &mut WorkflowObservation,
+    ) -> FabricPortResult<WorkflowObservation> {
         // r[impl kiln.aspen_host.lattice_poll_pacing]
         for _poll in 0..self.maximum_polls {
             if observation.terminal {
-                return self.persist_observation(&host_operation_id, observation);
+                return self.persist_observation(host_operation_id, observation.clone());
             }
             self.wait_for_next_observation();
-            observation = match self.lattice.observe(&record.plan.effect_id) {
+            *observation = match self.lattice.observe(effect_id) {
                 Ok(observation) => observation,
                 Err(error) => {
-                    self.mark_uncertain(&host_operation_id)?;
+                    self.mark_uncertain(host_operation_id)?;
                     eprintln!(
                         "Kiln Aspen host Lattice observation failed: {}",
                         provider_failure_code(&error),
@@ -91,9 +109,9 @@ impl LatticeEffectPort {
             };
         }
         if observation.terminal {
-            self.persist_observation(&host_operation_id, observation)
+            self.persist_observation(host_operation_id, observation.clone())
         } else {
-            self.mark_uncertain(&host_operation_id)?;
+            self.mark_uncertain(host_operation_id)?;
             Err(FabricPortError::Timeout {
                 message:
                     "Lattice workflow did not reach a terminal observation within its poll bound"

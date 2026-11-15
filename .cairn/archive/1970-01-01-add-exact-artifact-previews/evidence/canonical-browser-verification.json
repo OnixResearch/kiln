@@ -1,0 +1,279 @@
+{
+  "schema": "kiln.preview.canonical-browser-verification.v1",
+  "issue": 58,
+  "qualification": "canonical CI-bound exact artifact preview launched from the real review action; local single-host cohort",
+  "observed_at_unix": 1794798966,
+  "maintenance_owner": "Kiln preview core/web maintainers",
+  "source": {
+    "jj_working_copy_commit": "26cbd30627c566569375d95c80ddfd594d4d25a3",
+    "note": "Executables were built from the working copy; exercised preview and review sources are pinned by BLAKE3 below. Concurrent unrelated edits outside these files do not enter these executables.",
+    "files_blake3": {
+      "crates/kiln-web-service/src/preview.rs": "af4a57e5751eaa3adff2926c1ff264b0bf9157e49c9d9919ab34fa24fb353a5b",
+      "crates/kiln-web-service/src/preview/service.rs": "d96e2bab41c0d7106ec6d4a962150fa00b4ce944ced9da2d926a067afc3791cb",
+      "crates/kiln-web-service/src/preview/engine.rs": "d5c5e7e0cbecacb43418f8261b3f3941989c19a5ba2235f839ae001e843af6e5",
+      "crates/kiln-web-service/src/preview/nix.rs": "d2e86ea7dcf8aa9be4ca76d55edb169cb35ff67c69856fe3270c3db6ba069e30",
+      "crates/kiln-web-service/src/preview/cohort.rs": "ef4cc21c1dee68e7517e44d5b83f8f06c30511f7702c364074674c4c8078ad71",
+      "crates/kiln-web-service/src/preview/retention.rs": "c301277604229bb2a0197c29890c31554a53bf0e3e34146cf0f3201b5fe6374a",
+      "crates/kiln-web-service/src/preview-review.js": "93ebfc40df002b4c50c1c5075620451059f873fc62f00db0c306f74b75fda3b6",
+      "crates/kiln-web-service/src/preview-shell.js": "b1baaf08214da969399c173e5643dead55f3b1d2f4edc07daf19a45a49c252bd",
+      "crates/kiln-web-service/examples/artifact-preview.rs": "ae591b94e7c2db6f22ab9a0c3ef211664f6d4e55ae4b85cf9c2f631910f36849",
+      "crates/kiln-core/src/preview.rs": "7b15d068b3c38f836070deb28bc506ce7f6a6aad291fcc0a9585fad07510ea41"
+    }
+  },
+  "executables_blake3": {
+    "/home/brittonr/.cargo-target/debug/kiln-web-service": "372c6cdfc0b001f54c8c28dbe064250380460673df1d378ff4738f39c7241b2e",
+    "/home/brittonr/.cargo-target/debug/examples/artifact-preview": "b72e95834729cff840ebbcad948f2c5d19cfabdac24a3f25ea8ec2d3a9f2bda3"
+  },
+  "canonical_records": {
+    "note": "Retained canonical records were produced earlier by the native-service fixture cohort; the current executables read them without rebuilding or relabeling them.",
+    "fixture_schema": "kiln.canonical-preview-native-fixture.v1",
+    "project": "success",
+    "repository": "8a0931da03f1215804a6e3624e833d613a0c139025f1b9e7df22a43320cd9048",
+    "source_revision": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+    "source_run_id": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+    "review_change_id": "73a81df6480f8f7d4c0d4775b5118948adefdba6921eacd0e0c5604fefee77c5",
+    "review_candidate": {
+      "ci_run": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+      "commit": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+      "dependencies": [],
+      "id": "a973e8613e6f4b0bd26a039e931d39e642d74f441e72449c76a80ef8b6b2301a",
+      "integration": null,
+      "policy_id": "a23bcc0225958c62b8e8a14680e21d3a55f29790b9d019a990cf9a378f0482af",
+      "prepared_by": "local:operator",
+      "revision": "fe4a796677c2ca6bd837970f0a048b0d0c939bca065aaaeb20366d61de425184",
+      "target": "65e5abf113edf0e51c4803628e0c12cc1ce4b2b8",
+      "target_is_ancestor": true,
+      "target_ref": "refs/heads/main"
+    },
+    "build_binding": {
+      "project": "success",
+      "repository": "8a0931da03f1215804a6e3624e833d613a0c139025f1b9e7df22a43320cd9048",
+      "revision": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+      "run_id": "web-nix-build-d688a8e7c1bbc5fc5b71c90ee821b8903e9dee6028ee7feca394350588130bf2",
+      "attempt_id": "web-attempt-d688a8e7c1bbc5fc5b71c90ee821b8903e9dee6028ee7feca394350588130bf2",
+      "candidate_id": "web-candidate-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+      "build_receipt": "e32ce4a26399f179932218e7bdbfe4140f6b5f8d9ea0e3d654446d94677d65dd",
+      "product": "out",
+      "artifact_identity": "292043e4f407d51a674793efbc3633a2b6977b0b7faa1a54ae28879638996bf4",
+      "store_identity": "9902edd352d2e8ac2c103931b157fbac8f7dc764fcbd66ead9d734119542e00a"
+    },
+    "engine_identity": "b114a874c62fdb1d2d74df0af625a433f782ea841ac558f925bdd96d4abd25e5",
+    "engine_manifest_blake3": "53fcd70f385e53c6845c5baeeff8b6590eef803ff8bdc6510a38d0e85d3ae4f6",
+    "engine_source_revision": "7e7e793594cb58efb48279b17b4e15bbc6fbe91b"
+  },
+  "operator_selection": {
+    "root_path": "/nix/store/2lj98xajpk1ijvcn9di3l8vk71rh593r-kiln-canonical-preview-artifact",
+    "executable": "/nix/store/2lj98xajpk1ijvcn9di3l8vk71rh593r-kiln-canonical-preview-artifact/bin/emubench",
+    "arguments": [
+      "noop"
+    ],
+    "trust_identity": "ae17cd7d2576c0a011f77f167df3f2ca2d2efeadd657b291ea4000b01fb3fc20",
+    "public_keys": [
+      "kiln-canonical-preview-fixture:QOWlnGV6YFrlBW6BAgWsoEnypMB1TdBQVMCo6I2IWNg=",
+      "trynix-examples-1:dZOV2uGWvjHo6IC5ZqCCu0dmIRzLm9pyOQJBDnBsXRY="
+    ],
+    "limits": {
+      "runtime_bytes": 16777216,
+      "run_seconds": 120,
+      "output_bytes": 16384,
+      "expires_at": 1794802266,
+      "retain_after_session": false
+    },
+    "note": "Only the finite expiry was renewed (one-hour fixture bound) before production."
+  },
+  "descriptor": {
+    "identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7",
+    "review_run_id": "",
+    "executable": "/nix/store/2lj98xajpk1ijvcn9di3l8vk71rh593r-kiln-canonical-preview-artifact/bin/emubench",
+    "expires_at": 1794802266,
+    "launch_url_shape": "http://127.0.0.1:<port>/<secret capability>/<descriptor identity>/index.html"
+  },
+  "review_projection": {
+    "status": 200,
+    "checklist_ready": true,
+    "selected_ci_run": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+    "admitted_previews": [
+      {
+        "descriptor_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7",
+        "review_run_id": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+        "launch_url_matches_producer": true
+      }
+    ],
+    "rendered_action": {
+      "text": "Launch exact artifact in disposable Linux session",
+      "target": "_blank",
+      "rel": "noopener noreferrer",
+      "href_matches_producer": true
+    },
+    "click_through": {
+      "opened_exact_capability": true,
+      "opener_cleared": true,
+      "status": "Exact admitted artifact discovered. Launch is opt-in.",
+      "identity": {
+        "Descriptor": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7",
+        "Project / repository": "success / 8a0931da03f1215804a6e3624e833d613a0c139025f1b9e7df22a43320cd9048",
+        "Exact source": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+        "Candidate": "web-candidate-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+        "Run / attempt": "web-nix-build-d688a8e7c1bbc5fc5b71c90ee821b8903e9dee6028ee7feca394350588130bf2 / web-attempt-d688a8e7c1bbc5fc5b71c90ee821b8903e9dee6028ee7feca394350588130bf2",
+        "Build receipt": "e32ce4a26399f179932218e7bdbfe4140f6b5f8d9ea0e3d654446d94677d65dd",
+        "Artifact": "292043e4f407d51a674793efbc3633a2b6977b0b7faa1a54ae28879638996bf4",
+        "Executable": "/nix/store/2lj98xajpk1ijvcn9di3l8vk71rh593r-kiln-canonical-preview-artifact/bin/emubench",
+        "Engine": "b114a874c62fdb1d2d74df0af625a433f782ea841ac558f925bdd96d4abd25e5",
+        "Platform": "x86_64-linux",
+        "Expires": "2026-11-16T04:11:06.000Z"
+      }
+    }
+  },
+  "browser": {
+    "cacheIsolation": "new Chrome BrowserContext with no cookies, storage or HTTP cache; closed after the cohort",
+    "isolated_context_cookies_before": 0,
+    "launches": [
+      {
+        "cache": "empty-isolated-context",
+        "observation": {
+          "identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7",
+          "phases": [
+            {
+              "type": "phase",
+              "phase": "artifact discovery",
+              "outcome": "ready",
+              "elapsed_ms": 34.34500002861023,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            },
+            {
+              "type": "phase",
+              "phase": "payload hydration",
+              "outcome": "ready",
+              "elapsed_ms": 5520.524999976158,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            },
+            {
+              "type": "phase",
+              "phase": "guest boot",
+              "outcome": "ready",
+              "elapsed_ms": 7144.629999995232,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            },
+            {
+              "type": "phase",
+              "phase": "program readiness",
+              "outcome": "ready",
+              "elapsed_ms": 6099.564999997616,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            }
+          ],
+          "result": {
+            "type": "result",
+            "status": 0,
+            "output": "emubench: done",
+            "error": null,
+            "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+          }
+        },
+        "remainingFrames": 0,
+        "status": "Exact artifact finished successfully. Preview only; CI evidence is unchanged."
+      },
+      {
+        "cache": "warm-same-context",
+        "observation": {
+          "identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7",
+          "phases": [
+            {
+              "type": "phase",
+              "phase": "artifact discovery",
+              "outcome": "ready",
+              "elapsed_ms": 36.54000002145767,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            },
+            {
+              "type": "phase",
+              "phase": "payload hydration",
+              "outcome": "ready",
+              "elapsed_ms": 6040.020000040531,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            },
+            {
+              "type": "phase",
+              "phase": "guest boot",
+              "outcome": "ready",
+              "elapsed_ms": 3600.660000026226,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            },
+            {
+              "type": "phase",
+              "phase": "program readiness",
+              "outcome": "ready",
+              "elapsed_ms": 1368.8299999833107,
+              "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+            }
+          ],
+          "result": {
+            "type": "result",
+            "status": 0,
+            "output": "emubench: done",
+            "error": null,
+            "preview_identity": "2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7"
+          }
+        },
+        "remainingFrames": 0,
+        "status": "Exact artifact finished successfully. Preview only; CI evidence is unchanged."
+      }
+    ]
+  },
+  "capability_probes": [
+    {
+      "label": "exact capability and descriptor",
+      "path": "/<capability>/2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7/index.html",
+      "status": 200
+    },
+    {
+      "label": "capability without descriptor (old shape)",
+      "path": "/<capability>/index.html",
+      "status": 404
+    },
+    {
+      "label": "public descriptor without capability",
+      "path": "/2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7/index.html",
+      "status": 404
+    },
+    {
+      "label": "capability with another descriptor",
+      "path": "/<capability>/0000000000000000000000000000000000000000000000000000000000000000/index.html",
+      "status": 404
+    },
+    {
+      "label": "descriptor used as capability",
+      "path": "/2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7/2ab71a9ae7fdd5138150eeb14c207ac23c57903ac42a72c59345f53a7cebf3e7/index.html",
+      "status": 404
+    }
+  ],
+  "review_state_unchanged_after_launches": true,
+  "cleanup": {
+    "catalog_lease_removed": true,
+    "owned_scratch_entries_after_stop": []
+  },
+  "checks": [
+    {
+      "command": "node --test tests/artifact-preview.test.mjs",
+      "passed": true,
+      "tests_passed": 6
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-web-service --lib preview::",
+      "passed": true,
+      "tests_passed": 8
+    },
+    {
+      "command": "cargo +1.88.0 build --offline --locked -p kiln-web-service --bins --example artifact-preview",
+      "passed": true
+    }
+  ],
+  "repairs": [
+    "Separate the random launch capability from the public descriptor identity in the loopback path so the producer URL, catalog admission and review renderer agree"
+  ],
+  "non_claims": [
+    "Single local host and one headless Chromium cohort; no production, hostile-isolation or Redox qualification",
+    "Timing values are observations, not a cold/warm speedup claim",
+    "Preview success is not CI, review approval, merge or release evidence"
+  ]
+}

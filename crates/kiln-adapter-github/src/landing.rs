@@ -931,7 +931,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.publication.exact.scenario.external]
+    // r[verify kiln.publication.exact.scenario.external] r[verify kiln.github.landing.merge_ancestry] r[verify kiln.github.landing.merge_ancestry.scenario.advanced]
     fn reconciles_external_exact_merge_and_advanced_target_without_mutation() {
         for advanced in [false, true] {
             let mut responses = vec![
@@ -978,7 +978,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.publication.exact.scenario.external]
+    // r[verify kiln.publication.exact.scenario.external] r[verify kiln.github.landing.merge.scenario.refused]
     fn refuses_base_race_squash_changed_tree_and_unknown_merge_mapping() {
         for (parents, tree) in [
             (vec!['d', 'a'], 'e'),

@@ -136,6 +136,51 @@ impl Store {
         })
     }
 
+    pub fn open_read_only(path: &Path, binding: &str) -> Result<Self, String> {
+        preflight(path)?;
+        let lock_path = path.with_extension("review-lock");
+        let lock = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
+            .open(&lock_path)
+            .map_err(|_| "review observer lock unavailable")?;
+        let metadata = lock
+            .metadata()
+            .map_err(|_| "review observer lock metadata unavailable")?;
+        if !metadata.is_file()
+            || metadata.nlink() != 1
+            || metadata.uid() != nix::unistd::geteuid().as_raw()
+            || metadata.mode() & 0o777 != 0o600
+        {
+            return Err("review observer lock is not private".into());
+        }
+        lock.try_lock_exclusive()
+            .map_err(|_| "review transaction busy")?;
+        let lock = FileLock(lock);
+        let connection = Connection::open_with_flags(
+            path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )
+        .map_err(|_| "review database unavailable")?;
+        connection
+            .busy_timeout(std::time::Duration::from_millis(DATABASE_BUSY_WINDOW_MS))
+            .map_err(|_| "review timeout unavailable")?;
+        let existing: Option<String> = connection
+            .query_row("SELECT binding FROM review_state WHERE id=1", [], |row| {
+                row.get(0)
+            })
+            .optional()
+            .map_err(|_| "review binding unavailable")?;
+        if existing.as_deref() != Some(binding) {
+            return Err("review profile binding changed or state is absent".into());
+        }
+        Ok(Self {
+            connection,
+            _lock: lock,
+        })
+    }
+
     pub fn load<T: serde::de::DeserializeOwned + Default>(&self) -> Result<T, String> {
         let length: Option<i64> = self
             .connection
@@ -259,6 +304,27 @@ mod tests {
             "completed store retained its lock: {reopened:?}"
         );
         drop(inherited);
+        Ok(())
+    }
+
+    #[test]
+    fn native_observer_reads_existing_state_without_write_authority()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let directory = tempfile::tempdir()?;
+        std::fs::set_permissions(directory.path(), std::fs::Permissions::from_mode(0o700))?;
+        let path = directory.path().join("review.sqlite");
+        let mut writer = Store::open(&path, "fixture")?;
+        let document = serde_json::json!({"marker":"retained"});
+        writer.commit("fixture", &document, None)?;
+        drop(writer);
+        let reader = Store::open_read_only(&path, "fixture")?;
+        assert_eq!(reader.load::<serde_json::Value>()?, document);
+        assert!(
+            reader
+                .connection
+                .execute("DELETE FROM review_state", [])
+                .is_err()
+        );
         Ok(())
     }
 }

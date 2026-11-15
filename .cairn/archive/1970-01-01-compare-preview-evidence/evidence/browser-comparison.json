@@ -1,0 +1,477 @@
+{
+  "schema": "kiln.preview.comparison-browser-verification.v1",
+  "issue": 65,
+  "qualification": "two launches of the exact canonical CI-bound preview retained by the disposable preview server and compared through the real review page; local single-host cohort",
+  "observed_at_unix": 1794801766,
+  "maintenance_owner": "Kiln preview core/web maintainers",
+  "source": {
+    "jj_working_copy_commit": "2e5f7e31ed8700ef4a3441c799580dd0b90f1562",
+    "note": "Executables were built from the working copy. Exercised preview and review sources are pinned by BLAKE3 at the final review build. The producer was built before select_pair and its test were added to observation.rs; it does not call them, and its compose/retain paths were unchanged.",
+    "files_blake3": {
+      "crates/kiln-web-service/src/preview/observation.rs": "344240deb586afaaa4e74e4f1a03bacd00dea2a1a85267b83cd647e3bfca3590",
+      "crates/kiln-web-service/src/preview/service.rs": "d7f3000a7c3b0ef51c17cf65d9bb9581da4bf6edbb2cbba7425924ed94c99029",
+      "crates/kiln-web-service/src/preview-shell.js": "04a8fd9da10298ddc843dec3a9487eebed914ff201ac2fcda8e0ea21c18d0ab2",
+      "crates/kiln-web-service/src/preview-review.js": "9fb0f6c95ca7cc5e81c5e013d5759e50851b50be98e83d46272fd6fe2e9fea7b",
+      "crates/kiln-web-service/src/code-review.js": "842964ce263d9fdb0c89f45621107f7bb9847d3a68b2b5c5fb892358abb5460c",
+      "crates/kiln-web-service/src/code-review.css": "58ee93733145b07d15d4a447b825d9a13b6466c44a5efab571b640a084d807d1",
+      "crates/kiln-web-service/src/code_review.rs": "bc6295f30b9a18e483b29273850f55bc5398a628ad0e1a3a0c1803248b1806ec",
+      "crates/kiln-web-service/src/server.rs": "d218cc6548586e2e43548c647420def79e5f42a1b39d48eda09df69980eb1eda",
+      "crates/kiln-web-service/src/main.rs": "91c8a2f33d0070f34da2b68d426ab25a305e9785512ec9294891021375ea74a7",
+      "crates/kiln-web-service/examples/artifact-preview.rs": "8e0ce8ac9352955b1ba63152f75ca19c921c291b8a33f78407a4b4fa92df196e"
+    }
+  },
+  "executables_blake3": {
+    "producer": {
+      "path": "/home/brittonr/.cargo-target/debug/examples/artifact-preview",
+      "blake3": "1387d7a31f04999e6841d2c3c412432af271040e640acb6bd84970b5d2f6af69"
+    },
+    "review_service_builds": {
+      "initial": "8cc466831b2a1673cc92315fdde48285525c25257c557be2ad34c79c2e7b9dbe",
+      "main_column_ui": "34b609ac9635d4ccfc9238fb359735481ace966e6518e9c9af7192b6c2727b48",
+      "pure_pair_selection": "fd55dfdcbbdb4d60da39e10723b0df770dca0d2f6158724634ebf8d6629eeabb",
+      "final": "5a56168d34a6258513df4f41819ae7f1fc16dc4c951c16a2d11bbf8446dcdca8"
+    },
+    "note": "Review observations name the build they ran on. The final build added only the comparison card and preview-row overflow CSS over pure_pair_selection; pure_pair_selection moved the route refusals into select_pair with unchanged codes."
+  },
+  "fixture": {
+    "review_change_id": "73a81df6480f8f7d4c0d4775b5118948adefdba6921eacd0e0c5604fefee77c5",
+    "source_revision": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+    "selected_ci_run": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+    "build_run": "web-nix-build-d688a8e7c1bbc5fc5b71c90ee821b8903e9dee6028ee7feca394350588130bf2",
+    "descriptor_identity": "d398018c4ec524ccc308597e84690b797c7c78d03191f378500b6ddf746f6fe6",
+    "engine_identity": "b114a874c62fdb1d2d74df0af625a433f782ea841ac558f925bdd96d4abd25e5",
+    "executable": "/nix/store/2lj98xajpk1ijvcn9di3l8vk71rh593r-kiln-canonical-preview-artifact/bin/emubench",
+    "descriptor_expires_at": 1794804692,
+    "observation_directory_mode": "700",
+    "producer_argument": "OWNED_OBSERVATIONS_DIR (optional final produce argument)",
+    "review_flag": "--preview-observations DIR"
+  },
+  "review_before_launch": {
+    "build": "8cc466831b2a1673cc92315fdde48285525c25257c557be2ad34c79c2e7b9dbe",
+    "observations": [],
+    "observations_error": null,
+    "comparison_text": "Compare preview evidence\n\nObservations are browser-reported preview evidence. They never change CI, review approval or merge state. Only the current candidate can launch.\n\nNo retained preview observation exists for this change.",
+    "launch_matches_descriptor": true
+  },
+  "launches": [
+    {
+      "label": "first",
+      "wall_ms": 6376,
+      "status": "Exact artifact finished successfully. Preview only; CI evidence is unchanged.",
+      "retention": "Observation retained for review comparison: be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c",
+      "output": "emubench: done",
+      "phases": [
+        {
+          "phase": "artifact discovery",
+          "outcome": "ready",
+          "elapsed_ms": 20.655000030994415
+        },
+        {
+          "phase": "payload hydration",
+          "outcome": "ready",
+          "elapsed_ms": 2601.5
+        },
+        {
+          "phase": "guest boot",
+          "outcome": "ready",
+          "elapsed_ms": 2274.2699999809265
+        },
+        {
+          "phase": "program readiness",
+          "outcome": "ready",
+          "elapsed_ms": 832.6349999904633
+        }
+      ],
+      "result": {
+        "status": 0,
+        "output": "emubench: done",
+        "error": null
+      },
+      "retained": "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c"
+    },
+    {
+      "label": "second",
+      "wall_ms": 10261,
+      "status": "Exact artifact finished successfully. Preview only; CI evidence is unchanged.",
+      "retention": "Observation retained for review comparison: 6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82",
+      "output": "emubench: done",
+      "phases": [
+        {
+          "phase": "artifact discovery",
+          "outcome": "ready",
+          "elapsed_ms": 19.929999947547913
+        },
+        {
+          "phase": "payload hydration",
+          "outcome": "ready",
+          "elapsed_ms": 2334.714999973774
+        },
+        {
+          "phase": "guest boot",
+          "outcome": "ready",
+          "elapsed_ms": 1844.339999973774
+        },
+        {
+          "phase": "program readiness",
+          "outcome": "ready",
+          "elapsed_ms": 5527.625
+        }
+      ],
+      "result": {
+        "status": 0,
+        "output": "emubench: done",
+        "error": null
+      },
+      "retained": "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82"
+    }
+  ],
+  "retained_records": [
+    {
+      "name": "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82.json",
+      "mode": "600",
+      "bytes": 1809
+    },
+    {
+      "name": "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c.json",
+      "mode": "600",
+      "bytes": 1808
+    }
+  ],
+  "projection": [
+    {
+      "identity": "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82",
+      "current": true,
+      "review_run_id": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+      "revision": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+      "descriptor": "d398018c4ec524ccc308597e84690b797c7c78d03191f378500b6ddf746f6fe6",
+      "provenance": "browser-reported preview observation; not CI, review, merge or completion evidence",
+      "schema": "kiln.preview.observation.v1",
+      "expires_at": 1797393776,
+      "observed_at": 1794801776
+    },
+    {
+      "identity": "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c",
+      "current": true,
+      "review_run_id": "web-run-2d7273ebc98bb2a577de914e44fd39bd9d13e72b3b64824843ec6337166ca218",
+      "revision": "f69ca2254d7e35523d19ece56a03ae7a4611c3f5",
+      "descriptor": "d398018c4ec524ccc308597e84690b797c7c78d03191f378500b6ddf746f6fe6",
+      "provenance": "browser-reported preview observation; not CI, review, merge or completion evidence",
+      "schema": "kiln.preview.observation.v1",
+      "expires_at": 1797393766,
+      "observed_at": 1794801766
+    }
+  ],
+  "forged_reports": {
+    "against": "live preview server",
+    "results": [
+      {
+        "label": "foreign origin",
+        "status": 403,
+        "body": "preview origin mismatch"
+      },
+      {
+        "label": "missing origin",
+        "status": 403,
+        "body": "observation requires the preview origin"
+      },
+      {
+        "label": "console origin",
+        "status": 403,
+        "body": "preview origin mismatch"
+      },
+      {
+        "label": "non-JSON content type",
+        "status": 415,
+        "body": "observation must be application/json"
+      },
+      {
+        "label": "undeclared length",
+        "status": 411,
+        "body": "observation length required"
+      },
+      {
+        "label": "declared length over 64 KiB",
+        "status": 413,
+        "body": "observation exceeds its bound"
+      },
+      {
+        "label": "malformed JSON",
+        "status": 422,
+        "body": "preview_observation_malformed"
+      },
+      {
+        "label": "unknown phase",
+        "status": 422,
+        "body": "preview_observation_phase_invalid"
+      },
+      {
+        "label": "browser-supplied identity field",
+        "status": 422,
+        "body": "preview_observation_malformed"
+      },
+      {
+        "label": "capability with another descriptor",
+        "status": 404,
+        "body": "preview not found"
+      }
+    ],
+    "retained_after": [
+      "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82.json",
+      "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c.json"
+    ]
+  },
+  "comparison_api": {
+    "build": "fd55dfdcbbdb4d60da39e10723b0df770dca0d2f6158724634ebf8d6629eeabb",
+    "results": [
+      {
+        "label": "exact pair",
+        "status": 200,
+        "schema": "kiln.preview.comparison.v1",
+        "identity": "2b0ab4a2533d45afbf210fc8ee06bc0ea448662f6c81512313e88ddc51c55b5e",
+        "compatible": true,
+        "reasons": [],
+        "candidate_current": true
+      },
+      {
+        "label": "same pair again",
+        "status": 200,
+        "schema": "kiln.preview.comparison.v1",
+        "identity": "2b0ab4a2533d45afbf210fc8ee06bc0ea448662f6c81512313e88ddc51c55b5e",
+        "compatible": true,
+        "reasons": [],
+        "candidate_current": true
+      },
+      {
+        "label": "reversed pair",
+        "status": 200,
+        "schema": "kiln.preview.comparison.v1",
+        "identity": "a3c4e87b29a136474e98c71bfe5c465f88022a04c1f852e5fcaa72d381871002",
+        "compatible": true,
+        "reasons": [],
+        "candidate_current": true
+      },
+      {
+        "label": "observation compared with itself",
+        "status": 200,
+        "schema": "kiln.preview.comparison.v1",
+        "identity": "0e9d10089c08529e1ec790676eb54bef63d47a4629835ab73b0a2056c010361b",
+        "compatible": false,
+        "reasons": [
+          "same_observation"
+        ],
+        "candidate_current": true
+      },
+      {
+        "label": "malformed baseline",
+        "status": 400,
+        "code": "preview_comparison_subject_invalid"
+      },
+      {
+        "label": "uppercase candidate",
+        "status": 400,
+        "code": "preview_comparison_subject_invalid"
+      },
+      {
+        "label": "unknown baseline",
+        "status": 404,
+        "code": "preview_baseline_unavailable"
+      },
+      {
+        "label": "unknown candidate",
+        "status": 404,
+        "code": "preview_candidate_unavailable"
+      },
+      {
+        "label": "missing candidate",
+        "status": 400,
+        "code": "preview_comparison_subject_invalid"
+      }
+    ]
+  },
+  "review_page": {
+    "form_selection_sidebar_layout": {
+      "build": "8cc466831b2a1673cc92315fdde48285525c25257c557be2ad34c79c2e7b9dbe",
+      "route": "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c~6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82",
+      "comparison": "Comparison 2b0ab4a2533d45afbf210fc8ee06bc0ea448662f6c81512313e88ddc51c55b5e · rules kiln.preview.comparison-rules.v1",
+      "reasons": [
+        "Comparable: same engine, platform, arguments and executable path."
+      ],
+      "equality": "Exit status matches; output matches. Equal output is not CI evidence.",
+      "focused": "cr-preview-compare-title",
+      "lane_links": [
+        0,
+        0
+      ],
+      "lane_notes": [
+        "Historical or baseline lane: launch unavailable.",
+        "Launch the current candidate from the exact artifact list above."
+      ],
+      "repair": "Lanes rendered at about 233 px in the sidebar and a current baseline was labelled \"Current candidate\"; the comparison moved to a main-column card and the lane fact became Currency."
+    },
+    "deep_link_restoration": {
+      "build": "34b609ac9635d4ccfc9238fb359735481ace966e6518e9c9af7192b6c2727b48",
+      "inMain": true,
+      "inAside": false,
+      "boxWidth": 728,
+      "boxOverflowX": false,
+      "focused": "cr-preview-compare-title",
+      "comparison": "Comparison 2b0ab4a2533d45afbf210fc8ee06bc0ea448662f6c81512313e88ddc51c55b5e · rules kiln.preview.comparison-rules.v1",
+      "reasons": [
+        "Comparable: same engine, platform, arguments and executable path."
+      ],
+      "columns": "333px 333px",
+      "asideHint": "Retained preview observations: 2. Compare them under Compare preview evidence.",
+      "lanes": [
+        {
+          "heading": "Baseline",
+          "currency": "Current revision and selected CI run",
+          "observation": "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c",
+          "note": "Historical or baseline lane: launch unavailable.",
+          "links": 0,
+          "width": 333,
+          "overflowX": false
+        },
+        {
+          "heading": "Current candidate",
+          "currency": "Current revision and selected CI run",
+          "observation": "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82",
+          "note": "Launch the current candidate from Exact artifact previews.",
+          "links": 0,
+          "width": 333,
+          "overflowX": false
+        }
+      ]
+    },
+    "reversed_form_selection": {
+      "build": "34b609ac9635d4ccfc9238fb359735481ace966e6518e9c9af7192b6c2727b48",
+      "route": "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82~be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c",
+      "comparison": "Comparison a3c4e87b29a136474e98c71bfe5c465f88022a04c1f852e5fcaa72d381871002 · rules kiln.preview.comparison-rules.v1",
+      "lanes": [
+        [
+          "Baseline",
+          "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82"
+        ],
+        [
+          "Current candidate",
+          "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c"
+        ]
+      ]
+    },
+    "narrow_overflow_found": {
+      "build": "fd55dfdcbbdb4d60da39e10723b0df770dca0d2f6158724634ebf8d6629eeabb",
+      "viewport": 390,
+      "page_overflow": true,
+      "sources": [
+        "comparison card grid track sized to unbroken identities",
+        "existing artifact-preview row grid track sized to unbroken identities"
+      ]
+    },
+    "final_layout": {
+      "build": "5a56168d34a6258513df4f41819ae7f1fc16dc4c951c16a2d11bbf8446dcdca8",
+      "narrow": {
+        "vw": 390,
+        "columns": "316px",
+        "lanes": [
+          {
+            "x": 37,
+            "y": 2320,
+            "w": 316
+          },
+          {
+            "x": 37,
+            "y": 3431,
+            "w": 316
+          }
+        ],
+        "sideBySide": false,
+        "previewAndCompareOverflow": [],
+        "pageScrollWidth": 390
+      },
+      "wide": {
+        "vw": 1280,
+        "columns": "333px 333px",
+        "lanes": [
+          {
+            "x": 129,
+            "y": 1605,
+            "w": 333
+          },
+          {
+            "x": 474,
+            "y": 1605,
+            "w": 333
+          }
+        ],
+        "sideBySide": true,
+        "previewAndCompareOverflow": [],
+        "pageScrollWidth": 1280
+      },
+      "note": "Both measurements restore the pair from the deep link after signing in."
+    }
+  },
+  "forged_records": {
+    "build": "5a56168d34a6258513df4f41819ae7f1fc16dc4c951c16a2d11bbf8446dcdca8",
+    "empty_record": {
+      "detail_status": 200,
+      "observations": 0,
+      "error": "EOF while parsing a value at line 1 column 0",
+      "artifact_previews_still_projected": 1,
+      "comparison_status": 404,
+      "comparison_code": "preview_baseline_unavailable",
+      "ui_notices": [
+        "The linked baseline or candidate observation is missing, expired or no longer current. No substitute was selected.",
+        "Preview observations unavailable: EOF while parsing a value at line 1 column 0. CI evidence is unchanged."
+      ],
+      "restored_observations": 2,
+      "restored_error": null
+    },
+    "forged_identity": {
+      "bytes": 1808,
+      "observations": 0,
+      "error": "preview_observation_identity_mismatch",
+      "artifact_previews_still_projected": 1
+    },
+    "forged_output": {
+      "observations": 0,
+      "error": "preview_observation_identity_mismatch"
+    },
+    "restored": {
+      "observations": 2,
+      "error": null
+    }
+  },
+  "review_state_unchanged_after_launches_and_comparisons": true,
+  "cleanup": {
+    "catalog_removed": true,
+    "scratch_entries": [],
+    "retained_observations": [
+      "6b966c26a147c6f45dfc0798917cdadc15e3268ad72bb86c94d104cc673e5b82.json",
+      "be95fe2ba69c856dd9172d575df9c48f33e6612b43f394322c252aa66ecabc0c.json"
+    ],
+    "note": "Observation records outlive the preview session by design and expire after 30 days. The separately deployed user service was not touched."
+  },
+  "checks": [
+    {
+      "command": "node --test tests/preview-compare.test.mjs tests/artifact-preview.test.mjs",
+      "passed": true,
+      "tests_passed": 12
+    },
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-web-service --lib -- preview:: code_review::",
+      "passed": true,
+      "tests_passed": 53
+    },
+    {
+      "command": "cargo +1.88.0 clippy --offline --locked -p kiln-web-service --lib --bins --example artifact-preview -- -D warnings",
+      "passed": true
+    }
+  ],
+  "not_exercised": [
+    "Both retained observations bind the current revision. A historical baseline from an earlier revision, a moved candidate and the 409 historical-candidate refusal were not exercised live; projection currency, select_pair refusals and late-response rejection are unit-tested only."
+  ],
+  "non_claims": [
+    "Single local host and one headless Chromium cohort; no production, hostile-isolation or Redox qualification",
+    "Observations are browser-reported preview evidence; equal exit status or output is not CI, review approval, merge or release evidence",
+    "Timing values are observations, not a performance claim"
+  ]
+}

@@ -62,8 +62,7 @@ tree-sitter-toml-ng = "=0.7.0"
 tree-sitter-typescript = "=0.23.2"
 tree-sitter-yaml = "=0.7.2"
 rusqlite = { version = "=0.40.2", default-features = false, features = ["backup", "bundled"] }
-git2 = { version = "=0.20.4", default-features = false, features = ["vendored-libgit2"] }
-cob-git2 = { package = "git2", version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
+git2 = { version = "=0.21.0", default-features = false, features = ["vendored-libgit2"] }
 nonempty = "0.9"
 radicle-cob = { version = "=0.21.1", default-features = false, features = ["git2"] }
 radicle-core = { version = "=0.4.1", default-features = false, features = ["std", "git2", "serde"] }

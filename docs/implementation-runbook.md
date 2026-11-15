@@ -106,13 +106,9 @@ Cairn acceptance/spec/registry/policy cannot be weakened. Source-changing lifecy
 
 ## Publication, integration and source reconciliation
 
-`prepare-publication --publication-file FILE` freezes the exact verified candidate, work/version/fence, branch and concise source/change/validation/limitations description. `publish --publication-file FILE --secret-file FILE` reserves branch and PR effects separately before transport, independently reads back each result and acknowledges atomically. Lost responses grant read-only reconciliation, never blind duplicate creation. Unexpected heads, all-state PR ambiguity and incomplete pagination refuse progress. Verified-PR policy leaves source work open.
+`prepare-publication --publication-file FILE` freezes the exact verified candidate, work/version/fence, branch and concise source/change/validation/limitations description. `publish --publication-file FILE --secret-file FILE --remote-profile FILE` reserves branch and PR effects separately before transport, pushes captured candidate objects through the guarded native Git transport, verifies the remote ref, then creates/reconciles the PR through GitHub's API. Lost responses grant reconciliation-only authority; unexpected heads, all-state PR ambiguity and incomplete pagination refuse progress.
 
-Branch creation requires the exact candidate Git object to exist on the remote.
-GitHub `POST /git/refs` creates a reference; it does not upload local Git objects.
-Qualification must retain an explicitly approved Git/object publication stage or
-an independent existing-object observation before branch/PR publication. A local
-candidate SHA or a fixture accepting that SHA is not remote-object evidence.
+The deny-unknown-fields `kiln.github-publication-source.v1` profile is operator-owned and binds `repository_path`, a `NativeRemoteProfile`, its `remote_identity`, and explicit `fixture` context. The source repository is resolved to the exact `<attempt>-<fence>/candidate` export before any push. Production requires the exact enrolled `https://github.com/<owner>/<repo>.git` URL; its scoped Git credential is never offered to another URL. `local_bare_fixture` is accepted only with `fixture: true` and the feature-gated loopback GitHub fixture endpoint. No GitHub REST branch-ref creation substitutes for object transfer.
 
 <!-- r[related kiln.github.landing.merge.scenario.landed] r[related kiln.github.landing.merge.scenario.refused] -->
 <!-- r[related kiln.github.landing.merge_ancestry] r[related kiln.github.landing.merge_ancestry.scenario.advanced] -->
@@ -128,6 +124,64 @@ Ordinary GitHub PR-head-guarded merge does not atomically guard the base. `land`
 `close-source --source-plan FILE --secret-file FILE` is now observation-only: it records an already closed exact issue observation under the plan's exact `expected_observed_revision`. It never PATCHes the issue or accepts any newer timestamp indiscriminately. An open or unadmitted source change remains unresolved. Conditional source mutation is unqualified.
 
 `observe-cairn-lifecycle --attempt ID --fence N --binding-file FILE --repository PATH --receipt-path REPOSITORY_RELATIVE_PATH --authoritative-report FILE` reserves its own recoverable observation. The native receipt is read from the exact reviewed candidate Git tree and checked against the accepted integration tree, actual after-manifest blobs, authoritative completion artifact/policy and positive archive identities. It never runs post-review sync/archive or mutates protected source.
+
+## Selected Cairn campaigns
+
+The implementation owner starts one frozen `CampaignContract` with
+`kiln-implementer campaign --database DB --command-file FILE`; the command file
+uses `{"command":"start","contract":...}`. Inspect the same owner with an
+`inspect` command to obtain its current `store_version`. The separate native
+controller consumes the canonical Nickel `implementation-campaign-drive.ncl`
+profile and an exact expected version:
+
+```text
+kiln-web-service drive-implementation-campaign --profile FILE --campaign-id ID --expected-version N
+```
+
+The bounded invocation requires existing campaign and implementation ledgers,
+exact immutable role programs, a native Cairn source, canonical admission and
+verification inputs, and one supported delivery route. It does not initialize
+missing ledgers or fall back to another endpoint. Worker request and dispatch
+inputs are templates; the controller binds the actual canonical work, attempt,
+fence and source before native Lattice preparation and dispatch.
+
+The declared parent budget must be an actual ancestor of the selected work's
+canonical queue account. The owner rechecks this lineage and explicit admission
+policy in the same SQLite writer transaction as the scoped claim. An overlapping
+campaign reattaches the current attempt/fence, including a reserved capacity wait;
+it does not mint another attempt or budget. A new claim is refused while another
+active or unreconciled writer owns the same repository. Unrelated queue facts
+remain intact when the campaign ranks only its selected work.
+
+Source refresh observes the admitted remote/ref/commit and materializes a bounded,
+root-owned, read-only Git snapshot for native Cairn reads. It rechecks the target
+after collection and before stage admission; it does not reset the operator's
+checkout. The controller's read-only target observer never inherits Git credential
+helpers or an SSH agent. Anonymous public reads and explicit local fixtures are
+supported; authenticated observation requires separately admitted scoped credential
+delivery. GitHub delivery supports verified-candidate/verified-PR goals, not
+automatic integration or lifecycle completion.
+
+Decision projections retain their exact bytes and revisions under the canonical
+attempt and projection digest before dispatch. A new context cannot silently
+rewrite an in-flight request. Required checks are satisfied only by matching
+passing check names in the canonical verifier result, not by the attempt's
+generic verified phase.
+
+Every selected native unit remains an obligation until its exact owner-observed
+milestone. Empty readiness is not completion. Completion also requires current
+candidate, policy and verification evidence and all required checks/reviews.
+An observed, applied integration receipt can advance the source without erasing
+its new identity; unrelated source, policy or decision-context drift requires
+explicit replan. Pause/cancel closes new work and decision-request admission;
+retained uncertain effects still reconcile and do not prove provider cleanup.
+The one-writer repository bound remains effective when campaign concurrency is
+larger, and a blocked member does not hide independent eligible work.
+
+Maintenance owner: Kiln implementation/web-service maintainers; onix-core owns
+the disabled-by-default, operator-started deployment wrapper. Scripted local
+fixtures, real-model qualification and remote-effect qualification remain
+separate evidence scopes.
 
 ## Qualification prerequisites and evidence
 

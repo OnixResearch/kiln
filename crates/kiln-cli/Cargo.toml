@@ -13,11 +13,19 @@ name = "kiln"
 path = "src/main.rs"
 
 [dependencies]
+bounded-exec.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-dashboard.workspace = true
 kiln-standalone.workspace = true
+kiln-adapter-git.workspace = true
+kiln-implementer.workspace = true
+kiln-adapter-cairn.workspace = true
+kiln-web-service = { path = "../kiln-web-service" }
+git2.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+signal-hook = "0.3.18"
 
 [lints]
 workspace = true

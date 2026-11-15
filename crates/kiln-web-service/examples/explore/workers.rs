@@ -51,7 +51,8 @@ fn send(
     Ok(())
 }
 // r[impl kiln.web.exploration.scenario.coverage]
-pub fn configure(root: &Path, engine: &mut Engine) -> Result<Heartbeats> {
+/// Seed two targets; returns the refresh state and the target whose only heartbeat expires.
+pub fn configure(root: &Path, engine: &mut Engine) -> Result<(Heartbeats, String)> {
     let mut workers = Vec::new();
     let mut targets = Vec::new();
     for project in ["docs", "release"] {
@@ -79,19 +80,21 @@ pub fn configure(root: &Path, engine: &mut Engine) -> Result<Heartbeats> {
         1,
         HEARTBEAT_TTL_MS,
     )?;
+    let expired_target = targets.get(1).ok_or("Release target absent")?.clone();
     send(
         engine,
         "release",
-        targets.get(1).ok_or("Release target absent")?,
+        &expired_target,
         now,
         now,
         1,
         EXPIRING_HEARTBEAT_MS,
     )?;
-    Ok(Heartbeats {
+    let heartbeats = Heartbeats {
         target: targets.into_iter().next().ok_or("Docs target absent")?,
         started_at_ms: now,
         last_sent_ms: now,
         sequence: 1,
-    })
+    };
+    Ok((heartbeats, expired_target))
 }

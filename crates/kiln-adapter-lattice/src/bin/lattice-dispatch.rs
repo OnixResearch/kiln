@@ -2,8 +2,7 @@
 //! reserved implementation attempt.
 
 #[cfg(target_os = "linux")]
-#[path = "../worker.rs"]
-mod worker;
+use kiln_adapter_lattice::worker;
 
 #[cfg(target_os = "linux")]
 use std::collections::BTreeMap;
@@ -87,10 +86,11 @@ fn run() -> Result<(), ()> {
         Ok(dispatch) => dispatch,
         Err(error) => return fail(&error),
     };
-    let request: WorkflowRequest = match read_json(&request_file) {
-        Ok(request) => request,
-        Err(error) => return fail(&error),
-    };
+    let (request, request_bytes): (WorkflowRequest, Vec<u8>) =
+        match read_json_with_bytes(&request_file) {
+            Ok(request) => request,
+            Err(error) => return fail(&error),
+        };
     let profile: CapabilityProfile = match read_json(&profile_file) {
         Ok(profile) => profile,
         Err(error) => return fail(&error),
@@ -148,6 +148,19 @@ fn run() -> Result<(), ()> {
     };
     if digest != reservation.plan {
         return fail("dispatch plan differs from the attempt reservation");
+    }
+    let request_binding = match implementer.bind_campaign_request(
+        &work,
+        &attempt.identity,
+        attempt.fence,
+        wall_clock_ms(),
+        &request_bytes,
+    ) {
+        Ok(binding) => binding,
+        Err(error) => return fail(&error),
+    };
+    if request_binding.plan != digest {
+        return fail("retained request seal differs from the exact dispatch plan");
     }
     if let Err(error) = admit_implementation_request(&dispatch, reservation, &attempt, &request) {
         return fail(&format!("{error:?}"));
@@ -288,6 +301,25 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, String> {
         return Err("JSON input exceeds 16MiB admission bound".into());
     }
     serde_json::from_slice(&bytes).map_err(|_| format!("{} is not valid JSON", path.display()))
+}
+
+#[cfg(target_os = "linux")]
+fn read_json_with_bytes<T: serde::de::DeserializeOwned>(
+    path: &Path,
+) -> Result<(T, Vec<u8>), String> {
+    use std::io::Read;
+    let file =
+        std::fs::File::open(path).map_err(|_| format!("{} is unreadable", path.display()))?;
+    let mut bytes = Vec::new();
+    file.take(16 * 1024 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "bounded input read failed".to_string())?;
+    if bytes.len() > 16 * 1024 * 1024 {
+        return Err("JSON input exceeds 16MiB admission bound".into());
+    }
+    let value = serde_json::from_slice(&bytes)
+        .map_err(|_| format!("{} is not valid JSON", path.display()))?;
+    Ok((value, bytes))
 }
 
 #[cfg(target_os = "linux")]

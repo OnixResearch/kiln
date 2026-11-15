@@ -1,6 +1,7 @@
 # Reviewed single-tenant input builder. Export as JSON; Rust admission is authoritative.
 # No repository, native handler, credential or execution is created by this builder.
 let c = import "github-contracts.ncl" in
+let NixBuildProfile = (import "nix-build-profile-contract.ncl").Profile in
 let Identifier =
   std.contract.from_predicate (fun value =>
     std.is_string value
@@ -227,6 +228,14 @@ let Reference =
     && !(std.string.is_match "[\\x00-\\x1f\\x7f]" value)
   )
 in
+let CanonicalRevision =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.length value <= 1024
+    && std.string.length value > 0
+    && !(std.string.is_match "[\\x00-\\x20\\x7f]" value)
+  )
+in
 let AdmittedReferences =
   std.contract.from_predicate (fun values =>
     let check = fun state value =>
@@ -299,6 +308,13 @@ let Project = {
   # only then are approved untrusted pull-request runs dispatched. Kiln cannot
   # verify the target's isolation. Omitted means not untrusted-capable.
   untrusted_capable | Bool | optional,
+  canonical_nix_build
+    | {
+      node_id | LatticeLabel,
+      source_revision | CanonicalRevision,
+      profile | NixBuildProfile,
+    }
+    | optional,
 }
 in
 fun input =>

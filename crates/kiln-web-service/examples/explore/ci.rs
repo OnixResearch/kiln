@@ -13,7 +13,9 @@ use kiln_web_service::engine::{Engine, Role};
 use kiln_web_service::profile::ServiceProfile;
 use serde_json::{Value, json};
 
-use super::{Example, Result, accepted};
+use super::{
+    Example, InteractionRequirements, NamedCase, PresentationRequirements, Result, accepted,
+};
 const NODE_IDS: [&str; 3] = ["build", "package", "test"];
 const PROJECTS: [(&str, &str); 5] = [
     ("checks", "Core checks · simulated"),
@@ -483,6 +485,61 @@ pub fn seed(root: &Path, port: u16) -> Result<Seed> {
     set_state(&simulator, &partial, WorkflowState::Completed)?;
     engine.poll()?;
     runs.insert("partial".into(), exact(&partial, "id")?.to_owned());
+    let failure_id_for_case = runs
+        .get("failure")
+        .ok_or("Failure scenario missing")?
+        .clone();
+    let partial_id_for_case = runs
+        .get("partial")
+        .ok_or("Partial scenario missing")?
+        .clone();
+    examples.push(Example::named(
+        NamedCase {
+            case_id: "case.run.failed".into(),
+            recipe: ("explore.case.run.failed".into(), "v1".into()),
+            presentation: PresentationRequirements {
+                theme: "system".into(),
+                density: "comfortable".into(),
+                viewport: "wide".into(),
+                themes: vec!["light".into(), "dark".into(), "system".into()],
+                densities: vec!["comfortable".into(), "compact".into()],
+                viewports: vec!["narrow".into(), "wide".into()],
+            },
+            interaction: InteractionRequirements { keyboard: true, narrow: true, dark: true },
+            subjects: vec![("run".into(), failure_id_for_case.clone())],
+            seeder_source: include_bytes!("ci.rs").to_vec(),
+        },
+        "Run state: failed",
+        format!("/?page=runs&run={failure_id_for_case}"),
+        "Inspect the failed synthetic run using its actual seeded runtime ID. Restart creates a new ID for the same logical case.",
+    ));
+    examples.push(Example::named(
+        NamedCase {
+            case_id: "case.run.partial-retry".into(),
+            recipe: ("explore.case.run.partial-retry".into(), "v1".into()),
+            presentation: PresentationRequirements {
+                theme: "system".into(),
+                density: "comfortable".into(),
+                viewport: "wide".into(),
+                themes: vec!["light".into(), "dark".into(), "system".into()],
+                densities: vec!["comfortable".into(), "compact".into()],
+                viewports: vec!["narrow".into(), "wide".into()],
+            },
+            interaction: InteractionRequirements {
+                keyboard: true,
+                narrow: true,
+                dark: true,
+            },
+            subjects: vec![
+                ("run".into(), partial_id_for_case.clone()),
+                ("previous_run".into(), failure_id_for_case.clone()),
+            ],
+            seeder_source: include_bytes!("ci.rs").to_vec(),
+        },
+        "Run state: successful partial retry",
+        format!("/?page=runs&run={partial_id_for_case}&other={failure_id_for_case}"),
+        "Inspect the successful retry of a failed run using actual seeded runtime IDs.",
+    ));
     advance(&repository, 8)?;
     for name in ["running", "queued"] {
         let run = call(
@@ -498,7 +555,27 @@ pub fn seed(root: &Path, port: u16) -> Result<Seed> {
         "awaiting-approval".into(),
         super::automation::awaiting_approval(&mut engine, &untrusted_revision)?,
     );
-    let heartbeats = super::workers::configure(root, &mut engine)?;
+    let (heartbeats, expired_target) = super::workers::configure(root, &mut engine)?;
+    examples.push(Example::named(
+        NamedCase {
+            case_id: "case.worker.expired-observation".into(),
+            recipe: ("explore.case.worker.expired-observation".into(), "v1".into()),
+            presentation: PresentationRequirements {
+                theme: "system".into(),
+                density: "comfortable".into(),
+                viewport: "wide".into(),
+                themes: vec!["light".into(), "dark".into(), "system".into()],
+                densities: vec!["comfortable".into(), "compact".into()],
+                viewports: vec!["narrow".into(), "wide".into()],
+            },
+            interaction: InteractionRequirements { keyboard: true, narrow: true, dark: true },
+            subjects: vec![("worker".into(), expired_target.clone())],
+            seeder_source: include_bytes!("workers.rs").to_vec(),
+        },
+        "Worker observation: expired report",
+        format!("/?page=workers&worker={expired_target}"),
+        "Inspect the exact release target whose only heartbeat expired; expired observations never establish current capacity.",
+    ));
     let success = runs.get("success").ok_or("Success scenario missing")?;
     for (tab, label, note) in [
         (

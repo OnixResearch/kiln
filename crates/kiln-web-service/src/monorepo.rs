@@ -121,7 +121,7 @@ pub fn manifest_tree(
         if entry.kind() != Some(git2::ObjectType::Blob) {
             return git2::TreeWalkResult::Ok;
         }
-        let Some(name) = entry.name() else {
+        let Ok(name) = entry.name() else {
             invalid = true;
             return git2::TreeWalkResult::Abort;
         };

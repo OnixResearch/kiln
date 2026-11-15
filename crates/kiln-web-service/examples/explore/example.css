@@ -9,7 +9,7 @@
 .example-index h3 { font-size: 1rem; margin: 0 0 .5rem; }
 .example-index p { max-width: 82ch; }
 .example-index a { color: inherit; text-underline-offset: .2em; }
-.example-index a:focus-visible, .example-index input:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.example-index a:focus-visible, .example-index input:focus-visible, .example-index select:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
 .example-eyebrow, .example-meta { font-family: var(--font-mono); font-size: .75rem; }
 .example-eyebrow { text-transform: uppercase; letter-spacing: .1em; }
 .example-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
@@ -17,6 +17,9 @@
 .example-card p { margin: .5rem 0 0; }
 .example-card[hidden] { display: none; }
 .example-index label { display: block; font-size: .8rem; font-family: var(--font-mono); }
-.example-index input { box-sizing: border-box; width: min(100%, 32rem); min-height: 44px; border: 1px solid var(--border); border-radius: 0; color: inherit; background: var(--card); padding: .6rem; font: inherit; }
+.example-index input, .example-index select { box-sizing: border-box; width: min(100%, 32rem); min-height: 44px; border: 1px solid var(--border); border-radius: 0; color: inherit; background: var(--card); padding: .6rem; font: inherit; }
+.example-index select { display: block; margin-bottom: .75rem; }
+/* Case metadata carries exact 64-hex identities and routes with no break opportunities. */
+#case-meta { overflow-wrap: anywhere; }
 .example-index footer { border-top: 1px solid var(--border); margin-top: 3rem; padding-top: 1rem; font-size: .8rem; overflow-wrap: anywhere; }
 @media (max-width: 40rem) { .example-boundary { padding: .5rem; } .example-link { max-width: 7rem; } }

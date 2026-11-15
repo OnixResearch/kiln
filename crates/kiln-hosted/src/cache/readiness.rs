@@ -141,7 +141,7 @@ mod tests {
                 Err::<(), _>("original provider failure")
             })
         })
-        .unwrap_or_else(|error| panic!("capture: {error}"));
+        .unwrap_or_else(|error| unreachable!("capture: {error}"));
         assert_eq!(result, Err("original provider failure"));
         assert_eq!(samples.len(), 2);
         let first = samples
@@ -158,15 +158,20 @@ mod tests {
 
     #[test]
     fn invalid_delays_and_nested_scopes_are_rejected_before_work() {
-        assert!(capture(Some(("compilation".into(), 1)), || panic!("not called")).is_err());
         assert!(
-            capture(Some(("materialization".into(), 1001)), || panic!(
+            capture(Some(("compilation".into(), 1)), || unreachable!(
+                "not called"
+            ))
+            .is_err()
+        );
+        assert!(
+            capture(Some(("materialization".into(), 1001)), || unreachable!(
                 "not called"
             ))
             .is_err()
         );
         let (nested, _) = capture(None, || capture(None, || ()))
-            .unwrap_or_else(|error| panic!("capture: {error}"));
+            .unwrap_or_else(|error| unreachable!("capture: {error}"));
         assert!(nested.is_err());
         assert!(capture(None, || ()).is_ok());
     }

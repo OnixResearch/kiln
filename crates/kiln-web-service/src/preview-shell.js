@@ -26,15 +26,34 @@ window.addEventListener("message", event => {
   if (data.type === "result") {
     $("output").textContent = String(data.output || "").slice(0, manifest.descriptor.limits.output_bytes);
     status(data.status === 0 ? "Exact artifact finished successfully. Preview only; CI evidence is unchanged." : `Preview failed: ${data.error || `exit ${data.status}`}. CI evidence is unchanged.`);
+    const report = window.kilnPreviewObservation;
     // Retain only bounded text evidence, not a live VM after program completion.
     stop($("status").textContent);
+    void retain(report);
   }
 });
+// r[impl kiln.preview.comparison] Report only phases and the bounded result; the
+// server copies every identity from its admitted descriptor.
+async function retain(report) {
+  const body = JSON.stringify({
+    phases: report.phases.map(({ phase, outcome, elapsed_ms, detail }) => detail === undefined ? { phase, outcome, elapsed_ms } : { phase, outcome, elapsed_ms, detail }),
+    result: { status: report.result.status ?? null, output: String(report.result.output || ""), error: report.result.error ?? null },
+  });
+  try {
+    const response = await fetch("observation", { method: "POST", credentials: "omit", cache: "no-store", headers: { "Content-Type": "application/json" }, body });
+    if (!response.ok) throw new Error(`${response.status} ${(await response.text()).slice(0, 256)}`);
+    const retained = await response.json();
+    report.retained = retained.identity;
+    $("retention").textContent = `Observation retained for review comparison: ${retained.identity}`;
+  } catch (error) {
+    $("retention").textContent = `Observation not retained: ${error.message}. CI evidence is unchanged.`;
+  }
+}
 $("start").addEventListener("click", () => {
   if (!manifest || frame) return;
   const remaining = manifest.descriptor.limits.expires_at * 1000 - Date.now();
   if (remaining <= 0) return stop("Preview expired; no artifact was substituted.");
-  $("start").disabled = true; $("stop").disabled = false; $("output").textContent = ""; $("phases").replaceChildren();
+  $("start").disabled = true; $("stop").disabled = false; $("output").textContent = ""; $("phases").replaceChildren(); $("retention").textContent = "";
   window.kilnPreviewObservation = { identity: manifest.identity, phases: [], result: null };
   frame = document.createElement("iframe"); frame.title = "Exact disposable Linux artifact";
   // This origin is disposable and has no console/repository authority. Same

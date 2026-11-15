@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::io;
 
-use cob_git2 as git2;
 use git2::{Oid, Repository};
 use heartwood_canonical::identity::Did;
 use kiln_adapter_radicle::source::{RadicleSourceProfile, RadicleSourceShell};

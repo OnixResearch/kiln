@@ -89,7 +89,7 @@ fn shell(temporary: &tempfile::TempDir, provider: &str) -> (RadicleJobShell, Pat
     std::fs::create_dir_all(&storage_root).unwrap_or_else(|_| unreachable!());
     let repository_path = storage_root.join(FIXTURE_RID.trim_start_matches("rad:"));
     if !repository_path.exists() {
-        cob_git2::Repository::init_bare(&repository_path).unwrap_or_else(|_| unreachable!());
+        git2::Repository::init_bare(&repository_path).unwrap_or_else(|_| unreachable!());
     }
     let executable = PathBuf::from(env!("CARGO_BIN_EXE_secretspec_fixture"));
     let shell = RadicleJobShell::new_fixture(
@@ -130,12 +130,12 @@ fn domain_code(error: PortFailure) -> String {
     }
 }
 
-fn repository(temporary: &tempfile::TempDir) -> cob_git2::Repository {
+fn repository(temporary: &tempfile::TempDir) -> git2::Repository {
     let path = temporary
         .path()
         .join("storage")
         .join(FIXTURE_RID.trim_start_matches("rad:"));
-    let repo = cob_git2::Repository::open(&path).unwrap_or_else(|_| unreachable!());
+    let repo = git2::Repository::open(&path).unwrap_or_else(|_| unreachable!());
     let mut config = repo.config().unwrap_or_else(|_| unreachable!());
     config
         .set_str("user.name", "Disposable job fixture")
@@ -154,7 +154,7 @@ fn parse_object_id(observation: &JobObservation) -> ObjectId {
     ObjectId::from_str(observation.object_id.native_id.as_str()).unwrap_or_else(|_| unreachable!())
 }
 
-fn reduce(repo: &cob_git2::Repository, object_id: ObjectId) -> JobCob {
+fn reduce(repo: &git2::Repository, object_id: ObjectId) -> JobCob {
     let store = GitCobStore::new(repo);
     collaboration::get::<JobCob, GitCobStore>(&store, &type_name(), &object_id)
         .unwrap_or_else(|_| unreachable!())
@@ -164,7 +164,7 @@ fn reduce(repo: &cob_git2::Repository, object_id: ObjectId) -> JobCob {
 }
 
 fn namespace_head(
-    repo: &cob_git2::Repository,
+    repo: &git2::Repository,
     namespace: &PublicKey,
     object_id: ObjectId,
 ) -> Option<Oid> {
@@ -176,7 +176,7 @@ fn namespace_head(
         Ok(reference) => reference
             .target()
             .map(|target| Oid::from_str(&target.to_string()).unwrap_or_else(|_| unreachable!())),
-        Err(error) if error.code() == cob_git2::ErrorCode::NotFound => None,
+        Err(error) if error.code() == git2::ErrorCode::NotFound => None,
         Err(_) => unreachable!(),
     }
 }
@@ -190,7 +190,7 @@ fn contents(action: &JobAction) -> Contents {
 }
 
 fn direct_run(
-    repo: &cob_git2::Repository,
+    repo: &git2::Repository,
     signer: &ResolvedSigner,
     namespace: &PublicKey,
     object_id: ObjectId,
@@ -226,7 +226,7 @@ fn direct_run(
 }
 
 fn direct_foreign_job(
-    repo: &cob_git2::Repository,
+    repo: &git2::Repository,
     signer: &ResolvedSigner,
     uuid: &str,
 ) -> (ObjectId, Oid) {
@@ -272,7 +272,7 @@ fn direct_foreign_job(
     (object_id, updated.head)
 }
 
-fn history_entries(repo: &cob_git2::Repository, object_id: ObjectId) -> Vec<radicle_cob::Entry> {
+fn history_entries(repo: &git2::Repository, object_id: ObjectId) -> Vec<radicle_cob::Entry> {
     let store = GitCobStore::new(repo);
     let object = collaboration::get::<JobCob, GitCobStore>(&store, &type_name(), &object_id)
         .unwrap_or_else(|_| unreachable!())
@@ -290,7 +290,7 @@ fn history_entries(repo: &cob_git2::Repository, object_id: ObjectId) -> Vec<radi
 }
 
 fn history_has_entry(
-    repo: &cob_git2::Repository,
+    repo: &git2::Repository,
     object_id: ObjectId,
     predicate: &dyn Fn(&radicle_cob::Entry) -> bool,
 ) -> bool {
@@ -755,7 +755,7 @@ fn oversized_commit_is_rejected_before_loading_its_missing_tree() {
     let oid = repo
         .odb()
         .unwrap_or_else(|_| unreachable!())
-        .write(cob_git2::ObjectType::Commit, raw.as_bytes())
+        .write(git2::ObjectType::Commit, raw.as_bytes())
         .unwrap_or_else(|_| unreachable!());
     let object_id = ObjectId::from(Oid::from(oid));
     let name = GitCobStore::new(&repo)
@@ -781,7 +781,7 @@ fn oversized_blob_is_rejected_without_a_large_fixture_allocation() {
     let repo = repository(&temporary);
     let odb = repo.odb().unwrap_or_else(|_| unreachable!());
     let mut writer = odb
-        .writer(1_048_577, cob_git2::ObjectType::Blob)
+        .writer(1_048_577, git2::ObjectType::Blob)
         .unwrap_or_else(|_| unreachable!());
     for _ in 0..1024 {
         writer
@@ -799,7 +799,7 @@ fn oversized_blob_is_rejected_without_a_large_fixture_allocation() {
         "tree {tree}\nauthor Fixture <fixture@invalid> 0 +0000\ncommitter Fixture <fixture@invalid> 0 +0000\n\nbounded blob fixture\n"
     );
     let oid = odb
-        .write(cob_git2::ObjectType::Commit, raw.as_bytes())
+        .write(git2::ObjectType::Commit, raw.as_bytes())
         .unwrap_or_else(|_| unreachable!());
     let object_id = ObjectId::from(Oid::from(oid));
     let author = signer(SECONDARY_SEED);

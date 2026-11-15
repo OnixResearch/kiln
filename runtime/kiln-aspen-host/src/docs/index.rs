@@ -30,6 +30,12 @@ impl std::fmt::Debug for CacheIndex {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CacheIndexShareMode {
+    Read,
+    Write,
+}
+
 impl CacheIndex {
     pub async fn open_persistent(
         profile: CacheIndexProfile,
@@ -215,11 +221,10 @@ impl CacheIndex {
         iroh::protocol::ProtocolHandler::shutdown(&self.docs).await;
     }
 
-    pub async fn share(&self, is_writable: bool) -> Result<DocTicket, CacheIndexError> {
-        let mode = if is_writable {
-            ShareMode::Write
-        } else {
-            ShareMode::Read
+    pub async fn share(&self, mode: CacheIndexShareMode) -> Result<DocTicket, CacheIndexError> {
+        let mode = match mode {
+            CacheIndexShareMode::Read => ShareMode::Read,
+            CacheIndexShareMode::Write => ShareMode::Write,
         };
         self.doc
             .share(mode, AddrInfoOptions::Addresses)

@@ -42,6 +42,9 @@ pub struct CutoverEvidence {
     pub fence: u64,
     pub source: Placement,
     pub target: Placement,
+    /// Required by paused handoff; absent for lifecycle-only migration observations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub checkpoint: Option<ContentId>,
     pub durable_target_commit: Option<ContentId>,
     pub source_volume_fenced: Option<ContentId>,
     pub source_effects_fenced: Option<ContentId>,
@@ -238,6 +241,7 @@ mod tests {
             fence: 2,
             source: session.placement.clone(),
             target: target.clone(),
+            checkpoint: None,
             durable_target_commit: Some(id('e')),
             source_volume_fenced: Some(id('f')),
             source_effects_fenced: Some(id('1')),

@@ -180,7 +180,7 @@ fn refs(repository: &Repository) -> BTreeMap<String, Oid> {
             (
                 reference
                     .name()
-                    .unwrap_or_else(|| unreachable!("fixture value absent"))
+                    .unwrap_or_else(|_| unreachable!("fixture value absent"))
                     .into(),
                 reference
                     .target()

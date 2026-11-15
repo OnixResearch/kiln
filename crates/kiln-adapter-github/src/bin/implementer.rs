@@ -45,7 +45,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|admission|admission-status|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -84,9 +84,24 @@ fn run() -> Result<(), ()> {
         "needs" => show_needs(&flags),
         "admission" => admission_command(&flags),
         "admission-status" => admission_status(&flags),
+        "campaign" => campaign_command(&flags),
         "observe-cairn-lifecycle" => observe_cairn_lifecycle(&flags),
         "inspect-work" => inspect_work(&flags),
+        "inspect-attempt" => inspect_attempt(&flags),
         _ => fail("unknown command"),
+    }
+}
+
+fn campaign_command(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = kiln_implementer::campaign_operator::cli_dispatch(flags).and_then(|result| {
+        serde_json::to_string(&result).map_err(|_| "campaign result encoding failed".to_owned())
+    });
+    match result {
+        Ok(json) => {
+            println!("{json}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
     }
 }
 
@@ -107,6 +122,109 @@ fn inspect_work(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             println!("{value}");
             Ok(())
         }
+        Err(error) => fail(&error),
+    }
+}
+
+#[derive(serde::Serialize)]
+struct AttemptProjection<'a> {
+    attempt: &'a kiln_core::implementation::ImplementationAttempt,
+    work: &'a kiln_core::implementation::ImplementationWork,
+    acceptance_digest: kiln_core::types::ContentId,
+    handoff: Option<&'a kiln_core::implementation::CandidateHandoff>,
+    verification: Option<&'a kiln_core::implementation::CandidateVerification>,
+    handoff_identity: Option<kiln_core::types::ContentId>,
+    verification_identity: Option<kiln_core::types::ContentId>,
+    publication: Option<&'a kiln_core::implementation::PublicationRecord>,
+    publication_branch: String,
+}
+
+fn current_attempt_projection<'a>(
+    ledgers: &'a kiln_implementer::campaign_consumer::CanonicalCampaignLedgers,
+    enrollment: &Enrollment,
+    identity: &kiln_core::types::ContentId,
+    fence: u64,
+    now_ms: u64,
+) -> Result<AttemptProjection<'a>, String> {
+    use kiln_core::implementation::{
+        AttemptPhase, acceptance_digest, admit_candidate_handoff, admit_candidate_verification,
+        branch_for,
+    };
+    let diagnostic =
+        |error: kiln_core::types::Diagnostic| format!("{}: {}", error.code, error.message);
+    let attempt = ledgers
+        .attempts
+        .get(identity)
+        .ok_or("attempt is not retained")?;
+    if attempt.phase == AttemptPhase::Verified {
+        ledgers
+            .attempts
+            .authorize_publication(identity, fence)
+            .map_err(diagnostic)?;
+    } else if !ledgers.attempts.is_current(identity, fence, now_ms) {
+        return Err("attempt does not own the current unexpired claim".into());
+    }
+    let work = ledgers
+        .work
+        .get(&attempt.canonical_key)
+        .ok_or("work is not current")?;
+    if !enrollment.repositories.contains(&work.repository)
+        || !enrollment.actors.contains(&work.actor)
+    {
+        return Err("attempt work is outside the supplied enrollment".into());
+    }
+    let work_identity = work.identity().map_err(diagnostic)?;
+    if work_identity != attempt.work_identity
+        || work.revision != attempt.work_revision
+        || work.base != attempt.base
+    {
+        return Err("attempt does not bind the exact current source contract".into());
+    }
+    let handoff = attempt.handoff.as_ref();
+    let verification = attempt.verification.as_ref();
+    let handoff_identity = handoff
+        .map(|handoff| admit_candidate_handoff(work, attempt, handoff))
+        .transpose()
+        .map_err(diagnostic)?;
+    let verification_identity = match (handoff, verification) {
+        (Some(handoff), Some(verification)) => Some(
+            admit_candidate_verification(work, attempt, handoff, verification)
+                .map_err(diagnostic)?,
+        ),
+        (_, None) => None,
+        (None, Some(_)) => return Err("verification has no retained candidate handoff".into()),
+    };
+    Ok(AttemptProjection {
+        attempt,
+        work,
+        acceptance_digest: acceptance_digest(work).map_err(diagnostic)?,
+        handoff,
+        verification,
+        handoff_identity,
+        verification_identity,
+        publication: attempt.publication.as_ref(),
+        publication_branch: branch_for(&work_identity, &attempt.identity),
+    })
+}
+
+fn inspect_attempt(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    use std::io::Write;
+    let result = (|| -> Result<(), String> {
+        let identity = required_identity(flags, "--attempt")?;
+        let fence = required_positive_u64(flags, "--fence")?;
+        let enrollment: Enrollment = read_json(&required_path(flags, "--enrollment")?)?;
+        let ledgers = kiln_implementer::campaign_consumer::CanonicalCampaignLedgers::read(
+            &required_path(flags, "--database")?,
+        )?;
+        let projection =
+            current_attempt_projection(&ledgers, &enrollment, &identity, fence, wall_clock_ms())?;
+        let stdout = std::io::stdout();
+        let mut output = stdout.lock();
+        serde_json::to_writer(&mut output, &projection).map_err(|error| error.to_string())?;
+        writeln!(output).map_err(|error| error.to_string())
+    })();
+    match result {
+        Ok(()) => Ok(()),
         Err(error) => fail(&error),
     }
 }
@@ -640,6 +758,16 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(plan) => plan,
         Err(error) => return fail(&error),
     };
+    let remote_profile_file = match required_path(flags, "--remote-profile") {
+        Ok(path) => path,
+        Err(error) => return fail(&error),
+    };
+    let source = match kiln_adapter_github::publication::PublicationSourceProfile::read(
+        &remote_profile_file,
+    ) {
+        Ok(source) => source,
+        Err(_) => return fail("publication source profile is invalid"),
+    };
     let timeout_ms = match optional_positive(flags, "--timeout-ms") {
         Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
         Ok(None) => 30_000,
@@ -694,6 +822,27 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     else {
         return fail("publication work identity is not current");
     };
+    let attempt = match implementer.attempt(&plan.attempt) {
+        Ok(Some(attempt)) => attempt,
+        Ok(None) => return fail("publication attempt is not retained"),
+        Err(error) => return fail(&error),
+    };
+    let handoff = match implementer.candidate_handoff(&plan.attempt) {
+        Ok(Some(handoff)) => handoff,
+        Ok(None) => return fail("publication candidate handoff is not retained"),
+        Err(error) => return fail(&error),
+    };
+    let handoff_identity =
+        match kiln_core::implementation::admit_candidate_handoff(&work, &attempt, &handoff) {
+            Ok(identity) => identity,
+            Err(_) => return fail("publication candidate handoff is invalid"),
+        };
+    if handoff_identity != plan.handoff
+        || handoff.candidate != plan.candidate
+        || handoff.tree != plan.tree
+    {
+        return fail("publication source does not match the admitted candidate handoff");
+    }
     use kiln_implementer::publication_effects::{
         EffectDispatch, PublicationEffectKind, PublicationEffectResult,
     };
@@ -708,13 +857,9 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         plan.fence,
         PublicationEffectKind::Branch,
         |dispatch, _| {
-            let head = match dispatch {
-                EffectDispatch::FirstDispatch => client
-                    .ensure_branch(&plan)
-                    .and_then(|_| client.reconcile_branch(&plan)),
-                EffectDispatch::ReconcileOnly => client.reconcile_branch(&plan),
-            }
-            .map_err(|error| format!("{error:?}"))?;
+            let head = client
+                .publish_candidate_branch(&plan, &source, dispatch == EffectDispatch::FirstDispatch)
+                .map_err(|error| format!("{error:?}"))?;
             Ok(head.map(PublicationEffectResult::Branch))
         },
     );
@@ -729,6 +874,12 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         plan.fence,
         PublicationEffectKind::PullRequest,
         |dispatch, _| {
+            let Some(_) = client
+                .publish_candidate_branch(&plan, &source, false)
+                .map_err(|error| format!("{error:?}"))?
+            else {
+                return Ok(None);
+            };
             let outcome = match dispatch {
                 EffectDispatch::FirstDispatch => client
                     .ensure_pull_request(&plan)

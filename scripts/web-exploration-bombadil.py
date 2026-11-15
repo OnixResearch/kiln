@@ -85,7 +85,49 @@ def admit_catalog(origin: str, catalog: object, session: object) -> dict:
         route = urllib.parse.urlsplit(href)
         if route.scheme or route.netloc or route.path != "/" or not href.startswith("/"):
             raise AdmissionError("Example catalog route escapes the console")
-        admitted.append({"title": title, "href": href, "detail": detail})
+        case_id = entry.get("case_id")
+        recipe = entry.get("recipe")
+        source_revision = entry.get("source_revision")
+        presentation = entry.get("presentation")
+        interaction = entry.get("interaction")
+        subjects = entry.get("subjects", {})
+        if case_id is not None:
+            if not isinstance(case_id, str) or not case_id.strip() or len(case_id) > 256:
+                raise AdmissionError("Malformed stable case id")
+        if recipe is not None:
+            if not isinstance(recipe, dict):
+                raise AdmissionError("Malformed fixture recipe")
+            rid = recipe.get("id")
+            rversion = recipe.get("version")
+            rrevision = recipe.get("revision")
+            if not isinstance(rid, str) or not rid.strip() or len(rid) > 256:
+                raise AdmissionError("Malformed fixture recipe id")
+            if not isinstance(rversion, str) or not rversion.strip() or len(rversion) > 64:
+                raise AdmissionError("Malformed fixture recipe version")
+            if not isinstance(rrevision, str) or len(rrevision) != 64:
+                raise AdmissionError("Malformed recipe revision")
+        if source_revision is not None and (not isinstance(source_revision, str) or not source_revision.strip() or len(source_revision) > 256):
+            raise AdmissionError("Malformed source revision")
+        if presentation is not None and not isinstance(presentation, dict):
+            raise AdmissionError("Malformed presentation requirements")
+        if interaction is not None and not isinstance(interaction, dict):
+            raise AdmissionError("Malformed interaction requirements")
+        if not isinstance(subjects, dict):
+            raise AdmissionError("Malformed resolved subjects")
+        admitted_entry = {"title": title, "href": href, "detail": detail}
+        if case_id is not None:
+            admitted_entry["case_id"] = case_id
+        if recipe is not None:
+            admitted_entry["recipe"] = recipe
+        if source_revision is not None:
+            admitted_entry["source_revision"] = source_revision
+        if presentation is not None:
+            admitted_entry["presentation"] = presentation
+        if interaction is not None:
+            admitted_entry["interaction"] = interaction
+        if subjects:
+            admitted_entry["subjects"] = subjects
+        admitted.append(admitted_entry)
     return {"origin": origin, "examples": admitted}
 
 

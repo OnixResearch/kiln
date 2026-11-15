@@ -1,0 +1,31 @@
+$ cargo +1.88.0 test --offline --locked -p kiln-microvm --lib -- handoff:: retained::
+running 15 tests
+test handoff::tests::uncertain_handoff_requires_reconciliation_without_claiming_retirement ... ok
+test handoff::tests::pending_pause_cannot_start_handoff_but_observed_pause_can ... ok
+test handoff::tests::old_memory_with_a_new_disk_generation_is_refused ... ok
+test handoff::tests::independent_checkpoint_expectation_mismatches_refuse_without_advancement ... ok
+test retained::drain::tests::ordinary_sender_error_and_previously_writing_stopped_target_never_authorize_cleanup ... ok
+test handoff::tests::handoff_refuses_out_of_order_and_stale_target_commands ... ok
+test retained::tests::failed_confinement_requires_reconciliation_and_never_runs ... ok
+test retained::drain::tests::unknown_cleanup_blocks_drain_and_cooldown_blocks_churn ... ok
+test retained::tests::migrated_away_source_cannot_resume_and_retirement_is_separate ... ok
+test handoff::tests::paused_handoff_orders_quiesce_capture_target_and_retirement ... ok
+test retained::tests::retained_backend_requires_snapshot_network_and_confinement_facts ... ok
+test retained::tests::requested_resume_is_not_observed_running_until_exact_confirmation ... ok
+test retained::tests::stale_owner_or_generation_cannot_resume_or_retire ... ok
+test retained::tests::retained_session_round_trips_and_rejects_bad_admission ... ok
+test handoff::tests::originating_identity_is_enforced_through_reopened_phases ... ok
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s
+
+$ cargo +1.88.0 test --offline --locked -p kiln-hosted --lib -- microvm::retained::
+running 9 tests
+test microvm::retained::tests::restored_or_paused_guest_cannot_extend_original_wall_deadline ... ok
+test microvm::retained::api_tests::exact_local_peer_is_required_before_request_bytes_and_truncation_is_unknown ... ok
+test microvm::retained::api_tests::accepted_pause_reply_requires_paused_readback ... ok
+test microvm::retained::tests::selected_aspen_fails_before_callback_and_capacity_mutation ... ok
+test microvm::retained::tests::pending_crash_and_duplicate_slot_preserve_reservation ... ok
+test microvm::retained::tests::lost_retirement_ack_keeps_capacity_and_never_repeats_cleanup ... ok
+test microvm::retained::tests::exact_replay_stale_body_and_unknown_host_effect_never_redispatch ... ok
+test microvm::retained::tests::serialized_pause_intent_reconciles_after_restart_without_redispatch ... ok
+test microvm::retained::checkpoint_reopen_tests::retired_checkpoint_reopens_once_but_any_resume_consumes_old_memory_authority ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 112 filtered out; finished in 0.01s

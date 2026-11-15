@@ -46,6 +46,18 @@ pub struct ApiResponse {
     pub download_name: Option<String>,
     pub headers: Vec<(&'static str, String)>,
 }
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PreviewBuildEvidence {
+    pub(crate) source_run_id: String,
+    pub(crate) request_id: String,
+    pub(crate) profile_identity: ContentId,
+    pub(crate) node_id: kiln_core::Alias,
+    pub(crate) plan: kiln_core::build::BuildEffectPlan,
+    pub(crate) product_paths: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) observation: Option<kiln_core::build::BuildEvaluationObservation>,
+}
 
 pub struct Engine {
     profile: ServiceProfile,
@@ -83,6 +95,12 @@ pub(crate) fn identity<T: Serialize>(value: &T) -> Result<ContentId, String> {
         .map_err(|_| "canonical identity exceeds its bound".into())
 }
 
+pub(crate) fn read_only_code_review_ci(
+    profile: &ServiceProfile,
+) -> Result<Vec<kiln_core::change_review::CiFact>, String> {
+    change_review::read_only_code_review_ci(profile)
+}
+
 impl Engine {
     /// Bounded derived CI facts for the Work API. Reads only the admitted
     /// project profile and retained run records; it dispatches nothing, reads
@@ -104,6 +122,7 @@ impl Engine {
             .state
             .runs
             .iter()
+            .filter(|(_, run)| !run.is_canonical_nix_build())
             .map(|(id, run)| (id.clone(), run.project_id.clone()));
         crate::work::ci::CiFacts::new(projects, runs)
     }
@@ -219,7 +238,7 @@ impl Engine {
     // r[impl kiln.web.lifecycle]
     fn refresh(&mut self, id: &str) -> Result<(), String> {
         let record = self.state.runs.get(id).ok_or("run missing")?;
-        if record.is_independent_verification() {
+        if record.is_engine_owned_execution() {
             return Ok(());
         }
         if record.outcome().is_terminal() || record.waiting() {

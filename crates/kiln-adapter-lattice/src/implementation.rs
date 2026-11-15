@@ -418,6 +418,7 @@ mod tests {
                 ended_at_ms: None,
                 phase: kiln_core::implementation::AttemptPhase::Claimed,
                 dispatch: None,
+                dispatch_request_binding: None,
                 workflow: None,
                 candidate: None,
                 handoff: None,

@@ -13,7 +13,7 @@ mod process;
 mod profile;
 mod reports;
 mod sandbox;
-mod source;
+pub(crate) mod source;
 mod streaming;
 mod telemetry;
 

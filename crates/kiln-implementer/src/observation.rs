@@ -29,6 +29,12 @@ fn record(
 
 /// Opens an existing canonical store read-only. No schema creation, immediate
 /// transaction, claim, inventory collection or resource reservation is possible.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+pub struct CurrentWorkObservation {
+    pub identity: ContentId,
+    pub revision: u64,
+}
+
 pub struct ImplementationObservation {
     connection: Connection,
 }
@@ -50,6 +56,31 @@ impl ImplementationObservation {
             .pragma_update(None, "query_only", true)
             .map_err(|_| InventoryReadFailure::Unavailable)?;
         Ok(Self { connection })
+    }
+    pub fn current_work(
+        &self,
+        identity: &ContentId,
+    ) -> Result<CurrentWorkObservation, InventoryReadFailure> {
+        let transaction = self
+            .connection
+            .unchecked_transaction()
+            .map_err(|_| InventoryReadFailure::Unavailable)?;
+        let bytes =
+            record(&transaction, crate::WORK_KIND)?.ok_or(InventoryReadFailure::StaleWork)?;
+        let ledger: WorkLedger = serde_json::from_slice(&bytes)
+            .map_err(|_| InventoryReadFailure::MalformedObservation)?;
+        let current = ledger
+            .current()
+            .find(|work| work.identity().is_ok_and(|current| &current == identity))
+            .ok_or(InventoryReadFailure::StaleWork)?;
+        let result = CurrentWorkObservation {
+            identity: identity.clone(),
+            revision: current.revision,
+        };
+        transaction
+            .commit()
+            .map_err(|_| InventoryReadFailure::Unavailable)?;
+        Ok(result)
     }
 }
 impl InventoryWorkPort for ImplementationObservation {

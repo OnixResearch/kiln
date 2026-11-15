@@ -1,4 +1,5 @@
 pub mod change_review;
+pub mod native_publication;
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
@@ -18,7 +19,7 @@ use kiln_provider_api::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const PINNED_GIT2_SOURCE: &str = "crates.io:git2:0.20.4";
+pub const PINNED_GIT2_SOURCE: &str = "crates.io:git2:0.21.0";
 pub const PINNED_GIT2_LICENSE: &str = "MIT OR Apache-2.0";
 pub const PINNED_LIBGIT2_SOURCE: &str = "crates.io:libgit2-sys:0.18.7+1.9.6";
 pub const PINNED_LIBGIT2_LICENSE: &str = "GPL-2.0-only with libgit2 linking exception";

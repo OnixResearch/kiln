@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use super::ImplementationWork;
 use crate::types::{ContentId, CoreResult, Diagnostic, EffectId, ExternalRef, ProviderProfileId};
 
-pub const ATTEMPT_SCHEMA: &str = "kiln.implementation-attempt.v1";
+pub const ATTEMPT_SCHEMA: &str = "kiln.implementation-attempt.v2";
 pub const DISPATCH_SCHEMA: &str = "kiln.implementation-dispatch.v1";
 pub const MAX_LEASE_MS: u64 = 24 * 60 * 60 * 1_000;
 pub const DEFAULT_LEASE_MS: u64 = 60 * 60 * 1_000;
@@ -148,6 +148,9 @@ pub struct ImplementationAttempt {
     /// Dispatch reservation recorded before provider transport.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dispatch: Option<DispatchReservation>,
+    /// Exact request bytes sealed to the dispatch plan before any transport.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dispatch_request_binding: Option<super::DispatchRequestBinding>,
     pub workflow: Option<ExternalRef>,
     pub candidate: Option<ExternalRef>,
     /// Complete candidate handoff admitted from host-derived facts.
@@ -300,6 +303,7 @@ impl AttemptLedger {
             ended_at_ms: None,
             phase: AttemptPhase::Claimed,
             dispatch: None,
+            dispatch_request_binding: None,
             workflow: None,
             candidate: None,
             handoff: None,
@@ -415,6 +419,69 @@ impl AttemptLedger {
         identity: &ContentId,
     ) -> Option<&super::ImplementationDispatchPlan> {
         self.dispatch_plans.get(identity.as_str())
+    }
+    pub fn bind_dispatch_request(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        request_digest: &ContentId,
+    ) -> CoreResult<super::DispatchRequestBinding> {
+        let plan = self.dispatch_plans.get(identity.as_str()).ok_or_else(|| {
+            refusal(
+                "implementation_dispatch_plan_missing",
+                "dispatch.plan",
+                "request binding requires a retained dispatch plan",
+            )
+        })?;
+        let attempt = self.authorized(identity, fence, now_ms)?;
+        let plan_id = super::admit_dispatch_plan(work, attempt, plan)?;
+        if attempt.work_identity != work.identity()?
+            || attempt.work_revision != work.revision
+            || attempt
+                .dispatch
+                .as_ref()
+                .map(|reservation| &reservation.plan)
+                != Some(&plan_id)
+        {
+            return Err(refusal(
+                "implementation_dispatch_binding",
+                "dispatch.plan",
+                "request seal does not match the exact reserved work, attempt, fence and plan",
+            ));
+        }
+        let binding =
+            super::DispatchRequestBinding::new(identity, fence, &plan_id, request_digest)?;
+        if let Some(retained) = self
+            .get(identity)
+            .and_then(|attempt| attempt.dispatch_request_binding.as_ref())
+        {
+            if retained != &binding {
+                return Err(refusal(
+                    "implementation_request_binding_conflict",
+                    "dispatch.request",
+                    "attempt already retains a different request byte binding",
+                ));
+            }
+            return Ok(retained.clone());
+        }
+        if self.dispatch_started.contains(identity.as_str()) {
+            return Err(refusal(
+                "implementation_request_binding_late",
+                "dispatch.request",
+                "request binding must be persisted before transport intent",
+            ));
+        }
+        self.attempt_mut(identity)?.dispatch_request_binding = Some(binding.clone());
+        Ok(binding)
+    }
+
+    pub fn dispatch_request_binding(
+        &self,
+        identity: &ContentId,
+    ) -> Option<&super::DispatchRequestBinding> {
+        self.get(identity)?.dispatch_request_binding.as_ref()
     }
 
     pub fn dispatch_requires_recovery(&self, identity: &ContentId) -> bool {
@@ -1027,11 +1094,19 @@ impl AttemptLedger {
         cause: &str,
     ) -> CoreResult<()> {
         self.require_active(identity, fence, now_ms)?;
+        let needs_reconciliation = self.dispatch_started.contains(identity.as_str())
+            || self
+                .get(identity)
+                .is_some_and(|attempt| attempt.workflow.is_some());
         let canonical_key = {
             let attempt = self.attempt_mut(identity)?;
             attempt.phase = AttemptPhase::Cancelled;
             attempt.ended_at_ms = Some(now_ms);
             attempt.cause = Some(bounded_cause(cause)?);
+            if needs_reconciliation {
+                // Revoking the claim does not prove that provider resources stopped.
+                attempt.failure = Some(FailureClass::Unknown);
+            }
             attempt.canonical_key.clone()
         };
         self.clear_current(&canonical_key);
@@ -1126,6 +1201,14 @@ impl AttemptLedger {
                 "transport requires the exact durable dispatch reservation",
             ));
         }
+        let binding = attempt.dispatch_request_binding.as_ref().ok_or_else(|| {
+            refusal(
+                "implementation_request_binding_missing",
+                "dispatch.request",
+                "dispatch requires a durable exact-request seal before any effect",
+            )
+        })?;
+        binding.validate_for(identity, fence, plan, &binding.request_digest)?;
         Ok(!self.dispatch_started.insert(identity.as_str().to_string()))
     }
 

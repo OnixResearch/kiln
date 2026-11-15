@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use bounded_exec::{Completion, Input};
 use kiln_core::types::ContentId;
 use kiln_microvm::backend::{VmmBackend, cloud_hypervisor_restore};
-use kiln_microvm::retained::{OwnerToken, RetainedSession, RetainedState};
+use kiln_microvm::retained::{ControlKind, OwnerToken, RetainedSession, RetainedState};
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -171,6 +171,18 @@ impl RetainedAuthority for SelectedAspenAuthority {
             "Aspen {SELECTED_MOLTEN_REVISION} lacks qualified retained placement/resource fencing; retained effects refused"
         ))
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum EffectEvidence {
+    VmmState(String),
+    CleanupObserved,
+    Rejected,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum EffectMode {
+    Dispatch,
+    ObserveOnly,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -368,8 +380,9 @@ pub fn execute<A: RetainedAuthority>(
     authority: &mut A,
     operation: &Operation,
 ) -> Result<Outcome, String> {
-    execute_with_effect(db, authority, operation, || {
-        host_effect(config, backend, operation)
+    execute_with_effect(db, authority, operation, |mode| match mode {
+        EffectMode::Dispatch => host_effect(config, backend, operation),
+        EffectMode::ObserveOnly => host_control_observation(config, backend, operation),
     })
 }
 
@@ -377,7 +390,7 @@ fn execute_with_effect<A: RetainedAuthority>(
     db: &mut Connection,
     authority: &mut A,
     operation: &Operation,
-    effect: impl FnOnce() -> Result<(), String>,
+    effect: impl FnOnce(EffectMode) -> Result<EffectEvidence, String>,
 ) -> Result<Outcome, String> {
     validate_binding(operation)?;
     durable_database(db)?;
@@ -390,8 +403,35 @@ fn execute_with_effect<A: RetainedAuthority>(
             .optional().map_err(|e| e.to_string())?;
         if let Some((original, outcome)) = previous {
             if original != request { return Err("retained operation ID reused with a changed body".into()); }
-            return outcome.map_or(Ok(Outcome::ReconcileRequired), |value|
-                serde_json::from_str(&value).map_err(|e| e.to_string()));
+            let old_outcome = outcome.map(|value| serde_json::from_str::<Outcome>(&value).map_err(|e| e.to_string())).transpose()?;
+            if !matches!(operation.action, Action::Pause | Action::Resume) || old_outcome.as_ref().is_some_and(|value| *value != Outcome::ReconcileRequired) {
+                return Ok(old_outcome.unwrap_or(Outcome::ReconcileRequired));
+            }
+            let (current, binding): (String, String) = tx.query_row("SELECT record,binding FROM hosted_retained_session WHERE session=?1", [operation.session.identity.session.as_str()], |row| Ok((row.get(0)?, row.get(1)?))).map_err(|e| e.to_string())?;
+            if binding != serde_json::to_string(&operation.binding).map_err(|e| e.to_string())? { return Err("retained control binding changed during reconciliation".into()); }
+            let mut session: RetainedSession = serde_json::from_str(&current).map_err(|e| e.to_string())?;
+            if session.identity != operation.session.identity || session.placement != operation.session.placement || session.resources != operation.session.resources {
+                return Err("late control reply cannot affect a successor owner or placement".into());
+            }
+            let control = session.control.as_ref().ok_or("unfinished control record is missing")?;
+            if control.operation != operation.operation || !matches!((control.kind, &operation.action), (ControlKind::Pause, Action::Pause) | (ControlKind::Resume, Action::Resume)) {
+                return Err("control reconciliation is crossed with another operation".into());
+            }
+            let control_kind = control.kind;
+            drop(tx);
+            let token = owner(&session);
+            match effect(EffectMode::ObserveOnly) {
+                Ok(EffectEvidence::VmmState(state)) => session.observe_control(&token, &operation.operation,
+                    matches!((control_kind, state.as_str()), (ControlKind::Pause, "Paused") | (ControlKind::Resume, "Running"))).map_err(|e| format!("{e:?}"))?,
+                Ok(EffectEvidence::Rejected) => session.reject_control(&token, &operation.operation).map_err(|e| format!("{e:?}"))?,
+                _ => session.observe_control(&token, &operation.operation, false).map_err(|e| format!("{e:?}"))?,
+            }
+            let reconciled = if session.state == RetainedState::ReconcileRequired { Outcome::ReconcileRequired } else { Outcome::Observed(Box::new(session.clone())) };
+            let update = db.transaction_with_behavior(TransactionBehavior::Immediate).map_err(|e| e.to_string())?;
+            update.execute("UPDATE hosted_retained_session SET revision=revision+1,record=?2,occupied=?3 WHERE session=?1", params![session.identity.session.as_str(), serde_json::to_string(&session).map_err(|e| e.to_string())?, session.occupies_capacity()]).map_err(|e| e.to_string())?;
+            update.execute("UPDATE hosted_retained_operation SET outcome=?2 WHERE operation=?1", params![operation.operation.as_str(), serde_json::to_string(&reconciled).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
+            update.commit().map_err(|e| e.to_string())?;
+            return Ok(reconciled);
         }
         let (record, binding, checkpoint): (String, String, Option<String>) = tx.query_row(
             "SELECT record,binding,checkpoint FROM hosted_retained_session WHERE session=?1",
@@ -410,9 +450,9 @@ fn execute_with_effect<A: RetainedAuthority>(
         if pending { return Ok(Outcome::ReconcileRequired); }
         let token = owner(&session);
         match operation.action {
-            Action::ColdStart | Action::Restore { .. } => { session.begin_restore(&token).map(|_| ()) },
-            Action::Pause => session.pause(&token).map(|_| ()),
-            Action::Resume => session.resume(&token).map(|_| ()),
+            Action::ColdStart | Action::Restore { .. } => session.begin_restore(&token).map(|_| ()),
+            Action::Pause => session.request_control(&token, operation.operation.clone(), ControlKind::Pause).map(|_| ()),
+            Action::Resume => session.request_control(&token, operation.operation.clone(), ControlKind::Resume).map(|_| ()),
             Action::Retire => session.begin_retire(&token).map(|_| ()),
             Action::Snapshot { .. } if session.state == RetainedState::Paused => Ok(()),
             Action::Snapshot { .. } => return Err("paired snapshot requires an already paused session".into()),
@@ -424,13 +464,25 @@ fn execute_with_effect<A: RetainedAuthority>(
             params![session.identity.session.as_str(), serde_json::to_string(&session).map_err(|e| e.to_string())?,consumes_checkpoint])
             .map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
-        let effect = effect();
+        if matches!(operation.action, Action::Pause | Action::Resume) {
+            session.control_in_progress(&token, &operation.operation).map_err(|e| format!("{e:?}"))?;
+            let progress = db.transaction_with_behavior(TransactionBehavior::Immediate).map_err(|e| e.to_string())?;
+            progress.execute("UPDATE hosted_retained_session SET revision=revision+1,record=?2 WHERE session=?1",
+                params![session.identity.session.as_str(), serde_json::to_string(&session).map_err(|e| e.to_string())?]).map_err(|e| e.to_string())?;
+            progress.commit().map_err(|e| e.to_string())?;
+        }
+        let effect = effect(EffectMode::Dispatch);
         let diagnostic = effect.as_ref().err().map(|error| error.chars().take(MAX_DIAGNOSTIC_CHARS)
             .map(|character| if character.is_control() {' '} else {character}).collect::<String>());
         match (&operation.action, effect) {
-            (Action::ColdStart | Action::Restore { .. }, Ok(())) => { session.observe_restored(&token, true).map_err(|e| format!("{e:?}"))?; },
-            (Action::Retire, Ok(())) => session.observe_retired(&token, true).map_err(|e| format!("{e:?}"))?,
-            (_, Ok(())) => (),
+            (Action::ColdStart | Action::Restore { .. }, Ok(EffectEvidence::VmmState(state))) if state == "Paused" => { session.observe_restored(&token, true).map_err(|e| format!("{e:?}"))?; },
+            (Action::Pause, Ok(EffectEvidence::VmmState(state))) => { session.observe_control(&token, &operation.operation, state == "Paused").map_err(|e| format!("{e:?}"))?; },
+            (Action::Resume, Ok(EffectEvidence::VmmState(state))) => { session.observe_control(&token, &operation.operation, state == "Running").map_err(|e| format!("{e:?}"))?; },
+            (Action::Pause | Action::Resume, Ok(EffectEvidence::Rejected)) => session.reject_control(&token, &operation.operation).map_err(|e| format!("{e:?}"))?,
+            (Action::Retire, Ok(EffectEvidence::CleanupObserved)) => session.observe_retired(&token, true).map_err(|e| format!("{e:?}"))?,
+            (Action::Snapshot { .. }, Ok(EffectEvidence::VmmState(state))) if state == "Paused" => (),
+            (_, Err(_)) if matches!(operation.action, Action::Pause | Action::Resume) => { session.observe_control(&token, &operation.operation, false).map_err(|e| format!("{e:?}"))?; },
+            (_, Ok(_)) => { session.require_reconciliation(&token, "host_effect_observation_incomplete").map_err(|e| format!("{e:?}"))?; },
             (_, Err(_)) => { session.require_reconciliation(&token, "host_effect_or_observation_unknown").map_err(|e| format!("{e:?}"))?; },
         }
         let outcome = if session.state == RetainedState::ReconcileRequired { Outcome::ReconcileRequired } else { Outcome::Observed(Box::new(session.clone())) };
@@ -531,9 +583,15 @@ fn api(socket: &Path, pid: u32, method: &str, path: &str, body: &Value) -> Resul
     if kiln_microvm::plan::api_response_length(&response) != Some(response.len()) {
         return Err("retained API response was incomplete or ambiguously framed".into());
     }
-    if !kiln_microvm::plan::api_status(&response).is_some_and(|status| (200..300).contains(&status))
-    {
-        return Err("retained API mutation/observation not confirmed; reconcile".into());
+    if let Some(status) = kiln_microvm::plan::api_status(&response) {
+        if !(200..300).contains(&status) {
+            if (400..500).contains(&status) {
+                return Err(format!("retained API rejected request with HTTP {status}"));
+            }
+            return Err("retained API mutation/observation not confirmed; reconcile".into());
+        }
+    } else {
+        return Err("retained API response has no status".into());
     }
     let body = response
         .windows(4)
@@ -547,18 +605,23 @@ fn api(socket: &Path, pid: u32, method: &str, path: &str, body: &Value) -> Resul
     }
 }
 
-fn observe_state(socket: &Path, pid: u32, expected: &str) -> Result<(), String> {
-    if api(socket, pid, "GET", "/api/v1/vm.info", &Value::Null)?
+fn observe_state(socket: &Path, pid: u32, expected: &str) -> Result<String, String> {
+    let state = api(socket, pid, "GET", "/api/v1/vm.info", &Value::Null)?
         .get("state")
         .and_then(Value::as_str)
-        != Some(expected)
-    {
+        .ok_or("retained VMM state is missing")?
+        .to_string();
+    if state != expected {
         return Err("retained VMM state was not observed".into());
     }
-    Ok(())
+    Ok(state)
 }
 
-fn host_effect(config: &Config, backend: &Backend, operation: &Operation) -> Result<(), String> {
+fn host_effect(
+    config: &Config,
+    backend: &Backend,
+    operation: &Operation,
+) -> Result<EffectEvidence, String> {
     if !matches!(operation.action, Action::Retire) {
         remaining_lifetime(
             operation.binding.deadline_unix_ms,
@@ -733,7 +796,7 @@ fn host_effect(config: &Config, backend: &Backend, operation: &Operation) -> Res
                 API_TIMEOUT,
             )?;
         }
-        return observe_state(&api_socket, pid, "Paused");
+        return observe_state(&api_socket, pid, "Paused").map(EffectEvidence::VmmState);
     }
     let pid = observe_confinement(
         config,
@@ -746,10 +809,25 @@ fn host_effect(config: &Config, backend: &Backend, operation: &Operation) -> Res
     )?
     .pid;
     match &operation.action {
-        Action::Pause => {
-            api(&api_socket, pid, "PUT", "/api/v1/vm.pause", &Value::Null)?;
-            observe_state(&api_socket, pid, "Paused")
-        }
+        Action::Pause => match api(&api_socket, pid, "PUT", "/api/v1/vm.pause", &Value::Null) {
+            Ok(_) => {
+                let state = observe_state(&api_socket, pid, "Paused")?;
+                observe_confinement(
+                    config,
+                    token,
+                    "cloud-hypervisor",
+                    &binary,
+                    &runner.vmm.blake3,
+                    true,
+                    API_TIMEOUT,
+                )?;
+                Ok(EffectEvidence::VmmState(state))
+            }
+            Err(error) if error.starts_with("retained API rejected request") => {
+                Ok(EffectEvidence::Rejected)
+            }
+            Err(error) => Err(error),
+        },
         Action::Resume => {
             observe_state(&api_socket, pid, "Paused")?;
             remaining_lifetime(
@@ -757,8 +835,25 @@ fn host_effect(config: &Config, backend: &Backend, operation: &Operation) -> Res
                 crate::now_ms()?,
                 config.maximum_timeout_ms,
             )?;
-            api(&api_socket, pid, "PUT", "/api/v1/vm.resume", &Value::Null)?;
-            observe_state(&api_socket, pid, "Running")
+            match api(&api_socket, pid, "PUT", "/api/v1/vm.resume", &Value::Null) {
+                Ok(_) => {
+                    let state = observe_state(&api_socket, pid, "Running")?;
+                    observe_confinement(
+                        config,
+                        token,
+                        "cloud-hypervisor",
+                        &binary,
+                        &runner.vmm.blake3,
+                        true,
+                        API_TIMEOUT,
+                    )?;
+                    Ok(EffectEvidence::VmmState(state))
+                }
+                Err(error) if error.starts_with("retained API rejected request") => {
+                    Ok(EffectEvidence::Rejected)
+                }
+                Err(error) => Err(error),
+            }
         }
         Action::Snapshot { checkpoint } => {
             observe_state(&api_socket, pid, "Paused")?;
@@ -784,18 +879,77 @@ fn host_effect(config: &Config, backend: &Backend, operation: &Operation) -> Res
                 &json!({"destination_url":format!("file://{}", super::text(checkpoint)?)}),
             )?;
             observe_state(&api_socket, pid, "Paused")?;
-            super::paired::publish(operation, checkpoint)
+            super::paired::publish(operation, checkpoint)?;
+            Ok(EffectEvidence::VmmState("Paused".into()))
         }
         Action::Retire => {
             observe_state(&api_socket, pid, "Paused")?;
             if cleanup_unit(config, token) {
-                Ok(())
+                Ok(EffectEvidence::CleanupObserved)
             } else {
                 Err("retained source cleanup unknown".into())
             }
         }
         _ => Err("unsupported retained host effect".into()),
     }
+}
+
+fn host_control_observation(
+    config: &Config,
+    backend: &Backend,
+    operation: &Operation,
+) -> Result<EffectEvidence, String> {
+    if !matches!(operation.action, Action::Pause | Action::Resume) {
+        return Err("observation-only reconciliation requires a pause/resume operation".into());
+    }
+    super::verify_pool_directory(&operation.binding.directory)?;
+    super::admit_pool_path(&operation.binding.directory, &config.work_root)?;
+    if fs::canonicalize(&operation.binding.directory).map_err(|e| e.to_string())?
+        != operation.binding.directory
+    {
+        return Err("retained resource directory contains an indirect path".into());
+    }
+    let runner = Runner::from_cloud_hypervisor(backend)
+        .ok_or("retained execution requires existing CH backend")?;
+    let binary = runner.vmm.verify()?;
+    let observed = observed_profile(config, backend)?;
+    if observed.identity != operation.binding.profile
+        || operation.session.resources.vcpus != u16::from(runner.policy.vcpus)
+        || operation.session.resources.memory_mib != runner.policy.memory_mib
+    {
+        return Err("retained actual VMM/CPU/memory profile mismatch".into());
+    }
+    let pid = observe_confinement(
+        config,
+        &operation.binding.unit,
+        "cloud-hypervisor",
+        &binary,
+        &runner.vmm.blake3,
+        true,
+        API_TIMEOUT,
+    )?
+    .pid;
+    let state = api(
+        &operation.binding.directory.join("api.sock"),
+        pid,
+        "GET",
+        "/api/v1/vm.info",
+        &Value::Null,
+    )?
+    .get("state")
+    .and_then(Value::as_str)
+    .ok_or("retained VMM state is missing")?
+    .to_string();
+    observe_confinement(
+        config,
+        &operation.binding.unit,
+        "cloud-hypervisor",
+        &binary,
+        &runner.vmm.blake3,
+        true,
+        API_TIMEOUT,
+    )?;
+    Ok(EffectEvidence::VmmState(state))
 }
 
 #[cfg(test)]
@@ -897,17 +1051,18 @@ mod tests {
         let operation = operation();
         register(&mut db, &mut authority, &operation).unwrap_or_else(|_| unreachable!());
         let mut effects = 0;
-        let first = execute_with_effect(&mut db, &mut authority, &operation, || {
-            effects += 1;
-            Ok(())
+        let first = execute_with_effect(&mut db, &mut authority, &operation, |mode| {
+            if mode == EffectMode::Dispatch {
+                effects += 1;
+            }
+            Ok(EffectEvidence::VmmState("Paused".into()))
         })
         .unwrap_or_else(|_| unreachable!());
         assert!(
             matches!(&first, Outcome::Observed(session) if session.state == RetainedState::Paused)
         );
-        let second = execute_with_effect(&mut db, &mut authority, &operation, || {
-            effects += 1;
-            Ok(())
+        let second = execute_with_effect(&mut db, &mut authority, &operation, |_| {
+            unreachable!("observed duplicate must not call host")
         })
         .unwrap_or_else(|_| unreachable!());
         assert_eq!(first, second);
@@ -915,9 +1070,8 @@ mod tests {
         let mut changed = operation.clone();
         changed.binding.disk_generation += 1;
         assert!(
-            execute_with_effect(&mut db, &mut authority, &changed, || {
-                effects += 1;
-                Ok(())
+            execute_with_effect(&mut db, &mut authority, &changed, |_| {
+                unreachable!("stale body must not call host")
             })
             .is_err()
         );
@@ -930,20 +1084,22 @@ mod tests {
         changed.operation =
             ContentId::from_blake3_hex("f".repeat(64)).unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            execute_with_effect(&mut db, &mut authority, &changed, || {
-                effects += 1;
+            execute_with_effect(&mut db, &mut authority, &changed, |mode| {
+                if mode == EffectMode::Dispatch {
+                    effects += 1;
+                }
                 Err("lost response".into())
             })
             .unwrap_or_else(|_| unreachable!()),
             Outcome::ReconcileRequired
         );
-        assert_eq!(
-            execute_with_effect(&mut db, &mut authority, &changed, || {
-                effects += 1;
-                Ok(())
-            })
-            .unwrap_or_else(|_| unreachable!()),
-            Outcome::ReconcileRequired
+        let recovered = execute_with_effect(&mut db, &mut authority, &changed, |mode| {
+            assert_eq!(mode, EffectMode::ObserveOnly);
+            Ok(EffectEvidence::VmmState("Running".into()))
+        })
+        .unwrap_or_else(|_| unreachable!());
+        assert!(
+            matches!(recovered, Outcome::Observed(session) if session.state == RetainedState::Running)
         );
         assert_eq!(effects, 2);
         let occupied: u32 = db
@@ -968,17 +1124,130 @@ mod tests {
         drop(db);
         let mut db = Connection::open(root.path().join("retained.sqlite"))
             .unwrap_or_else(|_| unreachable!());
-        let mut effects = 0;
         assert_eq!(
-            execute_with_effect(&mut db, &mut authority, &operation, || {
-                effects += 1;
-                Ok(())
+            execute_with_effect(&mut db, &mut authority, &operation, |_| {
+                unreachable!("crashed non-control effect cannot be replayed")
             })
             .unwrap_or_else(|_| unreachable!()),
             Outcome::ReconcileRequired
         );
-        assert_eq!(effects, 0);
         assert!(operation.session.occupies_capacity());
+    }
+    #[test]
+    fn serialized_pause_intent_reconciles_after_restart_without_redispatch() {
+        let (root, mut db) = database();
+        init(&db).unwrap_or_else(|_| unreachable!());
+        let mut authority = FixtureReservation;
+        let mut start = operation();
+        register(&mut db, &mut authority, &start).unwrap_or_else(|_| unreachable!());
+        start.session = match execute_with_effect(&mut db, &mut authority, &start, |_| {
+            Ok(EffectEvidence::VmmState("Paused".into()))
+        })
+        .unwrap_or_else(|_| unreachable!())
+        {
+            Outcome::Observed(session) => *session,
+            Outcome::ReconcileRequired => unreachable!(),
+        };
+        let id = |c: char| {
+            ContentId::from_blake3_hex(c.to_string().repeat(64)).unwrap_or_else(|_| unreachable!())
+        };
+        let mut resume = start.clone();
+        resume.operation = id('c');
+        resume.action = Action::Resume;
+        resume.session = match execute_with_effect(&mut db, &mut authority, &resume, |_| {
+            Ok(EffectEvidence::VmmState("Running".into()))
+        })
+        .unwrap_or_else(|_| unreachable!())
+        {
+            Outcome::Observed(session) => *session,
+            Outcome::ReconcileRequired => unreachable!(),
+        };
+        let mut pause = resume.clone();
+        pause.operation = id('d');
+        pause.action = Action::Pause;
+        let mut pending = pause.session.clone();
+        let token = owner(&pending);
+        pending
+            .request_control(&token, pause.operation.clone(), ControlKind::Pause)
+            .unwrap_or_else(|_| unreachable!());
+        pending
+            .control_in_progress(&token, &pause.operation)
+            .unwrap_or_else(|_| unreachable!());
+        let request = serde_json::to_string(&pause).unwrap_or_else(|_| unreachable!());
+        let tx = db
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .unwrap_or_else(|_| unreachable!());
+        tx.execute("INSERT INTO hosted_retained_operation(operation,session,request,outcome) VALUES(?1,?2,?3,NULL)", params![pause.operation.as_str(), pause.session.identity.session.as_str(), request]).unwrap_or_else(|_| unreachable!());
+        tx.execute(
+            "UPDATE hosted_retained_session SET record=?2 WHERE session=?1",
+            params![
+                pending.identity.session.as_str(),
+                serde_json::to_string(&pending).unwrap_or_else(|_| unreachable!())
+            ],
+        )
+        .unwrap_or_else(|_| unreachable!());
+        tx.commit().unwrap_or_else(|_| unreachable!());
+        let mut snapshot = pause.clone();
+        snapshot.operation = id('e');
+        snapshot.session = pending.clone();
+        snapshot.action = Action::Snapshot {
+            checkpoint: root.path().join("pending-checkpoint"),
+        };
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &snapshot, |_| unreachable!(
+                "pending pause blocks checkpoint"
+            ))
+            .unwrap_or_else(|_| unreachable!()),
+            Outcome::ReconcileRequired
+        );
+        drop(db);
+        let mut db = Connection::open(root.path().join("retained.sqlite"))
+            .unwrap_or_else(|_| unreachable!());
+        let recovered = execute_with_effect(&mut db, &mut authority, &pause, |mode| {
+            assert_eq!(mode, EffectMode::ObserveOnly);
+            Ok(EffectEvidence::VmmState("Paused".into()))
+        })
+        .unwrap_or_else(|_| unreachable!());
+        assert!(
+            matches!(recovered, Outcome::Observed(session) if session.state == RetainedState::Paused)
+        );
+    }
+    #[test]
+    fn lost_retirement_ack_keeps_capacity_and_never_repeats_cleanup() {
+        let (_root, mut db) = database();
+        init(&db).unwrap_or_else(|_| unreachable!());
+        let mut authority = FixtureReservation;
+        let mut operation = operation();
+        register(&mut db, &mut authority, &operation).unwrap_or_else(|_| unreachable!());
+        operation.session = match execute_with_effect(&mut db, &mut authority, &operation, |_| {
+            Ok(EffectEvidence::VmmState("Paused".into()))
+        })
+        .unwrap_or_else(|_| unreachable!())
+        {
+            Outcome::Observed(session) => *session,
+            Outcome::ReconcileRequired => unreachable!(),
+        };
+        operation.operation =
+            ContentId::from_blake3_hex("c".repeat(64)).unwrap_or_else(|_| unreachable!());
+        operation.action = Action::Retire;
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &operation, |_| Err(
+                "lost cleanup acknowledgement".into()
+            ))
+            .unwrap_or_else(|_| unreachable!()),
+            Outcome::ReconcileRequired
+        );
+        let duplicate = execute_with_effect(&mut db, &mut authority, &operation, |_| {
+            unreachable!("retirement is never replayed")
+        })
+        .unwrap_or_else(|_| unreachable!());
+        assert_eq!(duplicate, Outcome::ReconcileRequired);
+        let occupied: u32 = db
+            .query_row("SELECT occupied FROM hosted_retained_session", [], |row| {
+                row.get(0)
+            })
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(occupied, 1);
     }
 }
 
@@ -1033,6 +1302,50 @@ mod api_tests {
         );
         assert!(api(&path, pid + 1, "PUT", "/api/v1/vm.pause", &Value::Null).is_err());
         assert!(api(&path, pid, "PUT", "/api/v1/vm.pause", &Value::Null).is_err());
+        server.join().unwrap_or_else(|_| unreachable!());
+    }
+
+    #[test]
+    fn accepted_pause_reply_requires_paused_readback() {
+        let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let path = root.path().join("api.sock");
+        let listener = UnixListener::bind(&path).unwrap_or_else(|_| unreachable!());
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
+            .unwrap_or_else(|_| unreachable!());
+        let server = std::thread::spawn(move || {
+            for index in 0..4 {
+                let (mut stream, _) = listener.accept().unwrap_or_else(|_| unreachable!());
+                let mut request = [0_u8; 1024];
+                let count = stream.read(&mut request).unwrap_or_else(|_| unreachable!());
+                let request = request.get(..count).unwrap_or_default();
+                if index % 2 == 0 {
+                    assert!(request.starts_with(b"PUT /api/v1/vm.pause "));
+                } else {
+                    assert!(request.starts_with(b"GET /api/v1/vm.info "));
+                }
+                let response = match index {
+                    0 | 2 => "HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n".to_string(),
+                    1 => "HTTP/1.1 200 OK\r\nContent-Length: 19\r\n\r\n{\"state\":\"Running\"}"
+                        .to_string(),
+                    _ => "HTTP/1.1 200 OK\r\nContent-Length: 18\r\n\r\n{\"state\":\"Paused\"}"
+                        .to_string(),
+                };
+                stream
+                    .write_all(response.as_bytes())
+                    .unwrap_or_else(|_| unreachable!());
+            }
+        });
+        let pid = std::process::id();
+        assert_eq!(
+            api(&path, pid, "PUT", "/api/v1/vm.pause", &Value::Null),
+            Ok(Value::Null)
+        );
+        assert!(observe_state(&path, pid, "Paused").is_err());
+        assert_eq!(
+            api(&path, pid, "PUT", "/api/v1/vm.pause", &Value::Null),
+            Ok(Value::Null)
+        );
+        assert_eq!(observe_state(&path, pid, "Paused"), Ok("Paused".into()));
         server.join().unwrap_or_else(|_| unreachable!());
     }
 }
@@ -1108,8 +1421,10 @@ mod checkpoint_reopen_tests {
         let mut authority = FixtureReservation;
         register(&mut db, &mut authority, &operation).unwrap_or_else(|_| unreachable!());
         operation.session = observed(
-            execute_with_effect(&mut db, &mut authority, &operation, || Ok(()))
-                .unwrap_or_else(|_| unreachable!()),
+            execute_with_effect(&mut db, &mut authority, &operation, |_| {
+                Ok(EffectEvidence::VmmState("Paused".into()))
+            })
+            .unwrap_or_else(|_| unreachable!()),
         );
         let checkpoint = root.path().join("checkpoint");
         fs::create_dir(&checkpoint).unwrap_or_else(|_| unreachable!());
@@ -1124,16 +1439,19 @@ mod checkpoint_reopen_tests {
             checkpoint: checkpoint.clone(),
         };
         operation.session = observed(
-            execute_with_effect(&mut db, &mut authority, &operation, || {
+            execute_with_effect(&mut db, &mut authority, &operation, |_| {
                 super::super::paired::publish(&operation, &checkpoint)
+                    .map(|()| EffectEvidence::VmmState("Paused".into()))
             })
             .unwrap_or_else(|_| unreachable!()),
         );
         operation.operation = id('3');
         operation.action = Action::Retire;
         operation.session = observed(
-            execute_with_effect(&mut db, &mut authority, &operation, || Ok(()))
-                .unwrap_or_else(|_| unreachable!()),
+            execute_with_effect(&mut db, &mut authority, &operation, |_| {
+                Ok(EffectEvidence::CleanupObserved)
+            })
+            .unwrap_or_else(|_| unreachable!()),
         );
         operation.session = RetainedSession::admit(
             operation.session.identity.clone(),
@@ -1149,8 +1467,10 @@ mod checkpoint_reopen_tests {
             .unwrap_or_else(|_| unreachable!());
         assert!(reopen_retired_checkpoint(&mut db, &mut authority, &operation).is_err());
         operation.session = observed(
-            execute_with_effect(&mut db, &mut authority, &operation, || Ok(()))
-                .unwrap_or_else(|_| unreachable!()),
+            execute_with_effect(&mut db, &mut authority, &operation, |_| {
+                Ok(EffectEvidence::VmmState("Paused".into()))
+            })
+            .unwrap_or_else(|_| unreachable!()),
         );
         for (operation_id, action) in [
             ('5', Action::Resume),
@@ -1160,8 +1480,14 @@ mod checkpoint_reopen_tests {
             operation.operation = id(operation_id);
             operation.action = action;
             operation.session = observed(
-                execute_with_effect(&mut db, &mut authority, &operation, || Ok(()))
-                    .unwrap_or_else(|_| unreachable!()),
+                execute_with_effect(&mut db, &mut authority, &operation, |_| {
+                    Ok(match operation.action {
+                        Action::Resume => EffectEvidence::VmmState("Running".into()),
+                        Action::Pause => EffectEvidence::VmmState("Paused".into()),
+                        _ => EffectEvidence::CleanupObserved,
+                    })
+                })
+                .unwrap_or_else(|_| unreachable!()),
             );
         }
         operation.session = RetainedSession::admit(

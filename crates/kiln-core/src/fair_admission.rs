@@ -722,7 +722,17 @@ impl AdmissionLedger {
         inputs: &[EligibilityInput],
         now_ms: u64,
     ) -> CoreResult<Option<ContentId>> {
-        let policy = self.policy()?.clone();
+        self.select_scoped(inputs, now_ms, None)
+    }
+    /// Rank only work inside an authoritative operation scope while retaining
+    /// the complete ledger's usage, quota, eligibility, and order facts.
+    pub fn select_scoped(
+        &mut self,
+        inputs: &[EligibilityInput],
+        now_ms: u64,
+        work_scope: Option<&ContentId>,
+    ) -> CoreResult<Option<ContentId>> {
+        self.policy()?;
         if inputs.len() > MAX_RECORDS {
             return Err(err("admission_inputs_full", "eligibility input bound"));
         }
@@ -757,6 +767,14 @@ impl AdmissionLedger {
             self.eligibility
                 .insert(input.work_version.clone(), input.clone());
         }
+        self.select_ranked(now_ms, work_scope)
+    }
+    fn select_ranked(
+        &mut self,
+        now_ms: u64,
+        work_scope: Option<&ContentId>,
+    ) -> CoreResult<Option<ContentId>> {
+        let policy = self.policy()?.clone();
         let mut eligible = Vec::new();
         for (id, item) in &mut self.items {
             if !matches!(
@@ -832,7 +850,10 @@ impl AdmissionLedger {
                 item.reason = AdmissionReason::BudgetExhausted;
                 continue;
             }
-            if input.reason == AdmissionReason::Eligible && now_ms >= item.eligible_at_ms {
+            if input.reason == AdmissionReason::Eligible
+                && now_ms >= item.eligible_at_ms
+                && work_scope.is_none_or(|scope| scope == id)
+            {
                 eligible.push(id.clone());
             }
         }

@@ -1,4 +1,3 @@
-use cob_git2 as git2;
 use kiln_core::types::Diagnostic;
 use kiln_provider_api::{InfrastructureFailure, PortFailure};
 

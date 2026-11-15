@@ -12,7 +12,7 @@ fn native_hash_framing_keeps_add_modify_delete_distinct() -> TestResult {
     let fact = |value: &[u8]| FileFact {
         length: value.len() as u64,
         hash: *blake3::hash(value).as_bytes(),
-        object: Oid::zero(),
+        object: Oid::ZERO_SHA1,
         mode: 0o100644,
     };
     let base = BTreeMap::from([

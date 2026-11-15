@@ -471,13 +471,14 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
 
     def start_service(self):
         previous_heartbeats = self.retained_heartbeats() if hasattr(self, "heartbeats") else {}
-        before = {path.name: (path.stat().st_size, path.stat().st_mtime_ns) for path in (self.root / "state").iterdir()}
+        state_directory = Path(json.loads((self.root / "service.json").read_text())["state_directory"])
+        before = {path.name: (path.stat().st_size, path.stat().st_mtime_ns) for path in state_directory.iterdir()}
         policy = ["--profile", self.root / "service.json", "--access", self.root / "access.json", "--automation", self.root / "automation.json", "--cache", self.root / "cache.json", "--workers", self.root / "workers.json"]
         if self.args.work:
             policy.extend(["--work", self.root / "work.json", "--sources", self.root / "sources.json"])
         preflight = self.command([self.exe["service"], "check", *policy])
         assert self.operator.encode() not in preflight and self.worker.encode() not in preflight
-        assert before == {path.name: (path.stat().st_size, path.stat().st_mtime_ns) for path in (self.root / "state").iterdir()}, "preflight modified persistent state"
+        assert before == {path.name: (path.stat().st_size, path.stat().st_mtime_ns) for path in state_directory.iterdir()}, "preflight modified persistent state"
         self.service = self.spawn("service", [self.exe["service"], "serve", *policy])
         def ready():
             try:
@@ -574,7 +575,8 @@ print("actual artifact bytes:", payload.decode().strip(), flush=True)
         self.wait(admitted, "both real worker daemon sessions admitted")
 
     def retained_heartbeats(self):
-        database = "file:" + str(self.root / "state" / "worker-status.sqlite") + "?mode=ro"
+        state_directory = Path(json.loads((self.root / "service.json").read_text())["state_directory"])
+        database = "file:" + str(state_directory / "worker-status.sqlite") + "?mode=ro"
         with sqlite3.connect(database, uri=True) as connection:
             rows = connection.execute("SELECT worker_id,observation FROM worker_status").fetchall()
         return {name:json.loads(raw) for name, raw in rows}

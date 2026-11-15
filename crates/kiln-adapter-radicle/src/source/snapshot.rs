@@ -4,7 +4,7 @@ use std::os::unix::fs::{DirBuilderExt as _, OpenOptionsExt as _, PermissionsExt 
 use std::path::{Component, Path, PathBuf};
 
 use blake3::Hash;
-use cob_git2 as git2;
+
 use git2::{ObjectType, Oid, Repository, Tree};
 use kiln_core::source::{
     GitEntryKind, GitSnapshotEntry, GitSnapshotLimits, build_git_snapshot_manifest,

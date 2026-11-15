@@ -8,7 +8,7 @@ Execute only exact current authorized operations; journal before effects; never 
 
 ## Decisions
 
-Reuse existing CH plans and host effects. Keep host API private and verify service-owned directories/sockets before use. Durable operation records distinguish dispatched, observed and reconciliation; duplicate calls cannot redispatch. Use authenticated Iroh connections, bounded streams with backpressure, half-close and deadline, and operation admission before socket use. Retain transfer and placement receipts separately. No boolean transport success grants cutover.
+Reuse existing CH plans and host effects. Keep host API private and verify service-owned directories/sockets before use. Operation-bound controls persist requested and in-progress records before effects; only exact native VMM readback plus confinement/backend barriers adopts observed state. Duplicate calls cannot redispatch, and pending/uncertain controls preserve occupied capacity and block conflicting commands. Use authenticated Iroh connections, bounded streams with backpressure, half-close and deadline, and operation admission before socket use. Retain transfer and placement receipts separately. No boolean transport success grants cutover. Aspen ownership/resource fencing, guest reconnect, cross-host streaming and two-host qualification remain external blockers, never local fallbacks.
 
 ## Risks and Trade-offs
 

@@ -153,6 +153,57 @@ fn observes_reviewed_native_sync_with_exact_accepted_blobs_and_native_receipt_ha
         &report_path,
     )
     .unwrap_or_else(|error| unreachable!("{error}"));
+
+    let native = NativeGitReceipt {
+        schema: NATIVE_GIT_RECEIPT_SCHEMA.into(),
+        plan: id('0'),
+        work_identity: id('1'),
+        work_revision: 1,
+        attempt: id('2'),
+        fence: 3,
+        handoff: id('3'),
+        verification: id('4'),
+        review: id('a'),
+        checks: id('b'),
+        policy: id('5'),
+        repository: "onix/kiln".into(),
+        remote_identity: id('c'),
+        provider_profile: "native-git-v1".into(),
+        branch_expected_old: None,
+        branch_ref: "refs/heads/kiln/native".into(),
+        target_ref: "refs/heads/main".into(),
+        expected_old_target: binding.candidate.clone(),
+        candidate: binding.candidate.clone(),
+        tree: reviewed_tree.clone(),
+        branch_operation: id('d'),
+        integration_operation: id('e'),
+        resulting_commit: binding.candidate.clone(),
+    };
+    let native_observed = observe_native_git_lifecycle(
+        repo.path(),
+        &native,
+        &binding,
+        ".cairn/native.json",
+        &report_path,
+    )
+    .unwrap_or_else(|error| unreachable!("native receipt consumer failed: {error}"));
+    assert_eq!(native_observed.observed_tree, reviewed_tree);
+    assert_eq!(
+        native_observed.lifecycle_receipt.native_id.as_str(),
+        native_hash
+    );
+    let mut wrong_native = native.clone();
+    wrong_native.resulting_commit = external("commit", &"f".repeat(40));
+    assert!(
+        observe_native_git_lifecycle(
+            repo.path(),
+            &wrong_native,
+            &binding,
+            ".cairn/native.json",
+            &report_path,
+        )
+        .is_err()
+    );
     assert_eq!(observed.observed_tree, reviewed_tree);
     assert_eq!(observed.lifecycle_policy, id('5'));
     assert_eq!(observed.lifecycle_receipt.native_id.as_str(), native_hash);

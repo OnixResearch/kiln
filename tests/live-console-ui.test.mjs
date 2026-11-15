@@ -1121,6 +1121,10 @@ test("worker filters never substitute an exact selected target, including a miss
   assert.equal(workers.selection(rows, workers.normalizeRoute({})).selected, null);
   assert.equal(workers.normalizeRoute({ worker_status: "offline" }).status, "offline");
   assert.equal(workers.normalizeRoute({ worker_status: "constructor" }).status, "");
+  assert.equal(workers.normalizeRoute({ worker_campaign: " exact-campaign " }).campaign, " exact-campaign ");
+  assert.equal(workers.normalizeRoute({ worker_campaign: "c".repeat(256) }).campaign, "c".repeat(256));
+  assert.equal(workers.normalizeRoute({ worker_campaign: "c".repeat(257) }).campaign, "");
+  assert.equal(workers.normalizeRoute({ worker_campaign: "bad\nvalue" }).campaign, "");
 });
 
 // r[verify kiln.dashboard.workers.view.scenario.detail]

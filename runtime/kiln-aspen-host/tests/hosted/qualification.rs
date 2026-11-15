@@ -17,7 +17,7 @@ const CRASH_REQUEST_ALLOWANCE: usize = 8;
 #[test]
 fn child_host_crash_replays_exact_acknowledgements_without_dispatch() {
     let fixture = ProcessFixture::new(std::time::Instant::now);
-    let lattice = FixtureLattice::start(&fixture, false);
+    let lattice = FixtureLattice::start(&fixture, DispatchBehavior::Connected);
     let ingress = fixture.ingress(0);
     let child = fixture.start(CRASH_REQUEST_ALLOWANCE);
     let ack = completed(fixture.client().submit(&fixture.profile, &ingress));
@@ -144,7 +144,7 @@ fn child_host_restart_retains_unknown_on_failed_recovery_without_redispatch() {
 #[test]
 fn child_host_bounded_load_preserves_every_ack_and_dispatch_count_across_restart() {
     let fixture = ProcessFixture::new(std::time::Instant::now);
-    let lattice = FixtureLattice::start(&fixture, false);
+    let lattice = FixtureLattice::start(&fixture, DispatchBehavior::Connected);
     let child = fixture.start(LOAD_OPERATION_COUNT * REQUESTS_PER_OPERATION);
     let mut client = fixture.client();
     let mut completed_operations = Vec::with_capacity(LOAD_OPERATION_COUNT);

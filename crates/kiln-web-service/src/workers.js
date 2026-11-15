@@ -20,6 +20,11 @@
   const countText = (value) => count(value) === null ? "Not recorded" : value.toLocaleString("en-US");
   const plural = (value, word) => `${countText(value)} ${word}${value === 1 ? "" : "s"}`;
   const compare = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+  const CAMPAIGN_ID_MAX_CHARS = 256;
+  function campaignId(value) {
+    const id = text(value);
+    return id && id.trim() && id.length <= CAMPAIGN_ID_MAX_CHARS && !/[\u0000-\u001f\u007f]/.test(id) ? id : "";
+  }
 
   // The Overview uses the same existing inventory admission and slot vocabulary as this page.
   function validate(result) {
@@ -69,6 +74,7 @@
       worker: text(route?.worker),
       q: text(route?.worker_q).slice(0, QUERY_MAX_CHARS),
       status: Object.hasOwn(statuses, route?.worker_status) ? route.worker_status : "",
+      campaign: campaignId(route?.worker_campaign),
     };
   }
   // r[impl kiln.dashboard.workers.view.scenario.register] Display order is by readable name, never opaque hash order.
@@ -369,6 +375,33 @@
     sheet.append(disclosure("Exact target binding and snapshot", "binding", facts([["Kiln target ID", copyIdentity(row.id)], ["Provider profile", row.provider], ["Platform", row.platform], ["Heartbeat liveness", text(row.worker.liveness) || null], ["Snapshot version", countText(inventory.version)], ["Assigned projects", row.worker.projects.length], ["Configured project slots", countText(row.capacity.configured_slots)], ["Enrolled project slots", countText(row.capacity.enrolled_slots)]])));
     return sheet;
   }
+  function campaignCard(route) {
+    const panel = element("section", undefined, "panel workers-campaign-card");
+    panel.append(element("h2", "Selected campaign progress and blockers"), element("p", "Read-only campaign snapshot. This card grants no reservation, dispatch, landing, or lifecycle authority.", "small"));
+    const form = element("form", undefined, "workers-campaign-lookup");
+    const label = element("label", "Exact campaign ID"); label.htmlFor = "workers-campaign-id";
+    const input = element("input"); Object.assign(input, { id: "workers-campaign-id", type: "text", value: route.campaign, maxLength: CAMPAIGN_ID_MAX_CHARS, autocomplete: "off", placeholder: "Campaign ID (up to 256 characters)" });
+    const lookup = element("button", "Load campaign"); lookup.type = "submit";
+    const clearSelection = element("button", "Clear campaign selection"); clearSelection.type = "button";
+    const refresh = element("button", "Refresh campaign"); refresh.type = "button"; refresh.disabled = !route.campaign;
+    const status = element("p", route.campaign ? `Selected campaign: ${route.campaign}` : "No campaign selected. Enter one exact ID to inspect it.", "small"); status.setAttribute("role", "status");
+    form.append(label, input, lookup, clearSelection, refresh, status);
+    const campaignRoot = element("div", undefined, "workers-campaign-projection"); campaignRoot.dataset.campaignRoot = "true";
+    if (!route.campaign) campaignRoot.append(element("p", "Campaign data is not requested until an exact ID is selected. No absence or completion is inferred.", "small"));
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const id = campaignId(input.value);
+      if (!id) { status.textContent = `Enter a non-empty campaign ID of at most ${CAMPAIGN_ID_MAX_CHARS} characters without control characters.`; input.focus(); return; }
+      navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id });
+    });
+    clearSelection.addEventListener("click", () => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: "" }));
+    refresh.addEventListener("click", () => {
+      if (!route.campaign || !context?.isCurrent()) return;
+      void window.KilnInventory?.loadCampaign(campaignRoot, context, route.campaign);
+    });
+    panel.append(form, campaignRoot);
+    return panel;
+  }
   function render(inventory, items, route) {
     const page = element("div", undefined, "workers-page");
     if (window.KilnInventory) {
@@ -376,6 +409,7 @@
       observed.dataset.inventoryRoot = "true";
       page.append(observed);
     }
+    page.append(campaignCard(route));
     if (!route.worker) page.append(summary(inventory), register(inventory, items, route));
     else {
       page.append(detail(inventory, items, route));
@@ -400,7 +434,7 @@
     const route = normalizeRoute(ctx.route);
     if (mounted !== root) { clear(); mounted = root; }
     context = ctx;
-    if (shown && model && applied && route.worker === shown.worker && (route.q !== shown.q || route.status !== shown.status) && route.q === applied.q && route.status === applied.status && root.firstChild) {
+    if (shown && model && applied && route.worker === shown.worker && route.campaign === shown.campaign && (route.q !== shown.q || route.status !== shown.status) && route.q === applied.q && route.status === applied.status && root.firstChild) {
       shown = route; title(); return;
     }
     const current = ++generation;
@@ -422,6 +456,8 @@
       root.replaceChildren(render(inventory, model.rows, route));
       const observed = root.querySelector("[data-inventory-root]");
       if (observed) void window.KilnInventory.load(observed, ctx);
+      const campaignRoot = root.querySelector("[data-campaign-root]");
+      if (campaignRoot && route.campaign) void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
       if (prior === route.worker) for (const node of root.querySelectorAll("details[data-worker-disclosure]")) if (open.has(node.dataset.workerDisclosure)) node.open = open.get(node.dataset.workerDisclosure);
       shown = route;
       if (focus.startsWith("#")) root.querySelector(focus)?.focus({ preventScroll: true });
@@ -444,12 +480,14 @@
       const failure = element("p", `Workers unavailable: ${sentence} No presence, absence or worker health is inferred.`, "error-state"); failure.setAttribute("role", "alert");
       const retry = element("button", "Try again"); retry.type = "button";
       retry.addEventListener("click", () => { if (context?.isCurrent()) void load(root, context); });
-      panel.append(element("h2", "Workers unavailable"), failure, retry); root.replaceChildren(panel);
+      panel.append(element("h2", "Workers unavailable"), failure, retry, campaignCard(route)); root.replaceChildren(panel);
       if (window.KilnInventory) {
         const observed = element("div", undefined, "workers-observed-inventories");
         root.prepend(observed);
         void window.KilnInventory.load(observed, ctx);
       }
+      const campaignRoot = root.querySelector("[data-campaign-root]");
+      if (campaignRoot && route.campaign) void window.KilnInventory?.loadCampaign(campaignRoot, ctx, route.campaign);
     } finally {
       if (live()) root.removeAttribute("aria-busy");
     }

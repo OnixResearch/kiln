@@ -31,14 +31,10 @@ fn fixture() -> Fixture {
     fs::create_dir(&storage)
         .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
     let rid = "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE";
-    let repo = cob_git2::Repository::init_bare(storage.join(rid.trim_start_matches("rad:")))
+    let repo = git2::Repository::init_bare(storage.join(rid.trim_start_matches("rad:")))
         .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
-    let signature = cob_git2::Signature::new(
-        "fixture",
-        "fixture@kiln.invalid",
-        &cob_git2::Time::new(1, 0),
-    )
-    .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
+    let signature = git2::Signature::new("fixture", "fixture@kiln.invalid", &git2::Time::new(1, 0))
+        .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));
     let mut tree = repo
         .treebuilder(None)
         .unwrap_or_else(|error| unreachable!("fixture operation failed: {error:?}"));

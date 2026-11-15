@@ -137,7 +137,7 @@ fn explicit_snapshot_reconstructs_identically_on_independent_backing_without_cha
     assert!(
         commit
             .message()
-            .unwrap_or_else(|| unreachable!("provenance message"))
+            .unwrap_or_else(|_| unreachable!("provenance message"))
             .contains(
                 &manifest
                     .identity()

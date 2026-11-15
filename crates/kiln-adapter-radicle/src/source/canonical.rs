@@ -10,7 +10,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use cob_git2 as git2;
 use git2::{ObjectType, Oid, Repository};
 use heartwood_canonical::git::canonical::Object;
 use heartwood_canonical::git::canonical::rules::{RawPattern, RawRule, RawRules, Rules};

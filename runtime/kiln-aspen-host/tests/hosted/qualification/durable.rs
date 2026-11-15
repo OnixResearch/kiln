@@ -67,7 +67,7 @@ fn child_host_startup_rejects_malformed_corrupt_and_partial_durable_state() {
         DamagedState::MissingCallbackDirectory,
     ] {
         let fixture = ProcessFixture::new(std::time::Instant::now);
-        let lattice = FixtureLattice::start(&fixture, false);
+        let lattice = FixtureLattice::start(&fixture, DispatchBehavior::Connected);
         let child = fixture.start(1);
         completed(
             fixture
@@ -97,7 +97,7 @@ fn child_host_startup_rejects_malformed_corrupt_and_partial_durable_state() {
 #[test]
 fn child_host_complete_quiescent_backup_restores_and_partial_restore_is_rejected() {
     let fixture = ProcessFixture::new(std::time::Instant::now);
-    let lattice = FixtureLattice::start(&fixture, false);
+    let lattice = FixtureLattice::start(&fixture, DispatchBehavior::Connected);
     let ingress = fixture.ingress(0);
     let child = fixture.start(1);
     let ack = completed(fixture.client().submit(&fixture.profile, &ingress));

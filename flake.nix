@@ -227,11 +227,15 @@
             "--all-targets"
           ];
           cargoTestFlags = [ "--workspace" ];
+          postInstall = ''
+            install -Dm644 config/implementation-campaign-drive.ncl \
+              "$out/share/kiln/implementation-campaign-drive.ncl"
+          '';
         };
       # r[impl kiln.web.deploy.install]
       webServicePackageFor =
         system:
-        (packageFor system).overrideAttrs (_: {
+        (packageFor system).overrideAttrs (old: {
           pname = "kiln-web-service";
           cargoBuildFlags = [
             "-p"
@@ -243,13 +247,37 @@
             "-p"
             "kiln-web-service"
           ];
-          postInstall = ''
+          postInstall = (old.postInstall or "") + ''
             install -Dm644 deployment/kiln-web-service.service.in \
               "$out/lib/systemd/system/kiln-web-service.service"
             substituteInPlace "$out/lib/systemd/system/kiln-web-service.service" \
               --replace-fail '@out@' "$out"
           '';
           meta.description = "Authenticated single-tenant Kiln web service with supervised deployment assets";
+        });
+      # r[impl kiln.implementation_qualification.real_stages]
+      implementationFixturesPackageFor =
+        system:
+        (packageFor system).overrideAttrs (_: {
+          pname = "kiln-implementation-fixtures";
+          buildFeatures = [
+            "kiln-adapter-github/protocol-fixtures"
+            "kiln-web-service/implementation-fixtures"
+          ];
+          cargoBuildFlags = [
+            "-p" "kiln-adapter-github"
+            "-p" "kiln-adapter-lattice"
+            "-p" "kiln-adapter-cairn"
+            "-p" "kiln-web-service"
+            "--bins"
+          ];
+          cargoTestFlags = [
+            "-p" "kiln-adapter-github"
+            "-p" "kiln-adapter-lattice"
+            "-p" "kiln-adapter-cairn"
+            "-p" "kiln-web-service"
+          ];
+          meta.description = "Explicit local scripted implementation fixtures; no production provider fallback";
         });
       # r[impl kiln.web.exploration.scenario.deploy]
       websiteExplorationPackageFor =
@@ -725,6 +753,7 @@
           kiln = packageFor system;
           kiln-cairn-intake = kilnCairnIntakePackageFor system;
           web-service = webServicePackageFor system;
+          implementation-fixtures = implementationFixturesPackageFor system;
           website-exploration = websiteExplorationPackageFor system;
           bombadil = bombadilPackageFor system;
           web-exploration-bombadil = webExplorationBombadilPackageFor system;

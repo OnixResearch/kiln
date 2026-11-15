@@ -19,3 +19,6 @@
 .inventory-work-form input { min-width:0; width:100%; font-family:var(--mono); }
 .inventory-work-form button, .inventory-work-form input, .inventory-unavailable button { min-height:2.75rem; }
 @media (max-width:40rem) { .inventory-work-form { grid-template-columns:minmax(0,1fr); } .inventory-facts { grid-template-columns:minmax(0,1fr); } }
+.campaign-member { border-top:1px solid var(--border); }
+.campaign-projection .inventory-header { overflow-wrap:anywhere; }
+.campaign-projection .inventory-blockers li { margin-block:var(--space-1); }

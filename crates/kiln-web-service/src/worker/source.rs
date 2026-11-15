@@ -124,45 +124,56 @@ pub fn prepare(profile: &WorkerProfile, context: &SourceContext) -> Result<Prepa
         .as_ref()
         .map(|s| s.repository_path.clone())
         .unwrap_or_else(|| profile.repository_path.clone());
-    let provider =
-        ProviderProfileId::new("web-worker-git-v1").map_err(|_| "worker source profile invalid")?;
-    let adapter = LocalGitAdapter::new(
-        backing.clone(),
-        context.revision.clone(),
-        GitSourceProfile::pinned_local(provider.clone(), profile.snapshot_limits.clone()),
-    )
-    .map_err(|_| "worker source admission failed")?;
-    let resolution =
-        resolve_and_acquire(&adapter, provider).map_err(|_| "worker snapshot admission failed")?;
-    if resolution.exact_revision.native_id.as_str() != context.revision {
-        return Err("worker source binding mismatch".into());
-    }
-    let repository = Repository::open(&backing).map_err(|_| "worker repository unavailable")?;
-    let commit = repository
-        .find_commit(Oid::from_str(&context.revision).map_err(|_| "worker commit invalid")?)
-        .map_err(|_| "worker commit unavailable")?;
-    let tree = commit
-        .tree()
-        .map_err(|_| "worker source tree unavailable")?;
-    validate_tree(
-        &repository,
-        &tree,
-        0,
-        0,
-        profile.snapshot_limits.max_path_bytes,
-    )?;
     let root = tempfile::Builder::new()
         .prefix("kiln-web-job-")
         .tempdir_in(&profile.work_root)
         .map_err(|_| "worker isolation directory failed")?;
     let checkout = root.path().join("checkout");
-    files::create_private(&checkout)?;
-    materialize(&repository, &tree, &checkout)?;
+    let resolution = materialize_exact(
+        &backing,
+        &context.revision,
+        &profile.snapshot_limits,
+        &checkout,
+    )?;
     Ok(PreparedSource {
         _root: root,
         checkout,
         resolution,
     })
+}
+
+/// Materialize only one admitted Git revision; no checkout hooks or source code run.
+pub(crate) fn materialize_exact(
+    backing: &Path,
+    revision: &str,
+    limits: &kiln_core::source::GitSnapshotLimits,
+    destination: &Path,
+) -> Result<SourceResolution, String> {
+    files::directory(backing)?;
+    let provider =
+        ProviderProfileId::new("web-worker-git-v1").map_err(|_| "worker source profile invalid")?;
+    let adapter = LocalGitAdapter::new(
+        backing.to_path_buf(),
+        revision.to_owned(),
+        GitSourceProfile::pinned_local(provider.clone(), limits.clone()),
+    )
+    .map_err(|_| "worker source admission failed")?;
+    let resolution =
+        resolve_and_acquire(&adapter, provider).map_err(|_| "worker snapshot admission failed")?;
+    if resolution.exact_revision.native_id.as_str() != revision {
+        return Err("worker source binding mismatch".into());
+    }
+    let repository = Repository::open(backing).map_err(|_| "worker repository unavailable")?;
+    let commit = repository
+        .find_commit(Oid::from_str(revision).map_err(|_| "worker commit invalid")?)
+        .map_err(|_| "worker commit unavailable")?;
+    let tree = commit
+        .tree()
+        .map_err(|_| "worker source tree unavailable")?;
+    validate_tree(&repository, &tree, 0, 0, limits.max_path_bytes)?;
+    files::create_private(destination)?;
+    materialize(&repository, &tree, destination)?;
+    Ok(resolution)
 }
 
 fn validate_tree(
@@ -176,7 +187,9 @@ fn validate_tree(
         return Err("worker source tree depth exceeded".into());
     }
     for entry in tree {
-        let name = entry.name().ok_or("worker source path encoding denied")?;
+        let name = entry
+            .name()
+            .map_err(|_| "worker source path encoding denied")?;
         let bytes = prefix
             .checked_add(name.len())
             .ok_or("worker source path overflow")?;
@@ -208,7 +221,11 @@ fn validate_tree(
 
 fn materialize(repository: &Repository, tree: &Tree<'_>, destination: &Path) -> Result<(), String> {
     for entry in tree {
-        let path = destination.join(entry.name().ok_or("worker source path encoding denied")?);
+        let path = destination.join(
+            entry
+                .name()
+                .map_err(|_| "worker source path encoding denied")?,
+        );
         if entry.filemode() == 0o040_000 {
             files::create_private(&path)?;
             materialize(

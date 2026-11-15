@@ -1132,3 +1132,228 @@ fn configured_legacy_claim_without_queue_item_is_still_revocable() {
             .is_empty()
     );
 }
+
+#[test]
+fn campaign_claim_scopes_ranking_before_claiming_unrelated_work() {
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = dir.path().join("ledger.db");
+    let first = work("campaign-a");
+    let second = work("campaign-b");
+    let mut implementer = setup(&path, &[("a", first.clone()), ("b", second.clone())]);
+    let inputs = vec![offer(&first), offer(&second)];
+    let global_winner = match implementer
+        .admission_apply(Cmd::Select { inputs }, 100)
+        .unwrap_or_else(|_| unreachable!())
+    {
+        ResultFact::Selected {
+            work_version: Some(identity),
+        } => identity,
+        other => unreachable!("unexpected selection {other:?}"),
+    };
+    let first_id = first.identity().unwrap_or_else(|_| unreachable!());
+    let second_id = second.identity().unwrap_or_else(|_| unreachable!());
+    let global_parent = if global_winner == first_id {
+        id("a")
+    } else {
+        id("b")
+    };
+    let (scoped_work, parent) = if global_winner == first_id {
+        (second_id, id("b"))
+    } else {
+        (first_id, id("a"))
+    };
+    let attempt = match implementer
+        .claim_campaign_work(&scoped_work, &parent, 100, 200)
+        .unwrap_or_else(|_| unreachable!())
+    {
+        kiln_implementer::campaign_consumer::CampaignClaimOutcome::Claimed(attempt) => attempt,
+        other => unreachable!("unexpected scoped claim {other:?}"),
+    };
+    assert_eq!(
+        implementer
+            .claim_campaign_work(&scoped_work, &parent, 101, 200)
+            .unwrap_or_else(|_| unreachable!()),
+        kiln_implementer::campaign_consumer::CampaignClaimOutcome::Claimed(attempt.clone())
+    );
+    assert!(
+        implementer
+            .claim_campaign_work(&global_winner, &global_parent, 101, 200)
+            .is_err()
+    );
+    let after_claim = implementer
+        .admission_snapshot()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        after_claim
+            .items
+            .get(&scoped_work)
+            .unwrap_or_else(|| unreachable!())
+            .claim
+            .is_some()
+    );
+    assert!(
+        after_claim
+            .items
+            .get(&global_winner)
+            .unwrap_or_else(|| unreachable!())
+            .claim
+            .is_none()
+    );
+    assert_eq!(
+        after_claim
+            .items
+            .get(&global_winner)
+            .unwrap_or_else(|| unreachable!())
+            .reason,
+        AdmissionReason::Eligible
+    );
+}
+
+#[test]
+fn campaign_claim_refuses_a_parent_outside_the_canonical_account_lineage() {
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = dir.path().join("ledger.db");
+    let selected = work("campaign-a");
+    let mut implementer = setup(&path, &[("a", selected.clone())]);
+    let identity = selected.identity().unwrap_or_else(|_| unreachable!());
+    assert!(
+        implementer
+            .claim_campaign_work(&identity, &id("b"), 100, 200)
+            .is_err()
+    );
+    assert!(
+        implementer
+            .claim_campaign_work(&identity, &id("missing"), 100, 200)
+            .is_err()
+    );
+    let ledger = implementer
+        .admission_snapshot()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        ledger
+            .items
+            .get(&identity)
+            .unwrap_or_else(|| unreachable!())
+            .claim
+            .is_none()
+    );
+}
+
+#[test]
+fn campaign_claim_reattaches_reserved_current_claim_and_rechecks_parent_lineage() {
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = dir.path().join("ledger.db");
+    let selected = work("campaign-reserved");
+    let identity = selected.identity().unwrap_or_else(|_| unreachable!());
+    let mut implementer = setup(&path, &[("a", selected.clone())]);
+    let original = claim(&mut implementer, &selected);
+    let request = reservation(&selected, &original, "reserved-claim-op");
+    implementer
+        .admission_apply(
+            Cmd::Request {
+                reservation: request.clone(),
+                inputs: vec![offer(&selected)],
+            },
+            100,
+        )
+        .unwrap_or_else(|_| unreachable!());
+    confirm(&mut implementer, &request);
+    let before = implementer
+        .admission_snapshot()
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        before
+            .items
+            .get(&identity)
+            .unwrap_or_else(|| unreachable!())
+            .phase,
+        AdmissionPhase::Reserved
+    );
+    assert_eq!(
+        before
+            .reservations
+            .get(&request.operation)
+            .unwrap_or_else(|| unreachable!())
+            .state,
+        ReservationState::Committed
+    );
+    let attempts_before =
+        kiln_implementer::campaign_consumer::CanonicalCampaignLedgers::read(&path)
+            .unwrap_or_else(|_| unreachable!())
+            .attempts
+            .attempts()
+            .count();
+
+    assert_eq!(
+        implementer
+            .claim_campaign_work(&identity, &id("a"), 102, 200)
+            .unwrap_or_else(|_| unreachable!()),
+        kiln_implementer::campaign_consumer::CampaignClaimOutcome::Claimed(Box::new(
+            original.clone()
+        ))
+    );
+    assert!(
+        implementer
+            .claim_campaign_work(&identity, &id("b"), 102, 200)
+            .is_err()
+    );
+
+    let after = implementer
+        .admission_snapshot()
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        after
+            .items
+            .get(&identity)
+            .unwrap_or_else(|| unreachable!())
+            .claim,
+        before
+            .items
+            .get(&identity)
+            .unwrap_or_else(|| unreachable!())
+            .claim
+    );
+    assert_eq!(
+        after
+            .items
+            .get(&identity)
+            .unwrap_or_else(|| unreachable!())
+            .phase,
+        AdmissionPhase::Reserved
+    );
+    assert_eq!(
+        after
+            .accounts
+            .get(&id("a"))
+            .unwrap_or_else(|| unreachable!())
+            .available,
+        before
+            .accounts
+            .get(&id("a"))
+            .unwrap_or_else(|| unreachable!())
+            .available
+    );
+    let attempts_after = kiln_implementer::campaign_consumer::CanonicalCampaignLedgers::read(&path)
+        .unwrap_or_else(|_| unreachable!())
+        .attempts
+        .attempts()
+        .count();
+    assert_eq!(attempts_after, attempts_before);
+}
+
+#[test]
+fn campaign_claim_requires_explicit_policy_instead_of_legacy_fallback() {
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = dir.path().join("ledger.db");
+    let selected = work("campaign-a");
+    let mut implementer = open(&path);
+    implementer
+        .admit_with_supersession(&selected, None, SupersessionRule::AbortActive, 100)
+        .unwrap_or_else(|_| unreachable!());
+    let identity = selected.identity().unwrap_or_else(|_| unreachable!());
+    assert!(
+        implementer
+            .claim_campaign_work(&identity, &id("a"), 100, 200)
+            .is_err()
+    );
+}

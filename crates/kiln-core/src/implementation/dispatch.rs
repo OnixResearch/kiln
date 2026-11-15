@@ -7,7 +7,7 @@
 //! attempt ledger reserves before transport.
 
 use alloc::collections::BTreeSet;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use serde::{Deserialize, Serialize};
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use super::{ImplementationWork, content_identity, push_str};
 use crate::types::{ContentId, CoreResult, Diagnostic, ExternalRef, ProviderProfileId};
 
-pub const DISPATCH_PLAN_SCHEMA: &str = "kiln.implementation-dispatch-plan.v1";
+pub const DISPATCH_PLAN_SCHEMA: &str = "kiln.implementation-dispatch-plan.v2";
 pub const MAX_DISPATCH_PATHS: usize = 64;
 pub const MAX_DISPATCH_EFFECTS: usize = 16;
 pub const MAX_DISPATCH_TOKENS: u64 = 10_000_000;
@@ -54,7 +54,10 @@ pub struct DispatchControls {
 pub struct DispatchExecutionBindings {
     pub requirements: crate::inventory::WorkNeedsAttachment,
     pub attempt: crate::inventory::AttemptBinding,
-    pub worker_request: ContentId,
+    /// Native prepared request profile, distinct from the stable agent definition.
+    /// Absence selects the explicit historical transport-v1 compatibility cohort.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_request_profile: Option<ContentId>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -81,6 +84,60 @@ pub struct ImplementationDispatchPlan {
     /// it conveys no model-service or physical-allocation qualification.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution: Option<DispatchExecutionBindings>,
+}
+
+/// Durable proof that one exact request byte string was bound to an admitted plan.
+/// The request embeds the plan id, so this seal is separate and persisted before transport.
+pub const DISPATCH_REQUEST_BINDING_SCHEMA: &str = "kiln.implementation-dispatch-request-binding.v1";
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DispatchRequestBinding {
+    pub schema: String,
+    pub attempt: ContentId,
+    pub fence: u64,
+    pub plan: ContentId,
+    pub request_digest: ContentId,
+    pub seal: ContentId,
+}
+impl DispatchRequestBinding {
+    pub fn new(
+        attempt: &ContentId,
+        fence: u64,
+        plan: &ContentId,
+        request_digest: &ContentId,
+    ) -> CoreResult<Self> {
+        let mut bytes = Vec::new();
+        push_str(&mut bytes, DISPATCH_REQUEST_BINDING_SCHEMA)?;
+        push_str(&mut bytes, attempt.as_str())?;
+        bytes.extend_from_slice(&fence.to_be_bytes());
+        push_str(&mut bytes, plan.as_str())?;
+        push_str(&mut bytes, request_digest.as_str())?;
+        let seal = ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string())?;
+        Ok(Self {
+            schema: DISPATCH_REQUEST_BINDING_SCHEMA.to_string(),
+            attempt: attempt.clone(),
+            fence,
+            plan: plan.clone(),
+            request_digest: request_digest.clone(),
+            seal,
+        })
+    }
+    pub fn validate_for(
+        &self,
+        attempt: &ContentId,
+        fence: u64,
+        plan: &ContentId,
+        request_digest: &ContentId,
+    ) -> CoreResult<()> {
+        if self != &Self::new(attempt, fence, plan, request_digest)? {
+            return Err(Diagnostic::new(
+                "implementation_request_binding",
+                "dispatch.request",
+                "request bytes or plan differ from the retained dispatch seal",
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Admit a plan against the exact work and attempt it names.
@@ -175,6 +232,17 @@ pub fn admit_dispatch_plan(
         }
     }
     if let Some(execution) = &plan.execution {
+        if execution
+            .native_request_profile
+            .as_ref()
+            .is_some_and(|profile| profile.validate().is_err())
+        {
+            return Err(refusal(
+                "implementation_dispatch_request_profile",
+                "dispatch.execution.native_request_profile",
+                "native request profile is invalid",
+            ));
+        }
         execution
             .requirements
             .validate_for(
@@ -193,7 +261,6 @@ pub fn admit_dispatch_plan(
         if binding.work_version != plan.work_identity.as_str()
             || binding.attempt != plan.attempt_identity.as_str()
             || binding.fence != plan.fence
-            || execution.worker_request.validate().is_err()
             || binding.model_services.len() > crate::inventory::MAX_REQUIREMENTS
             || binding.request_admissions.len() > crate::inventory::MAX_REQUIREMENTS
         {
@@ -235,6 +302,7 @@ pub fn admit_dispatch_plan(
     push_str(&mut bytes, plan.attempt_identity.as_str())?;
     bytes.extend_from_slice(&plan.fence.to_be_bytes());
     push_str(&mut bytes, &plan.repository)?;
+    bytes.push(u8::from(plan.base.is_some()));
     if let Some(base) = &plan.base {
         push_str(&mut bytes, base.provider_namespace.as_str())?;
         push_str(&mut bytes, base.native_kind.as_str())?;
@@ -242,6 +310,8 @@ pub fn admit_dispatch_plan(
     }
     push_str(&mut bytes, plan.workspace.identity.as_str())?;
     push_str(&mut bytes, "isolated_snapshot")?;
+    bytes.push(u8::from(plan.workspace.network));
+    bytes.push(u8::from(plan.workspace.credentials));
     push_str(&mut bytes, plan.provider_profile.as_str())?;
     let mut paths: Vec<&str> = plan.permitted_paths.iter().map(String::as_str).collect();
     paths.sort_unstable();
@@ -258,24 +328,24 @@ pub fn admit_dispatch_plan(
     bytes.extend_from_slice(&plan.deadline_minutes.to_be_bytes());
     bytes.extend_from_slice(&plan.token_budget.to_be_bytes());
     bytes.extend_from_slice(&plan.invocation_budget.to_be_bytes());
+    bytes.push(u8::from(plan.execution.is_some()));
     if let Some(execution) = &plan.execution {
-        push_str(&mut bytes, "kiln.implementation-execution-bindings.v1")?;
-        bytes.push(u8::from(plan.workspace.network));
         push_str(
             &mut bytes,
-            execution
-                .requirements
-                .identity()
-                .map_err(|_| {
-                    refusal(
-                        "implementation_dispatch_requirements",
-                        "dispatch.execution",
-                        "requirements identity is invalid",
-                    )
-                })?
-                .as_str(),
+            if execution.native_request_profile.is_some() {
+                "kiln.implementation-execution-bindings.v3"
+            } else {
+                "kiln.implementation-execution-bindings.v2"
+            },
         )?;
-        push_str(&mut bytes, execution.worker_request.as_str())?;
+        let requirements = execution.requirements.identity().map_err(|_| {
+            refusal(
+                "implementation_dispatch_requirements",
+                "dispatch.execution",
+                "requirements identity is invalid",
+            )
+        })?;
+        push_str(&mut bytes, requirements.as_str())?;
         let binding = &execution.attempt;
         for reference in core::iter::once(&binding.worker)
             .chain(core::iter::once(&binding.execution_grant))
@@ -287,6 +357,9 @@ pub fn admit_dispatch_plan(
         }
         bytes.extend_from_slice(&(binding.model_services.len() as u64).to_be_bytes());
         bytes.extend_from_slice(&(binding.request_admissions.len() as u64).to_be_bytes());
+        if let Some(profile) = &execution.native_request_profile {
+            push_str(&mut bytes, profile.as_str())?;
+        }
     }
     content_identity(&bytes)
 }
@@ -505,6 +578,7 @@ mod tests {
             qualification_protocol: "v1".into(),
         };
         bound.execution = Some(DispatchExecutionBindings {
+            native_request_profile: None,
             requirements: WorkNeedsAttachment::new(
                 attempt.work_identity.clone(),
                 work.revision,
@@ -521,7 +595,6 @@ mod tests {
                 model_services: vec![reference("shared-model")],
                 request_admissions: vec![reference("request-grant")],
             },
-            worker_request: content('a'),
         });
         bound.workspace.network = true;
         let digest =
@@ -530,6 +603,60 @@ mod tests {
             .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &bound)
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(ledger.dispatch_plan(&attempt.identity), Some(&bound));
+        let request_a = content('a');
+        let sealed = ledger
+            .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &request_a)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(sealed.plan, digest);
+        assert!(
+            sealed
+                .validate_for(&attempt.identity, attempt.fence, &digest, &request_a)
+                .is_ok()
+        );
+        assert!(
+            sealed
+                .validate_for(&attempt.identity, attempt.fence, &digest, &content('b'))
+                .is_err()
+        );
+        assert!(
+            ledger
+                .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 3, &content('b'))
+                .is_err()
+        );
+        let mut native_profile_changed = bound.clone();
+        native_profile_changed
+            .execution
+            .as_mut()
+            .unwrap_or_else(|| unreachable!())
+            .native_request_profile = Some(content('c'));
+        let native_digest = admit_dispatch_plan(&work, &attempt, &native_profile_changed)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(
+            sealed
+                .validate_for(&attempt.identity, attempt.fence, &native_digest, &request_a)
+                .is_err()
+        );
+        assert!(
+            ledger
+                .reserve_dispatch_plan(
+                    &work,
+                    &attempt.identity,
+                    attempt.fence,
+                    3,
+                    &native_profile_changed
+                )
+                .is_err()
+        );
+        assert!(
+            !ledger
+                .begin_dispatch_transport(&attempt.identity, attempt.fence, 4, &digest)
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert!(
+            ledger
+                .begin_dispatch_transport(&attempt.identity, attempt.fence, 5, &digest)
+                .unwrap_or_else(|_| unreachable!())
+        );
         let mut crossed = bound.clone();
         crossed
             .execution
@@ -548,13 +675,15 @@ mod tests {
             .clear();
         assert!(admit_dispatch_plan(&work, &attempt, &missing).is_err());
         let mut changed = bound.clone();
-        changed
-            .execution
-            .as_mut()
-            .unwrap_or_else(|| unreachable!())
-            .worker_request = content('b');
+        changed.workspace.identity = content('e');
         assert_ne!(
             admit_dispatch_plan(&work, &attempt, &changed).unwrap_or_else(|_| unreachable!()),
+            digest
+        );
+        let mut no_network = bound.clone();
+        no_network.workspace.network = false;
+        assert_ne!(
+            admit_dispatch_plan(&work, &attempt, &no_network).unwrap_or_else(|_| unreachable!()),
             digest
         );
         assert!(

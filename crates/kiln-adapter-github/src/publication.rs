@@ -1,21 +1,57 @@
 //! Idempotent verified-PR publication to GitHub.
 //!
-//! The caller supplies an admitted publication plan with a verified candidate.
-//! Branch creation is reconciled before retry; PR creation reconciles exact
-//! head/base matches and refuses ambiguity. No merge, force push, branch update
-//! or source-status mutation is performed here.
+//! The caller supplies an admitted publication plan and operator-owned source
+//! profile; candidate objects are pushed through guarded native Git before PR
+//! reconciliation. No merge or source-status mutation is performed here.
 
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use git2::{Cred, CredentialType, Oid, Repository};
+use kiln_adapter_git::native_publication::{
+    NativeRemoteProfile, NativeTransport, PushObservation, push_exact_ref, read_remote_ref,
+    remote_identity,
+};
 use kiln_core::implementation::PublicationPlan;
-use kiln_core::types::ExternalRef;
+use kiln_core::types::{ContentId, ExternalRef};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 use serde::Deserialize;
 
 use crate::secret::ResolvedSecret;
 use crate::status::BoundedGithubResolver;
 use crate::{domain, infrastructure};
+/// Operator-owned source and remote authority for candidate publication.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PublicationSourceProfile {
+    pub schema: String,
+    pub repository_path: PathBuf,
+    pub remote: NativeRemoteProfile,
+    pub remote_identity: ContentId,
+    pub fixture: bool,
+}
+
+pub const PUBLICATION_SOURCE_PROFILE_SCHEMA: &str = "kiln.github-publication-source.v1";
+
+impl PublicationSourceProfile {
+    pub fn read(path: &Path) -> PortResult<Self> {
+        let bytes = std::fs::read(path).map_err(|_| {
+            domain(
+                "github_publication_source_profile",
+                "publication.source_profile",
+                "source profile is unreadable",
+            )
+        })?;
+        serde_json::from_slice(&bytes).map_err(|_| {
+            domain(
+                "github_publication_source_profile",
+                "publication.source_profile",
+                "source profile is malformed",
+            )
+        })
+    }
+}
 
 const API: &str = "https://api.github.com";
 const API_VERSION: &str = "2022-11-28";
@@ -47,10 +83,22 @@ impl std::fmt::Debug for GithubPublicationClient {
 
 impl GithubPublicationClient {
     pub fn new(token: ResolvedSecret, timeout_ms: u64) -> PortResult<Self> {
+        // Default builds never read this qualification-only transport override.
+        #[cfg(feature = "protocol-fixtures")]
+        if let Some(endpoint) = std::env::var_os("KILN_GITHUB_FIXTURE_PUBLICATION_ENDPOINT") {
+            let endpoint = endpoint.into_string().map_err(|_| {
+                domain(
+                    "github_publication_endpoint",
+                    "publication.endpoint",
+                    "fixture endpoint must be a UTF-8 loopback HTTP origin",
+                )
+            })?;
+            return Self::new_fixture(token, timeout_ms, &endpoint);
+        }
         Self::build(token, timeout_ms, API.to_string(), true)
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "protocol-fixtures"))]
     fn new_fixture(token: ResolvedSecret, timeout_ms: u64, endpoint: &str) -> PortResult<Self> {
         let authority = endpoint.strip_prefix("http://").ok_or_else(|| {
             domain(
@@ -110,75 +158,108 @@ impl GithubPublicationClient {
         })
     }
 
-    /// Ensure the exact candidate branch exists at the candidate commit.
-    // r[impl kiln.github.publication]
-    pub fn ensure_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
-        match self.reconcile_branch(plan)? {
-            Some(head) => Ok(head),
-            None => self.create_branch(plan),
-        }
-    }
-
-    /// Reconciliation is read-only, including an absent result. Absence never
-    /// itself grants transport authority; the durable shell owns that decision.
-    pub fn reconcile_branch(&self, plan: &PublicationPlan) -> PortResult<Option<ExternalRef>> {
+    /// Upload and reconcile the exact captured candidate through native Git.
+    /// The caller persists its effect intent before invoking this operation.
+    pub fn publish_candidate_branch(
+        &self,
+        plan: &PublicationPlan,
+        source: &PublicationSourceProfile,
+        push: bool,
+    ) -> PortResult<Option<ExternalRef>> {
         validate_plan(plan)?;
-        let (owner, repository) = repository_parts(&plan.repository)?;
-        let path = format!(
-            "{}/repos/{owner}/{repository}/git/ref/heads/{}",
-            self.endpoint,
-            encode(&plan.branch)
-        );
-        match self.get(&path) {
-            Ok(response) => {
-                let raw: RawRef = self.decode(response)?;
-                if raw.object.sha != plan.candidate.native_id.as_str() {
-                    return Err(domain(
+        validate_source_profile(plan, source, &self.endpoint)?;
+        let path = candidate_repository_path(plan, source)?;
+        let repository = Repository::open_bare(&path)
+            .or_else(|_| Repository::open(&path))
+            .map_err(|_| publication_source_error())?;
+        let oid = Oid::from_str(plan.candidate.native_id.as_str())
+            .map_err(|_| publication_source_error())?;
+        let commit = repository
+            .find_commit(oid)
+            .map_err(|_| publication_source_error())?;
+        if commit.tree_id().to_string() != plan.tree.native_id.as_str() {
+            return Err(domain(
+                "github_publication_tree_conflict",
+                "publication.tree",
+                "captured candidate tree differs from verified plan",
+            ));
+        }
+        let reference = format!("refs/heads/{}", plan.branch);
+        let mut credential = |url: &str, _username: Option<&str>, allowed: CredentialType| {
+            if source.fixture
+                || url != source.remote.remote_url
+                || !allowed.contains(CredentialType::USER_PASS_PLAINTEXT)
+            {
+                return Err(git2::Error::from_str(
+                    "credential request is outside enrolled GitHub HTTPS remote",
+                ));
+            }
+            let token = self
+                .token
+                .as_str()
+                .map_err(|_| git2::Error::from_str("GitHub token is unavailable"))?;
+            Cred::userpass_plaintext("x-access-token", token)
+        };
+        let current = read_remote_ref(
+            &repository,
+            &source.remote,
+            &source.remote_identity,
+            &reference,
+            &mut credential,
+        )
+        .map_err(|_| publication_remote_error())?;
+        match current {
+            Some(found) if found == oid => return Ok(Some(commit_ref(&found.to_string())?)),
+            Some(_) => {
+                return Err(domain(
+                    "github_publication_branch_conflict",
+                    "publication.branch",
+                    "existing branch head differs from candidate; overwrite is forbidden",
+                ));
+            }
+            None if !push => return Ok(None),
+            None => {}
+        }
+        match push_exact_ref(
+            &repository,
+            &source.remote,
+            &source.remote_identity,
+            oid,
+            &reference,
+            Oid::ZERO_SHA1,
+            &mut credential,
+        )
+        .map_err(|_| publication_remote_error())?
+        {
+            PushObservation::Confirmed { commit } if commit == oid.to_string() => {
+                Ok(Some(commit_ref(&commit)?))
+            }
+            PushObservation::Rejected { .. }
+            | PushObservation::Unknown { .. }
+            | PushObservation::Confirmed { .. } => {
+                let reconciled = read_remote_ref(
+                    &repository,
+                    &source.remote,
+                    &source.remote_identity,
+                    &reference,
+                    &mut credential,
+                )
+                .map_err(|_| publication_remote_error())?;
+                match reconciled {
+                    Some(found) if found == oid => Ok(Some(commit_ref(&found.to_string())?)),
+                    Some(_) => Err(domain(
                         "github_publication_branch_conflict",
                         "publication.branch",
-                        "existing branch head differs from the candidate; overwrite is forbidden",
-                    ));
+                        "remote branch has an unexpected head; overwrite is forbidden",
+                    )),
+                    None => Err(PortFailure::Unknown(InfrastructureFailure {
+                        code: "github_publication_branch_unknown".into(),
+                        message:
+                            "candidate push outcome remains unresolved; reconcile before retry"
+                                .into(),
+                    })),
                 }
-                Ok(Some(commit_ref(&raw.object.sha)?))
             }
-            Err(HttpError::Status(404)) => Ok(None),
-            Err(error) => Err(error.into_failure()),
-        }
-    }
-
-    fn create_branch(&self, plan: &PublicationPlan) -> PortResult<ExternalRef> {
-        let (owner, repository) = repository_parts(&plan.repository)?;
-        let body = serde_json::json!({
-            "ref": format!("refs/heads/{}", plan.branch),
-            "sha": plan.candidate.native_id.as_str(),
-        })
-        .to_string();
-        match self.post(
-            &format!("{}/repos/{owner}/{repository}/git/refs", self.endpoint),
-            &body,
-        ) {
-            Ok(response) => {
-                let raw: RawRef = self.decode(response).map_err(|_| {
-                    unknown(
-                        "github_publication_branch_unknown",
-                        "branch mutation response is unreadable; reconcile before retry",
-                    )
-                })?;
-                if raw.object.sha != plan.candidate.native_id.as_str() {
-                    return Err(unknown(
-                        "github_publication_branch_unknown",
-                        "branch mutation reported an unexpected head; reconcile without overwrite",
-                    ));
-                }
-                commit_ref(&raw.object.sha)
-            }
-            Err(HttpError::Status(422 | 409)) => self.reconcile_branch(plan)?.ok_or_else(|| {
-                unknown(
-                    "github_publication_branch_race",
-                    "branch creation raced and remained unobserved",
-                )
-            }),
-            Err(error) => Err(error.into_mutation_failure()),
         }
     }
 
@@ -310,6 +391,116 @@ impl GithubPublicationClient {
     }
 }
 
+fn validate_source_profile(
+    plan: &PublicationPlan,
+    source: &PublicationSourceProfile,
+    endpoint: &str,
+) -> PortResult<()> {
+    if source.schema != PUBLICATION_SOURCE_PROFILE_SCHEMA
+        || !source.repository_path.is_absolute()
+        || remote_identity(&source.remote).ok().as_ref() != Some(&source.remote_identity)
+        || (source.fixture != (source.remote.transport == NativeTransport::LocalBareFixture))
+    {
+        return Err(domain(
+            "github_publication_source_profile",
+            "publication.source_profile",
+            "source profile identity or fixture transport is invalid",
+        ));
+    }
+    let root = source
+        .repository_path
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(publication_source_error)?;
+    let expected = root.join(format!(
+        "{}-{}/candidate",
+        plan.attempt.as_str(),
+        plan.fence
+    ));
+    let actual =
+        std::fs::canonicalize(&source.repository_path).map_err(|_| publication_source_error())?;
+    let expected = std::fs::canonicalize(expected).map_err(|_| publication_source_error())?;
+    if actual != expected
+        || !actual.starts_with(std::fs::canonicalize(root).map_err(|_| publication_source_error())?)
+    {
+        return Err(domain(
+            "github_publication_source_locator",
+            "publication.source",
+            "profile repository does not resolve to the exact attempt/fence candidate export",
+        ));
+    }
+    match source.remote.transport {
+        NativeTransport::LocalBareFixture => {
+            #[cfg(not(any(test, feature = "protocol-fixtures")))]
+            return Err(domain(
+                "github_publication_fixture_disabled",
+                "publication.source_profile",
+                "local bare publication is fixture-only",
+            ));
+            #[cfg(any(test, feature = "protocol-fixtures"))]
+            if !endpoint.starts_with("http://127.0.0.1:") && !endpoint.starts_with("http://[::1]:")
+            {
+                return Err(domain(
+                    "github_publication_fixture_endpoint",
+                    "publication.source_profile",
+                    "local bare Git publication requires loopback GitHub fixture context",
+                ));
+            }
+        }
+        NativeTransport::Https => {
+            let (owner, repository) = repository_parts(&plan.repository)?;
+            let expected_url = format!("https://github.com/{owner}/{repository}.git");
+            if source.fixture || source.remote.remote_url != expected_url || endpoint != API {
+                return Err(domain(
+                    "github_publication_remote_mismatch",
+                    "publication.remote",
+                    "GitHub token may only publish to the enrolled HTTPS repository",
+                ));
+            }
+        }
+        NativeTransport::SshStrictHostKey => {
+            return Err(domain(
+                "github_publication_transport",
+                "publication.remote",
+                "GitHub publication requires HTTPS or explicit local fixture transport",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn candidate_repository_path(
+    plan: &PublicationPlan,
+    source: &PublicationSourceProfile,
+) -> PortResult<PathBuf> {
+    let root = source
+        .repository_path
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(publication_source_error)?;
+    let path = root.join(format!(
+        "{}-{}/candidate",
+        plan.attempt.as_str(),
+        plan.fence
+    ));
+    std::fs::canonicalize(path).map_err(|_| publication_source_error())
+}
+
+fn publication_source_error() -> PortFailure {
+    domain(
+        "github_publication_source",
+        "publication.source",
+        "trusted captured candidate repository is unavailable or malformed",
+    )
+}
+
+fn publication_remote_error() -> PortFailure {
+    PortFailure::Unknown(InfrastructureFailure {
+        code: "github_publication_remote_unknown".into(),
+        message: "native Git publication state could not be reconciled".into(),
+    })
+}
+
 fn validate_plan(plan: &PublicationPlan) -> PortResult<()> {
     let safe_branch = |value: &str| {
         !value.is_empty()
@@ -321,6 +512,10 @@ fn validate_plan(plan: &PublicationPlan) -> PortResult<()> {
     };
     let commit = plan.candidate.native_id.as_str();
     if plan.schema != kiln_core::implementation::PUBLICATION_SCHEMA
+        || plan.candidate.provider_namespace.as_str() != "git"
+        || plan.candidate.native_kind.as_str() != "commit"
+        || plan.tree.provider_namespace.as_str() != "git"
+        || plan.tree.native_kind.as_str() != "tree"
         || !safe_branch(&plan.branch)
         || !safe_branch(&plan.base_branch)
         || plan.title.trim().is_empty()
@@ -497,14 +692,6 @@ fn unknown(code: &str, message: &str) -> PortFailure {
 }
 
 #[derive(Deserialize)]
-struct RawRef {
-    object: RawObject,
-}
-#[derive(Deserialize)]
-struct RawObject {
-    sha: String,
-}
-#[derive(Deserialize)]
 struct RawPull {
     number: u64,
     state: String,
@@ -557,6 +744,132 @@ mod tests {
 
     fn token() -> ResolvedSecret {
         ResolvedSecret::from_bytes(b"fixture-token".to_vec()).unwrap_or_else(|_| unreachable!())
+    }
+
+    fn captured_fixture() -> (
+        tempfile::TempDir,
+        PublicationPlan,
+        PublicationSourceProfile,
+        PathBuf,
+    ) {
+        use std::os::unix::fs::symlink;
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let remote_path = directory.path().join("remote.git");
+        let _remote = Repository::init_bare(&remote_path).unwrap_or_else(|_| unreachable!());
+        let export_root = directory.path().join("candidate-export");
+        let capture = export_root.join(format!(
+            "{}-{}/candidate",
+            plan().attempt.as_str(),
+            plan().fence
+        ));
+        std::fs::create_dir_all(&capture).unwrap_or_else(|_| unreachable!());
+        let repository = Repository::init(&capture).unwrap_or_else(|_| unreachable!());
+        let tree_oid = repository
+            .treebuilder(None)
+            .unwrap_or_else(|_| unreachable!())
+            .write()
+            .unwrap_or_else(|_| unreachable!());
+        let tree = repository
+            .find_tree(tree_oid)
+            .unwrap_or_else(|_| unreachable!());
+        let signature = git2::Signature::now("Kiln fixture", "fixture@example.invalid")
+            .unwrap_or_else(|_| unreachable!());
+        let candidate = repository
+            .commit(
+                Some("refs/heads/main"),
+                &signature,
+                &signature,
+                "captured candidate",
+                &tree,
+                &[],
+            )
+            .unwrap_or_else(|_| unreachable!());
+        let remote = remote_path.to_string_lossy().into_owned();
+        repository
+            .remote("origin", &remote)
+            .unwrap_or_else(|_| unreachable!());
+        drop(tree);
+        drop(repository);
+        std::fs::create_dir_all(&export_root).unwrap_or_else(|_| unreachable!());
+        symlink(
+            capture.parent().unwrap_or_else(|| unreachable!()),
+            export_root.join("current"),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        let mut publication = plan();
+        publication.candidate = ExternalRef::new("git", "commit", &candidate.to_string())
+            .unwrap_or_else(|_| unreachable!());
+        publication.tree = ExternalRef::new("git", "tree", &tree_oid.to_string())
+            .unwrap_or_else(|_| unreachable!());
+        let remote_profile = NativeRemoteProfile {
+            remote_name: "origin".into(),
+            remote_url: remote,
+            transport: NativeTransport::LocalBareFixture,
+            ssh_host_key_sha256: None,
+        };
+        let source = PublicationSourceProfile {
+            schema: PUBLICATION_SOURCE_PROFILE_SCHEMA.into(),
+            repository_path: export_root.join("current/candidate"),
+            remote_identity: remote_identity(&remote_profile).unwrap_or_else(|_| unreachable!()),
+            remote: remote_profile,
+            fixture: true,
+        };
+        (directory, publication, source, remote_path)
+    }
+
+    fn fixture_endpoint() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());
+        format!(
+            "http://{}",
+            listener.local_addr().unwrap_or_else(|_| unreachable!())
+        )
+    }
+
+    #[test]
+    // r[verify kiln.github.publication.scenario.upload]
+    fn uploads_and_reads_back_the_exact_candidate_objects_before_pr_transport() {
+        let (_directory, plan, source, remote_path) = captured_fixture();
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &fixture_endpoint())
+            .unwrap_or_else(|_| unreachable!());
+        let branch = client
+            .publish_candidate_branch(&plan, &source, true)
+            .unwrap_or_else(|error| unreachable!("{error:?}"))
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(branch.native_id, plan.candidate.native_id);
+        let remote = Repository::open_bare(remote_path).unwrap_or_else(|_| unreachable!());
+        let remote_ref = remote
+            .find_reference("refs/heads/kiln/impl-demo")
+            .unwrap_or_else(|_| unreachable!());
+        let commit = remote
+            .find_commit(remote_ref.target().unwrap_or_else(|| unreachable!()))
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(commit.id().to_string(), plan.candidate.native_id.as_str());
+        assert_eq!(commit.tree_id().to_string(), plan.tree.native_id.as_str());
+    }
+
+    #[test]
+    // r[verify kiln.github.publication.scenario.refused]
+    fn refuses_wrong_tree_and_non_attempt_candidate_locator_before_push() {
+        let (_directory, plan, source, remote_path) = captured_fixture();
+        let client = GithubPublicationClient::new_fixture(token(), 5000, &fixture_endpoint())
+            .unwrap_or_else(|_| unreachable!());
+        let mut wrong_tree = plan.clone();
+        wrong_tree.tree =
+            ExternalRef::new("git", "tree", &"f".repeat(40)).unwrap_or_else(|_| unreachable!());
+        assert!(
+            client
+                .publish_candidate_branch(&wrong_tree, &source, true)
+                .is_err()
+        );
+        let mut wrong_locator = source;
+        wrong_locator.repository_path = wrong_locator.repository_path.with_file_name("untrusted");
+        assert!(
+            client
+                .publish_candidate_branch(&plan, &wrong_locator, true)
+                .is_err()
+        );
+        let remote = Repository::open_bare(remote_path).unwrap_or_else(|_| unreachable!());
+        assert!(remote.find_reference("refs/heads/kiln/impl-demo").is_err());
     }
 
     fn plan() -> PublicationPlan {
@@ -642,10 +955,6 @@ mod tests {
         (format!("http://{address}"), handle)
     }
 
-    fn branch_ref() -> String {
-        serde_json::json!({"object": {"sha": "a".repeat(40)}}).to_string()
-    }
-
     fn pull(number: u64, head: &str) -> serde_json::Value {
         serde_json::json!({
             "number": number,
@@ -659,54 +968,32 @@ mod tests {
 
     #[test]
     // r[verify kiln.github.publication] r[verify kiln.github.publication.scenario.create]
-    fn creates_a_missing_branch_and_pull_request_idempotently() {
+    fn creates_a_missing_pull_request_after_branch_publication() {
         let (endpoint, server) = serve(vec![
-            ("404 Not Found", "{}".to_string()),
-            ("201 Created", branch_ref()),
             ("200 OK", "[]".to_string()),
             ("201 Created", pull(9, &"a".repeat(40)).to_string()),
         ]);
         let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
         let plan = plan();
-        let branch = client
-            .ensure_branch(&plan)
-            .unwrap_or_else(|error| unreachable!("{error:?}"));
-        assert_eq!(branch.native_id.as_str(), "a".repeat(40));
         let outcome = client
             .ensure_pull_request(&plan)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(outcome.number, 9);
-        let requests = server.join().unwrap_or_else(|_| unreachable!());
-        assert!(requests.first().is_some_and(|request| {
-            request.starts_with("GET /repos/octocat/hello-world/git/ref/heads/kiln%2Fimpl-demo")
-        }));
-        assert!(requests.get(1).is_some_and(|request| {
-            request.starts_with("POST /repos/octocat/hello-world/git/refs")
-                && request.contains("refs/heads/kiln/impl-demo")
-        }));
-        assert!(requests.get(3).is_some_and(|request| {
-            request.starts_with("POST /repos/octocat/hello-world/pulls")
-                && request.contains("\"head\":\"kiln/impl-demo\"")
-        }));
+        assert_eq!(outcome.branch_head, plan.candidate);
+        drop(server.join().unwrap_or_else(|_| unreachable!()));
     }
 
     #[test]
     // r[verify kiln.github.publication] r[verify kiln.github.publication.scenario.existing]
-    fn reuses_an_exact_existing_branch_and_pull_request() {
-        let (endpoint, server) = serve(vec![
-            ("200 OK", branch_ref()),
-            (
-                "200 OK",
-                serde_json::json!([pull(9, &"a".repeat(40))]).to_string(),
-            ),
-        ]);
+    fn reuses_an_exact_existing_pull_request() {
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            serde_json::json!([pull(9, &"a".repeat(40))]).to_string(),
+        )]);
         let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
         let plan = plan();
-        client
-            .ensure_branch(&plan)
-            .unwrap_or_else(|error| unreachable!("{error:?}"));
         let outcome = client
             .ensure_pull_request(&plan)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
@@ -755,43 +1042,21 @@ mod tests {
 
     #[test]
     // r[verify kiln.github.publication] r[verify kiln.github.publication.scenario.refused]
-    fn refuses_conflicting_branch_and_ambiguous_pull_request() {
+    fn refuses_malformed_plan_and_ambiguous_pull_request() {
         let mut malformed = plan();
+        malformed.branch.clear();
+        assert!(validate_plan(&malformed).is_err());
+        malformed = plan();
         malformed.repository = "owner/repo/extra".to_string();
-        let (endpoint, server) = serve(vec![]);
-        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
-            .unwrap_or_else(|_| unreachable!());
-        assert!(client.ensure_branch(&malformed).is_err());
-        let _ = server.join();
-        let mut malformed = plan();
-        malformed.branch = "".to_string();
-        let (endpoint, server) = serve(vec![]);
-        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
-            .unwrap_or_else(|_| unreachable!());
-        assert!(client.ensure_branch(&malformed).is_err());
-        let _ = server.join();
-        let conflict = serde_json::json!({"object": {"sha": "b".repeat(40)}}).to_string();
-        let (endpoint, server) = serve(vec![("200 OK", conflict)]);
-        let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
-            .unwrap_or_else(|_| unreachable!());
-        assert!(client.ensure_branch(&plan()).is_err());
-        let _ = server.join();
+        assert!(repository_parts(&malformed.repository).is_err());
 
-        let (endpoint, server) = serve(vec![
-            ("200 OK", branch_ref()),
-            (
-                "200 OK",
-                serde_json::json!([pull(9, &"a".repeat(40)), pull(10, &"a".repeat(40))])
-                    .to_string(),
-            ),
-        ]);
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            serde_json::json!([pull(9, &"a".repeat(40)), pull(10, &"a".repeat(40))]).to_string(),
+        )]);
         let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
-        let plan = plan();
-        client
-            .ensure_branch(&plan)
-            .unwrap_or_else(|error| unreachable!("{error:?}"));
-        assert!(client.ensure_pull_request(&plan).is_err());
+        assert!(client.ensure_pull_request(&plan()).is_err());
         let _ = server.join();
     }
 
@@ -799,9 +1064,6 @@ mod tests {
     // r[verify kiln.publication.recovery.scenario.crash]
     fn lost_mutation_ack_reconciles_branch_and_pr_without_another_post() {
         let (endpoint, server) = serve(vec![
-            ("404 Not Found", "{}".into()),
-            ("201 Created", "lost or truncated body".into()),
-            ("200 OK", branch_ref()),
             ("200 OK", "[]".into()),
             ("201 Created", "lost or truncated body".into()),
             (
@@ -812,13 +1074,6 @@ mod tests {
         let client = GithubPublicationClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
         let plan = plan();
-        assert!(client.ensure_branch(&plan).is_err());
-        assert!(
-            client
-                .reconcile_branch(&plan)
-                .unwrap_or_else(|_| unreachable!())
-                .is_some()
-        );
         assert!(client.ensure_pull_request(&plan).is_err());
         assert_eq!(
             client
@@ -834,7 +1089,7 @@ mod tests {
                 .iter()
                 .filter(|request| request.starts_with("POST "))
                 .count(),
-            2
+            1
         );
         assert!(
             requests

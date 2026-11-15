@@ -63,7 +63,7 @@
   }
   const editableTarget = target => target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']"));
   const RENDER_LIMIT = 65536, TOKEN_LIMIT = 4096;
-  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "" };
+  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "" };
   // r[impl kiln.web.readable_observations]
   // Presentation only: KilnUi (loaded before this script) humanizes times; exact instants stay in title/datetime.
   const ui = () => window.KilnUi;
@@ -471,7 +471,7 @@
   function href(patch) { const q = new URLSearchParams(window.location.search); q.set("page", "code-review"); for (const [k, v] of Object.entries(patch)) v == null || v === "" ? q.delete(k) : q.set(k, String(v)); return `?${q}`; }
   function backLink() { const a = link("All changes", ALL_CHANGES, "cr-back"); a.prepend(icon("arrow-left")); return a; }
   function link(text, patch, cls) { const a = node("a", text, cls); a.href = href(patch); a.addEventListener("click", event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); route(patch); } }); return a; }
-  function changeLink(id, text = id) { return link(text, { review_change: id, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "" }); }
+  function changeLink(id, text = id) { return link(text, { review_change: id, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "" }); }
   // r[impl kiln.web.design_system]
   // One overlay at a time: a confirmation hides the dialog that raised it and reopens it on dismissal, then focus returns to the trigger.
   function modal(title, alert = false) {
@@ -774,16 +774,29 @@
   }
   // r[impl kiln.preview.review] The dedicated module receives only service
   // projections. No artifact-digest-to-URL inference and no CI mutation route.
-  function drawPreviews(root) {
+  function drawPreviews(root, comparisonSlot) {
     const card = panel(root, "Exact artifact previews", "artifact-previews", true);
     const c = state.detail.change, r = arr(c.revisions).find(item => item.id === revision());
     const epoch = state.epoch, id = selected(), selectedRevision = revision();
     const rows = state.detail.artifact_previews, previewError = state.detail.artifact_previews_error;
-    const runs = arr(state.detail.ci_runs).filter(f => f.project === c.project && f.repository === c.repository && f.revision === r?.commit && f.success === true && f.full_run === true && f.clean === true).map(f => f.run_id);
+    const observations = state.detail.preview_observations, observationError = state.detail.preview_observations_error;
+    const selectedRun = state.detail.checklist?.ci_run;
     import("/preview-review.js").then(module => {
       if (!active(epoch, id) || revision() !== selectedRevision || !card.isConnected) return;
       if (previewError) card.append(node("p", `Preview unavailable: ${String(previewError).slice(0, 256)}. CI evidence is unchanged.`, "cr-notice"));
-      module.renderPreviews(card, rows, { project: c.project, repository: c.repository, revision: r?.commit, currentRevision: current()?.commit, runs, isCurrent: () => active(epoch, id) && revision() === selectedRevision && current()?.commit === r?.commit });
+      const isCurrent = () => active(epoch, id) && revision() === selectedRevision && current()?.commit === r?.commit && card.isConnected;
+      module.renderPreviews(card, rows, { project: c.project, repository: c.repository, revision: r?.commit, currentRevision: current()?.commit, selectedRun, reviewCandidateRun: c.candidate?.ci_run, isCurrent });
+      if (observationError) card.append(node("p", `Preview observations unavailable: ${String(observationError).slice(0, 256)}. CI evidence is unchanged.`, "cr-notice"));
+      else if (arr(observations).length) card.append(node("p", `Retained preview observations: ${arr(observations).length}. Compare them under Compare preview evidence.`, "cr-muted"));
+      // The comparison needs the main column's width for side-by-side lanes.
+      if (!arr(observations).length && !state.route.review_preview_compare) return;
+      module.renderComparison(comparisonSlot, observations, {
+        requested: state.route.review_preview_compare || "",
+        selected: () => state.route.review_preview_compare || "",
+        select: pair => route({ review_preview_compare: pair }),
+        compare: (baseline, candidate) => state.context.api(`${path(id)}/preview-comparison?${new URLSearchParams({ baseline, candidate })}`),
+        isCurrent: () => isCurrent() && comparisonSlot.isConnected,
+      });
     }).catch(() => { if (card.isConnected) card.append(node("p", "Preview adapter unavailable. CI evidence is unchanged.", "cr-muted")); });
   }
   function drawDetail(root) {
@@ -805,8 +818,9 @@
     const modeField = node("div", null, "cr-field"), modeLabel = node("span", "Diff layout"), modes = node("div", null, "segmented"); modeLabel.id = `cr-${crypto.randomUUID()}`; modes.setAttribute("role", "group"); modes.setAttribute("aria-labelledby", modeLabel.id);
     for (const [value, text] of [["unified", "Unified"], ["split", "Side by side"]]) { const b = button(text, () => { state.mode = value; for (const other of modes.children) other.setAttribute("aria-pressed", String(other === b)); drawDiff(); }); b.setAttribute("aria-pressed", String(state.mode === value)); modes.append(b); }
     modeField.append(modeLabel, modes); controls.append(modeField); diff.append(controls, node("div", null, "cr-diff-host")); drawDiff();
+    const comparisonSlot = node("div", null, "cr-preview-slot"); main.append(comparisonSlot);
     drawDiscussion(main); drawSuggestions(main);
-    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawPreviews(aside); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
+    drawApproval(aside); drawReviewers(aside); drawCi(aside); drawPreviews(aside, comparisonSlot); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
     drawQueue(aside, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
     drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
   }

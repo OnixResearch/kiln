@@ -470,11 +470,19 @@ impl LocalGitReviewProvider {
                 let expected = oid(expected_target)?;
                 let proposed = oid(commit)?;
                 match repo.reflog(&request.target_ref) {
-                    Ok(log) => log.iter().any(|entry| {
-                        entry.message() == Some(message.as_str())
-                            && entry.id_old() == expected
-                            && entry.id_new() == proposed
-                    }),
+                    Ok(log) => {
+                        let mut found = false;
+                        for entry in log.iter() {
+                            if entry.message().map_err(storage)? == Some(message.as_str())
+                                && entry.id_old() == expected
+                                && entry.id_new() == proposed
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        found
+                    }
                     Err(e) if e.code() == git2::ErrorCode::NotFound => false,
                     Err(e) => return Err(storage(e)),
                 }

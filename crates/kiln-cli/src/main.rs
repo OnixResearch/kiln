@@ -1,4 +1,5 @@
 mod dashboard;
+mod native_git;
 mod qualification;
 
 use std::path::Path;
@@ -14,6 +15,8 @@ const COMMAND_DEMO: &str = "demo";
 const COMMAND_EVIDENCE: &str = "evidence";
 const COMMAND_HOST_QUALIFY: &str = "host-qualify";
 const COMMAND_DASHBOARD: &str = "dashboard";
+const COMMAND_NATIVE_GIT: &str = "native-git";
+const COMMAND_NATIVE_GIT_WORKER: &str = "__native-git-worker";
 const COMMAND_HELP: &str = "help";
 const FLAG_HELP: &str = "--help";
 const FLAG_HELP_SHORT: &str = "-h";
@@ -37,11 +40,17 @@ commands:
       the expected cohort
   dashboard --journal PATH --profile PATH
       render the read-only dashboard; `kiln dashboard --help` lists every option
+  native-git qualify --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --execute
+      perform one explicitly authorized guarded native-Git delivery;
+      no PR creation or force-push
+  native-git lifecycle-receipt --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --repository PATH --report PATH
+      retain exact native Cairn lifecycle evidence without remote mutation
   help, --help, -h
       print this text
   --version, -V
       print the version";
 const QUALIFICATION_USAGE: &str = "usage: kiln host-qualify COHORT RECEIPT ARTIFACT_ROOT";
+const NATIVE_GIT_USAGE: &str = "usage: kiln native-git <qualify --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --execute | lifecycle-receipt --request PATH --enrollment PATH --service-profile PATH --review-profile PATH --repository PATH --report PATH>";
 const EXIT_FAILURE: i32 = 1;
 const EXIT_USAGE: i32 = 2;
 
@@ -98,6 +107,8 @@ fn main() {
             let code = dashboard::dashboard(arguments);
             std::process::exit(code);
         }
+        COMMAND_NATIVE_GIT => native_git::supervise(arguments),
+        COMMAND_NATIVE_GIT_WORKER => native_git_command(arguments),
         _ => Err(format!("unsupported command: {command}")),
     };
     match result {
@@ -110,6 +121,71 @@ fn main() {
 fn fail(message: &str, code: i32) -> ! {
     eprintln!("{message}");
     std::process::exit(code);
+}
+
+fn native_git_command(mut arguments: impl Iterator<Item = String>) -> Result<String, String> {
+    let action = arguments.next().ok_or(NATIVE_GIT_USAGE)?;
+    if matches!(action.as_str(), COMMAND_HELP | FLAG_HELP | FLAG_HELP_SHORT) {
+        return if arguments.next().is_none() {
+            Ok(NATIVE_GIT_USAGE.to_owned())
+        } else {
+            Err(NATIVE_GIT_USAGE.to_owned())
+        };
+    }
+    if !matches!(action.as_str(), "qualify" | "lifecycle-receipt") {
+        return Err(NATIVE_GIT_USAGE.to_owned());
+    }
+    let mut request = None;
+    let mut enrollment = None;
+    let mut service_profile = None;
+    let mut review_profile = None;
+    let mut repository = None;
+    let mut report = None;
+    let mut execute = false;
+    while let Some(flag) = arguments.next() {
+        if flag == "--execute" && !execute && action == "qualify" {
+            execute = true;
+            continue;
+        }
+        let slot = match flag.as_str() {
+            "--request" => &mut request,
+            "--enrollment" => &mut enrollment,
+            "--service-profile" => &mut service_profile,
+            "--review-profile" => &mut review_profile,
+            "--repository" if action == "lifecycle-receipt" => &mut repository,
+            "--report" if action == "lifecycle-receipt" => &mut report,
+            _ => return Err(NATIVE_GIT_USAGE.to_owned()),
+        };
+        let value = arguments
+            .next()
+            .filter(|value| !value.is_empty() && !value.starts_with("--"))
+            .ok_or(NATIVE_GIT_USAGE)?;
+        if slot.replace(value).is_some() {
+            return Err(NATIVE_GIT_USAGE.to_owned());
+        }
+    }
+    let request = request.ok_or(NATIVE_GIT_USAGE)?;
+    let enrollment = enrollment.ok_or(NATIVE_GIT_USAGE)?;
+    let service_profile = service_profile.ok_or(NATIVE_GIT_USAGE)?;
+    let review_profile = review_profile.ok_or(NATIVE_GIT_USAGE)?;
+    match action.as_str() {
+        "qualify" => native_git::run(
+            Path::new(&request),
+            Path::new(&enrollment),
+            Path::new(&service_profile),
+            Path::new(&review_profile),
+            execute,
+        ),
+        "lifecycle-receipt" => native_git::record_lifecycle(
+            Path::new(&request),
+            Path::new(&enrollment),
+            Path::new(&service_profile),
+            Path::new(&review_profile),
+            Path::new(&repository.ok_or(NATIVE_GIT_USAGE)?),
+            Path::new(&report.ok_or(NATIVE_GIT_USAGE)?),
+        ),
+        _ => Err(NATIVE_GIT_USAGE.to_owned()),
+    }
 }
 
 /// Answers a request that takes no argument: prints `text`, or reports a usage

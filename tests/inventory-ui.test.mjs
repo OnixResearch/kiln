@@ -146,3 +146,53 @@ test("scoped identities containing colons cannot collapse into another producer 
   const inventory = setup();
   assert.notEqual(inventory.refText({ source: "a:b", id: "c" }), inventory.refText({ source: "a", id: "b:c" }));
 });
+
+test("selected-campaign projection preserves partial and missing members without active controls", () => {
+  const campaign = setup();
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/selected-campaign/projection-v1.json", import.meta.url), "utf8"));
+  assert.equal(campaign.validateCampaign(fixture), fixture);
+  const page = campaign.renderCampaign(fixture);
+  const text = allText(page);
+  assert.ok(text.includes(fixture.identity));
+  assert.ok(text.includes("incomplete_limit"));
+  assert.ok(text.includes("stale"));
+  assert.ok(text.includes("change-b/task-two"));
+  assert.ok(text.includes("missing_source_or_owner_observation"));
+  assert.ok(text.includes("<script>not markup</script>"));
+  assert.equal(descendants(page).some((node) => node.tagName === "button" || node.tagName === "a"), false);
+  assert.throws(() => campaign.validateCampaign({ ...fixture, schema: "kiln.observe.inventory.v2" }));
+  assert.throws(() => campaign.validateCampaign({ ...fixture, members: Array(4097).fill(fixture.members[0]) }));
+});
+
+test("resource and campaign loads finish independently when both are deferred", async () => {
+  const inventory = setup();
+  const resourceRoot = new Element("div");
+  const campaignRoot = new Element("div");
+  const campaignFixture = JSON.parse(readFileSync(new URL("../fixtures/selected-campaign/projection-v1.json", import.meta.url), "utf8"));
+  const selectedId = "a/ b+雪";
+  let resolveResource; let resolveCampaign;
+  const calls = [];
+  const ctx = {
+    isCurrent: () => true,
+    api(path) {
+      calls.push(path);
+      return new Promise((resolve) => {
+        if (path === "/api/inventory") resolveResource = resolve;
+        else resolveCampaign = resolve;
+      });
+    },
+  };
+  const resourceRequest = inventory.load(resourceRoot, ctx);
+  const campaignRequest = inventory.loadCampaign(campaignRoot, ctx, selectedId);
+  assert.equal(calls.length, 2);
+  assert.ok(calls.includes("/api/inventory"));
+  assert.ok(calls.includes(`/api/implementation/campaigns?campaign=${encodeURIComponent(selectedId)}`));
+  resolveCampaign(campaignFixture);
+  resolveResource(fixture());
+  await Promise.all([resourceRequest, campaignRequest]);
+  assert.ok(allText(resourceRoot).includes("Observed resource inventories"));
+  assert.ok(allText(campaignRoot).includes(campaignFixture.identity));
+  inventory.clear();
+  assert.equal(resourceRoot.children.length, 0);
+  assert.equal(campaignRoot.children.length, 0);
+});

@@ -1,6 +1,95 @@
 //! Explicit local snapshot ingestion and read-only API/CLI/offline rendering.
 //! No provider discovery, network client, mutation, clock lookup or environment lookup.
 // r[impl kiln.inventory.consumers]
+#[path = "campaign_projection.rs"]
+pub mod campaign_projection;
+
+/// Separate v1 campaign projection; intentionally does not alter inventory-v2 semantics.
+pub fn read_campaign_projection(
+    path: &Path,
+    campaign_id: &str,
+) -> Result<Option<campaign_projection::CampaignProjection>, String> {
+    campaign_projection::read_campaign(path, campaign_id)
+}
+pub fn read_campaign_projection_with_inventory(
+    path: &Path,
+    campaign_id: &str,
+    resource: Option<&InventoryProjection>,
+) -> Result<Option<campaign_projection::CampaignProjection>, String> {
+    campaign_projection::read_campaign_with_inventory(path, campaign_id, resource)
+}
+
+pub fn render_campaign_json(
+    projection: &campaign_projection::CampaignProjection,
+) -> Result<String, String> {
+    let json = serde_json::to_string_pretty(projection)
+        .map_err(|_| "campaign_projection_encoding_invalid")?;
+    if json.len() > campaign_projection::MAX_PROJECTION_BYTES {
+        return Err("campaign_projection_byte_bound".into());
+    }
+    Ok(json)
+}
+
+/// Bounded offline rendering of the exact JSON semantic projection; no script, network request, or active control is emitted.
+pub fn render_campaign_html(
+    projection: &campaign_projection::CampaignProjection,
+) -> Result<String, String> {
+    let json = render_campaign_json(projection)?;
+    let mut html = String::from(
+        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>Selected campaigns</title><style>body{font:1rem/1.5 system-ui;max-width:80rem;margin:2rem auto;padding:1rem}pre{white-space:pre-wrap;overflow-wrap:anywhere}section{border:1px solid;padding:1rem;margin-block:1rem}</style></head><body><main><h1>Selected campaign progress and blockers</h1><p>Read-only projection of admitted campaign snapshots; no reservation, dispatch or lifecycle authority.</p>",
+    );
+    html.push_str(&format!("<section><h2>{}</h2><p>Selection revision {} · identity <code>{}</code></p><pre>{}</pre></section>", escape(&projection.campaign_id), projection.selection_revision, escape(&projection.identity), escape(&json)));
+    html.push_str("</main></body></html>\n");
+    Ok(html)
+}
+
+/// Offline campaign command with an optional explicitly supplied resource snapshot.
+/// Database access remains read-only; inventory freshness uses the explicit clock.
+pub fn run_campaign_cli_args(args: &[String]) -> Result<String, String> {
+    let command_len = if args
+        .get(2)
+        .is_some_and(|value| matches!(value.as_str(), "json" | "html"))
+    {
+        3
+    } else {
+        2
+    };
+    let (command, resource_args) = args.split_at_checked(command_len)
+        .ok_or("usage: campaign-projection DATABASE CAMPAIGN_ID [json|html] [--inventory INPUT PRINCIPAL NOW_MS]")?;
+    let resource = match resource_args {
+        [] => None,
+        [flag, path, principal, now] if flag == "--inventory" => {
+            let now = now.parse::<u64>().map_err(|_| "inventory_clock_invalid")?;
+            Some(read_inventory(Path::new(path), principal, now)?)
+        }
+        _ => return Err("usage: campaign-projection DATABASE CAMPAIGN_ID [json|html] [--inventory INPUT PRINCIPAL NOW_MS]".into()),
+    };
+    run_campaign_cli_args_with_inventory(command, resource.as_ref())
+}
+
+/// Same optional, already-admitted resource snapshot composition used by live API handlers.
+pub fn run_campaign_cli_args_with_inventory(
+    args: &[String],
+    resource: Option<&InventoryProjection>,
+) -> Result<String, String> {
+    let [database, campaign_id, format @ ..] = args else {
+        return Err("usage: campaign-projection DATABASE CAMPAIGN_ID [json|html]".into());
+    };
+    let format = match format {
+        [] => "json",
+        [value] if ["json", "html"].contains(&value.as_str()) => value.as_str(),
+        _ => return Err("campaign_projection_format_unsupported".into()),
+    };
+    let projection =
+        read_campaign_projection_with_inventory(Path::new(database), campaign_id, resource)?
+            .ok_or("campaign_projection_not_found")?;
+    if format == "html" {
+        render_campaign_html(&projection)
+    } else {
+        render_campaign_json(&projection)
+    }
+}
+
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;

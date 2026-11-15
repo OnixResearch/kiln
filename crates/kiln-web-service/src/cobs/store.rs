@@ -170,7 +170,7 @@ fn scan(repository: &Repository) -> Result<BTreeMap<(String, String), Vec<RefTip
             return Err(());
         }
         let reference = reference.map_err(|_| ())?;
-        let name = reference.name().ok_or(())?;
+        let name = reference.name().map_err(|_| ())?;
         let Some((type_name, object_id)) = object_ref(name)? else {
             continue;
         };
@@ -278,7 +278,7 @@ fn row(
     let tree = tree(repository, &root)?;
     manifest(repository, &tree, &type_name)?;
     let (recorded_title, excerpt) = root_metadata(repository, &tree);
-    let summary = root.summary().ok_or(())?;
+    let summary = root.summary().map_err(|_| ())?.ok_or(())?;
     let root_summary = recorded_title
         .as_ref()
         .map(|_| summary.chars().take(MAX_TITLE_CHARS).collect());
@@ -337,7 +337,7 @@ fn actions(
 ) -> Result<Vec<Value>, ()> {
     let mut actions = BTreeMap::new();
     for entry in tree.iter() {
-        let name = entry.name().ok_or(())?;
+        let name = entry.name().map_err(|_| ())?;
         if !name.bytes().all(|byte| byte.is_ascii_digit()) {
             continue;
         }
@@ -363,7 +363,7 @@ fn history_parents(commit: &git2::Commit<'_>) -> Result<Vec<Oid>, ()> {
     if commit.parent_count() > MAX_PARENTS {
         return Err(());
     }
-    let message = commit.message().ok_or(())?;
+    let message = commit.message().map_err(|_| ())?;
     let trailers = git2::message_trailers_strs(message).map_err(|_| ())?;
     let mut related = BTreeSet::new();
     for (key, value) in trailers.iter() {
@@ -423,7 +423,7 @@ pub(super) fn detail(
             pending.extend(parents.iter().copied());
         }
         let author = commit.author();
-        operations.insert(oid, json!({"id":oid.to_string(),"git_parents":commit.parent_ids().map(|id|id.to_string()).collect::<Vec<_>>(),"history_parents":parents.iter().map(ToString::to_string).collect::<Vec<_>>(),"message":commit.message().ok_or(())?,"author_name":author.name(),"author_email":author.email(),"recorded_at_ms":commit.time().seconds().checked_mul(1000),"signature_status":"not_verified","actions":contents}));
+        operations.insert(oid, json!({"id":oid.to_string(),"git_parents":commit.parent_ids().map(|id|id.to_string()).collect::<Vec<_>>(),"history_parents":parents.iter().map(ToString::to_string).collect::<Vec<_>>(),"message":commit.message().map_err(|_| ())?,"author_name":author.name().map_err(|_| ())?,"author_email":author.email().map_err(|_| ())?,"recorded_at_ms":commit.time().seconds().checked_mul(1000),"signature_status":"not_verified","actions":contents}));
     }
     if !visited.contains(&root) || scan(&repository)?.get(&key) != Some(tips) {
         return Err(());

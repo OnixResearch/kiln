@@ -1,0 +1,18 @@
+toolchain: rustc 1.98.0-nightly (31a9463c6 2026-05-25)
+runtime/kiln-aspen-host/Cargo.lock blake3: 589a2644ceb3d5da739ffd6b08a77d9b9e8762c39e669fbca4f64fbc737b66fa
+runtime/kiln-aspen-host/src/content/fault.rs blake3: d0aeb350021109169f3ba67132cd661a1903478ae105932bd65bd19eeade5e18
+runtime/kiln-aspen-host/src/content/index.rs blake3: 523fd1f65257875e10600df029163a31306c7fed3cc23264b1ee39c0733abfc7
+runtime/kiln-aspen-host/src/content/live.rs blake3: 00e04d5388325d34b59c97cef5b8982de49302df32c86cd19389a70f368312f2
+runtime/kiln-aspen-host/src/content/mod.rs blake3: 03651ea5af74c7da47239f73453216c632b82a7641e463d145cbe69be16927b3
+runtime/kiln-aspen-host/src/content/port.rs blake3: 822a555bad13b4ebda2830507865105b0e7d420694d026f85c280f1ddac4e6b0
+runtime/kiln-aspen-host/src/content/support.rs blake3: 7ed0ba455cb679c83ace53bb9a393cb3a69e6c21fd60fa19e123d6df1d1fa329
+runtime/kiln-aspen-host/src/content/tests.rs blake3: 881779dc49c4a51ec3117936c26f3390bf04fff1560bb15ff18d3323fd108996
+runtime/kiln-aspen-host/src/content/tests/retry.rs blake3: 23bbe3ba930dafa801994d03f4de3d7dc70af59ea910771a9cc4cbe7a4fb2b90
+jj working copy: 16a413ceb5b415ecda59b7dd62a5150d2ef73074
+
+$ cd runtime/kiln-aspen-host && cargo +nightly-2026-05-26 fmt --check
+FMT_OK
+
+$ cd runtime/kiln-aspen-host && cargo +nightly-2026-05-26 clippy --offline --locked --workspace --all-targets --all-features -- -D warnings
+    Finished `dev` profile [unoptimized] target(s) in 3m 12s
+exit 0

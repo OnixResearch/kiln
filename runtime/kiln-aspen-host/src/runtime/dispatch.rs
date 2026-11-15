@@ -39,61 +39,14 @@ impl KilnAspenHostRuntime {
             eprintln!("Kiln Aspen host ingress reservation failed: {error}");
             return ServiceTransportOutcome::Malformed;
         }
-        if let Err(error) = self.effects.validate_ingress(ingress) {
-            eprintln!("Kiln Aspen host reserved-ingress validation failed: {error}");
-            return self.retain_unknown(&ingress.operation_id);
-        }
-        let native_ingress = match self.cohort.native_ingress(ingress) {
-            Ok(native_ingress) => native_ingress,
-            Err(error) => {
-                eprintln!("Kiln Aspen host native-ingress construction failed: {error}");
-                return self.retain_unknown(&ingress.operation_id);
-            }
+        self.submit_reserved(ingress)
+    }
+
+    fn submit_reserved(&mut self, ingress: &AspenServiceIngress) -> ServiceTransportOutcome {
+        let (callback_outcome, output_bytes) = match self.dispatch_reserved(ingress) {
+            Some(result) => result,
+            None => return self.retain_unknown(&ingress.operation_id),
         };
-        let ingress_tick = match self.next_tick() {
-            Ok(tick) => tick,
-            Err(error) => {
-                eprintln!("Kiln Aspen host ingress tick failed: {error}");
-                return self.retain_unknown(&ingress.operation_id);
-            }
-        };
-        let native_result = match self.service.ingress(&native_ingress, ingress_tick) {
-            Ok(result) => result,
-            Err(error) => {
-                eprintln!("Kiln Aspen host native ingress failed: {error:?}");
-                return self.retain_unknown(&ingress.operation_id);
-            }
-        };
-        let (callback_receipt, mut callback_outcome, mut output_bytes) =
-            match self.decode_dispatch(native_result.dispatch) {
-                Ok(result) => result,
-                Err(error) => {
-                    eprintln!("Kiln Aspen host callback dispatch decoding failed: {error}");
-                    return self.retain_unknown(&ingress.operation_id);
-                }
-            };
-        if !callback_receipt.approved_effects.is_empty() {
-            let callback_record = self
-                .ledger
-                .lock()
-                .map_err(|_| {
-                    HostBridgeError::State("operation ledger lock is unavailable".to_string())
-                })
-                .and_then(|mut ledger| {
-                    ledger.record_callback_receipt(
-                        &ingress.operation_id,
-                        &callback_receipt.receipt_ref,
-                    )
-                });
-            if callback_record.is_err() {
-                return self.retain_unknown(&ingress.operation_id);
-            }
-            let Some((outcome, bytes)) = self.route_completions(ingress, &callback_receipt) else {
-                return self.retain_unknown(&ingress.operation_id);
-            };
-            callback_outcome = outcome;
-            output_bytes = bytes;
-        }
         let ack = match build_service_ack(ingress, &callback_outcome, &output_bytes) {
             Ok(ack) => ack,
             Err(error) => {
@@ -112,6 +65,66 @@ impl KilnAspenHostRuntime {
             return self.retain_unknown(&ingress.operation_id);
         }
         terminal_outcome(ack)
+    }
+
+    fn dispatch_reserved(
+        &mut self,
+        ingress: &AspenServiceIngress,
+    ) -> Option<(kiln_adapter_aspen::protocol::CallbackOutcome, Vec<u8>)> {
+        if let Err(error) = self.effects.validate_ingress(ingress) {
+            eprintln!("Kiln Aspen host reserved-ingress validation failed: {error}");
+            return None;
+        }
+        let native_ingress = match self.cohort.native_ingress(ingress) {
+            Ok(native_ingress) => native_ingress,
+            Err(error) => {
+                eprintln!("Kiln Aspen host native-ingress construction failed: {error}");
+                return None;
+            }
+        };
+        let ingress_tick = match self.next_tick() {
+            Ok(tick) => tick,
+            Err(error) => {
+                eprintln!("Kiln Aspen host ingress tick failed: {error}");
+                return None;
+            }
+        };
+        let native_result = match self.service.ingress(&native_ingress, ingress_tick) {
+            Ok(result) => result,
+            Err(error) => {
+                eprintln!("Kiln Aspen host native ingress failed: {error:?}");
+                return None;
+            }
+        };
+        let (callback_receipt, mut callback_outcome, mut output_bytes) =
+            match self.decode_dispatch(native_result.dispatch) {
+                Ok(result) => result,
+                Err(error) => {
+                    eprintln!("Kiln Aspen host callback dispatch decoding failed: {error}");
+                    return None;
+                }
+            };
+        if !callback_receipt.approved_effects.is_empty() {
+            let callback_record = self
+                .ledger
+                .lock()
+                .map_err(|_| {
+                    HostBridgeError::State("operation ledger lock is unavailable".to_string())
+                })
+                .and_then(|mut ledger| {
+                    ledger.record_callback_receipt(
+                        &ingress.operation_id,
+                        &callback_receipt.receipt_ref,
+                    )
+                });
+            if callback_record.is_err() {
+                return None;
+            }
+            let (outcome, bytes) = self.route_completions(ingress, &callback_receipt)?;
+            callback_outcome = outcome;
+            output_bytes = bytes;
+        }
+        Some((callback_outcome, output_bytes))
     }
 
     fn route_completions(

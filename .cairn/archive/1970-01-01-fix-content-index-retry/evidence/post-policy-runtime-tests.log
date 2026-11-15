@@ -1,0 +1,84 @@
+$ cd runtime/kiln-aspen-host && cargo +nightly-2026-05-26 test --offline --locked --workspace --all-targets --all-features -- --nocapture
+     Running unittests src/lib.rs (/home/brittonr/.cargo-target/debug/deps/kiln_aspen_host-63942e7b3ed2202d)
+running 21 tests
+test gossip::tests::expired_and_overlong_hints_are_rejected ... ok
+test gossip::tests::malformed_schema_and_fields_are_rejected ... ok
+test gossip::tests::oversized_message_and_content_are_rejected ... ok
+test gossip::tests::topics_are_stable_and_scope_separated ... ok
+test gossip::tests::hint_round_trip_preserves_fields_and_dedupe ... ok
+test content::tests::identity_mismatch_is_rejected_before_writing ... ok
+test server::tests::private_parent_owned_by_another_user_is_denied ... ok
+test durability::model::tests::conflicting_callback_and_invalid_terminal_state_fail_closed ... ok
+test server::tests::symlinked_parent_is_denied_before_socket_creation ... ok
+test durability::model::tests::valid_operation_moves_from_reservation_to_dispatch_and_uncertainty ... ok
+test content::tests::missing_content_is_an_infrastructure_failure ... ok
+test server::tests::shared_parent_is_denied_before_socket_creation ... ok
+test server::tests::private_socket_grants_owner_access_only ... ok
+test content::tests::read_bound_is_enforced_before_assembly ... ok
+test content::tests::exact_round_trip_survives_reopen ... ok
+test docs::index::tests::cache_index_round_trip_and_ticket_are_bounded ... ok
+content-index failure=Create populated=false retries=4 recovered=true
+test content::tests::retry::obstructed_index_stage_cannot_be_acknowledged_by_equal_retry ... ok
+test docs::index::tests::cache_index_reopens_persistent_document ... ok
+test content::tests::live_iroh_blobs_publishes_the_port_store ... ok
+content-index failure=Create populated=true retries=4 recovered=true
+test content::tests::live_iroh_blobs_transfer_preserves_exact_identity ... ok
+content-index failure=Write populated=false retries=4 recovered=true
+content-index failure=Write populated=true retries=4 recovered=true
+content-index failure=PayloadSync populated=false retries=4 recovered=true
+content-index failure=PayloadSync populated=true retries=4 recovered=true
+content-index failure=Rename populated=false retries=4 recovered=true
+content-index failure=Rename populated=true retries=4 recovered=true
+content-index failure=ParentSync populated=false retries=4 recovered=true
+content-index failure=ParentSync populated=true retries=4 recovered=true
+test content::tests::retry::publication_failures_stay_pending_until_the_barrier_recovers ... ok
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+     Running unittests src/main.rs (/home/brittonr/.cargo-target/debug/deps/kiln_aspen_host-31a6998c59b61a93)
+running 3 tests
+test tests::arguments_accept_every_path_and_positive_bound ... ok
+test tests::request_bound_rejects_zero ... ok
+test tests::poll_interval_rejects_missing_zero_malformed_and_duplicate_values ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/bin/extensionfixture.rs (/home/brittonr/.cargo-target/debug/deps/kiln_aspen_host_extension_fixture-319b61155554bdee)
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/admission.rs (/home/brittonr/.cargo-target/debug/deps/admission-63546b0ce95e1224)
+running 3 tests
+test unsafe_or_unbounded_server_configuration_is_rejected ... ok
+test missing_extension_artifact_fails_before_host_installation ... ok
+test execution_template_binds_exact_runtime_profile_path_and_identity ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+     Running tests/docssynclive.rs (/home/brittonr/.cargo-target/debug/deps/docssynclive-2a2358f3e6ebb3f9)
+running 1 test
+test docs_ticket_syncs_an_advisory_entry_between_real_peers ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+     Running tests/durability.rs (/home/brittonr/.cargo-target/debug/deps/durability-e5b3a28fea58e490)
+running 5 tests
+test corrupt_callback_value_fails_closed ... ok
+test missing_native_journal_fails_closed ... ok
+test exact_durable_state_reopens_for_the_same_cohort ... ok
+test truncated_operation_ledger_fails_closed ... ok
+test changed_state_marker_fails_closed ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+     Running tests/gossiplive.rs (/home/brittonr/.cargo-target/debug/deps/gossiplive-fba03c1ab8ec502e)
+running 2 tests
+test live_iroh_gossip_delivers_a_bounded_hint ... ok
+test gossip_listener_decodes_and_dedupes_hints ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+     Running tests/hosted.rs (/home/brittonr/.cargo-target/debug/deps/hosted-878a2c785254e506)
+running 13 tests
+test rejected_test::denied_trigger_releases_no_lattice_connection ... ok
+test uncertain_test::unavailable_lattice_is_retained_as_unknown_without_redispatch ... ok
+test uncertain_test::nonterminal_poll_exhaustion_remains_unknown_without_redispatch ... ok
+test uncertain_test::post_reservation_profile_drift_is_unknown_and_never_dispatches ... ok
+test recovery_test::accepted_but_unacknowledged_lattice_work_recovers_without_dispatch ... ok
+test accepted_test::real_aspen_host_routes_lattice_and_returns_terminal_kiln_ack ... ok
+test qualification_test::child_host_restart_retains_unknown_on_failed_recovery_without_redispatch ... ok
+test qualification_test::child_host_crash_replays_exact_acknowledgements_without_dispatch ... ok
+test qualification_test::child_host_crash_recovers_unknown_and_duplicate_without_redispatch ... ok
+test qualification_test::child_host_bounded_load_preserves_every_ack_and_dispatch_count_across_restart ... ok
+test qualification_test::durable_test::child_host_complete_quiescent_backup_restores_and_partial_restore_is_rejected ... ok
+test qualification_test::rollback_test::child_host_explicit_rollback_rejects_mixed_cohort_then_restores_prior_exact_cohort ... ok
+test qualification_test::durable_test::child_host_startup_rejects_malformed_corrupt_and_partial_durable_state ... ok
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.16s
+exit 0

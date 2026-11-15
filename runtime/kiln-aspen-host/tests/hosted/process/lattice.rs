@@ -4,6 +4,18 @@ use std::sync::atomic::AtomicBool;
 
 const PROVIDER_POLL_MILLISECONDS: u64 = 2;
 
+#[derive(Clone, Copy)]
+pub(in super::super) enum DispatchBehavior {
+    DisconnectFirst,
+    Connected,
+}
+
+#[derive(Clone, Copy)]
+pub(in super::super) enum RecoveryBehavior {
+    Available,
+    Unavailable,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(in super::super) struct ExchangeCounts {
     pub(in super::super) dispatch: usize,
@@ -50,90 +62,26 @@ pub(in super::super) struct FixtureLattice {
 }
 
 impl FixtureLattice {
-    pub(in super::super) fn start(
-        fixture: &ProcessFixture,
-        disconnect_first_dispatch: bool,
-    ) -> Self {
-        Self::with_recovery(fixture, disconnect_first_dispatch, false)
+    pub(in super::super) fn start(fixture: &ProcessFixture, dispatch: DispatchBehavior) -> Self {
+        Self::with_recovery(fixture, dispatch, RecoveryBehavior::Available)
     }
 
     pub(in super::super) fn unavailable_recovery(fixture: &ProcessFixture) -> Self {
-        Self::with_recovery(fixture, true, true)
+        Self::with_recovery(
+            fixture,
+            DispatchBehavior::DisconnectFirst,
+            RecoveryBehavior::Unavailable,
+        )
     }
 
     fn with_recovery(
         fixture: &ProcessFixture,
-        disconnect_first_dispatch: bool,
-        recovery_unavailable: bool,
+        dispatch: DispatchBehavior,
+        recovery: RecoveryBehavior,
     ) -> Self {
-        let listener = UnixListener::bind(&fixture.lattice_socket)
-            .unwrap_or_else(|_| unreachable!("fixture Lattice listener"));
-        listener
-            .set_nonblocking(true)
-            .unwrap_or_else(|_| unreachable!("nonblocking fixture"));
-        let config = radicle_config(
-            fixture.lattice_socket.clone(),
-            fixture.directory.path().join("replay.sqlite"),
-            nix::unistd::getuid().as_raw(),
-        );
-        let mut profile = admit_config(config)
-            .unwrap_or_else(|_| unreachable!("fixture transport profile"))
-            .transport;
-        profile.limits.maximum_connections = 1;
-        let counts = Arc::new(std::sync::Mutex::new(ExchangeCounts::default()));
-        let recovery_unavailable = Arc::new(AtomicBool::new(recovery_unavailable));
-        let handler = CountedTerminalHandler {
-            counts: counts.clone(),
-            recovery_unavailable: recovery_unavailable.clone(),
-            terminal: TerminalHandler {
-                pending_observations_remaining: 0,
-            },
-        };
         let stop = Arc::new(AtomicBool::new(false));
-        let thread_stop = stop.clone();
-        let thread_counts = counts.clone();
-        let thread = std::thread::spawn(move || {
-            let mut service = WorkflowExchangeService::new(handler);
-            let mut should_disconnect = disconnect_first_dispatch;
-            while !thread_stop.load(Ordering::SeqCst) {
-                if should_disconnect {
-                    match listener.accept() {
-                        Ok((mut stream, _)) => {
-                            stream
-                                .set_read_timeout(Some(Duration::from_millis(
-                                    TEST_DEADLINE_MILLISECONDS,
-                                )))
-                                .unwrap_or_else(|_| unreachable!("fixture read deadline"));
-                            let bytes = read_frame(&mut stream, TEST_MAXIMUM_FRAME_BYTES)
-                                .unwrap_or_else(|_| unreachable!("uncertain dispatch frame"));
-                            let request: ExchangeRequest = serde_json::from_slice(&bytes)
-                                .unwrap_or_else(|_| unreachable!("uncertain dispatch command"));
-                            assert!(matches!(request.command, ExchangeCommand::Dispatch { .. }));
-                            thread_counts
-                                .lock()
-                                .unwrap_or_else(|_| unreachable!("dispatch count"))
-                                .dispatch += 1;
-                            should_disconnect = false;
-                        }
-                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
-                        Err(error) => unreachable!("accept uncertain dispatch: {error}"),
-                    }
-                } else {
-                    match serve_listener(&listener, &profile, &mut service) {
-                        Ok(report) => {
-                            assert_eq!(report.completed_exchanges, 1);
-                            assert_eq!(report.failed_exchanges, 0);
-                            assert_eq!(report.rejected_peers, 0);
-                        }
-                        // The pinned transport maps a nonblocking accept's
-                        // WouldBlock to AcceptFailed without consuming a frame.
-                        Err(lattice_workflow_transport::ServerFailure::AcceptFailed) => {}
-                        Err(error) => unreachable!("fixture Lattice exchange: {error:?}"),
-                    }
-                }
-                std::thread::park_timeout(Duration::from_millis(PROVIDER_POLL_MILLISECONDS));
-            }
-        });
+        let (recovery_unavailable, counts, thread) =
+            spawn_fixture_server(fixture, dispatch, recovery, stop.clone());
         Self {
             stop,
             recovery_unavailable,
@@ -175,6 +123,93 @@ impl FixtureLattice {
                 .join()
                 .unwrap_or_else(|_| unreachable!("fixture Lattice join"));
         }
+    }
+}
+
+fn spawn_fixture_server(
+    fixture: &ProcessFixture,
+    dispatch: DispatchBehavior,
+    recovery: RecoveryBehavior,
+    stop: Arc<AtomicBool>,
+) -> (
+    Arc<AtomicBool>,
+    Arc<std::sync::Mutex<ExchangeCounts>>,
+    std::thread::JoinHandle<()>,
+) {
+    let listener = UnixListener::bind(&fixture.lattice_socket)
+        .unwrap_or_else(|_| unreachable!("fixture Lattice listener"));
+    listener
+        .set_nonblocking(true)
+        .unwrap_or_else(|_| unreachable!("nonblocking fixture"));
+    let config = radicle_config(
+        fixture.lattice_socket.clone(),
+        fixture.directory.path().join("replay.sqlite"),
+        nix::unistd::getuid().as_raw(),
+    );
+    let mut profile = admit_config(config)
+        .unwrap_or_else(|_| unreachable!("fixture transport profile"))
+        .transport;
+    profile.limits.maximum_connections = 1;
+    let counts = Arc::new(std::sync::Mutex::new(ExchangeCounts::default()));
+    let recovery_unavailable = Arc::new(AtomicBool::new(matches!(
+        recovery,
+        RecoveryBehavior::Unavailable
+    )));
+    let handler = CountedTerminalHandler {
+        counts: counts.clone(),
+        recovery_unavailable: recovery_unavailable.clone(),
+        terminal: TerminalHandler {
+            pending_observations_remaining: 0,
+        },
+    };
+    let thread_stop = stop;
+    let thread_counts = counts.clone();
+    let thread = std::thread::spawn(move || {
+        let mut service = WorkflowExchangeService::new(handler);
+        let mut should_disconnect = matches!(dispatch, DispatchBehavior::DisconnectFirst);
+        while !thread_stop.load(Ordering::SeqCst) {
+            if should_disconnect {
+                should_disconnect = drop_first_dispatch(&listener, &thread_counts);
+            } else {
+                match serve_listener(&listener, &profile, &mut service) {
+                    Ok(report) => {
+                        assert_eq!(report.completed_exchanges, 1);
+                        assert_eq!(report.failed_exchanges, 0);
+                        assert_eq!(report.rejected_peers, 0);
+                    }
+                    // The pinned transport maps a nonblocking accept's
+                    // WouldBlock to AcceptFailed without consuming a frame.
+                    Err(lattice_workflow_transport::ServerFailure::AcceptFailed) => {}
+                    Err(error) => unreachable!("fixture Lattice exchange: {error:?}"),
+                }
+            }
+            std::thread::park_timeout(Duration::from_millis(PROVIDER_POLL_MILLISECONDS));
+        }
+    });
+    (recovery_unavailable, counts, thread)
+}
+
+/// Read one dispatch frame and drop its connection without replying; returns
+/// whether the next accepted connection must still be dropped.
+fn drop_first_dispatch(listener: &UnixListener, counts: &std::sync::Mutex<ExchangeCounts>) -> bool {
+    match listener.accept() {
+        Ok((mut stream, _)) => {
+            stream
+                .set_read_timeout(Some(Duration::from_millis(TEST_DEADLINE_MILLISECONDS)))
+                .unwrap_or_else(|_| unreachable!("fixture read deadline"));
+            let bytes = read_frame(&mut stream, TEST_MAXIMUM_FRAME_BYTES)
+                .unwrap_or_else(|_| unreachable!("uncertain dispatch frame"));
+            let request: ExchangeRequest = serde_json::from_slice(&bytes)
+                .unwrap_or_else(|_| unreachable!("uncertain dispatch command"));
+            assert!(matches!(request.command, ExchangeCommand::Dispatch { .. }));
+            counts
+                .lock()
+                .unwrap_or_else(|_| unreachable!("dispatch count"))
+                .dispatch += 1;
+            false
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => true,
+        Err(error) => unreachable!("accept uncertain dispatch: {error}"),
     }
 }
 

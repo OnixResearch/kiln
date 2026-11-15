@@ -691,6 +691,379 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
     );
 }
 
+// Local ledger receipts exercise callback ordering, not native producer qualification.
+fn racing_callbacks(
+    path: &Path,
+) -> Result<
+    (
+        ImplementationWork,
+        kiln_core::implementation::ImplementationAttempt,
+        kiln_core::implementation::CandidateHandoff,
+        kiln_core::implementation::CandidateVerification,
+    ),
+    Box<dyn std::error::Error>,
+> {
+    use kiln_core::change_review::{CiCheck, CiFact};
+    use kiln_core::implementation::{
+        CANDIDATE_HANDOFF_SCHEMA, CandidateEvidence, CandidateHandoff, CandidateVerification,
+        DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, EvidenceKind, EvidenceOutcome,
+        ImplementationDispatchPlan, VERIFICATION_SCHEMA, WorkspaceIsolation,
+        admit_candidate_handoff,
+    };
+
+    let mut work = work();
+    work.base = Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|e| e.message)?);
+    let mut store = open(path);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    let binding =
+        store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"race request")?;
+    assert_eq!(binding.plan, plan);
+    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
+    store.start_execution(
+        &attempt.identity,
+        attempt.fence,
+        2,
+        &reference("run", "racing-worker"),
+    )?;
+    let handoff = CandidateHandoff {
+        schema: CANDIDATE_HANDOFF_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        candidate: reference("commit", "racing-candidate"),
+        tree: reference("tree", "racing-tree"),
+        changed_paths: vec!["crates/src/lib.rs".into()],
+        acceptance_digest: kiln_core::implementation::acceptance_digest(&work)
+            .map_err(|e| e.message)?,
+        verification_profile: work.verification_profile.clone(),
+        toolchain: content('7'),
+        environment: content('8'),
+        evidence: vec![CandidateEvidence {
+            identity: content('e'),
+            kind: EvidenceKind::Check,
+            outcome: EvidenceOutcome::Passed,
+            reference: reference("run", "racing-check"),
+        }],
+    };
+    store.admit_candidate_handoff(&work, &attempt.identity, attempt.fence, 3, &handoff)?;
+    store.begin_verification(&attempt.identity, attempt.fence, 4)?;
+    let verification = CandidateVerification {
+        schema: VERIFICATION_SCHEMA.into(),
+        handoff: admit_candidate_handoff(&work, &attempt, &handoff).map_err(|e| e.message)?,
+        work_identity: handoff.work_identity.clone(),
+        work_revision: work.revision,
+        attempt: attempt.identity.clone(),
+        fence: attempt.fence,
+        candidate: handoff.candidate.clone(),
+        tree: handoff.tree.clone(),
+        base: handoff.base.clone(),
+        verification_profile: work.verification_profile.clone(),
+        run: CiFact {
+            project: work.project.clone(),
+            repository: work.repository.clone(),
+            revision: handoff.candidate.native_id.as_str().to_owned(),
+            run_id: "racing-verification".into(),
+            ordinal: 1,
+            success: true,
+            full_run: true,
+            clean: true,
+            scope_identity: None,
+            terminal: true,
+            untrusted: None,
+            checks: vec![CiCheck {
+                name: "test".into(),
+                kind: "test".into(),
+                outcome: "pass".into(),
+                artifact_digest: Some("f".repeat(64)),
+            }],
+        },
+    };
+    Ok((work, attempt, handoff, verification))
+}
+
+// r[verify kiln.implementation.current_authority.scenario.cancelled]
+#[test]
+fn completion_before_cancel_retains_exact_evidence_across_restart()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::AttemptPhase;
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let (work, attempt, handoff, verification) = racing_callbacks(&path)?;
+    let mut store = open(&path);
+    let receipt = store.record_verification(
+        &work,
+        &attempt.identity,
+        attempt.fence,
+        5,
+        &handoff,
+        &verification,
+    )?;
+    drop(store);
+
+    let mut store = open(&path);
+    assert_eq!(
+        store.record_verification(
+            &work,
+            &attempt.identity,
+            attempt.fence,
+            6,
+            &handoff,
+            &verification
+        )?,
+        receipt
+    );
+    assert!(
+        store
+            .cancel(&attempt.identity, attempt.fence, 7, "late cancel")
+            .is_err()
+    );
+    assert!(
+        store
+            .record_verification(
+                &work,
+                &attempt.identity,
+                attempt.fence + 1,
+                7,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    let mut stale_work = work.clone();
+    stale_work.revision += 1;
+    assert!(
+        store
+            .record_verification(
+                &stale_work,
+                &attempt.identity,
+                attempt.fence,
+                7,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    let retained = store
+        .attempt(&attempt.identity)?
+        .ok_or("missing completed attempt")?;
+    assert_eq!(retained.phase, AttemptPhase::Verified);
+    assert_eq!(retained.ended_at_ms, Some(5));
+    assert_eq!(retained.handoff.as_ref(), Some(&handoff));
+    assert_eq!(retained.verification.as_ref(), Some(&verification));
+    assert_eq!(
+        retained.workflow.as_ref(),
+        Some(&reference("run", "racing-worker"))
+    );
+    assert!(retained.dispatch.is_some());
+    assert!(retained.dispatch_request_binding.is_some());
+    assert_eq!(
+        store.campaign_request_binding(&attempt.identity)?,
+        retained.dispatch_request_binding
+    );
+    assert!(store.dispatch_requires_recovery(&attempt.identity)?);
+    assert!(
+        store
+            .attempts()?
+            .authorize_publication(&attempt.identity, attempt.fence)
+            .is_ok()
+    );
+    assert!(store.recover(8)?.active.is_empty());
+    assert!(store.claim_next(8, LEASE)?.is_none());
+    assert_eq!(store.attempt(&attempt.identity)?, Some(retained));
+    Ok(())
+}
+
+// r[verify kiln.implementation.unknown_barrier.scenario.restart]
+#[test]
+fn cancel_before_late_completion_requires_observed_termination_across_restart()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::AttemptPhase;
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let (work, attempt, handoff, verification) = racing_callbacks(&path)?;
+    let mut store = open(&path);
+    store.cancel(&attempt.identity, attempt.fence, 5, "operator cancelled")?;
+    assert!(
+        store
+            .record_verification(
+                &work,
+                &attempt.identity,
+                attempt.fence,
+                6,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    drop(store);
+
+    let mut store = open(&path);
+    assert_eq!(store.recover(7)?.active, vec![attempt.identity.clone()]);
+    assert!(
+        store.claim_next(7, LEASE)?.is_none(),
+        "cancellation does not prove provider death"
+    );
+    assert!(
+        store
+            .cancel(&attempt.identity, attempt.fence, 7, "replayed cancel")
+            .is_err()
+    );
+    assert!(
+        store
+            .record_verification(
+                &work,
+                &attempt.identity,
+                attempt.fence,
+                7,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .record_verification(
+                &work,
+                &attempt.identity,
+                attempt.fence + 1,
+                7,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    let mut stale_work = work.clone();
+    stale_work.revision += 1;
+    assert!(
+        store
+            .record_verification(
+                &stale_work,
+                &attempt.identity,
+                attempt.fence,
+                7,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    let cancelled = store
+        .attempt(&attempt.identity)?
+        .ok_or("missing cancelled attempt")?;
+    assert_eq!(cancelled.phase, AttemptPhase::Cancelled);
+    assert_eq!(cancelled.failure, Some(FailureClass::Unknown));
+    assert_eq!(cancelled.ended_at_ms, Some(5));
+    assert_eq!(cancelled.handoff.as_ref(), Some(&handoff));
+    assert!(cancelled.verification.is_none());
+    assert_eq!(
+        cancelled.workflow.as_ref(),
+        Some(&reference("run", "racing-worker"))
+    );
+    assert!(cancelled.dispatch.is_some());
+    assert!(cancelled.dispatch_request_binding.is_some());
+    assert_eq!(
+        store.campaign_request_binding(&attempt.identity)?,
+        cancelled.dispatch_request_binding
+    );
+    assert!(store.dispatch_requires_recovery(&attempt.identity)?);
+    assert!(
+        store
+            .attempts()?
+            .authorize_publication(&attempt.identity, attempt.fence)
+            .is_err()
+    );
+    assert!(
+        store
+            .reconcile_unknown(
+                &attempt.identity,
+                attempt.fence + 1,
+                &reference("termination", "stopped")
+            )
+            .is_err()
+    );
+    let observed = reference("termination", "stopped");
+    store.reconcile_unknown(&attempt.identity, attempt.fence, &observed)?;
+    drop(store);
+
+    let mut store = open(&path);
+    store.reconcile_unknown(&attempt.identity, attempt.fence, &observed)?;
+    assert!(
+        store
+            .reconcile_unknown(
+                &attempt.identity,
+                attempt.fence,
+                &reference("termination", "different")
+            )
+            .is_err()
+    );
+    assert!(store.recover(8)?.active.is_empty());
+    let replacement = store
+        .claim_next(8, LEASE)?
+        .ok_or("missing replacement after termination")?;
+    assert_eq!(replacement.ordinal, 2);
+    assert!(replacement.fence > attempt.fence);
+    assert!(
+        store
+            .record_verification(
+                &work,
+                &attempt.identity,
+                attempt.fence,
+                9,
+                &handoff,
+                &verification
+            )
+            .is_err()
+    );
+    assert!(
+        store
+            .authorize_current(&attempt.identity, attempt.fence, 9)
+            .is_err()
+    );
+    assert_eq!(store.attempt(&attempt.identity)?, Some(cancelled));
+    assert!(
+        store
+            .attempt(&replacement.identity)?
+            .ok_or("replacement absent")?
+            .verification
+            .is_none()
+    );
+    Ok(())
+}
+
 // r[verify kiln.implementation.unknown_barrier.scenario.restart]
 #[test]
 fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
@@ -698,14 +1071,67 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
     let directory = tempfile::tempdir()?;
     let path = directory.path().join("implementation.db");
     let mut store = open(&path);
-    let work = work();
+    use kiln_core::implementation::{
+        DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, ImplementationDispatchPlan,
+        WorkspaceIsolation,
+    };
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
     store.admit(&work, None)?;
     let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
-    let plan = content('d');
-    store.reserve_dispatch(&attempt.identity, attempt.fence, 1, &plan, &provider())?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    store.bind_campaign_request(
+        &work,
+        &attempt.identity,
+        attempt.fence,
+        1,
+        b"exact request bytes",
+    )?;
     assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan)?);
     drop(store);
     let mut store = open(&path);
+    assert!(
+        store
+            .bind_campaign_request(
+                &work,
+                &attempt.identity,
+                attempt.fence,
+                2,
+                b"substituted request bytes"
+            )
+            .is_err()
+    );
     assert!(store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
     store.recover(LEASE)?;
     assert!(store.claim_next(LEASE, LEASE)?.is_none());
@@ -873,6 +1299,14 @@ fn finish_active_resolves_only_its_exact_frozen_work_across_restart()
             .active_work(&attempt.identity, attempt.fence, 17)
             .is_err()
     );
+    assert!(store.claim_next(17, LEASE)?.is_none());
+    store.reconcile_unknown(
+        &attempt.identity,
+        attempt.fence,
+        &reference("termination", "finish-active-stopped"),
+    )?;
+    drop(store);
+    let mut store = open(&path);
     let replacement = store.claim_next(17, LEASE)?.ok_or("replacement missing")?;
     assert_eq!(
         store.active_work(&replacement.identity, replacement.fence, 18)?,

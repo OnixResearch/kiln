@@ -13,13 +13,8 @@ capabilities: snapshot/restore, no guest network, seccomp/no-new-privs
 confinement and x86_64. It does not qualify a live VMM or host. Every command carries an owner token with the exact session,
 fence, host and generation; stale owners are refused.
 
-The retained-session, checkpoint, handoff and bridge schemas are explicit `v2`.
-Session, logical execution and VM identity are separate required fields; old
-`v1` records are not silently upgraded by inventing missing identities or
-fencing evidence. Checkpoint profiles now require independently matched initrd,
-device and actual memory-backing identities as well as image/kernel/VMM/CPU.
-Handoff records retain exact cutover evidence and recheck its binding before
-resume, including after replay.
+The retained-session schema is `kiln.retained-session.v3`; checkpoint and bridge records retain their separately named `v2` schemas, and paused handoff records use `kiln.paused-handoff.v3`. Old session v2 records and old v1 records are not silently upgraded by inventing missing identities or fencing evidence.
+Session, logical execution and VM identity are separate required fields; checkpoint profiles require independently matched initrd, device and actual memory-backing identities as well as image/kernel/VMM/CPU. Handoff records retain exact cutover evidence and recheck its binding before resume, including after replay.
 
 The lifecycle admits receiving, restoring, paused, running, migrating,
 migrated-away, retiring, reconciliation-required and retired states. Restore
@@ -31,6 +26,10 @@ source volume/effect fencing receipts; a successful sender exit is insufficient.
 with affirmative cleanup observation releases it. Failed cleanup enters
 reconciliation and can later accept a matching observed retirement.
 
+## Requested versus observed controls
+
+Pause and resume carry an exact operation ID and current session, attempt, fence and placement binding. Their bounded control record distinguishes requested, in-progress, observed-complete, rejected and uncertain outcomes. Persisting or sending a request never changes the observed `Running`/`Paused` state. Only a matching native VMM `vm.info` readback (and required host confinement/backend observation) adopts the target state; uncertainty remains occupied and requires reconciliation. Exact duplicate requests do not redispatch, and replies for another operation or owner are rejected. Pending controls block checkpoint, handoff, migration and retirement commands. Provider authority and external guest/stream/two-host qualification remain prerequisites; no local substitute is enabled.
+
 ## Paused handoff
 
 `kiln-microvm::handoff` admits a checkpoint manifest binding the session,
@@ -40,12 +39,31 @@ RAM/device-state/disk/workspace objects. A manifest is refused when its disk
 identity or generation differs from the independently resolved volume facts, so
 old memory cannot be paired with a newer disk.
 
-`PausedHandoff` orders intent, quiescence, source pause, object verification,
-target admission, resume and source retirement. Target admission requires exact
-durable cutover/fencing evidence in addition to its owner token and native
-receipt. Source retirement requires the exact source session to be observed
-retired. Pure ordering checks do not themselves copy bytes or establish the
-truth/currentness of provider receipts.
+`PausedHandoff` schema `kiln.paused-handoff.v3` orders intent, quiescence,
+source pause, object verification, target admission, resume and source
+retirement. Its serialized record retains the full originating
+session/VM/work-revision/attempt/fence/execution identity, operation and
+source/target placements. Every phase, reconciliation and retirement observation
+compares the supplied session to that immutable origin; reopening does not
+create a new origin. Old v2 records and records without the required origin
+identity are refused rather than upgraded by inference.
+Retirement and reconciliation observations validate the exact owner and origin
+even after cleanup retires the source session. Ordered handoff commands still
+require an active source; replaying an earlier intent cannot revive a retired
+source.
+
+
+Object verification compares the caller's independently resolved expectation
+unchanged against both the origin and manifest. It never fills expected values
+from the current session. Target admission, resume and source retirement
+recheck the admitted manifest identity and exact operation, placement, target
+session/fence, and cutover evidence including source volume/effect fencing and
+durable destination acknowledgement. A `TargetAdmissionReceipt` must explicitly
+pair its native reference with those scope facts; a syntactically valid
+unrelated `ExternalRef` alone is insufficient. Refusal leaves phase/evidence
+unchanged. These pure comparisons do not establish provider receipt truth or
+effective distributed fencing. Object verification does not prove transfer or
+durability, and target admission does not itself commit placement ownership.
 
 ## Runnable local consumer and host effects
 

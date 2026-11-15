@@ -249,8 +249,8 @@ impl Engine {
             return Ok(response);
         }
         let prior = self.state.runs.get(id).ok_or("run missing")?;
-        if prior.is_independent_verification() {
-            return error(409, "verification_requires_fresh_fenced_profile_execution");
+        if prior.is_engine_owned_execution() {
+            return error(409, "engine_owned_run_requires_new_canonical_action");
         }
         if !prior.outcome().is_terminal() {
             return error(409, "rerun_outcome_unknown_or_active");
@@ -346,7 +346,7 @@ impl Engine {
             .state
             .runs
             .get(id)
-            .is_some_and(RunRecord::is_independent_verification)
+            .is_some_and(RunRecord::is_engine_owned_execution)
         {
             return Ok(());
         }
@@ -543,6 +543,7 @@ impl Engine {
             reports: Vec::new(),
             untrusted: None,
             implementation_verification: None,
+            preview_build: None,
             state: State::default(),
         };
         self.attach_untrusted(&mut record)?;
@@ -575,7 +576,7 @@ impl Engine {
             .runs
             .values()
             .filter(|r| {
-                !r.is_independent_verification() && !r.outcome().is_terminal() && !r.waiting()
+                !r.is_engine_owned_execution() && !r.outcome().is_terminal() && !r.waiting()
             })
             .map(|r| r.project_id.clone())
             .collect();
@@ -583,7 +584,7 @@ impl Engine {
             .state
             .runs
             .values()
-            .filter(|r| !r.is_independent_verification() && r.phase == "queued")
+            .filter(|r| !r.is_engine_owned_execution() && r.phase == "queued")
             .map(|r| (r.ordinal, r.id.clone(), r.project_id.clone()))
             .collect();
         queued.sort();

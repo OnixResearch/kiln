@@ -1,11 +1,12 @@
-//! Local exact-artifact consumer. No command builds or signs a product.
-use kiln_core::preview::PreviewBinding;
+//! Local exact-artifact consumer. Canonical mode builds only through an existing
+//! admitted Engine run; no request can assert successful build observations.
 use kiln_web_service::preview::{
+    PreviewSelection,
     engine::{self, EngineBundle, EngineManifest},
     nix::NativeNix,
-    read_request,
     service::PreviewServer,
 };
+use kiln_web_service::{engine::Engine, profile::ServiceProfile};
 use std::{
     env, fs,
     io::Write,
@@ -39,6 +40,23 @@ impl Drop for CatalogLease {
         let _removed = fs::remove_file(&self.0);
     }
 }
+fn serve_catalog(server: PreviewServer, catalog: &str) -> Result<(), String> {
+    let entry = server.entry()?;
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(catalog)
+        .map_err(|error| error.to_string())?;
+    let _lease = CatalogLease(PathBuf::from(catalog));
+    file.write_all(&serde_json::to_vec(&vec![&entry]).map_err(|error| error.to_string())?)
+        .map_err(|error| error.to_string())?;
+    file.sync_all().map_err(|error| error.to_string())?;
+    println!(
+        "{}",
+        serde_json::to_string(&entry).map_err(|error| error.to_string())?
+    );
+    serve(server)
+}
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     match (args.first().map(String::as_str), args.as_slice()) {
@@ -50,27 +68,39 @@ fn run() -> Result<(), String> {
             println!("{}", serde_json::json!({"removed_expired_owned_exports":removed}));
             Ok(())
         }
+        (Some("cleanup-observations"), [_, directory]) => {
+            let removed = kiln_web_service::preview::observation::cleanup_expired(
+                Path::new(directory),
+                kiln_web_service::preview::service::now()?,
+            )?;
+            println!("{}", serde_json::json!({"removed_expired_observations":removed}));
+            Ok(())
+        }
         (Some("pin-engine"), [_, root, module_dir]) => {
             let manifest = engine::pin(Path::new(root), module_dir)?;
             println!("{}", serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?);
             Ok(())
         }
-        (Some("produce"), [_, plan, observation, current, selection, root, manifest, nix, nix_store, scratch]) => {
-            let input = kiln_web_service::preview::PreviewProduction {
-                plan: json(Path::new(plan))?,
-                observation: json(Path::new(observation))?,
-                current: json(Path::new(current))?,
-                selection: json(Path::new(selection))?,
-            };
-            let manifest = json(Path::new(manifest))?;
-            let engine = EngineBundle::load(Path::new(root), manifest)?;
-            let nix = native_nix(nix, nix_store)?;
-            let request = kiln_web_service::preview::produce(
-                input, &engine, &nix, Path::new(scratch),
-                kiln_web_service::preview::service::now()?,
-            )?;
-            println!("{}", serde_json::to_string_pretty(&request).map_err(|e| e.to_string())?);
+        (Some("run-build"), [_, service_profile, source_run_id, request_id]) => {
+            let profile = ServiceProfile::load(Path::new(service_profile))?;
+            let mut engine_state = Engine::open(profile)?;
+            let run_id = engine_state.run_canonical_nix_build(source_run_id, request_id)?;
+            println!("{}", serde_json::json!({"run_id":run_id}));
             Ok(())
+        }
+        (Some("produce"), [_, service_profile, run_id, node_id, selection_path, root, manifest_path, nix, nix_store, scratch, catalog, observations @ ..]) if observations.len() <= 1 => {
+            let profile = ServiceProfile::load(Path::new(service_profile))?;
+            let engine_state = Engine::open(profile)?;
+            let selection: PreviewSelection = json(Path::new(selection_path))?;
+            let manifest: EngineManifest = json(Path::new(manifest_path))?;
+            let bundle = EngineBundle::load(Path::new(root), manifest)?;
+            let nix = native_nix(nix, nix_store)?;
+            let mut server = engine_state.prepare_preview_server(run_id, node_id, selection, bundle, &nix, Path::new(scratch))?;
+            drop(engine_state);
+            if let [directory] = observations {
+                server = server.with_observations(Path::new(directory))?;
+            }
+            serve_catalog(server, catalog)
         }
         (Some("engine-cohort"), [_, selection, root, manifest, nix, nix_store, scratch]) => {
             let selection = json(Path::new(selection))?;
@@ -81,25 +111,7 @@ fn run() -> Result<(), String> {
             println!("{}", serde_json::json!({"qualification":"engine-only; no canonical CI binding","launch_url":server.launch_url()?}));
             serve(server)
         }
-        (Some("serve"), [_, request, current, policy, root, manifest, nix, nix_store, scratch, catalog]) => {
-            let request = read_request(Path::new(request))?;
-            let current: PreviewBinding = json(Path::new(current))?;
-            let policy = json(Path::new(policy))?;
-            let manifest: EngineManifest = json(Path::new(manifest))?;
-            let engine = EngineBundle::load(Path::new(root), manifest)?;
-            let nix = native_nix(nix, nix_store)?;
-            let server = PreviewServer::prepare(request, &current, &policy, engine, &nix, Path::new(scratch))?;
-            let entry = server.entry()?;
-            // Never overwrite a shared console catalog; the caller explicitly
-            // selects this owned disposable file as its optional projection.
-            let mut file = fs::OpenOptions::new().write(true).create_new(true).open(catalog).map_err(|e| e.to_string())?;
-            let _lease = CatalogLease(PathBuf::from(catalog));
-            file.write_all(&serde_json::to_vec(&vec![&entry]).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-            file.sync_all().map_err(|e| e.to_string())?;
-            println!("{}", serde_json::to_string(&entry).map_err(|e| e.to_string())?);
-            serve(server)
-        }
-        _ => Err("usage: artifact-preview pin-engine PREBUILT_TRYNIX_TREE MODULE_DIR\n       artifact-preview produce PLAN.json OBSERVATION.json CURRENT_BINDING.json SELECTION.json PREBUILT_TRYNIX_TREE ENGINE_MANIFEST.json ABS_NIX ABS_NIX_STORE OWNED_SCRATCH\n       artifact-preview serve ADMITTED_REQUEST.json CURRENT_BINDING.json SELECTION.json PREBUILT_TRYNIX_TREE ENGINE_MANIFEST.json ABS_NIX ABS_NIX_STORE OWNED_SCRATCH NEW_CATALOG.json\n       artifact-preview engine-cohort SELECTION.json PREBUILT_TRYNIX_TREE ENGINE_MANIFEST.json ABS_NIX ABS_NIX_STORE OWNED_SCRATCH\nNormal previews require canonical admitted CI records and independent operator runtime/trust policy; engine-cohort has no CI binding and cannot enter a review catalog. No command creates CI evidence or grants upstream cache trust.".into()),
+        _ => Err("usage: artifact-preview pin-engine PREBUILT_TRYNIX_TREE MODULE_DIR\n       artifact-preview run-build SERVICE_PROFILE SOURCE_RUN_ID REQUEST_ID\n       artifact-preview produce SERVICE_PROFILE BUILD_RUN_ID BUILD_NODE SELECTION.json PREBUILT_TRYNIX_TREE ENGINE_MANIFEST.json ABS_NIX ABS_NIX_STORE OWNED_SCRATCH NEW_CATALOG.json [OWNED_OBSERVATIONS_DIR]\n       artifact-preview engine-cohort SELECTION.json PREBUILT_TRYNIX_TREE ENGINE_MANIFEST.json ABS_NIX ABS_NIX_STORE OWNED_SCRATCH\n       artifact-preview cleanup OWNED_SCRATCH\n       artifact-preview cleanup-observations OWNED_OBSERVATIONS_DIR\nrun-build uses only the opted-in service-owned Nix profile and persists a new exact-source canonical build run. produce is read-only: it accepts only an exact canonical Build run that already retains the actual admitted Nix plan, product observation and complete runtime closure. It performs no build and imports no plan or observation JSON. With OWNED_OBSERVATIONS_DIR the preview retains bounded browser reports composed against the admitted descriptor; they are preview evidence only. Engine-cohort remains engine-only and cannot enter a review catalog. No command builds latest HEAD or grants upstream cache trust.".into()),
     }
 }
 fn main() {

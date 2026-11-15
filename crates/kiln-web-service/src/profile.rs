@@ -50,6 +50,9 @@ pub struct ProjectProfile {
     pub admitted_references: Vec<String>,
     pub source_limits: GitSnapshotLimits,
     pub workflow: WorkflowConfig,
+    /// Optional native Nix BuildPort action, admitted from service-owned config.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub canonical_nix_build: Option<CanonicalNixBuildProfile>,
     /// Automatic failed-node retries on the exact same source. `0` (the
     /// default) keeps automatic retries disabled; the reviewed upper bound is
     /// [`MAX_RETRY_FAILED`].
@@ -63,6 +66,28 @@ pub struct ProjectProfile {
     /// untrusted pull-request runs dispatch only to declared projects.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub untrusted_capable: bool,
+}
+
+/// Explicit operator opt-in for a canonical native Nix CI build action.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CanonicalNixBuildProfile {
+    pub node_id: String,
+    /// Exact provider-native revision whose source-bound derivation is admitted.
+    pub source_revision: String,
+    pub profile: kiln_adapter_nix::NixBuildProfileConfig,
+}
+
+pub fn canonical_nix_build_operation_identity(
+    project_id: &str,
+    build: &CanonicalNixBuildProfile,
+) -> Result<kiln_core::ContentId, String> {
+    crate::engine::identity(&(
+        "kiln.web.canonical-nix-build.operation.v1",
+        project_id,
+        &build.node_id,
+        &build.profile,
+    ))
 }
 
 /// Largest admitted automatic failed-node retry count per run lineage.
@@ -445,6 +470,25 @@ impl ServiceProfile {
                 })
             {
                 return Err("invalid admitted source references".into());
+            }
+            if let Some(build) = &project.canonical_nix_build {
+                if !identifier(&build.node_id)
+                    || build.node_id.len() > 128
+                    || build.source_revision.is_empty()
+                    || build.source_revision.len() > 1024
+                    || build
+                        .source_revision
+                        .bytes()
+                        .any(|byte| byte.is_ascii_control() || byte.is_ascii_whitespace())
+                {
+                    return Err("invalid canonical Nix build node or source revision".into());
+                }
+                build
+                    .profile
+                    .clone()
+                    .into_profile()
+                    .map_err(|_| "invalid canonical Nix build profile")?;
+                canonical_nix_build_operation_identity(&project.id, build)?;
             }
             let lattice = project.lattice(b.max_runs)?;
             kiln_adapter_lattice::admit_profile(&lattice)

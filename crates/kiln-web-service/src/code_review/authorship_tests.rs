@@ -148,10 +148,7 @@ impl Fixture {
         let mut references = Vec::new();
         for reference in repository.references()? {
             let reference = reference?;
-            references.push((
-                reference.name().ok_or("reference name")?.to_owned(),
-                reference.target(),
-            ));
+            references.push((reference.name()?.to_owned(), reference.target()));
         }
         Ok(references)
     }

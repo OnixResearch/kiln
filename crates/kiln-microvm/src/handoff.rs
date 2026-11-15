@@ -7,11 +7,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::retained::{OwnerToken, Placement, RetainedSession, RetainedState};
+use crate::retained::{ControlStatus, OwnerToken, Placement, RetainedSession, RetainedState};
 use kiln_core::types::{ContentId, Diagnostic, ExternalRef};
 
 pub const CHECKPOINT_SCHEMA: &str = "kiln.checkpoint-manifest.v2";
-pub const HANDOFF_SCHEMA: &str = "kiln.paused-handoff.v2";
+pub const HANDOFF_SCHEMA: &str = "kiln.paused-handoff.v3";
 pub const MAX_CAUSE_BYTES: usize = 512;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -88,9 +88,23 @@ pub enum HandoffPhase {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct TargetAdmissionReceipt {
+    pub reference: ExternalRef,
+    pub operation: ContentId,
+    pub checkpoint: ContentId,
+    pub source: Placement,
+    pub target: Placement,
+    pub target_session: ContentId,
+    pub target_fence: u64,
+    pub cutover: crate::retained::drain::CutoverEvidence,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PausedHandoff {
     pub schema: String,
     pub operation: ContentId,
+    pub origin: crate::retained::SessionIdentity,
     pub source: Placement,
     pub target: Placement,
     pub phase: HandoffPhase,
@@ -98,9 +112,9 @@ pub struct PausedHandoff {
     pub manifest: Option<CheckpointManifest>,
     /// Exact independently observed target-admission receipt.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub target_receipt: Option<ExternalRef>,
+    pub target_receipt: Option<TargetAdmissionReceipt>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub target_evidence: Option<crate::retained::drain::CutoverEvidence>,
+    pub manifest_identity: Option<ContentId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cause: Option<String>,
 }
@@ -117,6 +131,18 @@ impl PausedHandoff {
         operation: ContentId,
     ) -> Result<Self, Diagnostic> {
         session.authorize(owner)?;
+        if session.control.as_ref().is_some_and(|control| {
+            matches!(
+                control.status,
+                ControlStatus::Requested | ControlStatus::InProgress | ControlStatus::Uncertain
+            )
+        }) {
+            return Err(refusal(
+                "handoff_control_pending",
+                "handoff.session",
+                "unfinished control must be observed before handoff",
+            ));
+        }
         if !matches!(
             session.state,
             RetainedState::Paused | RetainedState::Running
@@ -132,16 +158,16 @@ impl PausedHandoff {
         Ok(Self {
             schema: HANDOFF_SCHEMA.to_string(),
             operation,
+            origin: session.identity.clone(),
             source: session.placement.clone(),
             target,
             phase: HandoffPhase::Intent,
             manifest: None,
             target_receipt: None,
-            target_evidence: None,
+            manifest_identity: None,
             cause: None,
         })
     }
-
     /// Record that new external effects are quiesced. The source may still run.
     pub fn record_quiesced(
         &mut self,
@@ -180,7 +206,7 @@ impl PausedHandoff {
         session: &RetainedSession,
         owner: &OwnerToken,
         manifest: CheckpointManifest,
-        mut expected: CheckpointExpectation,
+        expected: CheckpointExpectation,
     ) -> Result<ContentId, Diagnostic> {
         self.authorize(session, owner, &[HandoffPhase::SourcePaused])?;
         if session.state != RetainedState::Paused {
@@ -190,33 +216,40 @@ impl PausedHandoff {
                 "source must remain paused while checkpoint objects are verified",
             ));
         }
-        expected.source = self.source.clone();
-        expected.target = self.target.clone();
-        expected.operation = self.operation.clone();
-        expected.session = session.identity.session.clone();
-        expected.work = session.identity.work.clone();
-        expected.work_revision = session.identity.work_revision;
-        expected.attempt = session.identity.attempt.clone();
-        expected.fence = session.identity.fence;
-        expected.execution = session.identity.execution.clone();
-        expected.vm = session.identity.vm.clone();
+        if expected.session != self.origin.session
+            || expected.vm != self.origin.vm
+            || expected.work != self.origin.work
+            || expected.work_revision != self.origin.work_revision
+            || expected.attempt != self.origin.attempt
+            || expected.fence != self.origin.fence
+            || expected.execution != self.origin.execution
+            || expected.source != self.source
+            || expected.target != self.target
+            || expected.operation != self.operation
+        {
+            return Err(refusal(
+                "handoff_expectation_binding",
+                "handoff.manifest",
+                "independent checkpoint expectations do not match the originating handoff",
+            ));
+        }
         let identity = admit_checkpoint(&manifest, &expected)?;
         self.manifest = Some(manifest);
+        self.manifest_identity = Some(identity.clone());
         self.phase = HandoffPhase::ObjectsVerified;
         Ok(identity)
     }
 
-    /// Record that the destination admitted the exact manifest and placement.
+    /// Record a destination receipt explicitly scoped to this operation and checkpoint.
     pub fn record_target_admitted(
         &mut self,
         session: &RetainedSession,
         owner: &OwnerToken,
         target_owner: &OwnerToken,
-        receipt: &ExternalRef,
-        cutover: &crate::retained::drain::CutoverEvidence,
+        receipt: &TargetAdmissionReceipt,
     ) -> Result<(), Diagnostic> {
         self.authorize(session, owner, &[HandoffPhase::ObjectsVerified])?;
-        receipt.validate()?;
+        receipt.reference.validate()?;
         use crate::retained::drain::{
             AfterDispatch, DispatchObservation, VmObservation, after_dispatch,
         };
@@ -226,20 +259,6 @@ impl PausedHandoff {
             destination: VmObservation::Paused,
             destination_ever_wrote: false,
         };
-        if after_dispatch(
-            session,
-            &self.operation,
-            &self.target,
-            Some(cutover),
-            &observed,
-        ) != AfterDispatch::TargetOwned
-        {
-            return Err(refusal(
-                "handoff_fencing_unconfirmed",
-                "handoff.target",
-                "target admission requires exact durable placement/acknowledgement and source volume/effect fencing",
-            ));
-        }
         let manifest = self.manifest.as_ref().ok_or_else(|| {
             refusal(
                 "handoff_manifest_missing",
@@ -247,21 +266,57 @@ impl PausedHandoff {
                 "target admission requires a verified checkpoint manifest",
             )
         })?;
-        target_owner.session.validate()?;
-        if target_owner.session != session.identity.session
-            || target_owner.fence != session.identity.fence
-            || target_owner.host != manifest.target.host
-            || target_owner.generation != manifest.target.generation
-            || self.target != manifest.target
+        let identity = self.manifest_identity.as_ref().ok_or_else(|| {
+            refusal(
+                "handoff_manifest_missing",
+                "handoff.manifest",
+                "target admission requires the exact admitted manifest identity",
+            )
+        })?;
+        let expected = CheckpointExpectation {
+            session: self.origin.session.clone(),
+            vm: self.origin.vm.clone(),
+            work: self.origin.work.clone(),
+            work_revision: self.origin.work_revision,
+            attempt: self.origin.attempt.clone(),
+            fence: self.origin.fence,
+            execution: self.origin.execution.clone(),
+            source: self.source.clone(),
+            target: self.target.clone(),
+            operation: self.operation.clone(),
+            disk: manifest.objects.disk.clone(),
+            disk_generation: manifest.disk_generation,
+            profile: manifest.profile.clone(),
+        };
+        if receipt.operation != self.operation
+            || receipt.checkpoint != *identity
+            || receipt.source != self.source
+            || receipt.target != self.target
+            || receipt.target_session != self.origin.session
+            || receipt.target_fence != self.origin.fence
+            || target_owner.session != self.origin.session
+            || target_owner.fence != self.origin.fence
+            || target_owner.host != self.target.host
+            || target_owner.generation != self.target.generation
+            || receipt.target_session != target_owner.session
+            || receipt.target_fence != target_owner.fence
+            || admit_checkpoint(manifest, &expected).as_ref() != Ok(identity)
+            || receipt.cutover.checkpoint.as_ref() != Some(identity)
+            || after_dispatch(
+                session,
+                &self.operation,
+                &self.target,
+                Some(&receipt.cutover),
+                &observed,
+            ) != AfterDispatch::TargetOwned
         {
             return Err(refusal(
-                "handoff_target_owner",
+                "handoff_target_evidence",
                 "handoff.target",
-                "target owner does not hold the manifest target placement and fence",
+                "target receipt must bind the exact manifest, operation, placement, owner and cutover/fencing facts",
             ));
         }
         self.target_receipt = Some(receipt.clone());
-        self.target_evidence = Some(cutover.clone());
         self.phase = HandoffPhase::TargetAdmitted;
         Ok(())
     }
@@ -274,35 +329,15 @@ impl PausedHandoff {
         target_owner: &OwnerToken,
     ) -> Result<(), Diagnostic> {
         self.authorize(session, owner, &[HandoffPhase::TargetAdmitted])?;
-        use crate::retained::drain::{
-            AfterDispatch, DispatchObservation, VmObservation, after_dispatch,
-        };
-        let observed = DispatchObservation {
-            sender_exit: None,
-            source: VmObservation::Unknown,
-            destination: VmObservation::Unknown,
-            destination_ever_wrote: false,
-        };
-        if self
-            .target_receipt
-            .as_ref()
-            .is_none_or(|receipt| receipt.validate().is_err())
-            || after_dispatch(
-                session,
-                &self.operation,
-                &self.target,
-                self.target_evidence.as_ref(),
-                &observed,
-            ) != AfterDispatch::TargetOwned
-        {
+        if !self.target_admission_valid(session) {
             return Err(refusal(
                 "handoff_resume_evidence",
                 "handoff.resume",
-                "resume requires the persisted exact durable placement/fencing/acknowledgement evidence",
+                "resume requires the persisted exact scoped receipt and durable placement/fencing/acknowledgement evidence",
             ));
         }
-        if target_owner.session != session.identity.session
-            || target_owner.fence != session.identity.fence
+        if target_owner.session != self.origin.session
+            || target_owner.fence != self.origin.fence
             || target_owner.host != self.target.host
             || target_owner.generation != self.target.generation
         {
@@ -322,11 +357,10 @@ impl PausedHandoff {
         session: &RetainedSession,
         owner: &OwnerToken,
     ) -> Result<(), Diagnostic> {
-        session.authorize_identity(owner)?;
-        if self.schema != HANDOFF_SCHEMA
-            || self.phase != HandoffPhase::Resumed
+        self.authorize_identity(session, owner)?;
+        if self.phase != HandoffPhase::Resumed
             || session.state != RetainedState::Retired
-            || session.placement != self.source
+            || !self.target_admission_valid(session)
         {
             return Err(refusal(
                 "handoff_source_not_retired",
@@ -345,7 +379,7 @@ impl PausedHandoff {
         owner: &OwnerToken,
         cause: &str,
     ) -> Result<(), Diagnostic> {
-        session.authorize(owner)?;
+        self.authorize_identity(session, owner)?;
         if cause.is_empty() || cause.len() > MAX_CAUSE_BYTES || cause.chars().any(char::is_control)
         {
             return Err(refusal(
@@ -359,12 +393,65 @@ impl PausedHandoff {
         Ok(())
     }
 
-    fn authorize(
+    fn target_admission_valid(&self, session: &RetainedSession) -> bool {
+        use crate::retained::drain::{
+            AfterDispatch, DispatchObservation, VmObservation, after_dispatch,
+        };
+        let (Some(manifest), Some(identity), Some(receipt)) = (
+            self.manifest.as_ref(),
+            self.manifest_identity.as_ref(),
+            self.target_receipt.as_ref(),
+        ) else {
+            return false;
+        };
+        let expected = CheckpointExpectation {
+            session: self.origin.session.clone(),
+            vm: self.origin.vm.clone(),
+            work: self.origin.work.clone(),
+            work_revision: self.origin.work_revision,
+            attempt: self.origin.attempt.clone(),
+            fence: self.origin.fence,
+            execution: self.origin.execution.clone(),
+            source: self.source.clone(),
+            target: self.target.clone(),
+            operation: self.operation.clone(),
+            disk: manifest.objects.disk.clone(),
+            disk_generation: manifest.disk_generation,
+            profile: manifest.profile.clone(),
+        };
+        receipt.reference.validate().is_ok()
+            && receipt.operation == self.operation
+            && receipt.checkpoint == *identity
+            && receipt.source == self.source
+            && receipt.target == self.target
+            && receipt.target_session == self.origin.session
+            && receipt.target_fence == self.origin.fence
+            && admit_checkpoint(manifest, &expected).as_ref() == Ok(identity)
+            && receipt.cutover.checkpoint.as_ref() == Some(identity)
+            && after_dispatch(
+                session,
+                &self.operation,
+                &self.target,
+                Some(&receipt.cutover),
+                &DispatchObservation {
+                    sender_exit: None,
+                    source: VmObservation::Unknown,
+                    destination: VmObservation::Unknown,
+                    destination_ever_wrote: false,
+                },
+            ) == AfterDispatch::TargetOwned
+    }
+
+    fn authorize_identity(
         &self,
         session: &RetainedSession,
         owner: &OwnerToken,
-        allowed: &[HandoffPhase],
     ) -> Result<(), Diagnostic> {
+        session.authorize_identity(owner)?;
+        self.require_origin(session)
+    }
+
+    fn require_origin(&self, session: &RetainedSession) -> Result<(), Diagnostic> {
         if self.schema != HANDOFF_SCHEMA {
             return Err(refusal(
                 "handoff_schema",
@@ -372,8 +459,25 @@ impl PausedHandoff {
                 "handoff schema is unsupported",
             ));
         }
+        if session.identity != self.origin || session.placement != self.source {
+            return Err(refusal(
+                "handoff_origin_mismatch",
+                "handoff.session",
+                "supplied session does not match the immutable originating identity and placement",
+            ));
+        }
+        Ok(())
+    }
+
+    fn authorize(
+        &self,
+        session: &RetainedSession,
+        owner: &OwnerToken,
+        allowed: &[HandoffPhase],
+    ) -> Result<(), Diagnostic> {
         session.authorize(owner)?;
-        if session.placement != self.source || !allowed.contains(&self.phase) {
+        self.require_origin(session)?;
+        if !allowed.contains(&self.phase) {
             return Err(refusal(
                 "handoff_phase",
                 "handoff.phase",
@@ -534,14 +638,17 @@ fn refusal(code: &str, field: &str, message: &str) -> Diagnostic {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::retained::{RetainedResources, SessionIdentity};
+    use crate::retained::{ControlKind, RetainedResources, SessionIdentity};
 
     fn content(character: char) -> ContentId {
         ContentId::from_blake3_hex(character.to_string().repeat(64))
             .unwrap_or_else(|_| unreachable!())
     }
 
-    fn cutover(session: &RetainedSession) -> crate::retained::drain::CutoverEvidence {
+    fn cutover(
+        session: &RetainedSession,
+        checkpoint: ContentId,
+    ) -> crate::retained::drain::CutoverEvidence {
         crate::retained::drain::CutoverEvidence {
             operation: content('4'),
             session: session.identity.session.clone(),
@@ -551,10 +658,29 @@ mod tests {
             fence: session.identity.fence,
             source: session.placement.clone(),
             target: target(),
+            checkpoint: Some(checkpoint),
             durable_target_commit: Some(content('e')),
             source_volume_fenced: Some(content('f')),
             source_effects_fenced: Some(content('5')),
             destination_durable_ack: Some(content('6')),
+        }
+    }
+
+    fn target_receipt(
+        session: &RetainedSession,
+        checkpoint: ContentId,
+        cutover: crate::retained::drain::CutoverEvidence,
+    ) -> TargetAdmissionReceipt {
+        TargetAdmissionReceipt {
+            reference: ExternalRef::new("lattice", "candidate", "target")
+                .unwrap_or_else(|_| unreachable!()),
+            operation: content('4'),
+            checkpoint,
+            source: session.placement.clone(),
+            target: target(),
+            target_session: session.identity.session.clone(),
+            target_fence: session.identity.fence,
+            cutover,
         }
     }
 
@@ -667,6 +793,35 @@ mod tests {
         }
     }
 
+    #[test]
+    fn pending_pause_cannot_start_handoff_but_observed_pause_can() {
+        let mut session = session();
+        let owner = paused(&mut session);
+        let resume = content('8');
+        session
+            .request_control(&owner, resume.clone(), ControlKind::Resume)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        session
+            .control_in_progress(&owner, &resume)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        session
+            .observe_control(&owner, &resume, true)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let pause = content('9');
+        session
+            .request_control(&owner, pause.clone(), ControlKind::Pause)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(session.state, RetainedState::Running);
+        assert!(PausedHandoff::begin(&session, &owner, target(), content('a')).is_err());
+        session
+            .control_in_progress(&owner, &pause)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        session
+            .observe_control(&owner, &pause, true)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(PausedHandoff::begin(&session, &owner, target(), content('a')).is_ok());
+    }
+
     // r[verify kiln.hosted.handoff.manifest] r[verify kiln.hosted.handoff.order] r[verify kiln.hosted.handoff.order.scenario.complete]
     #[test]
     fn paused_handoff_orders_quiesce_capture_target_and_retirement() {
@@ -675,6 +830,7 @@ mod tests {
         let target = target();
         let mut handoff = PausedHandoff::begin(&session, &owner, target.clone(), content('4'))
             .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let mut pending_intent = handoff.clone();
         handoff
             .record_quiesced(&session, &owner)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
@@ -698,24 +854,43 @@ mod tests {
             host: target.host.clone(),
             generation: target.generation,
         };
-        let receipt =
-            ExternalRef::new("lattice", "candidate", "target").unwrap_or_else(|_| unreachable!());
-        let mut unfenced = cutover(&session);
-        unfenced.source_volume_fenced = None;
+        let checkpoint = handoff
+            .manifest_identity
+            .clone()
+            .unwrap_or_else(|| unreachable!());
+        let receipt = target_receipt(
+            &session,
+            checkpoint.clone(),
+            cutover(&session, checkpoint.clone()),
+        );
+        let mut unfenced = receipt.clone();
+        unfenced.cutover.source_volume_fenced = None;
         assert!(
             handoff
-                .record_target_admitted(&session, &owner, &target_owner, &receipt, &unfenced)
+                .record_target_admitted(&session, &owner, &target_owner, &unfenced)
                 .is_err()
         );
         assert_eq!(handoff.phase, HandoffPhase::ObjectsVerified);
+        for mutate in 0..6 {
+            let mut forged = receipt.clone();
+            match mutate {
+                0 => forged.operation = content('8'),
+                1 => forged.checkpoint = content('8'),
+                2 => forged.target.generation += 1,
+                3 => forged.target_session = content('8'),
+                4 => forged.target_fence += 1,
+                _ => forged.cutover.destination_durable_ack = None,
+            }
+            let before = handoff.clone();
+            assert!(
+                handoff
+                    .record_target_admitted(&session, &owner, &target_owner, &forged)
+                    .is_err()
+            );
+            assert_eq!(handoff, before);
+        }
         handoff
-            .record_target_admitted(
-                &session,
-                &owner,
-                &target_owner,
-                &receipt,
-                &cutover(&session),
-            )
+            .record_target_admitted(&session, &owner, &target_owner, &receipt)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(handoff.phase, HandoffPhase::TargetAdmitted);
         assert_eq!(handoff.target_receipt.as_ref(), Some(&receipt));
@@ -730,6 +905,8 @@ mod tests {
         session
             .observe_retired(&owner, true)
             .unwrap_or_else(|_| unreachable!());
+        assert!(pending_intent.record_quiesced(&session, &owner).is_err());
+        assert_eq!(pending_intent.phase, HandoffPhase::Intent);
         handoff
             .record_source_retired(&session, &owner)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
@@ -778,20 +955,207 @@ mod tests {
                 expectation(&session),
             )
             .unwrap_or_else(|error| unreachable!("{error:?}"));
-        let stale = OwnerToken {
+        let checkpoint = handoff
+            .manifest_identity
+            .clone()
+            .unwrap_or_else(|| unreachable!());
+        let mut receipt =
+            target_receipt(&session, checkpoint.clone(), cutover(&session, checkpoint));
+        receipt.target.generation += 1;
+        let before = handoff.clone();
+        let target_owner = OwnerToken {
             session: session.identity.session.clone(),
             fence: session.identity.fence,
             host: target.host.clone(),
-            generation: target.generation + 1,
+            generation: target.generation,
         };
-        let receipt =
-            ExternalRef::new("lattice", "candidate", "target").unwrap_or_else(|_| unreachable!());
         assert!(
             handoff
-                .record_target_admitted(&session, &owner, &stale, &receipt, &cutover(&session))
+                .record_target_admitted(&session, &owner, &target_owner, &receipt)
                 .is_err()
         );
-        assert_eq!(handoff.phase, HandoffPhase::ObjectsVerified);
+        assert_eq!(handoff, before);
+    }
+
+    // r[verify kiln.hosted.handoff.order.scenario.order]
+    #[test]
+    fn originating_identity_is_enforced_through_reopened_phases() {
+        let mut session = session();
+        let owner_a = paused(&mut session);
+        let target = target();
+        let mut handoff = PausedHandoff::begin(&session, &owner_a, target.clone(), content('4'))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let mut other = session.clone();
+        other.identity.session = content('a');
+        let other_owner = owner(&other);
+        for change in 0..8 {
+            let mut substituted = session.clone();
+            match change {
+                0 => substituted.identity.work = content('b'),
+                1 => substituted.identity.work_revision += 1,
+                2 => substituted.identity.attempt = content('c'),
+                3 => substituted.identity.fence += 1,
+                4 => substituted.identity.execution = content('d'),
+                5 => substituted.identity.vm = content('e'),
+                6 => substituted.placement.host = "host-other".to_string(),
+                _ => substituted.placement.generation += 1,
+            }
+            let substituted_owner = owner(&substituted);
+            let before = handoff.clone();
+            assert!(
+                handoff
+                    .record_quiesced(&substituted, &substituted_owner)
+                    .is_err()
+            );
+            assert_eq!(handoff, before);
+        }
+
+        let before = handoff.clone();
+        assert!(handoff.record_quiesced(&other, &other_owner).is_err());
+        assert_eq!(handoff, before);
+        handoff
+            .record_quiesced(&session, &owner_a)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        handoff = serde_json::from_slice(&serde_json::to_vec(&handoff).unwrap_or_default())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+
+        let before = handoff.clone();
+        assert!(handoff.record_source_paused(&other, &other_owner).is_err());
+        assert_eq!(handoff, before);
+        handoff
+            .record_source_paused(&session, &owner_a)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        handoff = serde_json::from_slice(&serde_json::to_vec(&handoff).unwrap_or_default())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+
+        let before = handoff.clone();
+        assert!(
+            handoff
+                .record_objects_verified(
+                    &other,
+                    &other_owner,
+                    manifest(&other, target.clone()),
+                    expectation(&other)
+                )
+                .is_err()
+        );
+        assert_eq!(handoff, before);
+        handoff
+            .record_objects_verified(
+                &session,
+                &owner_a,
+                manifest(&session, target.clone()),
+                expectation(&session),
+            )
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        handoff = serde_json::from_slice(&serde_json::to_vec(&handoff).unwrap_or_default())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+
+        let identity = handoff
+            .manifest_identity
+            .clone()
+            .unwrap_or_else(|| unreachable!());
+        let target_owner = OwnerToken {
+            session: session.identity.session.clone(),
+            fence: session.identity.fence,
+            host: target.host.clone(),
+            generation: target.generation,
+        };
+        let receipt = target_receipt(&session, identity.clone(), cutover(&session, identity));
+        let before = handoff.clone();
+        assert!(
+            handoff
+                .record_target_admitted(&other, &other_owner, &target_owner, &receipt)
+                .is_err()
+        );
+        assert_eq!(handoff, before);
+        handoff
+            .record_target_admitted(&session, &owner_a, &target_owner, &receipt)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        handoff = serde_json::from_slice(&serde_json::to_vec(&handoff).unwrap_or_default())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+
+        let before = handoff.clone();
+        assert!(
+            handoff
+                .record_resumed(&other, &other_owner, &target_owner)
+                .is_err()
+        );
+        assert_eq!(handoff, before);
+        handoff
+            .record_resumed(&session, &owner_a, &target_owner)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        handoff = serde_json::from_slice(&serde_json::to_vec(&handoff).unwrap_or_default())
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+
+        let mut retired_other = other.clone();
+        retired_other.state = RetainedState::Retired;
+        let retired_owner = owner(&retired_other);
+        let before = handoff.clone();
+        assert!(
+            handoff
+                .record_source_retired(&retired_other, &retired_owner)
+                .is_err()
+        );
+        assert_eq!(handoff, before);
+        session
+            .begin_retire(&owner_a)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        session
+            .observe_retired(&owner_a, true)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        handoff
+            .record_source_retired(&session, &owner_a)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+
+        let mut reconcile = handoff.clone();
+        let before = reconcile.clone();
+        assert!(
+            reconcile
+                .require_reconciliation(&retired_other, &retired_owner, "uncertain")
+                .is_err()
+        );
+        assert_eq!(reconcile, before);
+    }
+
+    // r[verify kiln.hosted.handoff.manifest.scenario.disk]
+    #[test]
+    fn independent_checkpoint_expectation_mismatches_refuse_without_advancement() {
+        let mut session = session();
+        let owner = paused(&mut session);
+        let target = target();
+        let manifest = manifest(&session, target.clone());
+        for change in 0..10 {
+            let mut expected = expectation(&session);
+            match change {
+                0 => expected.session = content('a'),
+                1 => expected.vm = content('b'),
+                2 => expected.work = content('c'),
+                3 => expected.work_revision += 1,
+                4 => expected.attempt = content('d'),
+                5 => expected.fence += 1,
+                6 => expected.execution = expected.session.clone(),
+                7 => expected.source.generation += 1,
+                8 => expected.target.generation += 1,
+                _ => expected.operation = content('8'),
+            }
+            assert!(admit_checkpoint(&manifest, &expected).is_err());
+            let mut handoff = PausedHandoff::begin(&session, &owner, target.clone(), content('4'))
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            handoff
+                .record_quiesced(&session, &owner)
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            handoff
+                .record_source_paused(&session, &owner)
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            let before = handoff.clone();
+            assert!(
+                handoff
+                    .record_objects_verified(&session, &owner, manifest.clone(), expected)
+                    .is_err()
+            );
+            assert_eq!(handoff, before);
+        }
     }
 
     // r[verify kiln.hosted.handoff.manifest.scenario.disk]

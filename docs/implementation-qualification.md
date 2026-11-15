@@ -2,7 +2,7 @@
 
 This is the bounded repeatability rail for [Kiln #50](https://github.com/OnixResearch/kiln/issues/50), composed with the separately owned [onix-core #49 deployment](https://github.com/OnixResearch/kiln/issues/49). The consumer is `scripts/implementation-qualification.py`; its maintained input contract is `config/implementation-qualification.ncl`. The implementation coordinator/CLI owns admission, candidate capture, verification and publication semantics; Lattice owns the actual OMP process and durable attempt result; onix-core owns accounts, namespaces and packaging. This harness owns neither a scheduler nor acceptance authority.
 
-**No campaign was run while adding this rail.** Native proposal/design/tasks gates passed for `.cairn/changes/qualify-implementation-composition`; runtime tasks remain unchecked. A runnable script, structural fixture or passing acceptance-control test is not evidence of a live worker, verified PR, landing, source closure, hostile isolation or production readiness.
+**The runner is implemented, not live-worker qualified.** Native proposal/design/tasks gates passed for `.cairn/changes/qualify-implementation-composition`; actual worker and remote qualification still require the inputs below. A runnable script, structural fixture or passing acceptance-control test is not evidence of a live worker, verified PR, landing, source closure, hostile isolation or production readiness.
 
 ## Smallest safe command
 
@@ -33,9 +33,20 @@ python3 -B -m unittest discover -s scripts -p test_implementation_qualification.
 
 Those controls prove that the frozen buggy source fails and a clearly labeled scripted corrected control passes the identical reproducer, and similarly exercise bounded feature acceptance. They do not constitute model-produced candidate or CI evidence. No build, test, formatter or runtime campaign was executed by the implementation worker adding this harness.
 
+The parent subsequently ran the six existing `kiln-implementer` native verifier
+fixtures with `--lib verification:: -- --ignored`, an explicitly private
+`KILN_VERIFICATION_TEST_ROOT`, and exact Nix-store Git/shell inputs: all six
+passed. These fixtures execute real frozen commands and Git acquisition, but
+their candidates are scripted and their worker UID is a fixture sentinel. They
+do not qualify an OMP worker, separate-UID deployment, model route or publication.
+
 ## Actual immutable prerequisites
 
-The runner requires explicit reviewed `{ path, blake3 }` executable records resolving into `/nix/store/`; it checks dereferenced bytes before starting stages. Existing binaries merely named `kiln` or `lattice` are not substituted for changed source. Local-admission needs `coordinator` and `b3sum`. Campaign scope also requires canonical `verifier` (`kiln-web-service`), `lattice`, `cairn_intake`, `lattice_dispatch`, `setpriv`, `omp` and `git`. The verifier must match onix-core cohort `entries.verifier`, not an alternate success-admission binary.
+The retained parent preflight `/run/user/1555/kiln-implementation-qualification-preflight-20261114-parent` remains untouched and unqualified. Its `input-configuration.json` has an empty `programs` map. Its recorded missing program entries are `b3sum`, `cairn_intake`, `coordinator`, `git`, `lattice`, `lattice_dispatch`, `omp`, `setpriv` and `verifier`; no campaign executable cohort was supplied. Local admission needs only newly built/reviewed `coordinator` plus `b3sum`. Campaign also needs the actual canonical verifier (`kiln-web-service`), Lattice, Cairn intake, strong Kiln Lattice dispatch, pinned `setpriv`, the adopted OMP executable and Git. Existing similarly named binaries do not stand in for rebuilt source.
+
+The same preflight records absent retained `{ path, blake3 }` inputs for `cohort`, `source_baseline`, `policy`, `toolchain` and `provider`; absent integer `coordinator_uid/gid`, `worker_uid/gid`, `verifier_uid/gid`; no distinct existing coordinator/worker/verifier UIDs; and no exact `scenarios` bundles. The observed Python runtime is `/nix/store/xahxrjs30p3mw0a42bqg9ikgkikskw8m-python3-3.14.8/bin/python3.14`; this is the harness interpreter, not the missing protected acceptance toolchain/cohort. The host's observed b3sum, Git and Cairn paths below remain observations only, not adopted inputs. The absent provider document must bind the actually authorized local execution/model route, endpoint or authless namespace, readiness and resource grant; no model service, credentials or provider authority was inferred. The preflight made no user/group existence or isolation claim.
+
+The runner snapshots each accepted program and cohort/source/policy/toolchain/provider file identity, then rechecks those identities before every stage. It likewise freezes protocol templates and canonical CI profiles. A changed/disappeared input blocks the campaign; a receipt from an earlier preflight is not approval or proof that later stage execution is safe.
 
 The following paths and hashes were observed on the implementation host, not adopted as an implementation-runtime cohort. They are also recorded in `fixtures/implementation-qualification/observed-tools.ncl`:
 
@@ -77,6 +88,17 @@ The frozen verification profile selects immutable Python with `-I -B acceptance.
 
 The legitimate unchanged path consumes the actual `lattice.unchanged-candidate-observation.v1` bytes at native `artifacts.unchanged_receipt` (request `allow_unchanged: true`). It does not synthesize an empty Produced receipt. The trusted capture requires both explicit already-satisfied policies and exact baseline equality, resolves the candidate Git commit to the baseline, then canonical verification still executes the frozen checks.
 
+### Protected proof-evidence checks
+
+Proof evidence is a versioned artifact of a normal frozen `VerificationCheck`, not a second runner. A trusted `VerificationProfile.proof` names the one `kind: "proof"` adapter check, the retained manifest and proof-byte paths, exact claim/theorem inventory, approved specification/dependency/assumption-policy byte identities, allowed assumptions, required semantic replay/control roles, producer/checker/tool identities, build/runtime identities and limits. Every approved input path must also be in `protected_paths`; the verifier hashes those bytes from its independently materialized exact candidate snapshot before it accepts the adapter manifest. Kiln BLAKE3 identities remain distinct from provider-native Lean SHA-256 pins.
+
+The manifest binds work identity/revision, attempt/fence, repository, candidate/tree, acceptance and profile identities, theorem inventory, approved semantic inputs, actual retained proof-byte identity, exact producer/checker/runtime/tool identities and all required outcomes. The controller compares these values to the frozen profile and retained artifacts after executing the named frozen adapter program. Exit zero, the manifest's own hashes, or a self-asserted `PASS` is insufficient. `PASS`, `FAIL`, `NOT_RUN`, `NO_CLAIM`, `APPROXIMATE`, `DEAD`, timeout, cancellation, and unknown outcomes are distinct inputs; only the complete exact required profile can discharge the proof check.
+For this pinned Lean producer, the trusted policy requires exactly nine control results, all three independent roles (`official_replay`, `producer_replay`, and `nanoda`), and exactly the source-approved axiom allowlist `propext`, `Classical.choice`, and `Quot.sound`. Each result retains bounded raw stdout/stderr whose BLAKE3 values are recomputed, not merely asserted. The adapter invocation digest covers its frozen program path/hash, arguments, prerequisites, acceptance scope, artifact paths and timeout.
+
+For the retained Compiler Lab Lean source contract, the approved adapter must invoke `check_standalone(project, lean_path, module, declarations, work, timeout_ms)` from source revision `c582f93f00848048f1c43ff4013b9fabe103ec7e`. Its exact frozen schema-2 profile is keyed by the project's exact `lean-toolchain`; retain the upstream profile SHA-256 and each tool's source revision/SHA-256. The manifest must account for the official export replay, fresh producer replay, independent Nanoda result, and every required invalid control, with matching theorem/module/tool/runtime identities and the allowed-axiom audit. The profile's executable and runtime closure are resolved by the operator outside worker editing authority and are executed only through the existing `verify_candidate` check path.
+
+No installed qualified Lean profile/executable is established by the retained upstream source, so source-contract fixtures are not real proof qualification. Compiler Lab #220 is open and no parser-enabled MM0 backend/profile or replay fixtures are qualified; MM0 therefore remains unsupported. Do not set a profile's `qualified` field on the basis of schema validation or synthetic fixtures. The operator entry point remains `kiln-web-service verify-implementation --profile CI_SERVICE_PROFILE --database DB --enrollment ENROLL --attempt ID --fence N --verification-profile FROZEN --authority AUTHORITY`; it runs the exact trusted adapter profile, rereads retained evidence and feeds only the resulting typed check into the existing canonical Engine admission.
+
 ### Native canonical CI graph preparation
 
 Build/use the owning native constructor; do not relabel an unrelated successful CI profile:
@@ -90,6 +112,13 @@ cargo run --locked -p kiln-web-service --example implementation_verification_pro
 This parent-run command was not exercised here. The ordinary ServiceProfile template must have empty nodes/edges for the selected project and explicit real source enrollment, transports, policy, platform, controls and bounds. The constructor refuses any existing graph, derives every frozen check/kind/prerequisite and native Cairn marker/all-check dependency through `Engine::implementation_verification_operation`, and validates with the shared runtime graph validator and `ServiceProfile.admit`. It preserves unrelated fields/projects and emits configuration only (`checks_executed: false`, `effects_executed: false`), never accepted producer data. Freeze the actual output path/BLAKE3 as the verify step's `canonical_profile`.
 
 Use actual `inspect-work --database DB --enrollment FILE --work ID` metadata for envelope source aliases/versions and native `acceptance_digest`. The strong transport checks these exact values, not merely a shape-correct task/spec digest. Native prepared JSON values are available as `@{document-CAPTURE}`, so requirements/dispatch templates can consume owner-derived records without duplicating a canonical codec.
+
+Canonical verification retains exact native check bytes, including blocked
+outcomes, rather than treating them as uploaded normalized report envelopes.
+Their dedicated validator binds each check to the canonical source, attempt,
+execution, receipt and retained artifact. Unknown checks may have no evidence;
+successful checks cannot borrow missing or substituted evidence. Reopen still
+validates full provenance and rehashes the actual retained files.
 
 ## Campaign operation
 

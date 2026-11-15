@@ -6,8 +6,8 @@ use std::os::fd::AsRawFd;
 use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 
-use cob_git2::{ObjectType, Repository, RepositoryOpenFlags};
 use fs2::FileExt;
+use git2::{ObjectType, Repository, RepositoryOpenFlags};
 use nonempty::NonEmpty;
 use onix_radicle_cob_git_store::GitCobStore;
 use radicle_cob::change::{Storage as _, Template};
@@ -164,7 +164,7 @@ fn open(profile: &Profile) -> Result<Opened> {
         .write_all(b"[user]\n\tname = Kiln Work Service\n\temail = work@kiln.invalid\n")
         .map_err(unavailable)?;
     let config_path = std::path::PathBuf::from(format!("/proc/self/fd/{}", identity.as_raw_fd()));
-    let config = cob_git2::Config::open(&config_path).map_err(unavailable)?;
+    let config = git2::Config::open(&config_path).map_err(unavailable)?;
     repository.set_config(&config).map_err(unavailable)?;
     Ok(Opened {
         repository,
@@ -175,7 +175,7 @@ fn open(profile: &Profile) -> Result<Opened> {
 
 fn object_header(
     repository: &Repository,
-    id: cob_git2::Oid,
+    id: git2::Oid,
     kind: ObjectType,
     maximum: usize,
 ) -> Result<usize> {

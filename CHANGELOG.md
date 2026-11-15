@@ -93,6 +93,14 @@ entry describes the source tree prepared for the first tagged release.
   dependencies. Bounded campaigns do not establish exhaustive coverage,
   CI/provider correctness or release authority.
   (exercised with retained native success and layout-violation traces)
+- Stable exploration cases: named examples carry a `case_id`, a canonical
+  recipe with a BLAKE3 revision, source revision, presentation and interaction
+  requirements and resolved subjects. `GET /examples/cases/<case_id>` resolves
+  them and returns 404 for an unknown case and 409 for a moved recipe or another
+  workspace. Plain examples receive no case identity. The index has a keyboard
+  case selector, `scripts/explore-capture.py` retains bounded captures and
+  `scripts/explore-compare.mjs` reports incompatibilities without normalizing
+  runtime subjects. (the Rats migration cohort remains blocked on #67 and #68)
 - A contained topbar for long workspace/page breadcrumbs and pinned navigation.
   Search uses intrinsic width, outer tracks and account controls can shrink,
   and labels elide without removing their accessible names or hiding document
@@ -103,6 +111,17 @@ entry describes the source tree prepared for the first tagged release.
 - Operator-approved untrusted pull-request runs held in a durable blocked state
   and confined to declared runners without secrets, plus a source browser.
   (exercised locally; not a hostile-code sandbox)
+- A GET-only OpenAPI 3.0.3 contract, `kiln.http-api.v1`, for projects, runs,
+  execution bindings and artifacts in `contracts/http-api/openapi.json`.
+  Independent schema validation of real responses, error goldens and a bounded
+  lockstep client fixture keep authentication, transport and schema failures
+  distinct. (tested against in-process responses; no generated client or
+  migration)
+- An OpenBubbles iMessage receiver is a documented no-go: rustpush's SSPL
+  exception covers only OpenBubbles. A typed Nickel receiver contract over the
+  unchanged `kiln.webhook-notification.v1` payload, with positive and negative
+  fixtures, is kept for a separately licensed future receiver; nothing is built,
+  bundled or operated.
 - One Kiln identity stylesheet shared by the live console, the offline catalog
   and report and the hosted bridge page, with a check that holds its contrast
   floor and rejects colours declared outside it. The console shows a running
@@ -146,6 +165,17 @@ entry describes the source tree prepared for the first tagged release.
   unsupported engines, moved candidates and partial evidence fail preview-only.
   Clean-cache and warm engine-only Linux CLI launches are exercised; qualification
   against a genuine current canonical CI artifact remains separate.
+- Preview evidence comparison: with an owner-controlled observation directory,
+  the disposable preview server retains bounded browser reports as
+  server-composed, BLAKE3-identified records copied from the admitted
+  descriptor, with finite expiry, a refusing count bound and expired-record
+  cleanup. Review projects them read-only, marks only the current revision's
+  selected-run record current and compares one baseline with that candidate
+  through `/preview-comparison`, reporting every engine, platform, argument or
+  executable difference. The review page shows both lanes side by side from a
+  deep link; the baseline never launches and observations never change CI,
+  review or merge state. (exercised in one local canonical browser cohort; a
+  historical baseline and a moved candidate are unit-tested only)
 
 **Change review**
 
@@ -168,13 +198,20 @@ entry describes the source tree prepared for the first tagged release.
   pipelines and invoice drafts. (exercised locally; not a qualified paid service)
 - Firecracker, Cloud Hypervisor and QEMU profiles and workload JWTs. (exercised
   locally; namespace backend trusted jobs only; `hostile_isolation_claim:false`)
-- Opt-in retained Cloud Hypervisor host-effect journaling, paired local
-  checkpoints, exact handoff/fencing receipts and bounded direct Iroh migration
-  transport. Missing producer compatibility remains unsupported; no live or
-  two-host migration qualification follows from local contracts.
+- Opt-in retained Cloud Hypervisor host-effect journaling with operation-bound
+  pause/resume controls that distinguish requests from native observed state,
+  paired local checkpoints, exact handoff/fencing receipts and bounded direct
+  Iroh migration transport. Missing provider compatibility remains unsupported;
+  no live or two-host migration qualification follows from local contracts.
 - Real hosted/Nix artifact-readiness measurement with exact cohorts, separate
   elapsed/CPU observations, cold/warm controls, retained failures and independent
   matched-cell analysis. An insufficient baseline cannot recommend a speedup.
+- A fleet lifecycle qualification harness drives the real account, finance and
+  fleet APIs through the unchanged immutable-executable admission against a
+  fake provider with one-shot faults and barriers. Ten recovery scenarios and
+  two detected controls passed once; job secrets still bind to jobs, not fleet
+  instance generations. (exercised locally; not provider, capacity or
+  secret-binding qualification)
 
 **Implementation work**
 
@@ -192,8 +229,43 @@ entry describes the source tree prepared for the first tagged release.
   plus an opt-in onix-core deployment/guest composition. Actual model routes,
   isolation/grants, immutable executables, canonical writer access and approved
   remote effects remain explicit prerequisites; no deployment was performed.
+- Bounded selected-Cairn campaign continuation over canonical work, native
+  Lattice, verification and delivery owners, with exact integrated-successor
+  source identities and retained per-unit obligations. Empty readiness and
+  unknown candidate/policy/verification evidence cannot complete a campaign;
+  pause/cancel closes new decisions and work, repository writers remain bounded,
+  and independent eligible work can progress past a blocked member.
+- Selected campaigns claim and reattach through the canonical scoped admission
+  transaction, bind actual parent-account ancestry and exact retained decision
+  projections, and require the named canonical checks. Native source observation
+  uses bounded immutable commit snapshots and explicit remote-target freshness;
+  it does not inherit ambient credentials or qualify unsupported delivery goals.
 
 ### Fixed
+
+- Keep the random artifact-preview launch capability independent of its public
+  descriptor identity, and bind both in the loopback path so the producer,
+  review catalog and browser agree without admitting a substituted descriptor.
+- Keep exact selected campaign IDs through workspace routing and filter-only
+  refreshes, so campaign obligations remain visible rather than resetting.
+- Accept exact-owner source-retirement observations after observed cleanup,
+  while refusing active handoff commands against an already retired source.
+- Validate raw independent-verifier check records against canonical provenance
+  rather than the unrelated uploaded-report envelope. Persist unknown intents
+  without inventing check evidence; successful records still require every
+  exact retained check artifact and receipt binding.
+
+- Unify local Git/GitHub and COB consumers on `git2 0.21.0`, fixing
+  empty-remote publication's null-slice failure and migrating fallible string
+  accessors without changing SHA-1 or the pinned native libgit2 version.
+- Require the first native campaign observation to match its frozen profile
+  and policy, and share canonical selector keys across owners, projections and
+  exploration examples. (local fixtures; no live campaign claim)
+- Recheck qualification programs, retained input documents and protocol
+  templates before stage execution; changed inputs remain nonaccepting.
+- Keep the native canonical-preview fixture's Nix source access, pure store
+  dependencies, Jujutsu path selection and derivation-byte identity scoped to
+  its exact owned store and source repository.
 
 - Bind required typed checks to the same selected exact project/scope CI run
   used for review admission, rather than borrowing historical or unrelated

@@ -6,13 +6,24 @@ use bounded_exec::{
 use kiln_core::implementation::{Enrollment, ImplementationDispatchPlan};
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_implementer::Implementer;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
 const MAX_REQUEST_BYTES: u64 = 2 * 1024 * 1024;
-#[derive(Deserialize)]
+fn transport_profile_mode_matches(
+    schema: &str,
+    native_request_profile: Option<&ContentId>,
+) -> bool {
+    matches!(
+        (schema, native_request_profile),
+        ("kiln.lattice-implementation-cli.v1", None)
+            | ("kiln.lattice-implementation-cli.v2", Some(_))
+    )
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkerTransportProfile {
     pub schema: String,
@@ -74,6 +85,52 @@ fn binding<'a>(value: &'a serde_json::Value, field: &str) -> Result<&'a serde_js
         .ok_or_else(|| format!("worker request lacks {field}"))
 }
 
+/// Exact files for the guarded existing implementation-worker consumer.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkerInvocation {
+    pub database: PathBuf,
+    pub enrollment: PathBuf,
+    pub dispatch_plan: PathBuf,
+    pub request: PathBuf,
+    pub transport_profile: PathBuf,
+    pub admission_observations: Option<PathBuf>,
+}
+
+/// Call the same guarded worker path as `kiln-lattice-dispatch` without
+/// converting its stdout into completion evidence.
+pub fn run_invocation(invocation: &WorkerInvocation) -> Result<String, String> {
+    let mut flags = BTreeMap::from([
+        (
+            "--database".into(),
+            invocation.database.display().to_string(),
+        ),
+        (
+            "--enrollment".into(),
+            invocation.enrollment.display().to_string(),
+        ),
+        (
+            "--dispatch-plan".into(),
+            invocation.dispatch_plan.display().to_string(),
+        ),
+        (
+            "--worker-request".into(),
+            invocation.request.display().to_string(),
+        ),
+        (
+            "--worker-transport-profile".into(),
+            invocation.transport_profile.display().to_string(),
+        ),
+    ]);
+    if let Some(path) = &invocation.admission_observations {
+        flags.insert(
+            "--admission-observations".into(),
+            path.display().to_string(),
+        );
+    }
+    run(&flags)
+}
+
 // r[impl kiln.implementation.current_authority] r[impl kiln.implementation.unknown_barrier]
 pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     let request_path = required(flags, "--worker-request")?;
@@ -85,17 +142,17 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     let profile: WorkerTransportProfile =
         read_json(&required(flags, "--worker-transport-profile")?)?;
     let enrollment: Enrollment = read_json(&required(flags, "--enrollment")?)?;
-    if profile.schema != "kiln.lattice-implementation-cli.v1"
-        || program_identity(&profile.lattice_program)? != profile.executable_blake3
-    {
+    if program_identity(&profile.lattice_program)? != profile.executable_blake3 {
         return Err("unqualified or changed Lattice implementation executable".into());
     }
     let execution = plan
         .execution
         .as_ref()
         .ok_or("candidate worker requires explicit bound execution, not legacy configured route")?;
-    if execution.worker_request != request_id {
-        return Err("worker request bytes differ from frozen dispatch".into());
+    if !transport_profile_mode_matches(&profile.schema, execution.native_request_profile.as_ref()) {
+        return Err(
+            "transport profile generation does not match the native request profile binding".into(),
+        );
     }
     let envelope = binding(&request, "envelope")?;
     let text_matches = |key: &str, expected: &str| {
@@ -124,7 +181,11 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         )
         || !text_matches(
             "worker_profile",
-            execution.requirements.needs.profile_revision.as_str(),
+            execution
+                .native_request_profile
+                .as_ref()
+                .map(kiln_core::types::ContentId::as_str)
+                .unwrap_or(execution.requirements.needs.profile_revision.as_str()),
         )
         || request.get("network").and_then(serde_json::Value::as_bool)
             != Some(plan.workspace.network)
@@ -152,6 +213,7 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             let kind = match source.kind {
                 kiln_core::implementation::WorkSourceKind::GitHubIssue => "github_issue",
                 kiln_core::implementation::WorkSourceKind::CairnTask => "cairn_task",
+                kiln_core::implementation::WorkSourceKind::CairnArtifact => "cairn_artifact",
             };
             text_matches("source_kind", kind)
                 && text_matches("source_id", &source.native_id)
@@ -185,6 +247,18 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         clock()?,
         &plan,
     )?;
+    let request_binding = implementer.bind_campaign_request(
+        work,
+        &attempt.identity,
+        attempt.fence,
+        clock()?,
+        &request_bytes,
+    )?;
+    if request_binding.plan != reservation.plan || request_binding.request_digest != request_id {
+        return Err(
+            "retained request seal differs from the exact worker bytes and dispatch plan".into(),
+        );
+    }
     let admission = implementer.admission_snapshot()?;
     if admission.policy.is_none() {
         return Err(
@@ -451,4 +525,38 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         )?;
     }
     serde_json::to_string(&observed).map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod transport_profile_tests {
+    use super::transport_profile_mode_matches;
+    use kiln_core::types::ContentId;
+
+    #[test]
+    fn profile_generation_and_native_binding_must_be_paired() {
+        let native = ContentId::from_blake3_hex(
+            "0000000000000000000000000000000000000000000000000000000000000000",
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(transport_profile_mode_matches(
+            "kiln.lattice-implementation-cli.v1",
+            None
+        ));
+        assert!(!transport_profile_mode_matches(
+            "kiln.lattice-implementation-cli.v1",
+            Some(&native)
+        ));
+        assert!(transport_profile_mode_matches(
+            "kiln.lattice-implementation-cli.v2",
+            Some(&native)
+        ));
+        assert!(!transport_profile_mode_matches(
+            "kiln.lattice-implementation-cli.v2",
+            None
+        ));
+        assert!(!transport_profile_mode_matches(
+            "kiln.lattice-implementation-cli.v3",
+            Some(&native)
+        ));
+    }
 }

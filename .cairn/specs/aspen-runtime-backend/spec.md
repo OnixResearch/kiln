@@ -275,53 +275,34 @@ r[kiln.aspen_runtime.gossip.scenario.bounds]
 - WHEN decoding or listening
 - THEN invalid hints MUST be refused or ignored under the profile bounds
 
-### Requirement: Host content publication
+### Requirement: Pending host content index publication
 
-r[kiln.aspen_runtime.content_publication] The Aspen host SHOULD open a bounded
-Molten content store beside its durable state root and, when configured, publish
-each successful effect output as exact bytes under its BLAKE3 reference before
-the effect returns. Publication failure MUST fail the effect rather than claim
-success. Reads MUST verify exact identity and enforce their byte bound; the store
-MUST round-trip across reopen and support live Iroh publication without granting
-retention, confidentiality or independent-verification claims.
+r[kiln.aspen_runtime.content_index_retry] The host content port MUST return a successful put receipt only after every pending digest-to-manifest index update reaches payload synchronization, exact same-parent replacement and parent synchronization through the reviewed durable-publication mechanism. An equal retry MUST NOT bypass an earlier publication failure. Reopened visible mappings MUST be reconciled before another publication acknowledgement. Content verification MUST NOT imply effect completion or authority.
 
-#### Scenario: Exact output is published
+#### Scenario: Persistent publication fault
 
-r[kiln.aspen_runtime.content_publication.scenario.publish]
-- GIVEN a configured host content store
-- WHEN an effect succeeds with exact output bytes
-- THEN those bytes MUST be retained under their BLAKE3 reference before success
+r[kiln.aspen_runtime.content_index_retry.scenario.fault]
+- GIVEN a real host content store with a create, write, payload-sync, rename or parent-sync failure
+- WHEN the same exact put is retried while the failure remains
+- THEN every attempt MUST return failure and MUST NOT acknowledge the pending mapping
 
-#### Scenario: Publication or read bound fails
+#### Scenario: Publication recovery survives reopen
 
-r[kiln.aspen_runtime.content_publication.scenario.refused]
-- GIVEN a content write failure or a read beyond its bound
-- WHEN the effect or read runs
-- THEN it MUST fail without returning unverified content
+r[kiln.aspen_runtime.content_index_retry.scenario.recovery]
+- GIVEN a failed pending exact put
+- WHEN the fault is removed and the same put succeeds
+- THEN exact verified readback MUST survive dropping and reopening the port
 
-### Requirement: Bounded non-authoritative gossip hints
+#### Scenario: Published entries survive failed addition
 
-r[kiln.aspen_runtime.gossip] Kiln MAY exchange gossip hints that announce
-content or state availability. Hints MUST be versioned, bounded in message size,
-content size, lifetime, event count, recent-hint count and join time, and MUST
-carry an exact schema, scope, sender, positive epoch, expiry and optional
-BLAKE3 content length. Malformed, expired, oversized or duplicate hints MUST be
-ignored or refused. Topic derivation from public scope text MUST NOT be claimed
-as confidentiality. A hint MUST NOT grant authority, reserve work, prove
-delivery or execute an effect; receivers MUST fetch and validate canonical state
-independently.
+r[kiln.aspen_runtime.content_index_retry.scenario.preserved]
+- GIVEN an index with previously acknowledged exact content
+- WHEN a new addition fails publication or an interrupted stage obstructs publication
+- THEN previously published entries MUST remain resolvable and no unowned stage MUST be deleted
 
-#### Scenario: Bounded hint is delivered
+#### Scenario: Parent barrier remains uncertain
 
-r[kiln.aspen_runtime.gossip.scenario.live]
-- GIVEN two loopback Iroh endpoints sharing a derived topic
-- WHEN one sends a valid bounded hint
-- THEN the listener MUST decode and deliver it exactly once
-- AND the hint MUST remain non-authoritative
-
-#### Scenario: Malformed or oversized hints are refused
-
-r[kiln.aspen_runtime.gossip.scenario.bounds]
-- GIVEN oversized messages/content, expired lifetime, invalid schema, zero epoch or duplicate hints
-- WHEN decoding or listening
-- THEN invalid hints MUST be refused or ignored under the profile bounds
+r[kiln.aspen_runtime.content_index_retry.scenario.barrier]
+- GIVEN rename succeeded but parent synchronization failed
+- WHEN the port reports the result or is reopened
+- THEN the visible index MUST NOT be rolled back or treated as durable success before reconciliation, and evidence MUST NOT claim storage-device or power-loss durability

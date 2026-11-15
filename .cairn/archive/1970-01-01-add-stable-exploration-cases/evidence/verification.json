@@ -1,0 +1,403 @@
+{
+  "schema": "kiln.web.exploration-cases-verification.v1",
+  "issue": 66,
+  "qualification": "named exploration cases resolved, captured and compared across two clean local explorer starts; local single-host synthetic workspace",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers",
+  "source": {
+    "jj_working_copy_commit": "7b9ee1019ecf67ca3b877033254a03a3a7517fe2",
+    "files_blake3": {
+      "scripts/explore-capture.py": "2f4740579d3d540bfdaf0eb99a52e570884b7e7bec481bf872a58bd8df8c77fe",
+      "scripts/explore-compare.mjs": "d8b3d9dbc138de5387c1ef7b844bf1ca989aa693899e2775eb89a57ee265341a",
+      "crates/kiln-web-service/examples/explore.rs": "dd2fc976732dace51a96f08695f3a3401bdf773390825d8ef0f36a0c3b17c6f4",
+      "crates/kiln-web-service/examples/explore/ci.rs": "77c931030d2b208763e2b1efd8c9be9ff12c30a21112fe9de265104779a7893c",
+      "crates/kiln-web-service/examples/explore/workers.rs": "e011d31ae2da95275ef16c59e102f7c718373c108346c3dce161517bef4479ce",
+      "crates/kiln-web-service/examples/explore/index.js": "5b29c84ed04fa51e3c4730822194f5e5ce88ed279bff6c1328f80768e119e276",
+      "crates/kiln-web-service/examples/explore/index.html": "d1d01b6d6fe102a6ddeb4b5f068bc9ffff0923fed092d7f46d3c2dec5eb201ac",
+      "crates/kiln-web-service/examples/explore/example.css": "5f820d6e979c0bf3214f58e5db89e86fa8d327efc3d173cb8e1b5d8b3ecad42b",
+      "tests/explore-cases.test.mjs": "38ca6ae4ca59f2ff8702329092f101046ac9a347f783fa99720c997592708abb"
+    },
+    "note": "Explorer executables were built from the working copy; files above are pinned at the final build."
+  },
+  "explorer_blake3": "f7e3103087d6672e03480edbbf5f9199151aed65997afd9f49e113a57e18fd9d",
+  "browser": {
+    "path": "/nix/store/49qdcmx1zn5vxsdls3l8f2ar8ja6w3bm-chromium-157.0.8103.38/bin/chromium",
+    "version": "Chrome/157.0.8103.38",
+    "note": "The repository web-testing shell pins Chromium 151 for the Bombadil rail; captures used the locally installed Chromium 157, which the manifest records."
+  },
+  "clean_starts": {
+    "workspaces_differ": true,
+    "examples": 86,
+    "plain_examples_with_case_identity": 0,
+    "cases": {
+      "case.run.failed": {
+        "recipe_revision_equal": true,
+        "comparable": true,
+        "incompatibilities": [],
+        "changed_runtime_subjects": [
+          "run"
+        ],
+        "normalization": "none"
+      },
+      "case.run.partial-retry": {
+        "recipe_revision_equal": true,
+        "comparable": true,
+        "incompatibilities": [],
+        "changed_runtime_subjects": [
+          "previous_run",
+          "run"
+        ],
+        "normalization": "none"
+      },
+      "case.worker.expired-observation": {
+        "recipe_revision_equal": true,
+        "comparable": true,
+        "incompatibilities": [],
+        "changed_runtime_subjects": [
+          "worker"
+        ],
+        "normalization": "none"
+      },
+      "case.review.multiple-revisions": {
+        "recipe_revision_equal": true,
+        "comparable": true,
+        "incompatibilities": [],
+        "changed_runtime_subjects": [
+          "from_revision",
+          "review_change",
+          "to_revision"
+        ],
+        "normalization": "none"
+      }
+    }
+  },
+  "captures": {
+    "a:case.run.failed": {
+      "workspace": "e8519313ede2436750f35ab800f8e12f96b8a745f71292ddc872368b8ce622bc",
+      "recipe_revision": "56cff4509b5fb39f29b74c3b7fb3f868b45ae735cd7c653cc69ff1fd21e09524",
+      "subjects": {
+        "run": "web-run-ba82b85e99d0670295d60f616acb0a93821ee5eed111067e2b934634d304cde6"
+      },
+      "route": "/?page=runs&run=web-run-ba82b85e99d0670295d60f616acb0a93821ee5eed111067e2b934634d304cde6",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "1cee37c7070c29be46178b38911648fe031f6b6a51239a7dffd5e15abb43e72e"
+    },
+    "a:case.run.partial-retry": {
+      "workspace": "e8519313ede2436750f35ab800f8e12f96b8a745f71292ddc872368b8ce622bc",
+      "recipe_revision": "462d163a6fcd677d6951fbcf686b418e059eef65ac415d057af8b4acf26199f4",
+      "subjects": {
+        "previous_run": "web-run-ba82b85e99d0670295d60f616acb0a93821ee5eed111067e2b934634d304cde6",
+        "run": "web-run-cbe136580237c5518b358fc571e9cbb1ceeb076c90b1509f469376050a202426"
+      },
+      "route": "/?page=runs&run=web-run-cbe136580237c5518b358fc571e9cbb1ceeb076c90b1509f469376050a202426&other=web-run-ba82b85e99d0670295d60f616acb0a93821ee5eed111067e2b934634d304cde6",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "f51e500945fb435d14ea848650ec9e1c0c2f48a704f73b3fde4c8a9af062dc5c"
+    },
+    "a:case.worker.expired-observation": {
+      "workspace": "e8519313ede2436750f35ab800f8e12f96b8a745f71292ddc872368b8ce622bc",
+      "recipe_revision": "038e8c14719dc0557ba9379d19dde584417154eaed7e9aa86cb2b386e6a8d4a0",
+      "subjects": {
+        "worker": "20bbb02a7f8332e4efeeae66d63295d90d322ee776371c98b5be847e61a7d042"
+      },
+      "route": "/?page=workers&worker=20bbb02a7f8332e4efeeae66d63295d90d322ee776371c98b5be847e61a7d042",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "81169e3269b3ec90263bf13b17396d000603951b47bc69f03f0e0154a39fd31a"
+    },
+    "a:case.review.multiple-revisions": {
+      "workspace": "e8519313ede2436750f35ab800f8e12f96b8a745f71292ddc872368b8ce622bc",
+      "recipe_revision": "0efe9db147f5572e44d28a91ffeb27955d2871cc5ac8e4127be93964bcbedf5f",
+      "subjects": {
+        "from_revision": "227e6f7c2c3f9521e71434ac537b1a8882e8d1f2cc5b232e13f03b2a328f4857",
+        "review_change": "8fa04ec7c7ae949b767a011401fe3cda14e97ba362eff319d879951f9824a2f4",
+        "to_revision": "0b26a5ba6a8ddd66793ee02c088bee066242108c5c7fb005061711f571107ad0"
+      },
+      "route": "/?page=code-review&review_change=8fa04ec7c7ae949b767a011401fe3cda14e97ba362eff319d879951f9824a2f4",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "cad8abd23acc6e9bdf1ce7bf3c0a9c9629d242982ad8b4e58a9ca283eaa9d5c9"
+    },
+    "b:case.run.failed": {
+      "workspace": "83ec9a9c5c66debad64b5dd86fe52d2a9a3f94ac33d659ef66c50b224cc9406a",
+      "recipe_revision": "56cff4509b5fb39f29b74c3b7fb3f868b45ae735cd7c653cc69ff1fd21e09524",
+      "subjects": {
+        "run": "web-run-51643835ee534cdd8cfc433fc1a621b0f5dfd7a40cfd92c29cee9a2c43a8643f"
+      },
+      "route": "/?page=runs&run=web-run-51643835ee534cdd8cfc433fc1a621b0f5dfd7a40cfd92c29cee9a2c43a8643f",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "72950e4d79841632b8c0d59a6fac96a7840304b34cafcaf4e553a4eb8324a627"
+    },
+    "b:case.run.partial-retry": {
+      "workspace": "83ec9a9c5c66debad64b5dd86fe52d2a9a3f94ac33d659ef66c50b224cc9406a",
+      "recipe_revision": "462d163a6fcd677d6951fbcf686b418e059eef65ac415d057af8b4acf26199f4",
+      "subjects": {
+        "previous_run": "web-run-51643835ee534cdd8cfc433fc1a621b0f5dfd7a40cfd92c29cee9a2c43a8643f",
+        "run": "web-run-9950c135cfddcadd91bbce2368f6050f4ca915aae805ce2d08941de55f1fd7d6"
+      },
+      "route": "/?page=runs&run=web-run-9950c135cfddcadd91bbce2368f6050f4ca915aae805ce2d08941de55f1fd7d6&other=web-run-51643835ee534cdd8cfc433fc1a621b0f5dfd7a40cfd92c29cee9a2c43a8643f",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "bbceede6bf423c75f1697ed12d0e1be981bc00bcfa0bab36519273ce7c99a4bd"
+    },
+    "b:case.worker.expired-observation": {
+      "workspace": "83ec9a9c5c66debad64b5dd86fe52d2a9a3f94ac33d659ef66c50b224cc9406a",
+      "recipe_revision": "038e8c14719dc0557ba9379d19dde584417154eaed7e9aa86cb2b386e6a8d4a0",
+      "subjects": {
+        "worker": "fb769676ec1cab0a0aec9f0fe4ae415d2ecda5db3a274c52d039d529ac12931e"
+      },
+      "route": "/?page=workers&worker=fb769676ec1cab0a0aec9f0fe4ae415d2ecda5db3a274c52d039d529ac12931e",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "fb7e8aaac50829569df4babc8956903f930db00bc580562a6770a659d3d19270"
+    },
+    "b:case.review.multiple-revisions": {
+      "workspace": "83ec9a9c5c66debad64b5dd86fe52d2a9a3f94ac33d659ef66c50b224cc9406a",
+      "recipe_revision": "0efe9db147f5572e44d28a91ffeb27955d2871cc5ac8e4127be93964bcbedf5f",
+      "subjects": {
+        "from_revision": "cde66402499f0466520aa0cbf72a66a764d2751fc926c9a06ba38ec0e0450728",
+        "review_change": "c684cbe4f15f03079de50fcd4358d59524010ff706284a3059d012a5f5f2aaf7",
+        "to_revision": "f5105b205d05cf43bdb384ab015483821b1add99be5b53bffde64fd416d34abb"
+      },
+      "route": "/?page=code-review&review_change=c684cbe4f15f03079de50fcd4358d59524010ff706284a3059d012a5f5f2aaf7",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "device_pixel_ratio": 1
+      },
+      "appearance": {
+        "requested_theme": "dark",
+        "observed_theme": "dark",
+        "requested_density": "compact",
+        "observed_density": "compact"
+      },
+      "readiness": {
+        "ready_state": "complete",
+        "has_main": true,
+        "fonts_status": "loaded",
+        "network_failures": 0
+      },
+      "browser_version": "Chrome/157.0.8103.38",
+      "screenshot_blake3": "553ba223cbc8809e9b5af08a8295903801f8e365577fa91540af225d270f0e7d"
+    }
+  },
+  "incompatible_capture_control": {
+    "left": "case.run.failed dark compact 390x844",
+    "right": "case.run.failed light comfortable 1280x800",
+    "result": {
+      "comparable": false,
+      "incompatibilities": [
+        "requested_theme",
+        "observed_theme",
+        "requested_density",
+        "observed_density",
+        "viewport"
+      ],
+      "subject_changes": {
+        "run": {
+          "left": "web-run-a2de7114ec9cff3503b0a9ed25427576f6ed90860cfe9d590ffa50ef2144f07c",
+          "right": "web-run-65bb3dd1dfef8ef6df313a4211e7a9edfd3d907f6136b5329eb9c6946a1c2506"
+        }
+      },
+      "normalization": "none"
+    }
+  },
+  "capture_refusals": {
+    "unknown case": "capture refused: case resolution returned HTTP 404",
+    "moved recipe": "capture refused: case resolution returned HTTP 409",
+    "foreign workspace": "capture refused: case resolution returned HTTP 409",
+    "viewport out of bounds": "capture refused: viewport outside bounded range"
+  },
+  "capture_scratch_left_behind": {
+    "refused_outputs": 0,
+    "browser_profiles": 0
+  },
+  "repairs": [
+    "The capture helper spoke the DevTools pipe as Content-Length frames over stdio and closed immediately; it now uses fds 3/4 with NUL-delimited JSON, a disposable profile and an exact emulated viewport, and reports HTTP refusals explicitly.",
+    "Readiness required exact subject identities in rendered text, which the console shortens; it now requires each exact identity in the document text or attributes and names unmet conditions.",
+    "case.worker.expired-observation named a heartbeat worker_id absent from the Workers page; it now resolves to the exact expiring target and opens its detail.",
+    "The first Bombadil run found the examples index wider than a 390 px viewport because the case select sized to its longest option; selects and case metadata now fit the viewport.",
+    "An untested duplicate Python classifier was removed; the tested Node classifier gained the documented CLI."
+  ],
+  "bombadil": {
+    "first": {
+      "report": "violation",
+      "violation": "fitsTheViewport: scrollWidth 575 at width 390 on /examples",
+      "example_command": [
+        "/nix/store/fap433r55bb8nlp733r9gwk5a65m4b2g-kiln-website-exploration-0.1.0/bin/kiln-website-exploration",
+        "--port",
+        "0"
+      ]
+    },
+    "final": {
+      "outcome": "pass",
+      "native_exit_code": 0,
+      "time_limit_seconds": 90,
+      "tool_version": "bombadil 0.7.10",
+      "browser": "/nix/store/ghvr17543vw7ykqalnc0dj60gaagbqip-chromium-151.0.7922.75/bin/chromium",
+      "examples_admitted": 86,
+      "example_command": [
+        "/nix/store/dbd0fshi1qi94hmsqifa3g3rf31hkqqx-kiln-website-exploration-0.1.0/bin/kiln-website-exploration",
+        "--port",
+        "0"
+      ],
+      "finished": "time limit reached with no property violation",
+      "route_openings": 207,
+      "viewport_settings": {
+        "390x844": 8,
+        "768x900": 6,
+        "1440x1000": 4
+      }
+    }
+  },
+  "index_layout_after_repair": {
+    "widths": [
+      320,
+      390,
+      768,
+      1280
+    ],
+    "page_overflow": false,
+    "filtered_no_match_overflow_at_390": false
+  },
+  "checks": [
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p kiln-web-service --example explore",
+      "passed": true,
+      "tests_passed": 10
+    },
+    {
+      "command": "cargo +1.88.0 clippy --offline --locked -p kiln-web-service --example explore -- -D warnings",
+      "passed": true
+    },
+    {
+      "command": "node --test tests/explore-cases.test.mjs",
+      "passed": true,
+      "tests_passed": 3
+    },
+    {
+      "command": "nix run --option builders '' path:$PWD#kiln-web-exploration-bombadil -- --time-limit 90 --output-path NEW_DIR",
+      "passed": true
+    }
+  ],
+  "blocked": [
+    "Kiln-to-Rats migration comparison cohort remains blocked on #67 and #68 and was not simulated."
+  ],
+  "non_claims": [
+    "Synthetic local workspace; not CI, provider, review-acceptance, deployment or pixel-parity evidence",
+    "A bounded Bombadil campaign is not exhaustive coverage"
+  ]
+}

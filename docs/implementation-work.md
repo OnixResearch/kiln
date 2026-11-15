@@ -91,6 +91,21 @@ The state machine is pure; the durable shell persists transport intent before
 calling the separately admitted real worker route. Cancellation, workspace
 isolation and observed teardown remain Lattice/provider responsibilities.
 
+### Local terminal-callback regression matrix
+
+The SQLite owner tests in `crates/kiln-implementer/tests/durable.rs` exercise
+the actual `record_verification`, cancellation, recovery and claim boundaries:
+
+| Ordering | Retained result | Regression |
+|---|---|---|
+| Completion, restart, repeated completion, late cancellation | Exact verified receipt and dispatch lineage remain; late cancellation and stale work/fences are refused; no replacement is claimed | `completion_before_cancel_retains_exact_evidence_across_restart` |
+| Cancellation, late completion, restart and duplicate callbacks | Cancelled/unknown attempt retains its handoff and dispatch binding without accepted verification; replacement remains blocked until exact termination reconciliation | `cancel_before_late_completion_requires_observed_termination_across_restart` |
+| Termination reconciliation, replacement, predecessor callback | Replacement has a higher fence and ordinal two; old verification/authority cannot attach to it or replace the cancelled predecessor | `cancel_before_late_completion_requires_observed_termination_across_restart` |
+
+Repeat with `cargo test -p kiln-implementer --test durable`. These are local
+ledger observations, not real-worker termination, resource release or zero
+inference-usage evidence; assembled provider qualification remains separate.
+
 ## Lattice request dispatch
 
 The existing configured graph route remains an explicit compatibility profile;

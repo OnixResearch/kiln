@@ -8,7 +8,7 @@ use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
-use cob_git2::{Oid, Repository};
+use git2::{Oid, Repository};
 use kiln_adapter_radicle::source::RadicleSourceSelection;
 use kiln_radicle_source_contract::SnapshotLimits;
 use radicle_core::RepoId;
@@ -36,7 +36,7 @@ fn commit(
         .map(|oid| repo.find_commit(*oid))
         .collect::<Result<Vec<_>, _>>()?;
     let parents = parents.iter().collect::<Vec<_>>();
-    let author = cob_git2::Signature::now("Kiln isolated fixture", "kiln@invalid.example")?;
+    let author = git2::Signature::now("Kiln isolated fixture", "kiln@invalid.example")?;
     Ok(repo.commit(None, &author, &author, message, &tree, &parents)?)
 }
 fn source_tree(

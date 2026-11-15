@@ -73,6 +73,54 @@
     for (const value of values) node.append(element("li", `${text(value.code)} · ${text(value.constraint)} · ${value.subject ? refText(value.subject) : "snapshot / policy"}`));
     return node;
   }
+  const CAMPAIGN_SCHEMA = "kiln.selected-campaign-projection.v1";
+  function validateCampaign(value) {
+    if (!record(value) || value.schema !== CAMPAIGN_SCHEMA || !/^[a-f0-9]{64}$/.test(value.identity)
+      || !/^[a-f0-9]{64}$/.test(value.campaign_identity) || (value.resource_inventory_identity !== null && !/^[a-f0-9]{64}$/.test(value.resource_inventory_identity))
+      || !/^[a-f0-9]{64}$/.test(value.selection_identity) || !/^[a-f0-9]{64}$/.test(value.repository_identity) || !Number.isSafeInteger(value.selection_revision) || value.selection_revision < 0
+      || !Number.isSafeInteger(value.store_version) || value.store_version < 0 || typeof value.campaign_id !== "string"
+      || value.campaign_id.length > 256 || !Array.isArray(value.members) || value.members.length > MAX_ITEMS
+      || !Array.isArray(value.pending_effects) || value.pending_effects.length > MAX_ITEMS
+      || !Array.isArray(value.decisions) || value.decisions.length > MAX_ITEMS) throw new Error("Selected campaign projection is invalid; it grants no owner authority.");
+    for (const member of value.members) {
+      if (!record(member) || typeof member.member !== "string" || member.member.length > 512
+        || typeof member.stage !== "string" || typeof member.canonical_work_state !== "string"
+        || (member.canonical_work_revision !== null && (!Number.isSafeInteger(member.canonical_work_revision) || member.canonical_work_revision < 0))
+        || typeof member.required_context_binding !== "boolean" || !Array.isArray(member.tasks) || member.tasks.length > 4096
+        || !Array.isArray(member.dependencies) || member.dependencies.length > 64
+        || !Array.isArray(member.waits) || !Array.isArray(member.blockers)
+        || typeof member.resource_binding_state !== "string"
+        || !Array.isArray(member.wait_categories) || !Array.isArray(member.evidence)
+        || member.blockers.length > MAX_ITEMS || member.waits.length > 64 || member.evidence.length > 128) throw new Error("Selected campaign member is invalid.");
+    }
+    return value;
+  }
+  function renderCampaign(value) {
+    const projection = validateCampaign(value);
+    const page = element("div", undefined, "inventory-page campaign-projection");
+    const header = element("header", undefined, "panel inventory-header");
+    header.append(element("h2", `Selected campaign · ${projection.campaign_id}`),
+      element("p", `Selection revision ${number(projection.selection_revision)} · store version ${number(projection.store_version)} · projection ${projection.identity}`, "inventory-reference"),
+      element("p", "Read-only admitted snapshot. A proposed next action is not a grant, reservation, dispatch, landing, or lifecycle authorization.", "small"));
+    page.append(header);
+    const nodes = projection.members.map((member) => {
+      const article = element("article", undefined, "inventory-row campaign-member");
+      article.append(element("h4", `${member.change}${member.tasks.length ? ` · ${member.tasks.join(", ")}` : ""}`),
+        facts([["Selected member", member.member], ["Goal", member.goal], ["Current observed stage", member.stage], ["Enumeration", member.enumeration], ["Owner snapshot", member.owner_snapshot], ["Work identity / canonical status / revision", `${text(member.work_identity)} / ${text(member.canonical_work_state)} / ${number(member.canonical_work_revision)}`], ["Attempt / fence", `${text(member.attempt_identity)} / ${number(member.attempt_fence)}`], ["Candidate", member.candidate_identity], ["Integration target", member.integration_target_identity], ["Checks satisfied", member.checks_satisfied], ["Reviews satisfied", member.reviews_satisfied]]),
+        details("Freshness, dependencies, evidence, pending effects and exact resource binding", { freshness: member.input_freshness, dependencies: member.dependencies, evidence: member.evidence, pending_effect_ids: member.pending_effect_ids, resource_inventory_identity: member.resource_inventory_identity, resource_binding_state: member.resource_binding_state, resource_binding: member.resource_binding, required_checks: member.required_checks, required_reviews: member.required_reviews, wait_categories: member.wait_categories }),
+        element("p", `Wait categories: ${member.waits.length ? member.waits.join(", ") : "none explicitly represented; not readiness evidence"}`),
+        element("p", `Remaining obligations: ${member.remaining_obligations.length ? member.remaining_obligations.join(", ") : "none supplied"}`));
+      const listNode = element("ul", undefined, "inventory-blockers");
+      if (!member.blockers.length) listNode.append(element("li", "No blocker strings supplied; do not infer eligibility."));
+      else for (const blocker of member.blockers) listNode.append(element("li", blocker));
+      article.append(listNode); return article;
+    });
+    page.append(section("Every selected member, including blocked and incomplete members", "campaign-members", nodes));
+    page.append(section("Pending effects, human decisions, aggregate budget, next-action proposal", "campaign-obligations", [
+      details("Snapshot-level obligations and non-claims", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, source: projection.source, non_claims: projection.non_claims }),
+    ]));
+    return page;
+  }
   function render(projection) {
     validate(projection);
     const snapshot = projection.snapshot;
@@ -134,7 +182,13 @@
   let generation = 0;
   let mounted = null;
   let selectedWork = "";
-  function clear() { generation += 1; mounted?.replaceChildren(); mounted?.removeAttribute("aria-busy"); mounted = null; selectedWork = ""; }
+  let campaignGeneration = 0;
+  let campaignMounted = null;
+  function clear() {
+    generation += 1; campaignGeneration += 1;
+    mounted?.replaceChildren(); mounted?.removeAttribute("aria-busy"); mounted = null; selectedWork = "";
+    campaignMounted?.replaceChildren(); campaignMounted?.removeAttribute("aria-busy"); campaignMounted = null;
+  }
   async function load(root, ctx, work = selectedWork) {
     const current = ++generation; mounted = root; selectedWork = work;
     root.setAttribute("aria-busy", "true");
@@ -162,5 +216,20 @@
       panel.append(retry); root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
-  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, load, clear });
+  async function loadCampaign(root, ctx, campaignId) {
+    const current = ++campaignGeneration; campaignMounted = root;
+    root.setAttribute("aria-busy", "true");
+    const live = () => campaignGeneration === current && root.isConnected && ctx.isCurrent();
+    try {
+      const projection = validateCampaign(await ctx.api(`/api/implementation/campaigns?campaign=${encodeURIComponent(campaignId)}`));
+      if (!live()) return;
+      root.replaceChildren(renderCampaign(projection));
+    } catch (error) {
+      if (!live() || error?.name === "AbortError") return;
+      const panel = element("section", undefined, "panel inventory-unavailable");
+      panel.append(element("h2", "Selected campaign projection unavailable"), element("p", `${text(error?.message)} This does not imply no campaign or free capacity.`, "small"));
+      root.replaceChildren(panel);
+    } finally { if (live()) root.removeAttribute("aria-busy"); }
+  }
+  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, load, loadCampaign, clear });
 })();

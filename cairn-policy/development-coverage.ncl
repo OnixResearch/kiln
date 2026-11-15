@@ -15,11 +15,7 @@ let ActiveRoots = [
   ".cairn/changes/recover-exact-publication/specs/publication-recovery/spec.md",
   ".cairn/changes/qualify-implementation-composition/specs/implementation-qualification/spec.md",
   ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
-  ".cairn/changes/fix-content-index-retry/specs/aspen-runtime-backend/spec.md",
-  ".cairn/changes/add-exact-artifact-previews/specs/artifact-preview/spec.md",
   ".cairn/changes/benchmark-artifact-readiness/specs/artifact-readiness/spec.md",
-  ".cairn/changes/add-resource-inventories/specs/resource-inventory/spec.md",
-  ".cairn/changes/connect-fair-admission/specs/fair-admission/spec.md",
 ]
 in
 let Active =

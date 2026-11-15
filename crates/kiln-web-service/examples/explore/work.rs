@@ -60,7 +60,7 @@ fn detail(page: &str, record: &Value) -> Result<String> {
 // r[impl kiln.web.exploration.scenario.coverage] r[impl kiln.web.exploration.scenario.local]
 pub fn seed(root: &Path, facts: &CiFacts, runs: &BTreeMap<String, String>) -> Result<Seed> {
     let git_directory = root.join("work.git");
-    cob_git2::Repository::init_bare(&git_directory)?;
+    git2::Repository::init_bare(&git_directory)?;
     std::fs::set_permissions(&git_directory, std::fs::Permissions::from_mode(0o700))?;
     let signer_seed_file = root.join("work.seed");
     let mut random = [0_u8; 32];

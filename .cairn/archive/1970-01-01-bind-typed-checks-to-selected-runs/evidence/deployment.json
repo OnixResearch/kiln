@@ -1,0 +1,237 @@
+{
+  "schema": "kiln.operator-authorized.exact-revision-deployment.v1",
+  "observed_at": "2026-11-15T03:35:49.561Z",
+  "source_revision": "ec3d80499099352bb3442e0e3512083ff0e37dba",
+  "maintenance_owner": "Kiln web-service/dashboard maintainers; operator owns package installation and user-service activation",
+  "authority": "User-requested publication and deployment; no lifecycle acceptance or release authority inferred",
+  "packages": {
+    "web_service": {
+      "path": "/nix/store/58scs8azrfgmaj5k9868p4s200rfi3z5-kiln-web-service-0.1.0",
+      "pid": 2060776,
+      "executable_blake3": "5a30cd7e498cf914ea330974817b48e8f9c74468d5cbf180167288b5a0731c9e"
+    },
+    "website_exploration": {
+      "path": "/nix/store/1rsmsmsjr5rsxz8wscbsh5ackh3aipvz-kiln-website-exploration-0.1.0",
+      "pid": 2060773,
+      "executable_blake3": "8cc6200accc90ca8d550287cdee9ffd1da90f5ae63eda68572cfb26ba43ef4ea"
+    }
+  },
+  "immutable_build": {
+    "web_derivation": "/nix/store/cv6finir21hgha3ccj9aj2miqzvmm6zw-kiln-web-service-0.1.0.drv",
+    "exploration_derivation": "/nix/store/lb1idn3975lp53qw9g2192snc34rc35y-kiln-website-exploration-0.1.0.drv",
+    "exit_code": 0,
+    "wall_seconds": 374.96,
+    "gc_roots": "Operator-private per-revision package links retained"
+  },
+  "preflight": {
+    "new_binary_check_all_eight_installed_profiles": true,
+    "exit_code": 0,
+    "profile_mutations": false
+  },
+  "activation": {
+    "only_profile_elements": [
+      "kiln-web-service",
+      "kiln-website-exploration"
+    ],
+    "restart_job_mode": "ignore-dependencies",
+    "restarted_units": [
+      "kiln-web-service.service",
+      "kiln-website-exploration.service"
+    ],
+    "existing_proxy_auth_units_active": true,
+    "proxy_and_identity_resolver_pids_unchanged": true,
+    "lattice_restarted_or_reconfigured": false,
+    "lattice_state_before_and_after": "activating/auto-restart, MainPID=0; pre-existing app_config_evaluation_failed"
+  },
+  "preservation": {
+    "original_run_count": 19,
+    "original_run_fields_changed": 0,
+    "original_retained_files": 394,
+    "original_retained_files_changed": 0,
+    "configuration_regular_files": 116,
+    "configuration_files_changed": 0,
+    "unrelated_profile_elements": 5,
+    "unrelated_profile_elements_changed": 0,
+    "sqlite_backups_integrity": [
+      "ok",
+      "ok"
+    ],
+    "signed_work_git_bundle_retained": true
+  },
+  "https": {
+    "origin": "https://localhost:9443",
+    "ca_verified": true,
+    "health_path": "/healthz",
+    "health_status": 200,
+    "authorized_runs_status": 200
+  },
+  "served_assets": [
+    {
+      "asset": "icons.js",
+      "blake3": "f5909322243820298c118b1c5c109e888da28c6da199ec35fafab9b62e69265a",
+      "bytes": 20099
+    },
+    {
+      "asset": "ui.js",
+      "blake3": "2b1f7b3eb58b5eee391cefff9a779267a1952c969672b97c3f2bca193a3963e1",
+      "bytes": 43503
+    },
+    {
+      "asset": "web.js",
+      "blake3": "3b3466b15a0e177be59530e338eab1ce89e541324ea3820bef5c2dac9ed7fad1",
+      "bytes": 234442
+    },
+    {
+      "asset": "web.css",
+      "blake3": "065da161ca93a740f6f9150aa370d80010a56cd665c9245b586ffbda93564573",
+      "bytes": 91921
+    },
+    {
+      "asset": "work.js",
+      "blake3": "61f4be484c3777f4a57928e14dc8eac03587ec0d4fe69334550dec5a0aae176c",
+      "bytes": 108250
+    },
+    {
+      "asset": "work.css",
+      "blake3": "ed2c6c57f0d14a0583aeb95181fba55db8d35ae407bb475738a20dd7534029fc",
+      "bytes": 33262
+    },
+    {
+      "asset": "code-review.js",
+      "blake3": "7d96d9b564ee86a4d93714fd0cef77c6c3fea79ba7d30b59b727a7e344b48978",
+      "bytes": 162852
+    },
+    {
+      "asset": "code-review.css",
+      "blake3": "3441233ee1b722596933d299c6727eea1eb8f3c0f420efb8f2324e5d11a1ccc3",
+      "bytes": 31429
+    },
+    {
+      "asset": "preview-review.js",
+      "blake3": "f2c3a0b13afd6bf3e98c008af65f46891699e2520f4e3e1af6e5b50123b01257",
+      "bytes": 2948
+    },
+    {
+      "asset": "work-interaction.js",
+      "blake3": "dedf81c3e86868da14ddc811d2587059a080e84172b51466d3ad179508b65ca9",
+      "bytes": 34712
+    },
+    {
+      "asset": "work-interaction.css",
+      "blake3": "ea46a9ee5430eec1dc642bae661787b198029a9ed0fbec2900b3177076b0e2a4",
+      "bytes": 11498
+    },
+    {
+      "asset": "work-evidence.js",
+      "blake3": "11947114c9965be167194e71e8495f31a25be40ad52da516c5133c41b9899918",
+      "bytes": 4504
+    },
+    {
+      "asset": "work-board.js",
+      "blake3": "f5164caf4b6e91d0261278d07b762009918286771a1fa85701bb56934e0125a9",
+      "bytes": 11158
+    },
+    {
+      "asset": "project.js",
+      "blake3": "e1739655b58565738a05c56ef1dbbd305a913df489ce57ebe5dab61e583e7061",
+      "bytes": 28080
+    },
+    {
+      "asset": "project.css",
+      "blake3": "32dfae7b5a031d40e453ce3c21fec5225ea970862b14f2a958647c7666b4b0f5",
+      "bytes": 10120
+    },
+    {
+      "asset": "source.js",
+      "blake3": "5b61b8c807d74abd6ff29946499e06857ad09100509c473e737ee276a6458d6a",
+      "bytes": 61618
+    },
+    {
+      "asset": "source.css",
+      "blake3": "53beed4ccf7e1caafb4d11e31adcd6ae5422165157d154e8a1ca95f888c0f447",
+      "bytes": 17169
+    },
+    {
+      "asset": "receipts.js",
+      "blake3": "d88938616e8e20f1fe8162ed0e5ef4ffcea17204747c0de6574afb0d40363c57",
+      "bytes": 52998
+    },
+    {
+      "asset": "receipts.css",
+      "blake3": "32f54b3e96562b4165c0b9094106865a2d521103ac7709f9242718350d9d9006",
+      "bytes": 8475
+    },
+    {
+      "asset": "workers.js",
+      "blake3": "a90d7d73b7faad27642cad802202c1810a40f46c06366a856bc3310be3d5585d",
+      "bytes": 30408
+    },
+    {
+      "asset": "workers.css",
+      "blake3": "a0232053880938e9d74d48d383b3f18934da029ac3694443e9152bd7877e79c0",
+      "bytes": 7809
+    },
+    {
+      "asset": "inventory.js",
+      "blake3": "0fe4a6e188bceabee7583752217c339f838365ee90b7b2ff56e7f5604586808f",
+      "bytes": 16329
+    },
+    {
+      "asset": "inventory.css",
+      "blake3": "e6265e2e3bcc1293d6e569886851c8e5af316c651cac90712d0440be71535fa9",
+      "bytes": 1951
+    },
+    {
+      "asset": "identity.css",
+      "blake3": "0fd7a7ef066c34b751c2348a9794c09ba2816e0da99ac2950c3e0e245871d890",
+      "bytes": 9095
+    },
+    {
+      "asset": "catalog.css",
+      "blake3": "02dd0ad31bb34c89779616c9eec95454f39653ed78cdfd188502e1d510713a32",
+      "bytes": 30067
+    },
+    {
+      "asset": "favicon.svg",
+      "blake3": "f38429d7a0d49377189e48a1802bcf3f9344f9ec08ef6e19025cc0cc5843c2cb",
+      "bytes": 183
+    }
+  ],
+  "browser": {
+    "actual_served_assets": true,
+    "asset_overrides": false,
+    "live_origin": "Private read-only loopback bridge to the CA-verified live HTTPS service; GET/HEAD only; operator credential remained in host memory",
+    "views": [
+      "Overview",
+      "Workers",
+      "Website examples"
+    ],
+    "desktop_viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "narrow_workers_viewport": {
+      "width": 390,
+      "height": 844,
+      "document_scroll_width": 390
+    },
+    "exploration_origin": "http://127.0.0.1:18787/examples",
+    "registered_destinations": 21,
+    "linked_feature_scenarios": 81,
+    "bridge_and_tabs_closed": true
+  },
+  "rollback": {
+    "previous_web_package": "/nix/store/iqmgxj2sbvqd22j90wx3ifd1rnjs3pj4-kiln-web-service-0.1.0",
+    "previous_example_package": "/nix/store/nszmpy30klnlfrnqjsicy4498mcq2yg9-kiln-website-exploration-0.1.0",
+    "previous_outputs_gc_rooted": true,
+    "consistent_private_backups_retained": true,
+    "database_or_collaboration_ref_rewind": false
+  },
+  "non_claims": [
+    "No live provider/model inventory or physical worker readiness inferred",
+    "No repair or qualification of the pre-existing failed Lattice configuration",
+    "No production/hostile-isolation/release or lifecycle-completion claim",
+    "No source changes under implementation after ec3d8049 are included in these installed packages",
+    "Synthetic exploration data remains disconnected and disposable"
+  ]
+}

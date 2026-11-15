@@ -4,6 +4,8 @@ mod mapping;
 mod profile;
 #[cfg(target_os = "linux")]
 mod unix;
+#[cfg(target_os = "linux")]
+pub mod worker;
 
 pub use adapter::LatticeAdapter;
 pub use implementation::{

@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::str::FromStr;
 
-use cob_git2 as git2;
 use git2::{Oid, Repository};
 use kiln_codec::identity_from_bytes;
 use kiln_core::source::{

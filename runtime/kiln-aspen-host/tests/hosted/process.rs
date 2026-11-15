@@ -17,7 +17,7 @@ mod lattice;
 mod state;
 
 pub(super) use child::HostChild;
-pub(super) use lattice::{ExchangeCounts, FixtureLattice};
+pub(super) use lattice::{DispatchBehavior, ExchangeCounts, FixtureLattice};
 pub(super) use state::{restore_state, state_snapshot};
 
 const CHILD_DEADLINE_SECONDS: u64 = 15;

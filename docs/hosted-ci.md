@@ -1212,6 +1212,44 @@ disabled, miss and hit rather than inferring a hit from elapsed time. There is n
 production supplier capacity or availability qualification. Do not provision
 paid capacity without separate exact operator approval.
 
+### Fleet lifecycle qualification
+
+<!-- r[impl kiln.hosted.fleet.lifecycle_qualification] -->
+`crates/kiln-hosted/examples/fleet_qualification.rs` qualifies provisioning
+and reaping through the unchanged immutable-executable admission:
+
+```console
+cargo run --locked -p kiln-hosted --example fleet_qualification -- run \
+  --nix-store ABS_NIX_STORE --bash ABS_BASH --out NEW_DIR
+```
+
+The harness adds itself and a per-scenario driver wrapper to the Nix store with
+`nix-store --add` and admits the wrapper by path and BLAKE3; there is no
+verification bypass. The added store paths are unrooted and
+garbage-collectable. The fake provider keeps a durable inventory and operation
+log and consumes one-shot faults: no reply before or after its effect, a
+barrier before or after its effect, a stale receipt and a duplicate creation.
+Each account, finance or fleet action runs in a new coordinator process over the
+scenario's SQLite file, so killing a coordinator at a barrier leaves exactly the
+committed intent.
+
+Ten recovery scenarios cover a happy path, lost acknowledgements after create
+and teardown, coordinators killed before and after the effect, redelivery, a
+stale receipt, a driver generation change, a reappearing retired resource and
+capacity bounds. Two controls, a duplicate creation and a premature release,
+must be detected by a pure inventory oracle. The receipt
+`kiln.hosted.fleet-qualification-receipt.v1` in `NEW_DIR/receipt.json` records
+source and executable identities, every step, check and oracle report.
+The retained [qualification receipt](../.cairn/archive/1970-01-01-qualify-fleet-lifecycle-recovery/evidence/receipt.json)
+passed all twelve.
+
+Hosted job secrets bind to jobs, not to fleet instance generations
+(`crates/kiln-hosted/src/secrets.rs`); this qualification does not close that
+gap. The fake provider is a local inventory, not a cloud API, and a passing
+receipt is not production provider, capacity, availability or secret-binding
+qualification. Fleet finance reservations stay unknown because provider
+presence is not usage metering.
+
 ## 8. Secret references and interoperable workload JWTs
 
 Service `secrets` imports `config/hosted-secrets.ncl`: HTTPS issuer without a

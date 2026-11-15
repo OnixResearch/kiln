@@ -14,7 +14,6 @@ bounded-exec-core.workspace = true
 ed25519-dalek.workspace = true
 fs2.workspace = true
 git2.workspace = true
-cob-git2.workspace = true
 nonempty.workspace = true
 onix-radicle-cob-git-store.workspace = true
 radicle-cob.workspace = true
@@ -31,6 +30,7 @@ kiln-adapter-http-observe.workspace = true
 kiln-adapter-jj.workspace = true
 kiln-adapter-lattice.workspace = true
 kiln-adapter-webhook.workspace = true
+kiln-adapter-nix.workspace = true
 kiln-build-graph.workspace = true
 kiln-codec.workspace = true
 kiln-core.workspace = true
@@ -61,6 +61,13 @@ fuzzing = []
 # Change-ID intake tests over fixture repositories built by a real `jj`
 # (KILN_JJ_EXE, else `jj` on PATH).
 jj-fixtures = ["kiln-adapter-jj/jj-fixtures"]
+
+implementation-fixtures = []
+
+[[bin]]
+name = "kiln-implementation-fixture"
+path = "src/bin/implementation-fixture.rs"
+required-features = ["implementation-fixtures"]
 
 [dev-dependencies]
 parking_lot = "0.12.5"

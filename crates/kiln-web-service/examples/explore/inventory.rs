@@ -1,7 +1,7 @@
 //! Explicit synthetic/disconnected inventory input for the existing exploration shell.
 //! This module never discovers providers, reserves capacity or looks up canonical work.
 // r[impl kiln.inventory.consumers]
-use kiln_core::inventory::{WorkNeeds, WorkNeedsAttachment};
+use kiln_core::inventory::{InventoryProjection, WorkNeeds, WorkNeedsAttachment};
 use kiln_core::types::ContentId;
 use kiln_web_service::engine::ApiResponse;
 use kiln_web_service::inventory::InventoryInput;
@@ -43,6 +43,10 @@ pub fn response(method: &str, target: &str) -> Result<ApiResponse> {
             "Only the exact optional work query is supported",
         ));
     };
+    Ok(json(200, serde_json::to_value(projection(selected)?)?))
+}
+
+pub(super) fn projection(selected: bool) -> Result<InventoryProjection> {
     let mut input: InventoryInput = serde_json::from_str(include_str!(
         "../../../../fixtures/inventory/synthetic-v2.json"
     ))?;
@@ -75,8 +79,7 @@ pub fn response(method: &str, target: &str) -> Result<ApiResponse> {
     } else {
         None
     };
-    let projection = input.project(ACTOR, attachment.as_ref(), EVALUATED_AT_MS)?;
-    Ok(json(200, serde_json::to_value(projection)?))
+    Ok(input.project(ACTOR, attachment.as_ref(), EVALUATED_AT_MS)?)
 }
 
 #[cfg(test)]

@@ -11,9 +11,12 @@
 //! same work versions and ordering.
 
 pub mod attempt;
+pub mod campaign;
 pub mod candidate;
 pub mod dispatch;
 pub mod metrics;
+pub mod native_git;
+pub mod proof_evidence;
 pub mod publication;
 pub mod verification;
 
@@ -21,6 +24,8 @@ pub use attempt::*;
 pub use candidate::*;
 pub use dispatch::*;
 pub use metrics::*;
+pub use native_git::*;
+pub use proof_evidence::*;
 pub use publication::*;
 pub use verification::*;
 
@@ -53,6 +58,7 @@ pub const MAX_ATTEMPTS_BOUND: u8 = 10;
 pub enum WorkSourceKind {
     GitHubIssue,
     CairnTask,
+    CairnArtifact,
 }
 
 impl WorkSourceKind {
@@ -60,6 +66,7 @@ impl WorkSourceKind {
         match self {
             Self::GitHubIssue => "github_issue",
             Self::CairnTask => "cairn_task",
+            Self::CairnArtifact => "cairn_artifact",
         }
     }
 }
@@ -655,6 +662,7 @@ mod tests {
         let (namespace, native_kind, id) = match kind {
             WorkSourceKind::GitHubIssue => ("github", "issue", native_id),
             WorkSourceKind::CairnTask => ("cairn", "task", native_id),
+            WorkSourceKind::CairnArtifact => ("cairn", "artifact", native_id),
         };
         SourceRef {
             kind,
@@ -915,6 +923,36 @@ mod tests {
                 identity: second,
             })
         );
+    }
+
+    #[test]
+    fn cairn_artifact_source_is_distinct_and_legacy_task_ids_remain_stable() {
+        let task = source(WorkSourceKind::CairnTask, "change/design", '1');
+        let artifact = source(WorkSourceKind::CairnArtifact, "change/design", '1');
+        assert_eq!(
+            serde_json::to_string(&task.kind).unwrap_or_default(),
+            "\"cairn_task\""
+        );
+        assert_eq!(
+            serde_json::to_string(&artifact.kind).unwrap_or_default(),
+            "\"cairn_artifact\""
+        );
+        let task_work = work(vec![task]);
+        let artifact_work = work(vec![artifact]);
+        assert_ne!(
+            task_work.canonical_key().unwrap_or_else(|_| unreachable!()),
+            artifact_work
+                .canonical_key()
+                .unwrap_or_else(|_| unreachable!())
+        );
+        assert_ne!(
+            task_work.identity().unwrap_or_else(|_| unreachable!()),
+            artifact_work.identity().unwrap_or_else(|_| unreachable!())
+        );
+        let mut ledger = WorkLedger::default();
+        assert!(ledger.admit(&task_work, None, &enrollment()).is_ok());
+        assert!(ledger.admit(&artifact_work, None, &enrollment()).is_ok());
+        assert_eq!(ledger.current().count(), 2);
     }
 
     // r[verify kiln.implementation.contract] r[verify kiln.implementation.contract.scenario.admit] r[verify kiln.implementation.replay.scenario.lifecycle]

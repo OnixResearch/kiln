@@ -1295,6 +1295,7 @@
       sview: ["history", "changes"].includes(params.get("sview")) ? params.get("sview") : "", sline: (params.get("sline") || "").slice(0, 32),
       receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
+      worker_campaign: params.get("worker_campaign") || "",
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
       work_ci_project: (params.get("work_ci_project") || "").slice(0, 16_384), work_ci_repository: (params.get("work_ci_repository") || "").slice(0, 16_384),
@@ -1307,6 +1308,8 @@
       review_interdiff_change: /^[k-z]{32}$/.test(params.get("review_interdiff_change") || "") ? params.get("review_interdiff_change") : "",
       review_commits: /^[0-9a-f]{40}\.\.[0-9a-f]{40}$/.test(params.get("review_commits") || "") ? params.get("review_commits") : "",
       review_mode: params.get("review_mode") === "structural" ? "structural" : "",
+      // r[impl kiln.preview.comparison] Exact baseline~candidate observation identities.
+      review_preview_compare: /^[0-9a-f]{64}~[0-9a-f]{64}$/.test(params.get("review_preview_compare") || "") ? params.get("review_preview_compare") : "",
       review_q: (params.get("review_q") || "").slice(0, 256),
       feed_q: (params.get("feed_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
       review_advisory: ["with", "without"].includes(params.get("review_advisory")) ? params.get("review_advisory") : "",

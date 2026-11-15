@@ -30,8 +30,9 @@ pub const PINNED_NIX_STORE_EXECUTABLE_PATH: &str =
     "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store";
 pub const PINNED_NIX_STORE_EXECUTABLE_BLAKE3: &str =
     "82a5990db42a7f104b2c6eb17edf840ac9a7ad04936c8ab2630cc766e929f852";
+// Build authority does not include unscoped host-store garbage collection.
 pub const PINNED_NIX_CONFIG: &str =
-    "substituters =\nbuilders =\nsandbox = true\nexperimental-features =\n";
+    "substituters =\nbuilders =\nsandbox = true\nexperimental-features =\nmin-free = 0\n";
 pub const PINNED_BOUNDED_EXEC_SOURCE: &str =
     "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git";
 pub const PINNED_BOUNDED_EXEC_REVISION: &str = "29dac88ecded94457572db3fdfaaaab95fa91525";
@@ -72,6 +73,9 @@ pub struct NixRuntimeBinding {
     pub derivation_identity: ContentId,
     pub plan_identity: ContentId,
     pub policy_identity: ContentId,
+    /// Optional operator-owned Nix root, distinct from the logical `/nix/store` path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub store_root: Option<PathBuf>,
     pub store_path: PathBuf,
     pub gc_root_base: PathBuf,
     pub home_base: PathBuf,
@@ -105,6 +109,9 @@ pub struct NixBuildProfileConfig {
     pub plan_identity: ContentId,
     pub policy_identity: ContentId,
     pub store_path: PathBuf,
+    /// Explicit private `local?root=...` store for isolated canonical builds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub store_root: Option<PathBuf>,
     pub gc_root_base: PathBuf,
     pub home_base: PathBuf,
     pub worker_identity: ContentId,
@@ -149,6 +156,7 @@ impl NixBuildProfileConfig {
             plan_identity: self.plan_identity,
             policy_identity: self.policy_identity,
             store_path: self.store_path,
+            store_root: self.store_root,
             gc_root_base: self.gc_root_base,
             home_base: self.home_base,
             worker_identity: self.worker_identity,
@@ -290,6 +298,7 @@ pub fn admit_profile(profile: &NixBuildProfile) -> PortResult<()> {
     }
     validate_paths(profile)?;
     validate_limits(profile.limits)?;
+    validate_store_root(profile.runtime.store_root.as_deref())?;
     validate_outputs(&profile.runtime, profile.limits)?;
     role_matches_port(&profile.provider, ProviderRole::Build)?;
     for operation in &profile.provider.operations {
@@ -306,6 +315,84 @@ pub fn admit_profile(profile: &NixBuildProfile) -> PortResult<()> {
         )?;
     }
     Ok(())
+}
+
+// r[impl kiln.preview.owned_store] An omitted root keeps the system store; a selected root must be a normalized, URI-safe absolute path.
+fn validate_store_root(root: Option<&Path>) -> PortResult<()> {
+    let Some(root) = root else {
+        return Ok(());
+    };
+    let invalid = || {
+        domain(
+            "nix_profile_store_root",
+            "nix.profile.runtime.store_root",
+            "Owned local store root must be an absolute, normalized URI-safe path",
+        )
+    };
+    let Some(text) = root.to_str() else {
+        return Err(invalid());
+    };
+    if !text.starts_with('/')
+        || text == "/"
+        || text.len() > 4096
+        || text.split('/').skip(1).any(|part| {
+            part.is_empty()
+                || part == "."
+                || part == ".."
+                || !part
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+        })
+    {
+        return Err(invalid());
+    }
+    Ok(())
+}
+
+/// Native pre-effect admission for the explicitly owned local store.
+// r[impl kiln.preview.owned_store] A missing, shared or substituted root fails closed before any effect.
+pub(crate) fn admit_native_store_root(root: Option<&Path>) -> PortResult<()> {
+    let Some(root) = root else {
+        return Ok(());
+    };
+    let invalid = || {
+        domain(
+            "nix_native_store_root",
+            "nix.profile.runtime.store_root",
+            "Native local store root must be an existing private directory owned by this process",
+        )
+    };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let metadata = std::fs::symlink_metadata(root).map_err(|_| invalid())?;
+        let directories = [
+            root.join("nix"),
+            root.join("nix/store"),
+            root.join("nix/var"),
+            root.join("nix/var/nix"),
+            root.join("nix/var/nix/db"),
+        ];
+        if !metadata.is_dir()
+            || metadata.file_type().is_symlink()
+            || metadata.uid() != nix::unistd::geteuid().as_raw()
+            || metadata.permissions().mode() & 0o077 != 0
+            || directories.iter().any(|path| {
+                std::fs::symlink_metadata(path)
+                    .map(|metadata| !metadata.is_dir() || metadata.file_type().is_symlink())
+                    .unwrap_or(true)
+            })
+        {
+            return Err(invalid());
+        }
+    }
+    #[cfg(not(unix))]
+    return Err(invalid());
+    Ok(())
+}
+
+pub fn store_uri(root: Option<&Path>) -> Option<String> {
+    root.map(|root| format!("local?root={}", root.display()))
 }
 
 fn validate_paths(profile: &NixBuildProfile) -> PortResult<()> {

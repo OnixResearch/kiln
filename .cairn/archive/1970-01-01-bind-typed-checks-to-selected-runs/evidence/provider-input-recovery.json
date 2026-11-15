@@ -1,0 +1,25 @@
+{
+  "schema": "kiln.local-provider-input-recovery.v1",
+  "observed_at": "2026-11-15T04:09:36.480Z",
+  "problem": "Enrolled lattice.ncl imported an absent Nix source path; existing unit failed with app_config_evaluation_failed",
+  "enrolled_source": "/nix/store/l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "retained_identical_source_copy": "/nix/store/k4w83nycif656v3i3fd40rdc1j1pl598-l0b1bvjspdr7mk1rch047cys2m3ywplp-lattice-observed-cancellation-source",
+  "substitution_attempt": "Exact enrolled path unavailable from configured substituters",
+  "recovery": "nix store add-path --name lattice-observed-cancellation-source <retained immutable copy> reconstructed the exact enrolled store address; retained by a private explicit GC root",
+  "configured_profiles_modified": false,
+  "runtime_or_source_cohort_changed": false,
+  "credential_or_permission_changes": false,
+  "manual_service_restart": false,
+  "observation": {
+    "service": "kiln-web-lattice.service",
+    "active_state": "active",
+    "sub_state": "running",
+    "main_pid": 2908912,
+    "exec_main_status": 0
+  },
+  "non_claims": [
+    "Existing restart policy resumed the service after exact input restoration",
+    "Running listener is not a new implementation worker, model, guest or workflow qualification",
+    "No new effect authority/profile was granted"
+  ]
+}

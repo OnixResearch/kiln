@@ -405,7 +405,7 @@ fn copy_tree(
         return Err("snapshot_depth_bound".into());
     }
     for entry in tree {
-        let name = entry.name().ok_or("snapshot_path_invalid")?;
+        let name = entry.name().map_err(|_| "snapshot_path_invalid")?;
         if !safe_path(name) || prefix + name.len() > budget.limits.max_path_bytes {
             return Err("snapshot_path_invalid".into());
         }

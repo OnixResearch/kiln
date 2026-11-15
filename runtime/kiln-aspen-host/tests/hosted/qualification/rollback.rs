@@ -10,7 +10,7 @@ const INCOMPATIBLE_CALLBACK_TIMEOUT_MILLISECONDS: u64 = 30_001;
 )]
 fn child_host_explicit_rollback_rejects_mixed_cohort_then_restores_prior_exact_cohort() {
     let mut fixture = ProcessFixture::new(std::time::Instant::now);
-    let lattice = FixtureLattice::start(&fixture, false);
+    let lattice = FixtureLattice::start(&fixture, DispatchBehavior::Connected);
     let ingress = fixture.ingress(0);
     let prior_host = fixture.host_executable.clone();
     let prior_host_identity = blake3::hash(

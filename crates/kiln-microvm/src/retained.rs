@@ -13,7 +13,7 @@ use crate::backend::{Capabilities, NetworkCapability};
 
 pub mod drain;
 
-pub const RETAINED_SESSION_SCHEMA: &str = "kiln.retained-session.v2";
+pub const RETAINED_SESSION_SCHEMA: &str = "kiln.retained-session.v3";
 pub const MAX_HOST_BYTES: usize = 256;
 pub const MAX_CAUSE_BYTES: usize = 512;
 pub const MAX_VCPUS: u16 = 256;
@@ -75,6 +75,35 @@ pub enum RetainedEffect {
     Reconcile,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlKind {
+    Pause,
+    Resume,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ControlStatus {
+    Requested,
+    InProgress,
+    ObservedComplete,
+    Rejected,
+    Uncertain,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PendingControl {
+    pub operation: ContentId,
+    pub kind: ControlKind,
+    pub status: ControlStatus,
+    pub session: ContentId,
+    pub attempt: ContentId,
+    pub fence: u64,
+    pub placement: Placement,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MigrationIntent {
@@ -99,6 +128,8 @@ pub struct RetainedSession {
     pub placement: Placement,
     pub resources: RetainedResources,
     pub state: RetainedState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub control: Option<PendingControl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub migration: Option<MigrationIntent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -159,6 +190,7 @@ impl RetainedSession {
             placement,
             resources,
             state: RetainedState::Receiving,
+            control: None,
             migration: None,
             cause: None,
         })
@@ -227,18 +259,150 @@ impl RetainedSession {
         }
     }
 
-    pub fn resume(&mut self, owner: &OwnerToken) -> Result<RetainedEffect, Diagnostic> {
+    pub fn request_control(
+        &mut self,
+        owner: &OwnerToken,
+        operation: ContentId,
+        kind: ControlKind,
+    ) -> Result<RetainedEffect, Diagnostic> {
         self.authorize(owner)?;
-        self.require(RetainedState::Paused)?;
-        self.state = RetainedState::Running;
-        Ok(RetainedEffect::Resume)
+        operation.validate()?;
+        if self
+            .control
+            .as_ref()
+            .is_some_and(|c| c.operation == operation)
+        {
+            return Err(refusal(
+                "retained_control_replay",
+                "retained.control",
+                "control operation ID cannot be reused",
+            ));
+        }
+        if self.control.as_ref().is_some_and(|c| {
+            matches!(
+                c.status,
+                ControlStatus::Requested | ControlStatus::InProgress | ControlStatus::Uncertain
+            )
+        }) {
+            return Err(refusal(
+                "retained_control_pending",
+                "retained.control",
+                "unfinished control must be reconciled first",
+            ));
+        }
+        self.require(match kind {
+            ControlKind::Pause => RetainedState::Running,
+            ControlKind::Resume => RetainedState::Paused,
+        })?;
+        self.control = Some(PendingControl {
+            operation,
+            kind,
+            status: ControlStatus::Requested,
+            session: self.identity.session.clone(),
+            attempt: self.identity.attempt.clone(),
+            fence: self.identity.fence,
+            placement: self.placement.clone(),
+        });
+        Ok(match kind {
+            ControlKind::Pause => RetainedEffect::Pause,
+            ControlKind::Resume => RetainedEffect::Resume,
+        })
     }
 
-    pub fn pause(&mut self, owner: &OwnerToken) -> Result<RetainedEffect, Diagnostic> {
-        self.authorize(owner)?;
-        self.require(RetainedState::Running)?;
-        self.state = RetainedState::Paused;
-        Ok(RetainedEffect::Pause)
+    pub fn control_in_progress(
+        &mut self,
+        owner: &OwnerToken,
+        operation: &ContentId,
+    ) -> Result<(), Diagnostic> {
+        self.authorize_identity(owner)?;
+        let control = self.match_control(operation)?;
+        if control.status != ControlStatus::Requested {
+            return Err(refusal(
+                "retained_control_phase",
+                "retained.control",
+                "control is not newly requested",
+            ));
+        }
+        control.status = ControlStatus::InProgress;
+        Ok(())
+    }
+
+    pub fn observe_control(
+        &mut self,
+        owner: &OwnerToken,
+        operation: &ContentId,
+        observed: bool,
+    ) -> Result<(), Diagnostic> {
+        self.authorize_identity(owner)?;
+        let control = self.match_control(operation)?;
+        let kind = control.kind;
+        if !matches!(
+            control.status,
+            ControlStatus::Requested | ControlStatus::InProgress | ControlStatus::Uncertain
+        ) {
+            return Err(refusal(
+                "retained_control_phase",
+                "retained.control",
+                "control has no unfinished observation",
+            ));
+        }
+        if observed {
+            control.status = ControlStatus::ObservedComplete;
+            self.state = match kind {
+                ControlKind::Pause => RetainedState::Paused,
+                ControlKind::Resume => RetainedState::Running,
+            };
+            self.cause = None;
+        } else {
+            control.status = ControlStatus::Uncertain;
+            self.state = RetainedState::ReconcileRequired;
+            self.cause = Some("control_observation_unknown".into());
+        }
+        Ok(())
+    }
+
+    pub fn reject_control(
+        &mut self,
+        owner: &OwnerToken,
+        operation: &ContentId,
+    ) -> Result<(), Diagnostic> {
+        self.authorize_identity(owner)?;
+        let control = self.match_control(operation)?;
+        if !matches!(
+            control.status,
+            ControlStatus::Requested | ControlStatus::InProgress | ControlStatus::Uncertain
+        ) {
+            return Err(refusal(
+                "retained_control_phase",
+                "retained.control",
+                "control cannot be rejected in its current phase",
+            ));
+        }
+        control.status = ControlStatus::Rejected;
+        Ok(())
+    }
+
+    fn match_control(&mut self, operation: &ContentId) -> Result<&mut PendingControl, Diagnostic> {
+        let c = self.control.as_mut().ok_or_else(|| {
+            refusal(
+                "retained_control_missing",
+                "retained.control",
+                "no control is pending",
+            )
+        })?;
+        if &c.operation != operation
+            || c.session != self.identity.session
+            || c.attempt != self.identity.attempt
+            || c.fence != self.identity.fence
+            || c.placement != self.placement
+        {
+            return Err(refusal(
+                "retained_control_stale",
+                "retained.control",
+                "control reply does not match operation and current owner",
+            ));
+        }
+        Ok(c)
     }
 
     /// Begin one outbound migration from the paused source.
@@ -250,6 +414,18 @@ impl RetainedSession {
         intent: ContentId,
     ) -> Result<RetainedEffect, Diagnostic> {
         self.authorize(owner)?;
+        if self.control.as_ref().is_some_and(|c| {
+            matches!(
+                c.status,
+                ControlStatus::Requested | ControlStatus::InProgress | ControlStatus::Uncertain
+            )
+        }) {
+            return Err(refusal(
+                "retained_control_pending",
+                "retained.control",
+                "unfinished control blocks migration",
+            ));
+        }
         self.require(RetainedState::Paused)?;
         validate_host(&target_host, "retained.migration.target")?;
         intent.validate()?;
@@ -312,6 +488,18 @@ impl RetainedSession {
     /// journal this transition before requesting an owned host effect.
     pub fn begin_retire(&mut self, owner: &OwnerToken) -> Result<RetainedEffect, Diagnostic> {
         self.authorize(owner)?;
+        if self.control.as_ref().is_some_and(|c| {
+            matches!(
+                c.status,
+                ControlStatus::Requested | ControlStatus::InProgress | ControlStatus::Uncertain
+            )
+        }) {
+            return Err(refusal(
+                "retained_control_pending",
+                "retained.control",
+                "unfinished control blocks retirement",
+            ));
+        }
         if !matches!(
             self.state,
             RetainedState::Paused | RetainedState::MigratedAway
@@ -467,17 +655,62 @@ mod tests {
 
     // r[verify kiln.hosted.retained.lifecycle] r[verify kiln.hosted.retained.lifecycle.scenario.restore]
     #[test]
-    fn restored_session_is_paused_and_resumes_only_under_the_owner() {
+    fn requested_resume_is_not_observed_running_until_exact_confirmation() {
         let mut session = session();
         let token = paused(&mut session);
+        let operation = content('9');
+        assert!(matches!(
+            session.request_control(&token, operation.clone(), ControlKind::Resume),
+            Ok(RetainedEffect::Resume)
+        ));
         assert_eq!(session.state, RetainedState::Paused);
         assert_eq!(
-            session
-                .resume(&token)
-                .unwrap_or_else(|error| unreachable!("{error:?}")),
-            RetainedEffect::Resume
+            session.control.as_ref().map(|control| control.status),
+            Some(ControlStatus::Requested)
         );
+        let encoded = serde_json::to_string(&session).unwrap_or_else(|_| unreachable!());
+        let restarted: RetainedSession =
+            serde_json::from_str(&encoded).unwrap_or_else(|_| unreachable!());
+        assert_eq!(restarted.control, session.control);
+        assert!(session.begin_retire(&token).is_err());
+        assert!(
+            session
+                .begin_migration(&token, "host-b".into(), 2, content('a'))
+                .is_err()
+        );
+        session
+            .control_in_progress(&token, &operation)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(
+            session
+                .observe_control(&token, &content('8'), true)
+                .is_err()
+        );
+        session
+            .observe_control(&token, &operation, true)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(session.state, RetainedState::Running);
+        assert_eq!(
+            session.control.as_ref().map(|control| control.status),
+            Some(ControlStatus::ObservedComplete)
+        );
+        let rejected = content('6');
+        session
+            .request_control(&token, rejected.clone(), ControlKind::Pause)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        session
+            .reject_control(&token, &rejected)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(session.state, RetainedState::Running);
+        assert_eq!(
+            session.control.as_ref().map(|control| control.status),
+            Some(ControlStatus::Rejected)
+        );
+        assert!(
+            session
+                .request_control(&token, rejected, ControlKind::Pause)
+                .is_err()
+        );
     }
 
     // r[verify kiln.hosted.retained.lifecycle.scenario.confinement]
@@ -496,7 +729,11 @@ mod tests {
         );
         assert_eq!(session.state, RetainedState::ReconcileRequired);
         assert!(session.occupies_capacity());
-        assert!(session.resume(&token).is_err());
+        assert!(
+            session
+                .request_control(&token, content('7'), ControlKind::Resume)
+                .is_err()
+        );
     }
 
     // r[verify kiln.hosted.retained.lifecycle.scenario.stale]
@@ -506,10 +743,18 @@ mod tests {
         let token = paused(&mut session);
         let mut stale = token.clone();
         stale.generation += 1;
-        assert!(session.resume(&stale).is_err());
+        assert!(
+            session
+                .request_control(&stale, content('7'), ControlKind::Resume)
+                .is_err()
+        );
         stale = token.clone();
         stale.fence += 1;
-        assert!(session.resume(&stale).is_err());
+        assert!(
+            session
+                .request_control(&stale, content('7'), ControlKind::Resume)
+                .is_err()
+        );
         assert_eq!(session.state, RetainedState::Paused);
     }
 
@@ -530,6 +775,7 @@ mod tests {
             attempt: session.identity.attempt.clone(),
             fence: session.identity.fence,
             source: session.placement.clone(),
+            checkpoint: None,
             target: Placement {
                 host: "host-b".to_string(),
                 generation: 2,
@@ -549,7 +795,11 @@ mod tests {
             RetainedEffect::Retire
         );
         assert_eq!(session.state, RetainedState::MigratedAway);
-        assert!(session.resume(&token).is_err());
+        assert!(
+            session
+                .request_control(&token, content('7'), ControlKind::Resume)
+                .is_err()
+        );
         assert!(session.occupies_capacity());
         session
             .begin_retire(&token)
@@ -560,7 +810,11 @@ mod tests {
             .observe_retired(&token, false)
             .unwrap_or_else(|_| unreachable!());
         assert!(session.occupies_capacity());
-        assert!(session.resume(&token).is_err());
+        assert!(
+            session
+                .request_control(&token, content('7'), ControlKind::Resume)
+                .is_err()
+        );
         session
             .observe_retired(&token, true)
             .unwrap_or_else(|_| unreachable!());

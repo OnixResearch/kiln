@@ -7,7 +7,6 @@ use std::io;
 use std::os::unix::fs::{PermissionsExt as _, symlink};
 use std::path::PathBuf;
 
-use cob_git2 as git2;
 use git2::{Oid, Repository};
 use kiln_adapter_radicle::source::{
     RadicleSourceProfile, RadicleSourceResult, RadicleSourceSelection, RadicleSourceShell,

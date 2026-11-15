@@ -1,8 +1,9 @@
 # Implementer service boundary
 
-This document records the ownership split and the exact remaining prerequisites
-for automatic issue/Cairn implementation (issues #44–#50). It is a design
-boundary, not an implemented service.
+This document records the implemented ownership split and the exact remaining
+qualification prerequisites for automatic issue/Cairn implementation. The
+[operator runbook](implementation-runbook.md) contains the current native commands;
+source implementation is not a live service or deployment qualification.
 
 ## Implemented in `kiln-core`
 
@@ -29,9 +30,12 @@ cancel/supersede, and `recover`. Concurrent schedulers serialize on the store;
 restart preserves deduplication, consumed budget, attempt lineage and stale-fence
 refusal.
 
-The shell owns durable claims and state, but still does not execute or cancel a
-Lattice workflow, create a workspace, verify a candidate, publish, or grant
-authority. Live dispatch remains blocked on the Lattice implementation route.
+The ledger does not execute external work by itself. The separate
+`kiln-lattice-dispatch` consumer binds and revalidates the admitted native Lattice
+request before execution/recovery. The selected-Cairn controller composes that
+consumer with independent candidate capture, canonical verification and delivery
+owners. Live operation still requires a qualified immutable source/executable,
+workspace, resource and model-admission cohort.
 
 ### Operator commands
 
@@ -59,7 +63,8 @@ non-empty repositories/actors.
 `run` repeats the drain on `--interval-ms`, stopping on SIGTERM/SIGINT or after
 an optional positive `--iterations` bound. It reports the number of iterations
 and drained deliveries. It never claims or dispatches; a scheduler that creates
-attempts must wait for the Lattice implementation route.
+attempts must use the separately admitted Lattice implementation route rather
+than treating intake or a claim as execution permission.
 
 `kiln-cairn-intake --database PATH --enrollment FILE --snapshot FILE --policy FILE --sequence N`
 admits one complete `cairn.implementation-ready.v1` snapshot into the same
@@ -95,32 +100,33 @@ admits a complete candidate handoff and moves the attempt to
 `candidate-produced`; it does not verify or accept the candidate.
 `metrics --attempt ID [--usage-file FILE] [--record true]` previews or retains
 the default-off attempt metrics receipt; missing usage stays explicitly absent.
-`verify --verification-file FILE` admits retained canonical CI evidence for the
-exact candidate handoff and moves the attempt to `verified`; it does not run CI.
+`kiln-web-service verify-implementation --profile CI_PROFILE --database DB
+--enrollment FILE --attempt ID --fence N --verification-profile FILE --authority FILE`
+executes the frozen checks under independent verifier authority, retains native
+observations in canonical CI and admits the exact candidate result. The old
+`kiln-implementer verify`/JSON-success import is removed.
 `prepare-publication --publication-file FILE` prepares the deterministic verified
 branch/PR plan; it creates no remote branch or pull request.
-`publish --publication-file FILE --secret-file FILE [--timeout-ms N]` reconciles
-the exact verified branch and creates/reuses one matching PR. It never force
-pushes, updates an existing branch, merges or lands.
-`land --publication-file FILE --landing-plan FILE --secret-file FILE
-[--timeout-ms N]` requires an exact matching published PR, re-admits checks,
-reviews and base evidence, performs one guarded merge-commit landing, reads back
-the merge commit/base head, and records the exact integration receipt.
-`close-source --source-plan FILE --secret-file FILE [--timeout-ms N]` closes the
-exact integrated issue and records the observed closed state; it does not edit
-other issue fields or run Cairn lifecycle operations. The plan is re-admitted
-before the remote call, so a source cannot be re-closed after reconciliation
-under the same plan; an already source-reconciled attempt returns the retained
-state without another remote call.
+`publish --publication-file FILE --secret-file FILE --remote-profile FILE [--timeout-ms N]` pushes the exact captured candidate Git objects via the enrolled `NativeRemoteProfile`, verifies the exact remote branch, then creates/reconciles one matching PR. The strict `kiln.github-publication-source.v1` profile binds the canonical repository path, remote profile/identity, and explicit fixture discriminator. Production publication requires the exact HTTPS GitHub repository; local bare remotes are explicit loopback-fixture-only. It never force-pushes, updates an existing branch, merges or lands.
+`recover-integration --publication-file FILE --landing-plan FILE --secret-file FILE
+[--timeout-ms N]` reconciles external integration by exact Git-object mapping,
+current checks/reviews and final target ancestry. It issues no merge request;
+ordinary GitHub merging lacks the required atomic candidate-and-base guard.
+`close-source --source-plan FILE --secret-file FILE [--timeout-ms N]` is
+observation-only: it retains an already closed issue only at the plan's exact
+admitted provider revision. It never PATCHes an open issue, accepts an arbitrary
+new timestamp, edits other fields or performs Cairn lifecycle mutation.
+Automatic source closure requires a separately qualified conditional-update
+provider and remains unavailable.
 `source-status --source-plan FILE --secret-file FILE [--timeout-ms N]
 [--require-match true]` performs a read-only state comparison and prints
 `retained`, `observed` and `match`; `--require-match true` exits non-zero on a
 mismatch. It does not reopen, close or edit the issue.
-Claim and reservation commands are an operator/worker handoff only. `verify`,
-`prepare-publication`, `publish`, `land` and `close-source` perform only their
-named evidence admission or external effects; none dispatches an implementation
-worker, and a claimed attempt must still be executed by an admitted Lattice
-route.
+Claim and reservation commands are an operator/worker handoff only. Independent
+verification, publication and reconciliation use the separate native consumers
+above; none turns a worker's exit status or self-reported checks into acceptance.
+A claimed attempt still requires its exact admitted Lattice route and current
+resource/model grants before execution.
 
 ## systemd deployment
 
@@ -137,11 +143,11 @@ SIGTERM; the loop stops between polls without waiting out the full interval.
 |---|---|---|
 | Work admission, global claims, fences, reservations, budgets, disposition | Kiln | core and durable operator shell implemented |
 | Versioned implementation-ready Cairn snapshots | Cairn `#1` | implemented; consumed by `kiln-cairn-intake` |
-| One owned attempt workflow, worker route, cancellation | Lattice `#6–#8` | `#8` closed; `#6/#7` open |
+| One owned attempt workflow, worker route, cancellation | Lattice `#6–#8` | native consumers implemented in the selected source; assembled cohort qualification remains separate |
 | Relocatable VM sessions | Lattice `#9–#11`, Aspen | open |
-| Candidate acceptance from retained canonical CI facts | Kiln `#46` | implemented; authoritative Cairn completion remains external |
-| Forge publication, guarded landing, integration and source status | Kiln `#47/#48` | implemented locally; live qualification and policy deployment remain external |
-| Deployment packaging | onix-core | repository absent locally |
+| Candidate acceptance from independently executed canonical CI | Kiln `#46`, Cairn | native frozen-check and authoritative-completion consumers implemented; real-worker qualification remains separate |
+| Forge publication, integration and source status | Kiln `#47/#48` | exact publication and read-back implemented; automatic GitHub landing and conditional source closure remain unqualified |
+| Deployment packaging | onix-core | opt-in module and cohort/VM constructors implemented; device-free checks do not qualify a running worker |
 | Live migration qualification | Kiln `#55`, physical hosts | unavailable |
 
 ## Required interfaces before dispatch

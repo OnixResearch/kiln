@@ -1,9 +1,10 @@
 use super::*;
 use kiln_core::implementation::CANDIDATE_HANDOFF_SCHEMA;
 use kiln_core::provider::CapabilityProfile;
-use kiln_core::types::{Alias, EffectId};
+use kiln_core::types::{Alias, EffectId, ExternalRef};
 use kiln_core::workflow::{
     WorkflowControlRequest, WorkflowEffectPlan, WorkflowLogChunk, WorkflowLogReadRequest,
+    WorkflowSourceContext,
 };
 use kiln_provider_api::{PortResult, WorkflowPort};
 use serde_json::json;
@@ -159,7 +160,13 @@ fn record(
     ))
     .unwrap_or_else(|error| unreachable!("{error:?}"));
     let pipeline = identity(&project.workflow).unwrap_or_else(|error| unreachable!("{error:?}"));
-    let mut plan = workflow_plan(project, &run_identity, &pipeline, None)
+    let source_context = WorkflowSourceContext {
+        provider: Alias::new("git").unwrap_or_else(|error| unreachable!("{error:?}")),
+        repository: source.repository.clone(),
+        revision: ExternalRef::new("git", "revision", source.exact_revision.native_id.as_str())
+            .unwrap_or_else(|error| unreachable!("{error:?}")),
+    };
+    let mut plan = workflow_plan(project, &run_identity, &pipeline, Some(source_context))
         .unwrap_or_else(|error| unreachable!("{error:?}"));
     plan.provider_profile =
         ProviderProfileId::new(VERIFIER_PROVIDER).unwrap_or_else(|error| unreachable!("{error:?}"));
@@ -276,6 +283,7 @@ fn record(
         scope: None,
         untrusted: None,
         implementation_verification: Some(provenance),
+        preview_build: None,
         state: State::default(),
     };
     record
@@ -295,8 +303,16 @@ fn record(
             .complete(outcome, Some(execution.clone()))
             .unwrap_or_else(|error| unreachable!("{error:?}"));
     }
-    let artifact_id = identity(&("canonical-verification-fixture-artifact", &record.id))
-        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    let artifact_id = identity(&(
+        "kiln.web-artifact.v1",
+        &record.id,
+        &plan.attempt_id,
+        &execution,
+        "job",
+        "job-verification.json",
+        &artifact_hash,
+    ))
+    .unwrap_or_else(|error| unreachable!("{error:?}"));
     super::super::storage::publish_retained(
         &engine.profile.state_directory.join("artifacts"),
         artifact_id.as_str(),
@@ -343,6 +359,16 @@ fn canonical_verification_preserves_native_source_and_maps_only_bound_alias() {
         record
             .restore()
             .unwrap_or_else(|error| unreachable!("{error:?}"));
+        if outcome == Outcome::Success {
+            let mut missing = record.clone();
+            missing.reports.clear();
+            assert!(validate_record_provenance(&missing).is_err());
+            let mut substituted = record.clone();
+            if let Some(report) = substituted.reports.first_mut() {
+                report.id = "f".repeat(64);
+            }
+            assert!(validate_record_provenance(&substituted).is_err());
+        }
         let id = record.id.clone();
         engine.state.runs.insert(id.clone(), record);
         let facts = engine.code_review_ci();
@@ -360,7 +386,25 @@ fn canonical_verification_preserves_native_source_and_maps_only_bound_alias() {
         );
         assert!(check.artifact_digest.is_some());
         let current = engine.state.runs.get(&id).unwrap_or_else(|| unreachable!());
+        let project = engine
+            .profile
+            .projects
+            .first()
+            .unwrap_or_else(|| unreachable!());
+        validate_stored_verification_record(&engine.profile, project, &id, current)
+            .unwrap_or_else(|error| unreachable!("stored verifier record rejected: {error}"));
         assert_eq!(current.source.repository, native);
+        let mut changed_project = project.clone();
+        changed_project
+            .workflow
+            .nodes
+            .first_mut()
+            .unwrap_or_else(|| unreachable!("project workflow has a first node"))
+            .operation_identity = "f".repeat(64);
+        assert!(
+            validate_stored_verification_record(&engine.profile, &changed_project, &id, current,)
+                .is_err()
+        );
         let mut forged = current.clone();
         forged
             .implementation_verification
@@ -368,6 +412,9 @@ fn canonical_verification_preserves_native_source_and_maps_only_bound_alias() {
             .unwrap_or_else(|| unreachable!())
             .repository_alias = "forged/repository".into();
         assert!(validate_record_provenance(&forged).is_err());
+        assert!(
+            validate_stored_verification_record(&engine.profile, project, &id, &forged).is_err()
+        );
         engine.state.runs.insert(id.clone(), forged);
         let facts = engine.code_review_ci();
         let fact = facts.first().unwrap_or_else(|| unreachable!());
@@ -525,4 +572,89 @@ fn native_profile_validator_requires_every_frozen_case_kind_prerequisite_and_cai
     project.workflow =
         serde_json::from_value(workflow).unwrap_or_else(|error| unreachable!("{error:?}"));
     assert!(Engine::validate_implementation_verification_project(&profile, &project).is_err());
+}
+
+#[test]
+fn unknown_verification_restores_without_unearned_check_evidence() {
+    let (_root, mut engine, source) = engine();
+    let profile = engine.profile.clone();
+    let mut run = record(&engine, source, Outcome::Unknown);
+    run.reports.clear();
+    run.artifacts.clear();
+    let run_id = run.id.clone();
+    engine.state.runs.insert(run_id.clone(), run);
+    engine
+        .persist()
+        .unwrap_or_else(|error| unreachable!("persist unknown intent: {error}"));
+    drop(engine);
+    let (_store, state) = super::super::storage::Store::open_read_only(&profile)
+        .unwrap_or_else(|error| unreachable!("restore unknown intent: {error}"));
+    let restored = state.runs.get(&run_id).unwrap_or_else(|| unreachable!());
+    assert_eq!(restored.outcome(), Outcome::Unknown);
+    assert!(restored.reports.is_empty());
+}
+
+#[test]
+fn canonical_verification_restores_mutably_and_read_only() {
+    let (_root, mut engine, source) = engine();
+    let profile = engine.profile.clone();
+    let run = record(&engine, source, Outcome::Success);
+    let run_id = run.id.clone();
+    engine.state.runs.insert(run_id.clone(), run);
+    engine
+        .persist()
+        .unwrap_or_else(|error| unreachable!("persist fixture: {error}"));
+    drop(engine);
+
+    let (_store, state) = super::super::storage::Store::open_read_only(&profile)
+        .unwrap_or_else(|error| unreachable!("read-only restore: {error}"));
+    assert!(state.runs.contains_key(&run_id));
+    drop(state);
+    drop(_store);
+
+    let project = profile.projects.first().unwrap_or_else(|| unreachable!());
+    let capability = project
+        .execution_capabilities(profile.bounds.max_runs)
+        .unwrap_or_else(|error| unreachable!("port profile: {error}"));
+    let ports = BTreeMap::from([(
+        "fixture".into(),
+        Box::new(NoProviderEffects(capability)) as Box<dyn WorkflowPort + Send>,
+    )]);
+    let reopened = Engine::open_with_ports(profile, ports)
+        .unwrap_or_else(|error| unreachable!("mutable restore: {error}"));
+    assert!(reopened.state.runs.contains_key(&run_id));
+}
+
+#[test]
+fn forged_verification_provenance_fails_mutable_and_read_only_restore() {
+    let (_root, mut engine, source) = engine();
+    let profile = engine.profile.clone();
+    let run = record(&engine, source, Outcome::Success);
+    let run_id = run.id.clone();
+    engine.state.runs.insert(run_id.clone(), run);
+    engine
+        .persist()
+        .unwrap_or_else(|error| unreachable!("persist fixture: {error}"));
+    engine
+        .state
+        .runs
+        .get_mut(&run_id)
+        .and_then(|run| run.implementation_verification.as_mut())
+        .unwrap_or_else(|| unreachable!())
+        .binding = content('f');
+    engine
+        .persist()
+        .unwrap_or_else(|error| unreachable!("persist forged fixture: {error}"));
+    drop(engine);
+
+    assert!(super::super::storage::Store::open_read_only(&profile).is_err());
+    let project = profile.projects.first().unwrap_or_else(|| unreachable!());
+    let capability = project
+        .execution_capabilities(profile.bounds.max_runs)
+        .unwrap_or_else(|error| unreachable!("port profile: {error}"));
+    let ports = BTreeMap::from([(
+        "fixture".into(),
+        Box::new(NoProviderEffects(capability)) as Box<dyn WorkflowPort + Send>,
+    )]);
+    assert!(Engine::open_with_ports(profile, ports).is_err());
 }

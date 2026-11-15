@@ -5,6 +5,7 @@
 pub mod cohort;
 pub mod engine;
 pub mod nix;
+pub mod observation;
 pub mod retention;
 pub mod service;
 
@@ -14,21 +15,51 @@ use kiln_core::{
 };
 use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::Path};
+/// A preview may follow only the review core's selected run, never an earlier
+/// successful run that was superseded by a later failure or incomplete run.
+pub fn selected_successful_ci_run<'a>(
+    selected_run: Option<&str>,
+    facts: &'a [kiln_core::change_review::CiFact],
+    project: &str,
+    repository: &str,
+    revision: &str,
+) -> Option<&'a str> {
+    let selected_run = selected_run.filter(|run_id| !run_id.is_empty())?;
+    facts
+        .iter()
+        .find(|fact| fact.run_id == selected_run)
+        .filter(|fact| {
+            fact.project == project
+                && fact.repository == repository
+                && fact.revision == revision
+                && fact.success
+                && fact.terminal
+                && fact.full_run
+                && fact.clean
+        })
+        .map(|fact| fact.run_id.as_str())
+}
 
 pub const MAX_REQUEST_BYTES: u64 = 2 * 1024 * 1024;
 
 /// Trusted shell input, not a browser request. The build records must come from
 /// the canonical admitted build journal; importing JSON does not establish that
 /// provenance. The real review consumer additionally matches canonical CI facts.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PreviewRequest {
-    pub plan: BuildEffectPlan,
-    pub observation: BuildEvaluationObservation,
-    pub descriptor: PreviewDescriptor,
+#[derive(Clone, Debug)]
+pub(crate) struct PreviewRequest {
+    pub(crate) plan: BuildEffectPlan,
+    pub(crate) observation: BuildEvaluationObservation,
+    pub(crate) descriptor: PreviewDescriptor,
 }
 
 /// Machine export of typed preview policy plus one exact product selection.
+/// Runtime-only composition of canonical evidence and independent operator policy.
+pub(crate) struct PreviewProduction {
+    pub(crate) plan: BuildEffectPlan,
+    pub(crate) observation: BuildEvaluationObservation,
+    pub(crate) current: PreviewBinding,
+    pub(crate) selection: PreviewSelection,
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PreviewSelection {
@@ -56,19 +87,10 @@ pub fn enforce_policy(
     Ok(())
 }
 
-/// Frozen canonical build facts and the independently selected runtime policy.
-#[derive(Debug)]
-pub struct PreviewProduction {
-    pub plan: BuildEffectPlan,
-    pub observation: BuildEvaluationObservation,
-    pub current: PreviewBinding,
-    pub selection: PreviewSelection,
-}
-
 /// Real producer for already-built exact Nix products. It observes only the
 /// runtime closure, checks canonical build bindings and signatures, then exports
 /// verified NARs transiently to prove the descriptor is locally executable.
-pub fn produce(
+pub(crate) fn produce(
     input: PreviewProduction,
     engine: &engine::EngineBundle,
     nix: &nix::NativeNix,
@@ -114,10 +136,6 @@ pub fn produce(
     Ok(request)
 }
 
-pub fn read_request(path: &Path) -> Result<PreviewRequest, String> {
-    read_json(path, MAX_REQUEST_BYTES)
-}
-
 pub fn read_json<T: serde::de::DeserializeOwned>(
     path: &Path,
     maximum_bytes: u64,
@@ -136,7 +154,7 @@ pub fn read_json<T: serde::de::DeserializeOwned>(
     serde_json::from_slice(&bytes).map_err(|e| e.to_string())
 }
 
-pub fn admit(
+pub(crate) fn admit(
     request: &PreviewRequest,
     current: &PreviewBinding,
     engine: &engine::EngineBundle,
@@ -187,5 +205,52 @@ mod tests {
         d.limits.output_bytes += 1;
         assert!(enforce_policy(&d, &policy).is_err());
         Ok(())
+    }
+    #[test]
+    fn only_selected_current_full_clean_successful_run_can_back_preview() {
+        use kiln_core::change_review::CiFact;
+        let successful = CiFact {
+            project: "p".into(),
+            repository: "r".into(),
+            revision: "c".repeat(40),
+            run_id: "earlier-success".into(),
+            ordinal: 1,
+            success: true,
+            full_run: true,
+            clean: true,
+            scope_identity: None,
+            terminal: true,
+            untrusted: None,
+            checks: Vec::new(),
+        };
+        let mut newer_failure = successful.clone();
+        newer_failure.run_id = "selected-failure".into();
+        newer_failure.ordinal = 2;
+        newer_failure.success = false;
+        let facts = [successful.clone(), newer_failure];
+        assert_eq!(
+            selected_successful_ci_run(Some("earlier-success"), &facts, "p", "r", &"c".repeat(40)),
+            Some("earlier-success")
+        );
+        assert_eq!(
+            selected_successful_ci_run(Some("selected-failure"), &facts, "p", "r", &"c".repeat(40)),
+            None
+        );
+        assert_eq!(
+            selected_successful_ci_run(None, &facts, "p", "r", &"c".repeat(40)),
+            None
+        );
+        let mut stale = successful;
+        stale.revision = "d".repeat(40);
+        assert_eq!(
+            selected_successful_ci_run(
+                Some("earlier-success"),
+                &[stale],
+                "p",
+                "r",
+                &"c".repeat(40)
+            ),
+            None
+        );
     }
 }

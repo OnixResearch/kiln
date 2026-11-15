@@ -415,6 +415,7 @@ impl Engine {
                 untrusted: None,
                 state: State::default(),
                 implementation_verification: Some(provenance),
+                preview_build: None,
             };
             let mut total_bytes = self
                 .state
@@ -664,21 +665,23 @@ pub(super) fn validate_record_provenance(run: &RunRecord) -> Result<(), String> 
     {
         return Err("canonical verification durable provenance was substituted".into());
     }
-    for node in &run.plan.nodes {
-        let mut reports = run
-            .reports
+    validate_check_reports(run)
+}
+
+pub(super) fn validate_check_reports(run: &RunRecord) -> Result<(), String> {
+    let provenance = run
+        .implementation_verification
+        .as_ref()
+        .ok_or("independent verification provenance is absent")?;
+    if run.reports.iter().any(|report| {
+        !run.plan
+            .nodes
             .iter()
-            .filter(|report| report.node_id == node.id.as_str());
-        let report = reports
-            .next()
-            .ok_or("canonical verification node evidence missing")?;
-        if reports.next().is_some() {
-            return Err("canonical verification node evidence duplicated".into());
-        }
-        let artifact = report
-            .artifact
-            .as_ref()
-            .ok_or("verification report artifact missing")?;
+            .any(|node| node.id.as_str() == report.node_id)
+    }) {
+        return Err("canonical verification report names an unknown check".into());
+    }
+    for node in &run.plan.nodes {
         let observed = run
             .observation
             .as_ref()
@@ -689,7 +692,43 @@ pub(super) fn validate_record_provenance(run: &RunRecord) -> Result<(), String> 
                     .find(|observed| observed.node_id == node.id)
             })
             .ok_or("verification node observation missing")?;
+        let mut reports = run
+            .reports
+            .iter()
+            .filter(|report| report.node_id == node.id.as_str());
+        let Some(report) = reports.next() else {
+            if run.outcome() == Outcome::Unknown
+                && observed.state == WorkflowNodeState::Unknown
+                && !observed.terminal
+                && !observed.successful
+                && observed.receipt.is_none()
+            {
+                continue;
+            }
+            return Err("canonical verification node evidence missing".into());
+        };
+        if reports.next().is_some() {
+            return Err("canonical verification node evidence duplicated".into());
+        }
+        let artifact = report
+            .artifact
+            .as_ref()
+            .ok_or("verification report artifact missing")?;
         if report.attempt_id != run.plan.attempt_id
+            || report.kind != crate::reports::ReportKind::Provenance
+            || report.report.is_some()
+            || report.unavailable.is_some()
+            || report.id != artifact.id
+            || report.name != artifact.name
+            || !run.artifacts.iter().any(|retained| {
+                retained.id == artifact.id
+                    && retained.name == artifact.name
+                    && retained.node_id == artifact.node_id
+                    && retained.attempt_id == artifact.attempt_id
+                    && retained.bytes == artifact.bytes
+                    && retained.blake3 == artifact.blake3
+                    && retained.download_path == artifact.download_path
+            })
             || report.source_revision != run.source.exact_revision.native_id.as_str()
             || run
                 .observation
@@ -712,6 +751,50 @@ pub(super) fn validate_record_provenance(run: &RunRecord) -> Result<(), String> 
         if node.operation_identity != operation {
             return Err("stored verification operation identity differs".into());
         }
+    }
+    Ok(())
+}
+/// Revalidate the exact independently executed record against the current
+/// service/project configuration when durable state is restored.
+pub(super) fn validate_stored_verification_record(
+    profile: &crate::profile::ServiceProfile,
+    project: &crate::profile::ProjectProfile,
+    run_id: &str,
+    run: &RunRecord,
+) -> Result<(), String> {
+    validate_record_provenance(run)?;
+    let provenance = run
+        .implementation_verification
+        .as_ref()
+        .ok_or("independent verification provenance is absent")?;
+    let pipeline = identity(&project.workflow)?;
+    let source = WorkflowSourceContext {
+        provider: kiln_core::types::Alias::new("git").map_err(text)?,
+        repository: run.source.repository.clone(),
+        revision: ExternalRef::new(
+            "git",
+            "revision",
+            run.source.exact_revision.native_id.as_str(),
+        )
+        .map_err(text)?,
+    };
+    let mut expected = workflow_plan(project, &run.plan.idempotency_key, &pipeline, Some(source))?;
+    expected.provider_profile = ProviderProfileId::new(VERIFIER_PROVIDER).map_err(text)?;
+    if profile.service_id != provenance.service_id
+        || run.id != run_id
+        || run.project_id != project.id
+        || run.pipeline_identity != pipeline
+        || run.parent_run_id.is_some()
+        || !run.selected_nodes.is_empty()
+        || run.preview_build.is_some()
+        || run.scope != crate::monorepo::run_scope(project)?
+        || run.untrusted.is_some()
+        || run.plan != expected
+    {
+        return Err(
+            "stored independent verification differs from the admitted project configuration"
+                .into(),
+        );
     }
     Ok(())
 }

@@ -201,6 +201,9 @@ pub struct RunRecord {
     /// Historical/ordinary runs have no such mapping.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub implementation_verification: Option<super::verification::VerificationProvenance>,
+    /// Actual admitted local Nix product build attached to this exact workflow run.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview_build: Option<super::PreviewBuildEvidence>,
     #[serde(skip)]
     pub state: State,
 }
@@ -263,6 +266,12 @@ pub struct RunView {
 impl RunRecord {
     pub(super) fn is_independent_verification(&self) -> bool {
         self.plan.provider_profile.as_str() == super::verification::VERIFIER_PROVIDER
+    }
+    pub(super) fn is_canonical_nix_build(&self) -> bool {
+        self.preview_build.is_some()
+    }
+    pub(super) fn is_engine_owned_execution(&self) -> bool {
+        self.is_independent_verification() || self.is_canonical_nix_build()
     }
 
     pub(super) fn dispatch_binding(&self) -> kiln_provider_api::WorkflowDispatchBinding {
@@ -373,7 +382,7 @@ impl RunRecord {
         self.apply(command)
     }
     pub fn capabilities(&self) -> WorkflowControls {
-        if self.is_independent_verification() {
+        if self.is_engine_owned_execution() {
             return WorkflowControls {
                 cancel: false,
                 pause: false,

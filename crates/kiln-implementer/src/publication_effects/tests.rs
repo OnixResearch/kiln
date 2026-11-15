@@ -1,6 +1,6 @@
 use super::*;
 use kiln_core::implementation::*;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 fn id(c: char) -> ContentId {
@@ -613,6 +613,34 @@ fn cairn_lifecycle_cannot_reuse_another_task_spec_candidate_or_authoritative_res
     let (_, version) = load::<AttemptLedger>(&tx, ATTEMPT_KIND).unwrap_or_else(|_| unreachable!());
     save(&tx, ATTEMPT_KIND, version, &attempts).unwrap_or_else(|_| unreachable!());
     tx.commit().unwrap_or_else(|_| unreachable!());
+    let policy = kiln_core::fair_admission::AdmissionPolicy {
+        version: 1,
+        accounting_basis: id('a'),
+        max_items: 16,
+        max_bytes: 100_000,
+        max_wait_ms: 1000,
+        max_observation_age_ms: 100,
+        max_retry_after_ms: 100,
+        max_children: 4,
+        max_active: 2,
+        strategy: kiln_core::operations::FairnessStrategy::DominantShare,
+        shares: BTreeMap::from([(
+            kiln_core::types::Alias::new("campaign").unwrap_or_else(|_| unreachable!()),
+            1,
+        )]),
+        group_limits: vec![],
+    };
+    let policy_identity = policy.identity().unwrap_or_else(|_| unreachable!());
+    let tx = shell
+        .connection
+        .transaction()
+        .unwrap_or_else(|_| unreachable!());
+    let (mut admission, version) =
+        load::<kiln_core::fair_admission::AdmissionLedger>(&tx, "fair-admission-v1")
+            .unwrap_or_else(|_| unreachable!());
+    admission.policy = Some(policy);
+    save(&tx, "fair-admission-v1", version, &admission).unwrap_or_else(|_| unreachable!());
+    tx.commit().unwrap_or_else(|_| unreachable!());
     assert!(
         shell
             .consume_publication_effect(
@@ -624,12 +652,18 @@ fn cairn_lifecycle_cannot_reuse_another_task_spec_candidate_or_authoritative_res
             )
             .is_err()
     );
+    assert!(
+        shell
+            .read_cairn_lifecycle_effect(&work, &attempt.identity, attempt.fence, &binding)
+            .unwrap_or_else(|_| unreachable!())
+            .is_none()
+    );
     drop(shell);
     let mut shell = open(&path);
     let observed = CairnLifecycleObservation {
         binding: binding.clone(),
         observed_tree: publication.plan.tree.clone(),
-        lifecycle_policy: id('5'),
+        lifecycle_policy: policy_identity.clone(),
         lifecycle_receipt: ExternalRef::new("cairn", "lifecycle_receipt", id('e').as_str())
             .unwrap_or_else(|_| unreachable!()),
     };
@@ -645,6 +679,56 @@ fn cairn_lifecycle_cannot_reuse_another_task_spec_candidate_or_authoritative_res
             },
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(
+        shell
+            .read_cairn_lifecycle_effect(&work, &attempt.identity, attempt.fence, &binding)
+            .unwrap_or_else(|error| unreachable!("{error}")),
+        Some(retained.clone())
+    );
+    assert!(
+        shell
+            .read_cairn_lifecycle_effect(&work, &attempt.identity, attempt.fence + 1, &binding)
+            .is_err()
+    );
+    let mut wrong_binding = binding.clone();
+    wrong_binding.authoritative_completion = id('9');
+    assert!(
+        shell
+            .read_cairn_lifecycle_effect(&work, &attempt.identity, attempt.fence, &wrong_binding)
+            .is_err()
+    );
+    let changed_policy = kiln_core::fair_admission::AdmissionPolicy {
+        version: 1,
+        accounting_basis: id('b'),
+        max_items: 16,
+        max_bytes: 100_000,
+        max_wait_ms: 1000,
+        max_observation_age_ms: 100,
+        max_retry_after_ms: 100,
+        max_children: 4,
+        max_active: 2,
+        strategy: kiln_core::operations::FairnessStrategy::DominantShare,
+        shares: BTreeMap::from([(
+            kiln_core::types::Alias::new("campaign").unwrap_or_else(|_| unreachable!()),
+            1,
+        )]),
+        group_limits: vec![],
+    };
+    let tx = shell
+        .connection
+        .transaction()
+        .unwrap_or_else(|_| unreachable!());
+    let (mut admission, version) =
+        load::<kiln_core::fair_admission::AdmissionLedger>(&tx, "fair-admission-v1")
+            .unwrap_or_else(|_| unreachable!());
+    admission.policy = Some(changed_policy);
+    save(&tx, "fair-admission-v1", version, &admission).unwrap_or_else(|_| unreachable!());
+    tx.commit().unwrap_or_else(|_| unreachable!());
+    assert!(
+        shell
+            .read_cairn_lifecycle_effect(&work, &attempt.identity, attempt.fence, &binding)
+            .is_err()
+    );
     drop(shell);
     let mut shell = open(&path);
     let replay = shell

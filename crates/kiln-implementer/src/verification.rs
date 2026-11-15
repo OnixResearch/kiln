@@ -9,6 +9,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use kiln_core::change_review::{CiCheck, CiFact};
+use kiln_core::implementation::proof_evidence::{
+    ProofBackend, ProofEvidenceManifest, ProofVerificationPolicy, RetainedProofArtifact,
+    expected_binding, validate_manifest,
+};
 use kiln_core::implementation::{
     CandidateHandoff, CandidateVerification, ImplementationAttempt, ImplementationWork, SourceRef,
     TerminalPolicy, VERIFICATION_SCHEMA, WorkSourceKind, admit_candidate_handoff,
@@ -49,6 +53,26 @@ pub struct VerificationCheck {
     pub artifacts: Vec<String>,
     pub timeout_ms: u64,
 }
+impl VerificationCheck {
+    /// Stable identity of the selected protected invocation; callers can freeze
+    /// this into a proof policy without accepting worker-authored command data.
+    pub fn invocation_identity(&self) -> Result<String, String> {
+        Ok(digest(
+            &serde_json::to_vec(&json!({
+                "id": self.id.as_str(),
+                "kind": self.kind.as_str(),
+                "program_path": self.program.path.to_string_lossy(),
+                "program_blake3": self.program.blake3.as_str(),
+                "arguments": &self.arguments,
+                "prerequisites": &self.prerequisites,
+                "acceptance": &self.acceptance,
+                "artifacts": &self.artifacts,
+                "timeout_ms": self.timeout_ms,
+            }))
+            .map_err(text)?,
+        ))
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -84,6 +108,9 @@ pub struct VerificationProfile {
     pub protected_paths: Vec<String>,
     pub allow_already_satisfied: bool,
     pub cairn: Option<CairnAcceptance>,
+    /// Independently approved proof policy; never sourced from the candidate.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proof: Option<ProofVerificationPolicy>,
 }
 
 impl VerificationProfile {
@@ -402,7 +429,7 @@ pub fn verify_candidate(
                         .all(|id| !pending.contains(id.as_str()))
             })
             .ok_or("verification prerequisite cycle")?;
-        let observation = if next.prerequisites.iter().all(|id| {
+        let mut observation = if next.prerequisites.iter().all(|id| {
             observations
                 .iter()
                 .any(|row| !row.baseline && &row.check_id == id && row.status == "passed")
@@ -418,6 +445,53 @@ pub fn verify_candidate(
         } else {
             blocked_observation(next)
         };
+        if let Some(policy) = &profile.proof {
+            if !observation.baseline
+                && observation.status == "passed"
+                && next.id == policy.adapter_check_id
+            {
+                if validate_proof_result(
+                    work,
+                    attempt,
+                    handoff,
+                    profile,
+                    policy,
+                    &observation,
+                    &evidence_directory,
+                )
+                .is_err()
+                {
+                    observation.status =
+                        if !policy.qualified || policy.backend == ProofBackend::Mm0 {
+                            "unsupported"
+                        } else {
+                            "failed"
+                        }
+                        .into();
+                }
+                let manifest_hash = observation
+                    .artifacts
+                    .iter()
+                    .find(|artifact| artifact.path == policy.manifest_artifact)
+                    .map(|artifact| artifact.hash.as_str())
+                    .ok_or("proof manifest artifact absent from retained observation")?;
+                observation.execution_receipt_hash = digest(
+                    &serde_json::to_vec(&json!({
+                        "execution": observation.execution_receipt_hash,
+                        "profile": profile.identity()?,
+                        "manifest": manifest_hash,
+                        "status": observation.status.as_str(),
+                    }))
+                    .map_err(text)?,
+                );
+                fs::write(
+                    evidence_directory
+                        .join(format!("candidate-{}/receipt.json", observation.check_id)),
+                    serde_json::to_vec_pretty(&observation).map_err(text)?,
+                )
+                .map_err(text)?;
+            }
+        }
         pending.remove(next.id.as_str());
         observations.push(observation);
     }
@@ -486,6 +560,127 @@ pub fn verify_candidate(
     )
     .map_err(text)?;
     Ok(report)
+}
+
+fn validate_proof_result(
+    work: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    handoff: &CandidateHandoff,
+    profile: &VerificationProfile,
+    policy: &ProofVerificationPolicy,
+    observation: &CheckObservation,
+    evidence_directory: &Path,
+) -> Result<(), String> {
+    if observation.status != "passed" || observation.exit_code != Some(0) {
+        return Err("proof adapter did not complete successfully".into());
+    }
+    let output_root =
+        evidence_directory.join(format!("candidate-{}/artifacts", observation.check_id));
+    let source_root = evidence_directory.join(format!("candidate-{}/source", observation.check_id));
+    for input in &policy.approved_inputs {
+        let bytes = retained_artifact(&source_root, &input.path)?;
+        if digest(&bytes) != input.blake3 {
+            return Err(format!(
+                "approved proof input {} differs from captured candidate",
+                input.id
+            ));
+        }
+    }
+    let manifest_bytes = retained_artifact(&output_root, &policy.manifest_artifact)?;
+    let adapter_check = profile
+        .checks
+        .iter()
+        .find(|check| check.id == policy.adapter_check_id)
+        .ok_or("named proof adapter check disappeared from trusted profile")?;
+    let invocation = adapter_check.invocation_identity()?;
+    if invocation != policy.adapter_invocation_blake3 {
+        return Err("proof adapter invocation differs from trusted profile identity".into());
+    }
+    if manifest_bytes.len() as u64 > MAX_ARTIFACT_BYTES {
+        return Err("proof manifest exceeds retained artifact bound".into());
+    }
+    let proof_bytes = retained_artifact(&output_root, &policy.proof_artifact)?;
+    let proof_observation = observation
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.path == policy.proof_artifact)
+        .ok_or("proof bytes are absent from actual check observation")?;
+    let manifest_observation = observation
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.path == policy.manifest_artifact)
+        .ok_or("proof manifest is absent from actual check observation")?;
+    if digest(&manifest_bytes) != manifest_observation.hash
+        || manifest_bytes.len() as u64 != manifest_observation.bytes
+    {
+        return Err("manifest bytes differ from actual retained check artifact".into());
+    }
+    let manifest: ProofEvidenceManifest = serde_json::from_slice(&manifest_bytes).map_err(text)?;
+    if manifest.proof_artifact.path != policy.proof_artifact
+        || manifest.proof_artifact.blake3 != digest(&proof_bytes)
+        || manifest.proof_artifact.bytes != proof_bytes.len() as u64
+        || proof_observation.hash != digest(&proof_bytes)
+        || proof_observation.bytes != proof_bytes.len() as u64
+    {
+        return Err("manifest proof artifact differs from controller-retained bytes".into());
+    }
+    let expected = expected_binding(
+        work,
+        attempt,
+        handoff,
+        profile.identity()?,
+        RetainedProofArtifact {
+            path: policy.proof_artifact.clone(),
+            blake3: proof_observation.hash.clone(),
+            bytes: proof_observation.bytes,
+        },
+    )
+    .map_err(text)?;
+    validate_manifest(policy, &expected, &manifest).map_err(text)
+}
+
+fn proof_policy_error(
+    policy: &ProofVerificationPolicy,
+    profile: &VerificationProfile,
+) -> Result<(), String> {
+    if policy.manifest_artifact == policy.proof_artifact
+        || !safe_relative(&policy.manifest_artifact)
+        || !safe_relative(&policy.proof_artifact)
+        || policy.required_checks.is_empty()
+        || !kiln_core::implementation::proof_evidence::valid_blake3(
+            &policy.adapter_invocation_blake3,
+        )
+        || policy.required_checks.len()
+            > kiln_core::implementation::proof_evidence::MAX_PROOF_CHECKS
+        || policy.approved_inputs.is_empty()
+        || policy.approved_inputs.len()
+            > kiln_core::implementation::proof_evidence::MAX_PROOF_IDENTITIES
+        || policy.approved_inputs.iter().any(|input| {
+            !safe_relative(&input.path) || !profile.protected_paths.contains(&input.path)
+        })
+    {
+        return Err("malformed frozen proof policy".into());
+    }
+    let check = profile
+        .checks
+        .iter()
+        .find(|check| {
+            check.id == policy.adapter_check_id
+                && check.artifacts.contains(&policy.manifest_artifact)
+        })
+        .ok_or("proof manifest artifact is not produced by the named frozen adapter check")?;
+    if !check.artifacts.contains(&policy.proof_artifact)
+        || check.acceptance.is_empty()
+        || check.kind != "proof"
+    {
+        return Err(
+            "proof artifacts must be retained by the named acceptance-covering proof check".into(),
+        );
+    }
+    if check.invocation_identity()? != policy.adapter_invocation_blake3 {
+        return Err("proof adapter invocation identity differs from frozen program command".into());
+    }
+    Ok(())
 }
 
 fn validate_profile(
@@ -583,6 +778,9 @@ fn validate_profile(
         {
             return Err("Cairn exact aliases/spec versions or lifecycle protection missing".into());
         }
+    }
+    if let Some(policy) = &profile.proof {
+        proof_policy_error(policy, profile)?;
     }
     Ok(())
 }

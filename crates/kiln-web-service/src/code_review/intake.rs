@@ -211,7 +211,7 @@ pub(super) fn sources(
             return reject(409, "review_source_scan_bound");
         }
         let reference = reference.map_err(|_| Failure::Unavailable)?;
-        if let Some(name) = reference.name() {
+        if let Ok(name) = reference.name() {
             candidates.insert(name.to_owned());
         }
     }

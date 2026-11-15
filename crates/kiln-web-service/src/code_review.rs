@@ -6,6 +6,7 @@ use std::sync::Mutex;
 
 use kiln_adapter_git::change_review::{LocalGitReviewProfile, LocalGitReviewProvider};
 use kiln_core::change_review as domain;
+use kiln_core::types::ContentId;
 use kiln_provider_api::change_review::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -362,6 +363,7 @@ pub struct Workspace {
     /// Service projects on the review repository, primary project first.
     projects: Vec<crate::profile::ProjectProfile>,
     preview_catalog: Option<std::path::PathBuf>,
+    preview_observations: Option<std::path::PathBuf>,
     gate: Mutex<()>,
 }
 
@@ -436,6 +438,34 @@ fn response(value: Value) -> Result<ApiResponse, Failure> {
     json_response(200, value).map_err(Failure::from)
 }
 
+/// Preview evidence projected for one change; errors stay preview-only.
+struct PreviewProjection {
+    artifact_previews: Vec<crate::preview::service::ReviewPreview>,
+    artifact_previews_error: Option<String>,
+    observations: Vec<crate::preview::observation::ProjectedObservation>,
+    observations_error: Option<String>,
+}
+
+/// Compare one projected baseline with the current candidate; never substitutes subjects.
+// r[impl kiln.preview.comparison]
+fn preview_comparison(
+    observations: &[crate::preview::observation::ProjectedObservation],
+    query: &BTreeMap<String, String>,
+) -> Result<ApiResponse, Failure> {
+    let field = |key: &str| query.get(key).map(String::as_str).unwrap_or_default();
+    let (baseline, candidate) = crate::preview::observation::select_pair(
+        observations,
+        field("baseline"),
+        field("candidate"),
+    )
+    .map_err(|(status, code)| Failure::Api(status, code.into()))?;
+    let comparison = crate::preview::observation::compare(baseline.subject(), candidate.subject())
+        .map_err(|_| Failure::Unavailable)?;
+    response(
+        json!({"schema":"kiln.preview.comparison.v1","comparison":comparison,"baseline":baseline,"candidate":candidate}),
+    )
+}
+
 /// Authenticated shell observations held stable for one review request.
 #[derive(Debug)]
 pub struct RequestContext<'a> {
@@ -451,6 +481,32 @@ struct ProviderContext<'a, P: ChangeReviewPort> {
     binding: &'a str,
 }
 
+/// Read the current review store and canonical CI projection for a native Git effect boundary.
+pub fn observe_native_git_authority_from_profiles(
+    service_profile_path: &Path,
+    review_profile_path: &Path,
+    change_id: &str,
+    actor: &str,
+) -> Result<kiln_implementer::native_publication::NativeGitReviewAuthority, String> {
+    let service = crate::profile::ServiceProfile::load(service_profile_path)?;
+    let review = Profile::load(review_profile_path)?;
+    let profile_identity = observation_identity(&(&service, &review))?;
+    let ci = crate::engine::read_only_code_review_ci(&service)?;
+    let workspace = Workspace::for_service(Some(review), &service)?;
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| "native observation clock predates epoch")?
+        .as_millis();
+    let now_ms = i64::try_from(now_ms).map_err(|_| "native observation clock exceeds bound")?;
+    workspace.observe_native_git_authority(change_id, actor, now_ms, &ci, profile_identity)
+}
+
+fn observation_identity(value: &impl Serialize) -> Result<ContentId, String> {
+    let bytes =
+        serde_json::to_vec(value).map_err(|_| "native observation identity encoding failed")?;
+    ContentId::from_blake3_hex(blake3::hash(&bytes).to_hex().to_string())
+        .map_err(|_| "native observation identity is malformed".into())
+}
 impl Workspace {
     pub(crate) fn deliver_notifications(&self, now_ms: i64) -> Result<(), String> {
         let Some(profile) = &self.profile else {
@@ -489,6 +545,7 @@ impl Workspace {
             profile,
             projects: Vec::new(),
             preview_catalog: None,
+            preview_observations: None,
             gate: Mutex::new(()),
         })
     }
@@ -520,8 +577,96 @@ impl Workspace {
             profile,
             projects,
             preview_catalog: None,
+            preview_observations: None,
             gate: Mutex::new(()),
         })
+    }
+
+    /// Re-resolve current collaboration state from its private SQLite owner and
+    /// canonical CI facts supplied by the retained Kiln engine. This path is read-only.
+    pub fn observe_native_git_authority(
+        &self,
+        change_id: &str,
+        actor: &str,
+        now_ms: i64,
+        ci: &[domain::CiFact],
+        profile_identity: ContentId,
+    ) -> Result<kiln_implementer::native_publication::NativeGitReviewAuthority, String> {
+        let profile = self
+            .profile
+            .as_ref()
+            .ok_or("native review profile is not configured")?;
+        if !profile
+            .read_principals
+            .iter()
+            .any(|principal| principal == actor)
+        {
+            return Err("native review actor is not an admitted reader".into());
+        }
+        let binding = profile
+            .binding()
+            .map_err(|_| "native review binding unavailable")?;
+        let store = store::Store::open_read_only(&profile.database, &binding)?;
+        let state: State = store.load()?;
+        let change = state
+            .review
+            .changes
+            .get(change_id)
+            .ok_or("native review change is absent")?;
+        let revision = change.current().map_err(|error| error.message)?;
+        let candidate = change
+            .candidate
+            .as_ref()
+            .ok_or("native review candidate is absent")?;
+        let provider = LocalGitReviewProvider::open(profile.provider.clone())
+            .map_err(|_| "native review source unavailable")?;
+        let context = ProviderContext {
+            profile,
+            provider: &provider,
+            binding: &binding,
+        };
+        let (facts, _) = self
+            .facts_evaluated(
+                &context,
+                &state,
+                change,
+                now_ms,
+                ci,
+                "native-git-observation",
+            )
+            .map_err(|_| "native review/CI observation unavailable")?;
+        domain::validate_candidate(
+            &state.review,
+            change_id,
+            &revision.id,
+            &candidate.id,
+            actor,
+            &facts,
+        )
+        .map_err(|error| format!("native review candidate rejected: {}", error.code))?;
+        let checklist = domain::checklist(&state.review, change_id, &facts)
+            .map_err(|_| "native review checklist unavailable")?;
+        if !checklist.ready {
+            return Err("native review checklist is not ready".into());
+        }
+        let source_identity =
+            observation_identity(facts.source.as_ref().ok_or("source observation absent")?)?;
+        let revision_id = revision.id.clone();
+        let candidate_id = candidate.id.clone();
+        let ci_identity = observation_identity(&(&facts.ci, &facts.ci_required))?;
+        Ok(
+            kiln_implementer::native_publication::NativeGitReviewAuthority {
+                state: state.review,
+                facts,
+                profile_identity,
+                source_identity,
+                ci_identity,
+                change_id: change_id.into(),
+                revision_id,
+                candidate_id,
+                actor: actor.into(),
+            },
+        )
     }
     /// Configure only an operator-owned catalog; requests cannot select its path.
     pub fn configure_previews(&mut self, catalog: Option<&std::path::Path>) -> Result<(), String> {
@@ -532,6 +677,92 @@ impl Workspace {
             .map(crate::preview::service::validate_catalog_path)
             .transpose()?;
         Ok(())
+    }
+    /// Read only an operator-owned observation store; requests cannot select its path.
+    pub fn configure_preview_observations(
+        &mut self,
+        directory: Option<&std::path::Path>,
+    ) -> Result<(), String> {
+        if directory.is_some() && self.profile.is_none() {
+            return Err("preview observations require configured code review".to_owned());
+        }
+        self.preview_observations = directory
+            .map(crate::preview::observation::validate_directory)
+            .transpose()?;
+        Ok(())
+    }
+    // r[impl kiln.preview.review]
+    // r[impl kiln.preview.comparison]
+    fn preview_projection(
+        &self,
+        change: &domain::Change,
+        checklist: &Value,
+        ci: &[domain::CiFact],
+        canonical_builds: &BTreeMap<String, crate::engine::PreviewBuildEvidence>,
+        now_ms: i64,
+    ) -> Result<PreviewProjection, Failure> {
+        let revision = change.current()?.commit.as_str();
+        let successful_runs = crate::preview::selected_successful_ci_run(
+            checklist.get("ci_run").and_then(Value::as_str),
+            ci,
+            &change.project,
+            &change.repository,
+            revision,
+        )
+        .map(str::to_owned)
+        .into_iter()
+        .collect::<Vec<_>>();
+        let now = u64::try_from(now_ms)
+            .ok()
+            .map(|now| now / MILLIS_PER_SECOND as u64);
+        let (artifact_previews, artifact_previews_error) = match (&self.preview_catalog, now) {
+            (None, _) => (Vec::new(), None),
+            (Some(_), None) => (Vec::new(), Some("preview_clock_invalid".to_owned())),
+            (Some(catalog), Some(now)) => crate::preview::service::review_entries(
+                catalog,
+                &change.project,
+                &change.repository,
+                revision,
+                &successful_runs,
+                canonical_builds,
+                now,
+            )
+            .map_or_else(|error| (Vec::new(), Some(error)), |entries| (entries, None)),
+        };
+        let commits: BTreeSet<&str> = change
+            .revisions
+            .iter()
+            .map(|revision| revision.commit.as_str())
+            .collect();
+        let (observations, observations_error) = match (&self.preview_observations, now) {
+            (None, _) => (Vec::new(), None),
+            (Some(_), None) => (Vec::new(), Some("preview_clock_invalid".to_owned())),
+            (Some(directory), Some(now)) => {
+                crate::preview::observation::read_retained(directory, now).map_or_else(
+                    |error| (Vec::new(), Some(error)),
+                    |records| {
+                        (
+                            crate::preview::observation::project(
+                                records,
+                                &change.project,
+                                &change.repository,
+                                &commits,
+                                revision,
+                                &successful_runs,
+                                canonical_builds,
+                            ),
+                            None,
+                        )
+                    },
+                )
+            }
+        };
+        Ok(PreviewProjection {
+            artifact_previews,
+            artifact_previews_error,
+            observations,
+            observations_error,
+        })
     }
 
     /// Affected decision for a revision's exact base and commit; `None` when
@@ -561,7 +792,17 @@ impl Workspace {
         body: &[u8],
         context: RequestContext<'_>,
     ) -> ApiResponse {
-        match self.respond(method, target, body, &context) {
+        self.response_with_preview_builds(method, target, body, context, &BTreeMap::new())
+    }
+    pub fn response_with_preview_builds(
+        &self,
+        method: &str,
+        target: &str,
+        body: &[u8],
+        context: RequestContext<'_>,
+        canonical_builds: &BTreeMap<String, crate::engine::PreviewBuildEvidence>,
+    ) -> ApiResponse {
+        match self.respond(method, target, body, &context, canonical_builds) {
             Ok(response) if response.body.len() <= MAX_RESPONSE => response,
             Err(Failure::Api(status, code)) => {
                 json_response(status, json!({"message":code.replace('_'," "),"code":code}))
@@ -580,6 +821,7 @@ impl Workspace {
         target: &str,
         body: &[u8],
         request_context: &RequestContext<'_>,
+        canonical_builds: &BTreeMap<String, crate::engine::PreviewBuildEvidence>,
     ) -> Result<ApiResponse, Failure> {
         let RequestContext {
             role,
@@ -597,7 +839,10 @@ impl Workspace {
         let detail_route = path
             .strip_prefix("/api/code-review/changes/")
             .is_some_and(|detail| {
-                let id = detail.strip_suffix("/diff").unwrap_or(detail);
+                let id = detail
+                    .strip_suffix("/diff")
+                    .or_else(|| detail.strip_suffix("/preview-comparison"))
+                    .unwrap_or(detail);
                 id.len() == 64
                     && id
                         .bytes()
@@ -801,9 +1046,12 @@ impl Workspace {
         let Some(detail) = path.strip_prefix("/api/code-review/changes/") else {
             return reject(404, "route_missing");
         };
-        let (id, diff) = match detail.strip_suffix("/diff") {
-            Some(id) => (id, true),
-            None => (detail, false),
+        let (id, diff, comparison) = if let Some(id) = detail.strip_suffix("/diff") {
+            (id, true, false)
+        } else if let Some(id) = detail.strip_suffix("/preview-comparison") {
+            (id, false, true)
+        } else {
+            (detail, false, false)
         };
         let change = state
             .review
@@ -839,6 +1087,10 @@ impl Workspace {
             }
         }
         untrusted::annotate_checklist(&mut checklist, ci, change, facts.integration.as_ref())?;
+        let previews = self.preview_projection(change, &checklist, ci, canonical_builds, now_ms)?;
+        if comparison {
+            return preview_comparison(&previews.observations, &query);
+        }
         let dependencies: Vec<_> = change
             .dependencies
             .iter()
@@ -896,45 +1148,19 @@ impl Workspace {
             })
             .map(|thread| (thread.id.clone(), thread_outcome(&provider, change, thread)))
             .collect();
-        // r[impl kiln.preview.review]
-        let (artifact_previews, artifact_previews_error) =
-            if let Some(catalog) = &self.preview_catalog {
-                let revision = change.current()?.commit.as_str();
-                let successful_runs: Vec<_> = ci_runs
-                    .iter()
-                    .filter(|fact| {
-                        fact.project == change.project
-                            && fact.repository == change.repository
-                            && fact.revision == revision
-                            && fact.success
-                            && fact.terminal
-                            && fact.full_run
-                            && fact.clean
-                            && !fact.run_id.is_empty()
-                    })
-                    .map(|fact| fact.run_id.clone())
-                    .collect();
-                match u64::try_from(now_ms) {
-                    Ok(now) => crate::preview::service::review_entries(
-                        catalog,
-                        &change.project,
-                        &change.repository,
-                        revision,
-                        &successful_runs,
-                        now / MILLIS_PER_SECOND as u64,
-                    )
-                    .map_or_else(|error| (Vec::new(), Some(error)), |entries| (entries, None)),
-                    Err(_) => (Vec::new(), Some("preview_clock_invalid".to_owned())),
-                }
-            } else {
-                (Vec::new(), None)
-            };
+        let PreviewProjection {
+            artifact_previews,
+            artifact_previews_error,
+            observations: preview_observations,
+            observations_error: preview_observations_error,
+        } = previews;
         response(
             json!({"change":enriched(change,&state,principal,&agents,&profile.agent_metadata,&thread_outcomes),"agent_votes":facts.policy.as_ref().map(|policy| policy.agent_votes).unwrap_or_default(),"drafts":drafts,"checklist":checklist,"source":facts.source,"stack":{"dependencies":dependencies,"dependents":dependents},"operations":operations,"ci_runs_truncated":ci_runs.len() < ci_runs_total,"ci_runs":ci_runs,"ci_runs_total":ci_runs_total,"ci_runs_bounded":true,"ci_runs_per_revision_limit":CI_RUNS_PER_REVISION,
                 "subscribed":delivery::subscribed(&state.delivery,principal,id),"delivery_outcomes":delivery::outcomes(&state.delivery,principal,id),
                 "queue":state.queue.iter().rev().find(|entry|entry.change==id),"queue_enabled":profile.queue.is_some(),
                 "noise":noise::published(profile.review.as_ref()),
                 "artifact_previews":artifact_previews,"artifact_previews_error":artifact_previews_error,
+                "preview_observations":preview_observations,"preview_observations_error":preview_observations_error,
                 "jj_evolog":jj_intake::evolog(&state,change),"jj_stack":jj_intake::stack_view(&state,change)}),
         )
     }

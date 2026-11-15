@@ -311,6 +311,11 @@ fn selected_work(
     })
 }
 
+/// Validate a typed producer policy before observing any native snapshot.
+pub fn validate_implementation_policy(policy: &CairnImplementationPolicy) -> PortResult<()> {
+    admit_policy(policy)
+}
+
 fn admit_policy(policy: &CairnImplementationPolicy) -> PortResult<()> {
     if let Some(base) = &policy.base {
         base.validate()?;

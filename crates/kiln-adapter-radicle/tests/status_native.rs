@@ -115,7 +115,7 @@ fn shell(temporary: &tempfile::TempDir, provider: &str) -> (RadicleStatusShell, 
     std::fs::create_dir_all(&storage_root).unwrap_or_else(|_| unreachable!());
     let repository_path = storage_root.join(FIXTURE_RID.trim_start_matches("rad:"));
     if !repository_path.exists() {
-        cob_git2::Repository::init_bare(&repository_path).unwrap_or_else(|_| unreachable!());
+        git2::Repository::init_bare(&repository_path).unwrap_or_else(|_| unreachable!());
     }
     let executable = PathBuf::from(env!("CARGO_BIN_EXE_secretspec_fixture"));
     let shell = RadicleStatusShell::new_fixture(
@@ -126,7 +126,7 @@ fn shell(temporary: &tempfile::TempDir, provider: &str) -> (RadicleStatusShell, 
     (shell, executable)
 }
 
-fn existing_status_reference(repository: &cob_git2::Repository) -> (String, cob_git2::Oid) {
+fn existing_status_reference(repository: &git2::Repository) -> (String, git2::Oid) {
     let mut references = repository
         .references_glob("refs/namespaces/*/refs/cobs/xyz.radicle.ci-job/*")
         .unwrap_or_else(|_| unreachable!());
@@ -314,7 +314,7 @@ fn authenticated_two_namespace_heads_reject_single_writer_not_object_bound() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let (shell, executable) = shell(&temporary, PRIMARY_PROVIDER);
     let first = written(port_ok(shell.publish(&plan(), "create branch source")));
-    let repository = cob_git2::Repository::open(
+    let repository = git2::Repository::open(
         temporary
             .path()
             .join("storage")
@@ -325,7 +325,7 @@ fn authenticated_two_namespace_heads_reject_single_writer_not_object_bound() {
     let mut config = repository
         .config()
         .unwrap_or_else(|_| unreachable!())
-        .open_level(cob_git2::ConfigLevel::Local)
+        .open_level(git2::ConfigLevel::Local)
         .unwrap_or_else(|_| unreachable!());
     config
         .set_str("user.name", "COB fixture")
@@ -381,7 +381,7 @@ fn malformed_status_ref_is_rejected_before_replay() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
     let _ = port_ok(shell.publish(&plan(), "create source ref"));
-    let repository = cob_git2::Repository::open(
+    let repository = git2::Repository::open(
         temporary
             .path()
             .join("storage")
@@ -413,7 +413,7 @@ fn signed_author_namespace_mismatch_is_unreadable() {
     let temporary = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
     let _ = port_ok(shell.publish(&plan(), "create signed source ref"));
-    let repository = cob_git2::Repository::open(
+    let repository = git2::Repository::open(
         temporary
             .path()
             .join("storage")
@@ -572,7 +572,7 @@ fn incompatible_cob_actions_fail_closed_for_publication_and_recovery() {
         let (shell, _) = shell(&temporary, PRIMARY_PROVIDER);
         let first =
             as_update.then(|| written(port_ok(shell.publish(&plan(), "create valid root"))));
-        let repository = cob_git2::Repository::open(
+        let repository = git2::Repository::open(
             temporary
                 .path()
                 .join("storage")
@@ -582,7 +582,7 @@ fn incompatible_cob_actions_fail_closed_for_publication_and_recovery() {
         let mut config = repository
             .config()
             .unwrap_or_else(|_| unreachable!())
-            .open_level(cob_git2::ConfigLevel::Local)
+            .open_level(git2::ConfigLevel::Local)
             .unwrap_or_else(|_| unreachable!());
         config
             .set_str("user.name", "Legacy COB fixture")

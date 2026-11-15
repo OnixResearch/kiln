@@ -1,0 +1,37 @@
+{
+  "schema": "kiln.exact-source-publication.v1",
+  "observed_at": "2026-11-15T03:35:49.561Z",
+  "source_revision": "ec3d80499099352bb3442e0e3512083ff0e37dba",
+  "canonical": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "delegate": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+    "main_push_succeeded": true,
+    "reported_seed_sync_acknowledgements": 3,
+    "fresh_native_delegate_clone_main": "ec3d80499099352bb3442e0e3512083ff0e37dba"
+  },
+  "projections": {
+    "github_main_api": "https://api.github.com/repos/OnixResearch/kiln/git/ref/heads/main",
+    "github_main": "ec3d80499099352bb3442e0e3512083ff0e37dba",
+    "anonymous_https_git": "https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git",
+    "anonymous_https_clone_main": "ec3d80499099352bb3442e0e3512083ff0e37dba",
+    "anonymous_acquisition": {
+      "separate_home": true,
+      "global_and_system_git_config_disabled": true,
+      "ssh_agent_disabled": true,
+      "terminal_prompts_disabled": true,
+      "git_protocol_version": 0,
+      "depth": 1
+    }
+  },
+  "archive_identity": {
+    "format": "git archive --format=tar <exact revision>",
+    "algorithm": "BLAKE3",
+    "source_and_both_fresh_acquisitions": "4d8477574ef720b4ebf80f154b7ef7f3f76b4a2d4a0b57437d84b6e3816a7449",
+    "all_equal": true
+  },
+  "non_claims": [
+    "Seed acknowledgement count is not three independently inspected replica contents",
+    "No lifecycle acceptance/archive/release authority follows from publication",
+    "Later uncommitted implementation changes are not included"
+  ]
+}

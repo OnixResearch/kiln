@@ -8,7 +8,10 @@ use kiln_web_service::engine::{Engine, Role};
 use kiln_web_service::{cobs, code_review, reviews, sources};
 use serde_json::{Value, json};
 
-use super::{ACTOR, Example, Result, accepted, now_ms};
+use super::{
+    ACTOR, Example, InteractionRequirements, NamedCase, PresentationRequirements, Result, accepted,
+    now_ms,
+};
 const REVIEWER: &str = "viewer:reviewer";
 const TARGET: &str = "refs/heads/example-review-target";
 const RELEASE: &str = "refs/heads/example-release-target";
@@ -456,6 +459,30 @@ pub fn seed(root: &Path, engine: &mut Engine) -> Result<Seed> {
             "Inspect the queue registration and exact target; dequeue it locally. No production queue worker or remote forge is involved.",
         ),
     ];
+    examples.push(Example::named(
+        NamedCase {
+            case_id: "case.review.multiple-revisions".into(),
+            recipe: ("explore.case.review.multiple-revisions".into(), "v1".into()),
+            presentation: PresentationRequirements {
+                theme: "system".into(),
+                density: "comfortable".into(),
+                viewport: "wide".into(),
+                themes: vec!["light".into(), "dark".into(), "system".into()],
+                densities: vec!["comfortable".into(), "compact".into()],
+                viewports: vec!["narrow".into(), "wide".into()],
+            },
+            interaction: InteractionRequirements { keyboard: true, narrow: true, dark: true },
+            subjects: vec![
+                ("review_change".into(), open_id.to_owned()),
+                ("from_revision".into(), from.to_owned()),
+                ("to_revision".into(), to.to_owned()),
+            ],
+            seeder_source: include_bytes!("review.rs").to_vec(),
+        },
+        "Code review: multiple revisions",
+        review_link(&open)?,
+        "Inspect the review change with multiple exact revisions and interdiff using actual seeded identities.",
+    ));
     let source_path = root.join("source-examples");
     let source = Repository::init(&source_path)?;
     let first = commit_source(&source, "Initial example service", 1)?;

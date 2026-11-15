@@ -201,6 +201,53 @@ impl Implementer {
         Ok((reservation, EffectDispatch::FirstDispatch))
     }
 
+    /// Read an existing publication intent without reserving or dispatching it.
+    pub fn read_publication_effect(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        kind: PublicationEffectKind,
+    ) -> Result<Option<PublicationEffectReservation>, String> {
+        let transaction = self.connection.transaction().map_err(text)?;
+        let (ledger, _) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        current_work(&ledger, work)?;
+        let (attempts, _) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let attempt = attempts
+            .authorize_publication(identity, fence)
+            .map_err(diagnostic)?;
+        if attempt.work_identity != work.identity().map_err(diagnostic)?
+            || attempt.work_revision != work.revision
+        {
+            return Err("publication readback differs from current work, attempt, or fence".into());
+        }
+        let publication = attempt
+            .publication
+            .as_ref()
+            .ok_or("publication readback has no retained plan")?;
+        let Some((reservation, _)) = load_effect(&transaction, &effect_key(identity, &kind))?
+        else {
+            transaction.commit().map_err(text)?;
+            return Ok(None);
+        };
+        let mut identity_input = reservation.clone();
+        identity_input.operation = work.identity().map_err(diagnostic)?;
+        identity_input.observed = None;
+        if reservation.operation != operation_identity(&identity_input)?
+            || reservation.work != work.identity().map_err(diagnostic)?
+            || reservation.revision != work.revision
+            || reservation.attempt != *identity
+            || reservation.fence != fence
+            || reservation.kind != kind
+            || reservation.candidate != publication.plan.candidate
+            || reservation.publication.plan != publication.plan
+        {
+            return Err("publication readback conflicts with canonical work, attempt, candidate, or operation".into());
+        }
+        transaction.commit().map_err(text)?;
+        Ok(Some(reservation))
+    }
+
     /// A recovered transport result cannot bypass current work/fence authority.
     /// Equal replay retains the original operation and observation identities.
     pub fn acknowledge_publication_effect(
@@ -298,6 +345,83 @@ impl Implementer {
         save(&transaction, &key, version, &retained)?;
         transaction.commit().map_err(text)?;
         Ok(retained)
+    }
+    /// Read an acknowledged native Cairn lifecycle effect without reserving or dispatching anything.
+    /// Current work, attempt fence, candidate, binding and admitted policy are rechecked in one read transaction.
+    pub fn read_cairn_lifecycle_effect(
+        &mut self,
+        work: &ImplementationWork,
+        identity: &ContentId,
+        fence: u64,
+        binding: &CairnLifecycleBinding,
+    ) -> Result<Option<PublicationEffectReservation>, String> {
+        use kiln_core::fair_admission::AdmissionLedger;
+
+        let transaction = self.connection.transaction().map_err(text)?;
+        let (ledger, _) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        current_work(&ledger, work)?;
+        let (attempts, _) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let attempt = attempts
+            .authorize_publication(identity, fence)
+            .map_err(diagnostic)?;
+        if attempt.work_identity != work.identity().map_err(diagnostic)?
+            || attempt.work_revision != work.revision
+        {
+            return Err("lifecycle readback differs from current work, attempt, or fence".into());
+        }
+        let publication = attempt
+            .publication
+            .as_ref()
+            .ok_or("lifecycle readback has no retained publication")?;
+        admit_lifecycle(work, attempt, publication, binding)?;
+        let (admission, _) = load::<AdmissionLedger>(&transaction, "fair-admission-v1")?;
+        let current_policy = admission
+            .policy
+            .ok_or("lifecycle readback has no current admitted policy")?
+            .identity()
+            .map_err(diagnostic)?;
+        let kind = PublicationEffectKind::CairnLifecycle(binding.clone());
+        let Some((reservation, _)) = load_effect(&transaction, &effect_key(identity, &kind))?
+        else {
+            transaction.commit().map_err(text)?;
+            return Ok(None);
+        };
+        let mut identity_input = reservation.clone();
+        identity_input.operation = work.identity().map_err(diagnostic)?;
+        identity_input.observed = None;
+        if reservation.operation != operation_identity(&identity_input)?
+            || reservation.work != work.identity().map_err(diagnostic)?
+            || reservation.revision != work.revision
+            || reservation.attempt != *identity
+            || reservation.fence != fence
+            || reservation.kind != kind
+            || reservation.candidate != publication.plan.candidate
+            || reservation.publication.plan != publication.plan
+        {
+            return Err("lifecycle readback conflicts with canonical work, attempt, candidate, or operation".into());
+        }
+        let observation = match reservation.observed.as_ref() {
+            None => {
+                transaction.commit().map_err(text)?;
+                return Ok(None);
+            }
+            Some(PublicationEffectResult::CairnLifecycle(observation)) => observation,
+            Some(_) => {
+                return Err("lifecycle readback contains a different owner result kind".into());
+            }
+        };
+        if observation.binding != *binding
+            || observation.observed_tree != publication.plan.tree
+            || observation.lifecycle_policy != current_policy
+        {
+            return Err("lifecycle receipt differs from current binding, candidate tree, or admitted policy".into());
+        }
+        observation
+            .lifecycle_receipt
+            .validate()
+            .map_err(diagnostic)?;
+        transaction.commit().map_err(text)?;
+        Ok(Some(reservation))
     }
 }
 

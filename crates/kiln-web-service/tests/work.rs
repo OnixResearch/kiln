@@ -3,7 +3,7 @@ use std::error::Error;
 use std::os::unix::fs::{PermissionsExt, symlink};
 use std::sync::{Arc, Barrier};
 
-use cob_git2::{Repository, Signature};
+use git2::{Repository, Signature};
 use kiln_web_service::engine::{ApiResponse, Role};
 use kiln_web_service::work::{Profile, Workspace};
 use onix_radicle_cob_git_store::GitCobStore;
@@ -613,7 +613,7 @@ fn foreign_heads_unsigned_history_and_unavailable_store_fail_closed() -> Result<
             "refs/namespaces/{namespace}/refs/cobs/xyz.onixresearch.work.issue/{}",
             (*field(&record, "/id")).as_str().ok_or("id missing")?
         ),
-        cob_git2::Oid::from_str((*field(&record, "/head")).as_str().ok_or("head missing")?)?,
+        git2::Oid::from_str((*field(&record, "/head")).as_str().ok_or("head missing")?)?,
         false,
         "foreign competing head",
     )?;
@@ -636,7 +636,7 @@ fn foreign_heads_unsigned_history_and_unavailable_store_fail_closed() -> Result<
         100,
     )?)?;
     let repository = unsigned_fixture.repository()?;
-    let native = repository.find_commit(cob_git2::Oid::from_str(
+    let native = repository.find_commit(git2::Oid::from_str(
         (*field(&record, "/head")).as_str().ok_or("head missing")?,
     )?)?;
     let signature = Signature::now("Unsigned", "unsigned@example.invalid")?;
@@ -899,8 +899,7 @@ fn native_bounds_and_message_authorship_reject_without_changing_accepted_state()
         edited
     );
     let repository = fixture.repository()?;
-    let target =
-        cob_git2::Oid::from_str((*field(&edited, "/head")).as_str().ok_or("head missing")?)?;
+    let target = git2::Oid::from_str((*field(&edited, "/head")).as_str().ok_or("head missing")?)?;
     let current = repository.find_commit(target)?;
     let mut builder = repository.treebuilder(Some(&current.tree()?))?;
     builder.insert("0", repository.blob(&oversized)?, 0o100644)?;
@@ -1260,7 +1259,7 @@ fn moving_a_card_writes_one_issue_status_operation_seen_by_every_view() -> Resul
     assert_eq!(field(&moved, "/fields/team"), field(&made.alpha, "/id"));
     // Exactly one native operation: the new head's only parent is the prior head.
     let repository = fixture.repository()?;
-    let head = repository.find_commit(cob_git2::Oid::from_str(text(&moved, "/head")?)?)?;
+    let head = repository.find_commit(git2::Oid::from_str(text(&moved, "/head")?)?)?;
     assert_eq!(head.parent_count(), 1);
     assert_eq!(head.parent_id(0)?.to_string(), text(&card, "/head")?);
     // An identical retry returns the original result and writes nothing.
@@ -1470,7 +1469,7 @@ fn stale_and_concurrent_moves_never_overwrite_a_newer_head() -> Result<()> {
     );
     let settled = body(&get(&workspace, text(&card, "/id")?, ALICE))?;
     let repository = fixture.repository()?;
-    let head = repository.find_commit(cob_git2::Oid::from_str(text(&settled, "/head")?)?)?;
+    let head = repository.find_commit(git2::Oid::from_str(text(&settled, "/head")?)?)?;
     assert_eq!(head.parent_id(0)?.to_string(), text(&resolved, "/head")?);
     assert!(["backlog", "triage"].contains(&text(&settled, "/fields/status")?));
     Ok(())

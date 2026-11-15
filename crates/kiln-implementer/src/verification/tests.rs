@@ -168,6 +168,7 @@ pub(super) fn real_fixture(
         protected_paths: vec!["requirements".into()],
         allow_already_satisfied: true,
         cairn: None,
+        proof: None,
     };
     profile.toolchain = profile.derived_toolchain_identity()?;
     profile.environment_identity = profile.derived_environment_identity()?;
@@ -397,5 +398,33 @@ fn lifecycle_source_requires_exact_trusted_preparation_not_worker_archive() -> T
     git(&authority, &["commit", "-m", "worker disabled acceptance"])?;
     handoff.candidate = reference("commit", &git(&authority, &["rev-parse", "HEAD"])?)?;
     assert!(source::protect(&authority, &handoff, &protected, Some(&prepared)).is_err());
+    Ok(())
+}
+
+#[test]
+fn frozen_proof_invocation_identity_changes_with_program_args_and_limits() -> TestResult {
+    let check = VerificationCheck {
+        id: "lean-proof".into(),
+        kind: "proof".into(),
+        program: FrozenProgram {
+            path: PathBuf::from("/nix/store/proof-adapter/bin/adapter"),
+            blake3: "a".repeat(64),
+        },
+        arguments: vec!["--module".into(), "Example".into()],
+        prerequisites: vec![],
+        acceptance: vec!["theorem:Example.sound".into()],
+        artifacts: vec!["proof/manifest.json".into(), "proof/module.olean".into()],
+        timeout_ms: 30_000,
+    };
+    let identity = check.invocation_identity()?;
+    let mut changed = check.clone();
+    *changed
+        .arguments
+        .get_mut(1)
+        .unwrap_or_else(|| unreachable!("check has a module argument")) = "OtherModule".into();
+    assert_ne!(identity, changed.invocation_identity()?);
+    let mut changed = check;
+    changed.timeout_ms += 1;
+    assert_ne!(identity, changed.invocation_identity()?);
     Ok(())
 }

@@ -58,6 +58,12 @@ pub enum AdmissionCommand {
         inputs: Vec<EligibilityInput>,
         lease_ms: u64,
     },
+    ClaimExact {
+        expected_work_version: ContentId,
+        parent_budget_identity: ContentId,
+        inputs: Vec<EligibilityInput>,
+        lease_ms: u64,
+    },
     Request {
         reservation: OwnerReservation,
         inputs: Vec<EligibilityInput>,
@@ -99,6 +105,9 @@ pub enum AdmissionResult {
     },
     Claimed {
         attempt: Option<Box<ImplementationAttempt>>,
+    },
+    NotWinner {
+        selected: Option<ContentId>,
     },
     Owner {
         reason: AdmissionReason,
@@ -156,6 +165,25 @@ impl Implementer {
         tx.commit().map_err(text)?;
         Ok(ledger)
     }
+    /// Claim a selected campaign work only if it remains the winner under the
+    /// canonical, persisted admission observations, in the same writer transaction.
+    pub fn claim_exact_winner(
+        &mut self,
+        expected_work_version: &ContentId,
+        parent_budget_identity: &ContentId,
+        now_ms: u64,
+        lease_ms: u64,
+    ) -> Result<AdmissionResult, String> {
+        self.admission_apply(
+            AdmissionCommand::ClaimExact {
+                expected_work_version: expected_work_version.clone(),
+                parent_budget_identity: parent_budget_identity.clone(),
+                inputs: Vec::new(),
+                lease_ms,
+            },
+            now_ms,
+        )
+    }
     /// Every ready/order/quota/claim change commits atomically with existing work
     /// and attempt ledgers. No provider call is allowed inside this transaction.
     pub fn admission_apply(
@@ -166,6 +194,7 @@ impl Implementer {
         let supplied = match &command {
             AdmissionCommand::Select { inputs }
             | AdmissionCommand::Claim { inputs, .. }
+            | AdmissionCommand::ClaimExact { inputs, .. }
             | AdmissionCommand::Request { inputs, .. } => inputs.as_slice(),
             _ => &[],
         };
@@ -244,15 +273,29 @@ impl Implementer {
                     AdmissionResult::Updated
                 }
                 AdmissionCommand::Select { inputs } => {
-                    let inputs =
-                        eligible_inputs(&work, &attempts, &ledger, &inputs, now_ms, &enrollment);
+                    let inputs = eligible_inputs(
+                        &work,
+                        &attempts,
+                        &ledger,
+                        &inputs,
+                        now_ms,
+                        &enrollment,
+                        None,
+                    );
                     AdmissionResult::Selected {
                         work_version: ledger.select(&inputs, now_ms)?,
                     }
                 }
                 AdmissionCommand::Claim { inputs, lease_ms } => {
-                    let inputs =
-                        eligible_inputs(&work, &attempts, &ledger, &inputs, now_ms, &enrollment);
+                    let inputs = eligible_inputs(
+                        &work,
+                        &attempts,
+                        &ledger,
+                        &inputs,
+                        now_ms,
+                        &enrollment,
+                        None,
+                    );
                     let selected = ledger.select(&inputs, now_ms)?;
                     let attempt = if let Some(selected) = selected {
                         let current = work
@@ -293,6 +336,79 @@ impl Implementer {
                         attempt: attempt.map(Box::new),
                     }
                 }
+                AdmissionCommand::ClaimExact {
+                    expected_work_version,
+                    parent_budget_identity,
+                    inputs,
+                    lease_ms,
+                } => {
+                    if ledger.policy.is_none() {
+                        return Err(refusal("campaign claim requires explicit admission policy"));
+                    }
+                    let current = work
+                        .current()
+                        .find(|w| w.identity().is_ok_and(|id| id == expected_work_version))
+                        .ok_or_else(|| refusal("campaign work is not current"))?;
+                    validate_parent_lineage(
+                        &ledger,
+                        &expected_work_version,
+                        &parent_budget_identity,
+                    )?;
+                    let existing_claim = ledger
+                        .items
+                        .get(&expected_work_version)
+                        .ok_or_else(|| refusal("campaign queue item is missing"))?
+                        .claim
+                        .as_ref();
+                    if let Some(claim) = existing_claim {
+                        let attempt = attempts
+                            .get(&claim.attempt)
+                            .filter(|_| attempts.is_current(&claim.attempt, claim.fence, now_ms))
+                            .ok_or_else(|| {
+                                refusal("existing campaign claim/fence is no longer current")
+                            })?
+                            .clone();
+                        return Ok(AdmissionResult::Claimed {
+                            attempt: Some(Box::new(attempt)),
+                        });
+                    }
+                    if same_repository_writer(
+                        &work,
+                        &attempts,
+                        &expected_work_version,
+                        &current.repository,
+                    )? {
+                        return Err(refusal(
+                            "repository already has an active or unreconciled writer",
+                        ));
+                    }
+                    let inputs = eligible_inputs(
+                        &work,
+                        &attempts,
+                        &ledger,
+                        &inputs,
+                        now_ms,
+                        &enrollment,
+                        Some(&expected_work_version),
+                    );
+                    let selected =
+                        ledger.select_scoped(&inputs, now_ms, Some(&expected_work_version))?;
+                    if selected.as_ref() != Some(&expected_work_version) {
+                        AdmissionResult::NotWinner { selected }
+                    } else {
+                        let attempt = attempts.claim(current, now_ms, lease_ms)?;
+                        ledger.bind_claim(
+                            &expected_work_version,
+                            ClaimRef {
+                                attempt: attempt.identity.clone(),
+                                fence: attempt.fence,
+                            },
+                        )?;
+                        AdmissionResult::Claimed {
+                            attempt: Some(Box::new(attempt)),
+                        }
+                    }
+                }
                 AdmissionCommand::Request {
                     reservation,
                     inputs,
@@ -325,8 +441,15 @@ impl Implementer {
                     ) {
                         return Err(refusal("reservation claim/fence expired"));
                     }
-                    let inputs =
-                        eligible_inputs(&work, &attempts, &ledger, &inputs, now_ms, &enrollment);
+                    let inputs = eligible_inputs(
+                        &work,
+                        &attempts,
+                        &ledger,
+                        &inputs,
+                        now_ms,
+                        &enrollment,
+                        None,
+                    );
                     if ledger.select(&inputs, now_ms)?.as_ref() != Some(&reservation.work_version) {
                         return Ok(AdmissionResult::Owner {
                             reason: AdmissionReason::Waiting,
@@ -682,6 +805,96 @@ impl Implementer {
         }
     }
 }
+fn validate_parent_lineage(
+    ledger: &AdmissionLedger,
+    work_identity: &ContentId,
+    parent_budget_identity: &ContentId,
+) -> Result<(), Diagnostic> {
+    let item = ledger
+        .items
+        .get(work_identity)
+        .ok_or_else(|| refusal("campaign work has no canonical queue item"))?;
+    let parent = ledger
+        .accounts
+        .get(parent_budget_identity)
+        .ok_or_else(|| refusal("campaign parent budget is not a canonical account"))?;
+    let account = ledger
+        .accounts
+        .get(&item.account)
+        .ok_or_else(|| refusal("campaign queue account is missing"))?;
+    if account.campaign != item.campaign
+        || account.tenant != item.tenant
+        || parent.campaign != item.campaign
+        || parent.tenant != item.tenant
+    {
+        return Err(refusal(
+            "campaign account lineage does not match queued scope",
+        ));
+    }
+    let mut cursor = &item.account;
+    let mut found_parent = false;
+    for _ in 0..ledger.accounts.len() {
+        let current = ledger
+            .accounts
+            .get(cursor)
+            .ok_or_else(|| refusal("campaign account lineage has a missing ancestor"))?;
+        if current.campaign != item.campaign || current.tenant != item.tenant {
+            return Err(refusal(
+                "campaign account ancestor belongs to another queued scope",
+            ));
+        }
+        found_parent |= cursor == parent_budget_identity;
+        match &current.parent {
+            Some(ancestor) => cursor = ancestor,
+            None => break,
+        }
+    }
+    if ledger
+        .accounts
+        .get(cursor)
+        .is_some_and(|account| account.parent.is_some())
+    {
+        return Err(refusal("campaign account lineage is cyclic"));
+    }
+    if !found_parent {
+        return Err(refusal(
+            "campaign parent budget is not an ancestor of the queue account",
+        ));
+    }
+    Ok(())
+}
+fn same_repository_writer(
+    work: &WorkLedger,
+    attempts: &AttemptLedger,
+    selected_identity: &ContentId,
+    repository: &str,
+) -> Result<bool, Diagnostic> {
+    let active = attempts
+        .attempts()
+        .filter(|attempt| attempt.phase.is_active());
+    let unresolved = attempts
+        .unresolved()
+        .filter(|attempt| !attempt.phase.is_active());
+    for attempt in active
+        .chain(unresolved)
+        .filter(|attempt| &attempt.work_identity != selected_identity)
+    {
+        let other = work
+            .get(&attempt.canonical_key)
+            .or_else(|| {
+                work.superseded().iter().find(|candidate| {
+                    candidate
+                        .identity()
+                        .is_ok_and(|identity| identity == attempt.work_identity)
+                })
+            })
+            .ok_or_else(|| refusal("active repository writer has no canonical work record"))?;
+        if other.repository == repository {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
 fn bounded_save(
     tx: &rusqlite::Transaction<'_>,
     version: u64,
@@ -711,9 +924,21 @@ fn eligible_inputs(
     inputs: &[EligibilityInput],
     now_ms: u64,
     enrollment: &kiln_core::implementation::Enrollment,
+    work_scope: Option<&ContentId>,
 ) -> Vec<EligibilityInput> {
-    let mut merged = ledger.eligibility.clone();
-    for input in inputs {
+    let mut merged = if let Some(scope) = work_scope {
+        ledger
+            .eligibility
+            .get(scope)
+            .map(|input| [(scope.clone(), input.clone())].into_iter().collect())
+            .unwrap_or_default()
+    } else {
+        ledger.eligibility.clone()
+    };
+    for input in inputs
+        .iter()
+        .filter(|input| work_scope.is_none_or(|scope| scope == &input.work_version))
+    {
         if merged.get(&input.work_version).is_some_and(|prior| {
             input.observed_at_ms < prior.observed_at_ms
                 || (input.provider == prior.provider && input.generation < prior.generation)

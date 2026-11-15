@@ -383,10 +383,17 @@ mod tests {
     #[test]
     // r[verify kiln.publication.atomicity]
     fn refuses_open_source_without_racing_a_patch() {
-        let (endpoint, server) = serve(vec![("200 OK", "{\"state\":\"open\"}".to_string())]);
+        let (endpoint, server) = serve(vec![(
+            "200 OK",
+            "{\"state\":\"open\",\"updated_at\":\"2026-11-13T00:00:00Z\"}".to_string(),
+        )]);
         let client = GithubSourceStatusClient::new_fixture(token(), 5000, &endpoint)
             .unwrap_or_else(|_| unreachable!());
-        assert!(client.close(&plan()).is_err());
+        assert!(matches!(
+            client.close(&plan()),
+            Err(kiln_provider_api::PortFailure::Domain(diagnostic))
+                if diagnostic.code == "github_source_conditional_update_unqualified"
+        ));
         let requests = server.join().unwrap_or_else(|_| unreachable!());
         assert_eq!(requests.len(), 1);
         assert!(requests.iter().all(|request| request.starts_with("GET ")));

@@ -19,7 +19,16 @@ fn main() {
             }
         },
         Some(command @ ("serve" | "check")) => service(command, arguments),
+        Some("drive-implementation-campaign") => projection_result(
+            kiln_web_service::implementation_campaign::run_cli_args(&arguments.collect::<Vec<_>>()),
+        ),
         Some("verify-implementation") => implementation_verification_cli::run(arguments),
+        Some("inventory") => projection_result(kiln_web_service::inventory::run_cli_args(
+            &arguments.collect::<Vec<_>>(),
+        )),
+        Some("campaign-projection") => projection_result(
+            kiln_web_service::inventory::run_campaign_cli_args(&arguments.collect::<Vec<_>>()),
+        ),
         Some("proxy-auth") => {
             match (
                 arguments.next().as_deref(),
@@ -54,15 +63,35 @@ fn usage() -> i32 {
         "       kiln-web-service worker-target --provider-profile <id> --socket <path> --platform <id>"
     );
     eprintln!(
-        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--artifact-previews <catalog>]"
+        "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>]"
     );
     eprintln!("       kiln-web-service verify-implementation --help");
+    eprintln!("       kiln-web-service inventory INPUT PRINCIPAL NOW_MS [json|html]");
+    eprintln!(
+        "       kiln-web-service campaign-projection DATABASE CAMPAIGN_ID [json|html] [--inventory INPUT PRINCIPAL NOW_MS]"
+    );
+    eprintln!(
+        "       kiln-web-service drive-implementation-campaign --profile PROFILE --campaign-id ID --expected-version N"
+    );
     2
 }
 
 fn status(result: Result<(), String>) -> i32 {
     match result {
         Ok(()) => 0,
+        Err(message) => {
+            eprintln!("kiln-web-service: {message}");
+            1
+        }
+    }
+}
+
+fn projection_result(result: Result<String, String>) -> i32 {
+    match result {
+        Ok(output) => {
+            println!("{output}");
+            0
+        }
         Err(message) => {
             eprintln!("kiln-web-service: {message}");
             1
@@ -145,6 +174,7 @@ fn service(command: &str, mut arguments: impl Iterator<Item = String>) -> i32 {
             "--inventory" => &mut options.inventory,
             "--implementation-work" => &mut options.implementation_work,
             "--artifact-previews" => &mut options.artifact_previews,
+            "--preview-observations" => &mut options.preview_observations,
             "--work" => &mut options.work,
             "--code-review" => &mut options.code_review,
             _ => return usage(),

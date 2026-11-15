@@ -1,0 +1,2209 @@
+error: unclosed table, expected `]`
+ --> ../../../../../.cargo/git/checkouts/aspen-3f90b5724b0540d4/22f8ded/crates/molten-node-host/tests/fixtures/node-host-boundary/malformed/Cargo.toml:1:9
+  |
+1 | [package
+  |         ^
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Checking typenum v1.20.1
+    Checking hashbrown v0.17.1
+    Checking libm v0.2.16
+    Checking getrandom v0.2.17
+    Checking spin v0.9.9
+    Checking anyhow v1.0.104
+   Compiling indexmap v2.14.0
+    Checking serde v1.0.229
+    Checking zeroize v1.9.0
+    Checking futures-util v0.3.34
+    Checking zerofrom v0.1.8
+   Compiling unicode-segmentation v1.13.3
+    Checking thiserror v2.0.20
+    Checking blake3 v1.8.5
+    Checking getrandom v0.4.3
+    Checking byteorder v1.5.0
+    Checking zmij v1.0.23
+    Checking rustix v1.1.4
+    Checking hashbrown v0.16.1
+    Checking chacha20 v0.10.2
+[kache] the cache index could not be opened after retries (opening index database /var/cache/kache-nix/user-brittonr/index.db: disk I/O error: Error code 4618: disk I/O error).
+[kache] Caching is disabled for this build — compilation still succeeds,
+[kache] just without cache hits or stores (everything builds uncached).
+[kache] This is usually a storage issue: the cache directory is on a
+[kache] filesystem that doesn't support reliable file locking, or it is
+[kache] being accessed from more than one machine at the same time.
+[kache] → set KACHE_CACHE_DIR to a fast, local, single-machine path
+   Compiling wasmtime-internal-core v45.0.3
+    Checking yoke v0.8.3
+    Checking rand_core v0.6.4
+    Checking lazy_static v1.5.0
+    Checking ring v0.17.14
+    Checking cobs v0.3.0
+    Checking hash32 v0.2.1
+    Checking rustls-pki-types v1.15.1
+    Checking pin-project v1.1.13
+    Checking rand v0.10.2
+    Checking smallvec v1.15.2
+    Checking portable-atomic v1.15.0
+    Checking bytes v1.12.1
+    Checking num-traits v0.2.19
+    Checking ipnet v2.12.1
+   Compiling convert_case v0.10.0
+    Checking generic-array v0.14.7
+    Checking der v0.7.10
+    Checking heapless v0.7.17
+    Checking zerovec v0.11.8
+    Checking zerotrie v0.2.5
+   Compiling block-buffer v0.10.4
+    Checking hybrid-array v0.4.14
+   Compiling cranelift-bitset v0.132.3
+    Checking tokio v1.53.1
+    Checking http v1.5.0
+    Checking crypto-common v0.1.7
+    Checking block-padding v0.3.3
+   Compiling derive_more-impl v2.1.1
+    Checking serde_json v1.0.151
+    Checking num-integer v0.1.47
+    Checking parking_lot_core v0.9.12
+   Compiling digest v0.10.7
+    Checking postcard v1.1.3
+    Checking once_cell v1.21.4
+    Checking futures-lite v2.6.1
+    Checking futures-executor v0.3.34
+    Checking uuid v1.26.0
+    Checking universal-hash v0.5.1
+    Checking aead v0.5.2
+    Checking n0-error v1.0.0
+    Checking inout v0.1.4
+    Checking tinystr v0.8.4
+    Checking tracing-core v0.1.36
+    Checking potential_utf v0.1.6
+    Checking num-bigint v0.4.8
+    Checking rustls-webpki v0.103.15
+    Checking httparse v1.10.1
+    Checking data-encoding-macro v0.1.21
+    Checking http-body v1.1.0
+    Checking tinyvec v1.12.0
+    Checking der v0.8.1
+    Checking polyval v0.6.2
+    Checking cipher v0.4.4
+    Checking sha2 v0.10.9
+    Checking signature v2.2.0
+    Checking futures v0.3.34
+    Checking cranelift-entity v0.132.3
+    Checking icu_locale_core v2.3.0
+    Checking icu_collections v2.3.0
+    Checking parking_lot v0.12.5
+    Checking tracing v0.1.44
+    Checking crypto-common v0.2.2
+    Checking rustls v0.23.43
+    Checking block-buffer v0.12.1
+    Checking ghash v0.5.1
+    Checking gimli v0.33.0
+    Checking futures-buffered v0.2.13
+    Checking ctr v0.9.2
+    Checking aes v0.8.4
+    Checking hmac v0.12.1
+    Checking wasmparser v0.248.0
+    Checking spki v0.8.0
+   Compiling pulley-interpreter v45.0.3
+    Checking spki v0.7.3
+    Checking cranelift-bforest v0.132.3
+    Checking ff v0.13.1
+    Checking target-lexicon v0.13.5
+    Checking serdect v0.4.3
+   Compiling toml_edit v0.25.13+spec-1.1.0
+    Checking digest v0.11.3
+    Checking sec1 v0.7.3
+    Checking rustls-native-certs v0.8.4
+    Checking curve25519-dalek v4.1.3
+    Checking icu_provider v2.3.1
+    Checking tokio-util v0.7.19
+    Checking aes-gcm v0.10.3
+    Checking pkcs8 v0.11.0
+    Checking group v0.13.0
+    Checking crc32fast v1.5.1
+    Checking ed25519 v2.2.3
+    Checking num-iter v0.1.46
+    Checking crypto-bigint v0.5.5
+   Compiling heck v0.3.3
+    Checking signature v3.0.0
+    Checking time v0.3.55
+   Compiling proc-macro-crate v3.5.0
+    Checking icu_properties v2.3.0
+    Checking icu_normalizer v2.3.0
+    Checking curve25519-dalek v5.0.0
+    Checking h2 v0.4.19
+    Checking sha2 v0.11.0
+    Checking noq-udp v1.2.0
+    Checking preserves v5.0.0-rc.8
+    Checking ed25519-dalek v2.2.0
+    Checking ed25519 v3.0.0
+    Checking netlink-packet-core v0.8.2
+    Checking object v0.39.1
+   Compiling structopt-derive v0.4.18
+    Checking prefix-trie v0.8.4
+    Checking tokio-rustls v0.26.4
+   Compiling cranelift-codegen-meta v0.132.3
+    Checking rustls-platform-verifier v0.7.0
+    Checking elliptic-curve v0.13.8
+    Checking derive_more v2.1.1
+    Checking fastbloom v0.17.0
+    Checking cranelift-control v0.132.3
+    Checking cpp_demangle v0.4.5
+    Checking netlink-sys v0.8.8
+    Checking idna_adapter v1.2.2
+    Checking rfc6979 v0.4.0
+    Checking ed25519-dalek v3.0.0
+    Checking http-body-util v0.1.5
+    Checking regalloc2 v0.15.2
+   Compiling clap v2.34.0
+    Checking n0-future v0.3.2
+   Compiling sha3 v0.10.9
+    Checking noq-proto v1.2.0
+    Checking moka v0.12.16
+   Compiling petgraph v0.7.1
+    Checking ecdsa v0.16.9
+    Checking idna v1.1.0
+    Checking tower v0.5.3
+    Checking primeorder v0.13.6
+    Checking netlink-packet-route v0.31.0
+    Checking wasm-encoder v0.248.0
+    Checking url v2.5.8
+    Checking wasmprinter v0.248.0
+   Compiling string_cache v0.8.9
+   Compiling wasmparser v0.239.0
+   Compiling num_enum_derive v0.7.6
+    Checking tokio-stream v0.1.19
+    Checking rand_chacha v0.3.1
+   Compiling iroh-metrics-derive v1.0.1
+   Compiling strum_macros v0.28.0
+   Compiling cranelift-codegen v0.132.3
+   Compiling lalrpop v0.22.2
+    Checking hickory-proto v0.26.1
+    Checking iroh-base v1.1.0
+    Checking hyper v1.11.0
+    Checking rand v0.8.8
+    Checking tower-http v0.6.11
+    Checking attohttpc v0.30.1
+    Checking wasmtime-environ v45.0.3
+   Compiling structopt v0.3.26
+    Checking toml v0.9.12+spec-1.1.0
+    Checking ref-cast v1.0.27
+    Checking n0-watcher v1.0.0
+    Checking netlink-proto v0.12.2
+    Checking iroh-metrics v1.0.1
+    Checking fs-set-times v0.20.3
+    Checking hyper-util v0.1.20
+    Checking zstd-sys v2.0.16+zstd.1.5.7
+    Checking hickory-net v0.26.1
+    Checking pkcs8 v0.10.2
+    Checking rustix-linux-procfs v0.1.1
+    Checking malachite-base v0.9.2
+    Checking num_enum v0.7.6
+    Checking wasm-encoder v0.258.0
+    Checking netdev v0.46.1
+    Checking tokio-websockets v0.13.3
+   Compiling preserves-schema v6.0.0-rc.8
+    Checking hashbrown v0.15.5
+    Checking ssh-encoding v0.2.0
+    Checking noq v1.2.0
+    Checking zstd-safe v7.2.4
+    Checking pkcs1 v0.7.5
+    Checking cap-primitives v3.4.6
+   Compiling wit-parser v0.248.0
+    Checking strum v0.28.0
+    Checking netwatch v0.19.3
+    Checking hickory-resolver v0.26.1
+    Checking num-bigint-dig v0.8.6
+    Checking hyper-rustls v0.27.9
+    Checking igd-next v0.17.1
+    Checking tempfile v3.27.0
+    Checking wast v258.0.0
+    Checking chacha20 v0.9.1
+    Checking blowfish v0.9.1
+    Checking cbc v0.1.2
+    Checking pbkdf2 v0.12.2
+    Checking poly1305 v0.8.0
+    Checking reqwest v0.13.4
+    Checking webpki-roots v1.0.9
+    Checking lru v0.18.3
+    Checking papaya v0.2.5
+   Compiling logos-codegen v0.16.1
+    Checking petgraph v0.6.5
+    Checking rsa v0.9.10
+    Checking iroh-dns v1.1.0
+    Checking bcrypt-pbkdf v0.10.0
+    Checking ssh-cipher v0.2.0
+   Compiling syndicate-schema-plugin v0.12.0-rc.2
+   Compiling wasm-encoder v0.239.0
+    Checking directories-next v2.0.0
+    Checking portmapper v0.19.3
+   Compiling wit-parser v0.239.0
+    Checking rayon-core v1.13.0
+    Checking zstd v0.13.3
+    Checking ittapi-sys v0.4.0
+   Compiling wasmtime-internal-wit-bindgen v45.0.3
+    Checking malachite-nz v0.9.2
+    Checking iroh-relay v1.1.0
+    Checking ahash v0.8.12
+    Checking libz-sys v1.1.29
+    Checking p521 v0.13.3
+    Checking p256 v0.13.2
+    Checking p384 v0.13.1
+    Checking yasna v0.6.0
+    Checking backon v1.6.0
+    Checking num-rational v0.4.2
+    Checking debugid v0.8.0
+    Checking kiln-core v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking base256emoji v1.0.2
+    Checking hashbrown v0.14.5
+    Checking libgit2-sys v0.18.8+1.9.7
+   Compiling wasm-metadata v0.239.0
+    Checking rayon v1.12.0
+    Checking fxprof-processed-profile v0.8.1
+    Checking wat v1.258.0
+   Compiling logos-derive v0.16.1
+    Checking ittapi v0.4.0
+    Checking ssh-key v0.6.7
+    Checking rcgen v0.14.9
+   Compiling wasmtime-internal-component-macro v45.0.3
+   Compiling nickel-lang-parser v0.3.0
+    Checking iroh v1.1.0
+    Checking wasmtime-internal-jit-debug v45.0.3
+    Checking wasmtime-internal-cache v45.0.3
+    Checking wasmtime-internal-fiber v45.0.3
+   Compiling witx v0.9.1
+    Checking getrandom v0.3.4
+    Checking wasm-compose v0.248.0
+   Compiling verus_state_machines_macros v0.0.0-2026-01-25-0057
+    Checking cap-std v3.4.6
+    Checking hashlink v0.10.0
+    Checking addr2line v0.26.1
+    Checking memfd v0.6.5
+    Checking codespan-reporting v0.13.1
+    Checking wasmtime-internal-jit-icache-coherence v45.0.3
+    Checking inplace-vec-builder v0.1.1
+    Checking content-identity-core v0.1.0 (https://seed.radicle.garden/zA14jhTdwST4PxPBdsryc4zS7Kpq.git?rev=7f55597b5dc879b7601856e8d7fd0dbacaa2a498#7f55597b)
+    Checking secrecy v0.10.3
+    Checking multibase v0.9.3
+    Checking saphyr-parser v0.0.6
+    Checking genawaiter v0.99.1
+    Checking indexmap v1.9.3
+    Checking logos v0.16.1
+    Checking ouroboros v0.18.5
+    Checking range-collections v0.4.6
+    Checking irpc v0.17.0
+    Checking ssh-agent-lib v0.6.0
+    Checking codespan v0.13.1
+    Checking schema-identity-core v0.1.0 (https://seed.radicle.garden/z6gGpUJtzdVBCCtZTzh4cV1skv4H.git?rev=2562c8aa38a034061f9af9f3e17280494a5b8de2#2562c8aa)
+    Checking rand_core v0.9.5
+    Checking git2 v0.21.0
+   Compiling wit-component v0.239.0
+    Checking dashmap v6.2.1
+   Compiling wit-bindgen-core v0.46.0
+   Compiling nickel-lang-core v0.18.0
+    Checking memoffset v0.9.1
+    Checking kiln-provider-api v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking kiln-codec v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking nickel-lang-vector v0.2.0
+    Checking redb v2.6.3
+    Checking chrono v0.4.45
+    Checking toml_edit v0.24.1+spec-1.1.0
+    Checking iroh-io v0.6.2
+    Checking md-5 v0.10.6
+    Checking num-complex v0.4.6
+    Checking bitmaps v2.1.0
+    Checking artifact-auth-core v0.1.0 (ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d)
+    Checking event-listener v5.4.2
+   Compiling snafu-derive v0.8.9
+    Checking self_cell v1.3.0
+    Checking futures-concurrency v7.7.1
+    Checking serde_yaml v0.9.34+deprecated
+    Checking generic_singleton v0.5.3
+    Checking bao-tree v0.16.1
+    Checking event-listener-strategy v0.5.4
+    Checking compact_str v0.8.2
+    Checking num v0.4.3
+    Checking lasso v0.7.3
+    Checking nix v0.31.3
+    Checking sized-chunks v0.6.5
+   Compiling wit-bindgen-rust v0.46.0
+   Compiling wiggle-generate v45.0.3
+    Checking radicle-oid v0.2.2
+    Checking rand_chacha v0.9.0
+    Checking iroh-util v0.6.0
+    Checking schema-migration-core v0.1.0 (https://seed.radicle.garden/z1C4YVMgDGyVdQa72uPNj3UDS5cY.git?rev=4fe90e130f2871cf69a6febcdc70785adca98aea#4fe90e13)
+    Checking radicle-crypto v0.19.0
+    Checking malachite-q v0.9.2
+    Checking codegen v0.2.0
+    Checking nix v0.30.1
+    Checking cap-fs-ext v3.4.6
+    Checking iroh-tickets v1.0.0
+    Checking kamacite-core v0.1.0 (ssh://git@github.com/OnixResearch/kamacite.git?rev=d76fe4abe543724d8fc0ac4b362187caf2e27622#d76fe4ab)
+   Compiling nested_enum_utils v0.2.3
+    Checking reflink-copy v0.1.30
+    Checking tracing-log v0.2.0
+    Checking sha-1 v0.10.1
+   Compiling syndicate v0.44.0-rc.4
+    Checking ordered-float v5.5.0
+    Checking rand_xoshiro v0.6.0
+    Checking sharded-slab v0.1.7
+    Checking lattice-workflow-contract v0.1.0 (ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67)
+    Checking choregraph-history v0.1.0 (https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git?rev=b3e08e19750f53bdbcae970cdf58a47a791ed20b#b3e08e19)
+    Checking vstd v0.0.0-2026-01-25-0057
+    Checking thin-vec v0.2.19
+    Checking thread_local v1.1.10
+    Checking malachite-float v0.9.2
+    Checking nu-ansi-term v0.50.3
+   Compiling wiggle-macro v45.0.3
+    Checking snafu v0.8.9
+    Checking schemars v1.2.2
+    Checking bounded-exec v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+    Checking im-rc v15.1.0
+    Checking clap_builder v4.6.6
+   Compiling wit-bindgen-rust-macro v0.46.0
+    Checking async-channel v2.5.0
+    Checking steel-parser v0.8.3
+    Checking tracing-subscriber v0.3.23
+    Checking steel-gen v0.8.3
+    Checking rand v0.9.5
+    Checking lattice-workflow-transport v0.1.0 (ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67)
+    Checking iroh-blobs v0.103.0
+    Checking icu_casemap v2.3.0
+    Checking preserves v4.996.0
+    Checking iroh-gossip v0.101.0
+    Checking im-lists v0.12.2
+    Checking libsqlite3-sys v0.38.2
+    Checking cranelift-frontend v0.132.3
+    Checking wasmtime-internal-unwinder v45.0.3
+    Checking cranelift-native v0.132.3
+    Checking malachite v0.9.2
+    Checking verified-logic v0.2.0 (ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad9930)
+    Checking bigdecimal v0.4.10
+    Checking kiln-adapter-aspen v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking cap-net-ext v3.4.6
+    Checking cap-time-ext v3.4.6
+    Checking tokio-util v0.6.10
+    Checking tracing-futures v0.2.5
+    Checking polling v3.11.0
+    Checking xattr v1.6.1
+    Checking blake2 v0.10.6
+    Checking steel-quickscope v0.3.3
+    Checking iddqd v0.4.6
+    Checking nonempty v0.9.0
+    Checking serde-error v0.1.3
+    Checking wasmtime-internal-cranelift v45.0.3
+    Checking bincode v1.3.3
+    Checking radicle-git-metadata v0.2.1
+    Checking radicle-git-ref-format v0.2.0
+   Compiling clap_derive v4.6.4
+    Checking filetime v0.2.29
+    Checking fallible-iterator v0.3.0
+    Checking fallible-streaming-iterator v0.1.9
+    Checking cairn-core v0.1.0 (ssh://git@github.com/OnixResearch/cairn.git?rev=3b4c280b893f2709aebea21fc51a4f9eeba3fe3b#3b4c280b)
+    Checking kiln-adapter-lattice v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking radicle-core v0.4.1
+    Checking wasmparser v0.240.0
+    Checking artifact-auth-ed25519 v0.1.0 (ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d)
+    Checking tar v0.4.46
+    Checking radicle-cob v0.21.1
+    Checking steel-core v0.8.3
+    Checking chaoscontrol-snapshot-descriptor v0.1.0 (https://github.com/brittonr/chaoscontrol.git?rev=b8c440ea3b19df796542e58e8ee36200e1c3db85#b8c440ea)
+    Checking wit-bindgen v0.46.0
+    Checking valence-core v0.1.0 (ssh://git@github.com/OnixResearch/valence.git?rev=5f1c2ba5072c6f9622fa59b1af20502985f569fd#5f1c2ba5)
+    Checking kiln-radicle-source-contract v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking kiln-aspen-extension v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking durable-file-publication v0.1.0 (https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e)
+    Checking rusqlite v0.40.2
+    Checking molten-core v0.1.0 (https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded2)
+    Checking wasmtime v45.0.3
+    Checking kiln-adapter-radicle v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking clap v4.6.6
+    Checking molten-node-host v0.1.0 (https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded2)
+    Checking iroh-docs v0.101.0
+    Checking ucan v0.1.0 (ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad9930)
+    Checking basalt v0.1.0 (ssh://git@github.com/OnixResearch/basalt.git?rev=d913dc01e765c9b297df5fcc57dfa06aac39bc74#d913dc01)
+    Checking wasmtime-wasi-io v45.0.3
+    Checking wiggle v45.0.3
+    Checking wasmtime-wasi v45.0.3
+    Checking nickel-lang v2.2.0
+    Checking molten v0.1.0 (https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded2)
+    Checking kiln-aspen-host v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-aspen-host)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 45s
+error: unclosed table, expected `]`
+ --> ../../../../../.cargo/git/checkouts/aspen-3f90b5724b0540d4/22f8ded/crates/molten-node-host/tests/fixtures/node-host-boundary/malformed/Cargo.toml:1:9
+  |
+1 | [package
+  |         ^
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+    Checking cfg-if v1.0.4
+   Compiling version_check v0.9.5
+   Compiling libc v0.2.189
+   Compiling find-msvc-tools v0.1.11
+   Compiling shlex v2.0.1
+   Compiling libm v0.2.16
+    Checking typenum v1.20.1
+    Checking memchr v2.8.3
+    Checking foldhash v0.2.0
+    Checking allocator-api2 v0.2.21
+    Checking subtle v2.6.1
+   Compiling autocfg v1.5.1
+    Checking equivalent v1.0.2
+    Checking log v0.4.34
+   Compiling cfg_if v1.0.4
+   Compiling equivalent v1.0.2
+   Compiling portable-atomic v1.15.0
+   Compiling foldhash v0.2.0
+    Checking pin-project-lite v0.2.17
+    Checking   Compiling subtle v2.6.1 bitflags v2.13.1
+
+   Compiling unicode_ident v1.0.24   Compiling semver v1.0.28
+
+    Checking critical-section v1.2.0
+   Compiling shlex v2.0.1
+   Compiling find_msvc_tools v0.1.11
+   Compiling anyhow v1.0.104
+    Checking hashbrown v0.17.1
+   Compiling allocator_api2 v0.2.21
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling autocfg v1.5.1
+    Checking scopeguard v1.2.0
+   Compiling memchr v2.8.3
+   Compiling build-script-build v1.0.107
+   Compiling build-script-build v0.2.189
+   Compiling build-script-build v1.0.229
+   Compiling build-script-build v1.0.47
+    Checking itoa v1.0.18
+   Compiling build-script-build v0.2.16
+   Compiling build-script-build v1.0.229
+   Compiling build-script-build v0.2.189
+    Checking const-oid v0.9.6
+   Compiling typenum v1.20.1
+    Checking cpufeatures v0.3.1
+   Compiling build-script-build v1.0.229
+   Compiling log v0.4.34
+    Checking futures-core v0.3.34
+   Compiling pin_project_lite v0.2.17    Checking cpufeatures v0.2.17
+
+   Compiling critical_section v1.2.0
+   Compiling bitflags v2.13.1
+   Compiling num-traits v0.2.19
+   Compiling semver v1.0.28
+    Checking stable_deref_trait v1.2.1
+   Compiling scopeguard v1.2.0
+    Checking lock_api v0.4.14
+   Compiling build-script-build v1.0.104
+   Compiling build-script-build v0.14.7
+    Checking futures-io v0.3.34
+   Compiling hashbrown v0.17.1
+   Compiling foldhash v0.2.0
+   Compiling cfg_aliases v0.2.2
+   Compiling build-script-build v1.15.0
+   Compiling rustc_version v0.4.1
+   Compiling itoa v1.0.18
+   Compiling const_oid v0.9.6
+   Compiling cpufeatures v0.3.1
+    Checking futures-sink v0.3.34
+   Compiling futures_core v0.3.34
+    Checking slab v0.4.12
+   Compiling zmij v1.0.23
+   Compiling cpufeatures v0.2.17
+   Compiling stable_deref_trait v1.2.1
+    Checking rand_core v0.10.1
+   Compiling build-script-build v0.2.19
+   Compiling build-script-build v1.0.229
+   Compiling jobserver v0.1.35
+   Compiling libm v0.2.16
+   Compiling libc v0.2.189
+    Checking futures-task v0.3.34
+   Compiling unicode-xid v0.2.6
+   Compiling lock_api v0.4.14
+    Checking spin v0.9.9
+   Compiling heck v0.5.0
+   Compiling futures_io v0.3.34
+   Compiling thiserror v2.0.20
+   Compiling cfg_aliases v0.2.2
+   Compiling equivalent v1.0.2
+   Compiling rustc_version v0.4.1
+    Checking arrayvec v0.7.8
+   Compiling futures_sink v0.3.34
+    Checking futures-channel v0.3.34
+   Compiling libc v0.2.189
+    Checking getrandom v0.2.17
+   Compiling slab v0.4.12
+    Checking socket2 v0.6.5
+   Compiling serde_core v1.0.229
+    Checking indexmap v2.14.0
+   Compiling hashbrown v0.17.1
+   Compiling memchr v2.8.3
+    Checking mio v1.2.2
+   Compiling rand_core v0.10.1
+    Checking constant_time_eq v0.4.2
+   Compiling proc_macro2 v1.0.107
+    Checking arrayref v0.3.9
+   Compiling build-script-build v1.0.23
+   Compiling unicode-segmentation v1.13.3
+   Compiling anyhow v1.0.104
+   Compiling getrandom v0.4.3
+   Compiling unicode_xid v0.2.6
+   Compiling parking_lot_core v0.9.12
+   Compiling futures_task v0.3.34
+   Compiling cc v1.4.4
+   Compiling spin v0.9.9
+    Checking fnv v1.0.7
+   Compiling jobserver v0.1.35
+   Compiling serde_core v1.0.229
+    Checking writeable v0.6.4
+   Compiling heck v0.5.0
+    Checking byteorder v1.5.0
+    Checking base64 v0.22.1
+   Compiling futures_channel v0.3.34
+   Compiling log v0.4.34
+   Compiling rustix v1.1.4
+   Compiling build-script-build v2.0.20
+   Compiling getrandom v0.2.17
+   Compiling arrayvec v0.7.8
+    Checking rand_core v0.6.4
+   Compiling serde_json v1.0.151
+   Compiling num_traits v0.2.19
+    Checking num-integer v0.1.47
+   Compiling socket2 v0.6.5
+   Compiling quote v1.0.47
+   Compiling syn v3.0.4
+   Compiling constant_time_eq v0.4.2
+   Compiling syn v2.0.119
+   Compiling arrayref v0.3.9
+   Compiling crossbeam-utils v0.8.22
+   Compiling indexmap v2.14.0
+    Checking linux-raw-sys v0.12.1
+   Compiling mio v1.2.2
+    Checking litemap v0.8.3
+   Compiling unicode_segmentation v1.13.3
+   Compiling icu_properties_data v2.3.0
+   Compiling rustversion v1.0.23
+   Compiling fnv v1.0.7
+   Compiling build-script-build v0.9.12
+    Checking either v1.18.0
+   Compiling build-script-build v0.4.3
+    Checking utf8_iter v1.0.4
+   Compiling writeable v0.6.4
+   Compiling pkg-config v0.3.34
+   Compiling byteorder v1.5.0
+    Checking fastrand v2.5.0
+   Compiling base64 v0.22.1
+    Checking aho-corasick v1.1.5
+    Checking regex-syntax v0.8.11
+   Compiling rand_core v0.6.4
+    Checking base64ct v1.8.3
+   Compiling num_integer v0.1.47
+   Compiling indexmap v2.14.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling build-script-build v1.0.151
+    Checking lazy_static v1.5.0
+   Compiling zmij v1.0.23
+   Compiling build-script-build v1.1.4
+   Compiling litemap v0.8.3
+    Checking hashbrown v0.16.1
+   Compiling either v1.18.0
+    Checking percent-encoding v2.3.2
+   Compiling build-script-build v0.8.22
+   Compiling fastrand v2.5.0   Compiling syn v1.0.109
+
+    Checking rustc-hash v2.1.3
+   Compiling utf8_iter v1.0.4
+   Compiling getrandom v0.4.3
+   Compiling build-script-build v2.3.0
+   Compiling build-script-build v1.0.23
+   Compiling cc v1.4.4
+   Compiling blake3 v1.8.5
+   Compiling lazy_static v1.5.0
+   Compiling ring v0.17.14
+   Compiling base64ct v1.8.3
+   Compiling wasmtime-internal-core v45.0.3
+   Compiling pkg_config v0.3.34
+   Compiling zerocopy v0.8.56
+   Compiling build-script-build v2.3.0
+   Compiling linux_raw_sys v0.12.1
+   Compiling aho_corasick v1.1.5
+    Checking untrusted v0.9.0
+   Compiling serde_json v1.0.151
+    Checking chacha20 v0.10.2
+   Compiling percent_encoding v2.3.2
+   Compiling heapless v0.7.17
+   Compiling hashbrown v0.16.1
+   Compiling crossbeam_utils v0.8.22
+   Compiling regex_syntax v0.8.11
+    Checking regex-automata v0.4.18
+    Checking opaque-debug v0.3.1
+   Compiling rustc_hash v2.1.3
+   Compiling icu_properties_data v2.3.0
+   Compiling build-script-build v1.0.109
+   Compiling icu_normalizer_data v2.3.0
+    Checking ryu v1.0.23
+   Compiling build-script-build v1.8.5
+    Checking bytemuck v1.25.2
+   Compiling untrusted v0.9.0
+   Compiling build-script-build v45.0.3
+    Checking form_urlencoded v1.2.2
+    Checking rand v0.10.2
+   Compiling chacha20 v0.10.2
+   Compiling build-script-build v0.8.56
+   Compiling aho_corasick v1.1.5
+    Checking hash32 v0.2.1
+   Compiling build-script-build v0.17.14
+   Compiling opaque_debug v0.3.1
+    Checking serde_bytes v0.11.19
+   Compiling build-script-build v0.7.17
+   Compiling synstructure v0.13.2
+   Compiling bitflags v2.13.1
+   Compiling build-script-build v0.14.7
+    Checking parking v2.2.1
+   Compiling ryu v1.0.23
+   Compiling form_urlencoded v1.2.2
+   Compiling rustls v0.23.43
+   Compiling bytemuck v1.25.2
+   Compiling hash32 v0.2.1
+   Compiling convert_case v0.10.0
+   Compiling serde_bytes v0.11.19
+    Checking   Compiling blake3 v1.8.5
+ data-encoding v2.11.1
+   Compiling target-lexicon v0.13.5
+   Compiling libm v0.2.16
+   Compiling rustversion v1.0.23
+   Compiling crossbeam-epoch v0.9.20
+   Compiling rand v0.10.2
+    Checking termcolor v1.4.1
+   Compiling parking v2.2.1
+   Compiling synstructure v0.13.2
+    Checking atomic-waker v1.1.2
+   Compiling zeroize_derive v1.5.0
+   Compiling syn v2.0.119
+   Compiling build-script-build v45.0.3
+   Compiling zerofrom-derive v0.1.7
+   Compiling regex_syntax v0.8.11
+   Compiling yoke-derive v0.8.2
+   Compiling syn v3.0.4
+   Compiling serde_derive v1.0.229
+   Compiling regex_automata v0.4.18
+   Compiling thiserror-impl v2.0.20
+   Compiling typenum v1.20.1
+   Compiling futures-macro v0.3.34
+   Compiling tokio-macros v2.7.2
+   Compiling convert_case v0.10.0
+   Compiling zerovec-derive v0.11.6
+   Compiling termcolor v1.4.1
+   Compiling displaydoc v0.2.7
+   Compiling anyhow v1.0.104
+   Compiling cfg_if v1.0.4
+   Compiling tracing-attributes v0.1.31
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling data_encoding v2.11.1
+   Compiling build-script-build v0.9.20
+    Checking regex v1.13.1
+   Compiling atomic_waker v1.1.2
+   Compiling build-script-build v0.23.43
+   Compiling pin-project-internal v1.1.13
+   Compiling postcard-derive v0.2.2
+   Compiling build-script-build v0.13.5
+   Compiling rustix v1.1.4
+   Compiling derive_more-impl v2.1.1
+   Compiling zerocopy v0.8.56
+    Checking bumpalo v3.20.3
+   Compiling regex v1.13.1
+   Compiling syn v1.0.109
+   Compiling cranelift-srcgen v0.132.3
+   Compiling generic_array v0.14.7
+   Compiling block-buffer v0.10.4
+   Compiling zeroize_derive v1.5.0
+    Checking zeroize v1.9.0
+   Compiling crossbeam_epoch v0.9.20
+   Compiling crypto-common v0.1.7
+   Compiling bumpalo v3.20.3
+   Compiling block_buffer v0.10.4
+   Compiling displaydoc v0.2.7
+   Compiling httparse v1.10.1
+   Compiling n0-error-macros v1.0.0
+   Compiling curve25519_dalek_derive v0.1.1
+    Checking futures-util v0.3.34
+   Compiling futures_macro v0.3.34
+   Compiling tokio_macros v2.7.2
+   Compiling cranelift-assembler-x64-meta v0.132.3
+   Compiling spez v0.1.2
+    Checking futures-lite v2.6.1
+   Compiling yoke_derive v0.8.2
+   Compiling cranelift_srcgen v0.132.3
+   Compiling postcard_derive v0.2.2
+    Checking uuid v1.26.0
+   Compiling zerofrom_derive v0.1.7
+    Checking zerofrom v0.1.8
+   Compiling tracing_attributes v0.1.31
+    Checking hybrid-array v0.4.14
+   Compiling thiserror_impl v2.0.20
+   Compiling zeroize v1.9.0
+   Compiling zerovec_derive v0.11.6
+    Checking rustls-pki-types v1.15.1
+   Compiling crypto_common v0.1.7
+    Checking der v0.7.10
+    Checking pin-project v1.1.13
+   Compiling pin_project_internal v1.1.13
+   Compiling regex_automata v0.4.18
+   Compiling digest v0.10.7
+   Compiling regex v1.13.1
+   Compiling paste v1.0.15
+   Compiling zerofrom v0.1.8
+    Checking yoke v0.8.3
+   Compiling build-script-build v1.10.1
+    Checking unicode-width v0.2.2
+   Compiling ring v0.17.14
+   Compiling thiserror v2.0.20
+    Checking cobs v0.3.0
+   Compiling uuid v1.26.0
+   Compiling data-encoding-macro-internal v0.1.19
+   Compiling data_encoding v2.11.1
+   Compiling hybrid_array v0.4.14
+   Compiling pulley-macros v45.0.3
+   Compiling pin_project v1.1.13
+    Checking pem-rfc7468 v1.0.0
+   Compiling digest v0.10.7
+    Checking rustls-webpki v0.103.15
+   Compiling rustls_pki_types v1.15.1
+   Compiling futures_lite v2.6.1
+   Compiling generic_array v0.14.7
+   Compiling build-script-build v1.0.15
+    Checking zerovec v0.11.8
+   Compiling yoke v0.8.3
+    Checking zerotrie v0.2.5
+   Compiling unicode_width v0.2.2
+   Compiling der v0.7.10
+    Checking block-padding v0.3.3
+   Compiling httparse v1.10.1
+   Compiling cranelift_assembler_x64_meta v0.132.3
+   Compiling proc-macro-error-attr v1.0.4
+    Checking tinyvec_macros v0.1.1
+    Checking universal-hash v0.5.1
+   Compiling crypto_common v0.1.7
+    Checking aead v0.5.2
+   Compiling build-script-build v1.0.151
+   Compiling pem_rfc7468 v1.0.0
+   Compiling semver v1.0.28
+    Checking const-oid v0.10.2
+   Compiling zmij v1.0.23
+   Compiling cobs v0.3.0
+    Checking leb128fmt v0.1.0
+   Compiling n0_error_macros v1.0.0
+    Checking crypto-common v0.2.2
+   Compiling serde_derive v1.0.229
+   Compiling webpki v0.103.15
+    Checking futures-executor v0.3.34
+   Compiling futures_util v0.3.34
+   Compiling block_buffer v0.10.4
+   Compiling spez v0.1.2
+    Checking n0-error v1.0.0
+   Compiling block_padding v0.3.3
+    Checking inout v0.1.4
+    Checking tinyvec v1.12.0
+   Compiling tinyvec_macros v0.1.1
+   Compiling zerotrie v0.2.5
+    Checking block-buffer v0.12.1
+   Compiling universal_hash v0.5.1
+    Checking polyval v0.6.2
+    Checking ppv-lite86 v0.2.21
+   Compiling aead v0.5.2
+    Checking tinystr v0.8.4
+   Compiling zerovec v0.11.8
+    Checking potential_utf v0.1.6
+   Compiling const_oid v0.10.2
+   Compiling leb128fmt v0.1.0
+    Checking der v0.8.1
+   Compiling build-script-build v1.0.4
+   Compiling itoa v1.0.18
+   Compiling async-trait v0.1.92
+    Checking futures v0.3.34
+   Compiling futures_executor v0.3.34
+   Compiling digest v0.10.7
+    Checking sha2 v0.10.9
+    Checking   Compiling derive_more_impl v2.1.1
+ signature v2.2.0
+   Compiling n0_error v1.0.0
+    Checking derive_more v2.1.1
+    Checking cipher v0.4.4
+   Compiling inout v0.1.4
+   Compiling wasmtime-internal-versioned-export-macros v45.0.3
+   Compiling pulley_macros v45.0.3
+   Compiling block_buffer v0.12.1
+   Compiling smallvec v1.15.2
+   Compiling serde v1.0.229
+    Checking ghash v0.5.1
+   Compiling polyval v0.6.2
+   Compiling data_encoding_macro_internal v0.1.19
+    Checking data-encoding-macro v0.1.21
+   Compiling crypto_common v0.2.2
+    Checking gimli v0.33.0
+   Compiling serde v1.0.229
+   Compiling tinyvec v1.12.0
+   Compiling ppv_lite86 v0.2.21
+    Checking bytes v1.12.1
+   Compiling tinystr v0.8.4
+    Checking icu_locale_core v2.3.0
+   Compiling potential_utf v0.1.6
+    Checking icu_collections v2.3.0
+    Checking ipnet v2.12.1
+   Compiling futures v0.3.34
+   Compiling signature v2.2.0
+    Checking num-bigint v0.4.8
+   Compiling derive_more v2.1.1
+   Compiling sha2 v0.10.9
+   Compiling cipher v0.4.4
+    Checking ctr v0.9.2
+   Compiling paste v1.0.15
+    Checking aes v0.8.4
+    Checking itertools v0.14.0
+   Compiling ghash v0.5.1
+   Compiling data_encoding_macro v0.1.21
+   Compiling curve25519-dalek v4.1.3
+   Compiling der v0.8.1
+   Compiling n0-future v0.3.2
+   Compiling smallvec v1.15.2
+   Compiling proc-macro-error v1.0.4
+   Compiling smallvec v1.15.2
+   Compiling serde_json v1.0.151
+    Checking spin v0.10.1
+   Compiling bytes v1.12.1
+    Checking tokio v1.53.1
+   Compiling portable_atomic v1.15.0
+    Checking once_cell v1.21.4
+   Compiling wasmtime_internal_core v45.0.3
+    Checking http v1.5.0
+   Compiling cranelift-bitset v0.132.3
+   Compiling icu_collections v2.3.0
+    Checking base64 v0.13.1
+   Compiling ipnet v2.12.1
+   Compiling icu_locale_core v2.3.0
+    Checking icu_provider v2.3.1
+   Compiling ctr v0.9.2
+    Checking cordyceps v0.3.5
+   Compiling async_trait v0.1.92
+    Checking try-lock v0.2.5
+    Checking aes-gcm v0.10.3
+   Compiling aes v0.8.4
+   Compiling wasmtime_internal_core v45.0.3
+   Compiling heapless v0.7.17
+    Checking postcard v1.1.3
+   Compiling parking_lot_core v0.9.12
+    Checking parking_lot v0.12.5
+   Compiling crc32fast v1.5.1
+   Compiling spin v0.10.1
+    Checking dtoa v0.4.8
+   Compiling build-script-build v1.0.4
+   Compiling build-script-build v4.1.3
+    Checking tower-service v0.3.3
+   Compiling build-script-build v0.3.2
+   Compiling cranelift-isle v0.132.3
+   Compiling num_bigint v0.4.8
+   Compiling id-arena v2.3.0
+   Compiling cranelift_bitset v0.132.3
+    Checking diatomic-waker v0.2.3
+   Compiling once_cell v1.21.4
+    Checking tracing-core v0.1.36
+   Compiling base64 v0.13.1
+   Compiling wasmtime_internal_versioned_export_macros v45.0.3
+   Compiling vcpkg v0.2.15
+   Compiling icu_provider v2.3.1
+    Checking icu_properties v2.3.0
+   Compiling cordyceps v0.3.5    Checking icu_normalizer v2.3.0
+
+   Compiling try_lock v0.2.5
+   Compiling winnow v1.0.4
+   Compiling http v1.5.0
+    Checking http-body v1.1.0
+   Compiling aes_gcm v0.10.3
+    Checking want v0.3.1
+   Compiling cranelift_bitset v0.132.3
+    Checking cranelift-entity v0.132.3
+   Compiling itertools v0.14.0
+   Compiling pulley-interpreter v45.0.3
+   Compiling postcard v1.1.3
+   Compiling tower_service v0.3.3
+    Checking spki v0.8.0
+    Checking wasmparser v0.248.0
+   Compiling dtoa v0.4.8
+    Checking digest v0.11.3
+   Compiling parking_lot v0.12.5
+    Checking hmac v0.12.1
+    Checking futures-buffered v0.2.13
+   Compiling diatomic_waker v0.2.3
+   Compiling id_arena v2.3.0
+   Compiling build-script-build v1.5.1
+    Checking spki v0.7.3
+    Checking tracing v0.1.44
+   Compiling tracing_core v0.1.36
+   Compiling gimli v0.33.0
+   Compiling build-script-build v0.132.3
+    Checking ff v0.13.1
+   Compiling http_body v1.1.0
+   Compiling curve25519-dalek v5.0.0
+   Compiling icu_normalizer v2.3.0
+   Compiling noq-udp v1.2.0
+   Compiling want v0.3.1
+   Compiling vcpkg v0.2.15
+   Compiling object v0.39.1
+    Checking cranelift-bforest v0.132.3
+   Compiling cranelift_entity v0.132.3
+   Compiling hmac v0.12.1
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling spki v0.8.0
+    Checking base16ct v1.0.0
+    Checking httpdate v1.0.3
+   Compiling digest v0.11.3
+   Compiling icu_properties v2.3.0
+    Checking idna_adapter v1.2.2
+   Compiling futures_buffered v0.2.13
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling spki v0.7.3
+    Checking base16ct v0.2.0
+   Compiling winnow v1.0.4
+    Checking openssl-probe v0.2.1
+   Compiling ff v0.13.1
+   Compiling cranelift-codegen-shared v0.132.3
+   Compiling tracing v0.1.44
+    Checking group v0.13.0
+   Compiling target_lexicon v0.13.5
+    Checking pkcs8 v0.11.0
+   Compiling build-script-build v5.0.0
+   Compiling build-script-build v0.2.19
+   Compiling base16ct v1.0.0
+    Checking serdect v0.4.3
+   Compiling httpdate v1.0.3
+   Compiling pulley_interpreter v45.0.3
+    Checking ed25519 v2.2.3
+   Compiling cranelift_bforest v0.132.3
+   Compiling idna_adapter v1.2.2
+    Checking idna v1.1.0
+   Compiling build-script-build v1.2.0
+   Compiling cranelift-assembler-x64 v0.132.3
+    Checking crypto-bigint v0.5.5
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+    Checking num-iter v0.1.46
+   Compiling base16ct v0.2.0
+    Checking sec1 v0.7.3
+   Compiling build-script-build v0.39.1
+   Compiling openssl_probe v0.2.1
+    Checking rustls-native-certs v0.8.4
+   Compiling cranelift-codegen-meta v0.132.3
+   Compiling cranelift_codegen_shared v0.132.3
+   Compiling heck v0.3.3
+   Compiling tokio v1.53.1
+    Checking tokio-util v0.7.19
+   Compiling group v0.13.0
+    Checking signature v3.0.0
+   Compiling pkcs8 v0.11.0
+   Compiling indexmap v1.9.3
+   Compiling rustls v0.23.43
+    Checking tokio-rustls v0.26.4
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling toml_edit v0.25.13+spec-1.1.0
+   Compiling proc_macro_error_attr v1.0.4
+    Checking powerfmt v0.2.0
+   Compiling serdect v0.4.3
+    Checking time-core v0.1.9
+   Compiling crc32fast v1.5.1
+   Compiling ed25519 v2.2.3
+   Compiling num_iter v0.1.46
+   Compiling cpp_demangle v0.4.5
+   Compiling idna v1.1.0
+    Checking url v2.5.8
+    Checking num-conv v0.2.2
+   Compiling rustls_native_certs v0.8.4
+   Compiling sec1 v0.7.3
+   Compiling signature v3.0.0
+   Compiling io-lifetimes v2.0.4
+    Checking deranged v0.5.8
+   Compiling heck v0.3.3
+   Compiling build-script-build v0.132.3
+   Compiling tokio_rustls v0.26.4
+    Checking ed25519 v3.0.0
+   Compiling build-script-build v1.9.3
+   Compiling powerfmt v0.2.0
+    Checking rustls-platform-verifier v0.7.0
+   Compiling curve25519_dalek v4.1.3
+    Checking ed25519-dalek v2.2.0
+   Compiling crypto_bigint v0.5.5
+    Checking elliptic-curve v0.13.8
+   Compiling   Compiling proc_macro_error v1.0.4
+ structopt-derive v0.4.18
+   Compiling tokio_util v0.7.19    Checking h2 v0.4.19
+
+   Compiling proc-macro-crate v3.5.0
+   Compiling time_core v0.1.9
+   Compiling winnow v1.0.4
+   Compiling scopeguard v1.2.0
+   Compiling num_conv v0.2.2
+   Compiling toml_edit v0.25.13+spec-1.1.0
+   Compiling url v2.5.8
+   Compiling build-script-build v0.4.5
+    Checking sha2 v0.11.0
+    Checking preserves v5.0.0-rc.8
+   Compiling ed25519 v3.0.0
+   Compiling build-script-build v2.0.4
+   Compiling rustls_platform_verifier v0.7.0
+    Checking prefix-trie v0.8.4
+    Checking netlink-packet-core v0.8.2
+   Compiling cranelift_isle v0.132.3
+   Compiling ed25519_dalek v2.2.0
+   Compiling n0_future v0.3.2
+    Checking crossbeam-channel v0.5.16
+   Compiling elliptic_curve v0.13.8
+   Compiling zstd-sys v2.0.16+zstd.1.5.7
+   Compiling lock_api v0.4.14
+    Checking toml_datetime v0.7.5+spec-1.1.0
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling foldhash v0.1.5
+   Compiling deranged v0.5.8
+    Checking time v0.3.55
+   Compiling noq_udp v1.2.0    Checking winnow v0.7.15
+
+   Compiling unicode-width v0.1.14
+   Compiling proc_macro_crate v3.5.0
+    Checking   Compiling wasmparser v0.248.0 wasm-encoder v0.248.0
+
+   Compiling   Compiling num_traits v0.2.19 siphasher v1.0.3
+
+    Checking toml_writer v1.1.2+spec-1.1.0
+   Compiling parking_lot_core v0.9.12
+   Compiling netlink_packet_core v0.8.2
+   Compiling sha2 v0.11.0
+    Checking tower-layer v0.3.3
+   Compiling cranelift-codegen v0.132.3
+   Compiling cranelift_codegen_meta v0.132.3
+   Compiling curve25519_dalek v5.0.0
+   Compiling wasmparser v0.239.0
+    Checking arbitrary v1.4.2
+   Compiling prefix_trie v0.8.4
+   Compiling crossbeam_channel v0.5.16
+    Checking hickory-proto v0.26.1
+   Compiling toml_datetime v0.7.5+spec-1.1.0
+    Checking ed25519-dalek v3.0.0
+   Compiling foldhash v0.1.5
+   Compiling hashbrown v0.15.5
+   Compiling unicode_width v0.1.14
+   Compiling textwrap v0.11.0
+   Compiling preserves v5.0.0-rc.8
+   Compiling   Compiling siphasher v1.0.3 phf_shared v0.11.3
+
+   Compiling build-script-build v2.0.16+zstd.1.5.7
+   Compiling toml_writer v1.1.2+spec-1.1.0
+    Checking   Compiling siphasher v1.0.3
+ fastbloom v0.17.0
+   Compiling time v0.3.55
+    Checking wasmprinter v0.248.0
+   Compiling tower_layer v0.3.3
+   Compiling ed25519_dalek v3.0.0
+   Compiling build-script-build v0.239.0
+   Compiling structopt_derive v0.4.18
+    Checking netlink-sys v0.8.8
+   Compiling wasm_encoder v0.248.0
+    Checking rfc6979 v0.4.0
+    Checking cranelift-control v0.132.3
+   Compiling arbitrary v1.4.2
+    Checking http-body-util v0.1.5
+   Compiling textwrap v0.11.0
+   Compiling winnow v0.7.15
+   Compiling phf_shared v0.11.3
+    Checking regalloc2 v0.15.2
+   Compiling build-script-build v0.132.3
+   Compiling hashbrown v0.15.5
+   Compiling io_lifetimes v2.0.4
+   Compiling enum-assoc v1.4.1
+    Checking rand_pcg v0.10.2
+   Compiling parking_lot v0.12.5
+   Compiling noq v1.2.0
+   Compiling fastbloom v0.17.0
+   Compiling atty v0.2.14
+   Compiling h2 v0.4.19
+    Checking hyper v1.11.0
+    Checking sync_wrapper v1.0.2
+   Compiling num_integer v0.1.47
+   Compiling object v0.39.1
+   Compiling precomputed-hash v0.1.1
+   Compiling same-file v1.0.6
+   Compiling netlink_sys v0.8.8
+   Compiling hickory_proto v0.26.1
+    Checking rustc-demangle v0.1.28
+   Compiling cranelift_control v0.132.3
+   Compiling bit-vec v0.8.0
+   Compiling rfc6979 v0.4.0
+   Compiling ansi_term v0.12.1
+   Compiling wasmprinter v0.248.0
+   Compiling term v1.2.1
+   Compiling http_body_util v0.1.5
+   Compiling keccak v0.1.6
+   Compiling vec_map v0.8.2
+   Compiling atty v0.2.14
+   Compiling rand_pcg v0.10.2
+    Checking identity-hash v0.1.0
+   Compiling strsim v0.8.0
+   Compiling sync_wrapper v1.0.2
+   Compiling cpp_demangle v0.4.5    Checking wasmtime-internal-component-util v45.0.3
+
+   Compiling bitflags v1.3.2
+   Compiling precomputed_hash v0.1.1
+   Compiling build-script-build v1.2.0   Compiling netdev v0.46.1
+
+   Compiling same_file v1.0.6
+    Checking lru-slab v0.1.2
+   Compiling rustc_demangle v0.1.28
+   Compiling ansi_term v0.12.1
+   Compiling io-extras v0.18.4
+   Compiling bit_vec v0.8.0
+   Compiling keccak v0.1.6
+   Compiling ref-cast v1.0.27
+   Compiling identity_hash v0.1.0
+   Compiling fixedbitset v0.5.7
+   Compiling hyper v1.11.0
+    Checking hyper-util v0.1.20
+   Compiling vec_map v0.8.2
+   Compiling regalloc2 v0.15.2
+    Checking tagptr v0.2.0
+   Compiling wasmtime_internal_component_util v45.0.3
+   Compiling new_debug_unreachable v1.0.6
+    Checking sorted-index-buffer v0.2.1
+   Compiling bitflags v1.3.2
+   Compiling term v1.2.1
+   Compiling strsim v0.8.0
+   Compiling clap v2.34.0
+   Compiling lru_slab v0.1.2
+    Checking wasmtime-environ v45.0.3
+   Compiling ascii-canvas v4.0.0
+   Compiling enum_assoc v1.4.1
+   Compiling sha3 v0.10.9
+   Compiling cranelift_codegen_shared v0.132.3
+   Compiling build-script-build v2.0.20
+   Compiling tagptr v0.2.0
+    Checking moka v0.12.16
+   Compiling either v1.18.0
+   Compiling string_cache v0.8.9
+   Compiling build-script-build v0.46.1
+   Compiling lazy_static v1.5.0
+   Compiling bit-set v0.8.0
+   Compiling walkdir v2.5.0
+   Compiling debug_unreachable v1.0.6
+   Compiling sorted_index_buffer v0.2.1
+    Checking noq-proto v1.2.0
+   Compiling petgraph v0.7.1
+   Compiling fixedbitset v0.5.7
+   Compiling build-script-build v1.0.27
+    Checking tower v0.5.3
+   Compiling build-script-build v0.18.4
+    Checking ecdsa v0.16.9
+   Compiling ascii_canvas v4.0.0
+    Checking hickory-net v0.26.1
+   Compiling sha3 v0.10.9
+    Checking iroh-base v1.1.0
+   Compiling hyper_util v0.1.20
+   Compiling string_cache v0.8.9
+    Checking netlink-packet-route v0.31.0
+   Compiling num_enum_derive v0.7.6
+   Compiling bit_set v0.8.0
+    Checking primeorder v0.13.6
+   Compiling walkdir v2.5.0
+    Checking tokio-stream v0.1.19
+   Compiling tower v0.5.3
+   Compiling libz-sys v1.1.29
+   Compiling ecdsa v0.16.9
+    Checking rand_chacha v0.3.1
+   Compiling moka v0.12.16
+   Compiling lalrpop-util v0.22.2
+   Compiling iroh_base v1.1.0
+   Compiling ref-cast-impl v1.0.27
+   Compiling pulley_interpreter v45.0.3
+   Compiling iroh-metrics-derive v1.0.1
+   Compiling primeorder v0.13.6
+   Compiling strum_macros v0.28.0
+    Checking arc-swap v1.9.2
+   Compiling itertools v0.14.0
+   Compiling petgraph v0.7.1
+    Checking safe_arch v1.2.0
+   Compiling wasmparser v0.248.0
+   Compiling ena v0.14.4
+   Compiling rand_chacha v0.3.1
+    Checking serde_spanned v1.1.1
+   Compiling hickory_net v0.26.1
+   Compiling netwatch v0.19.3
+   Compiling iroh-dns v1.1.0
+   Compiling tokio_stream v0.1.19
+   Compiling clap v2.34.0
+   Compiling proc-macro-error-attr v0.4.12
+   Compiling lalrpop_util v0.22.2
+    Checking xml-rs v0.8.29
+   Compiling num_bigint v0.4.8
+   Compiling pico-args v0.5.0
+   Compiling arc_swap v1.9.2
+   Compiling malachite-nz v0.9.2
+   Compiling build-script-build v1.1.29
+   Compiling   Compiling serde_spanned v1.1.1
+ num-bigint-dig v0.8.6
+   Compiling ena v0.14.4
+   Compiling safe_arch v1.2.0
+   Compiling zstd-safe v7.2.4
+   Compiling build-script-build v1.1.0
+    Checking mac-addr v0.3.0
+   Compiling build-script-build v0.4.12
+    Checking resolv-conf v0.7.6
+   Compiling build-script-build v0.19.3
+   Compiling num_enum_derive v0.7.6
+   Compiling crossbeam-deque v0.8.7
+   Compiling xml v0.8.29
+   Compiling cap-primitives v3.4.6
+   Compiling pico_args v0.5.0
+    Checking xmltree v0.10.3
+   Compiling dtoa v0.4.8
+    Checking num_enum v0.7.6
+   Compiling build-script-build v0.9.2
+   Compiling lalrpop v0.22.2
+   Compiling build-script-build v0.8.6
+   Compiling base64 v0.13.1
+    Checking wide v1.7.0
+    Checking toml v0.9.12+spec-1.1.0
+   Compiling resolv_conf v0.7.6
+    Checking hickory-resolver v0.26.1
+   Compiling mac_addr v0.3.0
+    Checking rand v0.8.8
+   Compiling build-script-build v7.2.4
+   Compiling cranelift_assembler_x64 v0.132.3
+   Compiling iroh_metrics_derive v1.0.1
+    Checking iroh-metrics v1.0.1
+   Compiling ref_cast_impl v1.0.27
+   Compiling xmltree v0.10.3
+   Compiling structopt v0.3.26
+   Compiling bytemuck v1.25.2
+   Compiling noq_proto v1.2.0
+    Checking tower-http v0.6.11
+   Compiling num_enum v0.7.6
+   Compiling build-script-build v3.4.6
+   Compiling build-script-build v0.8.7
+    Checking hyper-rustls v0.27.9
+   Compiling netlink_packet_route v0.31.0
+   Compiling ref_cast v1.0.27
+   Compiling structopt v0.3.26
+    Checking netlink-proto v0.12.2
+   Compiling toml v0.9.12+spec-1.1.0
+    Checking fs-set-times v0.20.3
+   Compiling iroh_metrics v1.0.1
+    Checking n0-watcher v1.0.0
+   Compiling rand v0.8.8
+    Checking attohttpc v0.30.1
+   Compiling hyper_rustls v0.27.9
+    Checking pkcs8 v0.10.2
+    Checking malachite-base v0.9.2
+   Compiling tower_http v0.6.11
+   Compiling thiserror v2.0.20    Checking rustix-linux-procfs v0.1.1
+
+   Compiling noq v1.2.0
+    Checking wasm-encoder v0.258.0
+   Compiling syn-mid v0.5.4
+   Compiling hickory_resolver v0.26.1
+    Checking pem-rfc7468 v0.7.0
+   Compiling io_extras v0.18.4
+   Compiling netdev v0.46.1
+   Compiling ittapi-sys v0.4.0
+   Compiling verus_syn v0.0.0-2026-01-25-0057
+   Compiling fs_set_times v0.20.3
+   Compiling iroh-relay v1.1.0
+   Compiling netlink_proto v0.12.2
+   Compiling n0_watcher v1.0.0
+    Checking simple-dns v0.12.0
+   Compiling strum_macros v0.28.0
+    Checking strum v0.28.0
+   Compiling attohttpc v0.30.1
+   Compiling proc-macro2-diagnostics v0.10.1
+   Compiling proc-macro-error v0.4.12
+   Compiling pkcs8 v0.10.2
+   Compiling ahash v0.8.12
+   Compiling rustix_linux_procfs v0.1.1
+   Compiling wasm-encoder v0.239.0
+   Compiling syn_mid v0.5.4
+   Compiling convert_case v0.4.0
+   Compiling wasmtime_environ v45.0.3
+   Compiling pem_rfc7468 v0.7.0
+   Compiling preserves v5.0.0-rc.8
+   Compiling wasmtime-internal-unwinder v45.0.3
+   Compiling verus_prettyplease v0.0.0-2026-01-25-0057
+   Compiling wasm_encoder v0.258.0
+    Checking static_assertions v1.1.0
+   Compiling strum v0.28.0
+   Compiling rayon-core v1.13.0
+   Compiling build-script-build v0.4.12
+   Compiling build-script-build v0.4.0
+    Checking ambient-authority v0.0.2
+    Checking maybe-owned v0.3.4
+   Compiling build-script-build v1.1.0
+   Compiling glob v0.3.4
+   Compiling simple_dns v0.12.0
+   Compiling foldhash v0.1.5
+   Compiling convert_case v0.4.0
+   Compiling proc-macro-hack v0.5.20+deprecated
+   Compiling build-script-build v0.239.0
+   Compiling thiserror v1.0.69
+   Compiling build-script-build v0.10.1
+    Checking sha1_smol v1.0.1
+    Checking simdutf8 v0.1.5
+   Compiling static_assertions v1.1.0
+   Compiling build-script-build v0.39.1
+   Compiling prettyplease v0.2.37
+   Compiling build-script-build v0.8.12
+   Compiling build-script-build v0.0.0-2026-01-25-0057
+   Compiling build-script-build v45.0.3
+   Compiling wasmparser v0.239.0
+    Checking wast v258.0.0
+   Compiling ambient_authority v0.0.2
+    Checking ssh-encoding v0.2.0
+   Compiling maybe_owned v0.3.4
+   Compiling build-script-build v1.13.0
+   Compiling preserves-schema v6.0.0-rc.8
+   Compiling unicode_width v0.1.14
+    Checking pkcs1 v0.7.5
+   Compiling glob v0.3.4
+   Compiling sha1_smol v1.0.1
+   Compiling simdutf8 v0.1.5
+    Checking tokio-websockets v0.13.3
+    Checking igd-next v0.17.1
+   Compiling build-script-build v1.0.69
+   Compiling zstd_sys v2.0.16+zstd.1.5.7
+   Compiling ssh_encoding v0.2.0
+   Compiling build-script-build v0.5.20+deprecated
+   Compiling build-script-build v0.2.37
+   Compiling hashbrown v0.15.5    Checking reqwest v0.13.4
+
+   Compiling pkcs1 v0.7.5
+   Compiling wit-parser v0.248.0
+   Compiling wide v1.7.0
+   Compiling wasmtime-internal-fiber v45.0.3
+   Compiling cap_primitives v3.4.6
+   Compiling wasmtime-internal-jit-debug v45.0.3
+   Compiling tokio_websockets v0.13.3
+    Checking tempfile v3.27.0
+   Compiling iroh_dns v1.1.0
+   Compiling igd_next v0.17.1
+    Checking blowfish v0.9.1
+    Checking cbc v0.1.2
+   Compiling netwatch v0.19.3
+    Checking chacha20 v0.9.1
+   Compiling malachite_base v0.9.2
+   Compiling zstd_safe v7.2.4
+    Checking pbkdf2 v0.12.2
+   Compiling cobs v0.3.0
+    Checking poly1305 v0.8.0
+    Checking webpki-roots v1.0.9
+   Compiling crossbeam_deque v0.8.7
+   Compiling thiserror-impl v1.0.69
+   Compiling tempfile v3.27.0
+   Compiling libgit2-sys v0.18.8+1.9.7
+   Compiling blowfish v0.9.1
+   Compiling build-script-build v45.0.3
+    Checking dirs-sys-next v0.1.2
+   Compiling iroh v1.1.0
+   Compiling build-script-build v45.0.3
+   Compiling cbc v0.1.2    Checking lru v0.18.3
+
+   Compiling cranelift_entity v0.132.3
+    Checking fixedbitset v0.4.2
+   Compiling chacha20 v0.9.1    Checking seize v0.5.1
+
+    Checking iana-time-zone v0.1.65
+   Compiling pbkdf2 v0.12.2
+   Compiling reqwest v0.13.4
+   Compiling wasmtime-internal-cranelift v45.0.3
+   Compiling num_bigint_dig v0.8.6
+   Compiling cap-std v3.4.6
+   Compiling webpki_roots v1.0.9
+    Checking arrayvec v0.5.2
+   Compiling proc_macro_error_attr v0.4.12
+   Compiling poly1305 v0.8.0
+   Compiling hashbrown v0.12.3
+   Compiling wasmtime-internal-cache v45.0.3
+   Compiling preserves_schema v6.0.0-rc.8
+   Compiling getrandom v0.3.4
+   Compiling lru v0.18.3
+   Compiling dirs_sys_next v0.1.2
+    Checking typed-arena v2.0.2
+   Compiling fixedbitset v0.4.2
+   Compiling verus_syn v0.0.0-2026-01-25-0057
+   Compiling wasmtime-internal-component-macro v45.0.3
+   Compiling iana_time_zone v0.1.65
+    Checking cmov v0.5.4
+   Compiling leb128fmt v0.1.0
+   Compiling leb128 v0.2.7
+   Compiling seize v0.5.1
+   Compiling arrayvec v0.5.2
+   Compiling yansi v1.0.1
+   Compiling build-script-build v1.1.0
+    Checking papaya v0.2.5
+   Compiling build-script-build v45.0.3
+   Compiling build-script-build v3.4.6
+   Compiling build-script-build v0.18.8+1.9.7
+   Compiling lalrpop v0.22.2
+    Checking petgraph v0.6.5
+   Compiling hashbrown v0.12.3
+    Checking directories-next v2.0.0
+   Compiling typed_arena v2.0.2
+    Checking pretty v0.12.5
+   Compiling wast v258.0.0
+    Checking wat v1.258.0
+   Compiling cpufeatures v0.2.17
+   Compiling build-script-build v45.0.3
+   Compiling wasmtime-internal-wit-bindgen v45.0.3
+    Checking ctutils v0.4.2
+   Compiling cmov v0.5.4
+   Compiling fnv v1.0.7
+   Compiling logos-codegen v0.16.1
+   Compiling build-script-build v0.3.4
+   Compiling wast v35.0.2
+   Compiling leb128 v0.2.7
+   Compiling build-script-build v45.0.3
+   Compiling syndicate-schema-plugin v0.12.0-rc.2
+   Compiling yansi v1.0.1
+    Checking   Compiling papaya v0.2.5
+ ssh-cipher v0.2.0
+   Compiling directories_next v2.0.0
+    Checking rsa v0.9.10
+   Compiling pretty v0.12.5
+   Compiling wat v1.258.0
+    Checking bcrypt-pbkdf v0.10.0
+   Compiling indexmap v1.9.3
+   Compiling sha2 v0.10.9
+   Compiling ctutils v0.4.2
+    Checking zstd v0.13.3
+   Compiling proc_macro2_diagnostics v0.10.1
+   Compiling ssh_cipher v0.2.0
+   Compiling proc_macro_error v0.4.12
+    Checking portmapper v0.19.3
+   Compiling bcrypt_pbkdf v0.10.0
+   Compiling wit_parser v0.248.0
+   Compiling petgraph v0.6.5
+   Compiling thiserror_impl v1.0.69
+   Compiling wasm_encoder v0.239.0
+   Compiling cranelift_bforest v0.132.3
+   Compiling rsa v0.9.10
+   Compiling wit-parser v0.239.0
+   Compiling wast v35.0.2    Checking p521 v0.13.3
+
+   Compiling wasmtime_internal_wit_bindgen v45.0.3
+    Checking p256 v0.13.2
+   Compiling build-script-build v0.12.0-rc.2
+    Checking p384 v0.13.1
+   Compiling rayon_core v1.13.0
+    Checking yasna v0.6.0
+   Compiling zstd v0.13.3
+    Checking backon v1.6.0
+   Compiling wasmtime v45.0.3
+   Compiling iroh_relay v1.1.0
+   Compiling logos_codegen v0.16.1
+    Checking num-rational v0.4.2
+   Compiling postcard v1.1.3
+    Checking kiln-core v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling ittapi_sys v0.4.0
+    Checking debugid v0.8.0
+   Compiling verus_prettyplease v0.0.0-2026-01-25-0057
+   Compiling thiserror v1.0.69   Compiling match-lookup v0.1.3
+
+   Compiling libz_sys v1.1.29
+    Checking pem v3.0.6
+   Compiling ahash v0.8.12
+   Compiling memoffset v0.9.1
+    Checking strsim v0.11.1
+   Compiling p256 v0.13.2
+   Compiling portmapper v0.19.3
+    Checking const-str v0.4.3
+   Compiling backon v1.6.0
+    Checking bitmaps v3.2.1
+   Compiling p521 v0.13.3
+   Compiling heck v0.4.1
+   Compiling vstd v0.0.0-2026-01-25-0057
+   Compiling p384 v0.13.1
+   Compiling yasna v0.6.0
+   Compiling num_rational v0.4.2
+    Checking colorchoice v1.0.5
+   Compiling debugid v0.8.0
+   Compiling redb v2.6.3
+   Compiling build-script-build v45.0.3
+   Compiling target_lexicon v0.13.5
+    Checking rcgen v0.14.9
+   Compiling pem v3.0.6
+   Compiling object v0.39.1
+    Checking fxprof-processed-profile v0.8.1
+   Compiling strsim v0.11.1
+    Checking ssh-key v0.6.7
+   Compiling cranelift_codegen v0.132.3
+   Compiling heck v0.5.0
+    Checking cranelift-native v0.132.3
+   Compiling proc_macro_hack v0.5.20+deprecated
+    Checking cranelift-frontend v0.132.3
+   Compiling heck v0.4.1
+   Compiling ouroboros_macro v0.18.5
+   Compiling genawaiter-proc-macro v0.99.1
+   Compiling const_str v0.4.3
+   Compiling build-script-build v0.9.1
+   Compiling colorchoice v1.0.5
+    Checking wasm-compose v0.248.0
+    Checking imbl-sized-chunks v0.1.3
+   Compiling bitmaps v3.2.1
+   Compiling build-script-build v0.0.0-2026-01-25-0057
+    Checking hashbrown v0.14.5
+   Compiling wasmtime_internal_component_util v45.0.3
+   Compiling build-script-build v2.6.3
+   Compiling witx v0.9.1
+   Compiling rcgen v0.14.9
+   Compiling verus_builtin_macros v0.0.0-2026-01-25-0057
+   Compiling cranelift_native v0.132.3    Checking
+ ittapi v0.4.0
+   Compiling logos-derive v0.16.1
+   Compiling wasmtime_internal_unwinder v45.0.3
+   Compiling cranelift_frontend v0.132.3
+   Compiling imbl_sized_chunks v0.1.3
+   Compiling fxprof_processed_profile v0.8.1
+    Checking rayon v1.12.0
+    Checking base256emoji v1.0.2
+   Compiling match_lookup v0.1.3
+   Compiling wasm_compose v0.248.0
+   Compiling wasm-metadata v0.239.0
+   Compiling ssh_key v0.6.7
+    Checking malachite-q v0.9.2
+   Compiling malachite_nz v0.9.2
+   Compiling hashbrown v0.14.5
+   Compiling verus_state_machines_macros v0.0.0-2026-01-25-0057
+   Compiling ittapi v0.4.0
+   Compiling base256emoji v1.0.2
+   Compiling wit_parser v0.239.0
+   Compiling wasmtime_internal_cache v45.0.3
+   Compiling nickel-lang-parser v0.3.0
+   Compiling gimli v0.33.0
+   Compiling wasmtime_internal_jit_debug v45.0.3
+    Checking hashlink v0.10.0
+   Compiling wasmtime_internal_fiber v45.0.3
+   Compiling wasm_metadata v0.239.0
+    Checking addr2line v0.26.1
+    Checking wasmtime-internal-jit-icache-coherence v45.0.3
+   Compiling genawaiter_proc_macro v0.99.1
+    Checking inplace-vec-builder v0.1.1
+   Compiling kiln_core v0.1.0
+    Checking codespan-reporting v0.13.1
+   Compiling witx v0.9.1
+   Compiling ouroboros_macro v0.18.5
+    Checking content-identity-core v0.1.0 (https://seed.radicle.garden/zA14jhTdwST4PxPBdsryc4zS7Kpq.git?rev=7f55597b5dc879b7601856e8d7fd0dbacaa2a498#7f55597b)
+    Checking malachite-float v0.9.2
+   Compiling malachite_q v0.9.2
+    Checking secrecy v0.10.3
+   Compiling getrandom v0.3.4
+   Compiling logos_derive v0.16.1
+    Checking memfd v0.6.5
+   Compiling cap_std v3.4.6
+   Compiling irpc-derive v0.17.0
+   Compiling textwrap v0.11.0
+   Compiling wasmtime_internal_jit_icache_coherence v45.0.3
+   Compiling nix v0.30.1
+   Compiling addr2line v0.26.1
+   Compiling nix v0.31.3
+   Compiling rayon v1.12.0
+    Checking encoding_rs v0.8.35
+   Compiling hashlink v0.10.0
+    Checking verus_builtin v0.0.0-2026-01-25-0057
+   Compiling inplace_vec_builder v0.1.1
+   Compiling icu_casemap_data v2.3.0
+   Compiling build-script-build v0.3.0
+   Compiling codespan_reporting v0.13.1
+    Checking binary-merge v0.1.2
+    Checking utf8parse v0.2.2
+   Compiling wasmtime_internal_cranelift v45.0.3
+    Checking aliasable v0.1.3
+   Compiling content_identity_core v0.1.0
+   Compiling secrecy v0.10.3
+   Compiling redb v4.2.0
+   Compiling memfd v0.6.5
+   Compiling atty v0.2.14
+   Compiling verus_builtin v0.0.0-2026-01-25-0057
+   Compiling cap-fs-ext v3.4.6
+    Checking genawaiter-macro v0.99.1
+   Compiling wasmtime_internal_component_macro v45.0.3
+   Compiling binary_merge v0.1.2
+    Checking base45 v3.2.0
+   Compiling build-script-build v0.30.1
+    Checking base-x v0.2.11
+    Checking   Compiling utf8parse v0.2.2
+ arraydeque v0.5.1
+   Compiling aliasable v0.1.3
+   Compiling wiggle-macro v45.0.3
+   Compiling vec_map v0.8.2
+   Compiling build-script-build v2.3.0
+   Compiling wit-bindgen-rust v0.46.0
+   Compiling malachite_float v0.9.2
+   Compiling build-script-build v0.31.3
+   Compiling build-script-build v4.2.0
+    Checking malachite v0.9.2
+    Checking ouroboros v0.18.5
+   Compiling ansi_term v0.12.1
+    Checking anstyle-parse v1.0.0
+   Compiling genawaiter_macro v0.99.1
+    Checking genawaiter v0.99.1
+   Compiling encoding_rs v0.8.35
+   Compiling hashbrown v0.12.3
+   Compiling base45 v3.2.0
+   Compiling build-script-build v3.4.6
+    Checking range-collections v0.4.6
+    Checking ssh-agent-lib v0.6.0
+   Compiling bitflags v1.3.2
+    Checking schema-identity-core v0.1.0 (https://seed.radicle.garden/z6gGpUJtzdVBCCtZTzh4cV1skv4H.git?rev=2562c8aa38a034061f9af9f3e17280494a5b8de2#2562c8aa)
+   Compiling arraydeque v0.5.1
+    Checking saphyr-parser v0.0.6
+   Compiling base_x v0.2.11
+    Checking multibase v0.9.3
+   Compiling irpc_derive v0.17.0
+    Checking irpc v0.17.0
+   Compiling strsim v0.8.0
+   Compiling ouroboros v0.18.5
+   Compiling malachite v0.9.2    Checking codespan v0.13.1
+
+    Checking logos v0.16.1
+   Compiling anstyle_parse v1.0.0
+    Checking rand_core v0.9.5
+    Checking kiln-provider-api v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling genawaiter v0.99.1
+   Compiling build-script-build v0.46.0
+    Checking kiln-codec v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling wit-component v0.239.0
+   Compiling indexmap v1.9.3
+   Compiling build-script-build v45.0.3
+    Checking dashmap v6.2.1
+   Compiling range_collections v0.4.6
+   Compiling multibase v0.9.3    Checking nickel-lang-vector v0.2.0
+
+   Compiling iroh v1.1.0
+   Compiling wit-bindgen-core v0.46.0
+   Compiling saphyr_parser v0.0.6
+   Compiling ssh_agent_lib v0.6.0
+   Compiling nickel-lang-core v0.18.0
+   Compiling schema_identity_core v0.1.0
+   Compiling logos v0.16.1    Checking chrono v0.4.45
+
+   Compiling rand_core v0.9.5
+   Compiling codespan v0.13.1
+    Checking toml_edit v0.24.1+spec-1.1.0
+    Checking iroh-io v0.6.2
+   Compiling verus_builtin_macros v0.0.0-2026-01-25-0057
+   Compiling kiln_codec v0.1.0
+   Compiling libsqlite3-sys v0.38.2
+   Compiling kiln_provider_api v0.1.0
+    Checking artifact-auth-core v0.1.0 (ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d)
+   Compiling verus_state_machines_macros v0.0.0-2026-01-25-0057
+   Compiling irpc v0.17.0
+    Checking md-5 v0.10.6
+   Compiling dashmap v6.2.1
+   Compiling nickel_lang_vector v0.2.0   Compiling snafu-derive v0.8.9
+
+   Compiling memoffset v0.9.1
+    Checking event-listener v5.4.2
+   Compiling wiggle-generate v45.0.3
+   Compiling clap v2.34.0
+   Compiling wit_bindgen_core v0.46.0
+    Checking castaway v0.2.4
+   Compiling build-script-build v0.18.0
+   Compiling serde_derive_internals v0.30.0
+   Compiling wasmtime_environ v45.0.3
+    Checking num-complex v0.4.6
+    Checking positioned-io v0.3.5
+   Compiling iroh_io v0.6.2
+   Compiling iroh-blobs v0.103.0
+   Compiling md5 v0.10.6
+   Compiling artifact_auth_core v0.1.0
+    Checking bitmaps v2.1.0
+    Checking   Compiling lalrpop_util v0.22.2
+ vte v0.14.1
+   Compiling bigdecimal v0.4.10
+   Compiling toml_edit v0.24.1+spec-1.1.0
+   Compiling build-script-build v0.38.2
+   Compiling im-rc v15.1.0
+   Compiling chrono v0.4.45
+    Checking anymap3 v1.1.0
+   Compiling prettyplease v0.2.37
+    Checking hex v0.4.3
+   Compiling event_listener v5.4.2
+    Checking self_cell v1.3.0
+   Compiling castaway v0.2.4
+    Checking anstyle v1.0.14
+   Compiling redb v2.6.3
+    Checking anstyle-query v1.1.5
+   Compiling positioned_io v0.3.5
+    Checking bs58 v0.5.1
+   Compiling wit-bindgen-rust-macro v0.46.0
+   Compiling num_complex v0.4.6
+   Compiling vstd v0.0.0-2026-01-25-0057   Compiling redb v3.1.3
+
+   Compiling anymap3 v1.1.0
+   Compiling vte v0.14.1
+    Checking is_terminal_polyfill v1.70.2
+   Compiling self_cell v1.3.0
+    Checking simple-counter v0.1.0
+    Checking unsafe-libyaml v0.2.11
+   Compiling serde_derive_internals v0.30.0
+   Compiling bitmaps v2.1.0
+   Compiling hex v0.4.3
+    Checking sized-chunks v0.6.5
+   Compiling wiggle_generate v45.0.3
+   Compiling build-script-build v0.103.0
+   Compiling schemars_derive v1.2.2
+   Compiling build-script-build v15.1.0
+    Checking bao-tree v0.16.1
+   Compiling anstyle_query v1.1.5    Checking strip-ansi-escapes v0.2.1
+
+   Compiling anstyle v1.0.14
+    Checking generic_singleton v0.5.3
+   Compiling build-script-build v0.4.10
+   Compiling bs58 v0.5.1
+    Checking verified-logic v0.2.0 (ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad9930)
+   Compiling syndicate v0.44.0-rc.4
+   Compiling syndicate_schema_plugin v0.12.0-rc.2
+    Checking num v0.4.3
+   Compiling wit_component v0.239.0
+    Checking compact_str v0.8.2
+   Compiling build-script-build v0.46.0
+   Compiling glob v0.3.4
+    Checking event-listener-strategy v0.5.4
+   Compiling simple_counter v0.1.0
+   Compiling is_terminal_polyfill v1.70.2
+    Checking anstream v1.0.0
+    Checking futures-concurrency v7.7.1
+   Compiling fixedbitset v0.5.7
+   Compiling build-script-build v3.1.3
+   Compiling sized_chunks v0.6.5
+   Compiling strip_ansi_escapes v0.2.1
+   Compiling generic_singleton v0.5.3
+    Checking lasso v0.7.3
+    Checking serde_yaml v0.9.34+deprecated
+   Compiling unsafe_libyaml v0.2.11
+   Compiling num v0.4.3
+    Checking rand_chacha v0.9.0
+   Compiling event_listener_strategy v0.5.4
+    Checking schema-migration-core v0.1.0 (https://seed.radicle.garden/z1C4YVMgDGyVdQa72uPNj3UDS5cY.git?rev=4fe90e130f2871cf69a6febcdc70785adca98aea#4fe90e13)
+    Checking radicle-crypto v0.19.0
+   Compiling bao_tree v0.16.1
+   Compiling compact_str v0.8.2    Checking iroh-util v0.6.0
+
+   Compiling snafu_derive v0.8.9
+    Checking snafu v0.8.9
+    Checking codegen v0.2.0
+   Compiling anstream v1.0.0
+   Compiling structopt v0.3.26
+   Compiling rand_chacha v0.9.0
+   Compiling lasso v0.7.3
+   Compiling nix v0.31.3
+    Checking iroh-tickets v1.0.0
+   Compiling snafu v0.8.9
+   Compiling cap_fs_ext v3.4.6
+    Checking kamacite-core v0.1.0 (ssh://git@github.com/OnixResearch/kamacite.git?rev=d76fe4abe543724d8fc0ac4b362187caf2e27622#d76fe4ab)
+   Compiling radicle_crypto v0.19.0
+   Compiling nested_enum_utils v0.2.3
+   Compiling build-script-build v0.44.0-rc.4
+    Checking tracing-log v0.2.0
+   Compiling schema_migration_core v0.1.0    Checking ordered-float v5.5.0
+
+   Compiling wit_bindgen_rust v0.46.0    Checking lattice-workflow-contract v0.1.0 (ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67)
+
+   Compiling codegen v0.2.0
+    Checking thin-vec v0.2.19
+    Checking sha-1 v0.10.1
+   Compiling icu_casemap_data v2.3.0
+   Compiling iroh_util v0.6.0    Checking reflink-copy v0.1.30
+
+    Checking   Compiling serde_yaml v0.9.34+deprecated matchers v0.2.0
+
+    Checking choregraph-history v0.1.0 (https://seed.radicle.garden/zL2ncTUeASVYwcoGkEXv9JKgGbAF.git?rev=b3e08e19750f53bdbcae970cdf58a47a791ed20b#b3e08e19)
+   Compiling wiggle_macro v45.0.3
+    Checking concurrent-queue v2.5.0
+   Compiling iroh_tickets v1.0.0
+    Checking   Compiling schemars_derive v1.2.2 sharded-slab v0.1.7
+
+    Checking rand_xoshiro v0.6.0
+   Compiling tracing_log v0.2.0
+   Compiling iroh-docs v0.101.0
+   Compiling nix v0.30.1
+   Compiling ordered_float v5.5.0
+    Checking json_scanner v0.1.0
+    Checking thread_local v1.1.10
+   Compiling reflink_copy v0.1.30
+   Compiling thin_vec v0.2.19
+   Compiling sha1 v0.10.1
+    Checking ucan-core v0.1.0 (ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad9930)
+   Compiling matchers v0.2.0
+   Compiling wit-bindgen v0.46.0
+   Compiling choregraph_history v0.1.0
+    Checking artifact-binding-core v0.1.0 (ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d)
+    Checking nu-ansi-term v0.50.3
+   Compiling lattice_workflow_contract v0.1.0
+   Compiling concurrent_queue v2.5.0
+    Checking bounded-exec-core v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+   Compiling indoc v2.0.7
+   Compiling json_scanner v0.1.0
+   Compiling rand_xoshiro v0.6.0   Compiling wasmparser v0.240.0
+
+   Compiling sharded_slab v0.1.7
+   Compiling ucan_core v0.1.0
+    Checking clap_lex v1.1.0
+   Compiling convert_case v0.4.0
+    Checking dyn-clone v1.0.20
+   Compiling thread_local v1.1.10
+   Compiling build-script-build v0.101.0
+   Compiling artifact_binding_core v0.1.0
+    Checking async-channel v2.5.0
+    Checking   Compiling nu_ansi_term v0.50.3 tracing-subscriber v0.3.23
+
+   Compiling bounded_exec_core v0.1.0
+    Checking bounded-exec v0.1.0 (https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git?rev=29dac88ecded94457572db3fdfaaaab95fa91525#29dac88e)
+   Compiling build-script-build v0.46.0
+    Checking lattice-workflow-transport v0.1.0 (ssh://git@github.com/OnixResearch/lattice.git?rev=70496e67c7fd4a8b05914161a8e09de2759bebc8#70496e67)
+   Compiling nested_enum_utils v0.2.3
+    Checking steel-parser v0.8.3
+   Compiling redb v4.2.0
+    Checking schemars v1.2.2
+   Compiling dyn_clone v1.0.20
+    Checking clap_builder v4.6.6
+   Compiling clap_lex v1.1.0
+   Compiling unicode_segmentation v1.13.3
+   Compiling build-script-build v0.240.0
+    Checking icu_casemap v2.3.0
+   Compiling async_channel v2.5.0
+    Checking steel-gen v0.8.3
+   Compiling bounded_exec v0.1.0
+   Compiling wasmtime v45.0.3
+    Checking wiggle v45.0.3
+    Checking wasmtime-wasi-io v45.0.3
+   Compiling futures_concurrency v7.7.1    Checking
+ iroh-gossip v0.101.0
+   Compiling lattice_workflow_transport v0.1.0
+    Checking rand v0.9.5
+   Compiling preserves_schema v6.0.0-rc.8
+    Checking preserves v4.996.0
+   Compiling indoc v2.0.7
+    Checking im-lists v0.12.2
+   Compiling im_rc v15.1.0
+   Compiling tracing_subscriber v0.3.23
+    Checking kiln-adapter-aspen v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling steel_gen v0.8.3
+    Checking cap-net-ext v3.4.6
+   Compiling steel_parser v0.8.3
+    Checking   Compiling icu_casemap v2.3.0
+   Compiling wiggle v45.0.3
+ cap-time-ext v3.4.6
+    Checking codespan-reporting v0.11.1
+   Compiling schemars v1.2.2
+    Checking tokio-util v0.6.10
+    Checking tracing-futures v0.2.5
+   Compiling rand v0.9.5
+    Checking steel-quickscope v0.3.3
+   Compiling im_lists v0.12.2
+   Compiling verified_logic v0.2.0
+    Checking ucan v0.1.0 (ssh://git@github.com/OnixResearch/ucan.git?rev=2aad993027d48ff148028c537cdaf91f6e5285ca#2aad9930)
+    Checking bincode v1.3.3
+   Compiling wasmtime_wasi_io v45.0.3
+    Checking serde-error v0.1.3
+   Compiling cap_net_ext v3.4.6
+   Compiling clap_builder v4.6.6
+    Checking nonempty v0.9.0
+   Compiling cap_time_ext v3.4.6
+    Checking blake2 v0.10.6
+   Compiling codespan_reporting v0.11.1
+    Checking radicle-git-metadata v0.2.1
+   Compiling tokio_util v0.6.10
+    Checking radicle-git-ref-format v0.2.0
+    Checking xattr v1.6.1
+   Compiling bigdecimal v0.4.10
+    Checking polling v3.11.0
+   Compiling preserves v4.996.0
+   Compiling clap_derive v4.6.4
+   Compiling tracing_futures v0.2.5
+   Compiling iroh_gossip v0.101.0
+   Compiling steel-derive v0.8.3
+   Compiling quickscope v0.3.3    Checking crossbeam-queue v0.3.13
+
+    Checking radicle-dag v0.10.0
+   Compiling serde_error v0.1.3
+    Checking which v8.0.6
+   Compiling nonempty v0.9.0
+   Compiling xattr v1.6.1
+    Checking filetime v0.2.29
+   Compiling blake2 v0.10.6
+    Checking iddqd v0.4.6
+    Checking shared_vector v0.4.5
+   Compiling radicle_git_metadata v0.2.1
+    Checking fallible-streaming-iterator v0.1.9
+   Compiling radicle_git_ref_format v0.2.0
+   Compiling kiln_adapter_aspen v0.1.0
+    Checking tai64 v4.1.0
+   Compiling polling v3.11.0    Checking weak-table v0.3.2
+
+   Compiling bincode v1.3.3
+    Checking fallible-iterator v0.3.0
+    Checking xdg v3.0.0
+   Compiling wit_bindgen_rust_macro v0.46.0
+   Compiling libsqlite3_sys v0.38.2
+    Checking env_home v0.1.0
+   Compiling ucan v0.1.0
+    Checking basalt v0.1.0 (ssh://git@github.com/OnixResearch/basalt.git?rev=d913dc01e765c9b297df5fcc57dfa06aac39bc74#d913dc01)
+   Compiling redb v3.1.3
+   Compiling crossbeam_queue v0.3.13
+    Checking cairn-core v0.1.0 (ssh://git@github.com/OnixResearch/cairn.git?rev=3b4c280b893f2709aebea21fc51a4f9eeba3fe3b#3b4c280b)
+   Compiling radicle_dag v0.10.0
+    Checking wasmtime-wasi v45.0.3
+   Compiling kamacite_core v0.1.0
+    Checking molten-core v0.1.0 (https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded2)
+   Compiling which v8.0.6
+    Checking kiln-adapter-lattice v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+    Checking tar v0.4.46
+   Compiling filetime v0.2.29
+   Compiling fallible_streaming_iterator v0.1.9
+   Compiling tai64 v4.1.0
+   Compiling shared_vector v0.4.5
+    Checking artifact-auth-ed25519 v0.1.0 (ssh://git@github.com/OnixResearch/onix-artifact.git?rev=c932138d880ddf4c2967f4c024b489b5c0022bf1#c932138d)
+   Compiling xdg v3.0.0
+    Checking chaoscontrol-snapshot-descriptor v0.1.0 (https://github.com/brittonr/chaoscontrol.git?rev=b8c440ea3b19df796542e58e8ee36200e1c3db85#b8c440ea)
+   Compiling env_home v0.1.0
+    Checking kiln-radicle-source-contract v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling fallible_iterator v0.3.0
+    Checking rusqlite v0.40.2
+   Compiling weak_table v0.3.2
+    Checking kiln-aspen-extension v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling wit_bindgen v0.46.0
+    Checking durable-file-publication v0.1.0 (https://seed.radicle.garden/z3tAR4For7qw8ZirkJzoDw1VNDDLM.git?rev=8e05e74e24b45f752d77145c4455385daaf6d6ab#8e05e74e)
+   Compiling basalt v0.1.0
+   Compiling iddqd v0.4.6
+    Checking valence-core v0.1.0 (ssh://git@github.com/OnixResearch/valence.git?rev=5f1c2ba5072c6f9622fa59b1af20502985f569fd#5f1c2ba5)
+   Compiling kiln_adapter_lattice v0.1.0
+   Compiling cairn_core v0.1.0
+   Compiling artifact_auth_ed25519 v0.1.0
+   Compiling kiln_radicle_source_contract v0.1.0
+   Compiling tar v0.4.46
+   Compiling clap_derive v4.6.4
+    Checking clap v4.6.6
+   Compiling kiln_aspen_extension v0.1.0
+   Compiling durable_file_publication v0.1.0
+   Compiling steel_derive v0.8.3
+    Checking steel-core v0.8.3
+   Compiling rusqlite v0.40.2
+   Compiling chaoscontrol_snapshot_descriptor v0.1.0
+   Compiling clap v4.6.6
+   Compiling iroh_blobs v0.103.0
+   Compiling molten_core v0.1.0    Checking molten-node-host v0.1.0 (https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded2)
+
+   Compiling libgit2_sys v0.18.8+1.9.7
+    Checking git2 v0.21.0
+   Compiling wasmparser v0.240.0
+   Compiling syndicate v0.44.0-rc.4
+   Compiling molten_node_host v0.1.0
+   Compiling valence_core v0.1.0
+   Compiling git2 v0.21.0
+    Checking radicle-oid v0.2.2
+   Compiling radicle_oid v0.2.2
+    Checking radicle-cob v0.21.1
+    Checking radicle-core v0.4.1
+   Compiling iroh_docs v0.101.0
+   Compiling radicle_core v0.4.1
+   Compiling radicle_cob v0.21.1
+    Checking kiln-adapter-radicle v0.1.0 (https://seed.radicle.garden/z2wsvXm5S2sJGvuV1k5JHiwi1PbKE.git?rev=69afc2697f4330005797256135ae81b2722a125c#69afc269)
+   Compiling steel v0.8.3
+   Compiling kiln_adapter_radicle v0.1.0
+   Compiling wasmtime_wasi v45.0.3
+   Compiling nickel_lang_parser v0.3.0
+   Compiling nickel_lang_core v0.18.0
+    Checking nickel-lang v2.2.0
+   Compiling nickel_lang v2.2.0
+    Checking molten v0.1.0 (https://github.com/brittonr/aspen.git?rev=22f8ded26ca1907c29948e08b53f35df23080733#22f8ded2)
+   Compiling molten v0.1.0
+    Checking kiln-aspen-host v0.1.0 (/home/brittonr/git/OnixResearch/kiln/runtime/kiln-aspen-host)
+warning: function `route_workflow` is 80 lines (limit: 70)
+   --> src/effect/workflow.rs:21:48
+    |
+ 21 |       ) -> FabricPortResult<WorkflowObservation> {
+    |  ________________________________________________^
+ 22 | |         let operation = self
+ 23 | |             .ledger
+ 24 | |             .lock()
+...   |
+103 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+    = note: `#[warn(tigerstyle::function_length)]` on by default
+
+warning: function `route_workflow` is 80 lines (limit: 70)
+   --> src/effect/workflow.rs:21:48
+    |
+ 21 |       ) -> FabricPortResult<WorkflowObservation> {
+    |  ________________________________________________^
+ 22 | |         let operation = self
+ 23 | |             .ledger
+ 24 | |             .lock()
+...   |
+103 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+    = note: `#[warn(tigerstyle::function_length)]` on by default
+
+warning: function `start` is 87 lines (limit: 70)
+   --> src/gossip/listener.rs:89:5
+    |
+ 89 | /     {
+ 90 | |         profile.admit()?;
+ 91 | |         let relays = profile
+ 92 | |             .relay_urls
+...   |
+176 | |         })
+177 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+
+warning: function `start` is 87 lines (limit: 70)
+   --> src/gossip/listener.rs:89:5
+    |
+ 89 | /     {
+ 90 | |         profile.admit()?;
+ 91 | |         let relays = profile
+ 92 | |             .relay_urls
+...   |
+176 | |         })
+177 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+
+warning: function `submit_inner` is 99 lines (limit: 70)
+   --> src/runtime/dispatch.rs:15:34
+    |
+ 15 |       ) -> ServiceTransportOutcome {
+    |  __________________________________^
+ 16 | |         if admit_ingress(&self.profile, ingress).is_err() {
+ 17 | |             return ServiceTransportOutcome::Malformed;
+...   |
+114 | |         terminal_outcome(ack)
+115 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+
+warning: function `submit_inner` is 99 lines (limit: 70)
+   --> src/runtime/dispatch.rs:15:34
+    |
+ 15 |       ) -> ServiceTransportOutcome {
+    |  __________________________________^
+ 16 | |         if admit_ingress(&self.profile, ingress).is_err() {
+ 17 | |             return ServiceTransportOutcome::Malformed;
+...   |
+114 | |         terminal_outcome(ack)
+115 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+
+warning: public callable `share` has a direct `bool` parameter; callers cannot see its domain meaning
+   --> src/docs/index.rs:218:44
+    |
+218 |     pub async fn share(&self, is_writable: bool) -> Result<DocTicket, CacheIndexError> {
+    |                                            ^^^^
+    |
+    = help: Tiger Style (Explicit Interfaces): use a domain enum, option record, typestate value, or nominal wrapper for ambiguous arguments; boolean returns, fields, and predicate values remain valid Example: pub fn deploy(mode: DeploymentMode, audit: AuditPolicy)
+    = note: see Tiger Style guide: Explicit Interfaces / Boolean API Modeling
+    = note: `#[warn(tigerstyle::raw_bool_parameter)]` on by default
+
+warning: public callable `share` has a direct `bool` parameter; callers cannot see its domain meaning
+   --> src/docs/index.rs:218:44
+    |
+218 |     pub async fn share(&self, is_writable: bool) -> Result<DocTicket, CacheIndexError> {
+    |                                            ^^^^
+    |
+    = help: Tiger Style (Explicit Interfaces): use a domain enum, option record, typestate value, or nominal wrapper for ambiguous arguments; boolean returns, fields, and predicate values remain valid Example: pub fn deploy(mode: DeploymentMode, audit: AuditPolicy)
+    = note: see Tiger Style guide: Explicit Interfaces / Boolean API Modeling
+    = note: `#[warn(tigerstyle::raw_bool_parameter)]` on by default
+
+   Compiling kiln_aspen_host v0.1.0
+   Compiling kiln_aspen_host v0.1.0
+warning: function `with_recovery` is 72 lines (limit: 70)
+   --> tests/hosted/process/lattice.rs:68:15
+    |
+ 68 |       ) -> Self {
+    |  _______________^
+ 69 | |         let listener = UnixListener::bind(&fixture.lattice_socket)
+ 70 | |             .unwrap_or_else(|_| unreachable!("fixture Lattice listener"));
+ 71 | |         listener
+...   |
+143 | |     }
+    | |_____^
+    |
+    = help: Tiger Style (Function Length): split long functions into named helpers at invariant or phase boundaries
+    = note: see Tiger Style guide: Function Length
+    = note: `#[warn(tigerstyle::function_length)]` on by default
+
+   Compiling kiln-aspen-host-extension-fixture v0.1.0
+   Compiling kiln-aspen-host-extension-fixture v0.1.0
+   Compiling docssynclive v0.1.0
+   Compiling durability v0.1.0
+   Compiling admission v0.1.0
+   Compiling gossiplive v0.1.0
+   Compiling kiln-aspen-host v0.1.0
+   Compiling kiln-aspen-host v0.1.0
+warning: private callable `with_recovery` has 2 direct `bool` parameters; positional flags are ambiguous
+  --> tests/hosted/process/lattice.rs:66:36
+   |
+66 |         disconnect_first_dispatch: bool,
+   |                                    ^^^^
+   |
+   = help: Tiger Style (Explicit Interfaces): use a domain enum, option record, typestate value, or nominal wrapper for ambiguous arguments; boolean returns, fields, and predicate values remain valid Example: pub fn deploy(mode: DeploymentMode, audit: AuditPolicy)
+   = note: see Tiger Style guide: Explicit Interfaces / Boolean API Modeling
+   = note: `#[warn(tigerstyle::raw_bool_parameter)]` on by default
+
+   Compiling hosted v0.1.0
+    Finished checking
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 58s
+--- octet summary ---
+Status: warning-only
+Findings: 6
+Warnings: 6
+Errors: 0
+Autofixable: 0
+Tool: cargo-octet 0.1.0
+Toolchain: nightly-2026-03-21-x86_64-unknown-linux-gnu
+Profile: workspace-metadata
+Config hash: b3:2cf0148be5dfd333e2f398d61ed569cdba1e71571458d99d9d1b0329e31c18be
+Profile hash: b3:f5e6581a35949f247ed098a60646d06fae679f067f3d7ffe2a3d138a1026534c
+
+By crate:
+  kiln_aspen_host        4
+  hosted                 2
+
+By effect:
+  resource        4
+  unknown         2
+
+By lint:
+  function_length           4
+  raw_bool_parameter        2
+
+Index:
+  F1  raw_bool_parameter kiln_aspen_host  src/docs/index.rs:218
+  F2  function_length    kiln_aspen_host  src/effect/workflow.rs:21
+  F3  function_length    kiln_aspen_host  src/gossip/listener.rs:89
+  F4  function_length    kiln_aspen_host  src/runtime/dispatch.rs:15
+  F5  raw_bool_parameter hosted           tests/hosted/process/lattice.rs:66
+  F6  function_length    hosted           tests/hosted/process/lattice.rs:68
+---
+[raw output: artifact://766]

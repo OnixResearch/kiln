@@ -489,3 +489,77 @@ fn bounded_runtime_preserves_timeout_and_cancellation() {
         CairnProcessOutput::Cancelled
     );
 }
+
+#[test]
+fn campaign_observations_bind_native_context_policy_and_executable() {
+    use crate::campaign::{CairnCampaignProfile, CairnCampaignReader};
+    use serde_json::{Value, json};
+
+    fn digest(byte: char) -> ContentId {
+        ContentId::from_blake3_hex(byte.to_string().repeat(IDENTITY_HEX_BYTES))
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    fn observations(instruction: &str) -> Value {
+        let policy = digest('a');
+        json!([
+            {"command":"change graph", "valid":true},
+            {"command":"workflow status", "change":"selected-change", "policy_hash":policy, "read_only":true, "artifacts":[{"id":"proposal"}]},
+            {"command":"workflow instructions", "change":"selected-change", "policy_hash":policy, "read_only":true, "artifact":{"artifact_id":"proposal", "instruction":instruction}},
+            {"schema":"cairn.readiness.v1", "scope":{"change":"selected-change", "policy_hash":policy}, "mutation_authorized":false},
+            {"command":"cairn implementation-ready", "schema":"cairn.implementation-ready.v1", "complete":true, "selection":[], "changes":[], "mcp":{"read_only":true, "destructive":false}}
+        ])
+    }
+
+    fn reader(observations: &Value, executable: char) -> CairnCampaignReader<FakeRuntime> {
+        let outputs = observations
+            .as_array()
+            .unwrap_or_else(|| unreachable!())
+            .iter()
+            .map(|value| CairnProcessOutput::Exited {
+                process_status: Some(0),
+                stdout: serde_json::to_vec(value).unwrap_or_else(|_| unreachable!()),
+                stderr: Vec::new(),
+            });
+        let mut runtime = FakeRuntime::with_outputs(outputs);
+        runtime.executable_identity = digest(executable);
+        CairnCampaignReader::new(
+            CairnCampaignProfile {
+                executable: PathBuf::from(
+                    "/nix/store/00000000000000000000000000000000-selected-cairn/bin/cairn",
+                ),
+                repository_root: PathBuf::from("/repository"),
+                policy_path: PathBuf::from("/repository/policy.json"),
+                executable_identity: digest('b'),
+                policy_identity: digest('a'),
+            },
+            runtime,
+        )
+        .unwrap_or_else(|_| unreachable!())
+    }
+
+    let initial = reader(&observations("original native instruction"), 'b')
+        .collect("selected-change")
+        .unwrap_or_else(|_| unreachable!());
+    let changed = reader(&observations("revised native instruction"), 'b')
+        .collect("selected-change")
+        .unwrap_or_else(|_| unreachable!());
+    assert_ne!(initial.context_identity, changed.context_identity);
+
+    for pointer in ["/1/policy_hash", "/2/policy_hash", "/3/scope/policy_hash"] {
+        let mut substituted = observations("original native instruction");
+        *substituted
+            .pointer_mut(pointer)
+            .unwrap_or_else(|| unreachable!()) = json!(digest('c'));
+        assert!(
+            reader(&substituted, 'b')
+                .collect("selected-change")
+                .is_err()
+        );
+    }
+    assert!(
+        reader(&observations("original native instruction"), 'c')
+            .collect("selected-change")
+            .is_err()
+    );
+}
