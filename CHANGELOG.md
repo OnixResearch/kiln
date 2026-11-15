@@ -195,6 +195,10 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Fixed
 
+- Bind required typed checks to the same selected exact project/scope CI run
+  used for review admission, rather than borrowing historical or unrelated
+  passes. Require terminal, successful counting evidence and display the actual
+  selected run. Monorepo typed requirements remain review-project scoped. (#64)
 - Keep verified content-index updates pending across equal `put_exact` retries
   until payload synchronization, exact replacement and parent synchronization
   complete. Persistent create/write/sync/rename faults cannot become a successful

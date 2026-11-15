@@ -578,7 +578,9 @@ pub struct Policy {
     /// items. Defaults to advisory; absence serializes unchanged.
     #[serde(default, skip_serializing_if = "AgentVotes::is_advisory")]
     pub agent_votes: AgentVotes,
-    /// Typed checks required on the exact winning CI run. Omitted preserves old bytes.
+    /// Typed checks required on this review project's selected exact CI run.
+    /// Other affected projects retain ordinary CI gates but cannot lend checks.
+    /// Omitted preserves old bytes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub required_checks: Vec<CheckRequirement>,
 }
@@ -1953,21 +1955,26 @@ fn checklist_at(
             (primary.or(first), all)
         }
     };
+    // r[impl kiln.review.checks]
+    // A policy's typed checks belong to the review project, including when a
+    // monorepo checklist displays another affected project's fallback run.
+    let typed_ci = latest.filter(|ci| ci.project == change.project);
     let checks_ok = policy.is_none_or(|policy| {
-        policy.required_checks.iter().all(|requirement| {
-            facts.ci.iter().any(|ci| {
-                ci.repository == change.repository
-                    && ci.revision == ci_commit
-                    && ci.checks.iter().any(|check| {
-                        check.kind == requirement.kind
-                            && check.outcome == "pass"
-                            && requirement
-                                .name
-                                .as_deref()
-                                .is_none_or(|name| check.name == name)
+        policy.required_checks.is_empty()
+            || typed_ci.is_some_and(|ci| {
+                ci.terminal
+                    && ci.satisfies_required()
+                    && policy.required_checks.iter().all(|requirement| {
+                        ci.checks.iter().any(|check| {
+                            check.kind == requirement.kind
+                                && check.outcome == "pass"
+                                && requirement
+                                    .name
+                                    .as_deref()
+                                    .is_none_or(|name| check.name == name)
+                        })
                     })
             })
-        })
     });
     let ci_ok = policy.is_some_and(|p| !p.require_ci || (required_ok && checks_ok));
     let dependencies_ok = dependency_valid(state, change, &change.dependencies).is_ok()
@@ -2196,7 +2203,22 @@ fn checklist_at(
         items.push(ChecklistItem {
             key: "checks".into(),
             satisfied: checks_ok,
-            detail: "required typed checks passed on the exact winning CI run".into(),
+            detail: typed_ci.map_or_else(
+                || {
+                    format!(
+                        "required typed checks unmet: no selected CI run for review project {}",
+                        change.project
+                    )
+                },
+                |ci| {
+                    format!(
+                        "required typed checks {} on selected CI run {} for review project {}",
+                        if checks_ok { "passed" } else { "unmet" },
+                        ci.run_id,
+                        change.project
+                    )
+                },
+            ),
         });
     }
     Ok(Checklist {
@@ -4839,6 +4861,191 @@ mod tests {
         ci.checks.first_mut().required()?.kind = "property".into();
         ci.revision = "other-commit".into();
         assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        integration_facts(&mut facts)?;
+        facts.ci.first_mut().required()?.revision = "merged-candidate".into();
+        assert!(evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        facts.integration.as_mut().required()?.candidate_commit =
+            "new-integration-candidate".into();
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        Ok(())
+    }
+
+    fn selected_typed_check_fixture() -> ReviewResult<(ReviewState, Facts)> {
+        let (mut state, mut facts) = setup()?;
+        facts.policy.as_mut().required()?.required_checks = vec![CheckRequirement {
+            kind: "property".into(),
+            name: Some("property-suite".into()),
+        }];
+        facts.ci.first_mut().required()?.checks = vec![CiCheck {
+            name: "property-suite".into(),
+            kind: "property".into(),
+            outcome: "pass".into(),
+            artifact_digest: None,
+        }];
+        vote(&mut state, &mut facts, "bob", VoteValue::Approve)?;
+        Ok((state, facts))
+    }
+
+    // r[verify kiln.review.checks]
+    #[test]
+    fn required_typed_checks_follow_the_latest_selected_run_and_actual_outcome() -> ReviewResult<()>
+    {
+        let (state, mut facts) = selected_typed_check_fixture()?;
+        assert!(checklist(&state, "c", &facts)?.ready);
+        let passing = facts.ci.first().required()?.clone();
+        facts.ci.push(CiFact {
+            run_id: "new-selected-run".into(),
+            ordinal: passing.ordinal + 1,
+            checks: Vec::new(),
+            ..passing.clone()
+        });
+        let current = checklist(&state, "c", &facts)?;
+        assert!(!evidence_item(&current, "checks")?);
+        assert!(!current.ready);
+        assert_eq!(current.ci_run.as_deref(), Some("new-selected-run"));
+        assert!(
+            current
+                .items
+                .iter()
+                .find(|item| item.key == "checks")
+                .required()?
+                .detail
+                .contains("new-selected-run")
+        );
+        for outcome in ["fail", "skipped", "cancelled", "unknown", ""] {
+            let mut check = passing.checks.first().required()?.clone();
+            check.outcome = outcome.into();
+            facts.ci.last_mut().required()?.checks = vec![check];
+            assert!(
+                !evidence_item(&checklist(&state, "c", &facts)?, "checks")?,
+                "outcome {outcome}"
+            );
+        }
+        facts.ci.last_mut().required()?.checks = passing.checks;
+        let current = checklist(&state, "c", &facts)?;
+        assert!(current.ready);
+        assert_eq!(current.ci_run.as_deref(), Some("new-selected-run"));
+        facts
+            .ci
+            .last_mut()
+            .required()?
+            .checks
+            .first_mut()
+            .required()?
+            .name = "other-suite".into();
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        Ok(())
+    }
+
+    // r[verify kiln.review.checks]
+    #[test]
+    fn required_typed_checks_reject_every_ineligible_fact_even_with_a_matching_pass()
+    -> ReviewResult<()> {
+        for variant in 0..10 {
+            let (state, mut facts) = selected_typed_check_fixture()?;
+            facts.ci_required = Some(vec![CiRequirement {
+                project: "project".into(),
+                scope_identity: Some("current-scope".into()),
+            }]);
+            facts.ci.first_mut().required()?.scope_identity = Some("current-scope".into());
+            let mut other = facts.ci.first().required()?.clone();
+            other.run_id = "matching-but-ineligible".into();
+            other.ordinal += 1;
+            facts.ci.first_mut().required()?.checks.clear();
+            match variant {
+                0 => other.project = "other-project".into(),
+                1 => other.scope_identity = Some("old-scope".into()),
+                2 => other.clean = false,
+                3 => other.full_run = false,
+                4 => other.run_id.clear(),
+                5 => other.success = false,
+                6 => other.terminal = false,
+                7 => {
+                    other.untrusted = Some(crate::untrusted::UntrustedSummary {
+                        state: crate::untrusted::UntrustedState::Approved,
+                        reason: crate::untrusted::UntrustedReason::Fork,
+                        pull_request: 7,
+                        head_repository: "outside/source".into(),
+                        source_commit: other.revision.clone(),
+                        approved_by: Some("Operator".into()),
+                        approved_by_id: Some("operator".into()),
+                        approved_commit: Some(other.revision.clone()),
+                        approved_at_ms: Some(1),
+                        counts_for_required_ci: false,
+                        superseded_by: None,
+                    });
+                }
+                8 => other.repository = "other-repository".into(),
+                _ => other.revision = "other-candidate".into(),
+            }
+            facts.ci.push(other);
+            assert!(
+                !evidence_item(&checklist(&state, "c", &facts)?, "checks")?,
+                "variant {variant}"
+            );
+        }
+        Ok(())
+    }
+
+    // r[verify kiln.review.checks]
+    #[test]
+    fn monorepo_typed_checks_belong_to_the_selected_review_project_and_scope() -> ReviewResult<()> {
+        let (state, mut facts) = selected_typed_check_fixture()?;
+        facts.ci.first_mut().required()?.scope_identity = Some("review-scope".into());
+        let primary = facts.ci.first().required()?.clone();
+        facts.ci_required = Some(vec![
+            CiRequirement {
+                project: "project".into(),
+                scope_identity: Some("review-scope".into()),
+            },
+            CiRequirement {
+                project: "api".into(),
+                scope_identity: Some("api-scope".into()),
+            },
+        ]);
+        facts.ci.push(CiFact {
+            project: "api".into(),
+            scope_identity: Some("api-scope".into()),
+            run_id: "api-selected-run".into(),
+            ordinal: primary.ordinal + 1,
+            checks: Vec::new(),
+            ..primary.clone()
+        });
+        let selected = checklist(&state, "c", &facts)?;
+        assert!(selected.ready);
+        assert_eq!(selected.ci_run.as_deref(), Some(primary.run_id.as_str()));
+        facts.ci.first_mut().required()?.checks.clear();
+        facts.ci.last_mut().required()?.checks = primary.checks.clone();
+        assert!(!evidence_item(&checklist(&state, "c", &facts)?, "checks")?);
+        facts.ci.first_mut().required()?.checks = primary.checks.clone();
+        facts
+            .ci_required
+            .as_mut()
+            .required()?
+            .first_mut()
+            .required()?
+            .scope_identity = Some("next-review-scope".into());
+        let stale = checklist(&state, "c", &facts)?;
+        assert!(!evidence_item(&stale, "checks")?);
+        assert_eq!(stale.ci_run.as_deref(), Some("api-selected-run"));
+        facts.ci.push(CiFact {
+            scope_identity: Some("next-review-scope".into()),
+            run_id: "current-review-run".into(),
+            ordinal: primary.ordinal + 2,
+            ..primary
+        });
+        let current = checklist(&state, "c", &facts)?;
+        assert!(current.ready);
+        assert_eq!(current.ci_run.as_deref(), Some("current-review-run"));
+        assert!(
+            current
+                .items
+                .iter()
+                .find(|item| item.key == "checks")
+                .required()?
+                .detail
+                .contains("current-review-run")
+        );
         Ok(())
     }
 

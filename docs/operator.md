@@ -4104,9 +4104,14 @@ identically by both shells and the dashboard as non-binding counts. Windows and
 view identities without advisory approvals are byte-identical to earlier ones.
 Each exact CI fact may also carry typed checks (`name`, `kind`, `outcome`,
 optional artifact digest) derived from the run's nodes and retained reports.
-Policies may require a known check kind or name; only a passing check on the
-exact winning commit satisfies it. Checks are evidence, not gate or release
-authority. Agent-opened threads are annotated `open`, `addressed`, `dismissed`,
+Policies may require a known check kind or name. These requirements belong to
+the review project and must pass on its ordinary policy-selected, successful
+terminal CI run for the exact reviewed/integration commit and current scope.
+Historical, dirty, partial, non-counting untrusted and other-project runs cannot
+lend a pass. In monorepos, other affected projects retain their independent CI
+requirements; a missing selected review-project run leaves typed checks unmet.
+The checklist names the actual selected typed run or explains its absence.
+Checks are evidence, not gate or release authority. Agent-opened threads are annotated `open`, `addressed`, `dismissed`,
 or `unknown`; addressed requires a later same-base revision whose exact hunk
 overlaps the anchor before resolution. A read-only window view is available at
 `GET /api/code-review/agent-thread-outcomes?start_ms=<ms>&end_ms=<ms>`.

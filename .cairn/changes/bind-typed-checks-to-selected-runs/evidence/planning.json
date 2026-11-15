@@ -1,0 +1,23 @@
+{
+  "schema": "kiln.typed-checks.planning.v1",
+  "issue": 64,
+  "gates": {
+    "proposal": {
+      "verdict": "PASS",
+      "input_hash": "7f68698af7679ed3a21eca10009a80848ff874749b3782cc15cb3f686479fa91",
+      "receipt_hash": "7ed0a15f99c3173a4d4876dcd4f9187db00250c62e075bb058e3a0306ac500f0"
+    },
+    "design": {
+      "verdict": "PASS",
+      "input_hash": "206f956dd5f318a859925d962a5fe079f70f5d9dc8ccd2e6acfdd849d8cf34ef",
+      "receipt_hash": "350668e534693e3f9a504ce2f4ff55004daefba05d04d0eed90f8483d98f22a5"
+    },
+    "tasks": {
+      "verdict": "PASS",
+      "input_hash": "eae9995107968c3aa32afcd1dc61109c00c5c6a09bfb7934e1ec0b8e48a387a0",
+      "receipt_hash": "117d37ab2a7f46257fb970b662acf03061995cea3be375bf3178db989d2f96d2"
+    }
+  },
+  "scope": "Selected review-project CI binding; no policy/checklist wire-shape change",
+  "authority": "Operator requested publication/deployment and continued issue completion; repair precedes activation"
+}

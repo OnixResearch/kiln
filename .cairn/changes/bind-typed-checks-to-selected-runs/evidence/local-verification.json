@@ -1,0 +1,47 @@
+{
+  "schema": "kiln.typed-checks.local-verification.v1",
+  "issue": 64,
+  "maintenance_owner": "Kiln change-review core and web-service maintainers",
+  "consumer": "Review checklist, candidate preparation and exact candidate revalidation",
+  "base_revision": "ed75b5933219176f6724d1276d9779645c4e3585",
+  "source": {
+    "path": "crates/kiln-core/src/change_review.rs",
+    "blake3": "7deb7291a060c50e31ff31c74e37b3eb61687674ebf0e5c07364c354ff92b222"
+  },
+  "mapping": "required_checks belongs to the review project and its ordinary policy-selected exact current-scope run; other affected projects retain ordinary CI gates but cannot lend typed evidence",
+  "checks": [
+    {
+      "command": "cargo +1.88.0 test --offline --locked -p onix-kiln-core --lib change_review",
+      "passed": 61,
+      "filtered": 209
+    },
+    {
+      "command": "cargo +1.88.0 clippy --offline --locked -p onix-kiln-core --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo +1.88.0 fmt --all --check",
+      "exit_code": 0
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "valid": true,
+      "changes": 24,
+      "receipt_hash": "966d433a1e0834bcfe3fa51a5968f2bca9e46c16a22d67eee25d8e2eb33a9b6a"
+    }
+  ],
+  "coverage": [
+    "newer selected run cannot inherit older pass",
+    "failed skipped cancelled unknown absent and wrong-name outcomes remain unmet",
+    "wrong project scope repository candidate dirty partial empty ID unsuccessful nonterminal and noncounting untrusted facts cannot discharge checks",
+    "positive current selected pass and explicit multi-project mapping",
+    "integration candidate and current scope movement invalidate applicable evidence",
+    "checklist reports the actual selected typed run"
+  ],
+  "frozen_package_and_activation": "pending source freeze and rooted immutable package build",
+  "non_claims": [
+    "Not proof-artifact verification, provider truth, merge authority or release qualification",
+    "Existing default traceability and release-readiness holds are not waived",
+    "No activation has occurred; the initial unrooted ed75b593 build output was unavailable before its preflight could execute"
+  ]
+}
