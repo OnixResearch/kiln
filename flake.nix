@@ -299,6 +299,10 @@
             "--example"
             "explore"
           ];
+          # The base postInstall ships the web service's implementation-campaign
+          # drive profile; the synthetic explorer has no use for it, and two
+          # profile packages cannot provide the same file.
+          postInstall = "";
           installPhase = ''
             runHook preInstall
             install -Dm755 target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/examples/explore \
