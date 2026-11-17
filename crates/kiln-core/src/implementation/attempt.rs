@@ -584,6 +584,7 @@ impl AttemptLedger {
             &[AttemptPhase::Claimed, AttemptPhase::Executing],
         )?;
         workflow.validate()?;
+        self.refuse_crossed_run(identity, workflow)?;
         let attempt = self.attempt_mut(identity)?;
         if attempt.dispatch.is_none() {
             return Err(refusal(
@@ -627,6 +628,7 @@ impl AttemptLedger {
             &[AttemptPhase::Claimed, AttemptPhase::Executing],
         )?;
         observed.validate()?;
+        self.refuse_crossed_run(identity, observed)?;
         let attempt = self.attempt_mut(identity)?;
         if attempt.dispatch.is_none() {
             return Err(refusal(
@@ -648,6 +650,23 @@ impl AttemptLedger {
                 "reconciliation observed a different workflow execution",
             )),
         }
+    }
+
+    /// A provider workflow execution identity binds at most one attempt.
+    // r[impl kiln.implementation.execution_identity]
+    fn refuse_crossed_run(&self, identity: &ContentId, run: &ExternalRef) -> CoreResult<()> {
+        if self
+            .attempts
+            .values()
+            .any(|attempt| attempt.identity != *identity && attempt.workflow.as_ref() == Some(run))
+        {
+            return Err(refusal(
+                "implementation_dispatch_crossed",
+                "attempt.workflow",
+                "the workflow run is already recorded on another attempt",
+            ));
+        }
+        Ok(())
     }
 
     /// Admit one complete candidate handoff and freeze it on the attempt.
@@ -1449,8 +1468,9 @@ fn refusal(code: &str, field: &str, message: &str) -> Diagnostic {
 mod tests {
     use super::*;
     use crate::implementation::{
-        AcceptanceObligation, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, SourceRef,
-        TerminalPolicy, WorkBudget, WorkSourceKind,
+        AcceptanceObligation, CANDIDATE_HANDOFF_SCHEMA, CandidateEvidence, CandidateHandoff,
+        EvidenceKind, EvidenceOutcome, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, SourceRef,
+        TerminalPolicy, WorkBudget, WorkSourceKind, acceptance_digest,
     };
     use alloc::collections::BTreeSet;
     use alloc::vec;
@@ -1837,6 +1857,285 @@ mod tests {
                 attempt.fence
             )
             .unwrap_or_else(|_| unreachable!())
+        );
+    }
+
+    /// Claim, reserve and acknowledge one attempt executing `run`.
+    fn executing(
+        ledger: &mut AttemptLedger,
+        work: &ImplementationWork,
+        now_ms: u64,
+        lease_ms: u64,
+        run: &str,
+    ) -> ImplementationAttempt {
+        let attempt = ledger
+            .claim(work, now_ms, lease_ms)
+            .unwrap_or_else(|_| unreachable!());
+        ledger
+            .reserve_dispatch(
+                &attempt.identity,
+                attempt.fence,
+                now_ms,
+                &plan(),
+                &provider(),
+            )
+            .unwrap_or_else(|_| unreachable!());
+        ledger
+            .start_execution(
+                &attempt.identity,
+                attempt.fence,
+                now_ms,
+                &reference("run", run),
+            )
+            .unwrap_or_else(|_| unreachable!());
+        attempt
+    }
+
+    /// A handoff the attempt would admit while it is current and executing.
+    fn handoff_for(work: &ImplementationWork, attempt: &ImplementationAttempt) -> CandidateHandoff {
+        CandidateHandoff {
+            schema: CANDIDATE_HANDOFF_SCHEMA.to_string(),
+            work_identity: attempt.work_identity.clone(),
+            work_revision: attempt.work_revision,
+            attempt_identity: attempt.identity.clone(),
+            fence: attempt.fence,
+            repository: work.repository.clone(),
+            base: work.base.clone(),
+            candidate: reference("commit", "candidate"),
+            tree: reference("tree", "tree"),
+            changed_paths: vec!["crates/src/lib.rs".to_string()],
+            acceptance_digest: acceptance_digest(work).unwrap_or_else(|_| unreachable!()),
+            verification_profile: work.verification_profile.clone(),
+            toolchain: content('7'),
+            environment: content('8'),
+            evidence: vec![CandidateEvidence {
+                identity: content('e'),
+                kind: EvidenceKind::Check,
+                outcome: EvidenceOutcome::Passed,
+                reference: reference("run", "candidate-check"),
+            }],
+        }
+    }
+
+    /// The ledger as the durable store restores it.
+    fn restored(ledger: &AttemptLedger) -> AttemptLedger {
+        let bytes = serde_json::to_vec(ledger).unwrap_or_else(|_| unreachable!());
+        serde_json::from_slice(&bytes).unwrap_or_else(|_| unreachable!())
+    }
+
+    fn code<T>(result: CoreResult<T>) -> String {
+        result.err().map(|error| error.code).unwrap_or_default()
+    }
+
+    // r[verify kiln.implementation.execution_identity.scenario.late] r[verify kiln.implementation.unknown_barrier] r[verify kiln.implementation.attempt_states.scenario.cancel]
+    #[test]
+    fn late_callbacks_after_cancellation_never_attach_or_resurrect() {
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = executing(&mut ledger, &work, 0, DEFAULT_LEASE_MS, "worker");
+        let handoff = handoff_for(&work, &attempt);
+        ledger
+            .cancel(&attempt.identity, attempt.fence, 1, "operator cancelled")
+            .unwrap_or_else(|_| unreachable!());
+        let cancelled = ledger
+            .get(&attempt.identity)
+            .cloned()
+            .unwrap_or_else(|| unreachable!());
+        // The cancellation request does not prove the provider stopped.
+        assert_eq!(
+            (cancelled.phase, cancelled.failure),
+            (AttemptPhase::Cancelled, Some(FailureClass::Unknown))
+        );
+        // Each callback twice, with a restore between every pair.
+        for _ in 0..2 {
+            ledger = restored(&ledger);
+            assert_eq!(
+                code(ledger.admit_candidate_handoff(
+                    &work,
+                    &attempt.identity,
+                    attempt.fence,
+                    2,
+                    &handoff
+                )),
+                "implementation_fence_stale"
+            );
+            ledger = restored(&ledger);
+            assert!(
+                ledger
+                    .start_execution(
+                        &attempt.identity,
+                        attempt.fence,
+                        2,
+                        &reference("run", "worker")
+                    )
+                    .is_err()
+            );
+            assert!(
+                ledger
+                    .fail(
+                        &attempt.identity,
+                        attempt.fence,
+                        2,
+                        FailureClass::Implementation,
+                        "late exit"
+                    )
+                    .is_err()
+            );
+            assert!(
+                ledger
+                    .cancel(&attempt.identity, attempt.fence, 2, "repeated cancel")
+                    .is_err()
+            );
+            assert_eq!(ledger.get(&attempt.identity), Some(&cancelled));
+            assert_eq!(ledger.attempts().count(), 1);
+        }
+        assert!(
+            ledger
+                .authorize_publication(&attempt.identity, attempt.fence)
+                .is_err()
+        );
+        // No callback settles the unknown outcome; only an observed termination does.
+        assert_eq!(
+            code(ledger.claim(&work, 3, DEFAULT_LEASE_MS)),
+            "implementation_reconciliation_required"
+        );
+        ledger
+            .reconcile_unknown(
+                &attempt.identity,
+                attempt.fence,
+                &reference("termination", "stopped"),
+            )
+            .unwrap_or_else(|_| unreachable!());
+        let next = ledger
+            .claim(&work, 4, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        // Refused callbacks spent no attempt budget.
+        assert_eq!(next.ordinal, 2);
+    }
+
+    // r[verify kiln.implementation.execution_identity] r[verify kiln.implementation.execution_identity.scenario.crossed] r[verify kiln.implementation.fencing.scenario.stale]
+    #[test]
+    fn predecessor_callbacks_never_settle_or_feed_the_replacement() {
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let lease_ms = 100;
+        let old = executing(&mut ledger, &work, 0, lease_ms, "old-run");
+        let old_handoff = handoff_for(&work, &old);
+        ledger.expire(lease_ms).unwrap_or_else(|_| unreachable!());
+        let new = ledger
+            .claim(&work, lease_ms, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(new.fence > old.fence);
+        ledger
+            .reserve_dispatch(&new.identity, new.fence, lease_ms, &plan(), &provider())
+            .unwrap_or_else(|_| unreachable!());
+        let old_before = ledger.get(&old.identity).cloned();
+        let new_before = ledger.get(&new.identity).cloned();
+
+        // The predecessor's own late callbacks are refused.
+        ledger = restored(&ledger);
+        assert!(
+            ledger
+                .admit_candidate_handoff(&work, &old.identity, old.fence, 101, &old_handoff)
+                .is_err()
+        );
+        assert!(
+            ledger
+                .start_execution(&old.identity, old.fence, 101, &reference("run", "old-run"))
+                .is_err()
+        );
+        assert!(
+            ledger
+                .fail(
+                    &old.identity,
+                    old.fence,
+                    101,
+                    FailureClass::Implementation,
+                    "late exit"
+                )
+                .is_err()
+        );
+        assert!(
+            ledger
+                .cancel(&old.identity, old.fence, 101, "late cancel")
+                .is_err()
+        );
+
+        // Its run cannot become the replacement's execution.
+        ledger = restored(&ledger);
+        assert_eq!(
+            code(ledger.start_execution(
+                &new.identity,
+                new.fence,
+                102,
+                &reference("run", "old-run")
+            )),
+            "implementation_dispatch_crossed"
+        );
+        ledger = restored(&ledger);
+        assert_eq!(
+            code(ledger.reconcile_dispatch(
+                &new.identity,
+                new.fence,
+                102,
+                &reference("run", "old-run")
+            )),
+            "implementation_dispatch_crossed"
+        );
+        assert_eq!(ledger.get(&old.identity).cloned(), old_before);
+        assert_eq!(ledger.get(&new.identity).cloned(), new_before);
+        assert!(ledger.is_current(&new.identity, new.fence, 102));
+
+        // The replacement's own execution proceeds; the predecessor's candidate cannot attach.
+        ledger
+            .start_execution(&new.identity, new.fence, 103, &reference("run", "new-run"))
+            .unwrap_or_else(|_| unreachable!());
+        assert!(
+            ledger
+                .admit_candidate_handoff(&work, &new.identity, new.fence, 104, &old_handoff)
+                .is_err()
+        );
+        assert!(
+            ledger
+                .admit_candidate_handoff(
+                    &work,
+                    &new.identity,
+                    new.fence,
+                    104,
+                    &handoff_for(&work, &new)
+                )
+                .is_ok()
+        );
+        assert_eq!(ledger.get(&old.identity).cloned(), old_before);
+    }
+
+    // r[verify kiln.implementation.execution_identity.scenario.late]
+    #[test]
+    fn callbacks_for_an_unadmitted_attempt_create_nothing() {
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let real = executing(&mut ledger, &work, 0, DEFAULT_LEASE_MS, "worker");
+        let before = serde_json::to_vec(&ledger).unwrap_or_else(|_| unreachable!());
+        let absent = content('7');
+        let mut forged = handoff_for(&work, &real);
+        forged.attempt_identity = absent.clone();
+        let codes = vec![
+            code(ledger.start_execution(&absent, real.fence, 1, &reference("run", "ghost"))),
+            code(ledger.reconcile_dispatch(&absent, real.fence, 1, &reference("run", "ghost"))),
+            code(ledger.admit_candidate_handoff(&work, &absent, real.fence, 1, &forged)),
+            code(ledger.fail(&absent, real.fence, 1, FailureClass::Implementation, "exit")),
+            code(ledger.cancel(&absent, real.fence, 1, "cancel")),
+            code(ledger.reconcile_unknown(&absent, real.fence, &reference("termination", "ghost"))),
+        ];
+        assert!(
+            codes
+                .iter()
+                .all(|code| code == "implementation_attempt_missing"),
+            "{codes:?}"
+        );
+        assert_eq!(
+            serde_json::to_vec(&ledger).unwrap_or_else(|_| unreachable!()),
+            before
         );
     }
 }

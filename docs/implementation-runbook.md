@@ -71,6 +71,24 @@ Native output retains `artifacts.raw_events`, `artifacts.omp_observation`, envel
 
 `kiln-implementer recover` reports expiry and pending reconciliation, always with `project_complete:false`. `reconcile-termination` accepts an explicit operator/provider termination-reference observation; a timeout or missing process is not such evidence. Expired/cancelled/replaced fences cannot accept later candidates.
 
+### Worker completion and cancellation races
+
+<!-- r[related kiln.implementation.execution_identity] -->
+Every worker callback carries the attempt identity and fence and is checked against the current ledger. A provider run identity binds at most one attempt: acknowledging or reconciling a run that another attempt already records is refused with `implementation_dispatch_crossed`, so a predecessor's run cannot become its replacement's execution. Deterministic fixtures cover the #45 race matrix; `crates/kiln-core/src/implementation/attempt.rs` holds the pure ledger cases and `crates/kiln-implementer/tests/durable.rs` the store across restart.
+
+| Case | Fixture |
+| --- | --- |
+| Cancellation, then a late candidate, acknowledgement, exit or repeated cancellation | `late_callbacks_after_cancellation_never_attach_or_resurrect`; `cancel_before_late_completion_requires_observed_termination_across_restart` |
+| Completion, then a late cancellation | `completion_before_cancel_retains_exact_evidence_across_restart` |
+| Repeated callbacks with the ledger restored between each pair | Both cancellation fixtures above |
+| Predecessor callbacks after a replacement starts, including its run label | `predecessor_callbacks_never_settle_or_feed_the_replacement`; `abort_active_replaced_and_expired_fences_never_resolve_history`; `cancelled_and_superseded_attempts_lose_unexpired_authority_atomically` |
+| A callback for an attempt that was never admitted | `callbacks_for_an_unadmitted_attempt_create_nothing` |
+| A lost acknowledgement recovers the original effect and attempt | `ambiguous_dispatch_reconciles_one_execution_without_redispatch`; `dispatch_reconciliation_survives_restart_without_duplicate_execution`; `possible_dispatch_requires_recovery_and_unknown_retry_is_fenced` |
+| Cancellation request, acknowledgement and observed termination stay distinct | `late_callbacks_after_cancellation_never_attach_or_resurrect`; `possible_dispatch_requires_recovery_and_unknown_retry_is_fenced` |
+| The same races through an assembled provider | Not run: needs the Lattice implementation route (Lattice #6/#7) and deployment qualification (#49) |
+
+None of these fixtures is a provider observation. Refused callbacks create no attempt and spend no attempt budget; an unknown outcome stays unknown until `reconcile-termination` records an observed termination.
+
 ## Host-derived Git acquisition and canonical verification
 
 The worker's file-map snapshot is not a Git commit. The trusted acquisition consumer independently recomputes native base/candidate/diff identities, complete changed paths, file modes and allowed edits, then writes a real Git object candidate in the trusted acquisition repository:

@@ -341,6 +341,14 @@ entry describes the source tree prepared for the first tagged release.
   `campaign_decision_scope_changed`. The same scope rule already admitted the
   request; an answer for a superseded candidate could previously resolve its
   successor's review. (#86; core and SQLite store tests)
+- Refuse a worker acknowledgement or dispatch reconciliation whose provider run
+  is already recorded on another attempt, with `implementation_dispatch_crossed`.
+  A replacement attempt could previously adopt its predecessor's run as its own
+  execution. Fixtures now cover the rest of the #45 race matrix: late callbacks
+  after cancellation, predecessor callbacks after a replacement and callbacks for
+  attempts that were never admitted, restoring the ledger between callbacks; the
+  implementation runbook maps every case to its fixture. (#45; pure ledger
+  fixtures; no assembled provider race)
 - Keep verified content-index updates pending across equal `put_exact` retries
   until payload synchronization, exact replacement and parent synchronization
   complete. Persistent create/write/sync/rename faults cannot become a successful

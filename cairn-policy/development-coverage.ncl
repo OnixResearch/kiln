@@ -18,6 +18,7 @@ let ActiveRoots = [
   ".cairn/changes/benchmark-artifact-readiness/specs/artifact-readiness/spec.md",
   ".cairn/changes/evaluate-parallel-frontend-builds/specs/parallel-frontend-evaluation/spec.md",
   ".cairn/changes/add-cairn-workspace/specs/cairn-workspace/spec.md",
+  ".cairn/changes/fence-crossed-worker-callbacks/specs/implementation-work/spec.md",
 ]
 in
 let Active =
