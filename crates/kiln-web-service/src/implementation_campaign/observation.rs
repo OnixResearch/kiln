@@ -312,6 +312,8 @@ pub(super) fn refresh(
         observation.dependency_reason = None;
         observation.recovery = None;
         observation.cancelled = false;
+        // A completion-only member's adopted canonical evidence, bound below.
+        let mut adopted: Option<super::adoption::Adopted> = None;
         if outcome == "source_moved" {
             observation.stage = MemberStage::Blocked;
             observation.blockers.push("native Git source moved without an exact qualified integrated/captured candidate receipt".into());
@@ -426,6 +428,44 @@ pub(super) fn refresh(
             } else {
                 observation.stage =
                     stage_for_tasks(change, &tasks, works, outcome, snapshot, &mut observation)?;
+                // r[impl kiln.implementation.campaign.adoption]
+                if outcome == "completion_only" {
+                    let units = required_native_units(snapshot, change, &tasks)?;
+                    let evidence = super::adoption::unit_evidence(
+                        &canonical_ledgers,
+                        &initial.contract.repository,
+                        &units,
+                        |attempt| {
+                            route_integration(
+                                profile,
+                                &canonical_ledgers,
+                                &mut implementer,
+                                attempt,
+                            )
+                        },
+                    )?;
+                    let decision = match super::adoption::TargetHistory::open(
+                        &source_repository,
+                        current_source.native_id.as_str(),
+                        change,
+                    ) {
+                        Ok(target) => super::adoption::decide(&evidence, &target),
+                        Err(error) => super::adoption::Adoption::Blocked(error),
+                    };
+                    match decision {
+                        super::adoption::Adoption::Adopted { binding } => {
+                            let binding = super::adoption::Adopted::new(&evidence, binding)?;
+                            binding.identify(&mut observation);
+                            observation.stage = MemberStage::Integrated;
+                            adopted = Some(binding);
+                        }
+                        super::adoption::Adoption::Blocked(reason) => {
+                            observation.blockers.push(format!(
+                                "native Cairn reports completion-only and no implementation unit may be scheduled; adoption refused: {reason}"
+                            ));
+                        }
+                    }
+                }
             }
         } else {
             observation.enumeration = EnumerationState::Invalid;
@@ -496,8 +536,14 @@ pub(super) fn refresh(
                 binding.goal,
             ));
         }
+        if let Some(adopted) = &adopted {
+            adopted.bind(&mut observation, &binding.required_checks);
+        }
+        // Adoption is not source progress from this campaign's own integration.
         if let Some(effect) = source_advance_effect.as_ref().filter(|_| {
-            old_work != observation.work_identity && observation.work_identity.is_some()
+            adopted.is_none()
+                && old_work != observation.work_identity
+                && observation.work_identity.is_some()
         }) {
             store.observe_successor(campaign_id, next_version, observation, effect)?;
         } else {
@@ -943,9 +989,7 @@ fn stage_for_tasks(
         return Ok(MemberStage::Ready);
     }
     if outcome == "completion_only" {
-        observation.blockers.push(
-            "native Cairn reports completion-only; no implementation unit may be scheduled".into(),
-        );
+        // Native observation decides whether existing evidence is adopted.
         return Ok(MemberStage::Blocked);
     }
     if outcome == "incomplete_limit" {
@@ -1314,6 +1358,62 @@ fn integrated_successor_permitted(
         }
     }
     Ok(None)
+}
+
+/// The integration of exactly `attempt` through the selected delivery route,
+/// bound to its work identity, revision, attempt and fence.
+fn route_integration(
+    profile: &ImplementationCampaignDriveProfile,
+    ledgers: &kiln_implementer::campaign_consumer::CanonicalCampaignLedgers,
+    implementer: &mut kiln_implementer::Implementer,
+    attempt: &kiln_core::implementation::ImplementationAttempt,
+) -> Result<Option<super::adoption::Integration>, String> {
+    match profile.delivery.route {
+        super::delivery::NativeDeliveryRoute::NativeGit => {
+            let Some(receipt) = implementer.native_git_receipt(&attempt.identity)? else {
+                return Ok(None);
+            };
+            if receipt.work_identity != attempt.work_identity
+                || receipt.work_revision != attempt.work_revision
+                || receipt.attempt != attempt.identity
+                || receipt.fence != attempt.fence
+            {
+                return Ok(None);
+            }
+            let Some(evidence) = super::delivery::native_git_evidence(
+                profile,
+                &attempt.identity,
+                attempt.fence,
+                &attempt.work_identity,
+            ) else {
+                return Ok(None);
+            };
+            Ok(Some(super::adoption::Integration {
+                commit: receipt.resulting_commit.native_id.as_str().to_owned(),
+                evidence,
+            }))
+        }
+        super::delivery::NativeDeliveryRoute::GithubPullRequest => {
+            let Some(receipt) = work_publication_integration(ledgers, &attempt.identity) else {
+                return Ok(None);
+            };
+            if receipt.work_identity != attempt.work_identity
+                || receipt.work_revision != attempt.work_revision
+                || receipt.attempt != attempt.identity
+                || receipt.fence != attempt.fence
+            {
+                return Ok(None);
+            }
+            let record = attempt
+                .publication
+                .as_ref()
+                .ok_or("integrated attempt lost its publication record")?;
+            Ok(Some(super::adoption::Integration {
+                commit: receipt.merge_commit.native_id.as_str().to_owned(),
+                evidence: hash(&serde_json::to_vec(record).map_err(text)?)?,
+            }))
+        }
+    }
 }
 
 fn work_publication_integration<'a>(

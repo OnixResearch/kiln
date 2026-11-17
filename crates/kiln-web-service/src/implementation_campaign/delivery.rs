@@ -1399,7 +1399,7 @@ fn github_lifecycle_evidence(
     super::id(blake3::hash(&bytes).to_hex().as_str()).ok()
 }
 
-fn native_git_evidence(
+pub(super) fn native_git_evidence(
     profile: &super::ImplementationCampaignDriveProfile,
     attempt: &ContentId,
     fence: u64,

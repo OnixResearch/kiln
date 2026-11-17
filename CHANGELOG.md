@@ -294,6 +294,16 @@ entry describes the source tree prepared for the first tagged release.
   failed attempt, its dependent, a superseded attempt with a stale campaign
   binding and a completion-only member. (#84; unit, snapshot-store, Node and
   browser checks over the synthetic exploration workspace; no live campaign)
+- Adopt already implemented work for a freshly selected completion-only Cairn
+  change instead of blocking it. Every required native unit needs current
+  canonical work whose latest attempt is verified with exactly one passing
+  authoritative Cairn completion check and integrated through the selected
+  route for that exact work, attempt and fence; the integrated result must be
+  contained in the current target with the change source unchanged since. The
+  member then binds the attempt whose result contains the others at its
+  integrated stage, so the existing lifecycle step can run without a claim or
+  coding dispatch. Each missing or stale fact stays a named blocker. (#47; pure
+  decision, ledger extraction and local Git fixtures; no live campaign)
 
 ### Fixed
 

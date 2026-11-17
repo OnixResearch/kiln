@@ -202,6 +202,19 @@ its new identity; unrelated source, policy or decision-context drift requires
 explicit replan. Pause/cancel closes new work and decision-request admission;
 retained uncertain effects still reconcile and do not prove provider cleanup.
 
+<!-- r[related kiln.implementation.campaign.adoption] -->
+When native Cairn reports a selected change as completion-only, no coding work
+is scheduled. The member adopts canonical evidence only when every required
+native unit's current work has a latest attempt bound to it, independently
+verified with exactly one passing `cairn-authoritative-completion` check, and
+integrated through the selected route for that exact work, attempt and fence.
+The integrated result must be contained in the current target, and the
+change's `.cairn/changes/<change>` tree must be identical at that result and at
+the target. The member then binds the attempt whose integrated result contains
+every other, at its integrated stage, and the existing lifecycle step follows.
+Any missing or stale fact keeps the member blocked with a reason naming it; a
+change implemented outside Kiln, or only partly through it, stays blocked.
+
 <!-- r[related kiln.implementation.campaign.independent_progress] -->
 Selection evaluates every member. A required review, missing required context,
 stale input, replan, unobserved or unsupported delivery capability or missing

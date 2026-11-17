@@ -31,6 +31,7 @@ use kiln_implementer::{
 };
 use serde::{Deserialize, Serialize};
 
+mod adoption;
 mod binding;
 mod context;
 mod continuation;
