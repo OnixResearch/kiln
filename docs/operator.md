@@ -4751,3 +4751,62 @@ Worker capability, execution capacity, model admission and aggregate-budget
 exhaustion require their own current owner observations; absent evidence must not
 be interpreted as a free slot or exhausted budget. Inventory source failures
 remain independent and are not used to hide campaign data.
+
+### Campaign controls and decision inbox
+
+<!-- r[related kiln.implementation.campaign.controls] -->
+Campaign controls are optional. Export a profile from
+`config/web-campaign-controls.ncl` (positive and negative inputs are under
+`config/fixtures/*web-campaign-controls-*.ncl`) and pass it to both `check` and
+`serve`:
+
+```text
+kiln-web-service serve --profile SERVICE --implementation-work DATABASE --campaign-controls CONTROLS
+```
+
+The profile names the campaign database, which must be the same file as
+`--implementation-work`, so the console controls exactly what it displays. It
+grants exact principals (never wildcards) a set of campaigns, a subset of the
+commands `start`, `continue`, `pause`, `cancel`, `issue_decision` and
+`resolve_decision`, optional review roles and an optional `not_after_ms`
+expiry. It also lists definitions: frozen `CampaignContract` JSON files, each
+with its delivery route (`github_pull_request` or `native_git`). The service
+rereads the profile for every control request, so removing a grant or letting
+it expire takes effect on the next request without a restart. An unreadable or
+invalid profile refuses every control with `campaign_controls_unavailable`.
+
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/api/implementation/campaign-definitions` | GET | Start previews: exact members, tasks, prerequisite inclusion, workflow profile, policy, repository instructions, goals, required checks and reviews, parent budget, the goals the route offers, any existing campaign and why a start is refused |
+| `/api/implementation/campaigns/inbox?campaign=ID` | GET | Admission state, store version, the caller's open operations and every decision with category, state, question, options, recommendation, bound scope, scope freshness and the caller's actions |
+| `/api/implementation/campaigns/commands` | POST | One typed intent with a client `request_id`, bound to the displayed `expected_version` or, for `start`, a `definition_identity` |
+
+Viewers read previews and the inbox but get no operations. Worker principals
+are refused all three routes. Operators act only within their current grant;
+answering a required review also needs one of the member's review roles. Every
+403 joins the existing denial audit and never reaches the campaign owner.
+
+The canonical owner applies each command and records it, with its actor and
+outcome, in the campaign database in one transaction. Resubmitting the same
+request ID with the same intent returns the recorded outcome with
+`replayed: true`, including after a service restart; reusing a request ID for
+another intent or principal is `campaign_request_conflict`. A stale version,
+a changed definition, an answer whose member moved to another work, policy or
+candidate, a closed admission or a full decision bound returns 409 and applies
+nothing. A start only creates the exact previewed selection: a definition
+whose identity changed since its preview, or that lists a goal its delivery
+route does not offer, is refused, and an existing campaign is never joined.
+
+Pause stops successor admission and decision issuance; continue reopens it;
+cancel closes the campaign permanently. None of them stops running attempts or
+workers, observes cleanup or refunds usage, and retained effects still
+reconcile. Accepted answers and continued admission wake the campaign
+continuation.
+
+In the console, the Workers page's campaign card shows admission controls and
+the decision inbox below the projection, and **Start a configured campaign**
+lists previews. Only listed operations appear. Cancel needs an explicit
+confirmation. Each submission carries the displayed store version and a fresh
+request ID. After a lost response, **Retry the same request** resends that ID,
+so the owner returns the recorded outcome instead of applying the command
+twice. A 409 reports that nothing was applied and reloads the current state.

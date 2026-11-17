@@ -266,6 +266,20 @@ entry describes the source tree prepared for the first tagged release.
   (another winner or a busy repository writer, now typed `writer_busy`) waits
   for capacity. (#87; unit and scripted-owner fixtures; no live campaign or
   supervisor deployment)
+- Operate selected campaigns from the console. With `serve --campaign-controls`,
+  a Nickel-checked profile grants exact principals campaigns, commands, review
+  roles and an optional expiry, and lists frozen campaign definitions with
+  their delivery route. The Workers campaign card shows start previews (exact
+  members, goals, checks, reviews, policies and the goals the route offers),
+  admission controls and a decision inbox with answer forms. The canonical
+  owner applies each command and records its request ID, actor and outcome in
+  the campaign database in one transaction, so a retry after a lost response
+  returns the recorded outcome instead of applying twice. Stale versions,
+  changed definitions and changed decision scope return refreshable conflicts;
+  missing, narrower or expired grants and the wrong review audience are
+  refused and audited before the owner is reached. The campaign operator gains
+  `pause`. (#86; unit, scripted-store, Node and browser checks over the
+  synthetic exploration workspace; no live campaign)
 
 ### Fixed
 
@@ -308,6 +322,11 @@ entry describes the source tree prepared for the first tagged release.
 - Open the synthetic exploration campaign from its catalog link. The link used a
   `campaign` parameter, but the Workers page restores `worker_campaign`, so the
   example opened without a campaign loaded. (browser-checked locally)
+- Refuse a campaign decision answer once the member's current work, policy or
+  candidate no longer matches the decision, with
+  `campaign_decision_scope_changed`. The same scope rule already admitted the
+  request; an answer for a superseded candidate could previously resolve its
+  successor's review. (#86; core and SQLite store tests)
 - Keep verified content-index updates pending across equal `put_exact` retries
   until payload synchronization, exact replacement and parent synchronization
   complete. Persistent create/write/sync/rename faults cannot become a successful

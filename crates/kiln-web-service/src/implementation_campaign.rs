@@ -39,6 +39,7 @@ mod observation;
 mod workspace;
 
 pub use continuation::{continue_cli_args, wake_cli_args};
+pub(crate) use delivery::{NativeDeliveryRoute, route_supports_goal};
 
 const MAX_VERIFICATION_ROUTES: usize = 64;
 const MAX_DRIVE_OPERATIONS: u32 = 128;

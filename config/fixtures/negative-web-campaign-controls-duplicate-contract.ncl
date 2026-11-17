@@ -1,0 +1,1 @@
+(import "../web-campaign-controls.ncl") ((import "web-campaign-controls-inputs.ncl") & { definitions | force = [{ contract = "/etc/kiln/a.json", delivery_route = "native_git" }, { contract = "/etc/kiln/a.json", delivery_route = "github_pull_request" }] })

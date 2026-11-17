@@ -23,7 +23,7 @@ pub(super) struct NativeDeliveryProfile {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub(super) enum NativeDeliveryRoute {
+pub(crate) enum NativeDeliveryRoute {
     GithubPullRequest,
     NativeGit,
 }
@@ -348,7 +348,7 @@ pub(super) fn consume(
         }
     }
 }
-pub(super) fn route_supports_goal(
+pub(crate) fn route_supports_goal(
     route: NativeDeliveryRoute,
     goal: kiln_core::implementation::campaign::CompletionGoal,
 ) -> bool {

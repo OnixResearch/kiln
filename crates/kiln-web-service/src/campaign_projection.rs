@@ -81,7 +81,7 @@ pub struct MemberProjection {
     pub selection_hold: Option<CampaignDecision>,
 }
 
-fn identify(state: &CampaignState, version: u64) -> Result<String, String> {
+pub(crate) fn identify(state: &CampaignState, version: u64) -> Result<String, String> {
     let bytes = serde_json::to_vec(&(state, version))
         .map_err(|_| "campaign_projection_encoding_invalid")?;
     Ok(blake3::hash(&bytes).to_hex().to_string())

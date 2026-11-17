@@ -132,6 +132,241 @@
     ]));
     return page;
   }
+  // r[impl kiln.implementation.campaign.controls.scenario.console]
+  // Controls render only what the service lists for this principal; the
+  // canonical owner still decides every command.
+  const INBOX_SCHEMA = "kiln.campaign-inbox.v1";
+  const DEFINITIONS_SCHEMA = "kiln.campaign-definitions.v1";
+  const COMMANDS_ROUTE = "/api/implementation/campaigns/commands";
+  const HEX = /^[a-f0-9]{64}$/;
+  const MAX_DEFINITIONS = 64;
+  const ADMISSION = Object.freeze({
+    open: "Open: the canonical owner admits successor work and decision issuance.",
+    paused: "Paused: no successor admission or decision issuance. Running attempts and workers continue, and retained effects still reconcile.",
+    cancelled: "Cancelled: permanently closed. This does not observe worker termination, provider cleanup or refunded usage.",
+  });
+  const CONTROL_LABELS = Object.freeze({ continue: "Continue admission", pause: "Pause successor admission", cancel: "Cancel campaign" });
+  const SCOPE = Object.freeze({
+    current: "Current: the member's work, policy and candidate still match this decision.",
+    changed: "Changed: the member moved on since this decision was asked; it cannot be answered here.",
+    member_unobserved: "Member unobserved: the scope cannot be checked, so no answer is offered.",
+  });
+  const REFUSALS = Object.freeze({
+    start_not_granted: "no current start grant for this principal",
+    campaign_exists: "the campaign already exists; a changed selection needs an explicit owner revision",
+    endpoint_unsupported: "a member's completion goal is not offered by the delivery route",
+  });
+  const nullableHex = (v) => v === null || HEX.test(v);
+  function validateInbox(value) {
+    if (!record(value) || value.schema !== INBOX_SCHEMA || typeof value.campaign_id !== "string" || value.campaign_id.length > 256
+      || !Number.isSafeInteger(value.store_version) || value.store_version < 0 || !HEX.test(value.campaign_identity)
+      || !Object.hasOwn(ADMISSION, value.admission) || !Array.isArray(value.operations) || value.operations.length > 6
+      || value.operations.some((op) => typeof op !== "string") || !Array.isArray(value.decisions) || value.decisions.length > MAX_ITEMS
+      || !Array.isArray(value.non_claims)) throw new Error("Campaign inbox is invalid; no control is offered.");
+    for (const decision of value.decisions) {
+      if (!record(decision) || !HEX.test(decision.identity) || typeof decision.member !== "string" || typeof decision.question !== "string"
+        || !Array.isArray(decision.options) || decision.options.some((option) => typeof option !== "string")
+        || !Array.isArray(decision.actions) || decision.actions.some((action) => action !== "resolve" && action !== "issue")
+        || !HEX.test(decision.policy_identity) || !nullableHex(decision.work_identity) || !nullableHex(decision.candidate_identity)
+        || !Object.hasOwn(SCOPE, decision.scope) || !Array.isArray(decision.review_roles)) throw new Error("Campaign decision is invalid; no answer is offered.");
+    }
+    return value;
+  }
+  function validateDefinitions(value) {
+    if (!record(value) || value.schema !== DEFINITIONS_SCHEMA || !Array.isArray(value.definitions) || value.definitions.length > MAX_DEFINITIONS
+      || value.definitions.some((d) => !record(d) || !HEX.test(d.definition_identity) || typeof d.campaign_id !== "string"
+        || !Array.isArray(d.members) || !Array.isArray(d.offered_goals) || typeof d.can_start !== "boolean" || !Array.isArray(d.refusals))) {
+      throw new Error("Campaign definitions are invalid; no start is offered.");
+    }
+    return value;
+  }
+  // Retained buttons follow their own enablement rule after a command settles.
+  function controlButton(label, allowed = () => true) {
+    const button = element("button", label); button.type = "button"; button.allowed = allowed;
+    return button;
+  }
+  function decisionArticle(inbox, decision, send, buttons) {
+    const article = element("article", undefined, "inventory-row campaign-decision");
+    article.append(element("h4", `${text(decision.category).replaceAll("_", " ")} · ${text(decision.state)}`), element("p", decision.question),
+      facts([["Member", decision.member], ["Options", decision.options.join(", ")], ["Recommendation", decision.recommendation ?? "None supplied"],
+        ["Scope", SCOPE[decision.scope]], ["Bound work / policy / candidate", `${decision.work_identity ?? "no work binding"} / ${decision.policy_identity} / ${decision.candidate_identity ?? "no candidate binding"}`],
+        ["Priority / created", `${number(decision.priority)} / ${number(decision.created_ms)} ms`], ["Queue note", decision.pending_reason ?? "None"],
+        ["Resolved answer", decision.resolved_answer ?? "Not resolved"], ["Required review roles", decision.review_roles.length ? decision.review_roles.join(", ") : "None declared"]]));
+    const binding = { campaign_id: inbox.campaign_id, expected_version: inbox.store_version, decision_identity: decision.identity };
+    if (decision.actions.includes("resolve")) {
+      const form = element("form", undefined, "campaign-decision-answer");
+      const fieldset = element("fieldset"); fieldset.append(element("legend", "Answer this decision"));
+      const radios = decision.options.map((option) => {
+        const input = element("input"); Object.assign(input, { type: "radio", name: `answer-${decision.identity}`, value: option });
+        const label = element("label"); label.append(input, element("span", option));
+        fieldset.append(label);
+        return input;
+      });
+      const submit = controlButton("Submit answer"); submit.type = "submit"; buttons.push(submit);
+      const note = element("p", undefined, "small"); note.setAttribute("role", "status");
+      form.append(fieldset, submit, note);
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const chosen = radios.find((input) => input.checked);
+        if (!chosen) { note.textContent = "Choose one of the declared options."; return; }
+        send({ command: "resolve_decision", ...binding, work_identity: decision.work_identity, policy_identity: decision.policy_identity, candidate_identity: decision.candidate_identity, answer: chosen.value });
+      });
+      article.append(form);
+    }
+    if (decision.actions.includes("issue")) {
+      const issue = controlButton("Issue to reviewers"); buttons.push(issue);
+      issue.addEventListener("click", () => send({ command: "issue_decision", ...binding }));
+      article.append(issue);
+    }
+    return article;
+  }
+  function renderControls(value, send) {
+    const inbox = validateInbox(value);
+    const buttons = [];
+    const panel = element("section", undefined, "panel inventory-section campaign-controls");
+    const heading = element("h3", "Campaign controls and decision inbox"); heading.tabIndex = -1;
+    panel.append(heading, facts([["Admission", ADMISSION[inbox.admission]], ["Store version each command expects", number(inbox.store_version)],
+      ["Principal", inbox.principal], ["Grant expiry", Number.isSafeInteger(inbox.grant_expires_at_ms) ? `${number(inbox.grant_expires_at_ms)} ms` : "No expiry recorded or no grant"]]));
+    const operations = inbox.operations.filter((operation) => Object.hasOwn(CONTROL_LABELS, operation));
+    if (operations.length) {
+      const controls = element("div", undefined, "campaign-control-actions");
+      for (const operation of operations) {
+        let allowed = () => true;
+        if (operation === "cancel") {
+          const confirm = element("input"); confirm.type = "checkbox";
+          const label = element("label"); label.append(confirm, element("span", "I understand cancellation is permanent and does not stop running workers."));
+          allowed = () => confirm.checked;
+          controls.append(label);
+          confirm.addEventListener("change", () => { button.disabled = !allowed(); });
+        }
+        const button = controlButton(CONTROL_LABELS[operation], allowed); button.dataset.campaignCommand = operation;
+        button.disabled = !allowed(); buttons.push(button);
+        button.addEventListener("click", () => send({ command: operation, campaign_id: inbox.campaign_id, expected_version: inbox.store_version }));
+        controls.append(button);
+      }
+      panel.append(controls);
+    } else panel.append(element("p", "No admission control is open to this principal in the current state.", "small"));
+    const decisions = element("div", undefined, "campaign-decisions");
+    for (const decision of inbox.decisions) decisions.append(decisionArticle(inbox, decision, send, buttons));
+    if (!inbox.decisions.length) decisions.append(element("p", "No decision requests are retained for this campaign.", "small"));
+    panel.append(element("h4", "Decision inbox"), decisions, details("What these controls do not do", inbox.non_claims));
+    panel.controlButtons = buttons;
+    return panel;
+  }
+  function renderDefinitions(value, send) {
+    const listing = validateDefinitions(value);
+    const buttons = [];
+    const panel = element("section", undefined, "panel inventory-section campaign-definitions");
+    const heading = element("h3", "Configured campaign definitions"); heading.tabIndex = -1;
+    panel.append(heading, element("p", "Each preview is a frozen selection. Starting it creates exactly that selection through the canonical owner; a preview grants no claim, dispatch or completion.", "small"));
+    if (!listing.definitions.length) panel.append(element("p", "No campaign definitions are configured for this service.", "small"));
+    for (const definition of listing.definitions) {
+      const article = element("article", undefined, "inventory-row campaign-definition");
+      const existing = definition.existing ? `Started at store version ${number(definition.existing.store_version)}; ${definition.existing.same_selection ? "same selection" : "a different selection"}` : "Not started";
+      article.append(element("h4", `${definition.campaign_id} · revision ${number(definition.revision)}`),
+        facts([["Definition identity", definition.definition_identity], ["Repository", definition.repository], ["Delivery route", definition.delivery_route],
+          ["Completion goals this route offers", definition.offered_goals.join(", ")], ["Concurrency / outstanding decisions", `${number(definition.max_concurrency)} / ${number(definition.max_outstanding_decisions)}`],
+          ["Parent budget", definition.parent_budget_id], ["Agent definition", definition.agent_definition], ["Campaign", existing]]));
+      const members = element("ul", undefined, "inventory-blockers");
+      for (const member of definition.members) {
+        const required = (values) => values.length ? values.join(", ") : "none required";
+        members.append(element("li", `${text(member.member)} · goal ${text(member.goal)}${member.goal_supported ? "" : " (not offered by this route)"} · profile ${text(member.profile)} · prerequisites ${member.prerequisite_inclusion ? "included" : "excluded"} · checks ${required(member.required_checks)} · reviews ${required(member.required_reviews)}`));
+      }
+      article.append(members, details("Exact member bindings: workflow profile, policy, repository instructions, integration policy and context", definition.members));
+      if (definition.refusals.length) article.append(element("p", `Cannot start: ${definition.refusals.map((code) => REFUSALS[code] || text(code)).join("; ")}.`, "small"));
+      if (definition.can_start) {
+        const start = controlButton("Start this exact selection"); buttons.push(start);
+        start.addEventListener("click", () => send({ command: "start", definition_identity: definition.definition_identity }));
+        article.append(start);
+      }
+      panel.append(article);
+    }
+    panel.controlButtons = buttons;
+    return panel;
+  }
+  function newRequestId() {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    return `console-${[...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  }
+  // One submission at a time. A lost response keeps its request ID so a retry
+  // reconciles the same owner operation instead of applying a new one.
+  function commandRunner(ctx, ui, newId = newRequestId) {
+    let pending = null;
+    const lock = (busy) => { for (const button of ui.buttons()) button.disabled = busy || !button.allowed(); };
+    async function send(intent, requestId) {
+      if (pending?.inFlight) return;
+      pending = { intent, requestId, inFlight: true };
+      ui.retry.hidden = true; lock(true);
+      ui.status.textContent = `Sending ${text(intent.command).replaceAll("_", " ")} (request ${requestId})…`;
+      try {
+        const result = await ctx.api(COMMANDS_ROUTE, { method: "POST", body: { ...intent, request_id: requestId } });
+        pending = null;
+        ui.status.textContent = `${result.replayed ? "Already applied" : "Applied"}: ${text(result.command).replaceAll("_", " ")} at store version ${number(result.store_version)}; admission ${text(result.admission)}. Request ${text(result.request_id)}.`;
+        ui.applied(result, ui.status.textContent);
+      } catch (error) {
+        if (error?.name === "AbortError") { pending = null; return; }
+        if (error?.status === 409) {
+          pending = null;
+          ui.status.textContent = `${text(error.message)} Nothing was applied; the current state was reloaded.`;
+          ui.reload(ui.status.textContent);
+        } else if ([400, 403, 404].includes(error?.status)) {
+          pending = null;
+          ui.status.textContent = `${text(error.message)} Nothing was applied.`;
+        } else {
+          pending = { intent, requestId, inFlight: false };
+          ui.status.textContent = `No confirmed response for request ${requestId}; the command may have applied. Retry sends the same request ID, so the owner returns the recorded outcome instead of applying it twice.`;
+          ui.retry.hidden = false;
+        }
+      } finally { if (!pending?.inFlight) lock(false); }
+    }
+    ui.retry.addEventListener("click", () => { if (pending && !pending.inFlight) void send(pending.intent, pending.requestId); });
+    return { start: (intent) => send(intent, newId()) };
+  }
+  // `notice` carries the last outcome across the reload that replaces this UI.
+  function runnerUi(panel, reload, applied, notice = "") {
+    const status = element("p", notice || undefined, "small campaign-command-status"); status.setAttribute("role", "status");
+    const retry = element("button", "Retry the same request", "campaign-command-retry"); retry.type = "button"; retry.hidden = true;
+    return { status, retry, reload, applied, buttons: () => panel.current?.controlButtons || [] };
+  }
+  let definitionsGeneration = 0;
+  let definitionsMounted = null;
+  function controlsUnavailable(error, subject) {
+    const configured = !(error?.status === 503 && text(error?.message).startsWith("campaign_controls_not_configured"));
+    return element("p", configured ? `${subject} unavailable: ${text(error?.message)} No control is offered.` : "Campaign controls are not configured for this service; the campaign projection is read-only.", "small");
+  }
+  async function loadControls(holder, ctx, campaignId, live, reload, newId, notice) {
+    holder.replaceChildren(element("p", "Reading campaign controls…", "small"));
+    try {
+      const inbox = await ctx.api(`/api/implementation/campaigns/inbox?campaign=${encodeURIComponent(campaignId)}`);
+      if (!live()) return;
+      const panel = {};
+      const ui = runnerUi(panel, reload, (result, message) => reload(message), notice);
+      const runner = commandRunner(ctx, ui, newId);
+      panel.current = renderControls(inbox, runner.start);
+      holder.replaceChildren(panel.current, ui.status, ui.retry);
+    } catch (error) {
+      if (!live() || error?.name === "AbortError") return;
+      holder.replaceChildren(controlsUnavailable(error, "Campaign controls"));
+    }
+  }
+  async function loadDefinitions(root, ctx, onStarted, newId = newRequestId, notice = "") {
+    const current = ++definitionsGeneration; definitionsMounted = root;
+    const live = () => definitionsGeneration === current && root.isConnected && ctx.isCurrent();
+    root.setAttribute("aria-busy", "true");
+    try {
+      const listing = await ctx.api("/api/implementation/campaign-definitions");
+      if (!live()) return;
+      const panel = {};
+      const ui = runnerUi(panel, (message) => { if (live()) void loadDefinitions(root, ctx, onStarted, newId, message); }, (result) => onStarted(result.campaign_id), notice);
+      const runner = commandRunner(ctx, ui, newId);
+      panel.current = renderDefinitions(listing, runner.start);
+      root.replaceChildren(panel.current, ui.status, ui.retry);
+    } catch (error) {
+      if (!live() || error?.name === "AbortError") return;
+      root.replaceChildren(controlsUnavailable(error, "Campaign definitions"));
+    } finally { if (live()) root.removeAttribute("aria-busy"); }
+  }
   function render(projection) {
     validate(projection);
     const snapshot = projection.snapshot;
@@ -196,9 +431,10 @@
   let campaignGeneration = 0;
   let campaignMounted = null;
   function clear() {
-    generation += 1; campaignGeneration += 1;
+    generation += 1; campaignGeneration += 1; definitionsGeneration += 1;
     mounted?.replaceChildren(); mounted?.removeAttribute("aria-busy"); mounted = null; selectedWork = "";
     campaignMounted?.replaceChildren(); campaignMounted?.removeAttribute("aria-busy"); campaignMounted = null;
+    definitionsMounted?.replaceChildren(); definitionsMounted?.removeAttribute("aria-busy"); definitionsMounted = null;
   }
   async function load(root, ctx, work = selectedWork) {
     const current = ++generation; mounted = root; selectedWork = work;
@@ -227,14 +463,17 @@
       panel.append(retry); root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
-  async function loadCampaign(root, ctx, campaignId) {
+  async function loadCampaign(root, ctx, campaignId, newId = newRequestId, notice = "") {
     const current = ++campaignGeneration; campaignMounted = root;
     root.setAttribute("aria-busy", "true");
     const live = () => campaignGeneration === current && root.isConnected && ctx.isCurrent();
     try {
       const projection = validateCampaign(await ctx.api(`/api/implementation/campaigns?campaign=${encodeURIComponent(campaignId)}`));
       if (!live()) return;
-      root.replaceChildren(renderCampaign(projection));
+      const holder = element("div", undefined, "campaign-controls-root");
+      root.replaceChildren(renderCampaign(projection), holder);
+      // The inbox has its own failure boundary; the projection stays read-only without it.
+      void loadControls(holder, ctx, campaignId, live, (message) => { if (live()) void loadCampaign(root, ctx, campaignId, newId, message); }, newId, notice);
     } catch (error) {
       if (!live() || error?.name === "AbortError") return;
       const panel = element("section", undefined, "panel inventory-unavailable");
@@ -242,5 +481,5 @@
       root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
-  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, load, loadCampaign, clear });
+  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, load, loadCampaign, loadDefinitions, clear });
 })();

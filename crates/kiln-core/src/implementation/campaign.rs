@@ -843,6 +843,25 @@ impl CampaignState {
         retained.insert(context.context_identity.clone(), context);
         Ok(())
     }
+    /// Whether a decision request still names the member's current scope: the
+    /// member is observed under the same policy, and any bound work and
+    /// candidate are the observed work and part of the observed evidence.
+    #[must_use]
+    pub fn decision_in_current_scope(&self, request: &HumanDecisionRequest) -> bool {
+        self.observations
+            .get(&member_key(&request.member))
+            .is_some_and(|o| {
+                o.policy_identity == request.policy_identity
+                    && request
+                        .work_identity
+                        .as_ref()
+                        .is_none_or(|id| o.work_identity.as_ref() == Some(id))
+                    && request
+                        .candidate_identity
+                        .as_ref()
+                        .is_none_or(|id| o.evidence.contains(id))
+            })
+    }
     pub fn add_decision(&mut self, request: HumanDecisionRequest) -> CoreResult<()> {
         if request.question.trim().is_empty()
             || request.question.len() > 1_024
@@ -857,20 +876,7 @@ impl CampaignState {
                 .pending_reason
                 .as_ref()
                 .is_some_and(|v| v.len() > 512)
-            || !self
-                .observations
-                .get(&member_key(&request.member))
-                .is_some_and(|o| {
-                    o.policy_identity == request.policy_identity
-                        && request
-                            .work_identity
-                            .as_ref()
-                            .is_none_or(|id| o.work_identity.as_ref() == Some(id))
-                        && request
-                            .candidate_identity
-                            .as_ref()
-                            .is_none_or(|id| o.evidence.contains(id))
-                })
+            || !self.decision_in_current_scope(&request)
         {
             return Err(refusal(
                 "campaign_decision_scope",
@@ -959,6 +965,10 @@ impl CampaignState {
         candidate: Option<&ContentId>,
         answer: &str,
     ) -> CoreResult<()> {
+        let in_scope = self
+            .decisions
+            .get(identity)
+            .is_some_and(|request| self.decision_in_current_scope(request));
         let request = self.decisions.get_mut(identity).ok_or_else(|| {
             refusal(
                 "campaign_decision_unknown",
@@ -976,6 +986,13 @@ impl CampaignState {
                 "campaign_decision_stale",
                 "decision",
                 "response is stale, wrong-scope, or not one of the declared options",
+            ));
+        }
+        if !in_scope {
+            return Err(refusal(
+                "campaign_decision_scope_changed",
+                "decision",
+                "the member's current work, policy or candidate no longer matches this decision",
             ));
         }
         request.resolved_answer = Some(answer.to_string());
@@ -2684,6 +2701,65 @@ mod tests {
         awaiting.required_reviews_satisfied = true;
         state.observe(awaiting).unwrap_or_else(|_| unreachable!());
         assert_selected(&state.evaluate(), CampaignOperation::Publish, &a);
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.controls.scenario.decisions]
+    fn an_answer_for_a_superseded_candidate_or_policy_is_refused() {
+        let (mut state, [a, _, _]) = awaiting_review("change-a", "change-b", "change-c");
+        let review = digest('e');
+        let work = observed(&state, &a).work_identity.clone();
+        let policy = observed(&state, &a).policy_identity.clone();
+        let candidate = digest('c');
+        let request = state
+            .decisions
+            .get(&review)
+            .cloned()
+            .unwrap_or_else(|| unreachable!("retained review"));
+        assert!(state.decision_in_current_scope(&request));
+
+        let mut successor = verified_candidate(&a);
+        successor.required_reviews_satisfied = false;
+        successor.evidence = vec![digest('d')];
+        state
+            .observe(successor.clone())
+            .unwrap_or_else(|_| unreachable!());
+        assert!(!state.decision_in_current_scope(&request));
+        let refused = state
+            .resolve_decision(&review, work.as_ref(), &policy, Some(&candidate), "approve")
+            .err()
+            .unwrap_or_else(|| unreachable!("answer for a superseded candidate accepted"));
+        assert_eq!(refused.code, "campaign_decision_scope_changed");
+        assert_eq!(
+            state.decisions.get(&review).map(|request| &request.state),
+            Some(&DecisionRequestState::Outstanding)
+        );
+
+        let mut drifted = state.clone();
+        let mut repolicied = verified_candidate(&a);
+        repolicied.required_reviews_satisfied = false;
+        repolicied.policy_identity = digest('f');
+        drifted
+            .observe(repolicied)
+            .unwrap_or_else(|_| unreachable!());
+        successor.evidence = vec![candidate.clone()];
+        assert_eq!(
+            drifted
+                .resolve_decision(&review, work.as_ref(), &policy, Some(&candidate), "approve")
+                .err()
+                .map(|refused| refused.code),
+            Some("campaign_decision_scope_changed".into())
+        );
+
+        // The candidate under review is current again.
+        state.observe(successor).unwrap_or_else(|_| unreachable!());
+        state
+            .resolve_decision(&review, work.as_ref(), &policy, Some(&candidate), "approve")
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            state.decisions.get(&review).map(|request| &request.state),
+            Some(&DecisionRequestState::Resolved)
+        );
     }
 
     #[test]

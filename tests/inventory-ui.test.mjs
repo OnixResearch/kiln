@@ -200,3 +200,138 @@ test("resource and campaign loads finish independently when both are deferred", 
   assert.equal(resourceRoot.children.length, 0);
   assert.equal(campaignRoot.children.length, 0);
 });
+
+const HEX_A = "a".repeat(64);
+function inboxFixture(overrides = {}) {
+  const decision = (identity, category, state, scope, actions) => ({
+    identity: identity.repeat(64), member: "change-a/*", category, state, question: "Approve <b>the candidate</b>?", options: ["approve", "reject"],
+    recommendation: "approve", work_identity: HEX_A, policy_identity: HEX_A, candidate_identity: "c".repeat(64), decision_revision: null,
+    priority: 1, created_ms: 1, pending_reason: null, resolved_answer: null, active_effort_ms: null, scope,
+    review_roles: category === "required_review" ? ["maintainer"] : [], actions,
+  });
+  return {
+    schema: "kiln.campaign-inbox.v1", campaign_id: "selected", store_version: 7, campaign_identity: "d".repeat(64), principal: "local:operator",
+    admission: "open", operations: ["pause", "cancel", "resolve_decision"], grant_expires_at_ms: null,
+    decisions: [decision("e", "required_review", "outstanding", "current", ["resolve"]), decision("f", "preference", "unissued", "changed", [])],
+    non_claims: ["pause stops successor admission and decision issuance; running attempts and workers are not stopped"],
+    ...overrides,
+  };
+}
+const buttons = (node) => descendants(node).filter((child) => child.tagName === "button");
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+// Intents are created in the console's realm; compare their JSON values.
+const plain = (value) => JSON.parse(JSON.stringify(value));
+
+// r[verify kiln.implementation.campaign.controls.scenario.console]
+test("campaign controls offer only listed operations and answers bound to the displayed version", () => {
+  const inventory = setup();
+  const sent = [];
+  const panel = inventory.renderControls(inboxFixture(), (intent) => sent.push(intent));
+  assert.deepEqual(buttons(panel).map((button) => button.textContent), ["Pause successor admission", "Cancel campaign", "Submit answer"]);
+  const text = allText(panel);
+  assert.ok(text.includes("Approve <b>the candidate</b>?"));
+  assert.ok(text.includes("Changed: the member moved on"));
+  const cancel = buttons(panel).find((button) => button.textContent === "Cancel campaign");
+  assert.equal(cancel.disabled, true, "cancel needs explicit confirmation");
+  const confirm = descendants(panel).find((node) => node.type === "checkbox");
+  confirm.checked = true; confirm.listeners.get("change")();
+  assert.equal(cancel.disabled, false);
+  buttons(panel).find((button) => button.textContent === "Pause successor admission").listeners.get("click")();
+  const form = descendants(panel).find((node) => node.tagName === "form");
+  form.listeners.get("submit")({ preventDefault() {} });
+  assert.equal(sent.length, 1, "no answer is sent before an option is chosen");
+  descendants(form).find((node) => node.type === "radio" && node.value === "reject").checked = true;
+  form.listeners.get("submit")({ preventDefault() {} });
+  assert.deepEqual(plain(sent), [
+    { command: "pause", campaign_id: "selected", expected_version: 7 },
+    { command: "resolve_decision", campaign_id: "selected", expected_version: 7, decision_identity: "e".repeat(64), work_identity: HEX_A, policy_identity: HEX_A, candidate_identity: "c".repeat(64), answer: "reject" },
+  ]);
+  const viewer = inventory.renderControls(inboxFixture({ operations: [], decisions: inboxFixture().decisions.map((d) => ({ ...d, actions: [] })) }), () => assert.fail("viewer sent a command"));
+  assert.equal(buttons(viewer).length, 0);
+  assert.ok(allText(viewer).includes("No admission control is open to this principal"));
+  assert.throws(() => inventory.validateInbox(inboxFixture({ admission: "running" })));
+  assert.throws(() => inventory.validateInbox(inboxFixture({ decisions: [{ ...inboxFixture().decisions[0], actions: ["approve_all"] }] })));
+});
+
+// r[verify kiln.implementation.campaign.controls.scenario.console]
+test("a lost response retries the same request ID and a conflict reloads without applying", async () => {
+  const inventory = setup();
+  const ui = () => ({ status: new Element("p"), retry: new Element("button"), reloads: 0, applied: [], buttons: () => [] });
+  const bodies = [];
+  const lost = ui();
+  let attempts = 0;
+  const runner = inventory.commandRunner({
+    async api(path, request) {
+      assert.equal(path, "/api/implementation/campaigns/commands");
+      bodies.push(request.body);
+      attempts += 1;
+      if (attempts === 1) throw new TypeError("network connection lost");
+      return { replayed: true, command: "pause", store_version: 8, admission: "paused", request_id: request.body.request_id };
+    },
+  }, { ...lost, reload: () => { lost.reloads += 1; }, applied: (result) => lost.applied.push(result) }, (() => { let n = 0; return () => `console-request-${++n}`; })());
+  await runner.start({ command: "pause", campaign_id: "selected", expected_version: 7 });
+  assert.equal(lost.retry.hidden, false);
+  assert.ok(lost.status.textContent.includes("may have applied"));
+  lost.retry.listeners.get("click")();
+  await tick();
+  assert.deepEqual(bodies.map((body) => body.request_id), ["console-request-1", "console-request-1"]);
+  assert.equal(lost.applied.length, 1);
+  assert.ok(lost.status.textContent.startsWith("Already applied"));
+
+  for (const [status, reloads] of [[409, 1], [403, 0]]) {
+    const refused = ui();
+    const conflict = inventory.commandRunner({
+      async api() { throw Object.assign(new Error("campaign_version_conflict: Campaign state changed"), { status }); },
+    }, { ...refused, reload: () => { refused.reloads += 1; }, applied: () => assert.fail("refused command applied") }, () => "console-request-x");
+    await conflict.start({ command: "pause", campaign_id: "selected", expected_version: 6 });
+    assert.ok(refused.status.textContent.includes("Nothing was applied"), String(status));
+    assert.equal(refused.reloads, reloads);
+    assert.notEqual(refused.retry.hidden, false);
+  }
+});
+
+// r[verify kiln.implementation.campaign.controls.scenario.start]
+test("start previews show refusals and start only startable frozen definitions", () => {
+  const inventory = setup();
+  const member = (goal, supported) => ({ member: "change-a/*", change: "change-a", tasks: [], prerequisite_inclusion: false, profile: "spec_driven", goal, goal_supported: supported, required_checks: ["acceptance"], required_reviews: [] });
+  const definition = (campaign, identity, goal, supported, refusals) => ({
+    definition_identity: identity.repeat(64), campaign_id: campaign, revision: 1, repository: "repo", delivery_route: "native_git",
+    offered_goals: ["verified_candidate", "integrated_change", "native_lifecycle_complete"], members: [member(goal, supported)],
+    max_concurrency: 1, max_outstanding_decisions: 1, parent_budget_id: HEX_A, agent_definition: HEX_A, require_one_writer_per_repository: true,
+    existing: null, can_start: refusals.length === 0, refusals,
+  });
+  const listing = { schema: "kiln.campaign-definitions.v1", principal: "local:operator", non_claims: [], definitions: [
+    definition("ready", "1", "native_lifecycle_complete", true, []),
+    definition("refused", "2", "verified_pull_request", false, ["endpoint_unsupported"]),
+  ] };
+  const sent = [];
+  const panel = inventory.renderDefinitions(listing, (intent) => sent.push(intent));
+  assert.deepEqual(buttons(panel).map((button) => button.textContent), ["Start this exact selection"]);
+  buttons(panel)[0].listeners.get("click")();
+  assert.deepEqual(plain(sent), [{ command: "start", definition_identity: "1".repeat(64) }]);
+  const text = allText(panel);
+  assert.ok(text.includes("goal verified_pull_request (not offered by this route)"));
+  assert.ok(text.includes("Cannot start: a member's completion goal is not offered by the delivery route."));
+  assert.throws(() => inventory.validateDefinitions({ ...listing, definitions: [{ ...listing.definitions[0], definition_identity: "not-hex" }] }));
+});
+
+test("campaign controls load beside the projection and stay read-only when not configured", async () => {
+  const inventory = setup();
+  const root = new Element("div");
+  const projection = JSON.parse(readFileSync(new URL("../fixtures/selected-campaign/projection-v1.json", import.meta.url), "utf8"));
+  const calls = [];
+  await inventory.loadCampaign(root, {
+    isCurrent: () => true,
+    async api(path) {
+      calls.push(path);
+      if (path.startsWith("/api/implementation/campaigns?")) return projection;
+      throw Object.assign(new Error("campaign_controls_not_configured: Request could not be admitted"), { status: 503 });
+    },
+  }, "selected");
+  await tick();
+  assert.deepEqual(calls, ["/api/implementation/campaigns?campaign=selected", "/api/implementation/campaigns/inbox?campaign=selected"]);
+  const text = allText(root);
+  assert.ok(text.includes(projection.identity));
+  assert.ok(text.includes("Campaign controls are not configured for this service"));
+  assert.equal(buttons(root).length, 0);
+});

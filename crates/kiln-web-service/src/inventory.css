@@ -22,3 +22,11 @@
 .campaign-member { border-top:1px solid var(--border); }
 .campaign-projection .inventory-header { overflow-wrap:anywhere; }
 .campaign-projection .inventory-blockers li { margin-block:var(--space-1); }
+.campaign-control-actions { display:flex; flex-wrap:wrap; gap:var(--space-2) var(--space-3); align-items:center; }
+.campaign-control-actions button, .campaign-decision-answer button, .campaign-decision > button, .campaign-definition > button, .campaign-command-retry { min-height:2.75rem; }
+.campaign-control-actions label, .campaign-decision-answer label { display:inline-flex; align-items:center; gap:var(--space-2); min-height:2.75rem; margin:0; }
+.campaign-decision-answer input[type="radio"] { display:inline-block; flex:0 0 auto; width:1.1rem; height:1.1rem; min-height:0; margin:0; padding:0; accent-color:var(--foreground); box-shadow:none; }
+.campaign-decision-answer { display:grid; gap:var(--space-2); }
+.campaign-decision-answer fieldset { display:flex; flex-wrap:wrap; gap:var(--space-2) var(--space-4); min-width:0; margin:0; padding:0; border:0; }
+.campaign-decision-answer legend { padding:0; font-weight:600; }
+.campaign-command-status, .campaign-definition, .campaign-decision { overflow-wrap:anywhere; }

@@ -130,9 +130,15 @@ Ordinary GitHub PR-head-guarded merge does not atomically guard the base. `land`
 The implementation owner starts one frozen `CampaignContract` with
 `kiln-implementer campaign --database DB --command-file FILE`; the command file
 uses `{"command":"start","contract":...}`. Inspect the same owner with an
-`inspect` command to obtain its current `store_version`. The separate native
-controller consumes the canonical Nickel `implementation-campaign-drive.ncl`
-profile and an exact expected version:
+`inspect` command to obtain its current `store_version`; `pause`, `continue`,
+`cancel`, `issue_decision` and `resolve_decision` take that version. An
+authenticated operator can do the same from the console through
+[campaign controls](operator.md#campaign-controls-and-decision-inbox), which
+start only configured, previewed definitions and record each command with its
+request ID in the campaign database. A decision answer is refused once the
+member's work, policy or candidate no longer matches the decision. The separate
+native controller consumes the canonical Nickel
+`implementation-campaign-drive.ncl` profile and an exact expected version:
 
 ```text
 kiln-web-service drive-implementation-campaign --profile FILE --campaign-id ID --expected-version N

@@ -377,7 +377,7 @@
   }
   function campaignCard(route) {
     const panel = element("section", undefined, "panel workers-campaign-card");
-    panel.append(element("h2", "Selected campaign progress and blockers"), element("p", "Read-only campaign snapshot. This card grants no reservation, dispatch, landing, or lifecycle authority.", "small"));
+    panel.append(element("h2", "Selected campaign progress and blockers"), element("p", "The campaign snapshot is read-only. Controls appear only where this service admits them for you; each goes through the canonical campaign owner and grants no reservation, dispatch, landing or lifecycle authority.", "small"));
     const form = element("form", undefined, "workers-campaign-lookup");
     const label = element("label", "Exact campaign ID"); label.htmlFor = "workers-campaign-id";
     const input = element("input"); Object.assign(input, { id: "workers-campaign-id", type: "text", value: route.campaign, maxLength: CAMPAIGN_ID_MAX_CHARS, autocomplete: "off", placeholder: "Campaign ID (up to 256 characters)" });
@@ -399,7 +399,15 @@
       if (!route.campaign || !context?.isCurrent()) return;
       void window.KilnInventory?.loadCampaign(campaignRoot, context, route.campaign);
     });
-    panel.append(form, campaignRoot);
+    // Previews are read only when asked for; an unconfigured service is not polled.
+    const definitions = element("details", undefined, "inventory-disclosure workers-campaign-definitions");
+    const definitionsRoot = element("div");
+    definitions.append(element("summary", "Start a configured campaign"), definitionsRoot);
+    definitions.addEventListener("toggle", () => {
+      if (!definitions.open || !context?.isCurrent()) return;
+      void window.KilnInventory?.loadDefinitions(definitionsRoot, context, (id) => navigate({ worker: route.worker, worker_q: route.q, worker_status: route.status, worker_campaign: id }));
+    });
+    panel.append(form, campaignRoot, definitions);
     return panel;
   }
   function render(inventory, items, route) {

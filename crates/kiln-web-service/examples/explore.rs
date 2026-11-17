@@ -420,6 +420,7 @@ struct Workspace {
     review: review::Seed,
     feeds: feeds::Feeds,
     campaign: PathBuf,
+    campaign_controls: kiln_web_service::campaign_controls::Controls,
     examples: Vec<Example>,
     workspace_id: String,
 }
@@ -431,6 +432,7 @@ impl Workspace {
         let review = review::seed(root, &mut ci.engine)?;
         let feeds = feeds::Feeds::seed(&format!("http://127.0.0.1:{port}"))?;
         let campaign = campaign::seed(root)?;
+        let campaign_controls = campaign::controls(root, &campaign)?;
         let mut examples = std::mem::take(&mut ci.examples);
         let mut work = work;
         let mut review = review;
@@ -445,6 +447,8 @@ impl Workspace {
             Example::new("Capacity and retention", "/?page=operations", "Inspect occupied slots, queued requests, retention limits and local state. No pruning or real worker operation occurs."),
             Example::new("Agents, worker instances, compute and serving", "/?page=workers", "Inspect four distinct synthetic observation families and exact-work readiness. Use the fictional all-a 64-hex work identity to explore a disconnected, non-authorizing explanation; no provider is contacted."),
             Example::new("Selected Cairn campaign: ready work beside planning, review and lifecycle waits", "/?page=workers&worker_campaign=synthetic-selected-cairn", "Inspect every selected member and the selection hold that keeps it waiting while an independent ready member is the proposed next action, plus partial enumeration, stale review/check evidence, distinct completion goals and unknown aggregate budget. This synthetic campaign uses the real canonical store and read-only projection, not live Cairn or worker evidence."),
+            Example::new("Campaign decision inbox and admission controls", "/?page=workers&worker_campaign=synthetic-selected-cairn", "Answer the synthetic required review or lifecycle preference, issue the waiting experiment question once the outstanding bound frees, then pause, continue or cancel admission. Each command goes through the real canonical owner with a request ID; replays, stale versions and refusals stay visible. No worker or provider is contacted."),
+            Example::new("Start a configured campaign from a frozen preview", "/?page=workers", "Open \"Start a configured campaign\" to compare a startable synthetic definition with one whose verified pull request goal its native no-PR route does not offer, then start the first and inspect its new campaign."),
         ]);
         let mut random = [0u8; 16];
         getrandom::fill(&mut random)
@@ -456,6 +460,7 @@ impl Workspace {
             review,
             feeds,
             campaign,
+            campaign_controls,
             examples,
             workspace_id,
         })
@@ -512,6 +517,19 @@ impl Workspace {
         }
         if path == "/api/implementation/campaigns" {
             return campaign::response(&self.campaign, &req.method, &req.target);
+        }
+        if kiln_web_service::campaign_controls::ROUTES.contains(&path) {
+            return Ok(self
+                .campaign_controls
+                .response(&kiln_web_service::campaign_controls::ControlRequest {
+                    method: &req.method,
+                    target: &req.target,
+                    body: &req.body,
+                    principal: ACTOR,
+                    role: Role::Operator,
+                    now_ms: now_ms()?,
+                })
+                .response);
         }
         if path.starts_with("/api/feeds") || path.starts_with("/feeds") {
             return self

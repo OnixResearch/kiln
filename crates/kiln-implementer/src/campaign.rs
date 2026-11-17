@@ -30,7 +30,7 @@ pub struct CampaignDecisionAnswer<'a> {
 }
 
 const MAX_CAMPAIGN_BYTES: i64 = 32 * 1024 * 1024;
-const SCHEMA: &str = "CREATE TABLE IF NOT EXISTS implementation_campaign (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL); CREATE TABLE IF NOT EXISTS implementation_campaign_continuation (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL);";
+const SCHEMA: &str = "CREATE TABLE IF NOT EXISTS implementation_campaign (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL); CREATE TABLE IF NOT EXISTS implementation_campaign_continuation (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL); CREATE TABLE IF NOT EXISTS implementation_campaign_command (request_id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, fingerprint TEXT NOT NULL, outcome BLOB NOT NULL);";
 /// Prefix of every refusal caused by a campaign version that moved.
 pub const STALE_CAMPAIGN_VERSION: &str = "stale campaign version";
 /// Largest stored continuation record; it holds pacing only.
@@ -51,25 +51,11 @@ impl CampaignStore {
         Ok(Self { connection })
     }
     pub fn start(&mut self, contract: CampaignContract) -> Result<CampaignState, String> {
-        let state = CampaignState::start(contract).map_err(diagnostic)?;
-        let id = state.contract.campaign_id.clone();
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(text)?;
-        let exists: bool = tx
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM implementation_campaign WHERE campaign_id=?1)",
-                params![id],
-                |r| r.get(0),
-            )
-            .map_err(text)?;
-        if exists {
-            return Err(
-                "campaign already exists; use an explicit higher-revision supersession".into(),
-            );
-        }
-        save(&tx, &state, 0)?;
+        let state = start_in(&tx, contract).map_err(TransitionFailure::text)?;
         tx.commit().map_err(text)?;
         Ok(state)
     }
@@ -179,28 +165,7 @@ impl CampaignStore {
                 "{STALE_CAMPAIGN_VERSION}: expected {expected_version}, current {version}"
             ));
         }
-        let mut statement = tx
-            .prepare("SELECT bytes FROM implementation_campaign")
-            .map_err(text)?;
-        let rows = statement
-            .query_map([], |row| row.get::<_, Vec<u8>>(0))
-            .map_err(text)?;
-        let mut outstanding = 0usize;
-        for row in rows {
-            let other: CampaignState = decode(&row.map_err(text)?)?;
-            if other.contract.parent_budget_id == state.contract.parent_budget_id {
-                if other.contract.max_outstanding_decisions
-                    != state.contract.max_outstanding_decisions
-                {
-                    return Err("campaigns sharing a parent budget scope must use one outstanding-request bound".into());
-                }
-                outstanding += other
-                    .decisions
-                    .values()
-                    .filter(|d| d.state == DecisionRequestState::Outstanding)
-                    .count();
-            }
-        }
+        let outstanding = scope_outstanding(&tx, &state).map_err(TransitionFailure::text)?;
         if request.state == DecisionRequestState::Outstanding
             && outstanding >= state.contract.max_outstanding_decisions as usize
         {
@@ -208,7 +173,6 @@ impl CampaignStore {
             request.pending_reason =
                 Some("shared operator decision scope is at its outstanding bound".into());
         }
-        drop(statement);
         state.add_decision(request).map_err(diagnostic)?;
         save(&tx, &state, version)?;
         tx.commit().map_err(text)?;
@@ -224,40 +188,8 @@ impl CampaignStore {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(text)?;
-        let (mut state, version) = load_tx(&tx, campaign_id)?;
-        if version != expected_version {
-            return Err(format!(
-                "{STALE_CAMPAIGN_VERSION}: expected {expected_version}, current {version}"
-            ));
-        }
-        let mut statement = tx
-            .prepare("SELECT bytes FROM implementation_campaign")
-            .map_err(text)?;
-        let rows = statement
-            .query_map([], |row| row.get::<_, Vec<u8>>(0))
-            .map_err(text)?;
-        let mut outstanding = 0usize;
-        for row in rows {
-            let other: CampaignState = decode(&row.map_err(text)?)?;
-            if other.contract.parent_budget_id == state.contract.parent_budget_id {
-                if other.contract.max_outstanding_decisions
-                    != state.contract.max_outstanding_decisions
-                {
-                    return Err("campaigns sharing a parent budget scope must use one outstanding-request bound".into());
-                }
-                outstanding += other
-                    .decisions
-                    .values()
-                    .filter(|d| d.state == DecisionRequestState::Outstanding)
-                    .count();
-            }
-        }
-        drop(statement);
-        if outstanding >= state.contract.max_outstanding_decisions as usize {
-            return Err("shared parent-budget decision queue is full".into());
-        }
-        state.issue_decision(identity).map_err(diagnostic)?;
-        save(&tx, &state, version)?;
+        let state = issue_in(&tx, campaign_id, expected_version, identity)
+            .map_err(TransitionFailure::text)?;
         tx.commit().map_err(text)?;
         Ok(state)
     }
@@ -620,26 +552,8 @@ impl CampaignStore {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(text)?;
-        let (state, version) = load_tx(&tx, campaign_id)?;
-        if version != expected_version {
-            return Err(format!(
-                "{STALE_CAMPAIGN_VERSION}: expected {expected_version}, current {version}"
-            ));
-        }
-        let next = apply(state).map_err(diagnostic)?;
-        let actual = next.contract.campaign_id.clone();
-        if actual != campaign_id {
-            return Err("campaign mutation changed identity".into());
-        }
-        save(&tx, &next, version)?;
-        if let Some(kind) = hint {
-            let (mut record, record_version) = load_continuation(&tx, campaign_id)?;
-            record.record_hint(WakeHint {
-                kind,
-                observed_version: version.checked_add(1),
-            });
-            save_continuation(&tx, &record, record_version)?;
-        }
+        let next = transition_in(&tx, campaign_id, expected_version, hint, apply)
+            .map_err(TransitionFailure::text)?;
         tx.commit().map_err(text)?;
         Ok(next)
     }
@@ -1206,23 +1120,190 @@ fn load_tx(
     tx: &rusqlite::Transaction<'_>,
     campaign_id: &str,
 ) -> Result<(CampaignState, u64), String> {
-    let row: Option<(i64, Option<Vec<u8>>)> = tx
+    load_tx_optional(tx, campaign_id)?.ok_or_else(|| "campaign not found".to_owned())
+}
+fn load_tx_optional(
+    tx: &rusqlite::Transaction<'_>,
+    campaign_id: &str,
+) -> Result<Option<(CampaignState, u64)>, String> {
+    let row: Option<(i64, Vec<u8>)> = tx
         .query_row(
-            "SELECT version,length(bytes),bytes FROM implementation_campaign WHERE campaign_id=?1",
+            "SELECT version,bytes FROM implementation_campaign WHERE campaign_id=?1",
             params![campaign_id],
-            |r| Ok((r.get(0)?, Some(r.get(2)?))),
+            |r| Ok((r.get(0)?, r.get(1)?)),
         )
         .optional()
         .map_err(text)?;
-    let Some((version, Some(bytes))) = row else {
-        return Err("campaign not found".into());
+    let Some((version, bytes)) = row else {
+        return Ok(None);
     };
     let version = u64::try_from(version).map_err(text)?;
     let state: CampaignState = decode(&bytes)?;
     if state.contract.campaign_id != campaign_id {
         return Err("campaign key and payload identity differ".into());
     }
+    Ok(Some((state, version)))
+}
+
+/// Why one in-transaction campaign transition did not apply.
+#[derive(Debug)]
+enum TransitionFailure {
+    Missing,
+    Stale {
+        expected: u64,
+        current: u64,
+    },
+    /// The owner's domain rules refused the transition.
+    Owner(kiln_core::types::Diagnostic),
+    Storage(String),
+}
+
+impl TransitionFailure {
+    fn text(self) -> String {
+        match self {
+            Self::Missing => "campaign not found".into(),
+            Self::Stale { expected, current } => {
+                format!("{STALE_CAMPAIGN_VERSION}: expected {expected}, current {current}")
+            }
+            Self::Owner(error) => diagnostic(error),
+            Self::Storage(error) => error,
+        }
+    }
+}
+
+impl From<String> for TransitionFailure {
+    fn from(error: String) -> Self {
+        Self::Storage(error)
+    }
+}
+
+fn owner_refusal(code: &str, field: &str, message: &str) -> TransitionFailure {
+    TransitionFailure::Owner(kiln_core::types::Diagnostic::new(code, field, message))
+}
+
+/// The campaign at exactly `expected_version`.
+fn current_in(
+    tx: &rusqlite::Transaction<'_>,
+    campaign_id: &str,
+    expected_version: u64,
+) -> Result<(CampaignState, u64), TransitionFailure> {
+    let (state, version) = load_tx_optional(tx, campaign_id)?.ok_or(TransitionFailure::Missing)?;
+    if version != expected_version {
+        return Err(TransitionFailure::Stale {
+            expected: expected_version,
+            current: version,
+        });
+    }
     Ok((state, version))
+}
+
+/// Apply one transition inside the caller's transaction and, with it,
+/// coalesce a wake hint for the version it produced.
+fn transition_in(
+    tx: &rusqlite::Transaction<'_>,
+    campaign_id: &str,
+    expected_version: u64,
+    hint: Option<WakeKind>,
+    apply: impl FnOnce(CampaignState) -> Result<CampaignState, kiln_core::types::Diagnostic>,
+) -> Result<CampaignState, TransitionFailure> {
+    let (state, version) = current_in(tx, campaign_id, expected_version)?;
+    let next = apply(state).map_err(TransitionFailure::Owner)?;
+    if next.contract.campaign_id != campaign_id {
+        return Err(TransitionFailure::Storage(
+            "campaign mutation changed identity".into(),
+        ));
+    }
+    save(tx, &next, version)?;
+    if let Some(kind) = hint {
+        let (mut record, record_version) = load_continuation(tx, campaign_id)?;
+        record.record_hint(WakeHint {
+            kind,
+            observed_version: version.checked_add(1),
+        });
+        save_continuation(tx, &record, record_version)?;
+    }
+    Ok(next)
+}
+
+fn start_in(
+    tx: &rusqlite::Transaction<'_>,
+    contract: CampaignContract,
+) -> Result<CampaignState, TransitionFailure> {
+    let state = CampaignState::start(contract).map_err(TransitionFailure::Owner)?;
+    let exists: bool = tx
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM implementation_campaign WHERE campaign_id=?1)",
+            params![state.contract.campaign_id],
+            |r| r.get(0),
+        )
+        .map_err(text)?;
+    if exists {
+        return Err(owner_refusal(
+            "campaign_exists",
+            "contract.campaign_id",
+            "campaign already exists; use an explicit higher-revision supersession",
+        ));
+    }
+    save(tx, &state, 0)?;
+    Ok(state)
+}
+
+/// Outstanding decisions across every campaign that shares this campaign's
+/// parent-budget scope; those campaigns must share one outstanding bound.
+fn scope_outstanding(
+    tx: &rusqlite::Transaction<'_>,
+    state: &CampaignState,
+) -> Result<usize, TransitionFailure> {
+    let mut statement = tx
+        .prepare("SELECT bytes FROM implementation_campaign")
+        .map_err(text)?;
+    let rows = statement
+        .query_map([], |row| row.get::<_, Vec<u8>>(0))
+        .map_err(text)?;
+    let mut outstanding = 0usize;
+    for row in rows {
+        let other: CampaignState = decode(&row.map_err(text)?)?;
+        if other.contract.parent_budget_id != state.contract.parent_budget_id {
+            continue;
+        }
+        if other.contract.max_outstanding_decisions != state.contract.max_outstanding_decisions {
+            return Err(owner_refusal(
+                "campaign_decision_scope_bound",
+                "contract.max_outstanding_decisions",
+                "campaigns sharing a parent budget scope must use one outstanding-request bound",
+            ));
+        }
+        outstanding += other
+            .decisions
+            .values()
+            .filter(|d| d.state == DecisionRequestState::Outstanding)
+            .count();
+    }
+    Ok(outstanding)
+}
+
+fn issue_in(
+    tx: &rusqlite::Transaction<'_>,
+    campaign_id: &str,
+    expected_version: u64,
+    identity: &ContentId,
+) -> Result<CampaignState, TransitionFailure> {
+    let (mut state, version) = current_in(tx, campaign_id, expected_version)?;
+    let outstanding = scope_outstanding(tx, &state)?;
+    // The campaign's own rules (closed admission, its bound, the request's
+    // state) refuse first; the shared parent-budget bound is checked after.
+    state
+        .issue_decision(identity)
+        .map_err(TransitionFailure::Owner)?;
+    if outstanding >= state.contract.max_outstanding_decisions as usize {
+        return Err(owner_refusal(
+            "campaign_decision_queue_full",
+            "decision",
+            "shared parent-budget decision queue is full",
+        ));
+    }
+    save(tx, &state, version)?;
+    Ok(state)
 }
 fn save(tx: &rusqlite::Transaction<'_>, state: &CampaignState, version: u64) -> Result<(), String> {
     let bytes = serde_json::to_vec(state).map_err(text)?;
@@ -1269,6 +1350,18 @@ fn reject_owner_output(
     effect.evidence_identity = Some(evidence);
     Ok(())
 }
+
+#[path = "campaign/commands.rs"]
+mod commands;
+pub use commands::{
+    AdmissionState, AppliedCommand, DecisionOutcome, MAX_OPERATOR_COMMANDS, MAX_REQUEST_ID_BYTES,
+    MIN_REQUEST_ID_BYTES, OPERATOR_COMMAND_SCHEMA, OperatorCommand, OperatorCommandKind,
+    OperatorFailure, OperatorIntent, OperatorOutcome, valid_request_id,
+};
+
+#[cfg(test)]
+#[path = "campaign/command_tests.rs"]
+mod command_tests;
 
 #[cfg(test)]
 #[path = "campaign/owner_scope_tests.rs"]

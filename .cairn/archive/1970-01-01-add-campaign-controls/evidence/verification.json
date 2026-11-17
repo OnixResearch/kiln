@@ -1,0 +1,108 @@
+{
+  "observed_on": "2026-11-16",
+  "issue": "https://github.com/OnixResearch/kiln/issues/86",
+  "scope": "Working-copy campaign operator commands with a durable command record, decision-scope refusal, the campaign control profile and its Nickel contract, the definitions, inbox and command routes, console controls and the synthetic exploration workspace. Unit tests over real SQLite campaign stores and control profiles, Node UI tests and a browser review of the local exploration workspace; no live campaign, real worker, model, credential, provider or remote effect, and no deployment.",
+  "source_parent_revision": "b79062d9f1504b585914b5bdb4944feb52b1de88",
+  "immediate_outcome": "An authorized operator previews and starts configured campaigns, pauses, continues and cancels admission, and issues and answers decisions from the console through the canonical owner, with idempotent retries and refreshable conflicts.",
+  "durable_capability": "CampaignStore::apply_operator with a request-ID command record shared by console and future authority bindings; CampaignState::decision_in_current_scope shared by decision admission and resolution; kiln_web_service::campaign_controls.",
+  "owner": "Kiln implementation and web-service maintainers",
+  "checks": [
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core --lib implementation::",
+      "result": "pass",
+      "passed": 68,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-implementer",
+      "result": "pass, including four operator command tests over SQLite",
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-web-service --lib campaign_controls",
+      "result": "pass; re-run after the last edit",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-web-service --example explore",
+      "result": "pass",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "command": "node --test tests/inventory-ui.test.mjs",
+      "result": "pass; re-run after the last edit",
+      "passed": 15,
+      "failed": 0
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "result": "pass (85 positive, 598 negative), with one positive and nine negative campaign-control fixtures"
+    },
+    {
+      "command": "cargo fmt --all --check; cargo clippy --offline --locked --workspace --all-targets -j 16 -- -D warnings; cargo test --offline --locked --workspace -j 16; node --test tests/*.test.mjs",
+      "result": "pass; kiln-web-service clippy and format re-checked after the last edit",
+      "passed": 1868,
+      "ignored": 11,
+      "failed": 0,
+      "node_passed": 114
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L --no-write-lock-file --option builders ''; nix flake check path:$PWD --no-write-lock-file --keep-going -L --option builders ''",
+      "result": "pass on the final source: Octet consumer checks report 0 findings and nix flake check exits 0",
+      "builder_note": "remote builders were disabled, as for #85 and #87, so every check built locally",
+      "rerun_note": "a first flake check failed before building anything because its TMPDIR and logs sat inside the repository and the evidence file was written during evaluation, so Nix saw the source change; the rerun used scratch outside the repository and an untouched tree"
+    }
+  ],
+  "browser": {
+    "surface": "kiln-web-service explore example built from the working copy, http://127.0.0.1:18813/",
+    "path": "/?page=workers&worker_campaign=synthetic-selected-cairn",
+    "observed": [
+      "answering the required review applied at store version 9 and left the preference and unissued question in place",
+      "the freed unissued question was issued at version 10; pause applied at version 11 and replaced pause with continue",
+      "a second tab pausing from a stale version got campaign_version_conflict, reported that nothing was applied and reloaded",
+      "the start preview for the native lifecycle definition started a campaign at version 1 and navigated to it; the verified pull request definition showed 'not offered by this route' and no start button",
+      "cancel stayed disabled until its confirmation was checked, then applied and removed all admission controls",
+      "at a 390 px viewport the controls and inbox fit without horizontal overflow"
+    ],
+    "findings_fixed": [
+      "answer radios inherited full-width input styling and rendered detached from their labels",
+      "the outcome message was lost when a command reloaded the panel",
+      "decisions without bound work or candidate read 'Unknown / not supplied' instead of naming the missing binding",
+      "conflict messages repeated 'Nothing was applied'"
+    ]
+  },
+  "traceability": {
+    "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+    "new_requirement_ids_missing_markers": [],
+    "pre_existing_dangling": [
+      "kiln.dashboard.campaign.projection",
+      "kiln.github.publication.scenario.upload"
+    ],
+    "pre_existing_missing": [
+      "kiln.github.landing.merge.scenario.landed",
+      "kiln.github.source_status.scenario.close",
+      "kiln.hosted.mobility.runtime.scenario.control",
+      "kiln.hosted.mobility.runtime.scenario.control-observed"
+    ],
+    "note": "The command exits nonzero for these pre-existing entries only; this change's nine requirement IDs all have markers."
+  },
+  "acceptance": {
+    "canonical_transactions": "an_applied_request_replays_its_outcome_and_a_reused_id_conflicts, commands_apply_once_conflicts_change_nothing_and_grants_are_reread",
+    "explicit_revision_for_scope_changes": "start_previews_bind_frozen_definitions_and_their_delivery_route (changed definition refused; existing campaign never joined)",
+    "endpoints_follow_delivery_route": "start_previews_bind_frozen_definitions_and_their_delivery_route",
+    "stale_and_unauthorized_refusals": "commands_apply_once_conflicts_change_nothing_and_grants_are_reread, required_review_answers_need_a_review_role_and_the_current_scope, viewers_read_workers_are_excluded_and_operators_see_only_granted_operations",
+    "duplicate_and_lost_responses": "an_applied_request_replays_its_outcome_and_a_reused_id_conflicts, a lost response retries the same request ID and a conflict reloads without applying",
+    "decision_scope": "an_answer_for_a_superseded_candidate_or_policy_is_refused, answers_resolve_only_their_own_outstanding_decision_in_current_scope",
+    "required_reviews_keep_gates": "required_review_answers_need_a_review_role_and_the_current_scope; independent selection is unchanged and the synthetic next action stays on the ready member",
+    "cancellation_non_claims": "admission_commands_follow_the_owner_and_stale_or_absent_targets_change_nothing; every result and inbox carries the non-claims",
+    "role_fixtures": "viewers_read_workers_are_excluded_and_operators_see_only_granted_operations, commands_apply_once_conflicts_change_nothing_and_grants_are_reread (expiry, removal and restart)"
+  },
+  "non_claims": [
+    "Grants are profile-listed principals; holder-bound Basalt/UCAN authority and delegation remain with #69 and #70.",
+    "Contract revision and scope expansion stay with the owner's explicit revision command; the console offers neither.",
+    "Experiment admission for empirical-uncertainty decisions is not part of this change.",
+    "The browser review used the disposable synthetic workspace, not a deployed service or live campaign."
+  ]
+}

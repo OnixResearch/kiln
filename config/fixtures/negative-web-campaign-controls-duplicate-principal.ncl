@@ -1,0 +1,1 @@
+(import "../web-campaign-controls.ncl") ((import "web-campaign-controls-inputs.ncl") & { grants | force = [{ principal = "local:operator", campaigns = ["a"], commands = ["pause"] }, { principal = "local:operator", campaigns = ["b"], commands = ["cancel"] }] })

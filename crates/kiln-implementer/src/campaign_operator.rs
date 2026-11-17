@@ -20,6 +20,12 @@ pub enum CampaignCommand {
         campaign_id: String,
         expected_version: u64,
     },
+    /// Stop successor admission and decision issuance. Running attempts,
+    /// workers and retained effects are not stopped; effects still reconcile.
+    Pause {
+        campaign_id: String,
+        expected_version: u64,
+    },
     Continue {
         campaign_id: String,
         expected_version: u64,
@@ -108,6 +114,18 @@ pub fn apply(command: CampaignCommand, database: &Path) -> Result<CampaignComman
             expected_version,
         } => {
             let campaign = store.continue_admission(&campaign_id, expected_version)?;
+            Ok(CampaignCommandResult {
+                store_version: store.version(&campaign_id)?,
+                campaign: Some(campaign),
+                pending_effects: Vec::new(),
+                decision: Some(store.decide(&campaign_id)?),
+            })
+        }
+        CampaignCommand::Pause {
+            campaign_id,
+            expected_version,
+        } => {
+            let campaign = store.pause(&campaign_id, expected_version)?;
             Ok(CampaignCommandResult {
                 store_version: store.version(&campaign_id)?,
                 campaign: Some(campaign),

@@ -33,6 +33,8 @@ pub struct Options {
     pub implementation_work: Option<PathBuf>,
     pub artifact_previews: Option<PathBuf>,
     pub preview_observations: Option<PathBuf>,
+    /// Campaign control profile; requires `implementation_work`.
+    pub campaign_controls: Option<PathBuf>,
 }
 
 impl Options {
@@ -61,6 +63,15 @@ impl Options {
         }
         Ok(())
     }
+
+    fn campaign_controls(&self) -> Result<Option<crate::campaign_controls::Controls>, String> {
+        self.campaign_controls
+            .as_deref()
+            .map(|path| {
+                crate::campaign_controls::Controls::new(path, self.implementation_work.as_deref())
+            })
+            .transpose()
+    }
 }
 
 #[path = "server/admission.rs"]
@@ -79,6 +90,7 @@ pub fn check(path: &Path) -> Result<(), String> {
 pub fn check_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
     options.observation_inputs()?;
+    let _controls = options.campaign_controls()?;
     let access = options.access_profile()?;
     let access_agents = access.agent_bindings();
     let _credentials = Credentials::load(&profile, access)?;
@@ -166,6 +178,7 @@ fn load_review_profile(
 pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
     let profile = ServiceProfile::load(path)?;
     options.observation_inputs()?;
+    let campaign_controls = options.campaign_controls()?;
     let access = options.access_profile()?;
     let access_identity = access.identity()?;
     let access_agents = access.agent_bindings();
@@ -250,6 +263,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         code_review: &code_review,
         inventory: options.inventory.as_deref(),
         implementation_work: options.implementation_work.as_deref(),
+        campaign_controls: campaign_controls.as_ref(),
     };
     // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
     notify::ready()?;
@@ -477,6 +491,7 @@ struct Context<'a> {
     code_review: &'a crate::code_review::Workspace,
     inventory: Option<&'a Path>,
     implementation_work: Option<&'a Path>,
+    campaign_controls: Option<&'a crate::campaign_controls::Controls>,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -771,6 +786,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         }
         if path == "/api/implementation/campaigns" {
             return inventory_api::campaign_response(&request, context, &principal);
+        }
+        if crate::campaign_controls::ROUTES.contains(&path) {
+            return campaign_control_response(&request, context, &principal);
         }
         if path == "/api/feeds" || path.starts_with("/api/feeds/") {
             if principal.role == crate::engine::Role::Worker {
@@ -1318,6 +1336,42 @@ fn denied(
         Ok(mut engine) => {
             match engine.record_denial(&request.method, &request.target, principal, code) {
                 Ok(()) => error_response(status, code),
+                Err(_) => error_response(503, "audit_unavailable"),
+            }
+        }
+        Err(_) => error_response(503, "service_unavailable"),
+    }
+}
+
+// r[impl kiln.implementation.campaign.controls.scenario.roles]
+/// Campaign start previews, inbox and commands. Authority refusals join the
+/// existing denial audit; nothing reaches the campaign owner without a grant.
+fn campaign_control_response(
+    request: &Request,
+    context: &Context<'_>,
+    principal: &Principal,
+) -> ApiResponse {
+    let Some(controls) = context.campaign_controls else {
+        return error_response(503, "campaign_controls_not_configured");
+    };
+    let Ok(now_ms) = crate::engine::host_time_ms() else {
+        return error_response(503, "clock_unavailable");
+    };
+    let result = controls.response(&crate::campaign_controls::ControlRequest {
+        method: &request.method,
+        target: &request.target,
+        body: &request.body,
+        principal: &principal.id,
+        role: principal.role,
+        now_ms,
+    });
+    let Some(code) = result.denial else {
+        return result.response;
+    };
+    match context.engine.lock() {
+        Ok(mut engine) => {
+            match engine.record_denial(&request.method, &request.target, Some(principal), code) {
+                Ok(()) => result.response,
                 Err(_) => error_response(503, "audit_unavailable"),
             }
         }

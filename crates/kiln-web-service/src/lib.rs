@@ -3,6 +3,7 @@
 pub mod access;
 pub mod automation;
 pub mod cache;
+pub mod campaign_controls;
 pub mod cobs;
 pub mod code_review;
 pub mod developer;
