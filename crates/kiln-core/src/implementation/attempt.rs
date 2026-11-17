@@ -165,6 +165,12 @@ pub struct ImplementationAttempt {
     /// Opt-in metrics receipt; absent unless explicitly recorded.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metrics: Option<super::AttemptMetrics>,
+    /// Immutable worker facts, not authority to advance this attempt.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worker_observation: Option<super::WorkerObservation>,
+    /// Independent verifier observation; only `verification` admits a pass.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verification_outcome: Option<super::VerificationOutcome>,
     pub failure: Option<FailureClass>,
     pub cause: Option<String>,
     /// Newer work revision that superseded this attempt, if any.
@@ -310,6 +316,8 @@ impl AttemptLedger {
             verification: None,
             publication: None,
             metrics: None,
+            worker_observation: None,
+            verification_outcome: None,
             failure: None,
             cause: None,
             superseded_by: None,
@@ -486,6 +494,82 @@ impl AttemptLedger {
 
     pub fn dispatch_requires_recovery(&self, identity: &ContentId) -> bool {
         self.dispatch_started.contains(identity.as_str())
+    }
+
+    /// Retain immutable facts for the exact historical attempt and fence.
+    /// This deliberately does not require or establish a live claim.
+    // r[impl kiln.implementation.outcome_metrics.scenario.binding]
+    pub fn record_worker_observation(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        observation: &super::WorkerObservation,
+    ) -> CoreResult<()> {
+        let attempt = self.attempt_mut(identity)?;
+        if attempt.fence != fence {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt fence is stale",
+            ));
+        }
+        observation.validate()?;
+        if let Some(retained) = &attempt.worker_observation {
+            if retained == observation {
+                return Ok(());
+            }
+            return Err(refusal(
+                "implementation_worker_observation_conflict",
+                "attempt.worker_observation",
+                "attempt already retains a different worker observation",
+            ));
+        }
+        attempt.worker_observation = Some(observation.clone());
+        Ok(())
+    }
+
+    /// Retain verifier metadata without changing phase or admitting evidence.
+    /// Incomplete observations may progress to an unknown canonical run;
+    /// uncertainty may refine to a definitive result, never the reverse.
+    pub fn record_verification_outcome(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        outcome: super::VerificationOutcome,
+    ) -> CoreResult<()> {
+        use super::VerificationOutcome::{Incomplete, Rejected, Unknown, Verified};
+        let attempt = self.attempt_mut(identity)?;
+        if attempt.fence != fence {
+            return Err(refusal(
+                "implementation_fence_stale",
+                "attempt.fence",
+                "attempt fence is stale",
+            ));
+        }
+        if outcome == Verified && attempt.verification.is_none() {
+            return Err(refusal(
+                "implementation_verification_evidence_missing",
+                "attempt.verification_outcome",
+                "verified outcome requires already admitted verification evidence",
+            ));
+        }
+        if let Some(retained) = attempt.verification_outcome {
+            if retained == outcome {
+                return Ok(());
+            }
+            if !matches!(
+                (retained, outcome),
+                (Incomplete, Unknown) | (Unknown | Incomplete, Verified | Rejected)
+            ) {
+                return Err(refusal(
+                    "implementation_verification_outcome_conflict",
+                    "attempt.verification_outcome",
+                    "attempt already retains a conflicting verifier outcome",
+                ));
+            }
+        }
+        attempt.verification_outcome = Some(outcome);
+        Ok(())
     }
 
     /// Opt-in observation of one attempt without retaining it.
@@ -996,7 +1080,11 @@ impl AttemptLedger {
         }
         if let Some(retained) = &existing.verification {
             if retained == verification {
-                return super::admit_candidate_verification(work, existing, handoff, verification);
+                let digest =
+                    super::admit_candidate_verification(work, existing, handoff, verification)?;
+                self.attempt_mut(identity)?.verification_outcome =
+                    Some(super::VerificationOutcome::Verified);
+                return Ok(digest);
             }
             return Err(refusal(
                 "implementation_verification_conflict",
@@ -1026,6 +1114,7 @@ impl AttemptLedger {
         let canonical_key = {
             let attempt = self.attempt_mut(identity)?;
             attempt.verification = Some(verification.clone());
+            attempt.verification_outcome = Some(super::VerificationOutcome::Verified);
             attempt.phase = AttemptPhase::Verified;
             attempt.ended_at_ms = Some(now_ms);
             attempt.canonical_key.clone()
@@ -2137,5 +2226,196 @@ mod tests {
             serde_json::to_vec(&ledger).unwrap_or_else(|_| unreachable!()),
             before
         );
+    }
+
+    fn worker_observation() -> crate::implementation::WorkerObservation {
+        crate::implementation::WorkerObservation {
+            terminal: crate::implementation::WorkerTerminalState::Completed,
+            worker_profile: Some(content('d')),
+            harness: Some("harness".into()),
+            model: Some("model".into()),
+            usage: crate::implementation::AttemptUsage::default(),
+        }
+    }
+
+    #[test]
+    fn historical_worker_observations_are_immutable_and_never_restore_authority() {
+        let mut ledger = AttemptLedger::default();
+        let work = work();
+        let first = ledger
+            .claim(&work, 0, 100)
+            .unwrap_or_else(|_| unreachable!());
+        ledger.expire(100).unwrap_or_else(|_| unreachable!());
+        let next = ledger
+            .claim(&work, 100, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let old_before = ledger
+            .get(&first.identity)
+            .cloned()
+            .unwrap_or_else(|| unreachable!());
+        let next_before = ledger.get(&next.identity).cloned();
+        let worker = worker_observation();
+        for (identity, fence) in [
+            (&first.identity, next.fence),
+            (&next.identity, first.fence),
+            (&content('7'), first.fence),
+        ] {
+            assert!(
+                ledger
+                    .record_worker_observation(identity, fence, &worker)
+                    .is_err()
+            );
+        }
+        assert_eq!(ledger.get(&first.identity), Some(&old_before));
+        ledger
+            .record_worker_observation(&first.identity, first.fence, &worker)
+            .unwrap_or_else(|_| unreachable!());
+        ledger
+            .record_worker_observation(&first.identity, first.fence, &worker)
+            .unwrap_or_else(|_| unreachable!());
+        let mut conflicting = worker.clone();
+        conflicting.terminal = crate::implementation::WorkerTerminalState::Failed;
+        assert!(
+            ledger
+                .record_worker_observation(&first.identity, first.fence, &conflicting)
+                .is_err()
+        );
+        let retained = ledger
+            .get(&first.identity)
+            .unwrap_or_else(|| unreachable!());
+        let mut expected = old_before;
+        expected.worker_observation = Some(worker);
+        assert_eq!(retained, &expected);
+        assert_eq!(ledger.get(&next.identity).cloned(), next_before);
+        assert!(!ledger.is_current(&first.identity, first.fence, 101));
+        assert!(ledger.is_current(&next.identity, next.fence, 101));
+        assert!(
+            ledger
+                .produce_candidate(
+                    &first.identity,
+                    first.fence,
+                    101,
+                    &reference("commit", "late")
+                )
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn malformed_worker_metadata_is_refused_without_retention() {
+        use crate::implementation::metrics::MAX_WORKER_METADATA_BYTES;
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work(), 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        for name in [
+            String::new(),
+            " ".into(),
+            "model\nname".into(),
+            "a".repeat(MAX_WORKER_METADATA_BYTES + 1),
+        ] {
+            for model in [false, true] {
+                let mut worker = worker_observation();
+                if model {
+                    worker.model = Some(name.clone());
+                } else {
+                    worker.harness = Some(name.clone());
+                }
+                assert!(
+                    ledger
+                        .record_worker_observation(&attempt.identity, attempt.fence, &worker)
+                        .is_err()
+                );
+                assert_eq!(ledger.get(&attempt.identity), Some(&attempt));
+            }
+        }
+        let mut worker = worker_observation();
+        worker.harness = Some("a".repeat(MAX_WORKER_METADATA_BYTES));
+        ledger
+            .record_worker_observation(&attempt.identity, attempt.fence, &worker)
+            .unwrap_or_else(|_| unreachable!());
+    }
+
+    #[test]
+    fn verifier_observations_refine_uncertainty_without_admitting_a_pass() {
+        use crate::implementation::VerificationOutcome::{Incomplete, Rejected, Unknown, Verified};
+        for uncertain in [Unknown, Incomplete] {
+            let mut ledger = AttemptLedger::default();
+            let attempt = ledger
+                .claim(&work(), 0, DEFAULT_LEASE_MS)
+                .unwrap_or_else(|_| unreachable!());
+            assert!(
+                ledger
+                    .record_verification_outcome(&content('7'), attempt.fence, uncertain)
+                    .is_err()
+            );
+            assert!(
+                ledger
+                    .record_verification_outcome(&attempt.identity, attempt.fence + 1, uncertain)
+                    .is_err()
+            );
+            assert!(
+                ledger
+                    .record_verification_outcome(&attempt.identity, attempt.fence, Verified)
+                    .is_err()
+            );
+            assert_eq!(ledger.get(&attempt.identity), Some(&attempt));
+            ledger
+                .record_verification_outcome(&attempt.identity, attempt.fence, uncertain)
+                .unwrap_or_else(|_| unreachable!());
+            ledger
+                .record_verification_outcome(&attempt.identity, attempt.fence, uncertain)
+                .unwrap_or_else(|_| unreachable!());
+            if uncertain == Incomplete {
+                ledger
+                    .record_verification_outcome(&attempt.identity, attempt.fence, Unknown)
+                    .unwrap_or_else(|_| unreachable!());
+                assert!(
+                    ledger
+                        .record_verification_outcome(&attempt.identity, attempt.fence, Incomplete)
+                        .is_err()
+                );
+            }
+            ledger
+                .record_verification_outcome(&attempt.identity, attempt.fence, Rejected)
+                .unwrap_or_else(|_| unreachable!());
+            assert!(
+                ledger
+                    .record_verification_outcome(&attempt.identity, attempt.fence, uncertain)
+                    .is_err()
+            );
+            assert!(
+                ledger
+                    .record_verification_outcome(&attempt.identity, attempt.fence, Verified)
+                    .is_err()
+            );
+            let mut expected = attempt.clone();
+            expected.verification_outcome = Some(Rejected);
+            assert_eq!(ledger.get(&attempt.identity), Some(&expected));
+            assert!(ledger.is_current(&attempt.identity, attempt.fence, 1));
+            assert!(
+                ledger
+                    .authorize_publication(&attempt.identity, attempt.fence)
+                    .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn old_attempt_rows_default_optional_observations_without_admission_changes() {
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work(), 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let mut row = serde_json::to_value(&attempt).unwrap_or_else(|_| unreachable!());
+        row.as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .remove("worker_observation");
+        row.as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .remove("verification_outcome");
+        let old: ImplementationAttempt =
+            serde_json::from_value(row).unwrap_or_else(|_| unreachable!());
+        assert_eq!(old, attempt);
     }
 }

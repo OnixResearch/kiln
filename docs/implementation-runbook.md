@@ -122,6 +122,103 @@ For bug profiles, the same admitted reproducer must fail baseline and pass candi
 
 Cairn acceptance/spec/registry/policy cannot be weakened. Source-changing lifecycle preparation must occur before review, using an explicitly frozen `prepared_lifecycle_tree` where applicable. The checker executes no lifecycle mutation and missing/archived directories do not prove completion.
 
+## Opt-in attempt outcomes and effort
+
+<!-- r[related kiln.implementation.outcome_metrics] -->
+
+Kiln maintainers own this report over the existing attempt ledger. It is an
+observation, not a check, admission rule, budget settlement or publication gate.
+Worker terminal state and the controller's verification outcome are retained
+separately on the exact attempt/fence. `Completed` does not mean verified.
+The normal verifier and attempt state transitions remain authoritative.
+
+```console
+kiln-implementer metrics-report \
+  --database /var/lib/kiln/work.sqlite --enrollment /etc/kiln/enrollment.json \
+  --from-ms "$FROM_MS" --to-ms "$TO_MS"
+```
+
+The JSON receipt schema is `kiln.implementation-attempt-report.v1`. Bounds are
+Unix epoch milliseconds selecting claims in `[FROM_MS, TO_MS)`, not completion
+times or an as-of snapshot. A selected attempt may finish after `TO_MS`.
+`totals` and lexicographically ordered `groups` use the same aggregation. Group
+keys retain exact worker/provider profiles and declared harness/model labels
+where known; null means unknown. A selected model label is not attestation of
+served weights or proof that a model request succeeded. No profile ranking or
+statistical-significance claim is produced; do not interpret small gaps without
+considering sample sizes and uncertainty.
+
+Only rows with a retained end timestamp enter outcome and effort denominators.
+`attempts`, `finished`, `open` and `terminal_without_end` expose that coverage.
+`verified_passes` requires the existing Verified phase and accepted independent
+verification receipt, never metrics alone. `nonpasses` includes every other
+finished disposition, including blocked, cancelled and unknown. An in-progress
+verifier rejection is retained but enters the report's failure cohort only when
+the existing controller closes the attempt. Missing historical observations are
+not reconstructed from worker narratives.
+
+Every ratio is either `{numerator, denominator}` or null when unavailable. Raw
+counts preserve the sample sizes; multiply a share by 100 for a percentage.
+
+| Field | Numerator | Denominator |
+| --- | --- | --- |
+| `rejected_completed_of_nonpasses` | Completed workers rejected by the controller | All finished nonpasses |
+| `rejected_completed_of_completed` | Completed workers rejected by the controller | All finished Completed workers |
+| `turns.per_verified_pass` | Model requests across all finished attempts | Verified passes |
+| `turns.verified_pass_mean` | Model requests on verified passes | Verified passes |
+| `turns.failed_share` | Model requests on finished nonpasses | Model requests across all finished attempts |
+| `elapsed_ms.per_verified_pass` | Total claim-to-end wall milliseconds, including failures | Verified passes |
+| `elapsed_ms.verified_pass_mean` | Claim-to-end wall milliseconds on verified passes | Verified passes |
+
+Failure categories are disjoint, in this order: typed deadline or exact ledger
+lease expiry, Completed-but-rejected, worker Failed, Aborted/cancelled, then
+other/unknown. Raw Completed-and-rejected counts remain visible independently
+of category precedence. Unknown/incomplete verification is not rejection.
+
+For **subscription credentials, cost means model turns (model requests), tokens,
+quota-window share when available, and elapsed wall time—not dollars**.
+Wall time includes claim/queue/verification time and is not model-service time;
+overlapping attempts' elapsed values are summed, not treated as unique clock time.
+
+The current `lattice.omp-jsonl-observation.v1` cohort reports terminal state but
+does not measure model requests. Its turn observation is
+`{"status":"absent","reason":"not_instrumented"}`. `event_count`, Agent-node
+count, configured turn limits and reserved budget are never substituted for
+usage. Lattice #13 owns qualification of measured usage; unsupported cohorts
+remain absent until an exact supported observation contract is adopted.
+The trusted consumer reads only the bounded native artifact bound to this
+attempt, retains no session body in metrics, and explains unavailable or
+malformed observations without changing native candidate admission.
+
+`metrics` still previews by default; only `--record true` retains its first
+receipt. Without a supplied usage value, it uses retained worker observations
+where available. An operator may supply supported observations with
+`--usage-file /absolute/usage.json`, for example:
+
+```json
+{"model_turns":{"status":"observed","turns":12}}
+```
+
+Use `{"status":"incomplete","turns":5,"reason":"provider_unavailable"}`
+for a known lower bound with unknown remainder, or explicit `absent` with a
+reason when no count is available. Explicit observed zero is distinct from
+missing data. A retained explicit count/lower bound takes precedence over the
+worker fallback; reporting never overwrites the original receipt.
+
+`turns` and `elapsed_ms` expose complete, absent and incomplete sample counts
+for all attempts, verified passes and nonpasses. Incomplete lower bounds remain
+separate from complete totals. Full-window per-pass/share ratios are null if
+any contributing sample lacks complete coverage. Verified-pass means require
+complete pass coverage only. Separately labeled `complete_cohort_*` ratios use
+only complete samples and their own pass denominators; they are not estimates
+of the full population. No known pass means no per-pass ratio, and no observed
+turns means no failed-turn share.
+
+The current native response has no typed deadline when its OMP terminal stream
+cannot be normalized. That terminal remains unobserved; blocker prose is never
+parsed into a deadline. Deadline totals require a typed provider/controller
+observation or the ledger's exact lease-expiry disposition.
+
 ## Publication, integration and source reconciliation
 
 `prepare-publication --publication-file FILE` freezes the exact verified candidate, work/version/fence, branch and concise source/change/validation/limitations description. `publish --publication-file FILE --secret-file FILE --remote-profile FILE` reserves branch and PR effects separately before transport, pushes captured candidate objects through the guarded native Git transport, verifies the remote ref, then creates/reconciles the PR through GitHub's API. Lost responses grant reconciliation-only authority; unexpected heads, all-state PR ambiguity and incomplete pagination refuse progress.

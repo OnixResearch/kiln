@@ -501,7 +501,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     let usage_file = directory.path().join("usage.json");
     write(
         &usage_file,
-        br#"{"tokens":{"status":"observed","tokens":42},"auxiliary_calls":{"status":"absent","reason":"not_instrumented"}}"#,
+        br#"{"tokens":{"status":"observed","tokens":42},"auxiliary_calls":{"status":"absent","reason":"not_instrumented"},"model_turns":{"status":"observed","turns":9}}"#,
     );
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("metrics")
@@ -541,6 +541,12 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
             .and_then(serde_json::Value::as_str),
         Some("absent")
     );
+    assert_eq!(
+        metrics
+            .pointer("/usage/model_turns/turns")
+            .and_then(serde_json::Value::as_u64),
+        Some(9)
+    );
     let retained = Implementer::open(
         &database,
         Enrollment {
@@ -559,6 +565,65 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
             .and_then(serde_json::Value::as_u64)
             .unwrap_or_else(|| unreachable!())
     );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("metrics-report")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--from-ms")
+        .arg("0")
+        .arg("--to-ms")
+        .arg(u64::MAX.to_string())
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let report: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        report
+            .pointer("/totals/finished")
+            .and_then(serde_json::Value::as_u64),
+        Some(1)
+    );
+    assert_eq!(
+        report
+            .pointer("/totals/failures/aborted_cancelled")
+            .and_then(serde_json::Value::as_u64),
+        Some(1)
+    );
+    assert_eq!(
+        report
+            .pointer("/totals/turns/all/complete_total")
+            .and_then(serde_json::Value::as_u64),
+        Some(9)
+    );
+    assert_eq!(
+        report.pointer("/totals/turns/per_verified_pass"),
+        Some(&serde_json::Value::Null)
+    );
+    assert_eq!(
+        report.pointer("/totals/turns/failed_share"),
+        Some(&serde_json::json!({"numerator":9,"denominator":9}))
+    );
+    let invalid = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("metrics-report")
+        .arg("--database")
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .arg("--from-ms")
+        .arg("2")
+        .arg("--to-ms")
+        .arg("1")
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!invalid.status.success());
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("status")

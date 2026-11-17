@@ -11,6 +11,7 @@
 //! same work versions and ordering.
 
 pub mod attempt;
+pub mod attempt_report;
 pub mod campaign;
 pub mod candidate;
 pub mod continuation;
@@ -22,6 +23,7 @@ pub mod publication;
 pub mod verification;
 
 pub use attempt::*;
+pub use attempt_report::*;
 pub use candidate::*;
 pub use dispatch::*;
 pub use metrics::*;

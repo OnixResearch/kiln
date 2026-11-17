@@ -1,6 +1,8 @@
 use kiln_core::implementation::{
-    AcceptanceObligation, AttemptUsage, Enrollment, FailureClass, IMPLEMENTATION_WORK_SCHEMA,
-    ImplementationWork, SourceMapping, SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
+    AbsenceReason, AcceptanceObligation, AttemptUsage, Enrollment, FailureClass,
+    IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, ModelTurnObservation, SourceMapping, SourceRef,
+    TerminalPolicy, VerificationOutcome, WorkBudget, WorkSourceKind, WorkerObservation,
+    WorkerTerminalState,
 };
 use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
 use kiln_implementer::Implementer;
@@ -346,6 +348,228 @@ fn metrics_receipt_survives_restart_without_being_rewritten() {
             .unwrap_or_else(|_| unreachable!()),
         recorded
     );
+}
+
+#[test]
+// r[verify kiln.implementation.outcome_metrics.scenario.binding]
+fn retained_observations_survive_restart_without_rewriting_first_metrics()
+-> Result<(), Box<dyn std::error::Error>> {
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    store.admit(&work(), None)?;
+    let attempt = store.claim_next(10, LEASE)?.ok_or("missing claim")?;
+    let first = store.record_metrics(
+        &attempt.identity,
+        attempt.fence,
+        11,
+        AttemptUsage::default(),
+        vec![],
+    )?;
+    let worker = WorkerObservation {
+        terminal: WorkerTerminalState::Completed,
+        worker_profile: Some(content('a')),
+        harness: Some("harness".into()),
+        model: Some("model".into()),
+        usage: AttemptUsage {
+            model_turns: ModelTurnObservation::Incomplete {
+                turns: 3,
+                reason: AbsenceReason::ProviderUnavailable,
+            },
+            ..AttemptUsage::default()
+        },
+    };
+    store.record_worker_observation(&attempt.identity, attempt.fence, &worker)?;
+    store.record_verification_outcome(
+        &attempt.identity,
+        attempt.fence,
+        VerificationOutcome::Unknown,
+    )?;
+    drop(store);
+
+    let mut store = open(&path);
+    store.record_worker_observation(&attempt.identity, attempt.fence, &worker)?;
+    assert!(
+        store
+            .record_worker_observation(&attempt.identity, attempt.fence + 1, &worker)
+            .is_err()
+    );
+    let mut conflict = worker.clone();
+    conflict.usage.model_turns = ModelTurnObservation::Observed { turns: 4 };
+    assert!(
+        store
+            .record_worker_observation(&attempt.identity, attempt.fence, &conflict)
+            .is_err()
+    );
+    assert!(
+        store
+            .record_verification_outcome(
+                &attempt.identity,
+                attempt.fence,
+                VerificationOutcome::Verified
+            )
+            .is_err()
+    );
+    store.record_verification_outcome(
+        &attempt.identity,
+        attempt.fence,
+        VerificationOutcome::Rejected,
+    )?;
+    assert!(
+        store
+            .record_verification_outcome(
+                &attempt.identity,
+                attempt.fence,
+                VerificationOutcome::Incomplete
+            )
+            .is_err()
+    );
+    let retained = store
+        .attempt(&attempt.identity)?
+        .ok_or("missing retained attempt")?;
+    assert_eq!(retained.worker_observation.as_ref(), Some(&worker));
+    assert_eq!(
+        retained.verification_outcome,
+        Some(VerificationOutcome::Rejected)
+    );
+    assert_eq!(
+        retained.phase,
+        kiln_core::implementation::AttemptPhase::Claimed
+    );
+    assert_eq!(retained.ended_at_ms, None);
+    assert_eq!(retained.verification, None);
+    assert_eq!(
+        store.record_metrics(
+            &attempt.identity,
+            attempt.fence,
+            20,
+            worker.usage.clone(),
+            vec![]
+        )?,
+        first
+    );
+    let fresh = store.observe_metrics(
+        &attempt.identity,
+        attempt.fence,
+        20,
+        AttemptUsage::default(),
+        vec![],
+    )?;
+    assert_eq!(fresh.usage, worker.usage);
+    assert_eq!(
+        fresh.verification_outcome,
+        Some(VerificationOutcome::Rejected)
+    );
+    assert!(fresh.open);
+    assert!(
+        store
+            .authorize_current(&attempt.identity, attempt.fence, 20)
+            .is_ok()
+    );
+    store.cancel(&attempt.identity, attempt.fence, 21, "cancel")?;
+    let next = store.claim_next(22, LEASE)?.ok_or("missing replacement")?;
+    drop(store);
+
+    let mut store = open(&path);
+    store.record_worker_observation(&attempt.identity, attempt.fence, &worker)?;
+    assert!(
+        store
+            .authorize_current(&attempt.identity, attempt.fence, 23)
+            .is_err()
+    );
+    let replacement = store
+        .attempt(&next.identity)?
+        .ok_or("missing replacement")?;
+    assert_eq!(replacement.worker_observation, None);
+    assert_eq!(replacement.verification_outcome, None);
+    assert_eq!(replacement.metrics, None);
+    Ok(())
+}
+
+#[test]
+fn metrics_report_never_writes_state_versions_or_legacy_rows()
+-> Result<(), Box<dyn std::error::Error>> {
+    fn rows(path: &Path) -> rusqlite::Result<Vec<(String, i64, Vec<u8>)>> {
+        let connection = rusqlite::Connection::open(path)?;
+        let mut statement = connection
+            .prepare("SELECT kind, version, bytes FROM implementation_state ORDER BY kind")?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
+        rows.collect()
+    }
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let empty = rows(&path)?;
+    store.metrics_report(0, 100)?;
+    assert_eq!(rows(&path)?, empty, "reports must not create state rows");
+    store.admit(&work(), None)?;
+    let attempt = store.claim_next(10, LEASE)?.ok_or("missing claim")?;
+    store.record_metrics(
+        &attempt.identity,
+        attempt.fence,
+        20,
+        AttemptUsage::default(),
+        vec![],
+    )?;
+    drop(store);
+    let connection = rusqlite::Connection::open(&path)?;
+    let bytes: Vec<u8> = connection.query_row(
+        "SELECT bytes FROM implementation_state WHERE kind = 'attempts'",
+        [],
+        |row| row.get(0),
+    )?;
+    let mut legacy: serde_json::Value = serde_json::from_slice(&bytes)?;
+    let row = legacy
+        .pointer_mut(&format!("/attempts/{}", attempt.identity.as_str()))
+        .ok_or("missing legacy attempt")?;
+    row.as_object_mut()
+        .ok_or("missing legacy attempt")?
+        .remove("worker_observation");
+    row.as_object_mut()
+        .ok_or("missing legacy attempt")?
+        .remove("verification_outcome");
+    row.pointer_mut("/metrics/usage")
+        .ok_or("missing legacy metrics usage")?
+        .as_object_mut()
+        .ok_or("missing legacy metrics usage")?
+        .remove("model_turns");
+    row.get_mut("metrics")
+        .ok_or("missing legacy metrics")?
+        .as_object_mut()
+        .ok_or("missing legacy metrics")?
+        .remove("worker_terminal");
+    row.get_mut("metrics")
+        .ok_or("missing legacy metrics")?
+        .as_object_mut()
+        .ok_or("missing legacy metrics")?
+        .remove("verification_outcome");
+    connection.execute(
+        "UPDATE implementation_state SET bytes = ?1 WHERE kind = 'attempts'",
+        [serde_json::to_vec(&legacy)?],
+    )?;
+    drop(connection);
+    let before = rows(&path)?;
+    let mut store = open(&path);
+    store.metrics_report(0, 100)?;
+    assert_eq!(rows(&path)?, before);
+    assert!(store.metrics_report(100, 0).is_err());
+    assert_eq!(rows(&path)?, before, "invalid windows cannot write either");
+    drop(store);
+    let mut store = open(&path);
+    let restored = store
+        .attempt(&attempt.identity)?
+        .ok_or("missing legacy attempt")?;
+    assert_eq!(restored.worker_observation, None);
+    assert_eq!(restored.verification_outcome, None);
+    assert_eq!(
+        restored
+            .metrics
+            .ok_or("missing legacy metrics")?
+            .usage
+            .model_turns,
+        ModelTurnObservation::default()
+    );
+    Ok(())
 }
 
 // r[verify kiln.implementation.recovery.scenario.restart]
@@ -825,6 +1049,11 @@ fn completion_before_cancel_retains_exact_evidence_across_restart()
     let path = directory.path().join("implementation.db");
     let (work, attempt, handoff, verification) = racing_callbacks(&path)?;
     let mut store = open(&path);
+    store.record_verification_outcome(
+        &attempt.identity,
+        attempt.fence,
+        VerificationOutcome::Rejected,
+    )?;
     let receipt = store.record_verification(
         &work,
         &attempt.identity,
@@ -885,6 +1114,24 @@ fn completion_before_cancel_retains_exact_evidence_across_restart()
     assert_eq!(retained.ended_at_ms, Some(5));
     assert_eq!(retained.handoff.as_ref(), Some(&handoff));
     assert_eq!(retained.verification.as_ref(), Some(&verification));
+    assert_eq!(
+        retained.verification_outcome,
+        Some(VerificationOutcome::Verified)
+    );
+    store.record_verification_outcome(
+        &attempt.identity,
+        attempt.fence,
+        VerificationOutcome::Verified,
+    )?;
+    assert!(
+        store
+            .record_verification_outcome(
+                &attempt.identity,
+                attempt.fence,
+                VerificationOutcome::Rejected
+            )
+            .is_err()
+    );
     assert_eq!(
         retained.workflow.as_ref(),
         Some(&reference("run", "racing-worker"))

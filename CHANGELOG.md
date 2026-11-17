@@ -30,6 +30,14 @@ entry describes the source tree prepared for the first tagged release.
 - Typed provider failures keep timeout, cancellation and unknown distinct until
   an application shell applies retry policy; expired or ambiguous leases enter
   reconciliation. (workspace tests)
+- Opt-in implementation-attempt outcome and effort reports retain worker
+  terminal state separately from controller verification, with explicit
+  absent/incomplete model-request counts. A claim-time window reports rejected
+  Completed shares, disjoint failures, turns and wall time per verified pass,
+  sample coverage and profile/model groups without ranking or dollar pricing.
+  Existing verification/publication authority and first metric receipts remain
+  unchanged; current OMP JSONL events are not model turns. (#90; deterministic
+  core, durable store, adapter and operator CLI fixtures)
 
 **Sources**
 

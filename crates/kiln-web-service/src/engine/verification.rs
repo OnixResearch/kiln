@@ -90,6 +90,7 @@ impl Engine {
     /// journal its real observation before admitting the current implementation.
     /// HTTP/CLI callers select only the current attempt; profile/authority must
     /// come from trusted service configuration, never from a worker request.
+    // r[impl kiln.implementation.outcome_metrics.scenario.authority]
     pub fn verify_implementation_candidate(
         &mut self,
         ledger: &mut Implementer,
@@ -113,7 +114,17 @@ impl Engine {
             .candidate_handoff(attempt_id)?
             .ok_or("candidate handoff is not retained")?;
         ledger.begin_verification(attempt_id, fence, host_time_ms()?)?;
-        let executed = verify_candidate(&work, &attempt, &handoff, profile, authority)?;
+        let executed = match verify_candidate(&work, &attempt, &handoff, profile, authority) {
+            Ok(executed) => executed,
+            Err(error) => {
+                ledger.record_verification_outcome(
+                    attempt_id,
+                    fence,
+                    kiln_core::implementation::VerificationOutcome::Incomplete,
+                )?;
+                return Err(error);
+            }
+        };
         self.record_implementation_verification(ledger, &executed, attempt_id, fence)
     }
 
@@ -525,6 +536,17 @@ impl Engine {
                 "native canonical source repository differs from enrolled verifier acquisition"
                     .into(),
             );
+        }
+        if admission.is_err() {
+            ledger.record_verification_outcome(
+                attempt_id,
+                fence,
+                if unknown {
+                    kiln_core::implementation::VerificationOutcome::Unknown
+                } else {
+                    kiln_core::implementation::VerificationOutcome::Rejected
+                },
+            )?;
         }
         let mut verification = admission.map_err(|error| {
             format!("canonical run {run_id} retained unmet verification: {error}")

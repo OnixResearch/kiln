@@ -14,6 +14,8 @@ use crate::types::{ContentId, CoreResult, Diagnostic, ExternalRef};
 
 pub const METRICS_SCHEMA: &str = "kiln.implementation-metrics.v1";
 pub const MAX_METRIC_TRACES: usize = 8;
+/// Maximum UTF-8 byte length for retained harness and model names.
+pub const MAX_WORKER_METADATA_BYTES: usize = 256;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -37,11 +39,83 @@ pub enum AuxiliaryCallObservation {
     Observed { calls: u32 },
 }
 
+/// Complete counts and incomplete lower bounds remain distinct from missing data.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum ModelTurnObservation {
+    Absent { reason: AbsenceReason },
+    Observed { turns: u64 },
+    Incomplete { turns: u64, reason: AbsenceReason },
+}
+
+impl Default for ModelTurnObservation {
+    fn default() -> Self {
+        Self::Absent {
+            reason: AbsenceReason::NotReported,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkerTerminalState {
+    Completed,
+    Failed,
+    Aborted,
+    Deadline,
+}
+
+/// Non-authoritative worker facts; never candidate or verification evidence.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WorkerObservation {
+    pub terminal: WorkerTerminalState,
+    pub worker_profile: Option<ContentId>,
+    pub harness: Option<String>,
+    pub model: Option<String>,
+    pub usage: AttemptUsage,
+}
+
+impl WorkerObservation {
+    pub fn validate(&self) -> CoreResult<()> {
+        if let Some(profile) = &self.worker_profile {
+            profile.validate()?;
+        }
+        for name in [self.harness.as_deref(), self.model.as_deref()]
+            .into_iter()
+            .flatten()
+        {
+            if name.trim().is_empty()
+                || name.len() > MAX_WORKER_METADATA_BYTES
+                || name.chars().any(char::is_control)
+            {
+                return Err(refusal(
+                    "implementation_worker_metadata",
+                    "attempt.worker_observation",
+                    "worker metadata names must be bounded, nonempty and control-free",
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerificationOutcome {
+    Verified,
+    Rejected,
+    Unknown,
+    Incomplete,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptUsage {
     pub tokens: TokenObservation,
     pub auxiliary_calls: AuxiliaryCallObservation,
+    #[serde(default)]
+    pub model_turns: ModelTurnObservation,
 }
 
 impl Default for AttemptUsage {
@@ -53,7 +127,27 @@ impl Default for AttemptUsage {
             auxiliary_calls: AuxiliaryCallObservation::Absent {
                 reason: AbsenceReason::NotReported,
             },
+            model_turns: ModelTurnObservation::default(),
         }
+    }
+}
+
+impl AttemptUsage {
+    /// Fill only absent caller telemetry; explicit counts and lower bounds win.
+    fn with_worker_fallback(mut self, worker: &Self) -> Self {
+        if matches!(self.tokens, TokenObservation::Absent { .. }) {
+            self.tokens = worker.tokens.clone();
+        }
+        if matches!(
+            self.auxiliary_calls,
+            AuxiliaryCallObservation::Absent { .. }
+        ) {
+            self.auxiliary_calls = worker.auxiliary_calls.clone();
+        }
+        if matches!(self.model_turns, ModelTurnObservation::Absent { .. }) {
+            self.model_turns = worker.model_turns.clone();
+        }
+        self
     }
 }
 
@@ -74,14 +168,18 @@ pub struct AttemptMetrics {
     pub open: bool,
     pub usage: AttemptUsage,
     pub traces: Vec<ExternalRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worker_terminal: Option<WorkerTerminalState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verification_outcome: Option<VerificationOutcome>,
 }
 
 impl AttemptMetrics {
     /// Observe one attempt at `now_ms`. No ledger mutation and no admission.
     ///
     /// A terminal attempt uses its recorded end; an active attempt reports
-    /// `open` and elapsed time through the observation instant. Missing usage
-    /// stays absent.
+    /// `open` and elapsed time through the observation instant. Absent caller
+    /// usage falls back to retained worker usage, otherwise remains absent.
     // r[impl kiln.implementation.metrics]
     pub fn observe(
         attempt: &super::ImplementationAttempt,
@@ -118,6 +216,10 @@ impl AttemptMetrics {
                 "metrics observation precedes the attempt claim",
             ));
         }
+        let usage = match &attempt.worker_observation {
+            Some(worker) => usage.with_worker_fallback(&worker.usage),
+            None => usage,
+        };
         Ok(Self {
             schema: METRICS_SCHEMA.to_string(),
             attempt_identity: attempt.identity.clone(),
@@ -132,6 +234,11 @@ impl AttemptMetrics {
             open: ended_at_ms.is_none() && !attempt.phase.is_terminal(),
             usage,
             traces,
+            worker_terminal: attempt
+                .worker_observation
+                .as_ref()
+                .map(|worker| worker.terminal),
+            verification_outcome: attempt.verification_outcome,
         })
     }
 
@@ -275,6 +382,7 @@ mod tests {
         let usage = AttemptUsage {
             tokens: TokenObservation::Observed { tokens: 1_234 },
             auxiliary_calls: AuxiliaryCallObservation::Observed { calls: 3 },
+            model_turns: ModelTurnObservation::Observed { turns: 9 },
         };
         let trace =
             ExternalRef::new("lattice", "trace", "run-one").unwrap_or_else(|_| unreachable!());
@@ -352,5 +460,150 @@ mod tests {
                 )
                 .is_err()
         );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.outcome_metrics.scenario.usage]
+    fn model_turn_counts_preserve_zero_lower_bounds_and_absence() {
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work(), 10, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        for turns in [
+            ModelTurnObservation::Observed { turns: 0 },
+            ModelTurnObservation::Observed { turns: 12 },
+            ModelTurnObservation::Incomplete {
+                turns: 4,
+                reason: AbsenceReason::ProviderUnavailable,
+            },
+            ModelTurnObservation::default(),
+        ] {
+            let usage = AttemptUsage {
+                model_turns: turns.clone(),
+                ..AttemptUsage::default()
+            };
+            let metrics = ledger
+                .observe_metrics(&attempt.identity, attempt.fence, 20, usage, vec![])
+                .unwrap_or_else(|_| unreachable!());
+            assert_eq!(metrics.usage.model_turns, turns);
+            let bytes = serde_json::to_vec(&metrics).unwrap_or_else(|_| unreachable!());
+            let decoded: AttemptMetrics =
+                serde_json::from_slice(&bytes).unwrap_or_else(|_| unreachable!());
+            assert_eq!(decoded, metrics);
+        }
+        assert!(ledger.metrics(&attempt.identity).is_none());
+    }
+
+    #[test]
+    fn absent_usage_merges_per_field_without_replacing_explicit_counts() {
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work(), 10, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let worker = WorkerObservation {
+            terminal: WorkerTerminalState::Deadline,
+            worker_profile: Some(content('d')),
+            harness: Some("harness".into()),
+            model: Some("model".into()),
+            usage: AttemptUsage {
+                tokens: TokenObservation::Observed { tokens: 15 },
+                auxiliary_calls: AuxiliaryCallObservation::Observed { calls: 2 },
+                model_turns: ModelTurnObservation::Incomplete {
+                    turns: 7,
+                    reason: AbsenceReason::ProviderUnavailable,
+                },
+            },
+        };
+        ledger
+            .record_worker_observation(&attempt.identity, attempt.fence, &worker)
+            .unwrap_or_else(|_| unreachable!());
+        let fallback = ledger
+            .observe_metrics(
+                &attempt.identity,
+                attempt.fence,
+                20,
+                AttemptUsage::default(),
+                vec![],
+            )
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(fallback.usage, worker.usage);
+        assert_eq!(
+            fallback.worker_terminal,
+            Some(WorkerTerminalState::Deadline)
+        );
+        assert!(
+            fallback.open,
+            "worker terminal metadata does not end the attempt"
+        );
+        let explicit = AttemptUsage {
+            tokens: TokenObservation::Observed { tokens: 0 },
+            auxiliary_calls: AuxiliaryCallObservation::Absent {
+                reason: AbsenceReason::NotInstrumented,
+            },
+            model_turns: ModelTurnObservation::Observed { turns: 0 },
+        };
+        let metrics = ledger
+            .observe_metrics(&attempt.identity, attempt.fence, 20, explicit, vec![])
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            metrics.usage.tokens,
+            TokenObservation::Observed { tokens: 0 }
+        );
+        assert_eq!(metrics.usage.auxiliary_calls, worker.usage.auxiliary_calls);
+        assert_eq!(
+            metrics.usage.model_turns,
+            ModelTurnObservation::Observed { turns: 0 }
+        );
+        let incomplete = AttemptUsage {
+            model_turns: ModelTurnObservation::Incomplete {
+                turns: 1,
+                reason: AbsenceReason::NotReported,
+            },
+            ..AttemptUsage::default()
+        };
+        let metrics = ledger
+            .observe_metrics(
+                &attempt.identity,
+                attempt.fence,
+                20,
+                incomplete.clone(),
+                vec![],
+            )
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(metrics.usage.model_turns, incomplete.model_turns);
+    }
+
+    #[test]
+    fn old_metrics_and_usage_rows_default_new_observations_to_absent() {
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work(), 10, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let metrics = ledger
+            .observe_metrics(
+                &attempt.identity,
+                attempt.fence,
+                20,
+                AttemptUsage::default(),
+                vec![],
+            )
+            .unwrap_or_else(|_| unreachable!());
+        let mut old = serde_json::to_value(&metrics).unwrap_or_else(|_| unreachable!());
+        old.as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .remove("worker_terminal");
+        old.as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .remove("verification_outcome");
+        old.get_mut("usage")
+            .unwrap_or_else(|| unreachable!())
+            .as_object_mut()
+            .unwrap_or_else(|| unreachable!())
+            .remove("model_turns");
+        let restored: AttemptMetrics =
+            serde_json::from_value(old).unwrap_or_else(|_| unreachable!());
+        assert_eq!(restored.usage.model_turns, ModelTurnObservation::default());
+        assert_eq!(restored.worker_terminal, None);
+        assert_eq!(restored.verification_outcome, None);
     }
 }

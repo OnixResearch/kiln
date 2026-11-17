@@ -28,7 +28,8 @@ use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
     CandidateVerification, DispatchReservation, Enrollment, ImplementationAttempt,
     ImplementationDispatchPlan, ImplementationWork, IntegrationReceipt, PublicationPlan,
-    PublicationRecord, SourceMapping, SourceStatusPlan, SourceStatusReceipt, WorkLedger,
+    PublicationRecord, SourceMapping, SourceStatusPlan, SourceStatusReceipt, VerificationOutcome,
+    WorkLedger, WorkerObservation,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -450,6 +451,44 @@ impl Implementer {
 
     pub fn metrics(&mut self, identity: &ContentId) -> Result<Option<AttemptMetrics>, String> {
         self.with_ledgers(|_, attempts| Ok(attempts.metrics(identity).cloned()))
+    }
+
+    /// Observe a claim-time window without rewriting ledgers or row versions.
+    pub fn metrics_report(
+        &mut self,
+        from_ms: u64,
+        to_ms: u64,
+    ) -> Result<kiln_core::implementation::AttemptReport, String> {
+        let transaction = self.connection.transaction().map_err(text)?;
+        let (attempts, _) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let report = kiln_core::implementation::AttemptReport::observe(&attempts, from_ms, to_ms)
+            .map_err(diagnostic)?;
+        transaction.commit().map_err(text)?;
+        Ok(report)
+    }
+
+    /// Retain exact-fence worker metadata atomically, without granting authority.
+    pub fn record_worker_observation(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        observation: &WorkerObservation,
+    ) -> Result<(), String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_worker_observation(identity, fence, observation)
+        })
+    }
+
+    /// Retain an independent verifier observation, not accepted CI evidence.
+    pub fn record_verification_outcome(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        outcome: VerificationOutcome,
+    ) -> Result<(), String> {
+        self.with_ledgers(|_, attempts| {
+            attempts.record_verification_outcome(identity, fence, outcome)
+        })
     }
 
     pub fn admit_candidate_handoff(

@@ -116,6 +116,8 @@ fn verified(work: &ImplementationWork, ordinal: u8, checks: Vec<CiCheck>) -> Imp
         }),
         publication: None,
         metrics: None,
+        worker_observation: None,
+        verification_outcome: None,
         failure: None,
         cause: None,
         superseded_by: None,

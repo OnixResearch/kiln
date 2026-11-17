@@ -45,7 +45,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -78,6 +78,7 @@ fn run() -> Result<(), ()> {
         "close-source" => close_source(&flags),
         "source-status" => source_status(&flags),
         "metrics" => metrics(&flags),
+        "metrics-report" => metrics_report(&flags),
         "recover" => recover_attempts(&flags),
         "reconcile-termination" => reconcile_termination(&flags),
         "attach-needs" => attach_needs(&flags),
@@ -1272,6 +1273,7 @@ fn metrics(flags: &BTreeMap<String, String>) -> Result<(), ()> {
                 reason: kiln_core::implementation::AbsenceReason::NotReported,
             },
         ),
+        model_turns: input.model_turns.unwrap_or_default(),
     };
     let mut implementer = match open_implementer(flags) {
         Ok(implementer) => implementer,
@@ -1309,6 +1311,27 @@ fn metrics(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
 }
 
+// r[impl kiln.implementation.outcome_metrics.scenario.report]
+fn metrics_report(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<_, String> {
+        let from_ms = required_value(flags, "--from-ms")?
+            .parse::<u64>()
+            .map_err(|_| "--from-ms must be a nonnegative integer")?;
+        let to_ms = required_value(flags, "--to-ms")?
+            .parse::<u64>()
+            .map_err(|_| "--to-ms must be a nonnegative integer")?;
+        let report = open_implementer(flags)?.metrics_report(from_ms, to_ms)?;
+        serde_json::to_string(&report).map_err(|_| "metrics report could not be encoded".to_owned())
+    })();
+    match result {
+        Ok(document) => {
+            println!("{document}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
 #[derive(Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct MetricsInput {
@@ -1316,6 +1339,8 @@ struct MetricsInput {
     tokens: Option<kiln_core::implementation::TokenObservation>,
     #[serde(default)]
     auxiliary_calls: Option<kiln_core::implementation::AuxiliaryCallObservation>,
+    #[serde(default)]
+    model_turns: Option<kiln_core::implementation::ModelTurnObservation>,
     #[serde(default)]
     traces: Vec<kiln_core::types::ExternalRef>,
 }

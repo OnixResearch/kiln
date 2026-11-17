@@ -425,6 +425,8 @@ mod tests {
                 verification: None,
                 publication: None,
                 metrics: None,
+                worker_observation: None,
+                verification_outcome: None,
                 failure: None,
                 cause: None,
                 superseded_by: None,

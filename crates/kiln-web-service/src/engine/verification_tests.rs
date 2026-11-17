@@ -44,7 +44,16 @@ fn engine() -> (
     Engine,
     kiln_core::source::SourceResolution,
 ) {
-    let root = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error:?}"));
+    engine_in(tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error:?}")))
+}
+
+fn engine_in(
+    root: tempfile::TempDir,
+) -> (
+    tempfile::TempDir,
+    Engine,
+    kiln_core::source::SourceResolution,
+) {
     let path = root.path().join("repository");
     let repository =
         git2::Repository::init(&path).unwrap_or_else(|error| unreachable!("{error:?}"));
@@ -56,6 +65,9 @@ fn engine() -> (
         .unwrap_or_else(|error| unreachable!("{error:?}"));
     builder
         .insert("source.txt", blob, 0o100644)
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    builder
+        .insert("requirements", blob, 0o100644)
         .unwrap_or_else(|error| unreachable!("{error:?}"));
     let tree_id = builder
         .write()
@@ -658,3 +670,6 @@ fn forged_verification_provenance_fails_mutable_and_read_only_restore() {
     )]);
     assert!(Engine::open_with_ports(profile, ports).is_err());
 }
+
+#[path = "verification_outcome_tests.rs"]
+mod outcome_metrics;

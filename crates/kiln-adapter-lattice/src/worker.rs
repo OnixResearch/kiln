@@ -11,6 +11,51 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+#[path = "worker_metrics.rs"]
+mod metrics;
+
+const MAX_OMP_OBSERVATION_BYTES: u64 = 16 * 1024;
+
+fn read_metrics_artifact(
+    state: &Path,
+    attempt: &kiln_core::implementation::ImplementationAttempt,
+    response: &serde_json::Value,
+) -> Result<Vec<u8>, String> {
+    // This is the native producer's per-attempt directory identity. An artifact
+    // pointer from another attempt cannot supply this attempt's observations.
+    let key = state.join(format!("{}-{}", attempt.identity.as_str(), attempt.fence));
+    let expected = state
+        .join(
+            blake3::hash(key.as_os_str().as_encoded_bytes())
+                .to_hex()
+                .as_str(),
+        )
+        .join("omp-observation.json");
+    let path = response
+        .pointer("/artifacts/omp_observation")
+        .and_then(serde_json::Value::as_str)
+        .map(Path::new)
+        .ok_or("worker metrics artifact is unavailable")?;
+    if path != expected
+        || std::fs::canonicalize(path).map_err(|error| error.to_string())? != expected
+    {
+        return Err("worker metrics artifact belongs to another attempt or path".into());
+    }
+    let file = std::fs::File::open(path).map_err(|error| error.to_string())?;
+    let metadata = file.metadata().map_err(|error| error.to_string())?;
+    if !metadata.is_file() || metadata.len() > MAX_OMP_OBSERVATION_BYTES {
+        return Err("worker metrics artifact is not a bounded ordinary file".into());
+    }
+    let mut bytes = Vec::with_capacity(metadata.len() as usize);
+    file.take(MAX_OMP_OBSERVATION_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| error.to_string())?;
+    if bytes.len() as u64 > MAX_OMP_OBSERVATION_BYTES {
+        return Err("worker metrics artifact exceeds its bound".into());
+    }
+    Ok(bytes)
+}
+
 const MAX_REQUEST_BYTES: u64 = 2 * 1024 * 1024;
 fn transport_profile_mode_matches(
     schema: &str,
@@ -511,6 +556,17 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         .map_err(|error| format!("{error:?}"))?;
     implementer.reconcile_dispatch(&attempt.identity, attempt.fence, clock()?, &workflow)?;
     implementer.admission_execution_observed(&attempt.identity, attempt.fence, clock()?)?;
+    // Observation failure cannot turn a valid native result into a failed
+    // dispatch or grant candidate authority. Raw transport evidence is retained
+    // above; absent/malformed telemetry is explicit in this diagnostic.
+    let metrics_result = read_metrics_artifact(&profile.state_directory, &attempt, &observed)
+        .and_then(|bytes| metrics::normalize(&request, &observed, &bytes))
+        .and_then(|observation| {
+            implementer.record_worker_observation(&attempt.identity, attempt.fence, &observation)
+        });
+    if let Err(error) = metrics_result {
+        eprintln!("kiln worker metrics unavailable: {error}");
+    }
     if cancellation.load(std::sync::atomic::Ordering::SeqCst)
         || observed
             .pointer("/result/disposition")
