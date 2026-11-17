@@ -610,7 +610,10 @@ fn required_reviews<'a>(state: &'a CampaignState, member: &str) -> &'a [String] 
         .map_or(&[], |binding| binding.required_reviews.as_slice())
 }
 
-fn decision_scope(state: &CampaignState, request: &HumanDecisionRequest) -> &'static str {
+pub(crate) fn decision_scope(
+    state: &CampaignState,
+    request: &HumanDecisionRequest,
+) -> &'static str {
     if state.decision_in_current_scope(request) {
         "current"
     } else if state.observations.contains_key(&request.member) {

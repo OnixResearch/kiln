@@ -29,7 +29,7 @@ pub struct CampaignDecisionAnswer<'a> {
     pub answer: &'a str,
 }
 
-const MAX_CAMPAIGN_BYTES: i64 = 32 * 1024 * 1024;
+pub(crate) const MAX_CAMPAIGN_BYTES: i64 = 32 * 1024 * 1024;
 const SCHEMA: &str = "CREATE TABLE IF NOT EXISTS implementation_campaign (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL); CREATE TABLE IF NOT EXISTS implementation_campaign_continuation (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL); CREATE TABLE IF NOT EXISTS implementation_campaign_command (request_id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, fingerprint TEXT NOT NULL, outcome BLOB NOT NULL);";
 /// Prefix of every refusal caused by a campaign version that moved.
 pub const STALE_CAMPAIGN_VERSION: &str = "stale campaign version";

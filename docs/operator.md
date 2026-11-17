@@ -1874,7 +1874,7 @@ all read:
 | --- | --- |
 | 0 Start here | 0.0 Guide |
 | 1 Continuous integration | 1.1 Overview, 1.2 Runs, 1.3 CI projects (a project's history shares 1.3), 1.4 Workers |
-| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.5 Requests & triage, 2.6 Saved views |
+| 2 Work | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.4 Code review, 2.5 Requests & triage, 2.6 Saved views, 2.7 Cairn changes |
 | 3 Inspect | 3.1 Source, 3.2 Patchgate receipts, 3.3 Activity, 3.4 Feeds, 3.5 Evidence |
 | 4 Administration | 4.1 Automation, 4.2 Operations, 4.3 Raw collaboration history, 4.4 Settings |
 
@@ -4810,3 +4810,77 @@ confirmation. Each submission carries the displayed store version and a fresh
 request ID. After a lost response, **Retry the same request** resends that ID,
 so the owner returns the recorded outcome instead of applying the command
 twice. A 409 reports that nothing was applied and reloads the current state.
+
+### Cairn changes
+
+<!-- r[related kiln.cairn.workspace] -->
+The **Cairn changes** page (2.7) shows one read-only view per Cairn change. A
+change is keyed by its repository identity (the same BLAKE3 digest of the
+repository binding the campaign projection uses) and its change name. The view
+joins, by exact identity, the canonical work whose Cairn aliases (`cairn_task`
+or `cairn_artifact`, `<change>/<unit>`) name the change, the attempts on that
+work with their verification, publication and native lifecycle records, and
+every selected campaign member whose selector names the change. One bounded
+read transaction over the `--implementation-work` database supplies all of it.
+Nothing on the page claims, dispatches, mutates lifecycle or answers a decision.
+
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/api/implementation/cairn` | GET | `kiln.cairn-workspace-index.v1`: every change named by canonical work or a selected campaign member, with unit, work, attempt, campaign and blocker counts |
+| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v1`: the change's units, members, decisions and structured blockers with a BLAKE3 view identity |
+
+Viewers and operators read both routes; worker principals are refused. The
+detail admits exactly the `repository=HEX&change=NAME` query: a 64-character
+lowercase hex identity and a percent-encoded change name of at most 256 bytes
+without `/` or control characters. Both responses are bounded to 4 MiB, and the
+index lists at most 512 changes, reporting truncation. Without
+`--implementation-work` both routes return 503
+`cairn_workspace_input_not_configured`; the page says so instead of showing no
+changes.
+
+A unit comes from a canonical alias, a campaign task selection or a campaign
+member's remaining obligations, and records which sources named it. A
+whole-change selection names the change, not a unit. Each unit reads in five
+separate facets:
+
+| Facet | Values |
+| --- | --- |
+| Readiness | `ready`, `blocked`, `unknown` (eligibility unavailable) or `not_admitted` (no current canonical work) |
+| Execution | phase of the latest attempt on current work, or `not_started` |
+| Evidence | `current_verified`, `current_failed`, `historical_only` or `none` |
+| Integration | publication phase of that attempt, or `not_published` |
+| Lifecycle | `receipt_observed` or `not_observed` |
+
+An attempt applies to current work only when its work identity equals the
+unit's current canonical version; otherwise it reads as historical, and its
+verification never makes changed work look accepted. A lifecycle receipt
+counts only when it binds the attempt's own work identity and fence; otherwise
+it reads as crossed. A campaign member's binding is `current`, `stale` (a
+superseded version), `unknown_work` (not in the ledger) or `not_bound`.
+
+Blockers carry a condition, the native unit or member, the supporting
+observation (`work:`, `attempt:`, `campaign:ID@VERSION` or `effect:`), a
+proposed campaign operation and its owner:
+
+| Condition | Source | Operation and owner |
+| --- | --- | --- |
+| `missing_dependency` | Canonical eligibility | `wait` by `native-source-owner` |
+| `no_acceptance_obligations`, `dependency_cycle` | Canonical eligibility | `blocked` by `native-source-owner` |
+| `campaign_hold` | The campaign's own selection hold | The hold's operation and owner |
+| `pending_effect` | An owner effect whose progress is not applied | `reconcile` by the effect's owner |
+| `dispatch_recovery` | An unknown provider outcome without an observed termination | `reconcile` by `attempt-reconciliation-owner` |
+| `stale_work_binding` | A member bound to stale or unknown work | `replan` by `campaign-policy` |
+
+Reasons and details are display text and are never parsed into decisions.
+Decisions are listed for reading; answer them in the campaign's own view, which
+links each selected change to its Cairn change.
+
+The page keeps `cairn_repository`, `cairn_change` and `cairn_q` in the URL, so a
+reload reproduces the selection. A response for an earlier selection never
+draws over a newer one, and a detail that does not echo the requested key is
+refused rather than substituted. Requirement text is limited to canonical
+acceptance obligations; native Cairn requirement references are not read.
+
+Canonical work keys hash the alias set without the repository. Two enrolled
+repositories naming the same Cairn unit therefore collide in the work ledger,
+and the page cannot show work the ledger refused or replaced.

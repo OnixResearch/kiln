@@ -87,6 +87,13 @@ pub(crate) fn identify(state: &CampaignState, version: u64) -> Result<String, St
     Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
+/// Repository identity shared by campaign and Cairn projections: BLAKE3 of
+/// the canonical repository binding, never the raw repository path.
+#[must_use]
+pub fn repository_identity(repository: &str) -> String {
+    blake3::hash(repository.as_bytes()).to_hex().to_string()
+}
+
 fn member_projection(
     state: &CampaignState,
     member: &kiln_core::implementation::campaign::MemberBinding,
@@ -394,9 +401,7 @@ pub fn project(state: &CampaignState, store_version: u64) -> Result<CampaignProj
         store_version,
         selection_identity: state.selection_identity.as_str().to_owned(),
         selection_revision: state.contract.revision,
-        repository_identity: blake3::hash(state.contract.repository.as_bytes())
-            .to_hex()
-            .to_string(),
+        repository_identity: repository_identity(&state.contract.repository),
         members,
         pending_effects: pending_effects.as_array().cloned().unwrap_or_default(),
         decisions: decisions.as_array().cloned().unwrap_or_default(),

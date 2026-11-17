@@ -450,6 +450,7 @@ impl Workspace {
             Example::new("Campaign decision inbox and admission controls", "/?page=workers&worker_campaign=synthetic-selected-cairn", "Answer the synthetic required review or lifecycle preference, issue the waiting experiment question once the outstanding bound frees, then pause, continue or cancel admission. Each command goes through the real canonical owner with a request ID; replays, stale versions and refusals stay visible. No worker or provider is contacted."),
             Example::new("Start a configured campaign from a frozen preview", "/?page=workers", "Open \"Start a configured campaign\" to compare a startable synthetic definition with one whose verified pull request goal its native no-PR route does not offer, then start the first and inspect its new campaign."),
         ]);
+        examples.extend(campaign::examples());
         let mut random = [0u8; 16];
         getrandom::fill(&mut random)
             .map_err(|e| format!("random workspace id unavailable: {e}"))?;
@@ -530,6 +531,15 @@ impl Workspace {
                     now_ms: now_ms()?,
                 })
                 .response);
+        }
+        // r[impl kiln.cairn.workspace.scenario.example] The real Cairn workspace shell over the synthetic stores.
+        if kiln_web_service::cairn_workspace::http::ROUTES.contains(&path) {
+            return Ok(kiln_web_service::cairn_workspace::http::response(
+                Some(&self.campaign),
+                &req.method,
+                &req.target,
+                Role::Operator,
+            ));
         }
         if path.starts_with("/api/feeds") || path.starts_with("/feeds") {
             return self
@@ -638,7 +648,7 @@ fn asset(path: &str) -> ApiResponse {
                 "work-interaction.css" => CSS, "work-evidence.js" => JS, "work-board.js" => JS,
                 "code-review.js" => JS, "code-review.css" => CSS, "project.js" => JS, "project.css" => CSS,
                 "source.js" => JS, "source.css" => CSS, "receipts.js" => JS, "receipts.css" => CSS,
-                "workers.js" => JS, "workers.css" => CSS,
+                "workers.js" => JS, "workers.css" => CSS, "cairn.js" => JS, "cairn.css" => CSS,
                 "inventory.js" => JS, "inventory.css" => CSS, "preview-review.js" => JS,
             }
         }

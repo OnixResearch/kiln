@@ -463,6 +463,23 @@
       panel.append(retry); root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
+  // r[impl kiln.cairn.workspace] Each selected change opens its exact Cairn change (repository identity and change
+  // name). The links sit beside the inert projection, which keeps no control of its own.
+  function cairnLinks(projection) {
+    const nav = element("nav", undefined, "panel campaign-cairn-links");
+    nav.setAttribute("aria-label", "Cairn changes in this campaign");
+    nav.append(element("h3", "Cairn changes in this campaign"));
+    const list = element("ul");
+    for (const change of [...new Set(projection.members.map((member) => member.change))]) {
+      const item = element("li");
+      const link = element("a", change);
+      link.href = `?page=cairn&cairn_repository=${projection.repository_identity}&cairn_change=${encodeURIComponent(change)}`;
+      item.append(link);
+      list.append(item);
+    }
+    nav.append(list);
+    return nav;
+  }
   async function loadCampaign(root, ctx, campaignId, newId = newRequestId, notice = "") {
     const current = ++campaignGeneration; campaignMounted = root;
     root.setAttribute("aria-busy", "true");
@@ -471,7 +488,7 @@
       const projection = validateCampaign(await ctx.api(`/api/implementation/campaigns?campaign=${encodeURIComponent(campaignId)}`));
       if (!live()) return;
       const holder = element("div", undefined, "campaign-controls-root");
-      root.replaceChildren(renderCampaign(projection), holder);
+      root.replaceChildren(renderCampaign(projection), cairnLinks(projection), holder);
       // The inbox has its own failure boundary; the projection stays read-only without it.
       void loadControls(holder, ctx, campaignId, live, (message) => { if (live()) void loadCampaign(root, ctx, campaignId, newId, message); }, newId, notice);
     } catch (error) {
@@ -481,5 +498,5 @@
       root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
-  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, load, loadCampaign, loadDefinitions, clear });
+  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, load, loadCampaign, loadDefinitions, clear, scopes: SCOPE });
 })();

@@ -1,0 +1,51 @@
+/* r[impl kiln.cairn.workspace] Cairn changes: the change register beside the selected change. Shared tokens and
+   components only (split view, panels, fact tables, data tables, state badges). */
+.cairn-list-panel, .cairn-detail { display: grid; gap: var(--space-3); align-content: start; min-width: 0; }
+.cairn-list-panel > *, .cairn-detail > * { margin: 0; }
+.cairn-list-panel > h2 { font-size: var(--text-lg); font-weight: 700; }
+.cairn-filters { display: grid; gap: var(--space-1); }
+.cairn-filters > label { margin: 0; }
+
+/* The register reads as a ruled list: one row per change, the selection an inverted-tone cell with an ink frame. */
+.cairn-list { display: grid; margin: 0; padding: 0; list-style: none; max-height: min(70vh, 48rem); overflow-y: auto; border-block: 1px solid var(--frame); }
+.cairn-list > li { min-width: 0; border-bottom: 1px solid var(--border); }
+.cairn-list > li:last-child { border-bottom: 0; }
+.cairn-row { display: grid; gap: .35rem; min-width: 0; padding: var(--space-3) var(--space-2); color: var(--foreground); text-decoration: none; }
+.cairn-row:hover { background: var(--list-hover); text-decoration: none; }
+.cairn-row[aria-current="true"] { background: var(--list-active); box-shadow: inset 0 0 0 1px var(--list-active-border); }
+.cairn-row:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.cairn-row-title { font-size: var(--text-md); font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.cairn-row-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem var(--space-3); margin: 0; color: var(--muted-foreground); font-size: var(--text-xs); }
+.cairn-row-meta code { font-family: var(--mono); }
+
+/* The selected change: identities, then blockers, units and campaign members, each under a technical label. */
+.cairn-howto, .cairn-sheet { display: grid; gap: var(--space-4); min-width: 0; }
+.cairn-howto > *, .cairn-sheet > * { margin: 0; }
+.cairn-howto > h2 { font-size: var(--text-lg); font-weight: 700; }
+.cairn-head { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 2px solid var(--foreground); }
+.cairn-title { margin: 0; font-size: var(--text-2xl); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; }
+.cairn-section { display: grid; gap: var(--space-3); min-width: 0; }
+.cairn-section > * { margin: 0; }
+.cairn-section-title { padding-bottom: var(--space-1); border-bottom: 1px solid var(--frame); color: var(--foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+.cairn-unit, .cairn-member, .cairn-blocker, .cairn-decision { display: grid; gap: var(--space-2); min-width: 0; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+.cairn-unit > *, .cairn-member > *, .cairn-blocker > *, .cairn-decision > * { margin: 0; }
+.cairn-item-title { font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
+.cairn-subject { font-family: var(--mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+/* Attempt cells break between words, never inside one; identities are shortened and keep the exact value in their title. */
+.cairn-attempts-table td, .cairn-attempts-table .state-badge { overflow-wrap: normal; }
+.cairn-attempt-id { display: grid; gap: .15rem; }
+.cairn-attempt-id > code { color: var(--muted-foreground); font-family: var(--mono); font-size: var(--text-xs); }
+@container data-table (max-width: 48rem) {
+  .data-table-stack.cairn-attempts-table tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cairn-attempts-table td::before { content: attr(data-label); display: block; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+}
+.cairn-unit-title { font-family: var(--mono); font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
+.cairn-list-items { display: grid; gap: var(--space-1); margin: 0; padding-left: 1.1rem; }
+.cairn-about > summary { color: var(--foreground); font-weight: 600; }
+.cairn-back { display: none; justify-self: start; }
+
+/* Stacked, an opened change comes first and keeps a way back to the register. */
+@media (max-width: 65rem) {
+  .cairn-layout[data-selected="true"] > .cairn-detail { order: -1; }
+  .cairn-back { display: inline-flex; }
+}

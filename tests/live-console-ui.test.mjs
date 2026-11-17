@@ -35,6 +35,7 @@ vm.runInNewContext(asset("ui.js"), context);
 vm.runInNewContext(asset("source.js"), context);
 vm.runInNewContext(asset("receipts.js"), context);
 vm.runInNewContext(asset("workers.js"), context);
+vm.runInNewContext(asset("cairn.js"), context);
 const ui = context.window.KilnUi;
 const icons = context.window.KilnIcons;
 // Review-query route normalization must mirror the service's trimmed, bounded,
@@ -1160,4 +1161,157 @@ test("expired or unknown heartbeats never turn historical free slots or a passed
   const neverSeen = workers.heartbeat({ liveness: "offline", observed_capacity: { observed_slots: 0, active_slots: 0, free_slots: 0, last_seen_at_ms: null } });
   assert.deepEqual([neverSeen.observed, neverSeen.atMs, neverSeen.slots, neverSeen.reportedFree, neverSeen.currentFree], [false, null, null, null, null]);
   assert.equal(observation.free_slots, 3);
+});
+
+const cairn = context.window.KilnCairn;
+const CAIRN_REPOSITORY = "ab".repeat(32);
+const cairnDetail = (change, extra = {}) => ({
+  schema: "kiln.cairn-workspace-detail.v1", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
+  snapshot: { work_recorded: true, attempts_recorded: true, campaigns_read: 0, campaigns_truncated: false, lifecycle_truncated: false },
+  overview: { units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: 0, blockers: 0, first_blocker: null },
+  units: [{ native_id: `${change}/unit-of-${change}`, unit: `unit-of-${change}`, sources: ["campaign_selection"], current_work: [], superseded_work: [], attempts: [],
+    facets: { readiness: "not_admitted", execution: "not_started", evidence: "none", integration: "not_published", lifecycle: "not_observed" } }],
+  memberships: [], decisions: [], blockers: [], non_claims: ["display is not campaign, work, verification or lifecycle authority"], ...extra,
+});
+
+// r[verify kiln.cairn.workspace.scenario.reload]
+test("the URL selects one exact Cairn change or none, and the detail must echo it", () => {
+  const route = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "add cairn&docs", cairn_q: "q".repeat(300) });
+  assert.deepEqual(plain(route), { repository: CAIRN_REPOSITORY, change: "add cairn&docs", q: "q".repeat(256), invalid: false });
+  assert.equal(cairn.detailPath(route), `/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=add%20cairn%26docs`);
+  for (const [repository, change] of [["AB".repeat(32), "a"], ["ab".repeat(31), "a"], [CAIRN_REPOSITORY, "a/b"], [CAIRN_REPOSITORY, " "], [CAIRN_REPOSITORY, "a\u0085b"], [CAIRN_REPOSITORY, "é".repeat(129)], ["", "a"], [CAIRN_REPOSITORY, ""]]) {
+    const rejected = cairn.normalizeRoute({ cairn_repository: repository, cairn_change: change });
+    assert.deepEqual([rejected.repository, rejected.change, rejected.invalid], ["", "", true], `${repository} ${change}`);
+  }
+  assert.equal(cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "é".repeat(128) }).change, "é".repeat(128));
+  assert.equal(cairn.normalizeRoute({}).invalid, false);
+  const selected = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" });
+  assert.equal(cairn.admitDetail(cairnDetail("wanted"), selected).change, "wanted");
+  for (const crossed of [cairnDetail("other"), cairnDetail("wanted", { repository_identity: "cd".repeat(32) }), cairnDetail("wanted", { schema: "kiln.cairn-workspace-index.v1" }),
+    cairnDetail("wanted", { overview: { units: 1 } }), cairnDetail("wanted", { units: null }), null]) {
+    assert.throws(() => cairn.admitDetail(crossed, selected), /No other change was substituted/);
+  }
+});
+
+// r[verify kiln.cairn.workspace]
+test("the change register puts blockers first, never lists a key twice and searches every name", () => {
+  const entry = (change, blockers, extra = {}) => ({ repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"], units: 1, current_work: 1, attempts: 0, active_attempts: 0, campaigns: ["campaign-1"], blockers, ...extra });
+  const rows = cairn.indexRows({ schema: "kiln.cairn-workspace-index.v1", changes: [
+    entry("calm", 0), entry("busy", 3), entry("alpha", 3), entry("busy", 9), entry("odd", null), entry("bad/name", 1), entry("other-repo", 0, { repository_identity: "cd".repeat(32), projects: ["infra"] }),
+  ] });
+  assert.deepEqual(plain(rows.map((row) => [row.change, row.blockers])), [["odd", null], ["alpha", 3], ["busy", 3], ["calm", 0], ["other-repo", 0]]);
+  const visible = (query) => plain(rows.filter((row) => cairn.matches(row, query)).map((row) => row.change));
+  assert.deepEqual(visible("INFRA"), ["other-repo"]);
+  assert.deepEqual(visible("campaign-1"), plain(rows.map((row) => row.change)));
+  assert.deepEqual(visible("  "), plain(rows.map((row) => row.change)));
+  assert.throws(() => cairn.indexRows({ schema: "kiln.cairn-workspace-detail.v1", changes: [] }));
+  assert.throws(() => cairn.indexRows(null));
+});
+
+// r[verify kiln.cairn.workspace.scenario.stages]
+test("every facet value reads in its own words and anything else never reads as success", () => {
+  const values = {
+    readiness: ["ready", "blocked", "unknown", "not_admitted"],
+    execution: ["not_started", "claimed", "executing", "candidate_produced", "verifying", "verified", "blocked", "failed", "cancelled", "superseded"],
+    evidence: ["current_verified", "current_failed", "historical_only", "none"],
+    integration: ["not_published", "prepared", "branch_published", "pull_request_published", "integrated", "source_reconciled"],
+    lifecycle: ["receipt_observed", "not_observed"],
+  };
+  assert.deepEqual(Object.keys(cairn.facets), Object.keys(values));
+  for (const [name, keys] of Object.entries(values)) {
+    const labels = keys.map((key) => cairn.facet(name, key).label);
+    assert.equal(new Set(labels).size, keys.length, name);
+    assert.ok(labels.every((label) => !label.startsWith("Unrecognized")), name);
+    for (const foreign of ["constructor", "__proto__", "accepted", "x".repeat(80)]) {
+      const read = cairn.facet(name, foreign);
+      assert.ok(read.label.startsWith("Unrecognized: "), `${name} ${foreign}`);
+      assert.notEqual(read.tone, "good");
+      assert.ok(read.label.length <= "Unrecognized: ".length + 48);
+    }
+    assert.equal(cairn.facet(name, null).label, "Not recorded");
+  }
+  assert.equal(cairn.facet("evidence", "historical_only").tone, "warning");
+  assert.equal(cairn.facet("evidence", "current_verified").tone, "good");
+  assert.deepEqual(["current", "stale", "unknown_work", "not_bound"].map((key) => cairn.binding(key).tone), ["good", "warning", "warning", "info"]);
+  assert.ok(cairn.binding("stalest").label.startsWith("Unrecognized"));
+  for (const key of ["missing_dependency", "no_acceptance_obligations", "dependency_cycle", "campaign_hold", "pending_effect", "dispatch_recovery", "stale_work_binding"]) {
+    assert.ok(!cairn.condition(key).label.startsWith("Unrecognized"), key);
+  }
+});
+
+// A small DOM, enough for the page module to draw into a container.
+class CairnNode {
+  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = new Map(); this.dataset = {}; this.listeners = new Map(); this.isConnected = true; this.hidden = false; this.text = ""; }
+  get textContent() { return [this.text, ...this.children.map((child) => child.textContent)].join(" "); }
+  set textContent(value) { this.text = String(value); this.children = []; }
+  get firstChild() { return this.children[0] || null; }
+  append(...nodes) { for (const node of nodes) { if (node === null || node === undefined) continue; if (typeof node === "string") { const text = new CairnNode("#text"); text.text = node; this.children.push(text); } else this.children.push(node); } }
+  replaceChildren(...nodes) { for (const child of this.children) child.isConnected = false; this.children = []; this.append(...nodes); }
+  setAttribute(key, value) { this.attributes.set(key, String(value)); }
+  getAttribute(key) { return this.attributes.has(key) ? this.attributes.get(key) : null; }
+  addEventListener(type, handler) { this.listeners.set(type, [...(this.listeners.get(type) || []), handler]); }
+  focus() {}
+}
+function cairnPage() {
+  const page = { window: {}, document: { createElement: (tag) => new CairnNode(tag), activeElement: null, title: "" }, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout };
+  vm.runInNewContext(asset("cairn.js"), page);
+  return page;
+}
+function deferredApi() {
+  const pending = [];
+  const api = (target) => new Promise((resolve, reject) => pending.push({ target, resolve, reject }));
+  const answer = (target, value) => { for (const entry of pending.filter((item) => item.target === target)) { pending.splice(pending.indexOf(entry), 1); entry.resolve(value); } };
+  return { api, answer };
+}
+const cairnIndex = (...changes) => ({ schema: "kiln.cairn-workspace-index.v1", truncated: false, snapshot: {}, non_claims: [],
+  changes: changes.map((change) => ({ repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"], units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: [], blockers: 0 })) });
+
+// r[verify kiln.cairn.workspace.scenario.reload]
+test("a late response for an earlier selection never draws over the URL's selection", async () => {
+  const page = cairnPage();
+  const { api, answer } = deferredApi();
+  const container = new CairnNode("div");
+  const route = (change) => ({ cairn_repository: CAIRN_REPOSITORY, cairn_change: change });
+  const first = page.window.KilnCairn.load(container, { api, navigate() {}, route: route("first") });
+  const second = page.window.KilnCairn.load(container, { api, navigate() {}, route: route("second") });
+  answer("/api/implementation/cairn", cairnIndex("first", "second"));
+  answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=second`, cairnDetail("second"));
+  await second;
+  answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=first`, cairnDetail("first"));
+  await first;
+  const text = container.textContent;
+  assert.match(text, /second\/unit-of-second/);
+  assert.doesNotMatch(text, /first\/unit-of-first/);
+  assert.equal(page.document.title, "Kiln · Cairn changes · second");
+
+  // A detail for another change is refused, never drawn in place of the selection.
+  const crossed = deferredApi();
+  const load = page.window.KilnCairn.load(container, { api: crossed.api, navigate() {}, route: route("wanted") });
+  crossed.answer("/api/implementation/cairn", cairnIndex("wanted", "other"));
+  crossed.answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=wanted`, cairnDetail("other"));
+  await load;
+  assert.match(container.textContent, /No other change was substituted/);
+  assert.doesNotMatch(container.textContent, /other\/unit-of-other/);
+
+  // Clearing invalidates a read still in flight.
+  const cleared = deferredApi();
+  const pending = page.window.KilnCairn.load(container, { api: cleared.api, navigate() {}, route: route("second") });
+  page.window.KilnCairn.clear();
+  cleared.answer("/api/implementation/cairn", cairnIndex("second"));
+  cleared.answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=second`, cairnDetail("second"));
+  await pending;
+  assert.equal(container.children.length, 0);
+});
+
+// r[verify kiln.cairn.workspace]
+test("an unconfigured store and an empty store say so instead of drawing nothing", async () => {
+  const page = cairnPage();
+  const container = new CairnNode("div");
+  const unconfigured = Object.assign(new Error("cairn_workspace_input_not_configured: Request could not be admitted"), { status: 503 });
+  await page.window.KilnCairn.load(container, { api: async () => { throw unconfigured; }, navigate() {}, route: {} });
+  assert.match(container.textContent, /No implementation work database is configured/);
+  assert.match(container.textContent, /not proof that no Cairn change exists/);
+  await page.window.KilnCairn.load(container, { api: async () => cairnIndex(), navigate() {}, route: {} });
+  assert.match(container.textContent, /No Cairn change is named yet/);
+  assert.match(container.textContent, /How to read a Cairn change/);
 });

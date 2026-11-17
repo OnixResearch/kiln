@@ -1,5 +1,6 @@
 //! Synthetic selected-campaign data in the disposable exploration workspace.
 //! Canonical stores/projection are real; source observations and policies are fictional.
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use kiln_core::implementation::campaign::{
@@ -7,13 +8,19 @@ use kiln_core::implementation::campaign::{
     EnumerationState, Freshness, HumanDecisionRequest, MemberBinding, MemberObservation,
     MemberSelector, MemberStage, WorkflowProfile, selector_key,
 };
-use kiln_core::types::ContentId;
+use kiln_core::implementation::{
+    AcceptanceObligation, DEFAULT_LEASE_MS, Enrollment, FailureClass, IMPLEMENTATION_WORK_SCHEMA,
+    ImplementationWork, SourceRef, SupersessionRule, TerminalPolicy, WorkBudget, WorkSourceKind,
+};
+use kiln_core::types::{ContentId, ExternalRef};
+use kiln_implementer::Implementer;
 use kiln_implementer::campaign::CampaignStore;
 use kiln_web_service::campaign_controls::Controls;
 use kiln_web_service::engine::ApiResponse;
+use kiln_web_service::inventory::campaign_projection::repository_identity;
 use kiln_web_service::inventory::read_campaign_projection_with_inventory;
 
-use super::{ACTOR, Result, error, inventory, json};
+use super::{ACTOR, Example, Result, error, inventory, json, now_ms};
 
 pub const CAMPAIGN_ID: &str = "synthetic-selected-cairn";
 /// A startable synthetic definition: native lifecycle completion on a native route.
@@ -23,10 +30,169 @@ pub const UNSUPPORTED_ID: &str = "synthetic-unsupported-endpoint";
 const EXAMPLE_CONCURRENCY: u16 = 1;
 const EXAMPLE_OUTSTANDING_DECISIONS: u16 = 2;
 const REVIEW_ROLE: &str = "synthetic-independent-review";
+const REPOSITORY: &str = "synthetic/disconnected-cairn";
+/// The planning task's budget allows one attempt, so its failure is final.
+const PLAN_ATTEMPTS: u8 = 1;
+const TASK_ATTEMPTS: u8 = 2;
+const ATTEMPT_MINUTES: u32 = 30;
+const TASK_PRIORITY: u8 = 1;
 
 fn identity(label: &str) -> Result<ContentId> {
     ContentId::from_blake3_hex(blake3::hash(label.as_bytes()).to_hex().to_string())
         .map_err(|error| format!("synthetic identity invalid: {error:?}").into())
+}
+
+fn core<T, E: std::fmt::Debug>(result: std::result::Result<T, E>) -> Result<T> {
+    result.map_err(|error| format!("synthetic canonical work invalid: {error:?}").into())
+}
+
+/// One synthetic Cairn task as canonical implementation work.
+fn task(
+    native_id: &str,
+    revision: u64,
+    dependencies: Vec<ContentId>,
+    attempts: u8,
+) -> Result<ImplementationWork> {
+    Ok(ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+        revision,
+        actor: ACTOR.into(),
+        repository: REPOSITORY.into(),
+        project: "synthetic-cairn".into(),
+        base: None,
+        title: format!("Synthetic Cairn task {native_id}"),
+        requested_outcome: "Synthetic implementation; no provider is contacted".into(),
+        acceptance: vec![AcceptanceObligation {
+            id: format!("{native_id}#checks"),
+            statement: "The synthetic task's checks pass".into(),
+        }],
+        dependencies,
+        permitted_paths: vec!["synthetic".into()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        verification_profile: identity("synthetic-verification-profile")?,
+        budget: WorkBudget {
+            attempts,
+            minutes_per_attempt: ATTEMPT_MINUTES,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: TASK_PRIORITY,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::CairnTask,
+            source: core(ExternalRef::new("cairn", "task", native_id))?,
+            native_id: native_id.into(),
+            version: identity(&format!("synthetic-cairn-snapshot:{native_id}:{revision}"))?,
+        }],
+    })
+}
+
+/// Canonical Cairn task work beside the synthetic campaign: A (planning) fails
+/// its one attempt, B (assurance) depends on A's exact work identity, and C
+/// (ready) is claimed at revision 1, superseded by revision 2 and claimed again
+/// while the campaign member still binds revision 1. D (lifecycle) stays a
+/// completion-only selection without canonical work.
+struct SyntheticWork {
+    plan: ImplementationWork,
+    review: ImplementationWork,
+    build_v1: ImplementationWork,
+    build_v2: ImplementationWork,
+}
+
+impl SyntheticWork {
+    fn new() -> Result<Self> {
+        let plan = task("synthetic-planning/task-plan", 1, Vec::new(), PLAN_ATTEMPTS)?;
+        let review = task(
+            "synthetic-assurance/task-review",
+            1,
+            vec![core(plan.identity())?],
+            TASK_ATTEMPTS,
+        )?;
+        Ok(Self {
+            plan,
+            review,
+            build_v1: task("synthetic-ready/task-build", 1, Vec::new(), TASK_ATTEMPTS)?,
+            build_v2: task("synthetic-ready/task-build", 2, Vec::new(), TASK_ATTEMPTS)?,
+        })
+    }
+
+    /// Admit and drive the work through the real canonical owner. Admission
+    /// order decides each claim: the failed plan's budget is spent, and the
+    /// review task is admitted last so nothing claims it.
+    fn seed(&self, database: &Path) -> Result {
+        let now = now_ms()?;
+        let mut implementer = Implementer::open(
+            database,
+            Enrollment {
+                repositories: BTreeSet::from([REPOSITORY.to_string()]),
+                actors: BTreeSet::from([ACTOR.to_string()]),
+            },
+        )?;
+        let claim = |implementer: &mut Implementer, work: &ImplementationWork| -> Result<_> {
+            let attempt = implementer
+                .claim_next(now, DEFAULT_LEASE_MS)?
+                .ok_or("synthetic work was not claimed")?;
+            if attempt.work_identity != core(work.identity())? {
+                return Err("synthetic claim selected other work".into());
+            }
+            Ok(attempt)
+        };
+        implementer.admit(&self.plan, None)?;
+        let plan = claim(&mut implementer, &self.plan)?;
+        implementer.fail(
+            &plan.identity,
+            plan.fence,
+            now,
+            FailureClass::Implementation,
+            "synthetic plan attempt failed its own checks",
+        )?;
+        implementer.admit(&self.build_v1, None)?;
+        claim(&mut implementer, &self.build_v1)?;
+        implementer.admit_with_supersession(
+            &self.build_v2,
+            None,
+            SupersessionRule::AbortActive,
+            now,
+        )?;
+        claim(&mut implementer, &self.build_v2)?;
+        implementer.admit(&self.review, None)?;
+        Ok(())
+    }
+}
+
+/// Catalog entries for the Cairn changes page over the synthetic stores.
+pub fn examples() -> Vec<Example> {
+    let change = |name: &str| {
+        format!(
+            "/?page=cairn&cairn_repository={}&cairn_change={name}",
+            repository_identity(REPOSITORY)
+        )
+    };
+    vec![
+        Example::new(
+            "Cairn changes: one change across work, attempts and campaigns",
+            "/?page=cairn",
+            "Browse the synthetic Cairn changes named by canonical work or the selected campaign, most blockers first. Every row joins the real canonical stores; no Cairn, worker or provider is contacted.",
+        ),
+        Example::new(
+            "Prerequisite with a failed attempt",
+            change("synthetic-planning"),
+            "A's one attempt failed and its planning member waits with partial enumeration. Readiness, execution, evidence, integration and lifecycle read as separate facets.",
+        ),
+        Example::new(
+            "Dependent task and its review wait",
+            change("synthetic-assurance"),
+            "B depends on A's exact work identity, shown as a current dependency; its required review waits as a campaign hold whose reason is display text only.",
+        ),
+        Example::new(
+            "Superseded attempt and stale campaign binding",
+            change("synthetic-ready"),
+            "C's revision 1 attempt reads historical after revision 2 replaced it, and the campaign member still binds revision 1, so a stale-binding blocker names its replan owner.",
+        ),
+        Example::new(
+            "Completion-only selection without canonical work",
+            change("synthetic-lifecycle"),
+            "D is selected for native lifecycle completion only. It has no canonical work or attempts, and its member stays visible with its stage and decisions.",
+        ),
+    ]
 }
 
 fn member(
@@ -55,12 +221,18 @@ fn member(
 
 pub fn seed(root: &Path) -> Result<PathBuf> {
     let database = root.join("synthetic-campaign.sqlite");
+    let work = SyntheticWork::new()?;
+    // The ready member keeps binding revision 1 after revision 2 supersedes it.
+    let stale_binding = (
+        core(work.build_v1.canonical_key())?,
+        core(work.build_v1.identity())?,
+    );
     let mut store = CampaignStore::open(&database)?;
     let state = store.start(CampaignContract {
         schema: CAMPAIGN_SCHEMA.into(),
         campaign_id: CAMPAIGN_ID.into(),
         revision: 1,
-        repository: "synthetic/disconnected-cairn".into(),
+        repository: REPOSITORY.into(),
         members: vec![
             member(
                 MemberSelector::WholeChange {
@@ -140,8 +312,8 @@ pub fn seed(root: &Path) -> Result<PathBuf> {
             remaining_obligations: Default::default(),
             dependency_reason: (stage == MemberStage::Blocked)
                 .then(|| "Synthetic planning prerequisite is unfinished".into()),
-            canonical_work_key: None,
-            work_identity: None,
+            canonical_work_key: (stage == MemberStage::Ready).then(|| stale_binding.0.clone()),
+            work_identity: (stage == MemberStage::Ready).then(|| stale_binding.1.clone()),
             attempt_identity: None,
             attempt_fence: None,
             context_identity: None,
@@ -236,6 +408,8 @@ pub fn seed(root: &Path) -> Result<PathBuf> {
             },
         )?;
     }
+    drop(store);
+    work.seed(&database)?;
     Ok(database)
 }
 
@@ -259,7 +433,7 @@ pub fn controls(root: &Path, database: &Path) -> Result<Controls> {
             schema: CAMPAIGN_SCHEMA.into(),
             campaign_id: campaign_id.into(),
             revision: 1,
-            repository: "synthetic/disconnected-cairn".into(),
+            repository: REPOSITORY.into(),
             members: vec![member(
                 MemberSelector::WholeChange {
                     change: change.into(),
@@ -411,6 +585,113 @@ mod tests {
         assert_eq!(
             projection.pointer("/next_action/member"),
             Some(&serde_json::json!("synthetic-ready/*"))
+        );
+        Ok(())
+    }
+
+    // r[verify kiln.cairn.workspace.scenario.example]
+    #[test]
+    fn synthetic_cairn_changes_join_real_work_attempts_and_members() -> Result {
+        use kiln_web_service::cairn_workspace::http::{
+            DETAIL_ROUTE, INDEX_ROUTE, response as cairn,
+        };
+        use kiln_web_service::engine::Role;
+        use serde_json::json;
+        let root = tempfile::tempdir()?;
+        let database = seed(root.path())?;
+        let read = |target: &str| -> Result<Value> {
+            let response = cairn(Some(&database), "GET", target, Role::Viewer);
+            assert_eq!(response.status, 200, "{target}");
+            Ok(serde_json::from_slice(&response.body)?)
+        };
+        let index = read(INDEX_ROUTE)?;
+        let changes: Vec<&str> = index["changes"]
+            .as_array()
+            .ok_or("index has no changes")?
+            .iter()
+            .filter_map(|change| change["change"].as_str())
+            .collect();
+        assert_eq!(
+            changes,
+            [
+                "synthetic-assurance",
+                "synthetic-lifecycle",
+                "synthetic-planning",
+                "synthetic-ready"
+            ]
+        );
+        let detail = |change: &str| {
+            read(&format!(
+                "{DETAIL_ROUTE}?repository={}&change={change}",
+                repository_identity(REPOSITORY)
+            ))
+        };
+        // A: the prerequisite's one attempt failed.
+        let planning = detail("synthetic-planning")?;
+        assert_eq!(
+            planning.pointer("/units/0/native_id"),
+            Some(&json!("synthetic-planning/task-plan"))
+        );
+        assert_eq!(
+            planning.pointer("/units/0/attempts/0/phase"),
+            Some(&json!("failed"))
+        );
+        assert_eq!(planning.pointer("/units/0/attempts/1"), None);
+        // B: depends on A's exact current work identity and waits for its review.
+        let assurance = detail("synthetic-assurance")?;
+        assert_eq!(
+            assurance.pointer("/units/0/current_work/0/dependencies/0/state"),
+            Some(&json!("current"))
+        );
+        assert_eq!(
+            assurance.pointer("/units/0/current_work/0/dependencies/0/native_ids"),
+            Some(&json!(["synthetic-planning/task-plan"]))
+        );
+        assert!(
+            assurance["decisions"]
+                .as_array()
+                .ok_or("detail has no decisions")?
+                .iter()
+                .any(|decision| decision["category"] == "required_review")
+        );
+        // C: revision 1's attempt is historical; the member still binds it.
+        let ready = detail("synthetic-ready")?;
+        assert_eq!(
+            (
+                ready.pointer("/units/0/attempts/0/applicability"),
+                ready.pointer("/units/0/attempts/1/applicability"),
+                ready.pointer("/units/0/facets/execution"),
+            ),
+            (
+                Some(&json!("historical")),
+                Some(&json!("current")),
+                Some(&json!("claimed"))
+            )
+        );
+        assert_eq!(
+            ready.pointer("/memberships/0/work_binding"),
+            Some(&json!("stale"))
+        );
+        assert!(
+            ready["blockers"]
+                .as_array()
+                .ok_or("detail has no blockers")?
+                .iter()
+                .any(|blocker| blocker["condition"] == "stale_work_binding")
+        );
+        // D: completion-only, a campaign selection without canonical work.
+        let lifecycle = detail("synthetic-lifecycle")?;
+        assert_eq!(
+            (
+                lifecycle.pointer("/units"),
+                lifecycle.pointer("/memberships/0/goal"),
+                lifecycle.pointer("/memberships/0/stage"),
+            ),
+            (
+                Some(&json!([])),
+                Some(&json!("native_lifecycle_complete")),
+                Some(&json!("lifecycle"))
+            )
         );
         Ok(())
     }

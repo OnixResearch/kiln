@@ -168,6 +168,17 @@ test("selected-campaign projection preserves partial and missing members without
   assert.throws(() => campaign.validateCampaign({ ...fixture, members: Array(4097).fill(fixture.members[0]) }));
 });
 
+// r[verify kiln.cairn.workspace]
+test("each selected change links to its exact Cairn change beside the inert projection", () => {
+  const campaign = setup();
+  const fixture = JSON.parse(readFileSync(new URL("../fixtures/selected-campaign/projection-v1.json", import.meta.url), "utf8"));
+  const links = descendants(campaign.cairnLinks(fixture)).filter((node) => node.tagName === "a");
+  const changes = [...new Set(fixture.members.map((member) => member.change))];
+  assert.ok(changes.length > 0);
+  assert.deepEqual(links.map((link) => link.textContent), changes);
+  assert.deepEqual(links.map((link) => link.href), changes.map((change) => `?page=cairn&cairn_repository=${fixture.repository_identity}&cairn_change=${encodeURIComponent(change)}`));
+});
+
 test("resource and campaign loads finish independently when both are deferred", async () => {
   const inventory = setup();
   const resourceRoot = new Element("div");

@@ -325,6 +325,22 @@ impl CampaignOperation {
                 | Self::RetryInfrastructure
         )
     }
+
+    /// Owner that resolves this operation when no observation names one.
+    #[must_use]
+    pub const fn owner(self) -> &'static str {
+        match self {
+            Self::Code | Self::RepairCode | Self::RetryInfrastructure => "work-attempt-owner",
+            Self::AuthorArtifact | Self::RepairArtifact => "artifact-owner",
+            Self::Verify => "verification-owner",
+            Self::Publish | Self::Integrate => "publication-owner",
+            Self::Lifecycle => "cairn-lifecycle-owner",
+            Self::Reconcile => "attempt-reconciliation-owner",
+            Self::RequestDecision | Self::Wait | Self::Replan | Self::Blocked | Self::Complete => {
+                "campaign-policy"
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -1392,7 +1408,7 @@ impl CampaignState {
         if operation.is_owner_effect() {
             owner_action(operation, key, reason, writer_slot_free)
         } else {
-            hold(operation, key, reason, operation_owner(operation), None)
+            hold(operation, key, reason, operation.owner(), None)
         }
     }
     fn member_endpoint_satisfied(
@@ -1588,26 +1604,9 @@ fn owner_action(
         operation,
         Some(member.to_string()),
         reason,
-        Some(operation_owner(operation).to_string()),
+        Some(operation.owner().to_string()),
         None,
     ))
-}
-fn operation_owner(operation: CampaignOperation) -> &'static str {
-    match operation {
-        CampaignOperation::Code
-        | CampaignOperation::RepairCode
-        | CampaignOperation::RetryInfrastructure => "work-attempt-owner",
-        CampaignOperation::AuthorArtifact | CampaignOperation::RepairArtifact => "artifact-owner",
-        CampaignOperation::Verify => "verification-owner",
-        CampaignOperation::Publish | CampaignOperation::Integrate => "publication-owner",
-        CampaignOperation::Lifecycle => "cairn-lifecycle-owner",
-        CampaignOperation::Reconcile => "attempt-reconciliation-owner",
-        CampaignOperation::RequestDecision
-        | CampaignOperation::Wait
-        | CampaignOperation::Replan
-        | CampaignOperation::Blocked
-        | CampaignOperation::Complete => "campaign-policy",
-    }
 }
 /// Why an unresolved required review keeps its member waiting.
 fn review_wait(state: &DecisionRequestState) -> Option<&'static str> {

@@ -787,6 +787,14 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         if path == "/api/implementation/campaigns" {
             return inventory_api::campaign_response(&request, context, &principal);
         }
+        if crate::cairn_workspace::http::ROUTES.contains(&path) {
+            return crate::cairn_workspace::http::response(
+                context.implementation_work,
+                &request.method,
+                &request.target,
+                principal.role,
+            );
+        }
         if crate::campaign_controls::ROUTES.contains(&path) {
             return campaign_control_response(&request, context, &principal);
         }
@@ -966,6 +974,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 include_bytes!("workers.js"),
             ),
             "/workers.css" => ("text/css; charset=utf-8", include_bytes!("workers.css")),
+            // r[impl kiln.cairn.workspace] Cairn changes page module, served like the receipts page.
+            "/cairn.js" => ("text/javascript; charset=utf-8", include_bytes!("cairn.js")),
+            "/cairn.css" => ("text/css; charset=utf-8", include_bytes!("cairn.css")),
             "/inventory.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("inventory.js"),

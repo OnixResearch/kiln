@@ -1148,6 +1148,9 @@
     // r[impl kiln.dashboard.reviews.view] Receipt reads and filters live in receipts.js.
     window.KilnReceipts?.clear();
     $("receipts-content").replaceChildren();
+    // r[impl kiln.cairn.workspace] Cairn change reads and the search live in cairn.js.
+    window.KilnCairn?.clear();
+    $("cairn-content").replaceChildren();
     // r[impl kiln.dashboard.workers.view.scenario.cleared] Invalidate reads, filters and private DOM in the page module.
     window.KilnWorkers.clear();
     $("workers-content").replaceChildren();
@@ -1296,6 +1299,8 @@
       receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       worker_campaign: params.get("worker_campaign") || "",
+      // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change and its search are bound to the URL.
+      cairn_repository: (params.get("cairn_repository") || "").slice(0, 64), cairn_change: (params.get("cairn_change") || "").slice(0, 1024), cairn_q: (params.get("cairn_q") || "").slice(0, 256),
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
       work_ci_project: (params.get("work_ci_project") || "").slice(0, 16_384), work_ci_repository: (params.get("work_ci_repository") || "").slice(0, 16_384),
@@ -1337,6 +1342,7 @@
     if (previous?.page === "project" && state.route.page !== "project") window.KilnProject?.clear();
     if (previous?.page === "source" && state.route.page !== "source") window.KilnSource?.clear();
     if (previous?.page === "reviews" && state.route.page !== "reviews") window.KilnReceipts?.clear();
+    if (previous?.page === "cairn" && state.route.page !== "cairn") window.KilnCairn?.clear();
     // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
     if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
@@ -1930,6 +1936,11 @@
     if (route.page === "reviews") {
       if (!window.KilnReceipts) { $("receipts-content").replaceChildren(element("p", "Patchgate receipts are loading.", "small")); return; }
       await window.KilnReceipts.load($("receipts-content"), { api, navigate, route });
+    }
+    // r[impl kiln.cairn.workspace] The Cairn changes page renders through cairn.js.
+    if (route.page === "cairn") {
+      if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
+      await window.KilnCairn.load($("cairn-content"), { api, navigate, route });
     }
     if (route.page === "runs") await loadRunView();
   }

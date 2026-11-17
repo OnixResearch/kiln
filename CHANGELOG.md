@@ -280,6 +280,20 @@ entry describes the source tree prepared for the first tagged release.
   refused and audited before the owner is reached. The campaign operator gains
   `pause`. (#86; unit, scripted-store, Node and browser checks over the
   synthetic exploration workspace; no live campaign)
+- Follow one Cairn change across canonical work, attempts and selected campaigns
+  on the read-only **Cairn changes** page (2.7). `GET /api/implementation/cairn`
+  and its `detail` route join, from one bounded read of the implementation
+  database, every unit named by a canonical Cairn alias, a campaign task
+  selection or a campaign's remaining obligations. Readiness, execution,
+  evidence, integration and lifecycle read as separate facets; attempts on a
+  superseded work version stay historical, and crossed lifecycle receipts never
+  count. Blockers name their condition, supporting observation, proposed
+  operation and owner, and their reasons are display text only. The URL keeps
+  the selection, late responses never draw over it, and campaign views link to
+  each selected change. The exploration workspace seeds a prerequisite with a
+  failed attempt, its dependent, a superseded attempt with a stale campaign
+  binding and a completion-only member. (#84; unit, snapshot-store, Node and
+  browser checks over the synthetic exploration workspace; no live campaign)
 
 ### Fixed
 
