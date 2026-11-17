@@ -1233,22 +1233,34 @@ Each account, finance or fleet action runs in a new coordinator process over the
 scenario's SQLite file, so killing a coordinator at a barrier leaves exactly the
 committed intent.
 
-Ten recovery scenarios cover a happy path, lost acknowledgements after create
-and teardown, coordinators killed before and after the effect, redelivery, a
-stale receipt, a driver generation change, a reappearing retired resource and
-capacity bounds. Two controls, a duplicate creation and a premature release,
-must be detected by a pure inventory oracle. The receipt
-`kiln.hosted.fleet-qualification-receipt.v1` in `NEW_DIR/receipt.json` records
-source and executable identities, every step, check and oracle report.
-The retained [qualification receipt](../.cairn/archive/1970-01-01-qualify-fleet-lifecycle-recovery/evidence/receipt.json)
-passed all twelve.
+Ten original recovery scenarios cover a happy path, lost acknowledgements after
+create and teardown, coordinators killed before and after an effect, redelivery,
+a stale receipt, a driver generation change, a reappearing retired resource and
+capacity bounds. Two controls, duplicate creation and premature release, must
+be detected by the pure inventory oracle. A further fake-provider scenario
+inspects each worker generation's delivered secret expiry and workload token
+through separate coordinator/provider processes: current and replacement
+generations validate independently, expiry and uncertain teardown deny old
+tokens, observed retirement revokes, and a stale receipt cannot restore old
+authority. The receipt `kiln.hosted.fleet-qualification-receipt.v1` in
+`NEW_DIR/receipt.json` records source/executable identities and every check.
+The [original qualification receipt](../.cairn/archive/1970-01-01-qualify-fleet-lifecycle-recovery/evidence/receipt.json)
+passed twelve fleet scenarios; the [generation-bound receipt](../.cairn/archive/1970-01-01-bind-job-secrets-to-fleet-generations/evidence/receipt.json)
+includes the secret-generation case and clears its previously recorded gap.
 
-Hosted job secrets bind to jobs, not to fleet instance generations
-(`crates/kiln-hosted/src/secrets.rs`); this qualification does not close that
-gap. The fake provider is a local inventory, not a cloud API, and a passing
-receipt is not production provider, capacity, availability or secret-binding
-qualification. Fleet finance reservations stay unknown because provider
-presence is not usage metering.
+<!-- r[impl kiln.hosted.fleet.secret_generation] -->
+Credential-bearing `execution.workload` policies require an exact typed
+`fleet = { instance_id = "worker-1", revision = 1, request_id = "provision-1" }`
+selector. The trusted executor compares it to the **active** durable fleet row,
+then constructs the capability and JWT binding from that row, not config alone.
+Unknown, deprovisioning, retired, missing or mismatched generations cannot
+deliver, exchange or validate; retirement revokes matching jobs atomically,
+whereas uncertain teardown denies use without falsely claiming completed
+revocation. This is a retained control-plane binding, not independent physical
+worker-placement proof. The fake provider is a local inventory, not a cloud
+API; passing does not qualify a production provider, paid capacity, availability,
+hostile isolation or immediate revocation at a third-party JWT validator.
+Fleet finance reservations remain unknown: presence is not usage metering.
 
 ## 8. Secret references and interoperable workload JWTs
 
@@ -1273,14 +1285,19 @@ failure, not an empty secret fallback.
 
 The trusted executor derives organization/project/job/admission identity,
 expiry, audience and secret revisions from an admitted job and the host's exact
-`execution.workload` policy for organization/project/runner. It resolves only
-those named grants and inserts explicitly selected secret environment values;
+`execution.workload` policy for organization/project/runner. For credentials,
+the policy must select a fleet instance, revision and original provision request;
+the executor reads the matching active row and binds **observed** values to the
+capability and JWT. Policy text alone does not establish a worker generation.
+It resolves only named grants and inserts selected secret environment values;
 its short-lived EdDSA JWT is delivered as `KILN_WORKLOAD_TOKEN`. Capability
-exchange is consume-once and expiry/revocation is checked against retained
-state. Job finish revokes retained capability authority. Output redaction
-covers the exact delivered values/token, not arbitrary encodings, generated
-files, guest disks or an assurance against malicious exfiltration. Never grant
-platform/source/payment credentials to general customer jobs.
+exchange is consume-once; delivery and resource-server checks compare retained
+expiry, revocation and fleet state. An uncertain teardown makes credentials
+unusable without claiming retirement; observed retirement atomically revokes
+matching jobs. Job finish also revokes retained capability authority. Output
+redaction covers exact delivered values/token, not arbitrary encodings,
+generated files, guest disks or an assurance against malicious exfiltration.
+Never grant platform/source/payment credentials to general customer jobs.
 
 `secrets.discovery` and `secrets.jwks` take `{}` and return metadata/JWKS over
 authorized Iroh RPC. The local bridge exposes their unwrapped JSON through

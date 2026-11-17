@@ -69,44 +69,95 @@ accepted CI.
 
 ## Client bounds
 
-The lockstep client fixture in `crates/kiln-web-service/tests/http_contract.rs`
-bounds received bytes before parsing (`CLIENT_BODY_LIMIT`), performs no retries
-and classifies a response as `authentication` (401), `authorization` (403),
-`not_found` (404), `transport` (truncated or oversized body), `schema_mismatch`
-(a 2xx body that is malformed or fails the independent validator), `unknown`
-(any other status) or `ok`. Request deadlines belong to a networked client and
-are not exercised by this in-process fixture.
+The lockstep test client in `crates/kiln-web-service/tests/http_contract/served_client.rs`
+uses the fixture CA to talk to the real HTTPS service and a loopback TLS stub.
+For every status, it incrementally caps received body bytes at `CLIENT_BODY_LIMIT`
+(64 KiB) before parsing, regardless of `Content-Length`. Named deadlines use
+3 s connect, 10 s total and 3 s body-idle for the real service (including TLS
+and persistence), and 400 ms connect, 900 ms total and 250 ms body-idle for
+the controlled stub faults. Each request makes exactly one attempt (no retries).
+Mismatched framing, an oversized body,
+timeouts and connection failures classify as `transport`; malformed or
+schema-invalid 2xx bodies classify as `schema_mismatch`. Other classes remain
+`authentication` (401), `authorization` (403), `not_found` (404), `unknown`
+(other statuses), and `ok` (validated 2xx). These are test-fixture bounds, not
+a production client or a hostile-network qualification.
 
 ## Lockstep compatibility matrix
 
 Decision: lockstep for this family. Tested window: current server and current
 client only; retained schemas do not promise every prior API version. Tests run
-against real `Engine::api` responses, not serialized Rust types:
+against both real `Engine::api` responses and the actual `serve` process over
+loopback TLS:
 
-- every operation's success body, and the 400, 403 and 404 error bodies,
-  validate against the committed document with an independent schema-subset
-  validator that fails closed on unsupported keywords or unresolved references;
-- mutated copies of a real body (missing required field, wrong type, extra
-  field where `additionalProperties` is false, truncated JSON) classify as
-  `schema_mismatch`, while oversized and truncated transfers classify as
-  `transport`;
+- all five GET success bodies validate against the committed document with an
+  independent schema-subset validator that fails closed on unsupported keywords
+  or unresolved references; the served shell also exercises real 401, 403,
+  404 and 400 responses with their distinct codes and classes;
+- a listing with more than one page follows `next_cursor` to the end; refused
+  cursors and lost follow-ups remain incomplete, never a shorter complete list;
+- a loopback TLS stub replays a real served body with missing required, wrong
+  type, forbidden extra field, or truncated JSON mutations (`schema_mismatch`),
+  and mismatched `Content-Length`, oversized chunked success and error bodies,
+  slow drip and stalled-body faults (`transport`), counting requests to prove
+  there is no retry;
 - the committed error goldens under `crates/kiln-web-service/tests/http-contract/`
-  must equal the real responses.
+  must equal the real in-process responses.
+
 ## Drift and Progenitor evaluation
 
-Evaluated in a scratch directory outside the workspace at Drift
-`dad4f398c10ca53298d2fec0586d834c8e85daf1` (Apache-2.0) and Progenitor
-`b317a86578098ecabbeb04a0f57dc693032b81cc` (MPL-2.0). No dependency was added
-to the Kiln workspace; transitive licenses must be recorded before any adoption.
+The isolated `tools/http-contract-drift` binary pins Drift
+`dad4f398c10ca53298d2fec0586d834c8e85daf1` (Apache-2.0). CI's
+`checks.x86_64-linux.http-contract-drift` compares the committed document with
+`contracts/http-api/baseline/openapi.json` and checks four minimal policy pairs.
+It prints every Drift record in deterministic order. A trivial change (or no
+change) passes; backward-, forward- and both-direction incompatible changes
+fail unless `info.version` differs; unhandled changes always fail. Exit 0 is a
+pass, 1 a policy rejection and 2 a tool/document error. The fixture check
+asserts the exact status, class and decision, rather than treating an error as
+the expected rejection.
 
-- Drift classification policy: incompatible changes require rejection or an
-  intentional version transition; unhandled comparisons fail closed or require
-  review; trivial changes are recorded and allowed only after review.
-- Decision: no-go for adoption in this pilot. Progenitor's generated client
-  would add dependencies and generated code without removing the need for
-  runtime input validation, and Drift is only useful once a second contract
-  version exists. Revisit when client churn or a versioned transition justifies
-  it. Build time and generated-code volume were not retained as receipts.
+A changed contract version opens a **pending transition**: incompatibilities
+against the old baseline pass while the new version is unaccepted, even for
+later changes; unhandled changes still fail. To accept a reviewed transition,
+replace the baseline with the accepted canonical OpenAPI document in that same
+reviewed change. That closes the pending transition; future incompatible edits
+to this version fail again. For an unhandled comparison, inspect the actual
+change and Drift's limitation before replacing the baseline in the same
+reviewed change. For an otherwise compatible change, review the printed record
+and update the baseline when accepting the new contract, so subsequent reviews
+compare against the last accepted document. Never update the baseline merely
+to silence an unexpected policy failure.
+
+Progenitor `b317a86578098ecabbeb04a0f57dc693032b81cc` (MPL-2.0) was
+evaluated using its documented `build.rs` path in a scratch crate outside Kiln.
+Reproduce the measurement inside `nix develop` with
+`python3 scripts/http-contract-generation-measure.py --jobs 2 --output receipt.json`;
+the script creates and removes its scratch crate under
+`$HOME/.cache/kiln/http-contract-generation/` (`--scratch` overrides it) and
+writes the JSON receipt without changing the root Cargo workspace.
+The unchanged committed contract lacks operation IDs and generation fails with
+`UnexpectedFormat("path /api/projects is missing operation ID")`: it emits no
+client, so successful build time or generated volume cannot be claimed for that
+document (failed cold attempt: 43.89 s).
+
+A scratch-only copy adding `operationId` to each of the five GET operations
+(the five precise names/paths are in the retained evidence) **does** generate
+and build: **470 Rust lines, 16,940 bytes**, 57.41 s cold from a fresh target
+and 0.17 s for an unchanged warm rebuild, at two Cargo jobs. The scratch lock
+resolves eight direct and 192 transitive packages (74 package name/version pairs
+absent from Kiln's root lock), including three MPL-2.0 Progenitor crates;
+their individual licenses are inventoried in
+[`generation-measurement.json`](../.cairn/archive/1970-01-01-qualify-http-contract-pilot/evidence/generation-measurement.json).
+The handwritten validator/classifier in
+`crates/kiln-web-service/tests/http_contract.rs:350-494` is 145 lines; the
+generated output does not replace its runtime bounds and schema validation.
+Decision: **no-go for generated-client adoption** in this pilot: it cannot
+generate from the committed document without maintaining five extra operation
+IDs, and the adapted client adds 470 generated lines and an isolated dependency
+cohort while retaining client-boundary validation work. Single-host build times
+are observations, not performance guarantees. Drift remains a CI-only tool
+with its separate lock and [license inventory](../LICENSES.md).
 
 ## Non-claims
 

@@ -1,0 +1,2468 @@
+{
+  "executables": {
+    "bash": "/nix/store/kwyi4bq5s2qgwbhz6cs4gjy57c2zdxws-bash-interactive-5.3p20/bin/bash",
+    "driver_store_path": "/nix/store/shz8n3kdv5qs5ral6id2c4z6j2sz1vr8-fleet_qualification",
+    "harness": {
+      "blake3": "4a60169ea46e74036824c081337e361e3cef14aea816ce82ed7fad399c7de331",
+      "path": "/home/brittonr/.cargo-target/debug/examples/fleet_qualification"
+    },
+    "nix_store": "/nix/store/g1k5iczz0l8i8d7kk5bk8rwv139g3l02-nix-2.34.8/bin/nix-store"
+  },
+  "gaps": [],
+  "issue": 72,
+  "non_claims": [
+    "The fake provider is a local inventory, not a cloud API or purchased capacity.",
+    "Added Nix store paths are unrooted and garbage-collectable.",
+    "Provider presence is not usage metering: fleet finance reservations stay unknown until separately settled.",
+    "Not production provider, capacity, availability, independent physical placement or third-party immediate JWT revocation qualification."
+  ],
+  "passed": true,
+  "production_provider_qualified": false,
+  "scenarios": [
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "provision becomes active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "deprovision becomes retired",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "6d861e6b63cb1016b04085fcea9993bec33de06b949e6d4a519809d8a61c28c8",
+          "generation": 1,
+          "path": "/nix/store/76m8ripdz9851i6hqd2s84qyydckygcq-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 1,
+        "driver_invocations": {
+          "deprovision": 1,
+          "provision": 1
+        },
+        "present": 0,
+        "rows_by_state": {
+          "retired": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "happy-path",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "6d861e6b63cb1016b04085fcea9993bec33de06b949e6d4a519809d8a61c28c8",
+            "driver_path": "/nix/store/76m8ripdz9851i6hqd2s84qyydckygcq-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "d1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "lost acknowledgement stays unknown",
+          "observed": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 20,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "unknown"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "unknown instance retains capacity",
+          "observed": {
+            "error": "fleet capacity exhausted; uncertain instances retain slots"
+          },
+          "passed": true
+        },
+        {
+          "check": "reconcile observes the created resource",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "exactly one provider effect",
+          "observed": 1,
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "97dd7686f6941c635f572a59fc29e3a043ad2a987c39561cf14c89ae6907629e",
+          "generation": 1,
+          "path": "/nix/store/0mfjqm41ffr9887v1k1cvcwh6bi0v07l-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "inspect": 1,
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "lost-ack-after-create",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "97dd7686f6941c635f572a59fc29e3a043ad2a987c39561cf14c89ae6907629e",
+            "driver_path": "/nix/store/0mfjqm41ffr9887v1k1cvcwh6bi0v07l-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "after_effect_no_reply",
+            "operation": "provision"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 20,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "unknown"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "error": "fleet capacity exhausted; uncertain instances retain slots"
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "c1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "killed coordinator leaves the committed intent",
+          "observed": {
+            "ok": {
+              "instances": [
+                {
+                  "instance_id": "w1",
+                  "revision": 1,
+                  "state": "provisioning"
+                }
+              ],
+              "production_provider_qualified": false,
+              "timings": []
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "redelivery returns the retained unknown result",
+          "observed": {
+            "ok": {
+              "rerun": false,
+              "state": "unknown"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "redelivery never redispatches",
+          "observed": 1,
+          "passed": true
+        },
+        {
+          "check": "reconcile observes the created resource",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "419da677d5dd21bf43575b70c938e5b72ee435b35b101195f9f4a0b3786664d1",
+          "generation": 1,
+          "path": "/nix/store/nc9ggxa4xjq3kz9g3b1v8dnckp19y7p3-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "inspect": 1,
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "coordinator-killed-after-create",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "419da677d5dd21bf43575b70c938e5b72ee435b35b101195f9f4a0b3786664d1",
+            "driver_path": "/nix/store/nc9ggxa4xjq3kz9g3b1v8dnckp19y7p3-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "hang_after_effect",
+            "operation": "provision"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "interrupted": {
+            "coordinator_killed": true,
+            "driver": "barrier.release"
+          }
+        },
+        {
+          "action": "status",
+          "input": {},
+          "result": {
+            "ok": {
+              "instances": [
+                {
+                  "instance_id": "w1",
+                  "revision": 1,
+                  "state": "provisioning"
+                }
+              ],
+              "production_provider_qualified": false,
+              "timings": []
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "rerun": false,
+              "state": "unknown"
+            }
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "c1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "no provider effect happened",
+          "observed": 0,
+          "passed": true
+        },
+        {
+          "check": "reconcile observes absence",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "first eligible provision after recovery",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 10,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "f82e32a8921746f65117a9846c4ab9486a983471a178b52cc97b965cd8031263",
+          "generation": 1,
+          "path": "/nix/store/amr3r5pdid76qsqmrzdbhwihh692k2qs-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 2
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "inspect": 1,
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1,
+          "retired": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "coordinator-killed-before-create",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "f82e32a8921746f65117a9846c4ab9486a983471a178b52cc97b965cd8031263",
+            "driver_path": "/nix/store/amr3r5pdid76qsqmrzdbhwihh692k2qs-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "hang_before_effect",
+            "operation": "provision"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "interrupted": {
+            "coordinator_killed": true,
+            "driver": "barrier.abort"
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "c1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "retired"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 10,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "provision becomes active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "lost teardown acknowledgement stays unknown",
+          "observed": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "unknown"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "uncertain teardown retains capacity",
+          "observed": {
+            "error": "fleet capacity exhausted; uncertain instances retain slots"
+          },
+          "passed": true
+        },
+        {
+          "check": "reconcile observes completed teardown",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "capacity returns after reconciliation",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 10,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "67a1ad297bbb8a7be68930f64644c0f17c9a3ea9acff201e5bf53468bb95ec1e",
+          "generation": 1,
+          "path": "/nix/store/0zdik8sfkmy1xpw5nal2279r8vm3ns0q-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 2
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 2,
+        "deleted": 1,
+        "driver_invocations": {
+          "deprovision": 1,
+          "inspect": 1,
+          "provision": 2
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1,
+          "retired": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "deprovision-lost-ack",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "67a1ad297bbb8a7be68930f64644c0f17c9a3ea9acff201e5bf53468bb95ec1e",
+            "driver_path": "/nix/store/0zdik8sfkmy1xpw5nal2279r8vm3ns0q-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "after_effect_no_reply",
+            "operation": "deprovision"
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "d1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "unknown"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "error": "fleet capacity exhausted; uncertain instances retain slots"
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 2,
+            "instance_id": "w1",
+            "request_id": "c1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 10,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "provision becomes active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "identical redelivery returns the retained result",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "redelivery never redispatches",
+          "observed": 1,
+          "passed": true
+        },
+        {
+          "check": "reused request identity conflicts",
+          "observed": {
+            "error": "fleet request identity conflict"
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "64c849c28a605f5c3a771bc2c88aef2d8c87c3b4703a58f57f675bd58485abf3",
+          "generation": 1,
+          "path": "/nix/store/ibmzbnddjrzn5pibq8yghza4lbp1334n-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "duplicate-delivery",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "64c849c28a605f5c3a771bc2c88aef2d8c87c3b4703a58f57f675bd58485abf3",
+            "driver_path": "/nix/store/ibmzbnddjrzn5pibq8yghza4lbp1334n-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p1"
+          },
+          "result": {
+            "error": "fleet request identity conflict"
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "stale receipt is not accepted",
+          "observed": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 20,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "unknown"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "reconcile observes the created resource",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "beae6f0161b83bf94b2be5df4e3a7862bc5b4ff88d9ffaffa987243ccf529f84",
+          "generation": 1,
+          "path": "/nix/store/7n8cvm0l1gsm6vdz9li9pqjgry7x5khw-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "inspect": 1,
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "stale-reply",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "beae6f0161b83bf94b2be5df4e3a7862bc5b4ff88d9ffaffa987243ccf529f84",
+            "driver_path": "/nix/store/7n8cvm0l1gsm6vdz9li9pqjgry7x5khw-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "stale_reply",
+            "operation": "provision"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 20,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "unknown"
+            }
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "c1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "provision becomes active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "occupied fleet pins the operator generation",
+          "observed": {
+            "error": "fleet operator profile pinned by active/uncertain instances"
+          },
+          "passed": true
+        },
+        {
+          "check": "deprovision becomes retired",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "empty fleet admits a new generation",
+          "observed": {
+            "ok": {}
+          },
+          "passed": true
+        },
+        {
+          "check": "stale organization selection is refused",
+          "observed": {
+            "error": "operator fleet authority changed; reconfigure before new effects"
+          },
+          "passed": true
+        },
+        {
+          "check": "organization reselects the new generation",
+          "observed": {
+            "ok": {
+              "revision": 2
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "new generation provisions",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 10,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "3830e6992ed9a610d94f071520a4b151d87d5ca747c1b6abefc7a21145d641c2",
+          "generation": 1,
+          "path": "/nix/store/9zrlligi3w4ncrjbl5zpa4xglv44kjy5-kiln-fleet-fake-driver-g1"
+        },
+        {
+          "blake3": "627220e3dc09650aef9c5f9abd533387caf78b8f766380238a5b08d29bb56b66",
+          "generation": 2,
+          "path": "/nix/store/65jps00bwlnfksx4xs2dl4gn2ymvc33k-kiln-fleet-fake-driver-g2"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 2
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 2,
+        "deleted": 1,
+        "driver_invocations": {
+          "deprovision": 1,
+          "provision": 2
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1,
+          "retired": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "operator-generation-change",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "3830e6992ed9a610d94f071520a4b151d87d5ca747c1b6abefc7a21145d641c2",
+            "driver_path": "/nix/store/9zrlligi3w4ncrjbl5zpa4xglv44kjy5-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "operator",
+          "input": {
+            "driver_blake3": "627220e3dc09650aef9c5f9abd533387caf78b8f766380238a5b08d29bb56b66",
+            "driver_path": "/nix/store/65jps00bwlnfksx4xs2dl4gn2ymvc33k-kiln-fleet-fake-driver-g2",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "error": "fleet operator profile pinned by active/uncertain instances"
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "d1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          }
+        },
+        {
+          "action": "operator",
+          "input": {
+            "driver_blake3": "627220e3dc09650aef9c5f9abd533387caf78b8f766380238a5b08d29bb56b66",
+            "driver_path": "/nix/store/65jps00bwlnfksx4xs2dl4gn2ymvc33k-kiln-fleet-fake-driver-g2",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {}
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "error": "operator fleet authority changed; reconfigure before new effects"
+          }
+        },
+        {
+          "action": "configure",
+          "input": {
+            "expected_revision": 1,
+            "maximum": 1,
+            "minimum": 0,
+            "slots_per_instance": 1
+          },
+          "result": {
+            "ok": {
+              "revision": 2
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 10,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "provision becomes active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "deprovision becomes retired",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "retired instance cannot be reconciled back",
+          "observed": {
+            "error": "no uncertain current fleet request"
+          },
+          "passed": true
+        },
+        {
+          "check": "retired instance identity cannot be reprovisioned",
+          "observed": {
+            "error": "fleet new-instance revision denied"
+          },
+          "passed": true
+        },
+        {
+          "check": "retired generation stays retired",
+          "observed": {
+            "ok": {
+              "instances": [
+                {
+                  "instance_id": "w1",
+                  "revision": 2,
+                  "state": "retired"
+                }
+              ],
+              "production_provider_qualified": false,
+              "timings": []
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "5d4ff6deca207d037db2a91a83bd9e4590f06f6ad1ccee81d9567d037c402ac5",
+          "generation": 1,
+          "path": "/nix/store/1b1rpcyw6j3x835ibzpm24106qy8zhyg-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [
+        "retired_while_present"
+      ],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 1,
+        "deleted": 1,
+        "driver_invocations": {
+          "deprovision": 1,
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "retired": 1
+        },
+        "violations": [
+          "retired_while_present"
+        ]
+      },
+      "passed": true,
+      "scenario": "retired-reappearance",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "5d4ff6deca207d037db2a91a83bd9e4590f06f6ad1ccee81d9567d037c402ac5",
+            "driver_path": "/nix/store/1b1rpcyw6j3x835ibzpm24106qy8zhyg-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "d1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          }
+        },
+        {
+          "provider": "old resource w1 reappeared"
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 2,
+            "instance_id": "w1",
+            "request_id": "c1"
+          },
+          "result": {
+            "error": "no uncertain current fleet request"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p2"
+          },
+          "result": {
+            "error": "fleet new-instance revision denied"
+          }
+        },
+        {
+          "action": "status",
+          "input": {},
+          "result": {
+            "ok": {
+              "instances": [
+                {
+                  "instance_id": "w1",
+                  "revision": 2,
+                  "state": "retired"
+                }
+              ],
+              "production_provider_qualified": false,
+              "timings": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "secret policy admitted",
+          "observed": {
+            "ok": {
+              "configured": true
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "worker generation one active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 21,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "current generation delivers secret and token",
+          "observed": {
+            "ok": {
+              "delivery_expires_ms": 1794936336245,
+              "fleet": {
+                "instance_id": "w1",
+                "request_id": "p1",
+                "revision": 1
+              },
+              "token_expires_ms": 1794936396
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "fake provider accepts current generation",
+          "observed": {
+            "accepted": true,
+            "fleet": {
+              "instance_id": "w1",
+              "request_id": "p1",
+              "revision": 1
+            },
+            "job_active": true
+          },
+          "passed": true
+        },
+        {
+          "check": "fake provider refuses expired generation token",
+          "observed": {
+            "accepted": false,
+            "fleet": null,
+            "job_active": true
+          },
+          "passed": true
+        },
+        {
+          "check": "unknown generation cannot receive secret",
+          "observed": {
+            "error": "fleet generation not active"
+          },
+          "passed": true
+        },
+        {
+          "check": "mismatched revision cannot receive secret",
+          "observed": {
+            "error": "fleet generation not active"
+          },
+          "passed": true
+        },
+        {
+          "check": "lost teardown receipt is unknown",
+          "observed": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 33,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "unknown"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "uncertain teardown denies but does not claim revocation",
+          "observed": {
+            "accepted": false,
+            "fleet": null,
+            "job_active": true
+          },
+          "passed": true
+        },
+        {
+          "check": "observed absence retires worker",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "fake provider sees observed retirement revoke",
+          "observed": {
+            "accepted": false,
+            "fleet": null,
+            "job_active": false
+          },
+          "passed": true
+        },
+        {
+          "check": "replacement generation active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 34,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "replacement cannot use predecessor token",
+          "observed": {
+            "accepted": false,
+            "fleet": null,
+            "job_active": false
+          },
+          "passed": true
+        },
+        {
+          "check": "replacement receives its own credentials",
+          "observed": {
+            "ok": {
+              "delivery_expires_ms": 1794936336245,
+              "fleet": {
+                "instance_id": "w2",
+                "request_id": "p2",
+                "revision": 1
+              },
+              "token_expires_ms": 1794936396
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "fake provider accepts replacement token",
+          "observed": {
+            "accepted": true,
+            "fleet": {
+              "instance_id": "w2",
+              "request_id": "p2",
+              "revision": 1
+            },
+            "job_active": true
+          },
+          "passed": true
+        },
+        {
+          "check": "stale retirement receipt cannot restore old generation",
+          "observed": {
+            "error": "no uncertain current fleet request"
+          },
+          "passed": true
+        },
+        {
+          "check": "retired worker cannot mint fresh credential",
+          "observed": {
+            "error": "fleet generation not active"
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "5194b765f6c82199367b2325f66773cd3ae37c9f3374341e4a4d6333d5b86290",
+          "generation": 1,
+          "path": "/nix/store/i1fwa5bb0d7bz44h7am86sv0iiw0wlqz-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 2
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 2,
+        "deleted": 1,
+        "driver_invocations": {
+          "deprovision": 1,
+          "inspect": 1,
+          "provision": 2
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1,
+          "retired": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "secret-worker-generations",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "5194b765f6c82199367b2325f66773cd3ae37c9f3374341e4a4d6333d5b86290",
+            "driver_path": "/nix/store/i1fwa5bb0d7bz44h7am86sv0iiw0wlqz-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "secret-setup",
+          "input": {
+            "directory": "/home/brittonr/.cache/kiln-scratch/FleetSecretGeneration-2/qualification-20261117/secret-worker-generations"
+          },
+          "result": {
+            "ok": {
+              "configured": true
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 21,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "secret-issue",
+          "input": {
+            "instance_id": "w1",
+            "job": "job-one",
+            "now_ms": 1794936276245,
+            "request_id": "p1",
+            "revision": 1,
+            "token_path": "/home/brittonr/.cache/kiln-scratch/FleetSecretGeneration-2/qualification-20261117/secret-worker-generations/job-one.token"
+          },
+          "result": {
+            "ok": {
+              "delivery_expires_ms": 1794936336245,
+              "fleet": {
+                "instance_id": "w1",
+                "request_id": "p1",
+                "revision": 1
+              },
+              "token_expires_ms": 1794936396
+            }
+          }
+        },
+        {
+          "fake_provider_secret_inspection": {
+            "at_ms": 1794936276245,
+            "job": "job-one",
+            "observation": {
+              "accepted": true,
+              "fleet": {
+                "instance_id": "w1",
+                "request_id": "p1",
+                "revision": 1
+              },
+              "job_active": true
+            }
+          }
+        },
+        {
+          "fake_provider_secret_inspection": {
+            "at_ms": 1794936396245,
+            "job": "job-one",
+            "observation": {
+              "accepted": false,
+              "fleet": null,
+              "job_active": true
+            }
+          }
+        },
+        {
+          "action": "secret-issue",
+          "input": {
+            "instance_id": "missing",
+            "job": "job-missing",
+            "now_ms": 1794936276245,
+            "request_id": "p1",
+            "revision": 1,
+            "token_path": "/home/brittonr/.cache/kiln-scratch/FleetSecretGeneration-2/qualification-20261117/secret-worker-generations/job-missing.token"
+          },
+          "result": {
+            "error": "fleet generation not active"
+          }
+        },
+        {
+          "action": "secret-issue",
+          "input": {
+            "instance_id": "w1",
+            "job": "job-stale",
+            "now_ms": 1794936276245,
+            "request_id": "p1",
+            "revision": 2,
+            "token_path": "/home/brittonr/.cache/kiln-scratch/FleetSecretGeneration-2/qualification-20261117/secret-worker-generations/job-stale.token"
+          },
+          "result": {
+            "error": "fleet generation not active"
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "after_effect_no_reply",
+            "operation": "deprovision"
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "d1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": null,
+              "instance_id": "w1",
+              "observation_ms": 33,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "unknown"
+            }
+          }
+        },
+        {
+          "fake_provider_secret_inspection": {
+            "at_ms": 1794936276245,
+            "job": "job-one",
+            "observation": {
+              "accepted": false,
+              "fleet": null,
+              "job_active": true
+            }
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 2,
+            "instance_id": "w1",
+            "request_id": "inspect-one"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 10,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          }
+        },
+        {
+          "fake_provider_secret_inspection": {
+            "at_ms": 1794936276245,
+            "job": "job-one",
+            "observation": {
+              "accepted": false,
+              "fleet": null,
+              "job_active": false
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 34,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "fake_provider_secret_inspection": {
+            "at_ms": 1794936276245,
+            "job": "job-one",
+            "observation": {
+              "accepted": false,
+              "fleet": null,
+              "job_active": false
+            }
+          }
+        },
+        {
+          "action": "secret-issue",
+          "input": {
+            "instance_id": "w2",
+            "job": "job-two",
+            "now_ms": 1794936276245,
+            "request_id": "p2",
+            "revision": 1,
+            "token_path": "/home/brittonr/.cache/kiln-scratch/FleetSecretGeneration-2/qualification-20261117/secret-worker-generations/job-two.token"
+          },
+          "result": {
+            "ok": {
+              "delivery_expires_ms": 1794936336245,
+              "fleet": {
+                "instance_id": "w2",
+                "request_id": "p2",
+                "revision": 1
+              },
+              "token_expires_ms": 1794936396
+            }
+          }
+        },
+        {
+          "fake_provider_secret_inspection": {
+            "at_ms": 1794936276245,
+            "job": "job-two",
+            "observation": {
+              "accepted": true,
+              "fleet": {
+                "instance_id": "w2",
+                "request_id": "p2",
+                "revision": 1
+              },
+              "job_active": true
+            }
+          }
+        },
+        {
+          "action": "reconcile",
+          "input": {
+            "expected_revision": 2,
+            "instance_id": "w1",
+            "request_id": "old-receipt"
+          },
+          "result": {
+            "error": "no uncertain current fleet request"
+          }
+        },
+        {
+          "action": "secret-issue",
+          "input": {
+            "instance_id": "w1",
+            "job": "job-predecessor",
+            "now_ms": 1794936276245,
+            "request_id": "p1",
+            "revision": 1,
+            "token_path": "/home/brittonr/.cache/kiln-scratch/FleetSecretGeneration-2/qualification-20261117/secret-worker-generations/job-predecessor.token"
+          },
+          "result": {
+            "error": "fleet generation not active"
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "first slot",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 21,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "second slot",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 22,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "maximum is enforced",
+          "observed": {
+            "error": "fleet capacity exhausted; uncertain instances retain slots"
+          },
+          "passed": true
+        },
+        {
+          "check": "minimum floor configured",
+          "observed": {
+            "ok": {
+              "revision": 2
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "deprovision above the minimum",
+          "observed": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 12,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "minimum floor is preserved",
+          "observed": {
+            "error": "fleet minimum, uncertain state or stale revision denied"
+          },
+          "passed": true
+        },
+        {
+          "check": "freed slot is reusable",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w3",
+              "observation_ms": 11,
+              "request_id": "p3",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "ce52be467dff47fe9015c25731b0d0b3df92dd249eaaf8bd99e95aadae433bb0",
+          "generation": 1,
+          "path": "/nix/store/qjfhd9qzsjwlx9gxjrlnkr27g84dgq15-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [],
+      "finance_reservations": {
+        "unknown": 3
+      },
+      "kind": "recovery",
+      "oracle": {
+        "created": 3,
+        "deleted": 1,
+        "driver_invocations": {
+          "deprovision": 1,
+          "provision": 3
+        },
+        "present": 2,
+        "rows_by_state": {
+          "active": 2,
+          "retired": 1
+        },
+        "violations": []
+      },
+      "passed": true,
+      "scenario": "capacity-boundaries",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "ce52be467dff47fe9015c25731b0d0b3df92dd249eaaf8bd99e95aadae433bb0",
+            "driver_path": "/nix/store/qjfhd9qzsjwlx9gxjrlnkr27g84dgq15-kiln-fleet-fake-driver-g1",
+            "maximum": 2,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 21,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w2",
+            "request_id": "p2"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w2",
+              "observation_ms": 22,
+              "request_id": "p2",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w3",
+            "request_id": "p3"
+          },
+          "result": {
+            "error": "fleet capacity exhausted; uncertain instances retain slots"
+          }
+        },
+        {
+          "action": "configure",
+          "input": {
+            "expected_revision": 1,
+            "maximum": 2,
+            "minimum": 1,
+            "slots_per_instance": 1
+          },
+          "result": {
+            "ok": {
+              "revision": 2
+            }
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w1",
+            "request_id": "d1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "absent",
+              "instance_id": "w1",
+              "observation_ms": 12,
+              "request_id": "d1",
+              "revision": 2,
+              "state": "retired"
+            }
+          }
+        },
+        {
+          "action": "deprovision",
+          "input": {
+            "expected_revision": 1,
+            "instance_id": "w2",
+            "request_id": "d2"
+          },
+          "result": {
+            "error": "fleet minimum, uncertain state or stale revision denied"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w3",
+            "request_id": "p3"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w3",
+              "observation_ms": 11,
+              "request_id": "p3",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "faulty provider still reports presence",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 31,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "89cd6819e398896f23c4f2dafbd97264bd11bcaba4a455a35dfaacf6a350198c",
+          "generation": 1,
+          "path": "/nix/store/lhpbq8kx4rffxrj9jl8y77zg4a4kcmkz-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [
+        "duplicate_create"
+      ],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "control",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "active": 1
+        },
+        "violations": [
+          "duplicate_create"
+        ]
+      },
+      "passed": true,
+      "scenario": "duplicate-create-control",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "89cd6819e398896f23c4f2dafbd97264bd11bcaba4a455a35dfaacf6a350198c",
+            "driver_path": "/nix/store/lhpbq8kx4rffxrj9jl8y77zg4a4kcmkz-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "fault": {
+            "instance_id": "w1",
+            "kind": "duplicate_create",
+            "operation": "provision"
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 31,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "checks": [
+        {
+          "check": "setup admitted",
+          "observed": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          },
+          "passed": true
+        },
+        {
+          "check": "provision becomes active",
+          "observed": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 23,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          },
+          "passed": true
+        }
+      ],
+      "drivers": [
+        {
+          "blake3": "9e673ca5869a6f3355022b7e0e064ae185b01002740d5958ee5d7305eb1d147d",
+          "generation": 1,
+          "path": "/nix/store/flxswhbpxbvybgp1ap36ikh5im2njqwd-kiln-fleet-fake-driver-g1"
+        }
+      ],
+      "expected_violations": [
+        "retired_while_present"
+      ],
+      "finance_reservations": {
+        "unknown": 1
+      },
+      "kind": "control",
+      "oracle": {
+        "created": 1,
+        "deleted": 0,
+        "driver_invocations": {
+          "provision": 1
+        },
+        "present": 1,
+        "rows_by_state": {
+          "retired": 1
+        },
+        "violations": [
+          "retired_while_present"
+        ]
+      },
+      "passed": true,
+      "scenario": "premature-release-control",
+      "steps": [
+        {
+          "action": "setup",
+          "input": {
+            "driver_blake3": "9e673ca5869a6f3355022b7e0e064ae185b01002740d5958ee5d7305eb1d147d",
+            "driver_path": "/nix/store/flxswhbpxbvybgp1ap36ikh5im2njqwd-kiln-fleet-fake-driver-g1",
+            "maximum": 1,
+            "minimum": 0
+          },
+          "result": {
+            "ok": {
+              "price_id": "df39d63323b133574d4607d27e093cad47e498c175e3e24e80613ea6aab219a5"
+            }
+          }
+        },
+        {
+          "action": "provision",
+          "input": {
+            "expected_revision": 0,
+            "instance_id": "w1",
+            "request_id": "p1"
+          },
+          "result": {
+            "ok": {
+              "driver_state": "present",
+              "instance_id": "w1",
+              "observation_ms": 23,
+              "request_id": "p1",
+              "revision": 1,
+              "state": "active"
+            }
+          }
+        },
+        {
+          "control": "slot released while the provider resource is present"
+        }
+      ]
+    }
+  ],
+  "schema": "kiln.hosted.fleet-qualification-receipt.v1",
+  "source_blake3": {
+    "crates/kiln-hosted/examples/fleet_qualification.rs": "4b1f6fb2a6fbc61f90a88d2d69ffebb2df6d117549c23c8d084f4869a97542f7",
+    "crates/kiln-hosted/src/fleet.rs": "359d6d8926b686c3cb97fa616fdff4efebcaa233f88912028f8bf6bed7855112",
+    "crates/kiln-hosted/src/secrets.rs": "d5078a96a09fa662d01f48f5f3a98e28995730c3664c94f9b2a6991e408a45e3"
+  }
+}

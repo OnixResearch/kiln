@@ -1,0 +1,57 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": 73,
+  "scope": "Pinned Drift CLI, reviewed baseline, four minimal synthetic fixture pairs, isolated Nix CI check",
+  "drift_revision": "dad4f398c10ca53298d2fec0586d834c8e85daf1",
+  "baseline": "contracts/http-api/baseline/openapi.json",
+  "fixtures": [
+    {"name": "incompatible", "change": "removed GET /items", "class": "BackwardIncompatible", "version_changed": false, "exit": 1},
+    {"name": "unhandled", "change": "added default response", "class": "Unhandled", "version_changed": false, "exit": 1},
+    {"name": "trivial", "change": "response schema description", "class": "Trivial", "version_changed": false, "exit": 0},
+    {"name": "versioned-incompatible", "change": "removed GET /items; info.version v1 -> v2", "class": "BackwardIncompatible", "version_changed": true, "exit": 0}
+  ],
+  "checks": [
+    {
+      "command": "/run/user/1555/kiln-cargo --config net.git-fetch-with-cli=false generate-lockfile --manifest-path tools/http-contract-drift/Cargo.toml",
+      "result": "passed; isolated tool lock resolved pinned Drift and 21 dependency packages",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo fmt --manifest-path tools/http-contract-drift/Cargo.toml",
+      "result": "passed",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo test --offline --locked --manifest-path tools/http-contract-drift/Cargo.toml",
+      "result": "passed: four pure unit tests",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo clippy --offline --locked --manifest-path tools/http-contract-drift/Cargo.toml --all-targets -- -D warnings",
+      "result": "passed",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "for fixture in incompatible unhandled trivial versioned-incompatible; do $HOME/.cargo-target/debug/kiln-http-contract-drift contracts/http-api/fixtures/$fixture/baseline.json contracts/http-api/fixtures/$fixture/current.json; done",
+      "result": "minimal pairs empirically classified BackwardIncompatible exit 1, Unhandled exit 1, Trivial exit 0, BackwardIncompatible with changed version exit 0; baseline vs current exit 0 separately",
+      "passed": 5,
+      "failed": 0
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.http-contract-drift --no-link -L --no-write-lock-file --option builders ''",
+      "result": "passed on final tool and minimal fixtures: Nix built pinned isolated binary, ran four unit tests and checked exact class, decision and exit for baseline and four fixture pairs",
+      "passed": 5,
+      "failed": 0
+    }
+  ],
+  "non_claims": [
+    "No root Cargo workspace or lockfile dependency was added; this is a separate CI-only executable.",
+    "A changed version leaves a pending transition: later incompatible changes pass against an older baseline until a reviewed baseline replacement closes it; unhandled comparisons still fail.",
+    "The policy does not prove semantic compatibility beyond classifications implemented by pinned Drift and the committed fixture cohort.",
+    "Malformed documents and tool errors exit 2, not the fixture-expected policy rejection 1."
+  ]
+}

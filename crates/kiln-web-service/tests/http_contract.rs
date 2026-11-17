@@ -15,6 +15,9 @@ use std::sync::Arc;
 /// Lockstep client fixture bound on received response bytes.
 const CLIENT_BODY_LIMIT: usize = 64 * 1024;
 
+#[path = "http_contract/served_client.rs"]
+mod served_client;
+
 #[derive(Default)]
 struct Backend {
     plan: Option<WorkflowEffectPlan>,

@@ -130,6 +130,39 @@ pub fn init(db: &Connection) -> Result<(), String> {
     Ok(())
 }
 
+// r[impl kiln.hosted.fleet.secret_generation]
+/// Read-only generation admission; physical placement remains a provider effect.
+pub fn require_active_generation(
+    db: &Connection,
+    organization: &str,
+    selected: &crate::secrets::FleetGeneration,
+) -> Result<crate::secrets::FleetGeneration, String> {
+    if !crate::identifier(organization)
+        || !crate::identifier(&selected.instance_id)
+        || !crate::identifier(&selected.request_id)
+        || selected.revision == 0
+    {
+        return Err("invalid fleet generation".into());
+    }
+    let observed: Option<(String, u64)> = db.query_row(
+        "SELECT request_id,revision FROM hosted_fleet_instances WHERE org=?1 AND id=?2 AND state='active' AND operation='provision'",
+        params![organization, selected.instance_id],
+        |row| Ok((row.get(0)?, crate::sqlite_u64(row, 1)?)),
+    ).optional().map_err(|_| "fleet generation unavailable")?;
+    match observed {
+        Some((request_id, revision))
+            if request_id == selected.request_id && revision == selected.revision =>
+        {
+            Ok(crate::secrets::FleetGeneration {
+                instance_id: selected.instance_id.clone(),
+                revision,
+                request_id,
+            })
+        }
+        _ => Err("fleet generation not active".into()),
+    }
+}
+
 /// Operator-only startup admission; customers cannot choose executable paths.
 pub fn configure_trusted(db: &mut Connection, config: &Config) -> Result<(), String> {
     config.validate()?;
@@ -435,14 +468,25 @@ fn mutate(
         _ => "unknown",
     };
     let result = json!({"instance_id":request.instance_id,"request_id":driver_key,"state":state,"revision":next,"observation_ms":u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),"driver_state":receipt.as_ref().map(|r|&r.state)});
-    db.execute("UPDATE hosted_fleet_instances SET state=?3,receipt=?4 WHERE org=?1 AND id=?2 AND revision=?5",params![actor.organization,request.instance_id,state,result.to_string(),crate::sqlite_integer(next)?]).map_err(|e|e.to_string())?;
+    // r[impl kiln.hosted.fleet.secret_generation]
+    // Retirement and credential revocation commit together; unknown teardown only
+    // disables generation validation and does not claim revocation completed.
+    let tx = db.transaction().map_err(|e| e.to_string())?;
+    let changed = tx.execute("UPDATE hosted_fleet_instances SET state=?3,receipt=?4 WHERE org=?1 AND id=?2 AND revision=?5",params![actor.organization,request.instance_id,state,result.to_string(),crate::sqlite_integer(next)?]).map_err(|e|e.to_string())?;
+    if changed != 1 {
+        return Err("stale fleet receipt".into());
+    }
+    if state == "retired" {
+        crate::secrets::revoke_fleet_instance(&tx, &actor.organization, &request.instance_id)?;
+    }
     if operation != "reconcile" {
-        db.execute(
+        tx.execute(
             "UPDATE hosted_fleet_requests SET result=?3 WHERE org=?1 AND request_id=?2",
             params![actor.organization, request.request_id, result.to_string()],
         )
         .map_err(|e| e.to_string())?;
     }
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(result)
 }
 

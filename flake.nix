@@ -2081,6 +2081,55 @@
               pkgs.runCommand "kiln-radicle-status-native-fixtures-unsupported" { } ''
                 touch "$out"
               '';
+          # r[impl kiln.web.http_contract.drift]
+          http-contract-drift =
+            let
+              tool = rustPlatform.buildRustPackage {
+                pname = "kiln-http-contract-drift";
+                version = "0.1.0";
+                src = ./tools/http-contract-drift;
+                cargoLock = {
+                  lockFile = ./tools/http-contract-drift/Cargo.lock;
+                  allowBuiltinFetchGit = true;
+                };
+                doCheck = true;
+              };
+            in
+            pkgs.runCommand "kiln-http-contract-drift-check"
+              {
+                nativeBuildInputs = [ tool ];
+              }
+              ''
+                set -eu
+                contract=${./contracts/http-api}
+                kiln-http-contract-drift "$contract/baseline/openapi.json" "$contract/openapi.json" > baseline.out
+                grep -q '^decision=pass version_changed=false$' baseline.out
+                for fixture in trivial versioned-incompatible; do
+                  kiln-http-contract-drift "$contract/fixtures/$fixture/baseline.json" "$contract/fixtures/$fixture/current.json" > "$fixture.out"
+                  if test "$fixture" = trivial; then
+                    grep -q '^Trivial ' "$fixture.out"
+                    grep -q '^decision=pass version_changed=false$' "$fixture.out"
+                  else
+                    grep -q -E '^(BackwardIncompatible|ForwardIncompatible|Incompatible) ' "$fixture.out"
+                    grep -q '^decision=pass version_changed=true$' "$fixture.out"
+                  fi
+                done
+                for fixture in incompatible unhandled; do
+                  if kiln-http-contract-drift "$contract/fixtures/$fixture/baseline.json" "$contract/fixtures/$fixture/current.json" > "$fixture.out"; then
+                    status=0
+                  else
+                    status=$?
+                  fi
+                  test "$status" -eq 1
+                  grep -q '^decision=fail version_changed=false$' "$fixture.out"
+                  if test "$fixture" = unhandled; then
+                    grep -q '^Unhandled ' "$fixture.out"
+                  else
+                    grep -q -E '^(BackwardIncompatible|ForwardIncompatible|Incompatible) ' "$fixture.out"
+                  fi
+                done
+                touch "$out"
+              '';
           # r[impl kiln.radicle.mutation_conformance]
           radicle-mutation-native-fixtures =
             if system == "x86_64-linux" then

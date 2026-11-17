@@ -149,10 +149,14 @@ entry describes the source tree prepared for the first tagged release.
   (exercised locally; not a hostile-code sandbox)
 - A GET-only OpenAPI 3.0.3 contract, `kiln.http-api.v1`, for projects, runs,
   execution bindings and artifacts in `contracts/http-api/openapi.json`.
-  Independent schema validation of real responses, error goldens and a bounded
-  lockstep client fixture keep authentication, transport and schema failures
-  distinct. (tested against in-process responses; no generated client or
-  migration)
+  Independent schema validation, error goldens and a bounded, no-retry lockstep
+  client fixture keep authentication, authorization, transport and schema
+  failures distinct against the real HTTPS service and a loopback TLS fault
+  stub, with byte limits and connect, total and body-idle deadlines. A pinned
+  Drift check compares the contract with a reviewed baseline: incompatible
+  changes fail outside a version transition and unhandled comparisons always
+  fail. A measured Progenitor client was rejected. (#73; tested locally against
+  the served process and fixtures; no generated client or server migration)
 - An OpenBubbles iMessage receiver is a documented no-go: rustpush's SSPL
   exception covers only OpenBubbles. A typed Nickel receiver contract over the
   unchanged `kiln.webhook-notification.v1` payload, with positive and negative
@@ -252,10 +256,13 @@ entry describes the source tree prepared for the first tagged release.
   matched-cell analysis. An insufficient baseline cannot recommend a speedup.
 - A fleet lifecycle qualification harness drives the real account, finance and
   fleet APIs through the unchanged immutable-executable admission against a
-  fake provider with one-shot faults and barriers. Ten recovery scenarios and
-  two detected controls passed once; job secrets still bind to jobs, not fleet
-  instance generations. (exercised locally; not provider, capacity or
-  secret-binding qualification)
+  fake provider with one-shot faults and barriers. Hosted job-secret
+  capabilities and workload tokens bind to the observed active fleet
+  generation: delivery, token exchange and resource-server validation refuse
+  stale, replaced, unknown or uncertain generations, and observed retirement
+  revokes them in the same transaction. Eleven recovery and secret-generation
+  scenarios and two detected controls passed. (#72; exercised locally; not
+  provider, capacity or physical-placement qualification)
 
 **Implementation work**
 

@@ -1,0 +1,194 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": 73,
+  "scope": "Pinned Progenitor generation of unchanged contract and five-operationId scratch copy",
+  "generator": {
+    "name": "progenitor",
+    "revision": "b317a86578098ecabbeb04a0f57dc693032b81cc",
+    "license": "MPL-2.0",
+    "method": "documented build.rs Generator::generate_tokens -> syn::parse2 -> prettyplease::unparse"
+  },
+  "reproduce": "python3 scripts/http-contract-generation-measure.py --jobs 2 --output <receipt.json>",
+  "scratch_parent": "/home/brittonr/.cache/kiln/http-contract-generation",
+  "cpu_jobs": 2,
+  "handwritten_fixture": {
+    "path": "crates/kiln-web-service/tests/http_contract.rs",
+    "client_validator_range": "350-494",
+    "lines": 145,
+    "note": "resolve_schema through classify, excluding fixture setup and tests"
+  },
+  "unchanged_document": {
+    "generated_rust_lines": null,
+    "generated_rust_bytes": null,
+    "error": "UnexpectedFormat(\"path /api/projects is missing operation ID\")",
+    "cold_build_wall_seconds": 43.89,
+    "result": "failed at generation"
+  },
+  "adapted_scratch_document": {
+    "source": "scratch copy of unchanged committed document",
+    "adaptations": [
+      "GET /api/projects: operationId=list_projects",
+      "GET /api/runs: operationId=list_runs",
+      "GET /api/runs/{id}: operationId=get_run",
+      "GET /api/runs/{id}/artifacts: operationId=list_artifacts",
+      "GET /api/runs/{id}/execution-binding: operationId=get_execution_binding"
+    ],
+    "generated_rust_lines": 470,
+    "generated_rust_bytes": 16940,
+    "cold_build_wall_seconds": 57.41,
+    "warm_rebuild_wall_seconds": 0.17,
+    "result": "generation and cold/warm builds passed"
+  },
+  "dependencies": {
+    "direct": 8,
+    "transitive": 192,
+    "locked_total": 200,
+    "added_relative_to_root_lock_by_name_and_version": 74,
+    "added_license_inventory": {
+      "(Apache-2.0 OR MIT) AND BSD-3-Clause": [
+        "encoding_rs@0.8.44"
+      ],
+      "(MIT OR Apache-2.0) AND Unicode-3.0": [
+        "unicode-ident@1.0.27"
+      ],
+      "Apache-2.0": [
+        "serde_tokenstream@0.3.0",
+        "typify-impl@0.8.0",
+        "typify-macro@0.8.0",
+        "typify@0.8.0"
+      ],
+      "Apache-2.0 OR MIT": [
+        "equivalent@1.0.3",
+        "indexmap@2.14.2",
+        "multiversion_no_op@1.0.0",
+        "utf8_iter@1.1.0",
+        "utf_types@1.0.0",
+        "zeroize@1.9.2"
+      ],
+      "CDLA-Permissive-2.0": [
+        "webpki-root-certs@1.0.12"
+      ],
+      "ISC": [
+        "rustls-webpki@0.103.17"
+      ],
+      "ISC AND (Apache-2.0 OR ISC)": [
+        "aws-lc-rs@1.19.0"
+      ],
+      "ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)": [
+        "aws-lc-sys@0.47.0"
+      ],
+      "MIT": [
+        "mio@1.2.5",
+        "schemars@0.8.22",
+        "schemars_derive@0.8.22",
+        "synstructure@0.14.0",
+        "tokio@1.54.1"
+      ],
+      "MIT OR Apache-2.0": [
+        "bitflags@2.13.2",
+        "bumpalo@3.20.4",
+        "cc@1.11.2",
+        "cfg-if@1.0.5",
+        "chacha20@0.10.2",
+        "cpufeatures@0.3.1",
+        "find-msvc-tools@0.1.15",
+        "itoa@1.0.19",
+        "js-sys@0.3.107",
+        "libc@0.2.191",
+        "log@0.4.35",
+        "mime@0.3.18",
+        "openssl-probe@0.2.2",
+        "prettyplease@0.3.0",
+        "quinn-proto@0.11.19",
+        "quinn@0.11.12",
+        "rand@0.10.4",
+        "rand_core@0.10.1",
+        "rand_pcg@0.10.2",
+        "regress@0.12.0",
+        "rustls-pki-types@1.16.0",
+        "serde_derive_internals@0.29.1",
+        "serde_json@1.0.154",
+        "smallvec@1.16.5",
+        "syn@3.0.10",
+        "system-configuration@0.7.0",
+        "thiserror-impl@2.0.21",
+        "thiserror@2.0.21",
+        "wasm-bindgen-futures@0.4.80",
+        "wasm-bindgen-macro-support@0.2.130",
+        "wasm-bindgen-macro@0.2.130",
+        "wasm-bindgen-shared@0.2.130",
+        "wasm-bindgen@0.2.130",
+        "wasm-streams@0.5.0",
+        "web-sys@0.3.107"
+      ],
+      "MIT/Apache-2.0": [
+        "core_detect@1.0.0",
+        "openapiv3@2.2.0"
+      ],
+      "MPL-2.0": [
+        "progenitor-client@0.16.1",
+        "progenitor-impl@0.16.1",
+        "progenitor@0.16.1"
+      ],
+      "Unicode-3.0": [
+        "icu_collections@2.4.0",
+        "icu_locale_core@2.4.0",
+        "icu_normalizer@2.4.0",
+        "icu_normalizer_data@2.4.0",
+        "icu_properties@2.4.0",
+        "icu_properties_data@2.4.0",
+        "icu_provider@2.4.0",
+        "tinystr@0.8.5",
+        "yoke-derive@0.8.4",
+        "yoke@0.8.4",
+        "zerofrom-derive@0.1.8",
+        "zerovec-derive@0.11.7",
+        "zerovec@0.11.9"
+      ]
+    },
+    "note": "Resolved packages include target-conditional dependencies; not a linked-binary inventory."
+  },
+  "checks": [
+    {
+      "command": "/run/user/1555/kiln-cargo --config net.git-fetch-with-cli=false generate-lockfile --manifest-path /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/Cargo.toml",
+      "result": "passed",
+      "passed": 1,
+      "failed": 0,
+      "wall_seconds": 1.29
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo --config net.git-fetch-with-cli=false build --offline --locked --manifest-path /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/Cargo.toml --target-dir /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/target-original --jobs 2",
+      "result": "failed (exit 101)",
+      "passed": 0,
+      "failed": 1,
+      "wall_seconds": 43.89
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo --config net.git-fetch-with-cli=false build --offline --locked --manifest-path /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/Cargo.toml --target-dir /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/target-adapted --jobs 2",
+      "result": "passed",
+      "passed": 1,
+      "failed": 0,
+      "wall_seconds": 57.41
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo --config net.git-fetch-with-cli=false build --offline --locked --manifest-path /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/Cargo.toml --target-dir /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/target-adapted --jobs 2",
+      "result": "passed",
+      "passed": 1,
+      "failed": 0,
+      "wall_seconds": 0.17
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo --config net.git-fetch-with-cli=false metadata --offline --locked --manifest-path /home/brittonr/.cache/kiln/http-contract-generation/progenitor-6o4e4_7r/Cargo.toml --format-version 1",
+      "result": "passed",
+      "passed": 1,
+      "failed": 0,
+      "wall_seconds": 0.13
+    }
+  ],
+  "non_claims": [
+    "The unchanged committed contract does not generate; five operationId fields were added only in scratch.",
+    "Resolved dependency inventories include target-conditional crates, not only linked code.",
+    "Single-host cold/warm times are observations and differ from earlier ad-hoc measurements; warm is an unchanged rebuild.",
+    "No generated client or Progenitor dependency was added to the Kiln root workspace or production service."
+  ]
+}

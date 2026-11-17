@@ -12,9 +12,11 @@
 //! ```
 // r[impl kiln.hosted.fleet.lifecycle_qualification]
 
+use kiln_adapter_github::secret::SecretReference;
 use kiln_hosted::{
     Actor, accounts, finance,
     fleet::{self, Config, Executable, Pricing},
+    secrets,
 };
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -55,12 +57,29 @@ const HARNESS_SOURCE: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/examples/fleet_qualification.rs"
 ));
-const SECRETS_GAP: &str = "Job secrets are bound to hosted jobs, not to fleet instance generations (crates/kiln-hosted/src/secrets.rs); no secret subsystem was added.";
+const SECRETS_SOURCE: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/secrets.rs"));
+const SECRET_AUDIENCE: &str = "https://fleet-resource.example.test";
+const SECRET_NAME: &str = "WORKER_TOKEN";
+const SECRET_LIFETIME_SECONDS: u64 = 120;
+const SECRET_REFERENCE_MS: u64 = 600_000;
+const SECRET_JOB_MS: u64 = 300_000;
+const SECRET_VALUE: &str = "fleet-qualification-value";
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let code = match args.first().map(String::as_str) {
         Some("driver") => driver(args.get(1..).unwrap_or_default()),
+        Some("secret-inspect") => match inspect_secret(args.get(1..).unwrap_or_default()) {
+            Ok(observation) => {
+                println!("{observation}");
+                0
+            }
+            Err(error) => {
+                eprintln!("fake provider secret inspection failed: {error}");
+                1
+            }
+        },
         Some("coordinator") => coordinator(args.get(1..).unwrap_or_default()),
         Some("run") => match run(args.get(1..).unwrap_or_default()) {
             Ok(passed) => i32::from(!passed),
@@ -396,6 +415,7 @@ fn coordinator_result(args: &[String]) -> Result<Result<Value>> {
     accounts::init(&db)?;
     finance::init(&db)?;
     fleet::init(&db)?;
+    secrets::init(&db)?;
     let actor = Actor {
         peer: PEER_BYTE.repeat(PEER_LENGTH),
         organization: ORGANIZATION.into(),
@@ -411,6 +431,8 @@ fn coordinator_result(args: &[String]) -> Result<Result<Value>> {
         "configure" | "provision" | "deprovision" | "reconcile" | "status" => {
             fleet::handle(&mut db, &actor, action, input, now)
         }
+        "secret-setup" => secret_setup(&mut db, &actor, input, now),
+        "secret-issue" => secret_issue(&mut db, &actor, input),
         _ => Err("unknown coordinator action".into()),
     })
 }
@@ -454,6 +476,152 @@ fn setup(db: &mut Connection, actor: &Actor, input: Value, now: u64) -> Result<V
         now,
     )?;
     Ok(json!({"price_id": price_id}))
+}
+
+// r[impl kiln.hosted.fleet.secret_generation]
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SecretSetup {
+    directory: PathBuf,
+}
+
+fn secret_setup(db: &mut Connection, actor: &Actor, input: Value, now: u64) -> Result<Value> {
+    let input: SecretSetup = serde_json::from_value(input).map_err(text)?;
+    let key = input.directory.join("issuer.seed");
+    fs::write(&key, [17_u8; 32]).map_err(text)?;
+    fs::set_permissions(&key, fs::Permissions::from_mode(0o600)).map_err(text)?;
+    let program = input.directory.join("secret-resolver");
+    let script = format!(
+        "#!/bin/sh\n[ \"$1\" = get ] && [ \"$2\" = {SECRET_NAME} ] || exit 9\nprintf '{SECRET_VALUE}\\n'\n"
+    );
+    fs::write(&program, &script).map_err(text)?;
+    fs::set_permissions(&program, fs::Permissions::from_mode(0o700)).map_err(text)?;
+    secrets::configure(
+        db,
+        &secrets::Config {
+            issuer: "https://fleet-issuer.example.test".into(),
+            signing_key_path: key,
+            audiences: vec![SECRET_AUDIENCE.into()],
+            token_lifetime_seconds: SECRET_LIFETIME_SECONDS,
+            resolvers: vec![secrets::Resolver {
+                id: "fake-provider".into(),
+                organization: actor.organization.clone(),
+                project: "qualification".into(),
+                reference: SecretReference {
+                    program_path: program,
+                    program_blake3: blake3::hash(script.as_bytes()).to_hex().to_string(),
+                    project_root: input.directory,
+                    profile: "qualification".into(),
+                    provider: None,
+                    secret_key: SECRET_NAME.into(),
+                },
+            }],
+        },
+    )?;
+    secrets::handle(
+        db,
+        actor,
+        "register",
+        json!({"project":"qualification","name":SECRET_NAME,"resolver":"fake-provider","expected_revision":0,"expires_ms":now.checked_add(SECRET_REFERENCE_MS).ok_or("secret time overflow")?}),
+        now,
+    )?;
+    Ok(json!({"configured":true}))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SecretIssue {
+    job: String,
+    instance_id: String,
+    revision: u64,
+    request_id: String,
+    token_path: PathBuf,
+    now_ms: u64,
+}
+
+fn secret_issue(db: &mut Connection, actor: &Actor, input: Value) -> Result<Value> {
+    let input: SecretIssue = serde_json::from_value(input).map_err(text)?;
+    let selected = secrets::FleetGeneration {
+        instance_id: input.instance_id,
+        revision: input.revision,
+        request_id: input.request_id,
+    };
+    let observed = fleet::require_active_generation(db, &actor.organization, &selected)?;
+    let binding = secrets::JobBinding {
+        organization: actor.organization.clone(),
+        project: "qualification".into(),
+        job: input.job,
+        admission_identity: "fake-provider-admission".into(),
+        fleet: observed.clone(),
+        expires_ms: input
+            .now_ms
+            .checked_add(SECRET_JOB_MS)
+            .ok_or("secret time overflow")?,
+        audiences: vec![SECRET_AUDIENCE.into()],
+        secrets: vec![secrets::SecretGrant {
+            name: SECRET_NAME.into(),
+            revision: 1,
+        }],
+    };
+    let cap = secrets::begin_job(db, &binding, input.now_ms)?;
+    let delivered = secrets::resolve_for_job(db, cap.as_str(), SECRET_NAME, input.now_ms)?;
+    if delivered
+        .value
+        .as_str()
+        .map_err(|_| "secret value is not UTF-8")?
+        != SECRET_VALUE
+    {
+        return Err("fake provider received wrong secret value".into());
+    }
+    let token = secrets::exchange(db, cap.as_str(), SECRET_AUDIENCE, input.now_ms)?;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(input.token_path)
+        .map_err(text)?;
+    file.write_all(token.as_str().as_bytes()).map_err(text)?;
+    file.sync_all().map_err(text)?;
+    Ok(
+        json!({"fleet":observed,"delivery_expires_ms":delivered.expires_ms,"token_expires_ms":input.now_ms / 1000 + SECRET_LIFETIME_SECONDS}),
+    )
+}
+
+/// Separate fake-provider process checks the retained resource-server boundary.
+fn inspect_secret(args: &[String]) -> Result<Value> {
+    let [
+        db_flag,
+        database,
+        token_flag,
+        token_path,
+        job_flag,
+        job,
+        at_flag,
+        at,
+    ] = args
+    else {
+        return Err("expected --db PATH --token PATH --job ID --at MS".into());
+    };
+    if db_flag != "--db" || token_flag != "--token" || job_flag != "--job" || at_flag != "--at" {
+        return Err("invalid secret inspection arguments".into());
+    }
+    let db = Connection::open(database).map_err(text)?;
+    secrets::init(&db)?;
+    fleet::init(&db)?;
+    let token = fs::read_to_string(token_path).map_err(text)?;
+    let now = at.parse::<u64>().map_err(text)?;
+    let accepted = secrets::verify_token(&db, &token, SECRET_AUDIENCE, now);
+    let active: bool = db
+        .query_row(
+            "SELECT active FROM hosted_secret_jobs WHERE org=?1 AND job=?2",
+            [ORGANIZATION, job.as_str()],
+            |row| row.get(0),
+        )
+        .map_err(text)?;
+    Ok(
+        json!({"accepted":accepted.is_ok(),"fleet":accepted.ok().map(|claims| claims.fleet),"job_active":active}),
+    )
 }
 
 /// Operator profile for a driver generation; pricing is retained from the current profile.
@@ -600,6 +768,7 @@ impl<'a> Scenario<'a> {
         let directory = out.join(name);
         let inventory = directory.join("inventory");
         fs::create_dir_all(inventory.join("resources")).map_err(text)?;
+        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700)).map_err(text)?;
         let mut scenario = Self {
             tools,
             database: directory.join("fleet.sqlite"),
@@ -763,6 +932,58 @@ impl<'a> Scenario<'a> {
         self.check(name, refused, result);
     }
 
+    fn setup_secrets(&mut self) -> Result<()> {
+        let result = self.call("secret-setup", json!({"directory":self.directory}))?;
+        self.check(
+            "secret policy admitted",
+            result.get("ok").is_some(),
+            &result,
+        );
+        Ok(())
+    }
+
+    fn issue_secret(
+        &mut self,
+        job: &str,
+        instance: &str,
+        revision: u64,
+        request: &str,
+        at: u64,
+    ) -> Result<Value> {
+        let token_path = self.directory.join(format!("{job}.token"));
+        self.call("secret-issue", json!({"job":job,"instance_id":instance,"revision":revision,"request_id":request,"now_ms":at,"token_path":token_path}))
+    }
+
+    fn inspect_secret(&mut self, job: &str, at: u64) -> Result<Value> {
+        let output = Command::new(&self.tools.driver_store_path)
+            .args([
+                "secret-inspect",
+                "--db",
+                &self.database.display().to_string(),
+                "--token",
+                &self
+                    .directory
+                    .join(format!("{job}.token"))
+                    .display()
+                    .to_string(),
+                "--job",
+                job,
+                "--at",
+                &at.to_string(),
+            ])
+            .output()
+            .map_err(text)?;
+        if !output.status.success() {
+            return Err(format!(
+                "fake provider secret inspection failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        let observation: Value = serde_json::from_slice(&output.stdout).map_err(text)?;
+        self.steps.push(json!({"fake_provider_secret_inspection":{"job":job,"at_ms":at,"observation":observation}}));
+        Ok(observation)
+    }
+
     fn provision_effects(&self) -> Result<usize> {
         Ok(read_log(&self.inventory)?
             .iter()
@@ -900,6 +1121,7 @@ fn run(args: &[String]) -> Result<bool> {
         stale_reply(&tools, &out)?,
         operator_generation_change(&tools, &out)?,
         retired_reappearance(&tools, &out)?,
+        secret_worker_generations(&tools, &out)?,
         capacity_boundaries(&tools, &out)?,
         duplicate_create_control(&tools, &out)?,
         premature_release_control(&tools, &out)?,
@@ -914,6 +1136,7 @@ fn run(args: &[String]) -> Result<bool> {
         "production_provider_qualified": false,
         "source_blake3": {
             "crates/kiln-hosted/src/fleet.rs": blake3::hash(FLEET_SOURCE).to_hex().to_string(),
+            "crates/kiln-hosted/src/secrets.rs": blake3::hash(SECRETS_SOURCE).to_hex().to_string(),
             "crates/kiln-hosted/examples/fleet_qualification.rs": blake3::hash(HARNESS_SOURCE).to_hex().to_string(),
         },
         "executables": {
@@ -923,12 +1146,12 @@ fn run(args: &[String]) -> Result<bool> {
             "bash": bash,
         },
         "scenarios": scenarios,
-        "gaps": [SECRETS_GAP],
+        "gaps": [],
         "non_claims": [
             "The fake provider is a local inventory, not a cloud API or purchased capacity.",
             "Added Nix store paths are unrooted and garbage-collectable.",
             "Provider presence is not usage metering: fleet finance reservations stay unknown until separately settled.",
-            "Not production provider, capacity, availability or secret-binding qualification.",
+            "Not production provider, capacity, availability, independent physical placement or third-party immediate JWT revocation qualification.",
         ],
     });
     write_atomic(
@@ -1160,6 +1383,115 @@ fn retired_reappearance(tools: &Tools, out: &Path) -> Result<Value> {
         "recovery",
         &[Violation::RetiredWhilePresent],
     )
+}
+
+// r[verify kiln.hosted.fleet.secret_generation.scenario.current]
+// r[verify kiln.hosted.fleet.secret_generation.scenario.stale]
+// r[verify kiln.hosted.fleet.secret_generation.scenario.retirement]
+// r[verify kiln.hosted.fleet.secret_generation.scenario.restart]
+fn secret_worker_generations(tools: &Tools, out: &Path) -> Result<Value> {
+    let mut s = Scenario::new(tools, out, "secret-worker-generations", 1)?;
+    s.setup_secrets()?;
+    let started = s.mutate("provision", "w1", "p1", 0)?;
+    s.expect_state("worker generation one active", &started, "active");
+    let now = now_ms()?;
+    let issued = s.issue_secret("job-one", "w1", 1, "p1", now)?;
+    s.check(
+        "current generation delivers secret and token",
+        issued
+            .pointer("/ok/fleet/request_id")
+            .and_then(Value::as_str)
+            == Some("p1")
+            && issued
+                .pointer("/ok/delivery_expires_ms")
+                .and_then(Value::as_u64)
+                == now.checked_add(60_000),
+        &issued,
+    );
+    let current = s.inspect_secret("job-one", now)?;
+    s.check(
+        "fake provider accepts current generation",
+        current.get("accepted").and_then(Value::as_bool) == Some(true)
+            && current
+                .pointer("/fleet/instance_id")
+                .and_then(Value::as_str)
+                == Some("w1"),
+        &current,
+    );
+    let expired = s.inspect_secret("job-one", now + SECRET_LIFETIME_SECONDS * 1000)?;
+    s.check(
+        "fake provider refuses expired generation token",
+        expired.get("accepted").and_then(Value::as_bool) == Some(false),
+        &expired,
+    );
+    let missing = s.issue_secret("job-missing", "missing", 1, "p1", now)?;
+    s.expect_refusal(
+        "unknown generation cannot receive secret",
+        &missing,
+        "generation not active",
+    );
+    let stale = s.issue_secret("job-stale", "w1", 2, "p1", now)?;
+    s.expect_refusal(
+        "mismatched revision cannot receive secret",
+        &stale,
+        "generation not active",
+    );
+    s.fault("deprovision", "w1", FaultKind::AfterEffectNoReply)?;
+    let unknown = s.mutate("deprovision", "w1", "d1", 1)?;
+    s.expect_state("lost teardown receipt is unknown", &unknown, "unknown");
+    let uncertain = s.inspect_secret("job-one", now)?;
+    s.check(
+        "uncertain teardown denies but does not claim revocation",
+        uncertain.get("accepted").and_then(Value::as_bool) == Some(false)
+            && uncertain.get("job_active").and_then(Value::as_bool) == Some(true),
+        &uncertain,
+    );
+    let reconciled = s.mutate("reconcile", "w1", "inspect-one", 2)?;
+    s.expect_state("observed absence retires worker", &reconciled, "retired");
+    let retired = s.inspect_secret("job-one", now)?;
+    s.check(
+        "fake provider sees observed retirement revoke",
+        retired.get("accepted").and_then(Value::as_bool) == Some(false)
+            && retired.get("job_active").and_then(Value::as_bool) == Some(false),
+        &retired,
+    );
+    let replaced = s.mutate("provision", "w2", "p2", 0)?;
+    s.expect_state("replacement generation active", &replaced, "active");
+    let old_on_new = s.inspect_secret("job-one", now)?;
+    s.check(
+        "replacement cannot use predecessor token",
+        old_on_new.get("accepted").and_then(Value::as_bool) == Some(false),
+        &old_on_new,
+    );
+    let new = s.issue_secret("job-two", "w2", 1, "p2", now)?;
+    s.check(
+        "replacement receives its own credentials",
+        new.pointer("/ok/fleet/request_id").and_then(Value::as_str) == Some("p2"),
+        &new,
+    );
+    let accepted = s.inspect_secret("job-two", now)?;
+    s.check(
+        "fake provider accepts replacement token",
+        accepted.get("accepted").and_then(Value::as_bool) == Some(true)
+            && accepted
+                .pointer("/fleet/instance_id")
+                .and_then(Value::as_str)
+                == Some("w2"),
+        &accepted,
+    );
+    let stale_receipt = s.mutate("reconcile", "w1", "old-receipt", 2)?;
+    s.expect_refusal(
+        "stale retirement receipt cannot restore old generation",
+        &stale_receipt,
+        "no uncertain current fleet request",
+    );
+    let predecessor = s.issue_secret("job-predecessor", "w1", 1, "p1", now)?;
+    s.expect_refusal(
+        "retired worker cannot mint fresh credential",
+        &predecessor,
+        "generation not active",
+    );
+    s.finish("secret-worker-generations", "recovery", &[])
 }
 
 fn capacity_boundaries(tools: &Tools, out: &Path) -> Result<Value> {

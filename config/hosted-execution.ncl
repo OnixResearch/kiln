@@ -136,6 +136,15 @@ let Backend = {
   qualification_identity | HexIdentity | optional,
 }
 in
+# This selection is compared to the admitted fleet row; credential binding
+# values are read from that row by the hosted shell, not trusted from Nickel.
+let FleetGeneration = {
+  instance_id | Identifier,
+  request_id | Identifier,
+  revision | Positive 9007199254740991,
+}
+in
+
 fun input =>
   input
     | {
@@ -215,8 +224,16 @@ fun input =>
           project | Identifier,
           runner | Identifier,
           audience | c.Nullable WorkloadAudience | default = null,
+          fleet | c.Nullable FleetGeneration | default = null,
           secrets | Array { environment | Environment, name | Identifier, revision | Positive 9007199254740991 },
         }
+        | std.contract.from_predicate (fun policies =>
+          std.array.all
+            (fun policy =>
+              (policy.audience != null || std.array.length policy.secrets > 0) == (policy.fleet != null)
+            )
+            policies
+        )
         | default
         = [],
     }

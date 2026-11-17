@@ -53,6 +53,16 @@ pub struct SecretGrant {
     pub revision: u64,
 }
 
+// r[impl kiln.hosted.fleet.secret_generation]
+/// The operator-selected durable worker generation, not a customer placement claim.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct FleetGeneration {
+    pub instance_id: String,
+    pub revision: u64,
+    pub request_id: String,
+}
+
 /// Only the trusted executor may construct/admit this from an already admitted job.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -61,6 +71,7 @@ pub struct JobBinding {
     pub project: String,
     pub job: String,
     pub admission_identity: String,
+    pub fleet: FleetGeneration,
     pub expires_ms: u64,
     pub audiences: Vec<String>,
     pub secrets: Vec<SecretGrant>,
@@ -111,6 +122,7 @@ pub struct Claims {
     pub project: String,
     pub job: String,
     pub admission_identity: String,
+    pub fleet: FleetGeneration,
     pub scope: String,
     pub iat: u64,
     pub nbf: u64,
@@ -419,6 +431,8 @@ fn current_job(db: &Connection, cap: &str, now_ms: u64) -> Result<JobBinding> {
         .map_err(|_| STORAGE)?;
     let (data, active) = row.ok_or(DENIED)?;
     let binding: JobBinding = decode(&data)?;
+    crate::fleet::require_active_generation(db, &binding.organization, &binding.fleet)
+        .map_err(|_| DENIED)?;
     if !active || binding.expires_ms <= now_ms {
         return Err(DENIED.into());
     }
@@ -470,6 +484,8 @@ pub fn begin_job(db: &mut Connection, binding: &JobBinding, now_ms: u64) -> Resu
     let tx = db
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(|_| STORAGE)?;
+    crate::fleet::require_active_generation(&tx, &binding.organization, &binding.fleet)
+        .map_err(|_| DENIED)?;
     for grant in &binding.secrets {
         reference(&tx, binding, grant, now_ms)?;
     }
@@ -501,6 +517,20 @@ pub fn finish_job(
         params![organization, project, job],
     )
     .map_err(|_| STORAGE)?;
+    Ok(())
+}
+
+// r[impl kiln.hosted.fleet.secret_generation]
+/// Called inside the fleet retirement transaction, never on uncertain teardown.
+pub(crate) fn revoke_fleet_instance(
+    db: &Connection,
+    organization: &str,
+    instance: &str,
+) -> Result<()> {
+    db.execute(
+        "UPDATE hosted_secret_jobs SET active=0 WHERE org=?1 AND json_extract(binding,'$.fleet.instance_id')=?2",
+        params![organization, instance],
+    ).map_err(|_| STORAGE)?;
     Ok(())
 }
 
@@ -616,6 +646,7 @@ pub fn exchange(
         project: binding.project.clone(),
         job: binding.job.clone(),
         admission_identity: binding.admission_identity,
+        fleet: binding.fleet.clone(),
         scope: "workload".into(),
         iat,
         nbf: iat,
@@ -681,10 +712,13 @@ fn verify(db: &Connection, token: &str, audience: &str, now_ms: u64) -> Result<C
         || consumed
         || binding.expires_ms <= now_ms
         || binding.admission_identity != claims.admission_identity
+        || binding.fleet != claims.fleet
         || decode::<Claims>(&saved)? != claims
     {
         return Err(DENIED.into());
     }
+    crate::fleet::require_active_generation(db, &binding.organization, &binding.fleet)
+        .map_err(|_| DENIED)?;
     Ok(claims)
 }
 
@@ -758,13 +792,17 @@ mod tests {
                     },
                 }],
             };
-            let mut db = Connection::open_in_memory()
+            let mut db = Connection::open(root.path().join("hosted.sqlite"))
                 .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
             crate::accounts::init(&db)
                 .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
             crate::accounts::bootstrap(&mut db, &"a".repeat(64), "org")
                 .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
             init(&db).unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
+            crate::fleet::init(&db)
+                .unwrap_or_else(|error| unreachable!("fleet fixture initializes: {error:?}"));
+            db.execute("INSERT INTO hosted_fleet_instances VALUES('org','worker','provision-1','identity','active','provision',1,NULL)", [])
+                .unwrap_or_else(|error| unreachable!("fleet fixture admits worker: {error:?}"));
             configure(&mut db, &config)
                 .unwrap_or_else(|error| unreachable!("fixture operation succeeds: {error:?}"));
             let owner = crate::accounts::authorize(&db, &"a".repeat(64), "org")
@@ -783,6 +821,11 @@ mod tests {
                 project: "project".into(),
                 job: job.into(),
                 admission_identity: format!("admission-{job}"),
+                fleet: FleetGeneration {
+                    instance_id: "worker".into(),
+                    revision: 1,
+                    request_id: "provision-1".into(),
+                },
                 expires_ms: NOW + 600_000,
                 audiences: self.config.audiences.clone(),
                 secrets: vec![SecretGrant {
@@ -1084,5 +1127,101 @@ mod tests {
             )
             .is_err()
         );
+    }
+    // r[verify kiln.hosted.fleet.secret_generation.scenario.current]
+    // r[verify kiln.hosted.fleet.secret_generation.scenario.stale]
+    #[test]
+    fn fleet_generation_is_required_for_delivery_exchange_and_validation()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut f = Fixture::new();
+        let audience = f
+            .config
+            .audiences
+            .first()
+            .ok_or("fixture audience missing")?
+            .clone();
+        let binding = f.binding("generation-live");
+        let cap = begin_job(&mut f.db, &binding, NOW)?;
+        let delivered = resolve_for_job(&mut f.db, cap.as_str(), "TOKEN", NOW)?;
+        assert_eq!(delivered.expires_ms, NOW + DELIVERY_MS);
+        let token = exchange(&mut f.db, cap.as_str(), &audience, NOW)?;
+        let claims = verify_token(&f.db, token.as_str(), &audience, NOW)?;
+        assert_eq!(claims.fleet, binding.fleet);
+        assert!(verify_token(&f.db, token.as_str(), &audience, NOW + 120_000).is_err());
+        let mut missing = f.binding("generation-missing");
+        missing.fleet.instance_id = "absent".into();
+        assert!(begin_job(&mut f.db, &missing, NOW).is_err());
+        let mut stale = f.binding("generation-stale");
+        stale.fleet.revision = 2;
+        assert!(begin_job(&mut f.db, &stale, NOW).is_err());
+        stale.fleet.revision = 1;
+        stale.fleet.request_id = "replacement".into();
+        assert!(begin_job(&mut f.db, &stale, NOW).is_err());
+        f.db.execute(
+            "UPDATE hosted_fleet_instances SET state='unknown' WHERE org='org' AND id='worker'",
+            [],
+        )?;
+        assert!(verify_token(&f.db, token.as_str(), &audience, NOW).is_err());
+        assert!(resolve_for_job(&mut f.db, cap.as_str(), "TOKEN", NOW).is_err());
+        assert!(exchange(&mut f.db, cap.as_str(), &audience, NOW).is_err());
+        let unknown = f.binding("generation-unknown");
+        assert!(begin_job(&mut f.db, &unknown, NOW).is_err());
+        Ok(())
+    }
+
+    // r[verify kiln.hosted.fleet.secret_generation.scenario.retirement]
+    // r[verify kiln.hosted.fleet.secret_generation.scenario.restart]
+    #[test]
+    fn uncertain_teardown_denies_then_observed_retirement_revokes_after_reopen()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut f = Fixture::new();
+        let audience = f
+            .config
+            .audiences
+            .first()
+            .ok_or("fixture audience missing")?
+            .clone();
+        let binding = f.binding("generation-retire");
+        let cap = begin_job(&mut f.db, &binding, NOW)?;
+        let token = exchange(&mut f.db, cap.as_str(), &audience, NOW)?;
+        let path = f._root.path().join("hosted.sqlite");
+        f.db = Connection::open(&path)?;
+        init(&f.db)?;
+        crate::fleet::init(&f.db)?;
+        assert_eq!(
+            verify_token(&f.db, token.as_str(), &audience, NOW)?.fleet,
+            binding.fleet
+        );
+        f.db.execute("UPDATE hosted_fleet_instances SET state='deprovisioning',revision=2,request_id='teardown' WHERE org='org' AND id='worker'", [])?;
+        assert!(verify_token(&f.db, token.as_str(), &audience, NOW).is_err());
+        let active: bool = f.db.query_row(
+            "SELECT active FROM hosted_secret_jobs WHERE org='org' AND job='generation-retire'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert!(active, "an uncertain teardown has not observed retirement");
+        drop(f.db);
+        let mut db = Connection::open(path)?;
+        init(&db)?;
+        crate::fleet::init(&db)?;
+        assert!(verify_token(&db, token.as_str(), &audience, NOW).is_err());
+        let tx = db.transaction()?;
+        tx.execute(
+            "UPDATE hosted_fleet_instances SET state='retired' WHERE org='org' AND id='worker'",
+            [],
+        )?;
+        revoke_fleet_instance(&tx, "org", "worker")?;
+        tx.commit()?;
+        let active: bool = db.query_row(
+            "SELECT active FROM hosted_secret_jobs WHERE org='org' AND job='generation-retire'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert!(!active);
+        assert!(verify_token(&db, token.as_str(), &audience, NOW).is_err());
+        let mut after = binding;
+        after.job = "generation-after-retirement".into();
+        assert!(begin_job(&mut db, &after, NOW).is_err());
+        Ok(())
     }
 }

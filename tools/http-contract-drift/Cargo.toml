@@ -1,0 +1,13 @@
+[package]
+name = "kiln-http-contract-drift"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+drift = { git = "https://github.com/oxidecomputer/drift", rev = "dad4f398c10ca53298d2fec0586d834c8e85daf1" }
+serde_json = "1"
+
+[workspace]

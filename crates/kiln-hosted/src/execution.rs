@@ -158,8 +158,26 @@ pub struct WorkloadPolicy {
     pub project: String,
     pub runner: String,
     pub audience: Option<String>,
+    /// Operator-selected expected fleet tuple; actual binding is read from SQLite.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fleet: Option<crate::secrets::FleetGeneration>,
     pub secrets: Vec<SecretEnvironment>,
 }
+// r[impl kiln.hosted.fleet.secret_generation]
+fn workload_fleet_valid(policy: &WorkloadPolicy) -> bool {
+    let credentials = policy.audience.is_some() || !policy.secrets.is_empty();
+    match &policy.fleet {
+        Some(fleet) => {
+            credentials
+                && crate::identifier(&fleet.instance_id)
+                && crate::identifier(&fleet.request_id)
+                && fleet.revision > 0
+                && fleet.revision <= i64::MAX as u64
+        }
+        None => !credentials,
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TrustedProject {
@@ -424,6 +442,9 @@ impl Config {
                     .is_some_and(|v| v.is_empty() || v.len() > 256)
             {
                 return Err("invalid exact workload policy".into());
+            }
+            if !workload_fleet_valid(policy) {
+                return Err("credential-bearing workload requires exact fleet generation".into());
             }
             let mut names = std::collections::BTreeSet::new();
             for secret in &policy.secrets {
@@ -1297,11 +1318,20 @@ pub fn run_pipeline(
                     u64::try_from(started.elapsed().as_millis()).map_err(|_| "clock overflow")?,
                 )
                 .ok_or("clock overflow")?;
+            // r[impl kiln.hosted.fleet.secret_generation]
+            // Selection is operator-authored, but capability fields come from
+            // the currently admitted fleet observation, never the config bytes.
+            let selected = policy
+                .fleet
+                .as_ref()
+                .ok_or("workload fleet generation absent")?;
+            let fleet = crate::fleet::require_active_generation(db, &actor.organization, selected)?;
             let binding = crate::secrets::JobBinding {
                 organization: actor.organization.clone(),
                 project: request.project.clone(),
                 job: bound_job.clone(),
                 admission_identity: identity.clone(),
+                fleet,
                 expires_ms: now_ms
                     .checked_add(maximum_ms)
                     .ok_or("capability expiry overflow")?,
@@ -2874,6 +2904,11 @@ mod tests {
             project: "app".into(),
             runner: "vm".into(),
             audience: Some("https://registry.example".into()),
+            fleet: Some(crate::secrets::FleetGeneration {
+                instance_id: "w1".into(),
+                revision: 1,
+                request_id: "p1".into(),
+            }),
             secrets: vec![SecretEnvironment {
                 environment: "DEPLOY_TOKEN".into(),
                 name: "deploy".into(),
@@ -2900,6 +2935,56 @@ mod tests {
             let hold = hold_grants(&config, "acme", &request, "vm");
             assert!(hold.untrusted);
         }
+    }
+
+    // r[verify kiln.hosted.fleet.secret_generation.scenario.selection]
+    #[test]
+    fn credential_workload_requires_exact_positive_fleet_selector() {
+        let mut policy = WorkloadPolicy {
+            organization: "acme".into(),
+            project: "app".into(),
+            runner: "vm".into(),
+            audience: None,
+            secrets: Vec::new(),
+            fleet: None,
+        };
+        assert!(workload_fleet_valid(&policy));
+        policy.audience = Some("https://resource.example".into());
+        assert!(!workload_fleet_valid(&policy));
+        policy.fleet = Some(crate::secrets::FleetGeneration {
+            instance_id: "worker".into(),
+            revision: 1,
+            request_id: "provision".into(),
+        });
+        assert!(workload_fleet_valid(&policy));
+        if let Some(fleet) = &mut policy.fleet {
+            fleet.revision = 0;
+        } else {
+            unreachable!("fixture has fleet")
+        }
+        assert!(!workload_fleet_valid(&policy));
+        if let Some(fleet) = &mut policy.fleet {
+            fleet.revision = 1;
+            fleet.instance_id.clear();
+        } else {
+            unreachable!("fixture has fleet")
+        }
+        assert!(!workload_fleet_valid(&policy));
+        if let Some(fleet) = &mut policy.fleet {
+            fleet.instance_id = "worker".into();
+            fleet.request_id.clear();
+        } else {
+            unreachable!("fixture has fleet")
+        }
+        assert!(!workload_fleet_valid(&policy));
+        policy.fleet = None;
+        policy.audience = None;
+        policy.secrets.push(SecretEnvironment {
+            environment: "TOKEN".into(),
+            name: "token".into(),
+            revision: 1,
+        });
+        assert!(!workload_fleet_valid(&policy));
     }
 
     // r[verify kiln.untrusted.execution]
@@ -3119,6 +3204,7 @@ mod tests {
             runner: "trusted".into(),
             audience: None,
             secrets: Vec::new(),
+            fleet: None,
         }];
         assert!(validate_trust_domains(&runners, &workload).is_err());
         let mut separated = runners.clone();
@@ -3352,6 +3438,7 @@ mod tests {
             runner: "trusted".into(),
             audience: None,
             secrets: Vec::new(),
+            fleet: None,
         }];
         assert!(validate_trust_domains(&runners, &workload).is_err());
     }

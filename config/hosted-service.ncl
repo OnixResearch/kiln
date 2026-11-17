@@ -562,6 +562,14 @@ let Cache =
       }
   )
 in
+# Selector shape only: the shell reads binding values from the fleet row.
+let FleetGeneration = {
+  instance_id | Identifier,
+  request_id | Identifier,
+  revision | c.BoundedInteger 1 9007199254740991,
+}
+in
+
 let Execution =
   std.contract.custom (fun label value =>
     let allowed = ["systemd_run", "systemctl", "taskset", "manager_runtime_directory", "cache", "trusted_projects", "pricing", "workload", "env", "work_root", "runners", "maximum_concurrent", "memory_bytes", "processes", "cpu_percent", "maximum_timeout_ms", "maximum_output_bytes"]
@@ -603,6 +611,7 @@ let Execution =
                 project | Identifier,
                 runner | Identifier,
                 audience | c.Nullable WorkloadAudience | default = null,
+                fleet | c.Nullable FleetGeneration | default = null,
                 secrets
                   | Array {
                     environment | Environment,
@@ -612,6 +621,13 @@ let Execution =
                   | AtMost 32
                   | UniqueSecretEnvironments,
               }
+              | std.contract.from_predicate (fun policies =>
+                std.array.all
+                  (fun policy =>
+                    (policy.audience != null || std.array.length policy.secrets > 0) == (policy.fleet != null)
+                  )
+                  policies
+              )
               | AtMost 128
               | UniqueWorkload
               | default

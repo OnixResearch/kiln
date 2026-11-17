@@ -103,6 +103,7 @@ let executable = { path = "/nix/store/fixture-not-a-runtime/bin/tool", blake3 = 
         project = "app",
         runner = "local",
         audience = "app",
+        fleet = { instance_id = "worker-1", request_id = "provision-1", revision = 1 },
         secrets = [{ environment = "APP_TOKEN", name = "app-token", revision = 1 }],
       }
     ],

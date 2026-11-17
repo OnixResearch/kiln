@@ -1,0 +1,31 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": 73,
+  "scope": "Phase 1: served HTTPS lockstep matrix and bounded test client with loopback TLS fault stub",
+  "checks": [
+    {
+      "command": "/run/user/1555/kiln-cargo test --offline --locked -p kiln-web-service --test http_contract",
+      "result": "passed; 6 tests in 3.15 s (including both served-client tests)",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo clippy --offline --locked -p kiln-web-service --all-targets -- -D warnings",
+      "result": "passed"
+    },
+    {
+      "command": "/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin/rustfmt --edition 2024 --check crates/kiln-web-service/tests/http_contract.rs",
+      "result": "passed; includes the served_client module"
+    },
+    {
+      "command": "/run/user/1555/kiln-cargo fmt --all --check",
+      "result": "failed on concurrent kiln-hosted fleet-secret worker edits; no kiln-web-service diff was reported"
+    }
+  ],
+  "non_claims": [
+    "The client is a test fixture, not a shipped client or hostile-network qualification.",
+    "The stub replays a real served body but does not establish server behavior for malformed responses.",
+    "Workspace-wide rustfmt must be repeated after concurrent kiln-hosted edits settle; the owned contract test target passed rustfmt.",
+    "No endpoint or server implementation was changed."
+  ]
+}
