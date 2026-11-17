@@ -4,12 +4,12 @@ use std::{path::Path, time::Duration};
 use kiln_core::{
     implementation::campaign::{
         CampaignContract, CampaignDecision, CampaignOperation, CampaignState, EffectState,
-        MemberObservation, PendingEffect,
+        MemberObservation, MemberStage, PendingEffect, SelectionBasis,
     },
     types::ContentId,
 };
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
-use serde::de::DeserializeOwned;
+use serde::{Serialize, de::DeserializeOwned};
 
 use kiln_core::implementation::campaign::{DecisionRequestState, HumanDecisionRequest};
 const BUSY_TIMEOUT_MS: u64 = 10_000;
@@ -655,7 +655,7 @@ pub fn drive_one<C: CampaignEffectConsumer>(
             }
         };
     }
-    if !effectful(action.operation) {
+    if !action.operation.is_owner_effect() {
         return Ok(CampaignDriveResult {
             state,
             decision: action,
@@ -708,20 +708,150 @@ pub fn drive_one<C: CampaignEffectConsumer>(
     }
 }
 
-fn effectful(operation: CampaignOperation) -> bool {
-    matches!(
-        operation,
-        CampaignOperation::AuthorArtifact
-            | CampaignOperation::RepairArtifact
-            | CampaignOperation::Code
-            | CampaignOperation::RepairCode
-            | CampaignOperation::RetryInfrastructure
-            | CampaignOperation::Verify
-            | CampaignOperation::Publish
-            | CampaignOperation::Integrate
-            | CampaignOperation::Lifecycle
-    )
+/// Native steps around each bounded campaign operation. The loop owns their
+/// order: refresh owner observations, reconcile or claim for the selected
+/// decision, then one intent-before-effect operation.
+pub trait CampaignDriveShell: CampaignEffectConsumer {
+    /// Admit fresh owner observations before selection.
+    fn refresh(
+        &mut self,
+        store: &mut CampaignStore,
+        campaign_id: &str,
+        version: u64,
+    ) -> Result<u64, String>;
+    /// Persist reconciliation intent if this executing member's dispatch is
+    /// ambiguous; returns the new store version when intent was persisted.
+    fn recover_executing(
+        &mut self,
+        store: &mut CampaignStore,
+        campaign_id: &str,
+        version: u64,
+        state: &CampaignState,
+        member: &str,
+    ) -> Result<Option<u64>, String>;
+    /// Claim or reattach the canonical work for a selected writer operation.
+    /// Canonical admission owns the decision; a refusal stops the drive.
+    fn claim(
+        &mut self,
+        store: &mut CampaignStore,
+        campaign_id: &str,
+        version: u64,
+        state: &CampaignState,
+        member: &str,
+    ) -> Result<u64, String>;
 }
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct CampaignDriveStep {
+    pub decision: CampaignDecision,
+    pub effect: Option<PendingEffect>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CampaignDriveRun {
+    pub version: u64,
+    pub state: CampaignState,
+    pub steps: Vec<CampaignDriveStep>,
+}
+
+// r[impl kiln.implementation.campaign.independent_progress.scenario.driver]
+/// Run at most `maximum_operations` operations. The drive stops after an
+/// operation without an effect, after an effect whose outcome is still
+/// unobserved, and at a blocked, replan, decision-request or complete decision.
+pub fn drive_bounded<S: CampaignDriveShell>(
+    store: &mut CampaignStore,
+    campaign_id: &str,
+    mut version: u64,
+    maximum_operations: u32,
+    shell: &mut S,
+) -> Result<CampaignDriveRun, String> {
+    let mut steps = Vec::new();
+    let mut latest = None;
+    for _ in 0..maximum_operations {
+        version = shell.refresh(store, campaign_id, version)?;
+        version = prepare_selected(store, campaign_id, version, shell)?;
+        let result = drive_one(store, campaign_id, version, shell)?;
+        version = store
+            .version(campaign_id)?
+            .ok_or("campaign disappeared after native operation")?;
+        let unresolved = result.effect.as_ref().is_some_and(|effect| {
+            result
+                .state
+                .pending_effects
+                .get(&effect.effect_id)
+                .is_some_and(|retained| !retained.progress_applied)
+        });
+        let stop = unresolved
+            || result.effect.is_none()
+            || matches!(
+                result.decision.operation,
+                CampaignOperation::Blocked
+                    | CampaignOperation::Replan
+                    | CampaignOperation::RequestDecision
+                    | CampaignOperation::Complete
+            );
+        steps.push(CampaignDriveStep {
+            decision: result.decision,
+            effect: result.effect,
+        });
+        latest = Some(result.state);
+        if stop {
+            break;
+        }
+    }
+    let state = latest.ok_or("bounded controller produced no state observation")?;
+    Ok(CampaignDriveRun {
+        version,
+        state,
+        steps,
+    })
+}
+
+/// Claim for a selected writer operation. When no member can act, check every
+/// executing member for an ambiguous dispatch, whichever member's hold is
+/// surfaced, so one member's wait cannot defer another member's recovery.
+fn prepare_selected<S: CampaignDriveShell>(
+    store: &mut CampaignStore,
+    campaign_id: &str,
+    version: u64,
+    shell: &mut S,
+) -> Result<u64, String> {
+    let state = store.inspect(campaign_id)?.ok_or("campaign not found")?;
+    let evaluation = state.evaluate();
+    let decision = &evaluation.decision;
+    if let Some(member) = decision
+        .member
+        .as_deref()
+        .filter(|_| decision.operation.requires_writer_claim())
+    {
+        return shell.claim(store, campaign_id, version, &state, member);
+    }
+    if evaluation.basis != SelectionBasis::MemberHold {
+        return Ok(version);
+    }
+    for hold in evaluation
+        .holds
+        .iter()
+        .filter(|hold| hold.operation == CampaignOperation::Wait)
+    {
+        let Some(member) = hold.member.as_deref() else {
+            continue;
+        };
+        let executing = state
+            .observations
+            .get(member)
+            .is_some_and(|observation| observation.stage == MemberStage::Executing);
+        if executing {
+            if let Some(recovered) =
+                shell.recover_executing(store, campaign_id, version, &state, member)?
+            {
+                return Ok(recovered);
+            }
+        }
+    }
+    Ok(version)
+}
+
 fn intent_identity(
     campaign_id: &str,
     state: &CampaignState,
@@ -824,6 +954,10 @@ fn reject_owner_output(
 #[cfg(test)]
 #[path = "campaign/owner_scope_tests.rs"]
 mod owner_scope_tests;
+
+#[cfg(test)]
+#[path = "campaign/drive_tests.rs"]
+mod drive_tests;
 
 #[cfg(test)]
 mod tests {

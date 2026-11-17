@@ -175,8 +175,24 @@ An observed, applied integration receipt can advance the source without erasing
 its new identity; unrelated source, policy or decision-context drift requires
 explicit replan. Pause/cancel closes new work and decision-request admission;
 retained uncertain effects still reconcile and do not prove provider cleanup.
-The one-writer repository bound remains effective when campaign concurrency is
-larger, and a blocked member does not hide independent eligible work.
+
+<!-- r[related kiln.implementation.campaign.independent_progress] -->
+Selection evaluates every member. A required review, missing required context,
+stale input, replan, unobserved or unsupported delivery capability or missing
+endpoint evidence holds only its own member. Members that depend on it wait,
+and independent eligible work proceeds in deterministic member order. A hold
+becomes the controller's decision only when no member can act. The one-writer
+repository bound remains effective when campaign concurrency is larger: artifact
+authoring, coding, repair and retry wait while another attempt is claimed,
+executing, a candidate or verifying. Canonical admission still decides each
+claim, budget and parent lineage. When no member can act, the controller checks
+every executing member for an ambiguous dispatch, not only the member whose hold
+is surfaced.
+
+The invocation prints the final `decision`, its `basis` (`campaign_barrier`,
+`member_action`, `member_hold` or `no_eligible_member`) and `holds`: one retained
+wait, blocker or replan per unsatisfied member, with its reason, owner and any
+review request identity.
 
 Maintenance owner: Kiln implementation/web-service maintainers; onix-core owns
 the disabled-by-default, operator-started deployment wrapper. Scripted local

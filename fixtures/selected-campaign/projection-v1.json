@@ -49,7 +49,8 @@
         {"category":"uncertain_effect","state":"none_observed"},
         {"category":"aggregate_budget_exhaustion","state":"unknown_limit_not_exposed_by_campaign_snapshot"}
       ],
-      "blockers": ["<script>not markup</script>"]
+      "blockers": ["<script>not markup</script>"],
+      "selection_hold": {"operation":"wait","member":"change-a/task-one","reason":"native enumeration is incomplete or the member source is missing; selection needs a complete owner observation","owner":"native-source-owner","effect_intent":null}
     },
     {
       "member": "change-b/task-two",
@@ -92,13 +93,15 @@
         {"category":"uncertain_effect","state":"none_observed"},
         {"category":"aggregate_budget_exhaustion","state":"unknown_limit_not_exposed_by_campaign_snapshot"}
       ],
-      "blockers": []
+      "blockers": [],
+      "selection_hold": {"operation":"wait","member":"change-b/task-two","reason":"selected member awaits its first source/readiness observation","owner":"native-source-owner","effect_intent":null}
     }
   ],
   "pending_effects": [],
   "decisions": [],
   "budget": {"state":"not_observed","parent_budget_identity":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
   "next_action": {"operation":"wait","member":null,"reason":"one source is not observed","owner":null,"effect_intent":null},
+  "selection_basis": "no_eligible_member",
   "source": "existing_campaign_store_read_only",
   "non_claims": ["display is not campaign authority"]
 }

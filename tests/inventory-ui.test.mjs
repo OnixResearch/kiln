@@ -159,6 +159,10 @@ test("selected-campaign projection preserves partial and missing members without
   assert.ok(text.includes("change-b/task-two"));
   assert.ok(text.includes("missing_source_or_owner_observation"));
   assert.ok(text.includes("<script>not markup</script>"));
+  assert.ok(text.includes("Selection hold: wait · selected member awaits its first source/readiness observation · owner native-source-owner"));
+  const withoutHolds = { ...fixture, members: fixture.members.map(({ selection_hold, ...member }) => member) };
+  assert.ok(allText(campaign.renderCampaign(withoutHolds)).includes("Selection hold: none recorded"));
+  assert.throws(() => campaign.validateCampaign({ ...fixture, members: [{ ...fixture.members[0], selection_hold: { operation: "wait" } }] }));
   assert.equal(descendants(page).some((node) => node.tagName === "button" || node.tagName === "a"), false);
   assert.throws(() => campaign.validateCampaign({ ...fixture, schema: "kiln.observe.inventory.v2" }));
   assert.throws(() => campaign.validateCampaign({ ...fixture, members: Array(4097).fill(fixture.members[0]) }));

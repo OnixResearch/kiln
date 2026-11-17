@@ -4673,6 +4673,15 @@ bindings, pending effects and remaining obligations are displayed as observation
 a proposed next action is not a reservation, dispatch, successor, landing or
 lifecycle grant.
 
+`next_action` comes with `selection_basis`, which records why that decision was
+chosen: a campaign barrier, the first member action, a surfaced member hold
+because no member can act, or no eligible member. Each member carries its
+retained `selection_hold`, the wait, blocker or replan that keeps it from being
+selected, with reason, owner and any review request identity. A member waiting
+for review keeps its hold while an independent member is the next action. The
+console shows the hold on each member row. Projections produced before this
+field existed show "none recorded".
+
 The payload exposes a stable digest of the repository binding rather than a raw
 repository path. Campaign/member IDs are retained because they are the exact
 selection identities; treat them as operator data.

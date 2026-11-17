@@ -15,13 +15,17 @@ use kiln_core::{
     implementation::{
         AttemptPhase, ImplementationWork,
         campaign::{
-            CampaignOperation, EffectState, MemberObservation, MemberStage, RecoveryDisposition,
+            CampaignOperation, CampaignState, EffectState, MemberObservation, MemberStage,
+            RecoveryDisposition,
         },
     },
     types::ContentId,
 };
 use kiln_implementer::{
-    campaign::{CampaignEffectConsumer, CampaignOwnerObservation, CampaignStore, drive_one},
+    campaign::{
+        CampaignDriveShell, CampaignEffectConsumer, CampaignOwnerObservation, CampaignStore,
+        drive_bounded,
+    },
     campaign_consumer::CanonicalCampaignLedgers,
 };
 use serde::{Deserialize, Serialize};
@@ -264,121 +268,104 @@ fn run(args: DriveArguments) -> Result<String, String> {
     if store.version(&args.campaign_id)? != Some(args.expected_version) {
         return Err("stale campaign version; no canonical work was claimed".into());
     }
-    let mut version = args.expected_version;
     let maximum_operations = profile.maximum_operations;
     let mut consumer = NativeCampaignConsumer {
         profile,
+        contexts,
         worker: None,
     };
-    let mut steps = Vec::new();
-    let mut latest = None;
-    for _ in 0..maximum_operations {
-        version = observation::refresh(
-            &consumer.profile,
-            &contexts,
-            &mut store,
-            &args.campaign_id,
-            version,
-        )?;
-        version = bind_selected_claim(
-            &consumer.profile,
-            &contexts,
-            &mut store,
-            &args.campaign_id,
-            version,
-        )?;
-        let result = drive_one(&mut store, &args.campaign_id, version, &mut consumer)?;
-        version = store
-            .version(&args.campaign_id)?
-            .ok_or("campaign disappeared after native operation")?;
-        let unresolved = result.effect.as_ref().is_some_and(|effect| {
-            result
-                .state
-                .pending_effects
-                .get(&effect.effect_id)
-                .is_some_and(|retained| !retained.progress_applied)
-        });
-        let stop = unresolved
-            || result.effect.is_none()
-            || matches!(
-                result.decision.operation,
-                CampaignOperation::Blocked
-                    | CampaignOperation::Replan
-                    | CampaignOperation::RequestDecision
-                    | CampaignOperation::Complete
-            );
-        steps.push(serde_json::json!({"decision": result.decision, "effect": result.effect}));
-        latest = Some(result.state);
-        if stop {
-            break;
-        }
-    }
-    let campaign = latest.ok_or("bounded controller produced no state observation")?;
-    let decision = campaign.next_action().map_err(show)?;
-    serde_json::to_string(&serde_json::json!({"campaign": campaign, "version": version, "decision": decision, "steps": steps})).map_err(text)
+    let drive = drive_bounded(
+        &mut store,
+        &args.campaign_id,
+        args.expected_version,
+        maximum_operations,
+        &mut consumer,
+    )?;
+    let evaluation = drive.state.evaluate();
+    serde_json::to_string(&serde_json::json!({
+        "campaign": drive.state,
+        "version": drive.version,
+        "decision": evaluation.decision,
+        "basis": evaluation.basis,
+        "holds": evaluation.holds,
+        "steps": drive.steps,
+    }))
+    .map_err(text)
 }
 
-fn bind_selected_claim(
-    profile: &ImplementationCampaignDriveProfile,
-    contexts: &context::Projections,
-    store: &mut CampaignStore,
-    campaign_id: &str,
-    mut version: u64,
-) -> Result<u64, String> {
-    let state = store.inspect(campaign_id)?.ok_or("campaign not found")?;
-    let decision = state.next_action().map_err(show)?;
-    if decision.operation == CampaignOperation::Wait {
-        if let Some(member_key) = decision.member.as_deref() {
-            if let Some(observation) = state
-                .observations
-                .get(member_key)
-                .filter(|o| o.stage == MemberStage::Executing)
-            {
-                if let (Some(work_id), Some(attempt_id), Some(fence)) = (
-                    &observation.work_identity,
-                    &observation.attempt_identity,
-                    observation.attempt_fence,
-                ) {
-                    let owner = CanonicalCampaignLedgers::read(&profile.implementation_database)?;
-                    if owner.attempts.dispatch_requires_recovery(attempt_id) {
-                        if !owner.attempts.attempts().any(|attempt| {
-                            attempt.identity == *attempt_id
-                                && attempt.fence == fence
-                                && attempt.work_identity == *work_id
-                        }) {
-                            return Err("executing campaign attempt binding disappeared".into());
-                        }
-                        let intent = reconcile_intent_id(
-                            &state.selection_identity,
-                            member_key,
-                            attempt_id,
-                            fence,
-                        )?;
-                        store.persist_effect_intent(
-                            campaign_id,
-                            version,
-                            member_key.to_owned(),
-                            CampaignOperation::Reconcile,
-                            "lattice-worker-owner".into(),
-                            intent,
-                        )?;
-                        version = store
-                            .version(campaign_id)?
-                            .ok_or("campaign disappeared after reconcile intent")?;
-                    }
-                }
-            }
-        }
+struct NativeCampaignConsumer {
+    profile: ImplementationCampaignDriveProfile,
+    contexts: context::Projections,
+    worker: Option<kiln_adapter_lattice::worker::WorkerInvocation>,
+}
+
+impl CampaignDriveShell for NativeCampaignConsumer {
+    fn refresh(
+        &mut self,
+        store: &mut CampaignStore,
+        campaign_id: &str,
+        version: u64,
+    ) -> Result<u64, String> {
+        observation::refresh(&self.profile, &self.contexts, store, campaign_id, version)
     }
-    if let (
-        CampaignOperation::AuthorArtifact
-        | CampaignOperation::RepairArtifact
-        | CampaignOperation::Code
-        | CampaignOperation::RepairCode
-        | CampaignOperation::RetryInfrastructure,
-        Some(member_key),
-    ) = (decision.operation, decision.member.as_deref())
-    {
+
+    fn recover_executing(
+        &mut self,
+        store: &mut CampaignStore,
+        campaign_id: &str,
+        version: u64,
+        state: &CampaignState,
+        member_key: &str,
+    ) -> Result<Option<u64>, String> {
+        let Some(observation) = state
+            .observations
+            .get(member_key)
+            .filter(|o| o.stage == MemberStage::Executing)
+        else {
+            return Ok(None);
+        };
+        let (Some(work_id), Some(attempt_id), Some(fence)) = (
+            &observation.work_identity,
+            &observation.attempt_identity,
+            observation.attempt_fence,
+        ) else {
+            return Ok(None);
+        };
+        let owner = CanonicalCampaignLedgers::read(&self.profile.implementation_database)?;
+        if !owner.attempts.dispatch_requires_recovery(attempt_id) {
+            return Ok(None);
+        }
+        if !owner.attempts.attempts().any(|attempt| {
+            attempt.identity == *attempt_id
+                && attempt.fence == fence
+                && attempt.work_identity == *work_id
+        }) {
+            return Err("executing campaign attempt binding disappeared".into());
+        }
+        let intent = reconcile_intent_id(&state.selection_identity, member_key, attempt_id, fence)?;
+        store.persist_effect_intent(
+            campaign_id,
+            version,
+            member_key.to_owned(),
+            CampaignOperation::Reconcile,
+            "lattice-worker-owner".into(),
+            intent,
+        )?;
+        let version = store
+            .version(campaign_id)?
+            .ok_or("campaign disappeared after reconcile intent")?;
+        Ok(Some(version))
+    }
+
+    fn claim(
+        &mut self,
+        store: &mut CampaignStore,
+        campaign_id: &str,
+        mut version: u64,
+        state: &CampaignState,
+        member_key: &str,
+    ) -> Result<u64, String> {
+        let profile = &self.profile;
         let observation = state
             .observations
             .get(member_key)
@@ -421,23 +408,18 @@ fn bind_selected_claim(
                 .version(campaign_id)?
                 .ok_or("campaign disappeared after exact attempt binding")?;
         }
-        version = context::retain(
+        context::retain(
             store,
             campaign_id,
             version,
-            &state,
+            state,
             member_key,
             &attempt,
-            contexts,
-        )?;
+            &self.contexts,
+        )
     }
-    Ok(version)
 }
 
-struct NativeCampaignConsumer {
-    profile: ImplementationCampaignDriveProfile,
-    worker: Option<kiln_adapter_lattice::worker::WorkerInvocation>,
-}
 impl NativeCampaignConsumer {
     fn consume(
         &mut self,

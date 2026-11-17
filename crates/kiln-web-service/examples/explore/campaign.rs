@@ -77,6 +77,13 @@ pub fn seed(root: &Path) -> Result<PathBuf> {
                 WorkflowProfile::NoSpecDelta,
                 CompletionGoal::NativeLifecycleComplete,
             )?,
+            member(
+                MemberSelector::WholeChange {
+                    change: "synthetic-ready".into(),
+                },
+                WorkflowProfile::NoSpecDelta,
+                CompletionGoal::VerifiedCandidate,
+            )?,
         ],
         max_concurrency: EXAMPLE_CONCURRENCY,
         max_outstanding_decisions: EXAMPLE_OUTSTANDING_DECISIONS,
@@ -94,18 +101,20 @@ pub fn seed(root: &Path) -> Result<PathBuf> {
         (
             MemberStage::Planning,
             EnumerationState::IncompleteLimit,
-            "Synthetic planning artifact missing; enumeration is partial",
+            Some("Synthetic planning artifact missing; enumeration is partial"),
         ),
         (
             MemberStage::Blocked,
             EnumerationState::Complete,
-            "Synthetic independent <review> and current checks are missing",
+            Some("Synthetic independent <review> and current checks are missing"),
         ),
         (
             MemberStage::Lifecycle,
             EnumerationState::Complete,
-            "Synthetic completion-only work; no qualified integration/lifecycle route",
+            Some("Synthetic completion-only work; no qualified integration/lifecycle route"),
         ),
+        // Depends on no held member, so it is the proposed next action.
+        (MemberStage::Ready, EnumerationState::Complete, None),
     ]) {
         let observation = MemberObservation {
             member: selector_key(&binding.selector),
@@ -140,7 +149,7 @@ pub fn seed(root: &Path) -> Result<PathBuf> {
             verifier_freshness: Freshness::Unknown,
             target_freshness: Freshness::Unknown,
             evidence: Vec::new(),
-            blockers: vec![blocker.into()],
+            blockers: blocker.map(Into::into).into_iter().collect(),
             required_checks_satisfied: false,
             required_reviews_satisfied: false,
             delivery_route_supported: Some(false),
@@ -173,4 +182,35 @@ pub fn response(database: &Path, method: &str, target: &str) -> Result<ApiRespon
         read_campaign_projection_with_inventory(database, CAMPAIGN_ID, Some(&resources))?
             .ok_or("synthetic campaign disappeared")?;
     Ok(json(200, serde_json::to_value(projection)?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.projection]
+    #[test]
+    fn synthetic_campaign_proposes_independent_work_beside_member_holds() -> Result {
+        let root = tempfile::tempdir()?;
+        let database = seed(root.path())?;
+        let target = format!("/api/implementation/campaigns?campaign={CAMPAIGN_ID}");
+        let projection: Value = serde_json::from_slice(&response(&database, "GET", &target)?.body)?;
+        assert_eq!(projection["next_action"]["operation"], "code");
+        assert_eq!(projection["next_action"]["member"], "synthetic-ready/*");
+        assert_eq!(projection["selection_basis"], "member_action");
+        let members = projection["members"]
+            .as_array()
+            .ok_or("projection has no members")?;
+        assert_eq!(members.len(), 4);
+        for member in members {
+            let hold = &member["selection_hold"];
+            if member["member"] == "synthetic-ready/*" {
+                assert!(hold.is_null());
+            } else {
+                assert!(hold["reason"].is_string(), "{member}");
+            }
+        }
+        Ok(())
+    }
 }

@@ -1,9 +1,9 @@
 //! Versioned, read-only operator projection of admitted selected campaigns.
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
 use kiln_core::implementation::campaign::{
     CampaignDecision, CampaignState, CompletionGoal, DecisionKind, DecisionRequestState,
-    EnumerationState, Freshness, MemberObservation, MemberStage, selector_key,
+    EnumerationState, Freshness, MemberObservation, MemberStage, SelectionBasis, selector_key,
 };
 use kiln_core::inventory::{AttemptBinding, InventoryProjection};
 use kiln_implementer::campaign::CampaignObservation;
@@ -37,6 +37,8 @@ pub struct CampaignProjection {
     pub decisions: Vec<serde_json::Value>,
     pub budget: Option<serde_json::Value>,
     pub next_action: Option<CampaignDecision>,
+    /// Why `next_action` was selected; member holds remain on their members.
+    pub selection_basis: SelectionBasis,
     pub source: &'static str,
     pub non_claims: Vec<&'static str>,
 }
@@ -75,6 +77,8 @@ pub struct MemberProjection {
     pub waits: Vec<&'static str>,
     pub wait_categories: Vec<WaitCategory>,
     pub blockers: Vec<String>,
+    /// This member's retained wait, blocker or replan from campaign selection.
+    pub selection_hold: Option<CampaignDecision>,
 }
 
 fn identify(state: &CampaignState, version: u64) -> Result<String, String> {
@@ -142,6 +146,7 @@ fn member_projection(
         waits,
         wait_categories: Vec::new(),
         blockers: Vec::new(),
+        selection_hold: None,
     };
     if let Some(o) = observation {
         fill_observation(&mut item, o);
@@ -344,7 +349,16 @@ pub fn project(state: &CampaignState, store_version: u64) -> Result<CampaignProj
         .map_err(|_| "campaign_projection_encoding_invalid")?;
     let decisions = serde_json::to_value(state.decisions.values().collect::<Vec<_>>())
         .map_err(|_| "campaign_projection_encoding_invalid")?;
-    let next_action = state.next_action().ok();
+    // r[impl kiln.implementation.campaign.independent_progress.scenario.projection]
+    let evaluation = state.evaluate();
+    let mut holds: BTreeMap<String, CampaignDecision> = evaluation
+        .holds
+        .into_iter()
+        .filter_map(|hold| Some((hold.member.clone()?, hold)))
+        .collect();
+    for member in &mut members {
+        member.selection_hold = holds.remove(&member.member);
+    }
     let mut budget = state
         .budget
         .as_ref()
@@ -387,7 +401,8 @@ pub fn project(state: &CampaignState, store_version: u64) -> Result<CampaignProj
         pending_effects: pending_effects.as_array().cloned().unwrap_or_default(),
         decisions: decisions.as_array().cloned().unwrap_or_default(),
         budget,
-        next_action,
+        next_action: Some(evaluation.decision),
+        selection_basis: evaluation.basis,
         source: "existing_campaign_store_read_only",
         non_claims: vec![
             "display is not campaign authority",
@@ -551,7 +566,8 @@ pub fn read_campaign_with_inventory(
 mod tests {
     use super::*;
     use kiln_core::implementation::campaign::{
-        CAMPAIGN_SCHEMA, CampaignContract, MemberBinding, MemberSelector, WorkflowProfile,
+        CAMPAIGN_SCHEMA, CampaignContract, CampaignOperation, HumanDecisionRequest, MemberBinding,
+        MemberSelector, WorkflowProfile,
     };
     use kiln_core::types::ContentId;
     use kiln_implementer::campaign::CampaignStore;
@@ -587,6 +603,144 @@ mod tests {
             agent_definition: id(),
             require_one_writer_per_repository: true,
         }
+    }
+
+    fn observed(member: &str, stage: MemberStage, dependencies: Vec<String>) -> MemberObservation {
+        let verified = stage == MemberStage::VerifiedCandidate;
+        MemberObservation {
+            member: member.into(),
+            stage,
+            enumeration: EnumerationState::Complete,
+            source_identity: Some(id()),
+            policy_identity: id(),
+            subject_identity: Some(id()),
+            integration_target_identity: None,
+            profile_identity: id(),
+            dependencies,
+            remaining_obligations: Default::default(),
+            dependency_reason: None,
+            canonical_work_key: Some(id()),
+            work_identity: Some(id()),
+            attempt_identity: None,
+            attempt_fence: None,
+            context_identity: None,
+            native_context_identity: None,
+            context_freshness: Freshness::NotApplicable,
+            candidate_freshness: Freshness::Current,
+            policy_freshness: Freshness::Current,
+            verifier_freshness: if verified {
+                Freshness::Current
+            } else {
+                Freshness::Unknown
+            },
+            target_freshness: Freshness::Unknown,
+            evidence: Vec::new(),
+            blockers: Vec::new(),
+            required_checks_satisfied: true,
+            required_reviews_satisfied: !verified,
+            delivery_route_supported: Some(true),
+            recovery: None,
+            consumed_budget: 0,
+            reserved_budget: 0,
+            unknown_budget: 0,
+            cancelled: false,
+        }
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.projection]
+    fn waiting_members_keep_their_holds_while_independent_work_is_next() {
+        let member = |change: &str, goal: CompletionGoal, reviews: Vec<String>| MemberBinding {
+            selector: MemberSelector::WholeChange {
+                change: change.into(),
+            },
+            profile: WorkflowProfile::SpecDriven,
+            profile_version: id(),
+            repository_instructions: id(),
+            policy: id(),
+            required_checks: Vec::new(),
+            required_reviews: reviews,
+            integration_policy: id(),
+            goal,
+            prerequisite_inclusion: false,
+            context: Vec::new(),
+        };
+        let mut selected = contract();
+        selected.members = vec![
+            member(
+                "change-a",
+                CompletionGoal::VerifiedPullRequest,
+                vec!["review".into()],
+            ),
+            member("change-b", CompletionGoal::VerifiedCandidate, Vec::new()),
+            member("change-c", CompletionGoal::VerifiedCandidate, Vec::new()),
+        ];
+        let mut state =
+            CampaignState::start(selected).unwrap_or_else(|error| unreachable!("{error:?}"));
+        for observation in [
+            observed("change-a/*", MemberStage::VerifiedCandidate, Vec::new()),
+            observed("change-b/*", MemberStage::Ready, vec!["change-a/*".into()]),
+            observed("change-c/*", MemberStage::Ready, Vec::new()),
+        ] {
+            state
+                .observe(observation)
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+        }
+        state
+            .add_decision(HumanDecisionRequest {
+                identity: id(),
+                kind: DecisionKind::RequiredReview,
+                member: "change-a/*".into(),
+                work_identity: Some(id()),
+                decision_revision: None,
+                policy_identity: id(),
+                candidate_identity: None,
+                state: DecisionRequestState::Outstanding,
+                created_ms: 1,
+                question: "review the verified candidate".into(),
+                options: vec!["approve".into(), "reject".into()],
+                recommendation: None,
+                priority: 1,
+                pending_reason: None,
+                resolved_answer: None,
+                active_effort_ms: None,
+            })
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let projection = project(&state, 4).unwrap_or_else(|error| unreachable!("{error:?}"));
+        let next = projection
+            .next_action
+            .as_ref()
+            .unwrap_or_else(|| unreachable!("next action"));
+        assert_eq!(next.operation, CampaignOperation::Code);
+        assert_eq!(next.member.as_deref(), Some("change-c/*"));
+        assert_eq!(projection.selection_basis, SelectionBasis::MemberAction);
+        let member = |key: &str| {
+            projection
+                .members
+                .iter()
+                .find(|member| member.member == key)
+                .unwrap_or_else(|| unreachable!("projected member {key}"))
+        };
+        let review = member("change-a/*");
+        assert!(review.waits.contains(&"required_review"));
+        let hold = review
+            .selection_hold
+            .as_ref()
+            .unwrap_or_else(|| unreachable!("review hold"));
+        assert_eq!(hold.owner.as_deref(), Some("review-owner"));
+        assert_eq!(hold.effect_intent, Some(id()));
+        let dependent = member("change-b/*")
+            .selection_hold
+            .as_ref()
+            .unwrap_or_else(|| unreachable!("dependency hold"));
+        assert!(dependent.reason.contains("dependency"));
+        assert!(member("change-c/*").selection_hold.is_none());
+        let json = crate::inventory::render_campaign_json(&projection)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(json.contains("\"selection_basis\": \"member_action\""));
+        let html = crate::inventory::render_campaign_html(&projection)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(html.contains("required review response is outstanding"));
     }
 
     #[test]

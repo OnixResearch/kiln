@@ -91,9 +91,19 @@
         || !Array.isArray(member.waits) || !Array.isArray(member.blockers)
         || typeof member.resource_binding_state !== "string"
         || !Array.isArray(member.wait_categories) || !Array.isArray(member.evidence)
-        || member.blockers.length > MAX_ITEMS || member.waits.length > 64 || member.evidence.length > 128) throw new Error("Selected campaign member is invalid.");
+        || member.blockers.length > MAX_ITEMS || member.waits.length > 64 || member.evidence.length > 128
+        || !validHold(member.selection_hold)) throw new Error("Selected campaign member is invalid.");
     }
     return value;
+  }
+  // A member's retained selection explanation. Absent in projections produced before holds were exposed.
+  function validHold(hold) {
+    return hold === undefined || hold === null || (record(hold) && typeof hold.operation === "string"
+      && typeof hold.reason === "string" && hold.reason.length <= 4096 && (hold.owner === null || typeof hold.owner === "string"));
+  }
+  function selectionHold(hold) {
+    if (!hold) return element("p", "Selection hold: none recorded for this member in this snapshot.", "small");
+    return element("p", `Selection hold: ${hold.operation} · ${hold.reason} · owner ${text(hold.owner)}`);
   }
   function renderCampaign(value) {
     const projection = validateCampaign(value);
@@ -109,7 +119,8 @@
         facts([["Selected member", member.member], ["Goal", member.goal], ["Current observed stage", member.stage], ["Enumeration", member.enumeration], ["Owner snapshot", member.owner_snapshot], ["Work identity / canonical status / revision", `${text(member.work_identity)} / ${text(member.canonical_work_state)} / ${number(member.canonical_work_revision)}`], ["Attempt / fence", `${text(member.attempt_identity)} / ${number(member.attempt_fence)}`], ["Candidate", member.candidate_identity], ["Integration target", member.integration_target_identity], ["Checks satisfied", member.checks_satisfied], ["Reviews satisfied", member.reviews_satisfied]]),
         details("Freshness, dependencies, evidence, pending effects and exact resource binding", { freshness: member.input_freshness, dependencies: member.dependencies, evidence: member.evidence, pending_effect_ids: member.pending_effect_ids, resource_inventory_identity: member.resource_inventory_identity, resource_binding_state: member.resource_binding_state, resource_binding: member.resource_binding, required_checks: member.required_checks, required_reviews: member.required_reviews, wait_categories: member.wait_categories }),
         element("p", `Wait categories: ${member.waits.length ? member.waits.join(", ") : "none explicitly represented; not readiness evidence"}`),
-        element("p", `Remaining obligations: ${member.remaining_obligations.length ? member.remaining_obligations.join(", ") : "none supplied"}`));
+        element("p", `Remaining obligations: ${member.remaining_obligations.length ? member.remaining_obligations.join(", ") : "none supplied"}`),
+        selectionHold(member.selection_hold));
       const listNode = element("ul", undefined, "inventory-blockers");
       if (!member.blockers.length) listNode.append(element("li", "No blocker strings supplied; do not infer eligibility."));
       else for (const blocker of member.blockers) listNode.append(element("li", blocker));
@@ -117,7 +128,7 @@
     });
     page.append(section("Every selected member, including blocked and incomplete members", "campaign-members", nodes));
     page.append(section("Pending effects, human decisions, aggregate budget, next-action proposal", "campaign-obligations", [
-      details("Snapshot-level obligations and non-claims", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, source: projection.source, non_claims: projection.non_claims }),
+      details("Snapshot-level obligations and non-claims", { campaign_identity: projection.campaign_identity, resource_inventory_identity: projection.resource_inventory_identity, pending_effects: projection.pending_effects, decisions: projection.decisions, budget: projection.budget, next_action: projection.next_action, selection_basis: projection.selection_basis, source: projection.source, non_claims: projection.non_claims }),
     ]));
     return page;
   }

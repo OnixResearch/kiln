@@ -1,0 +1,103 @@
+{
+  "observed_on": "2026-11-16",
+  "issue": "https://github.com/OnixResearch/kiln/issues/85",
+  "scope": "Working-copy campaign selection, bounded driver, projection, console and synthetic exploration example. Unit tests and scripted owners over the real SQLite campaign store; no real worker, model, credential, provider or remote effect, and no deployment or lifecycle acceptance.",
+  "source_parent_revision": "470e8be34846b6ff09d8650586879c59f6999d4a",
+  "immediate_outcome": "Independent ready campaign work is selected and driven while another member waits on review, context, replan, delivery capability or endpoint evidence; every member keeps its exact hold.",
+  "durable_capability": "CampaignState::evaluate with retained member holds and a selection basis, and one bounded drive loop shared by the native controller and scripted owners.",
+  "owner": "Kiln implementation and web-service maintainers",
+  "checks": [
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core --lib implementation::campaign",
+      "result": "pass",
+      "passed": 22,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-implementer --lib campaign::",
+      "result": "pass",
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-web-service --lib -- campaign_projection implementation_campaign",
+      "result": "pass",
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-web-service --example explore",
+      "result": "pass",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core -p kiln-implementer -p kiln-web-service",
+      "result": "pass",
+      "passed": 799,
+      "ignored": 7,
+      "failed": 0
+    },
+    {
+      "command": "node --test tests/inventory-ui.test.mjs",
+      "result": "pass",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "command": "cargo clippy --offline --locked -p onix-kiln-core -p kiln-implementer -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass; the explore example was re-checked after its last edit"
+    },
+    {
+      "command": "cargo fmt -p onix-kiln-core -p kiln-implementer -p kiln-web-service --check",
+      "result": "pass"
+    },
+    {
+      "command": "cargo fmt --all --check; cargo clippy --offline --locked --workspace --all-targets -j 16 -- -D warnings; cargo test --offline --locked --workspace -j 16",
+      "result": "pass on the combined working copy with the #75 and #88 changes",
+      "passed": 1839,
+      "ignored": 11,
+      "failed": 0
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L --no-write-lock-file --option builders ''; nix flake check path:$PWD --no-write-lock-file --keep-going -L --option builders ''",
+      "result": "pass on the combined working copy: Octet consumer checks clean with 0 findings; flake check rebuilt 45 derivations and reported all checks passed (aarch64-linux omitted as incompatible)",
+      "builder_note": "the configured remote builder grpc://aspen1.local failed in the build hook (unexpected EOF) before building anything, so remote builders were disabled for these invocations and the checks built locally"
+    }
+  ],
+  "cargo_environment": {
+    "rustc": "1.88.0",
+    "wrapper": "dev-shell PATH with pkg-config and OpenSSL; CARGO_INCREMENTAL=0; CARGO_BUILD_JOBS=2"
+  },
+  "browser": {
+    "surface": "kiln-web-service explore example built from the working copy, http://127.0.0.1:18812/examples",
+    "path": "catalog link /?page=workers&worker_campaign=synthetic-selected-cairn",
+    "observed": {
+      "members": 4,
+      "member_holds": 3,
+      "next_action": "code for synthetic-ready/*",
+      "selection_basis": "member_action",
+      "assurance_member_hold": "wait on an unsatisfied selected dependency"
+    },
+    "finding_fixed": "the catalog link previously used ?campaign=, which the Workers page ignores, so the example opened with no campaign loaded"
+  },
+  "traceability": {
+    "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+    "new_requirement_ids_missing_markers": [],
+    "pre_existing_dangling": [
+      "kiln.dashboard.campaign.projection",
+      "kiln.github.publication.scenario.upload"
+    ],
+    "pre_existing_missing": [
+      "kiln.github.landing.merge.scenario.landed",
+      "kiln.github.source_status.scenario.close",
+      "kiln.hosted.mobility.runtime.scenario.control",
+      "kiln.hosted.mobility.runtime.scenario.control-observed"
+    ],
+    "note": "The command exits nonzero for these pre-existing entries; registering this change's and the #88 delta roots removed one dangling id and added none."
+  },
+  "non_claims": [
+    "Scripted owners prove loop ordering, persistence and restart behavior, not native worker, model or provider behavior.",
+    "A member-level unknown-outcome reconcile without a retained campaign effect still errors in drive_one, as before."
+  ]
+}

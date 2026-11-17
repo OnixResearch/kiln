@@ -295,6 +295,38 @@ pub enum CampaignOperation {
     Complete,
 }
 
+impl CampaignOperation {
+    /// Owner effects the campaign persists as intent before dispatch.
+    #[must_use]
+    pub const fn is_owner_effect(self) -> bool {
+        matches!(
+            self,
+            Self::AuthorArtifact
+                | Self::RepairArtifact
+                | Self::Code
+                | Self::RepairCode
+                | Self::RetryInfrastructure
+                | Self::Verify
+                | Self::Publish
+                | Self::Integrate
+                | Self::Lifecycle
+        )
+    }
+
+    /// Owner effects that need the repository's single canonical writer claim.
+    #[must_use]
+    pub const fn requires_writer_claim(self) -> bool {
+        matches!(
+            self,
+            Self::AuthorArtifact
+                | Self::RepairArtifact
+                | Self::Code
+                | Self::RepairCode
+                | Self::RetryInfrastructure
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CampaignBudgetObservation {
@@ -366,6 +398,45 @@ pub struct CampaignDecision {
     pub reason: String,
     pub owner: Option<String>,
     pub effect_intent: Option<ContentId>,
+}
+
+/// Why a campaign evaluation selected its decision.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectionBasis {
+    /// An unapplied effect, cancellation, completion, pause or bounded
+    /// decision demand precedes all member work.
+    CampaignBarrier,
+    /// The first member, in deterministic order, with an admissible owner effect.
+    MemberAction,
+    /// No member can act; the first member-local hold is surfaced.
+    MemberHold,
+    /// No member has an action or a hold of its own.
+    NoEligibleMember,
+}
+
+/// One selected decision and every member-local explanation retained with it.
+/// A hold binds only its member: another member's action neither resolves
+/// nor hides it.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CampaignEvaluation {
+    pub decision: CampaignDecision,
+    pub basis: SelectionBasis,
+    /// Waits, blockers and replans in selection order, one per unsatisfied member.
+    pub holds: Vec<CampaignDecision>,
+}
+
+/// One member's position in campaign selection.
+enum MemberEvaluation {
+    /// An owner effect the campaign may persist and dispatch now.
+    Action(CampaignDecision),
+    /// A condition in this member's own scope, surfaced only when no member can act.
+    Hold(CampaignDecision),
+    /// A wait on a dependency, the repository writer slot, an incomplete
+    /// observation or a stage without a campaign action. It stays visible but
+    /// is never surfaced in place of a member's own hold.
+    Deferred(CampaignDecision),
 }
 
 impl CampaignContract {
@@ -924,7 +995,56 @@ impl CampaignState {
             self.paused = false;
         }
     }
+    /// The selected decision of [`Self::evaluate`].
     pub fn next_action(&self) -> CoreResult<CampaignDecision> {
+        Ok(self.evaluate().decision)
+    }
+
+    // r[impl kiln.implementation.campaign.independent_progress]
+    /// Evaluate every selected member into an admissible owner action or a
+    /// member-local hold, then select one decision. Campaign barriers come
+    /// first. Otherwise the first member action in deterministic order wins,
+    /// so one member's review, context, replan or delivery hold cannot
+    /// suppress another member's eligible work. A hold is surfaced only when
+    /// no member can act, and every hold is retained beside the selection.
+    pub fn evaluate(&self) -> CampaignEvaluation {
+        let mut action = None;
+        let mut surfaced = None;
+        let mut holds = Vec::new();
+        for member in self.evaluate_members() {
+            match member {
+                MemberEvaluation::Action(decision) => {
+                    if action.is_none() {
+                        action = Some(decision);
+                    }
+                }
+                MemberEvaluation::Hold(decision) => {
+                    if surfaced.is_none() {
+                        surfaced = Some(decision.clone());
+                    }
+                    holds.push(decision);
+                }
+                MemberEvaluation::Deferred(decision) => holds.push(decision),
+            }
+        }
+        let (decision, basis) = if let Some(barrier) = self.campaign_barrier() {
+            (barrier, SelectionBasis::CampaignBarrier)
+        } else if let Some(action) = action {
+            (action, SelectionBasis::MemberAction)
+        } else if let Some(hold) = surfaced {
+            (hold, SelectionBasis::MemberHold)
+        } else {
+            (self.no_eligible_member(), SelectionBasis::NoEligibleMember)
+        };
+        CampaignEvaluation {
+            decision,
+            basis,
+            holds,
+        }
+    }
+
+    /// Campaign-wide conditions that precede every member action.
+    fn campaign_barrier(&self) -> Option<CampaignDecision> {
         if let Some(effect) = self.pending_effects.values().find(|e| !e.progress_applied) {
             let reason = if matches!(
                 effect.state,
@@ -934,7 +1054,7 @@ impl CampaignState {
             } else {
                 "observed owner result must be atomically applied to member progress before a new action"
             };
-            return Ok(decision(
+            return Some(decision(
                 CampaignOperation::Reconcile,
                 Some(effect.member.clone()),
                 reason,
@@ -943,7 +1063,7 @@ impl CampaignState {
             ));
         }
         if self.cancelled {
-            return Ok(decision(
+            return Some(decision(
                 CampaignOperation::Blocked,
                 None,
                 "campaign cancelled; successor admission is closed and provider cleanup is unobserved",
@@ -952,7 +1072,7 @@ impl CampaignState {
             ));
         }
         if self.complete() {
-            return Ok(decision(
+            return Some(decision(
                 CampaignOperation::Complete,
                 None,
                 "every required selected member reached its configured endpoint",
@@ -961,7 +1081,7 @@ impl CampaignState {
             ));
         }
         if self.paused {
-            return Ok(decision(
+            return Some(decision(
                 CampaignOperation::Wait,
                 None,
                 "successor admission paused by operator",
@@ -974,21 +1094,49 @@ impl CampaignState {
             .values()
             .filter(|r| r.state == DecisionRequestState::Outstanding)
             .count();
-        if issued < self.contract.max_outstanding_decisions as usize {
-            if let Some(request) = self
-                .decisions
-                .values()
-                .find(|r| r.state == DecisionRequestState::Unissued)
-            {
-                return Ok(decision(
+        if issued >= self.contract.max_outstanding_decisions as usize {
+            return None;
+        }
+        self.decisions
+            .values()
+            .find(|r| r.state == DecisionRequestState::Unissued)
+            .map(|request| {
+                decision(
                     CampaignOperation::RequestDecision,
                     Some(request.member.clone()),
                     "human-decision demand is retained and available under the configured outstanding bound",
                     Some("review-owner".into()),
                     Some(request.identity.clone()),
-                ));
-            }
-        }
+                )
+            })
+    }
+
+    fn no_eligible_member(&self) -> CampaignDecision {
+        let absent = self
+            .contract
+            .members
+            .iter()
+            .any(|m| !self.observations.contains_key(&selector_key(&m.selector)));
+        decision(
+            if absent {
+                CampaignOperation::Wait
+            } else {
+                CampaignOperation::Blocked
+            },
+            None,
+            if absent {
+                "selected member awaits source/readiness observation"
+            } else {
+                "no currently eligible action; obligations and blockers remain visible"
+            },
+            None,
+            None,
+        )
+    }
+
+    /// Every unsatisfied selected member in deterministic selection order:
+    /// unblocked before blocked, then by canonical member key.
+    fn evaluate_members(&self) -> Vec<MemberEvaluation> {
         let active = self
             .observations
             .values()
@@ -1007,268 +1155,228 @@ impl CampaignState {
         } else {
             self.contract.max_concurrency as usize
         };
-        let mut candidates: Vec<_> = self
+        let writer_slot_free = active < writing_limit;
+        let mut members: Vec<_> = self
             .contract
             .members
             .iter()
             .filter_map(|binding| {
                 let key = selector_key(&binding.selector);
-                let observation = self.observations.get(&key)?;
+                let Some(observation) = self.observations.get(&key) else {
+                    let wait = deferred(
+                        CampaignOperation::Wait,
+                        &key,
+                        "selected member awaits its first source/readiness observation",
+                        "native-source-owner",
+                    );
+                    return Some((false, key, wait));
+                };
                 if observation.cancelled || self.member_endpoint_satisfied(binding, observation) {
                     return None;
                 }
-                let unresolved_dependency = observation
-                    .dependencies
-                    .iter()
-                    .any(|dep| !self.dependency_satisfied(dep));
-                if unresolved_dependency {
-                    return None;
-                }
-                Some((key, binding, observation))
+                let evaluation = self.evaluate_member(&key, binding, observation, writer_slot_free);
+                Some((observation.stage == MemberStage::Blocked, key, evaluation))
             })
             .collect();
-        candidates.sort_by(|a, b| {
-            matches!(a.2.stage, MemberStage::Blocked)
-                .cmp(&matches!(b.2.stage, MemberStage::Blocked))
-                .then_with(|| a.0.cmp(&b.0))
-        });
-        for (key, binding, obs) in candidates {
-            if obs.enumeration != EnumerationState::Complete || obs.stage == MemberStage::Missing {
-                continue;
-            }
-            if obs.context_freshness == Freshness::Stale
-                || obs.policy_freshness == Freshness::Stale
-                || obs.candidate_freshness == Freshness::Stale
-                || obs.verifier_freshness == Freshness::Stale
-                || obs.target_freshness == Freshness::Stale
-            {
-                return Ok(decision(
-                    CampaignOperation::Replan,
-                    Some(key),
-                    "source/policy/context/candidate/verifier/target freshness requires explicit impact and replan",
-                    Some("campaign-policy".into()),
-                    None,
-                ));
-            }
-            if binding.context.iter().any(|context| context.required)
-                && (obs.context_identity.is_none() || obs.context_freshness != Freshness::Current)
-            {
-                return Ok(decision(
-                    CampaignOperation::Blocked,
-                    Some(key),
-                    "required decision context is missing or unobserved; optional context remains nonblocking",
-                    Some("decision-context-owner".into()),
-                    None,
-                ));
-            }
+        members.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+        members
+            .into_iter()
+            .map(|(_, _, evaluation)| evaluation)
+            .collect()
+    }
 
-            if let Some(waiting) = self.decisions.values().find(|r| {
-                r.member == key
-                    && r.kind == DecisionKind::RequiredReview
-                    && r.state != DecisionRequestState::Resolved
-            }) {
-                let reason = match waiting.state {
-                    DecisionRequestState::Unissued => {
-                        "required review demand is retained but awaits an available shared review slot"
-                    }
-                    DecisionRequestState::Outstanding => {
-                        "required review response is outstanding; no successor may bypass it"
-                    }
-                    DecisionRequestState::Expired => {
-                        "required review expired unresolved; explicit review-owner action is required"
-                    }
-                    DecisionRequestState::Resolved => continue,
-                };
-                return Ok(decision(
-                    CampaignOperation::Wait,
-                    Some(key),
-                    reason,
-                    Some("review-owner".into()),
-                    Some(waiting.identity.clone()),
-                ));
+    /// One member's admissible owner action or member-local hold. Only writer
+    /// claims consult state outside the member: the shared writer slot.
+    fn evaluate_member(
+        &self,
+        key: &str,
+        binding: &MemberBinding,
+        obs: &MemberObservation,
+        writer_slot_free: bool,
+    ) -> MemberEvaluation {
+        use CampaignOperation as Op;
+        if obs
+            .dependencies
+            .iter()
+            .any(|dependency| !self.dependency_satisfied(dependency))
+        {
+            return deferred(
+                Op::Wait,
+                key,
+                "an unsatisfied selected dependency keeps this member waiting; the dependency is evaluated in its own scope",
+                "campaign-policy",
+            );
+        }
+        if obs.enumeration != EnumerationState::Complete || obs.stage == MemberStage::Missing {
+            return deferred(
+                Op::Wait,
+                key,
+                "native enumeration is incomplete or the member source is missing; selection needs a complete owner observation",
+                "native-source-owner",
+            );
+        }
+        if [
+            obs.context_freshness,
+            obs.policy_freshness,
+            obs.candidate_freshness,
+            obs.verifier_freshness,
+            obs.target_freshness,
+        ]
+        .contains(&Freshness::Stale)
+        {
+            return hold(
+                Op::Replan,
+                key,
+                "source/policy/context/candidate/verifier/target freshness requires explicit impact and replan",
+                "campaign-policy",
+                None,
+            );
+        }
+        if binding.context.iter().any(|context| context.required)
+            && (obs.context_identity.is_none() || obs.context_freshness != Freshness::Current)
+        {
+            return hold(
+                Op::Blocked,
+                key,
+                "required decision context is missing or unobserved; optional context remains nonblocking",
+                "decision-context-owner",
+                None,
+            );
+        }
+        let review = self.decisions.values().find_map(|request| {
+            if request.member != key || request.kind != DecisionKind::RequiredReview {
+                return None;
             }
-            if matches!(obs.stage, MemberStage::Selected | MemberStage::Planning) {
-                return Ok(decision(
-                    if obs.stage == MemberStage::Selected {
-                        CampaignOperation::AuthorArtifact
-                    } else {
-                        CampaignOperation::RepairArtifact
-                    },
-                    Some(key),
-                    "native planning artifact obligation; artifact-scoped only",
-                    Some("artifact-owner".into()),
-                    None,
-                ));
-            }
-            if terminal_for(
-                obs.stage,
-                binding
-                    .goal
-                    .unit_goal(!obs.remaining_obligations.is_empty()),
-            ) && !obs.remaining_obligations.is_empty()
-            {
-                return Ok(decision(
-                    CampaignOperation::Wait,
-                    Some(key),
-                    "the current native unit reached its milestone; selected successor obligations await fresh native observation",
-                    Some("native-source-owner".into()),
-                    None,
-                ));
-            }
-            let action = match obs.stage {
-                MemberStage::Blocked => match obs.recovery {
-                    Some(RecoveryDisposition::ArtifactRepair) => CampaignOperation::RepairArtifact,
-                    Some(RecoveryDisposition::CodingRepair) => CampaignOperation::RepairCode,
-                    Some(RecoveryDisposition::InfrastructureRetry) => {
-                        CampaignOperation::RetryInfrastructure
-                    }
-                    Some(RecoveryDisposition::UnknownOutcome) => CampaignOperation::Reconcile,
-                    Some(RecoveryDisposition::SemanticReplan) | None => CampaignOperation::Replan,
-                },
-                MemberStage::Ready if active < writing_limit => CampaignOperation::Code,
-                MemberStage::Claimed | MemberStage::Executing => CampaignOperation::Wait,
-                MemberStage::Candidate => CampaignOperation::Verify,
-                MemberStage::Verifying => CampaignOperation::Wait,
-                MemberStage::VerifiedCandidate
-                    if binding.goal == CompletionGoal::VerifiedCandidate =>
-                {
-                    CampaignOperation::Complete
-                }
-                MemberStage::VerifiedCandidate => {
-                    if binding.goal == CompletionGoal::VerifiedPullRequest {
-                        CampaignOperation::Publish
-                    } else {
-                        CampaignOperation::Integrate
-                    }
-                }
-                MemberStage::VerifiedPullRequest
-                    if binding.goal == CompletionGoal::VerifiedPullRequest =>
-                {
-                    CampaignOperation::Complete
-                }
-                MemberStage::VerifiedPullRequest => CampaignOperation::Integrate,
-                MemberStage::Integrated if binding.goal == CompletionGoal::IntegratedChange => {
-                    CampaignOperation::Complete
-                }
-                MemberStage::Integrated => CampaignOperation::Lifecycle,
-                MemberStage::Lifecycle => CampaignOperation::Lifecycle,
-                _ => continue,
+            review_wait(&request.state).map(|reason| (request.identity.clone(), reason))
+        });
+        if let Some((identity, reason)) = review {
+            return hold(Op::Wait, key, reason, "review-owner", Some(identity));
+        }
+        if matches!(obs.stage, MemberStage::Selected | MemberStage::Planning) {
+            let operation = if obs.stage == MemberStage::Selected {
+                Op::AuthorArtifact
+            } else {
+                Op::RepairArtifact
             };
-            if matches!(
-                action,
-                CampaignOperation::Publish | CampaignOperation::Integrate
-            ) && binding.goal != CompletionGoal::VerifiedCandidate
-                && obs.delivery_route_supported != Some(true)
-            {
-                return Ok(decision(
-                    if obs.delivery_route_supported == Some(false) {
-                        CampaignOperation::Blocked
-                    } else {
-                        CampaignOperation::Wait
-                    },
-                    Some(key),
-                    "selected repository delivery route is unsupported or not yet capability-observed; no fallback is permitted",
-                    Some("integration-capability-owner".into()),
-                    None,
-                ));
+            return owner_action(
+                operation,
+                key,
+                "native planning artifact obligation; artifact-scoped only",
+                writer_slot_free,
+            );
+        }
+        let remaining = !obs.remaining_obligations.is_empty();
+        if remaining && terminal_for(obs.stage, binding.goal.unit_goal(remaining)) {
+            return hold(
+                Op::Wait,
+                key,
+                "the current native unit reached its milestone; selected successor obligations await fresh native observation",
+                "native-source-owner",
+                None,
+            );
+        }
+        let goal = binding.goal;
+        let operation = match obs.stage {
+            MemberStage::Blocked => match obs.recovery {
+                Some(RecoveryDisposition::ArtifactRepair) => Op::RepairArtifact,
+                Some(RecoveryDisposition::CodingRepair) => Op::RepairCode,
+                Some(RecoveryDisposition::InfrastructureRetry) => Op::RetryInfrastructure,
+                Some(RecoveryDisposition::UnknownOutcome) => Op::Reconcile,
+                Some(RecoveryDisposition::SemanticReplan) | None => Op::Replan,
+            },
+            MemberStage::Ready => Op::Code,
+            MemberStage::Claimed | MemberStage::Executing | MemberStage::Verifying => Op::Wait,
+            MemberStage::Candidate => Op::Verify,
+            MemberStage::VerifiedCandidate if goal == CompletionGoal::VerifiedCandidate => {
+                Op::Complete
             }
-            if matches!(
-                action,
-                CampaignOperation::Publish
-                    | CampaignOperation::Integrate
-                    | CampaignOperation::Lifecycle
-                    | CampaignOperation::Complete
-            ) && [
+            MemberStage::VerifiedCandidate if goal == CompletionGoal::VerifiedPullRequest => {
+                Op::Publish
+            }
+            MemberStage::VerifiedCandidate => Op::Integrate,
+            MemberStage::VerifiedPullRequest if goal == CompletionGoal::VerifiedPullRequest => {
+                Op::Complete
+            }
+            MemberStage::VerifiedPullRequest => Op::Integrate,
+            MemberStage::Integrated if goal == CompletionGoal::IntegratedChange => Op::Complete,
+            MemberStage::Integrated | MemberStage::Lifecycle => Op::Lifecycle,
+            MemberStage::Selected
+            | MemberStage::Planning
+            | MemberStage::Missing
+            | MemberStage::Complete
+            | MemberStage::Cancelled => {
+                return deferred(
+                    Op::Blocked,
+                    key,
+                    "the observed stage admits no campaign action; its obligations and blockers remain visible",
+                    "campaign-policy",
+                );
+            }
+        };
+        if matches!(operation, Op::Publish | Op::Integrate)
+            && goal != CompletionGoal::VerifiedCandidate
+            && obs.delivery_route_supported != Some(true)
+        {
+            return hold(
+                if obs.delivery_route_supported == Some(false) {
+                    Op::Blocked
+                } else {
+                    Op::Wait
+                },
+                key,
+                "selected repository delivery route is unsupported or not yet capability-observed; no fallback is permitted",
+                "integration-capability-owner",
+                None,
+            );
+        }
+        let endpoint = matches!(
+            operation,
+            Op::Publish | Op::Integrate | Op::Lifecycle | Op::Complete
+        );
+        if endpoint
+            && [
                 obs.candidate_freshness,
                 obs.policy_freshness,
                 obs.verifier_freshness,
             ]
             .iter()
             .any(|freshness| *freshness != Freshness::Current)
-            {
-                return Ok(decision(
-                    CampaignOperation::Wait,
-                    Some(key),
-                    "selected endpoint lacks current candidate, policy or verification owner evidence",
-                    Some("verification-review-owner".into()),
-                    None,
-                ));
-            }
-            if matches!(
-                action,
-                CampaignOperation::Publish
-                    | CampaignOperation::Integrate
-                    | CampaignOperation::Lifecycle
-                    | CampaignOperation::Complete
-            ) && ((!binding.required_checks.is_empty() && !obs.required_checks_satisfied)
-                || (!binding.required_reviews.is_empty() && !obs.required_reviews_satisfied))
-            {
-                return Ok(decision(
-                    CampaignOperation::Wait,
-                    Some(key),
-                    "selected checks or required review lack current owner evidence",
-                    Some("verification-review-owner".into()),
-                    None,
-                ));
-            }
-            if matches!(
-                action,
-                CampaignOperation::Publish
-                    | CampaignOperation::Integrate
-                    | CampaignOperation::Lifecycle
-                    | CampaignOperation::Complete
-            ) && !self.required_context_retained(binding, obs)
-            {
-                return Ok(decision(
-                    CampaignOperation::Wait,
-                    Some(key),
-                    "required decision projection was not retained for the exact selected work and attempt",
-                    Some("decision-context-owner".into()),
-                    None,
-                ));
-            }
-
-            let owner = match action {
-                CampaignOperation::Code
-                | CampaignOperation::RepairCode
-                | CampaignOperation::RetryInfrastructure => "work-attempt-owner",
-                CampaignOperation::AuthorArtifact | CampaignOperation::RepairArtifact => {
-                    "artifact-owner"
-                }
-                CampaignOperation::Verify => "verification-owner",
-                CampaignOperation::Publish | CampaignOperation::Integrate => "publication-owner",
-                CampaignOperation::Lifecycle => "cairn-lifecycle-owner",
-                CampaignOperation::Reconcile => "attempt-reconciliation-owner",
-                _ => "campaign-policy",
-            };
-            return Ok(decision(
-                action,
-                Some(key),
-                "next action derived from current owner observations and member endpoint",
-                Some(owner.into()),
+        {
+            return hold(
+                Op::Wait,
+                key,
+                "selected endpoint lacks current candidate, policy or verification owner evidence",
+                "verification-review-owner",
                 None,
-            ));
+            );
         }
-        let absent = self
-            .contract
-            .members
-            .iter()
-            .any(|m| !self.observations.contains_key(&selector_key(&m.selector)));
-        Ok(decision(
-            if absent {
-                CampaignOperation::Wait
-            } else {
-                CampaignOperation::Blocked
-            },
-            None,
-            if absent {
-                "selected member awaits source/readiness observation"
-            } else {
-                "no currently eligible action; obligations and blockers remain visible"
-            },
-            None,
-            None,
-        ))
+        if endpoint
+            && ((!binding.required_checks.is_empty() && !obs.required_checks_satisfied)
+                || (!binding.required_reviews.is_empty() && !obs.required_reviews_satisfied))
+        {
+            return hold(
+                Op::Wait,
+                key,
+                "selected checks or required review lack current owner evidence",
+                "verification-review-owner",
+                None,
+            );
+        }
+        if endpoint && !self.required_context_retained(binding, obs) {
+            return hold(
+                Op::Wait,
+                key,
+                "required decision projection was not retained for the exact selected work and attempt",
+                "decision-context-owner",
+                None,
+            );
+        }
+        let reason = "next action derived from current owner observations and member endpoint";
+        if operation.is_owner_effect() {
+            owner_action(operation, key, reason, writer_slot_free)
+        } else {
+            hold(operation, key, reason, operation_owner(operation), None)
+        }
     }
     fn member_endpoint_satisfied(
         &self,
@@ -1411,6 +1519,92 @@ fn decision(
         reason: reason.to_string(),
         owner,
         effect_intent,
+    }
+}
+fn hold(
+    operation: CampaignOperation,
+    member: &str,
+    reason: &str,
+    owner: &str,
+    effect_intent: Option<ContentId>,
+) -> MemberEvaluation {
+    MemberEvaluation::Hold(decision(
+        operation,
+        Some(member.to_string()),
+        reason,
+        Some(owner.to_string()),
+        effect_intent,
+    ))
+}
+fn deferred(
+    operation: CampaignOperation,
+    member: &str,
+    reason: &str,
+    owner: &str,
+) -> MemberEvaluation {
+    MemberEvaluation::Deferred(decision(
+        operation,
+        Some(member.to_string()),
+        reason,
+        Some(owner.to_string()),
+        None,
+    ))
+}
+/// An owner effect for one member. A writer claim waits while another active
+/// attempt holds the repository's single writer slot; canonical admission
+/// still makes the final claim decision.
+fn owner_action(
+    operation: CampaignOperation,
+    member: &str,
+    reason: &str,
+    writer_slot_free: bool,
+) -> MemberEvaluation {
+    if operation.requires_writer_claim() && !writer_slot_free {
+        return deferred(
+            CampaignOperation::Wait,
+            member,
+            "another active attempt holds this repository's single writer slot; canonical admission still decides the claim",
+            "work-attempt-owner",
+        );
+    }
+    MemberEvaluation::Action(decision(
+        operation,
+        Some(member.to_string()),
+        reason,
+        Some(operation_owner(operation).to_string()),
+        None,
+    ))
+}
+fn operation_owner(operation: CampaignOperation) -> &'static str {
+    match operation {
+        CampaignOperation::Code
+        | CampaignOperation::RepairCode
+        | CampaignOperation::RetryInfrastructure => "work-attempt-owner",
+        CampaignOperation::AuthorArtifact | CampaignOperation::RepairArtifact => "artifact-owner",
+        CampaignOperation::Verify => "verification-owner",
+        CampaignOperation::Publish | CampaignOperation::Integrate => "publication-owner",
+        CampaignOperation::Lifecycle => "cairn-lifecycle-owner",
+        CampaignOperation::Reconcile => "attempt-reconciliation-owner",
+        CampaignOperation::RequestDecision
+        | CampaignOperation::Wait
+        | CampaignOperation::Replan
+        | CampaignOperation::Blocked
+        | CampaignOperation::Complete => "campaign-policy",
+    }
+}
+/// Why an unresolved required review keeps its member waiting.
+fn review_wait(state: &DecisionRequestState) -> Option<&'static str> {
+    match state {
+        DecisionRequestState::Unissued => {
+            Some("required review demand is retained but awaits an available shared review slot")
+        }
+        DecisionRequestState::Outstanding => {
+            Some("required review response is outstanding; no successor may bypass it")
+        }
+        DecisionRequestState::Expired => {
+            Some("required review expired unresolved; explicit review-owner action is required")
+        }
+        DecisionRequestState::Resolved => None,
     }
 }
 
@@ -2150,5 +2344,429 @@ mod tests {
             !retained_contexts(&state)
                 .contains_key(&context_binding(&state, 1).projection_identity)
         );
+    }
+
+    fn digest(byte: char) -> ContentId {
+        ContentId::from_blake3_hex(byte.to_string().repeat(64)).unwrap_or_else(|_| unreachable!())
+    }
+    /// A needs a review before its verified-PR endpoint, B depends on A and C
+    /// is independent. Names are parameters so selection order can be permuted.
+    fn independence_contract(review: &str, dependent: &str, ready: &str) -> CampaignContract {
+        let member = |change: &str, goal: CompletionGoal, reviews: Vec<String>| MemberBinding {
+            selector: MemberSelector::WholeChange {
+                change: change.into(),
+            },
+            profile: WorkflowProfile::SpecDriven,
+            profile_version: id(),
+            repository_instructions: id(),
+            policy: id(),
+            required_checks: Vec::new(),
+            required_reviews: reviews,
+            integration_policy: id(),
+            goal,
+            prerequisite_inclusion: false,
+            context: Vec::new(),
+        };
+        let mut selected = contract();
+        selected.members = vec![
+            member(
+                review,
+                CompletionGoal::VerifiedPullRequest,
+                vec!["maintainer".into()],
+            ),
+            member(dependent, CompletionGoal::VerifiedCandidate, Vec::new()),
+            member(ready, CompletionGoal::VerifiedCandidate, Vec::new()),
+        ];
+        selected
+    }
+    /// A's verified candidate is otherwise ready to publish.
+    fn verified_candidate(member: &str) -> MemberObservation {
+        let mut verified = obs(member, MemberStage::VerifiedCandidate, Vec::new());
+        verified.evidence = vec![digest('c')];
+        verified.delivery_route_supported = Some(true);
+        verified
+    }
+    fn review_request(state: &CampaignState, member: &str) -> HumanDecisionRequest {
+        HumanDecisionRequest {
+            identity: digest('e'),
+            kind: DecisionKind::RequiredReview,
+            member: member.into(),
+            work_identity: observed(state, member).work_identity.clone(),
+            decision_revision: None,
+            policy_identity: observed(state, member).policy_identity.clone(),
+            candidate_identity: Some(digest('c')),
+            state: DecisionRequestState::Outstanding,
+            created_ms: 1,
+            question: "review the verified candidate".into(),
+            options: vec!["approve".into(), "reject".into()],
+            recommendation: None,
+            priority: 1,
+            pending_reason: None,
+            resolved_answer: None,
+            active_effort_ms: None,
+        }
+    }
+    /// A awaits an outstanding required review, B depends on A and C is ready.
+    /// Returns the A, B and C member keys.
+    fn awaiting_review(review: &str, dependent: &str, ready: &str) -> (CampaignState, [String; 3]) {
+        let mut state = CampaignState::start(independence_contract(review, dependent, ready))
+            .unwrap_or_else(|_| unreachable!());
+        let keys = [0, 1, 2].map(|index| key_at(&state, index));
+        let [a, b, c] = &keys;
+        let mut awaiting = verified_candidate(a);
+        awaiting.required_reviews_satisfied = false;
+        state.observe(awaiting).unwrap_or_else(|_| unreachable!());
+        state
+            .observe(obs(b, MemberStage::Ready, vec![a.clone()]))
+            .unwrap_or_else(|_| unreachable!());
+        state
+            .observe(obs(c, MemberStage::Ready, Vec::new()))
+            .unwrap_or_else(|_| unreachable!());
+        let request = review_request(&state, a);
+        state
+            .add_decision(request)
+            .unwrap_or_else(|_| unreachable!());
+        (state, keys)
+    }
+    fn hold_of<'a>(evaluation: &'a CampaignEvaluation, member: &str) -> &'a CampaignDecision {
+        evaluation
+            .holds
+            .iter()
+            .find(|hold| hold.member.as_deref() == Some(member))
+            .unwrap_or_else(|| unreachable!("hold for {member}"))
+    }
+    fn assert_selected(
+        evaluation: &CampaignEvaluation,
+        operation: CampaignOperation,
+        member: &str,
+    ) {
+        assert_eq!(evaluation.basis, SelectionBasis::MemberAction);
+        assert_eq!(evaluation.decision.operation, operation);
+        assert_eq!(evaluation.decision.member.as_deref(), Some(member));
+    }
+    fn assert_review_wait(evaluation: &CampaignEvaluation, member: &str) {
+        let review = hold_of(evaluation, member);
+        assert_eq!(review.operation, CampaignOperation::Wait);
+        assert_eq!(review.owner.as_deref(), Some("review-owner"));
+        assert_eq!(review.effect_intent, Some(digest('e')));
+        assert!(review.reason.contains("outstanding"), "{}", review.reason);
+    }
+    fn assert_dependency_wait(evaluation: &CampaignEvaluation, member: &str) {
+        let dependent = hold_of(evaluation, member);
+        assert_eq!(dependent.operation, CampaignOperation::Wait);
+        assert!(
+            dependent.reason.contains("dependency"),
+            "{}",
+            dependent.reason
+        );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.review_wait]
+    fn review_wait_stays_in_scope_while_independent_work_progresses() {
+        let (state, [a, b, c]) = awaiting_review("change-a", "change-b", "change-c");
+        let evaluation = state.evaluate();
+        assert_selected(&evaluation, CampaignOperation::Code, &c);
+        assert_review_wait(&evaluation, &a);
+        assert_dependency_wait(&evaluation, &b);
+        assert_eq!(evaluation.holds.len(), 2);
+        assert_eq!(
+            state.next_action().unwrap_or_else(|_| unreachable!()),
+            evaluation.decision
+        );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.permutation]
+    fn member_identity_order_cannot_let_a_review_wait_suppress_eligible_work() {
+        for [review, dependent, ready] in [
+            ["change-a", "change-m", "change-z"],
+            ["change-a", "change-z", "change-m"],
+            ["change-m", "change-a", "change-z"],
+            ["change-m", "change-z", "change-a"],
+            ["change-z", "change-a", "change-m"],
+            ["change-z", "change-m", "change-a"],
+        ] {
+            let (state, [a, b, c]) = awaiting_review(review, dependent, ready);
+            let evaluation = state.evaluate();
+            assert_selected(&evaluation, CampaignOperation::Code, &c);
+            assert_review_wait(&evaluation, &a);
+            assert_dependency_wait(&evaluation, &b);
+        }
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.local_scope]
+    fn member_local_holds_stay_in_scope_unless_policy_makes_work_dependent() {
+        type Adjust = fn(&mut MemberBinding, &mut MemberObservation);
+        let cases: [(&str, Adjust, CampaignOperation, &str); 8] = [
+            (
+                "missing required context",
+                |binding, _| {
+                    binding.context.push(DecisionContextBinding {
+                        decision_id: "decision".into(),
+                        native_adr_id: None,
+                        revision: "revision".into(),
+                        selected_alternative: "chosen".into(),
+                        evidence: Vec::new(),
+                        supersedes: Vec::new(),
+                        projection_identity: digest('d'),
+                        required: true,
+                    });
+                },
+                CampaignOperation::Blocked,
+                "decision-context-owner",
+            ),
+            (
+                "stale policy",
+                |_, observation| observation.policy_freshness = Freshness::Stale,
+                CampaignOperation::Replan,
+                "campaign-policy",
+            ),
+            (
+                "unsupported delivery route",
+                |_, observation| observation.delivery_route_supported = Some(false),
+                CampaignOperation::Blocked,
+                "integration-capability-owner",
+            ),
+            (
+                "unobserved delivery route",
+                |_, observation| observation.delivery_route_supported = None,
+                CampaignOperation::Wait,
+                "integration-capability-owner",
+            ),
+            (
+                "semantic replan",
+                |_, observation| {
+                    observation.stage = MemberStage::Blocked;
+                    observation.recovery = Some(RecoveryDisposition::SemanticReplan);
+                },
+                CampaignOperation::Replan,
+                "campaign-policy",
+            ),
+            (
+                "successor milestone",
+                |_, observation| {
+                    observation.stage = MemberStage::VerifiedPullRequest;
+                    observation
+                        .remaining_obligations
+                        .insert("change/tasks/next".into());
+                },
+                CampaignOperation::Wait,
+                "native-source-owner",
+            ),
+            (
+                "missing endpoint evidence",
+                |_, observation| observation.candidate_freshness = Freshness::Unknown,
+                CampaignOperation::Wait,
+                "verification-review-owner",
+            ),
+            (
+                "missing review evidence",
+                |_, observation| observation.required_reviews_satisfied = false,
+                CampaignOperation::Wait,
+                "verification-review-owner",
+            ),
+        ];
+        let start = |adjust: Option<Adjust>, ready_depends: bool| {
+            let mut selected = independence_contract("change-a", "change-b", "change-c");
+            let mut current = verified_candidate("change-a/*");
+            if let Some(adjust) = adjust {
+                adjust(fixture_member_mut(&mut selected, 0), &mut current);
+            }
+            let mut state = CampaignState::start(selected).unwrap_or_else(|_| unreachable!());
+            state.observe(current).unwrap_or_else(|_| unreachable!());
+            state
+                .observe(obs(
+                    "change-b/*",
+                    MemberStage::Ready,
+                    vec!["change-a/*".into()],
+                ))
+                .unwrap_or_else(|_| unreachable!());
+            let dependencies = if ready_depends {
+                vec!["change-a/*".into()]
+            } else {
+                Vec::new()
+            };
+            state
+                .observe(obs("change-c/*", MemberStage::Ready, dependencies))
+                .unwrap_or_else(|_| unreachable!());
+            state
+        };
+        assert_selected(
+            &start(None, false).evaluate(),
+            CampaignOperation::Publish,
+            "change-a/*",
+        );
+        for (label, adjust, operation, owner) in cases {
+            let evaluation = start(Some(adjust), false).evaluate();
+            assert_selected(&evaluation, CampaignOperation::Code, "change-c/*");
+            let local = hold_of(&evaluation, "change-a/*");
+            assert_eq!(local.operation, operation, "{label}");
+            assert_eq!(local.owner.as_deref(), Some(owner), "{label}");
+            assert_dependency_wait(&evaluation, "change-b/*");
+
+            let dependent = start(Some(adjust), true).evaluate();
+            assert_eq!(dependent.basis, SelectionBasis::MemberHold, "{label}");
+            assert_eq!(&dependent.decision, local, "{label}");
+            assert_dependency_wait(&dependent, "change-c/*");
+        }
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.review_gate]
+    fn required_review_holds_its_candidate_until_an_exact_answer_and_owner_evidence() {
+        let mut selected = independence_contract("change-a", "change-b", "change-c");
+        selected.members.truncate(1);
+        let mut state = CampaignState::start(selected).unwrap_or_else(|_| unreachable!());
+        let a = key_at(&state, 0);
+        let mut awaiting = verified_candidate(&a);
+        awaiting.required_reviews_satisfied = false;
+        state
+            .observe(awaiting.clone())
+            .unwrap_or_else(|_| unreachable!());
+        let request = review_request(&state, &a);
+        state
+            .add_decision(request)
+            .unwrap_or_else(|_| unreachable!());
+        let review = digest('e');
+        let work = observed(&state, &a).work_identity.clone();
+        let policy = observed(&state, &a).policy_identity.clone();
+        let candidate = digest('c');
+        let waiting = state.evaluate();
+        assert_eq!(waiting.basis, SelectionBasis::MemberHold);
+        assert_eq!(&waiting.decision, hold_of(&waiting, &a));
+        assert_review_wait(&waiting, &a);
+
+        for (work, policy, candidate, answer) in [
+            (work.as_ref(), &policy, Some(&digest('f')), "approve"),
+            (work.as_ref(), &digest('f'), Some(&candidate), "approve"),
+            (Some(&digest('f')), &policy, Some(&candidate), "approve"),
+            (work.as_ref(), &policy, Some(&candidate), "merge anyway"),
+        ] {
+            let refused = state
+                .resolve_decision(&review, work, policy, candidate, answer)
+                .err()
+                .unwrap_or_else(|| unreachable!("wrong-scope answer accepted"));
+            assert_eq!(refused.code, "campaign_decision_stale");
+            assert_eq!(state.evaluate(), waiting);
+        }
+
+        let request = state
+            .decisions
+            .get_mut(&review)
+            .unwrap_or_else(|| unreachable!("retained review"));
+        request.state = DecisionRequestState::Expired;
+        let expired = state.evaluate();
+        assert_eq!(expired.decision.operation, CampaignOperation::Wait);
+        assert!(expired.decision.reason.contains("expired unresolved"));
+        assert!(
+            state
+                .resolve_decision(&review, work.as_ref(), &policy, Some(&candidate), "approve")
+                .is_err()
+        );
+
+        state
+            .decisions
+            .get_mut(&review)
+            .unwrap_or_else(|| unreachable!("retained review"))
+            .state = DecisionRequestState::Outstanding;
+        state
+            .resolve_decision(&review, work.as_ref(), &policy, Some(&candidate), "approve")
+            .unwrap_or_else(|_| unreachable!());
+        let answered = state.evaluate();
+        assert_eq!(answered.decision.operation, CampaignOperation::Wait);
+        assert_eq!(
+            answered.decision.owner.as_deref(),
+            Some("verification-review-owner")
+        );
+
+        awaiting.required_reviews_satisfied = true;
+        state.observe(awaiting).unwrap_or_else(|_| unreachable!());
+        assert_selected(&state.evaluate(), CampaignOperation::Publish, &a);
+    }
+
+    #[test]
+    // r[verify kiln.implementation.campaign.independent_progress.scenario.barriers]
+    fn writer_pause_cancel_and_uncertain_effects_still_constrain_independent_work() {
+        let (state, [a, b, c]) = awaiting_review("change-a", "change-b", "change-c");
+        let mut writer = state.clone();
+        writer
+            .observe(obs(&b, MemberStage::Executing, Vec::new()))
+            .unwrap_or_else(|_| unreachable!());
+        let mut variants = Vec::new();
+        for (stage, recovery) in [
+            (MemberStage::Ready, None),
+            (MemberStage::Selected, None),
+            (
+                MemberStage::Blocked,
+                Some(RecoveryDisposition::CodingRepair),
+            ),
+            (
+                MemberStage::Blocked,
+                Some(RecoveryDisposition::InfrastructureRetry),
+            ),
+        ] {
+            let mut variant = writer.clone();
+            let mut current = obs(&c, stage, Vec::new());
+            current.recovery = recovery;
+            variant.observe(current).unwrap_or_else(|_| unreachable!());
+            variants.push(variant);
+        }
+        for variant in variants {
+            let evaluation = variant.evaluate();
+            assert_eq!(evaluation.basis, SelectionBasis::MemberHold);
+            assert_eq!(&evaluation.decision, hold_of(&evaluation, &a));
+            assert!(hold_of(&evaluation, &c).reason.contains("writer slot"));
+            let active = hold_of(&evaluation, &b);
+            assert_eq!(active.operation, CampaignOperation::Wait);
+            assert_eq!(active.owner.as_deref(), Some("campaign-policy"));
+        }
+
+        let mut paused = state.clone();
+        paused.pause();
+        let evaluation = paused.evaluate();
+        assert_eq!(evaluation.basis, SelectionBasis::CampaignBarrier);
+        assert_eq!(evaluation.decision.operation, CampaignOperation::Wait);
+        assert_eq!(evaluation.decision.member, None);
+        assert_review_wait(&evaluation, &a);
+
+        let mut cancelled = state.clone();
+        cancelled.cancel();
+        let evaluation = cancelled.evaluate();
+        assert_eq!(evaluation.basis, SelectionBasis::CampaignBarrier);
+        assert_eq!(evaluation.decision.operation, CampaignOperation::Blocked);
+
+        let mut uncertain = state;
+        let current = observed(&uncertain, &c).clone();
+        uncertain.pending_effects.insert(
+            digest('b'),
+            PendingEffect {
+                effect_id: digest('b'),
+                member: c.clone(),
+                operation: CampaignOperation::Code,
+                owner: "work-attempt-owner".into(),
+                intent_identity: digest('b'),
+                state: EffectState::Unknown,
+                progress_applied: false,
+                selection_identity: uncertain.selection_identity.clone(),
+                source_identity: current.source_identity,
+                work_identity: current.work_identity,
+                attempt_identity: current.attempt_identity,
+                attempt_fence: current.attempt_fence,
+                subject_identity: current.subject_identity,
+                policy_identity: current.policy_identity,
+                context_identity: current.context_identity,
+                native_context_identity: current.native_context_identity,
+                profile_identity: current.profile_identity,
+                evidence_identity: None,
+                integration_target_identity: current.integration_target_identity,
+            },
+        );
+        let evaluation = uncertain.evaluate();
+        assert_eq!(evaluation.basis, SelectionBasis::CampaignBarrier);
+        assert_eq!(evaluation.decision.operation, CampaignOperation::Reconcile);
+        assert_eq!(evaluation.decision.member.as_deref(), Some(c.as_str()));
+        assert_review_wait(&evaluation, &a);
     }
 }

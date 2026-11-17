@@ -277,6 +277,17 @@ entry describes the source tree prepared for the first tagged release.
   used for review admission, rather than borrowing historical or unrelated
   passes. Require terminal, successful counting evidence and display the actual
   selected run. Monorepo typed requirements remain review-project scoped. (#64)
+- Keep selected campaigns advancing independent eligible work while another
+  member waits on a required review, required context, replan, delivery
+  capability or endpoint evidence. Selection evaluates every member, keeps each
+  member's hold, and surfaces a hold only when no member can act. Writer claims
+  still wait for the single repository writer, and canonical admission still
+  decides claims and budgets. The drive output and the campaign projection show
+  the selection basis and every member's hold. (#85; unit and scripted-owner
+  fixtures; no live campaign run)
+- Open the synthetic exploration campaign from its catalog link. The link used a
+  `campaign` parameter, but the Workers page restores `worker_campaign`, so the
+  example opened without a campaign loaded. (browser-checked locally)
 - Keep verified content-index updates pending across equal `put_exact` retries
   until payload synchronization, exact replacement and parent synchronization
   complete. Persistent create/write/sync/rename faults cannot become a successful

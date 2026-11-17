@@ -444,7 +444,7 @@ impl Workspace {
             Example::new("Retained activity and audit decisions", "/?page=activity", "Inspect events from the seeded local commands, filter them and follow an exact run."),
             Example::new("Capacity and retention", "/?page=operations", "Inspect occupied slots, queued requests, retention limits and local state. No pruning or real worker operation occurs."),
             Example::new("Agents, worker instances, compute and serving", "/?page=workers", "Inspect four distinct synthetic observation families and exact-work readiness. Use the fictional all-a 64-hex work identity to explore a disconnected, non-authorizing explanation; no provider is contacted."),
-            Example::new("Selected Cairn campaign: planning, review and lifecycle waits", "/?page=workers&campaign=synthetic-selected-cairn", "Inspect every selected member, partial enumeration, stale review/check evidence, distinct completion goals and unknown aggregate budget. This synthetic campaign uses the real canonical store and read-only projection, not live Cairn or worker evidence."),
+            Example::new("Selected Cairn campaign: ready work beside planning, review and lifecycle waits", "/?page=workers&worker_campaign=synthetic-selected-cairn", "Inspect every selected member and the selection hold that keeps it waiting while an independent ready member is the proposed next action, plus partial enumeration, stale review/check evidence, distinct completion goals and unknown aggregate budget. This synthetic campaign uses the real canonical store and read-only projection, not live Cairn or worker evidence."),
         ]);
         let mut random = [0u8; 16];
         getrandom::fill(&mut random)
