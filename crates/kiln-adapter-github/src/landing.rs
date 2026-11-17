@@ -1011,51 +1011,316 @@ mod tests {
         let _ = server.join();
     }
 
-    #[test]
-    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.base.scenario.moved] r[verify kiln.github.landing.approvals] r[verify kiln.github.landing.approvals.scenario.distinct]
-    fn refuses_stale_or_incomplete_observations() {
-        let plan = plan();
-        let mut observation = LandingObservation {
+    fn check(name: &str, head: &str, status: &str, conclusion: Option<&str>) -> CheckObservation {
+        CheckObservation {
+            name: name.to_string(),
+            head_sha: head.to_string(),
+            status: status.to_string(),
+            conclusion: conclusion.map(str::to_string),
+        }
+    }
+
+    fn review(actor: &str, state: &str) -> ReviewObservation {
+        ReviewObservation {
+            actor: actor.to_string(),
+            state: state.to_string(),
+        }
+    }
+
+    /// An observation the plan admits; each control changes exactly one fact.
+    fn ready(plan: &LandingPlan) -> LandingObservation {
+        LandingObservation {
             pull: PullObservation {
-                number: 7,
+                number: plan.pull_number,
                 author: "author".to_string(),
                 state: "open".to_string(),
                 merged: false,
                 mergeable: Some(true),
                 head_sha: plan.head_sha.clone(),
-                base_ref: "main".to_string(),
+                base_ref: plan.base_ref.clone(),
             },
-            checks: vec![CheckObservation {
-                name: "build".to_string(),
-                head_sha: plan.head_sha.clone(),
-                status: "completed".to_string(),
-                conclusion: Some("success".to_string()),
-            }],
-            reviews: vec![ReviewObservation {
-                actor: "reviewer".to_string(),
-                state: "APPROVED".to_string(),
-            }],
-            base_head: "b".repeat(40),
-        };
-        assert!(admit_landing(&plan, &observation).is_err());
-        observation.pull.head_sha = "c".repeat(40);
-        assert!(admit_landing(&plan, &observation).is_err());
-        observation.base_head = "c".repeat(40);
-        assert!(admit_landing(&plan, &observation).is_err());
-        observation.base_head = "b".repeat(40);
-        observation.reviews.clear();
-        assert!(admit_landing(&plan, &observation).is_err());
-        observation.reviews.push(ReviewObservation {
-            actor: "reviewer".to_string(),
-            state: "APPROVED".to_string(),
-        });
-        observation.pull.head_sha = plan.head_sha.clone();
-        observation.checks.push(CheckObservation {
-            name: "build".to_string(),
-            head_sha: plan.head_sha.clone(),
-            status: "completed".to_string(),
-            conclusion: Some("success".to_string()),
-        });
-        assert!(admit_landing(&plan, &observation).is_err());
+            checks: plan
+                .required_checks
+                .iter()
+                .map(|name| check(name, &plan.head_sha, "completed", Some("success")))
+                .collect(),
+            reviews: vec![review("reviewer", "APPROVED")],
+            base_head: plan.base_head.clone(),
+        }
+    }
+
+    fn refusal_code(plan: &LandingPlan, observation: &LandingObservation) -> Option<String> {
+        admit_landing(plan, observation)
+            .err()
+            .map(|diagnostic| diagnostic.code)
+    }
+
+    #[test]
+    // r[verify kiln.github.landing] r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.base.scenario.moved] r[verify kiln.github.landing.approvals] r[verify kiln.github.landing.approvals.scenario.distinct]
+    fn each_stale_or_incomplete_fact_alone_refuses_an_otherwise_ready_observation() {
+        let plan = plan();
+        assert_eq!(refusal_code(&plan, &ready(&plan)), None);
+        type Change = fn(&mut LandingObservation);
+        let controls: [(&str, Change, &str); 23] = [
+            (
+                "changed head",
+                |o| o.pull.head_sha = "c".repeat(40),
+                "github_landing_pull",
+            ),
+            (
+                "moved base",
+                |o| o.base_head = "c".repeat(40),
+                "github_landing_pull",
+            ),
+            (
+                "other base ref",
+                |o| o.pull.base_ref = "release".to_string(),
+                "github_landing_pull",
+            ),
+            ("other pull", |o| o.pull.number = 8, "github_landing_pull"),
+            (
+                "closed",
+                |o| o.pull.state = "closed".to_string(),
+                "github_landing_pull",
+            ),
+            ("merged", |o| o.pull.merged = true, "github_landing_pull"),
+            (
+                "unknown mergeability",
+                |o| o.pull.mergeable = None,
+                "github_landing_pull",
+            ),
+            (
+                "conflicting",
+                |o| o.pull.mergeable = Some(false),
+                "github_landing_pull",
+            ),
+            (
+                "missing check",
+                |o| o.checks.retain(|c| c.name != "test"),
+                "github_landing_check_missing",
+            ),
+            (
+                "running check",
+                |o| {
+                    o.checks = vec![
+                        check("build", &"a".repeat(40), "completed", Some("success")),
+                        check("test", &"a".repeat(40), "in_progress", None),
+                    ];
+                },
+                "github_landing_check_failed",
+            ),
+            (
+                "failed check",
+                |o| {
+                    o.checks = vec![
+                        check("build", &"a".repeat(40), "completed", Some("success")),
+                        check("test", &"a".repeat(40), "completed", Some("failure")),
+                    ];
+                },
+                "github_landing_check_failed",
+            ),
+            (
+                "skipped check",
+                |o| {
+                    o.checks = vec![
+                        check("build", &"a".repeat(40), "completed", Some("success")),
+                        check("test", &"a".repeat(40), "completed", Some("skipped")),
+                    ];
+                },
+                "github_landing_check_failed",
+            ),
+            (
+                "neutral check",
+                |o| {
+                    o.checks = vec![
+                        check("build", &"a".repeat(40), "completed", Some("success")),
+                        check("test", &"a".repeat(40), "completed", Some("neutral")),
+                    ];
+                },
+                "github_landing_check_failed",
+            ),
+            (
+                "check on another head",
+                |o| {
+                    o.checks
+                        .push(check("lint", &"c".repeat(40), "completed", Some("success")))
+                },
+                "github_landing_check",
+            ),
+            (
+                "duplicate check",
+                |o| {
+                    o.checks.push(check(
+                        "build",
+                        &"a".repeat(40),
+                        "completed",
+                        Some("success"),
+                    ))
+                },
+                "github_landing_check",
+            ),
+            (
+                "unnamed check",
+                |o| {
+                    o.checks
+                        .push(check("", &"a".repeat(40), "completed", Some("success")))
+                },
+                "github_landing_check",
+            ),
+            (
+                "no review",
+                |o| o.reviews.clear(),
+                "github_landing_approvals",
+            ),
+            (
+                "author approval only",
+                |o| o.reviews = vec![review("author", "APPROVED")],
+                "github_landing_approvals",
+            ),
+            (
+                "approval dismissed",
+                |o| o.reviews.push(review("reviewer", "DISMISSED")),
+                "github_landing_approvals",
+            ),
+            (
+                "approval then changes requested",
+                |o| o.reviews.push(review("reviewer", "CHANGES_REQUESTED")),
+                "github_landing_changes_requested",
+            ),
+            (
+                "another reviewer requests changes",
+                |o| o.reviews.push(review("other", "CHANGES_REQUESTED")),
+                "github_landing_changes_requested",
+            ),
+            (
+                "unnamed reviewer",
+                |o| o.reviews.push(review("", "APPROVED")),
+                "github_landing_review",
+            ),
+            (
+                "control-character state",
+                |o| o.reviews.push(review("other", "APPROVED\n")),
+                "github_landing_review",
+            ),
+        ];
+        for (name, change, code) in controls {
+            let mut observation = ready(&plan);
+            change(&mut observation);
+            assert_eq!(
+                refusal_code(&plan, &observation).as_deref(),
+                Some(code),
+                "{name}"
+            );
+        }
+        // The latest review per actor counts, and only required checks gate.
+        let admitted: [(&str, Change); 3] = [
+            ("changes requested then approved", |o| {
+                o.reviews = vec![
+                    review("reviewer", "CHANGES_REQUESTED"),
+                    review("reviewer", "APPROVED"),
+                ];
+            }),
+            ("commented beside an approval", |o| {
+                o.reviews.push(review("other", "COMMENTED"))
+            }),
+            ("failed optional check", |o| {
+                o.checks
+                    .push(check("docs", &"a".repeat(40), "completed", Some("failure")))
+            }),
+        ];
+        for (name, change) in admitted {
+            let mut observation = ready(&plan);
+            change(&mut observation);
+            assert_eq!(refusal_code(&plan, &observation), None, "{name}");
+        }
+    }
+
+    #[test]
+    // r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.approvals.scenario.distinct]
+    fn a_stricter_current_policy_refuses_evidence_admitted_under_the_old_one() {
+        let old = plan();
+        let observation = ready(&old);
+        assert_eq!(refusal_code(&old, &observation), None);
+        let mut more_approvals = old.clone();
+        more_approvals.required_approvals = 2;
+        assert_eq!(
+            refusal_code(&more_approvals, &observation).as_deref(),
+            Some("github_landing_approvals")
+        );
+        let mut more_checks = old.clone();
+        more_checks.required_checks.push("lint".to_string());
+        assert_eq!(
+            refusal_code(&more_checks, &observation).as_deref(),
+            Some("github_landing_check_missing")
+        );
+        let mut moved = old.clone();
+        moved.base_head = "d".repeat(40);
+        assert_eq!(
+            refusal_code(&moved, &observation).as_deref(),
+            Some("github_landing_pull")
+        );
+        for malformed in [
+            LandingPlan {
+                required_checks: Vec::new(),
+                ..old.clone()
+            },
+            LandingPlan {
+                required_checks: vec!["build".to_string(), "build".to_string()],
+                ..old.clone()
+            },
+            LandingPlan {
+                schema: "kiln.github-landing-plan.v0".to_string(),
+                ..old.clone()
+            },
+        ] {
+            assert_eq!(
+                refusal_code(&malformed, &observation).as_deref(),
+                Some("github_landing_plan")
+            );
+        }
+    }
+
+    #[test]
+    // r[verify kiln.github.landing.scenario.refused] r[verify kiln.github.landing.approvals]
+    fn an_approval_on_an_earlier_head_is_never_reused() {
+        let (endpoint, server) = serve(vec![
+            ("200 OK", pull_body()),
+            ("200 OK", checks_body()),
+            (
+                "200 OK",
+                serde_json::json!([{"user": {"login": "reviewer"}, "state": "APPROVED", "commit_id": "c".repeat(40)}])
+                    .to_string(),
+            ),
+        ]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            client.observe(&plan()),
+            Err(PortFailure::Unknown(InfrastructureFailure { code, .. })) if code == "github_landing_review_revision"
+        ));
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert!(requests.iter().all(|request| request.starts_with("GET ")));
+    }
+
+    #[test]
+    // r[verify kiln.github.landing.merge.scenario.refused]
+    fn an_unmerged_pull_request_recovers_nothing_and_a_closed_one_refuses() {
+        let (endpoint, server) = serve(vec![("200 OK", pull_body())]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(client.recover_landed(&plan()), Ok(None)));
+        assert_eq!(server.join().unwrap_or_else(|_| unreachable!()).len(), 1);
+        let mut closed: serde_json::Value =
+            serde_json::from_str(&pull_body()).unwrap_or_else(|_| unreachable!());
+        *closed.get_mut("state").unwrap_or_else(|| unreachable!()) = "closed".into();
+        let (endpoint, server) = serve(vec![("200 OK", closed.to_string())]);
+        let client = GithubLandingClient::new_fixture(token(), 5000, &endpoint)
+            .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            client.recover_landed(&plan()),
+            Err(PortFailure::Domain(diagnostic)) if diagnostic.code == "github_landing_merge_mismatch"
+        ));
+        let requests = server.join().unwrap_or_else(|_| unreachable!());
+        assert!(requests.iter().all(|request| request.starts_with("GET ")));
     }
 }
