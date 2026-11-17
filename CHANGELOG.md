@@ -61,6 +61,12 @@ entry describes the source tree prepared for the first tagged release.
 - Exact local Nix derivation builds with rooted outputs, bounded logs and a
   read-only cache projection. (exercised locally; no network acquisition,
   substitution or flake-evaluation claim)
+- Opt-in parallel Rust frontend evaluation: a pinned-nightly `-Zthreads`
+  benchmark under independent per-job CPU and memory scopes. It retains cgroup
+  CPU, memory peak, OOM, queue and wall observations, measures rustc without a
+  configured compiler-cache wrapper, and analyzes only same-nightly matched
+  cells. Default builds are unchanged. (#88; harness smoke-tested once; no
+  decision matrix run, so no recommendation)
 
 **Gates, evidence and interchange**
 

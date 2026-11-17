@@ -16,6 +16,7 @@ let ActiveRoots = [
   ".cairn/changes/qualify-implementation-composition/specs/implementation-qualification/spec.md",
   ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
   ".cairn/changes/benchmark-artifact-readiness/specs/artifact-readiness/spec.md",
+  ".cairn/changes/evaluate-parallel-frontend-builds/specs/parallel-frontend-evaluation/spec.md",
 ]
 in
 let Active =

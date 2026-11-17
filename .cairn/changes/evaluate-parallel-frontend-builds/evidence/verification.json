@@ -1,0 +1,63 @@
+{
+  "observed_on": "2026-11-16",
+  "issue": "https://github.com/OnixResearch/kiln/issues/88",
+  "scope": "Harness review, unit tests and one mechanics smoke run on a shared, loaded development host. Not the decision matrix and not evidence for or against parallel frontend threads.",
+  "source_parent_revision": "470e8be34846b6ff09d8650586879c59f6999d4a",
+  "checks": [
+    {
+      "command": "python3 -m unittest scripts/test_parallel_frontend.py",
+      "result": "pass",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "command": "cairn gate proposal|design|tasks evaluate-parallel-frontend-builds --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "PASS for all three gates"
+    }
+  ],
+  "review_fixes": [
+    {
+      "defect": "systemd-run expands ${...} in its arguments by default, which erased the scope wrapper's cgroup path; every job copied the root cgroup's cpu.stat (about 4.9 million CPU seconds) and found no memory.peak or memory.events.",
+      "fix": "pass --expand-environment=no to systemd-run; the unit test asserts the flag and that the wrapper keeps ${path}",
+      "observed_after": "per-job cpu_seconds 5.5 to 6.9, memory.peak 0.80 to 0.99 GB and oom_kill 0 in the smoke rows"
+    },
+    {
+      "defect": "user Cargo configuration routes rustc through a kache build.rustc-wrapper, so measured compilations could be cache hits; build.jobs was also inherited from user configuration.",
+      "fix": "every Cargo invocation sets RUSTC_WRAPPER and RUSTC_WORKSPACE_WRAPPER empty, CARGO_INCREMENTAL=0 and CARGO_BUILD_JOBS from --cargo-jobs; rows retain cargo_environment and analysis treats cargo_jobs as a control",
+      "observed_after": "a probe crate's verbose rustc invocation names the kache wrapper without the override and does not with it; the smoke rows' rustc_commands contain no wrapper"
+    },
+    {
+      "defect": "an unescaped percent sign in --cpu-quota help made argparse raise before admission, so the CLI could not start.",
+      "fix": "escape the help text; a unit test drives main() and expects a usage refusal with no subprocess call"
+    },
+    {
+      "defect": "each job's private copy of the warm target and both templates were retained, so a full matrix could exhaust disk.",
+      "fix": "remove each private target after measurement and hashing, and each template after its toolchain's batches; rows record target_retained=false"
+    }
+  ],
+  "smoke_run": {
+    "purpose": "Prove scope limits, counter capture, compiler invocation recording, analysis and cleanup execute end to end.",
+    "command": "TMPDIR=/run/user/1555/kiln-pf-tmp CARGO_NET_OFFLINE=true python3 scripts/parallel-frontend-bench.py --toolchain nightly-2026-07-22 --baseline-toolchain 1.88.0 --crate onix-kiln-core --threads 1,2 --concurrency 1,2 --repeats 1 --cpu-quota 200% --memory-max 2G --cargo-jobs 2 --source-revision jj-working-copy-d93d7737 --out /run/user/1555/kiln-pf-smoke",
+    "source_revision_note": "uncommitted jj working copy over 470e8be3; not an exact source revision",
+    "host": {
+      "cpus": 32,
+      "load_average_at_start": "about 20, from unrelated work",
+      "systemd": "262"
+    },
+    "rows": 9,
+    "successes": 9,
+    "artifacts": {
+      "evidence/harness-smoke/jobs.jsonl": "145002d34034c455c757a09ff05f6d692d2eeee7695c7191ec06bdf01687f5ec",
+      "evidence/harness-smoke/analysis.json": "ed290f55928518fb74760473557bc1c8635fffdfd2e9543e4405d780eb0c730b"
+    },
+    "analysis_outcome": "every cell is insufficient (one repeat), so no recommendation"
+  },
+  "pending": [
+    "Run the decision matrix on a quiet controlled host with an exact source revision and retain jobs.jsonl and analysis.json.",
+    "Write the recommendation, or decline one, from that retained evidence."
+  ],
+  "non_claims": [
+    "The smoke timings came from a loaded shared host and one repeat; they are not comparable measurements.",
+    "No default toolchain, Cargo configuration or production build flag changed."
+  ]
+}
