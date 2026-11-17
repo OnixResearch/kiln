@@ -386,6 +386,10 @@ pub fn execute<A: RetainedAuthority>(
     })
 }
 
+/// Pause and resume adopt their target state only from the exact unfinished
+/// operation's native readback after the confinement barrier; any other reply
+/// leaves the control uncertain or is refused before the host is touched.
+// r[impl kiln.hosted.mobility.runtime.scenario.control] r[impl kiln.hosted.mobility.runtime.scenario.control-observed]
 fn execute_with_effect<A: RetainedAuthority>(
     db: &mut Connection,
     authority: &mut A,
@@ -955,7 +959,10 @@ fn host_control_observation(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use kiln_microvm::retained::{Placement, RetainedResources, SessionIdentity};
+    use kiln_microvm::retained::{ControlStatus, Placement, RetainedResources, SessionIdentity};
+    fn id(c: char) -> ContentId {
+        ContentId::from_blake3_hex(c.to_string().repeat(64)).unwrap_or_else(|_| unreachable!())
+    }
     fn database() -> (tempfile::TempDir, Connection) {
         let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
         let db = Connection::open(root.path().join("retained.sqlite"))
@@ -1248,6 +1255,258 @@ mod tests {
             })
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(occupied, 1);
+    }
+
+    // r[verify kiln.hosted.mobility.runtime]
+    #[test]
+    fn concurrent_sessions_cannot_share_identity_slot_or_local_resource() {
+        let (_root, mut db) = database();
+        init(&db).unwrap_or_else(|_| unreachable!());
+        let mut authority = FixtureReservation;
+        let first = operation();
+        register(&mut db, &mut authority, &first).unwrap_or_else(|_| unreachable!());
+        let mut second = first.clone();
+        second.session = RetainedSession::admit(
+            SessionIdentity {
+                session: id('2'),
+                vm: id('3'),
+                ..first.session.identity.clone()
+            },
+            first.session.placement.clone(),
+            RetainedResources {
+                slot: 2,
+                ..first.session.resources
+            },
+        )
+        .unwrap_or_else(|_| unreachable!());
+        second.binding = Binding {
+            directory: "/run/kiln/vm-b".into(),
+            unit: "kiln-retained-b".into(),
+            workspace: "/run/kiln/vm-b/workspace.raw".into(),
+            ..first.binding.clone()
+        };
+        let collisions: [fn(&mut Operation); 4] = [
+            |operation| operation.session.identity.session = id('b'),
+            |operation| operation.session.resources.slot = 1,
+            |operation| operation.binding.unit = "kiln-retained-a".into(),
+            |operation| {
+                operation.binding.directory = "/run/kiln/vm-a".into();
+                operation.binding.workspace = "/run/kiln/vm-a/second.raw".into();
+            },
+        ];
+        for collide in collisions {
+            let mut colliding = second.clone();
+            collide(&mut colliding);
+            assert!(register(&mut db, &mut authority, &colliding).is_err());
+        }
+        let sessions: u32 = db
+            .query_row("SELECT COUNT(*) FROM hosted_retained_session", [], |row| {
+                row.get(0)
+            })
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(sessions, 1);
+        register(&mut db, &mut authority, &second).unwrap_or_else(|_| unreachable!());
+        let occupied: u32 = db
+            .query_row(
+                "SELECT COUNT(*) FROM hosted_retained_session WHERE occupied=1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(occupied, 2);
+    }
+
+    fn observed_session(outcome: Result<Outcome, String>) -> RetainedSession {
+        match outcome {
+            Ok(Outcome::Observed(session)) => *session,
+            other => unreachable!("fixture effect was not observed: {other:?}"),
+        }
+    }
+
+    /// Register, cold start and resume the fixture session; the returned
+    /// template is bound to the observed running record.
+    fn running(db: &mut Connection, authority: &mut FixtureReservation) -> Operation {
+        let mut operation = operation();
+        register(db, authority, &operation).unwrap_or_else(|_| unreachable!());
+        operation.session =
+            observed_session(execute_with_effect(db, authority, &operation, |_| {
+                Ok(EffectEvidence::VmmState("Paused".into()))
+            }));
+        operation.operation = id('c');
+        operation.action = Action::Resume;
+        operation.session =
+            observed_session(execute_with_effect(db, authority, &operation, |_| {
+                Ok(EffectEvidence::VmmState("Running".into()))
+            }));
+        operation
+    }
+
+    fn stored(db: &Connection) -> (RetainedSession, bool) {
+        let (record, occupied): (String, bool) = db
+            .query_row(
+                "SELECT record,occupied FROM hosted_retained_session",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap_or_else(|_| unreachable!());
+        (
+            serde_json::from_str(&record).unwrap_or_else(|_| unreachable!()),
+            occupied,
+        )
+    }
+
+    // A host that accepts the pause while its readback still reports Running
+    // completed prematurely; the observer must catch it.
+    // r[verify kiln.hosted.mobility.runtime.scenario.control]
+    #[test]
+    fn accepted_pause_without_paused_readback_stays_uncertain_and_blocks_checkpoint() {
+        let (root, mut db) = database();
+        init(&db).unwrap_or_else(|_| unreachable!());
+        let mut authority = FixtureReservation;
+        let mut pause = running(&mut db, &mut authority);
+        pause.operation = id('d');
+        pause.action = Action::Pause;
+        let mut dispatched = 0;
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &pause, |mode| {
+                assert_eq!(mode, EffectMode::Dispatch);
+                dispatched += 1;
+                Ok(EffectEvidence::VmmState("Running".into()))
+            }),
+            Ok(Outcome::ReconcileRequired)
+        );
+        let (uncertain, occupied) = stored(&db);
+        assert_eq!(uncertain.state, RetainedState::ReconcileRequired);
+        assert_eq!(
+            uncertain
+                .control
+                .as_ref()
+                .map(|control| (control.operation.clone(), control.status)),
+            Some((pause.operation.clone(), ControlStatus::Uncertain))
+        );
+        assert!(occupied);
+        let mut snapshot = pause.clone();
+        snapshot.operation = id('e');
+        snapshot.session = uncertain.clone();
+        snapshot.action = Action::Snapshot {
+            checkpoint: root.path().join("checkpoint"),
+        };
+        assert!(
+            execute_with_effect(&mut db, &mut authority, &snapshot, |_| unreachable!(
+                "an uncertain pause admits no checkpoint"
+            ))
+            .is_err()
+        );
+        let target = Placement {
+            host: "host-b".into(),
+            generation: 2,
+        };
+        assert!(
+            kiln_microvm::handoff::PausedHandoff::begin(
+                &uncertain,
+                &owner(&uncertain),
+                target,
+                id('e')
+            )
+            .is_err()
+        );
+        // Reconciliation only observes, and Running still is not Paused.
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &pause, |mode| {
+                assert_eq!(mode, EffectMode::ObserveOnly);
+                Ok(EffectEvidence::VmmState("Running".into()))
+            }),
+            Ok(Outcome::ReconcileRequired)
+        );
+        assert_eq!(stored(&db).0.state, RetainedState::ReconcileRequired);
+        // The healthy equivalent: the exact Paused readback admits a checkpoint.
+        let paused = observed_session(execute_with_effect(
+            &mut db,
+            &mut authority,
+            &pause,
+            |mode| {
+                assert_eq!(mode, EffectMode::ObserveOnly);
+                Ok(EffectEvidence::VmmState("Paused".into()))
+            },
+        ));
+        assert_eq!(paused.state, RetainedState::Paused);
+        assert_eq!(dispatched, 1);
+        snapshot.session = paused;
+        let captured = execute_with_effect(&mut db, &mut authority, &snapshot, |mode| {
+            assert_eq!(mode, EffectMode::Dispatch);
+            Ok(EffectEvidence::VmmState("Paused".into()))
+        });
+        assert!(
+            matches!(captured, Ok(Outcome::Observed(session)) if session.state == RetainedState::Paused)
+        );
+    }
+
+    // r[verify kiln.hosted.mobility.runtime.scenario.control-observed]
+    #[test]
+    fn crossed_or_late_control_replies_never_adopt_state_for_another_operation_or_owner() {
+        let (_root, mut db) = database();
+        init(&db).unwrap_or_else(|_| unreachable!());
+        let mut authority = FixtureReservation;
+        let mut pause = running(&mut db, &mut authority);
+        pause.operation = id('d');
+        pause.action = Action::Pause;
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &pause, |_| Err(
+                "lost pause response".into()
+            )),
+            Ok(Outcome::ReconcileRequired)
+        );
+        let (uncertain, _) = stored(&db);
+        let mut crossed = pause.clone();
+        crossed.operation = id('f');
+        crossed.action = Action::Resume;
+        crossed.session = uncertain.clone();
+        assert!(
+            execute_with_effect(&mut db, &mut authority, &crossed, |_| unreachable!(
+                "a crossed control never reaches the host"
+            ))
+            .is_err()
+        );
+        assert_eq!(stored(&db).0, uncertain);
+        // Only the pause's own target state is adopted from its readback.
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &pause, |_| Ok(
+                EffectEvidence::VmmState("Running".into())
+            )),
+            Ok(Outcome::ReconcileRequired)
+        );
+        let paused = observed_session(execute_with_effect(&mut db, &mut authority, &pause, |_| {
+            Ok(EffectEvidence::VmmState("Paused".into()))
+        }));
+        assert_eq!(paused.state, RetainedState::Paused);
+        // A resume left unfinished, then a successor owner takes the record.
+        let mut resume = pause.clone();
+        resume.operation = id('7');
+        resume.action = Action::Resume;
+        resume.session = paused;
+        assert_eq!(
+            execute_with_effect(&mut db, &mut authority, &resume, |_| Err(
+                "lost resume response".into()
+            )),
+            Ok(Outcome::ReconcileRequired)
+        );
+        let mut successor = stored(&db).0;
+        successor.identity.fence += 1;
+        successor.state = RetainedState::Paused;
+        successor.control = None;
+        successor.cause = None;
+        db.execute(
+            "UPDATE hosted_retained_session SET record=?1",
+            [serde_json::to_string(&successor).unwrap_or_else(|_| unreachable!())],
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(
+            execute_with_effect(&mut db, &mut authority, &resume, |_| unreachable!(
+                "a late reply never reaches the host"
+            ))
+            .is_err()
+        );
+        assert_eq!(stored(&db).0, successor);
     }
 }
 

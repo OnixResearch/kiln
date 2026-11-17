@@ -767,6 +767,13 @@ mod tests {
             .begin_migration(&token, "host-b".to_string(), 2, content('4'))
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(session.state, RetainedState::Migrating);
+        // Retirement and a second migration wait for this migration's outcome.
+        assert!(session.begin_retire(&token).is_err());
+        assert!(
+            session
+                .begin_migration(&token, "host-c".to_string(), 3, content('5'))
+                .is_err()
+        );
         let mut evidence = drain::CutoverEvidence {
             operation: content('4'),
             session: session.identity.session.clone(),

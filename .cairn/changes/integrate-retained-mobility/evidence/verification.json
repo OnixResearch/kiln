@@ -1,0 +1,80 @@
+{
+  "observed_on": "2026-11-17",
+  "issues": [
+    "https://github.com/OnixResearch/kiln/issues/52",
+    "https://github.com/OnixResearch/kiln/issues/53",
+    "https://github.com/OnixResearch/kiln/issues/54",
+    "https://github.com/OnixResearch/kiln/issues/55"
+  ],
+  "scope": "Parent review of the landed retained host effects, paired checkpoints, durable object transfer, Iroh migration bridge, paused handoff and drain decisions against tasks 1.1, 1.2, 2.1, 2.2 and 3.1, plus the missing pause/resume control, target-receipt and local-resource collision fixtures. Unit and journal fixtures with a fixture reservation; no VMM, KVM host, Aspen provider or cross-host stream was used.",
+  "source_parent_revision": "00568832bb4a7d22e331d2f8206a1b83f94e563c",
+  "immediate_outcome": "The control scenarios are executable: an accepted pause whose readback still reports Running stays uncertain, occupies its slot and admits neither a checkpoint nor a paused handoff until an exact Paused readback; crossed operations and late replies after a successor owner never reach the host or change the record. A migrating source refuses retirement and a second migration. Target admission refuses a receipt that differs in any operation, checkpoint, placement, target owner, cutover checkpoint, fencing or acknowledgement fact, and a second session cannot register the same identity, host slot, unit or VM directory.",
+  "durable_capability": "kiln_hosted::microvm::retained::execute and kiln_microvm::retained remain the single owner of retained lifecycle mutations; the new fixtures pin their requested-versus-observed boundary.",
+  "owner": "Kiln hosted/microvm adapter maintainers",
+  "review": {
+    "1.1": "execute_with_effect commits each operation intent before the host effect; an exact duplicate returns its prior observation or reconciles a pause/resume by observation only; pending_crash_and_duplicate_slot_preserve_reservation and exact_replay_stale_body_and_unknown_host_effect_never_redispatch cover crash and replay.",
+    "1.2": "Retirement releases capacity only after cleanup_unit observes an empty, inactive or absent systemd unit (lost_retirement_ack_keeps_capacity_and_never_repeats_cleanup); host_effect observes confinement before pause, resume, snapshot and retirement and after launch or restore.",
+    "2.1": "kiln_adapter_iroh::migration::bridge admits only an established authenticated peer with the exact ALPN, one stream and a single-use provider reservation, with bounded bytes, bandwidth and deadline; CheckpointStore verifies, syncs and single-uses streamed objects (streamed_objects_are_verified_durable_and_single_use).",
+    "2.2": "host_effect refuses any binding whose observed VMM, kernel, initrd, CPU, device and memory-backing profile identity differs; drain_disposition, move_economical, after_dispatch and require_live_capability keep drain evidence-based and deny live cutover.",
+    "3.1": "docs/retained-sessions.md and docs/migration-bridge.md describe the shipped behavior; this review adds the missing control fixtures.",
+    "handoff_53": "originating_identity_is_enforced_through_reopened_phases and independent_checkpoint_expectation_mismatches_refuse_without_advancement cover session substitution, reopened phases, an execution identity distinct from the session and the same negatives on admit_checkpoint and the full route; handoff_refuses_out_of_order_and_stale_target_commands now resolves every target receipt fact.",
+    "channels_54": "concurrent_sessions_cannot_share_identity_slot_or_local_resource covers local collisions; peer, ALPN, 0-RTT, plan and reservation refusals are in the bridge and its admission tests. Cross-host host control, endpoint advertisement and relay policy remain with the Aspen provider."
+  },
+  "checks": [
+    {
+      "command": "cargo test --offline --locked -p kiln-microvm --lib",
+      "result": "pass",
+      "passed": 58,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-hosted --lib microvm::",
+      "result": "pass, including accepted_pause_without_paused_readback_stays_uncertain_and_blocks_checkpoint, crossed_or_late_control_replies_never_adopt_state_for_another_operation_or_owner and concurrent_sessions_cannot_share_identity_slot_or_local_resource",
+      "passed": 20,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-adapter-iroh",
+      "result": "pass",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "command": "cargo clippy --offline --locked -p kiln-hosted -p kiln-microvm --all-targets -- -D warnings; cargo fmt --all --check",
+      "result": "pass"
+    }
+  ],
+  "cargo_environment": {
+    "rustc": "1.88.0",
+    "wrapper": "dev-shell environment with pkg-config and OpenSSL and a private TMPDIR"
+  },
+  "cairn": {
+    "gates": "tasks PASS after the review edits; proposal and design PASS are recorded in lifecycle.json",
+    "validate": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json: valid"
+  },
+  "traceability": {
+    "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+    "resolved_missing": [
+      "kiln.hosted.mobility.runtime.scenario.control",
+      "kiln.hosted.mobility.runtime.scenario.control-observed"
+    ],
+    "pre_existing_missing": [
+      "kiln.github.landing.merge.scenario.landed",
+      "kiln.github.source_status.scenario.close"
+    ],
+    "pre_existing_dangling": [
+      "kiln.dashboard.campaign.projection",
+      "kiln.github.publication.scenario.upload"
+    ],
+    "note": "The command still exits nonzero for these pre-existing entries only."
+  },
+  "remaining": {
+    "3.2": "Operator qualification on two compatible KVM hosts with the actual Aspen/fencing provider; requires real hosts.",
+    "3.3": "Aspen #15 current-placement CAS, volume/effect fencing and admitted cross-host streams, Lattice #10/#11 guest profile and reconnect gateway, and onix-core service integration; the selected Aspen authority refuses every retained effect until then."
+  },
+  "non_claims": [
+    "FixtureReservation is a journal fixture, not a distributed authority; SelectedAspenAuthority still refuses every retained effect.",
+    "No Cloud Hypervisor process, KVM guest, Iroh connection between hosts, stopped or live migration, drain or hardware campaign was run.",
+    "Exact profile equality is the only admitted compatibility rule; no directional compatibility matrix or guest clock oracle is claimed."
+  ]
+}

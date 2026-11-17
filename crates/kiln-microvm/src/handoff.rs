@@ -959,22 +959,39 @@ mod tests {
             .manifest_identity
             .clone()
             .unwrap_or_else(|| unreachable!());
-        let mut receipt =
-            target_receipt(&session, checkpoint.clone(), cutover(&session, checkpoint));
-        receipt.target.generation += 1;
-        let before = handoff.clone();
+        let exact = target_receipt(&session, checkpoint.clone(), cutover(&session, checkpoint));
         let target_owner = OwnerToken {
             session: session.identity.session.clone(),
             fence: session.identity.fence,
             host: target.host.clone(),
             generation: target.generation,
         };
-        assert!(
-            handoff
-                .record_target_admitted(&session, &owner, &target_owner, &receipt)
-                .is_err()
-        );
-        assert_eq!(handoff, before);
+        // Each scope fact is resolved; a valid native reference alone is insufficient.
+        for change in 0..9 {
+            let mut receipt = exact.clone();
+            match change {
+                0 => receipt.operation = content('8'),
+                1 => receipt.checkpoint = content('9'),
+                2 => receipt.source.generation += 1,
+                3 => receipt.target.generation += 1,
+                4 => receipt.target_session = content('a'),
+                5 => receipt.target_fence += 1,
+                6 => receipt.cutover.checkpoint = None,
+                7 => receipt.cutover.source_volume_fenced = None,
+                _ => receipt.cutover.destination_durable_ack = None,
+            }
+            let before = handoff.clone();
+            assert!(
+                handoff
+                    .record_target_admitted(&session, &owner, &target_owner, &receipt)
+                    .is_err()
+            );
+            assert_eq!(handoff, before);
+        }
+        handoff
+            .record_target_admitted(&session, &owner, &target_owner, &exact)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(handoff.phase, HandoffPhase::TargetAdmitted);
     }
 
     // r[verify kiln.hosted.handoff.order.scenario.order]
