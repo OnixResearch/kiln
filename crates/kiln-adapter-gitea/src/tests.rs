@@ -681,6 +681,11 @@ fn http_event(delivery: u64, duplicate_header: bool) -> Vec<u8> {
     request
 }
 
+/// Upper bound on waiting for the worker's asynchronous dispatch.
+const DISPATCH_WAIT: Duration = Duration::from_secs(10);
+/// How often the test checks for that dispatch.
+const DISPATCH_POLL: Duration = Duration::from_millis(10);
+
 #[test]
 // r[verify kiln.gitea.shell]
 // r[verify kiln.gitea.authentication]
@@ -739,6 +744,14 @@ fn http_daemon_survives_more_than_concurrency_limit_and_rejects_ambiguous_header
             .unwrap_or_else(|_| unreachable!())
             .is_some()
     );
+    // The worker dispatches an accepted delivery on its own poll; wait for that
+    // (bounded) so stopping the server does not race the single dispatch.
+    let deadline = Instant::now() + DISPATCH_WAIT;
+    while remote.lock().unwrap_or_else(|_| unreachable!()).dispatches == 0
+        && Instant::now() < deadline
+    {
+        std::thread::sleep(DISPATCH_POLL);
+    }
     stop.store(true, Ordering::Release);
     server
         .join()
