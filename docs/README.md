@@ -48,7 +48,8 @@ The sections below group the maintained documents by the question they answer.
 - [Aspen runtime backend](aspen-runtime-backend.md): workload-neutral substrate; Kiln keeps CI meaning.
 - [Kiln Aspen host](../runtime/kiln-aspen-host/README.md): deployable shell for private Kiln-on-Aspen cohorts.
 - [Artifact readiness](artifact-readiness.md): opt-in real hosted/Nix phase measurements and matched-cohort analysis; no unmeasured speedup claim.
-- [Parallel frontend evaluation](parallel-frontend-evaluation.md): opt-in pinned-nightly `-Zthreads` benchmark under per-job contention limits; default builds unchanged and no recommendation without matched evidence.
+- [Parallel frontend evaluation](parallel-frontend-evaluation.md): opt-in pinned-nightly `-Zthreads` benchmark under per-job contention limits, with a retained two-level matrix and a quota-bounded recommendation; default builds unchanged.
+- [Archil workspace evaluation](archil-workspace-evaluation.md): versioned workspace-provider profile contract and a documentation-review comparison; retained as reference, no provider adopted.
 - [celld event store](celld-event-store.md): versioned Worker entry for the pinned celld SQLite API.
 
 ## Gates, review and merge checks
@@ -66,6 +67,7 @@ The sections below group the maintained documents by the question they answer.
 - [HTTP API contract](http-api-contract.md): GET-only OpenAPI contract for runs, bindings and artifacts, validated against real responses; lockstep only.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
 - [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
+- [Console port inventory](console-port-inventory.md): checked route, shell and state inventory of the live console, the reference for its Rats/Meteorite port; no route is migrated.
 
 ## Hosted composition and commercial plan
 

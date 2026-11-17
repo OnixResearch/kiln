@@ -45,6 +45,15 @@ entry describes the source tree prepared for the first tagged release.
   checked for tampering and staleness but never admitted. Monorepo scopes
   convert through a labeled compatibility profile. (#75; unit tests, doctests
   and Nickel fixtures; no consumer or authority wiring yet)
+- A versioned durable-workspace provider profile in typed Nickel keeps canonical
+  BLAKE3 identities apart from provider disk, branch and checkpoint references
+  and refuses profiles that rely on a documented-insufficient mechanism: a
+  branch as an access boundary, checkpoints on a native-format bucket, a bucket
+  copy as a durable acknowledgement, forced ownership as a retry, or a vendor
+  claim as qualification. A documentation review of Archil against the
+  projected-workspace contract retains it as a reference, with branch-per-attempt
+  isolation the one mechanism worth qualifying for unrestricted profiles. (#82;
+  Nickel fixtures; no Archil account, adapter or live experiment)
 
 **Forges and triggers**
 
@@ -73,8 +82,12 @@ entry describes the source tree prepared for the first tagged release.
   benchmark under independent per-job CPU and memory scopes. It retains cgroup
   CPU, memory peak, OOM, queue and wall observations, measures rustc without a
   configured compiler-cache wrapper, and analyzes only same-nightly matched
-  cells. Default builds are unchanged. (#88; harness smoke-tested once; no
-  decision matrix run, so no recommendation)
+  cells. A retained `onix-kiln-core` matrix at two contention levels recommends
+  frontend threads no higher than the per-job CPU quota: threads=4 raised
+  completed checks per minute by 41% with every quota reserved, while threads=8
+  in a four-CPU quota lost 11% against threads=4. Build mode now finds a
+  renamed library by its package, and its repeat hashes matched. Default builds
+  are unchanged. (#88; one crate, host, nightly and quota)
 
 **Gates, evidence and interchange**
 
@@ -190,6 +203,14 @@ entry describes the source tree prepared for the first tagged release.
   deep link; the baseline never launches and observations never change CI,
   review or merge state. (exercised in one local canonical browser cohort; a
   historical baseline and a moved candidate are unit-tested only)
+- A checked inventory of the live console as the reference for its
+  Rats/Meteorite port: every registered destination with its rollout cohort,
+  page panel, renderer and supporting modules, stylesheets, API paths, route
+  parameters, states and the Node tests that load its renderer, plus the shared
+  shell components and their anchors. A Node test in the `live-console-ui` check
+  fails on any omitted destination or drifted reference, and the guide records
+  which pages still lack a Node test of their renderer. (#68; Node checks over
+  the served sources; no route ported and no visual parity claimed)
 
 **Change review**
 

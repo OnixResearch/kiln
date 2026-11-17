@@ -13,6 +13,16 @@
     {
       "command": "cairn gate proposal|design|tasks evaluate-parallel-frontend-builds --root . --policy cairn-policy/generated/cairn-policy.json",
       "result": "PASS for all three gates"
+    },
+    {
+      "command": "python3 -m unittest scripts/test_parallel_frontend.py",
+      "result": "pass after the artifact lookup fix",
+      "passed": 13,
+      "failed": 0
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.nickel path:$PWD#checks.x86_64-linux.live-console-ui --no-link -L --no-write-lock-file --option builders ''",
+      "result": "pass on the final batch source"
     }
   ],
   "review_fixes": [
@@ -52,12 +62,46 @@
     },
     "analysis_outcome": "every cell is insufficient (one repeat), so no recommendation"
   },
-  "pending": [
-    "Run the decision matrix on a quiet controlled host with an exact source revision and retain jobs.jsonl and analysis.json.",
-    "Write the recommendation, or decline one, from that retained evidence."
-  ],
+  "pending": [],
   "non_claims": [
     "The smoke timings came from a loaded shared host and one repeat; they are not comparable measurements.",
-    "No default toolchain, Cargo configuration or production build flag changed."
-  ]
+    "No default toolchain, Cargo configuration or production build flag changed.",
+    "One crate, one host, one nightly, one per-job quota and two contention levels; not a fleet-wide or cross-host result.",
+    "Equal repeat hashes are local repeat evidence, not a deterministic-compiler claim."
+  ],
+  "matrix": {
+    "observed_on": "2026-11-17",
+    "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+    "source_acquisition": "git archive of the exact revision into a private directory; no working-copy edits",
+    "harness": "scripts/parallel-frontend-bench.py and scripts/parallel_frontend_analysis.py as committed with this change; the build-mode run used the artifact lookup fixed in this change",
+    "check": {
+      "command": "TMPDIR=<private> CARGO_NET_OFFLINE=true python3 scripts/parallel-frontend-bench.py --toolchain nightly-2026-07-22 --baseline-toolchain 1.88.0 --crate onix-kiln-core --threads 1,2,4,8 --concurrency 1,8 --repeats 3 --cpu-quota 400% --memory-max 4G --cargo-jobs 4 --source-revision e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d --out <new>",
+      "jobs": 135,
+      "successes": 135,
+      "failures": 0,
+      "oom_kills": 0,
+      "artifacts": {
+        "evidence/matrix-check/jobs.jsonl": "3f57f0f12a61408b7f515c9c9c2dbbc1870ebb5a271bc46bc15d565179e395b8",
+        "evidence/matrix-check/analysis.json": "ab1b2350b2d4998e850b803ac8379c25840abc1838676cef581b57648c09dc17"
+      },
+      "recommendations": {
+        "concurrency_1": "threads=8 recommended",
+        "concurrency_8": "threads=4 recommended"
+      }
+    },
+    "build": {
+      "command": "same controls with --mode build --threads 1,8 --repeats 2 and b3sum on PATH",
+      "jobs": 52,
+      "successes": 52,
+      "failures": 0,
+      "repeat_hashes": "equal within every concurrency-1 cell (1.88.0, nightly threads=1, nightly threads=8); threads=1 and threads=8 artifacts differ from each other",
+      "artifacts": {
+        "evidence/matrix-build/jobs.jsonl": "8d1738fd37d651790e1ac360a2c765c489743f10d26b6e9f0f0b165f988cf55c",
+        "evidence/matrix-build/analysis.json": "b25cf2a27b58c39157ba096c612ea2ac70df93e78b3cea07910781694d973819"
+      },
+      "first_attempt": "An earlier build-mode run marked every job failed because artifact lookup compared Cargo's library target name with the package name, and onix-kiln-core builds libkiln_core; its output was discarded after the defect was fixed and covered by a unit test."
+    },
+    "host": "32 CPUs, 186 GiB; one-minute load about 4 from unrelated work when the check matrix started and about 10 when the build run started; each run's start and end load is retained in host-load.txt",
+    "recommendation": "docs/parallel-frontend-evaluation.md#results-17-november-2026"
+  }
 }

@@ -8,5 +8,5 @@
 
 ## Phase 2: Evidence and decision
 
-- [ ] [serial] Run the matrix on a quiet controlled machine and retain results. r[kiln.build.parallel_frontend_evaluation]
-- [ ] [serial] Write the recommendation based on retained evidence. r[kiln.build.parallel_frontend_evaluation]
+- [x] [serial] Run the matrix on a quiet controlled machine and retain results. r[kiln.build.parallel_frontend_evaluation]
+- [x] [serial] Write the recommendation based on retained evidence. r[kiln.build.parallel_frontend_evaluation]

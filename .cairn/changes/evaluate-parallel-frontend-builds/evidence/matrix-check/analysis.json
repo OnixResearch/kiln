@@ -1,0 +1,734 @@
+{
+  "schema": "kiln.parallel_frontend.analysis.v1",
+  "cells": [
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": null,
+        "toolchain": "1.88.0"
+      },
+      "n": 3,
+      "successes": 3,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 3,
+        "median": 6.087096993,
+        "p95": 6.367823437,
+        "min": 6.03954893,
+        "max": 6.367823437
+      },
+      "end_to_end_s": {
+        "n": 3,
+        "median": 6.094045757,
+        "p95": 6.390517016,
+        "min": 6.071066131,
+        "max": 6.390517016
+      },
+      "cpu_seconds_mean": 6.1140490000000005,
+      "cpu_utilization_mean": 0.24794144560984738,
+      "peak_bytes": {
+        "n": 3,
+        "median": 849874944,
+        "p95": 850046976,
+        "min": 849670144,
+        "max": 850046976
+      },
+      "peak_rss_bytes": {
+        "n": 3,
+        "median": 955826176,
+        "p95": 957849600,
+        "min": 950108160,
+        "max": 957849600
+      },
+      "queue_wait_s": {
+        "n": 3,
+        "median": 0.022693579,
+        "p95": 0.031517201,
+        "min": 0.006948764,
+        "max": 0.031517201
+      },
+      "throughput_per_min": 9.652972306717636,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 9.770382144043927,
+        "p95": 9.869576612854525,
+        "min": 9.33589199220664,
+        "max": 9.869576612854525
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 1,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 3,
+      "successes": 3,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 3,
+        "median": 5.957497961,
+        "p95": 6.176246065,
+        "min": 5.779609445,
+        "max": 6.176246065
+      },
+      "end_to_end_s": {
+        "n": 3,
+        "median": 5.980880022,
+        "p95": 6.193502317,
+        "min": 5.802547312,
+        "max": 6.193502317
+      },
+      "cpu_seconds_mean": 5.932745,
+      "cpu_utilization_mean": 0.2483900851387151,
+      "peak_bytes": {
+        "n": 3,
+        "median": 953184256,
+        "p95": 953569280,
+        "min": 952492032,
+        "max": 953569280
+      },
+      "peak_rss_bytes": {
+        "n": 3,
+        "median": 1062928384,
+        "p95": 1066303488,
+        "min": 1061691392,
+        "max": 1066303488
+      },
+      "queue_wait_s": {
+        "n": 3,
+        "median": 0.022937867,
+        "p95": 0.023382061,
+        "min": 0.017256252,
+        "max": 0.023382061
+      },
+      "throughput_per_min": 9.960160417978486,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 10.01953784831577,
+        "p95": 10.275711168611556,
+        "min": 9.60816922674374,
+        "max": 10.275711168611556
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 2,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 3,
+      "successes": 3,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 3,
+        "median": 4.48221788,
+        "p95": 4.486673334,
+        "min": 4.320679786,
+        "max": 4.486673334
+      },
+      "end_to_end_s": {
+        "n": 3,
+        "median": 4.503728248,
+        "p95": 4.511201105,
+        "min": 4.33683954,
+        "max": 4.511201105
+      },
+      "cpu_seconds_mean": 6.960180666666667,
+      "cpu_utilization_mean": 0.3928161340427803,
+      "peak_bytes": {
+        "n": 3,
+        "median": 1038659584,
+        "p95": 1049673728,
+        "min": 1036775424,
+        "max": 1049673728
+      },
+      "peak_rss_bytes": {
+        "n": 3,
+        "median": 1155506176,
+        "p95": 1159962624,
+        "min": 1147437056,
+        "max": 1159962624
+      },
+      "queue_wait_s": {
+        "n": 3,
+        "median": 0.017054914,
+        "p95": 0.028983225,
+        "min": 0.016159754,
+        "max": 0.028983225
+      },
+      "throughput_per_min": 13.416567885906064,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 13.276581682125533,
+        "p95": 13.741876094009223,
+        "min": 13.2427054454623,
+        "max": 13.741876094009223
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 4,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 3,
+      "successes": 3,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 3,
+        "median": 3.433956059,
+        "p95": 3.633164345,
+        "min": 3.416214256,
+        "max": 3.633164345
+      },
+      "end_to_end_s": {
+        "n": 3,
+        "median": 3.453508251,
+        "p95": 3.662270701,
+        "min": 3.438531448,
+        "max": 3.662270701
+      },
+      "cpu_seconds_mean": 8.160551,
+      "cpu_utilization_mean": 0.5841592055474745,
+      "peak_bytes": {
+        "n": 3,
+        "median": 1056894976,
+        "p95": 1057271808,
+        "min": 1052692480,
+        "max": 1057271808
+      },
+      "peak_rss_bytes": {
+        "n": 3,
+        "median": 1166745600,
+        "p95": 1176207360,
+        "min": 1164955648,
+        "max": 1176207360
+      },
+      "queue_wait_s": {
+        "n": 3,
+        "median": 0.022317192,
+        "p95": 0.029106356,
+        "min": 0.019552192,
+        "max": 0.029106356
+      },
+      "throughput_per_min": 16.96499591883272,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 17.28759808136059,
+        "p95": 17.291184714578417,
+        "min": 16.351403651131793,
+        "max": 17.291184714578417
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 8,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 3,
+      "successes": 3,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 3,
+        "median": 3.176982782,
+        "p95": 3.293695274,
+        "min": 3.090768468,
+        "max": 3.293695274
+      },
+      "end_to_end_s": {
+        "n": 3,
+        "median": 3.198210639,
+        "p95": 3.314271498,
+        "min": 3.111789166,
+        "max": 3.314271498
+      },
+      "cpu_seconds_mean": 7.507776333333333,
+      "cpu_utilization_mean": 0.5888158251216633,
+      "peak_bytes": {
+        "n": 3,
+        "median": 1065795584,
+        "p95": 1066143744,
+        "min": 1061834752,
+        "max": 1066143744
+      },
+      "peak_rss_bytes": {
+        "n": 3,
+        "median": 1176825856,
+        "p95": 1186619392,
+        "min": 1173291008,
+        "max": 1186619392
+      },
+      "queue_wait_s": {
+        "n": 3,
+        "median": 0.021020698,
+        "p95": 0.021227857,
+        "min": 0.020576224,
+        "max": 0.021227857
+      },
+      "throughput_per_min": 18.53382559554402,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 18.622487770028002,
+        "p95": 19.211488488559187,
+        "min": 17.820388766732254,
+        "max": 19.211488488559187
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": null,
+        "toolchain": "1.88.0"
+      },
+      "n": 24,
+      "successes": 24,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 24,
+        "median": 8.4574299155,
+        "p95": 8.877300708,
+        "min": 7.798148854,
+        "max": 8.978112284
+      },
+      "end_to_end_s": {
+        "n": 24,
+        "median": 8.497582321,
+        "p95": 8.917924684,
+        "min": 7.839494083,
+        "max": 9.015802232
+      },
+      "cpu_seconds_mean": 7.933389375,
+      "cpu_utilization_mean": 0.2347135211590282,
+      "peak_bytes": {
+        "n": 24,
+        "median": 857745408.0,
+        "p95": 858550272,
+        "min": 849408000,
+        "max": 858914816
+      },
+      "peak_rss_bytes": {
+        "n": 24,
+        "median": 952477696.0,
+        "p95": 957075456,
+        "min": 946200576,
+        "max": 957284352
+      },
+      "queue_wait_s": {
+        "n": 24,
+        "median": 0.040096791,
+        "p95": 0.043993581,
+        "min": 0.034857481,
+        "max": 0.044241326
+      },
+      "throughput_per_min": 54.184067974636626,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 53.733023960343246,
+        "p95": 55.99230437569238,
+        "min": 52.919286135499604,
+        "max": 55.99230437569238
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 1,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 24,
+      "successes": 24,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 24,
+        "median": 7.8703285475,
+        "p95": 8.264455562,
+        "min": 7.365869247,
+        "max": 8.415871225
+      },
+      "end_to_end_s": {
+        "n": 24,
+        "median": 7.909288965,
+        "p95": 8.306141291,
+        "min": 7.412359495,
+        "max": 8.456897356
+      },
+      "cpu_seconds_mean": 7.459888958333333,
+      "cpu_utilization_mean": 0.23745058183554751,
+      "peak_bytes": {
+        "n": 24,
+        "median": 950007808.0,
+        "p95": 959332352,
+        "min": 946823168,
+        "max": 959455232
+      },
+      "peak_rss_bytes": {
+        "n": 24,
+        "median": 1058529280.0,
+        "p95": 1063112704,
+        "min": 1046646784,
+        "max": 1065058304
+      },
+      "queue_wait_s": {
+        "n": 24,
+        "median": 0.043095961,
+        "p95": 0.047441774,
+        "min": 0.037326536,
+        "max": 0.047704106
+      },
+      "throughput_per_min": 58.76668894748408,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 58.5421493830739,
+        "p95": 61.25314707296355,
+        "min": 56.683150703957345,
+        "max": 61.25314707296355
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 2,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 24,
+      "successes": 24,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 24,
+        "median": 6.2159407715,
+        "p95": 7.173408137,
+        "min": 5.682602513,
+        "max": 7.212080269
+      },
+      "end_to_end_s": {
+        "n": 24,
+        "median": 6.251421252,
+        "p95": 7.204255261,
+        "min": 5.728342181,
+        "max": 7.245681873
+      },
+      "cpu_seconds_mean": 9.59266925,
+      "cpu_utilization_mean": 0.38087452058815285,
+      "peak_bytes": {
+        "n": 24,
+        "median": 1031985152.0,
+        "p95": 1038110720,
+        "min": 1022087168,
+        "max": 1038172160
+      },
+      "peak_rss_bytes": {
+        "n": 24,
+        "median": 1147373568.0,
+        "p95": 1155002368,
+        "min": 1133355008,
+        "max": 1155817472
+      },
+      "queue_wait_s": {
+        "n": 24,
+        "median": 0.0352607685,
+        "p95": 0.045744537,
+        "min": 0.029807051,
+        "max": 0.045744698
+      },
+      "throughput_per_min": 72.6349361150012,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 74.04673889766845,
+        "p95": 79.10812603468207,
+        "min": 65.9781683791247,
+        "max": 79.10812603468207
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 4,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 24,
+      "successes": 24,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 24,
+        "median": 5.580312628,
+        "p95": 5.858006565,
+        "min": 5.242864357,
+        "max": 5.863184685
+      },
+      "end_to_end_s": {
+        "n": 24,
+        "median": 5.622152616,
+        "p95": 5.897457409,
+        "min": 5.291739821,
+        "max": 5.899490535
+      },
+      "cpu_seconds_mean": 11.230311375,
+      "cpu_utilization_mean": 0.5038104606271573,
+      "peak_bytes": {
+        "n": 24,
+        "median": 1055729664.0,
+        "p95": 1063612416,
+        "min": 1052065792,
+        "max": 1063690240
+      },
+      "peak_rss_bytes": {
+        "n": 24,
+        "median": 1170647040.0,
+        "p95": 1176457216,
+        "min": 1165242368,
+        "max": 1178312704
+      },
+      "queue_wait_s": {
+        "n": 24,
+        "median": 0.0386700935,
+        "p95": 0.053698417,
+        "min": 0.031569519,
+        "max": 0.053737651
+      },
+      "throughput_per_min": 82.82780342170031,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 82.45966286914506,
+        "p95": 84.89047655939352,
+        "min": 81.21698166228286,
+        "max": 84.89047655939352
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 8,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 24,
+      "successes": 24,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 24,
+        "median": 6.2782206935,
+        "p95": 7.168910925,
+        "min": 5.249809574,
+        "max": 7.168955789
+      },
+      "end_to_end_s": {
+        "n": 24,
+        "median": 6.3256332565,
+        "p95": 7.212220111,
+        "min": 5.299524745,
+        "max": 7.212220121
+      },
+      "cpu_seconds_mean": 11.761076083333334,
+      "cpu_utilization_mean": 0.4766016930500557,
+      "peak_bytes": {
+        "n": 24,
+        "median": 1071144960.0,
+        "p95": 1088040960,
+        "min": 1050460160,
+        "max": 1095057408
+      },
+      "peak_rss_bytes": {
+        "n": 24,
+        "median": 1183410176.0,
+        "p95": 1206697984,
+        "min": 1168564224,
+        "max": 1207623680
+      },
+      "queue_wait_s": {
+        "n": 24,
+        "median": 0.047020122,
+        "p95": 0.054969824,
+        "min": 0.037658689,
+        "max": 0.055634622
+      },
+      "throughput_per_min": 73.57469762600705,
+      "batch_throughput_per_min": {
+        "n": 3,
+        "median": 72.04312830176809,
+        "p95": 84.84407963888616,
+        "min": 66.19015637645077,
+        "max": 84.84407963888616
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    }
+  ],
+  "recommendations": [
+    {
+      "cohort": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "toolchain": "nightly-2026-07-22"
+      },
+      "thread_count": 8,
+      "status": "recommended",
+      "reason": "winner exceeds threads=1 beyond observed per-batch throughput spread"
+    },
+    {
+      "cohort": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "check",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "toolchain": "nightly-2026-07-22"
+      },
+      "thread_count": 4,
+      "status": "recommended",
+      "reason": "winner exceeds threads=1 beyond observed per-batch throughput spread"
+    }
+  ],
+  "method": "nearest-rank p95; successes only for performance; failed jobs retained; batch throughput = successes / sum measured batch makespans"
+}

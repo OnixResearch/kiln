@@ -1,0 +1,27 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": "https://github.com/OnixResearch/kiln/issues/68",
+  "scope": "A checked route, shell and state inventory of the live console as the reference for its Rats/Meteorite port. Node checks over the served sources; no route ported, no renderer bundle, no visual parity evidence.",
+  "source_parent_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+  "immediate_outcome": "Every registered destination (22) and eight shell components are inventoried with their cohort, panel, modules and globals, stylesheets, API paths, route parameters, states and Node tests, and any omission or drift fails a check that runs in the live-console-ui Nix check.",
+  "durable_capability": "docs/console-port-inventory.json (kiln.console-inventory.v1) and tests/console-inventory.test.mjs; the guide docs/console-port-inventory.md records cohorts, coverage gaps and preservation rules.",
+  "owner": "Kiln web-service and dashboard maintainers",
+  "ordering": "The proposal, design and tasks gates passed before the inventory and test were written.",
+  "checks": [
+    {
+      "command": "node --test tests/console-inventory.test.mjs",
+      "result": "pass: the real inventory matches; 8 omission or misfiling cases, 11 drift cases and 2 console-change cases are each refused with their own message",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.live-console-ui --no-link -L --no-write-lock-file --option builders ''",
+      "result": "pass: 76 Node tests including the four inventory tests"
+    }
+  ],
+  "coverage_gaps_recorded": "Renderers of Guide, Overview, Runs, CI projects, Activity, Feeds, Evidence, Automation, Operations, Raw collaboration history and Settings (web.js), CI project (project.js) and the work pages (work.js) have no Node test that loads them.",
+  "non_claims": [
+    "The inventory describes structure and existing checks; it is not visual parity evidence and qualifies no route.",
+    "The Meteorite bundle and renderer lifecycle (#67) and capture parity (#66) remain prerequisites for every cohort."
+  ]
+}

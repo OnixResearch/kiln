@@ -163,8 +163,19 @@ def compiler_commands(path):
         return [line.strip() for line in stream if line.lstrip().startswith("Running `")]
 
 
+def package_name(package_id):
+    """The package name in a Cargo package ID: `source#name@version`, `source/name#version` or `name version (source)`."""
+    if "#" in package_id:
+        location, fragment = package_id.rsplit("#", 1)
+        if "@" in fragment:
+            return fragment.split("@", 1)[0]
+        return location.rstrip("/").rsplit("/", 1)[-1]
+    return package_id.split(" ", 1)[0]
+
+
 def artifact_path(stdout_path, crate):
-    target_name = crate.replace("-", "_")
+    # Match the selected package, not its library name: a package may rename its
+    # library target (onix-kiln-core builds libkiln_core).
     found = []
     with stdout_path.open(encoding="utf-8", errors="replace") as stream:
         for line in stream:
@@ -173,7 +184,8 @@ def artifact_path(stdout_path, crate):
             except json.JSONDecodeError:
                 continue
             target = event.get("target", {})
-            if event.get("reason") == "compiler-artifact" and target.get("name") == target_name and "lib" in target.get("kind", []):
+            if (event.get("reason") == "compiler-artifact" and package_name(event.get("package_id", "")) == crate
+                    and "lib" in target.get("kind", [])):
                 found.extend(name for name in event.get("filenames", []) if name.endswith(".rlib"))
     if len(found) != 1 or not Path(found[0]).is_file():
         raise ValueError("measured library rlib not uniquely available for hashing")

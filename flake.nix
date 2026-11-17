@@ -1517,6 +1517,7 @@
           nickel = pkgs.runCommand "kiln-nickel" { nativeBuildInputs = [ pkgs.nickel ]; } ''
             ${copySource}
             bash scripts/check-nickel-fixtures.sh
+            sh tests/workspace-provider-profile.sh
             nickel format --check \
               config/radicle-nix-provider.ncl \
               config/radicle-workflow-shell.ncl \
@@ -1836,7 +1837,7 @@
             pkgs.runCommand "kiln-live-console-ui" { nativeBuildInputs = [ pkgs.nodejs ]; }
               ''
                 ${copySource}
-                node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs
+                node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs tests/console-inventory.test.mjs
                 touch "$out"
               '';
           # Property-based terminal rail for the operator dashboard. The

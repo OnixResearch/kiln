@@ -1,0 +1,38 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": "https://github.com/OnixResearch/kiln/issues/82",
+  "scope": "Documentation-review phase: a versioned workspace-provider profile contract with fixtures and an evaluation of Archil's documented behavior against the projected-workspace contract. No Archil account, credential, disk, sandbox, adapter or network call.",
+  "source_parent_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+  "immediate_outcome": "A declared provider profile that relies on a documented-insufficient mechanism, or claims qualification from a vendor claim or fixture, is refused for its own reason; the evaluation retains Archil as a reference and names branch-per-attempt isolation on a disposable managed flat-block disk as the one mechanism worth qualifying for unrestricted profiles.",
+  "durable_capability": "config/workspace-provider-profile.ncl (kiln.workspace-provider-profile.v1), its fixtures and tests/workspace-provider-profile.sh in the nickel Nix check.",
+  "owner": "Kiln source-projection maintainers",
+  "ordering": "The proposal, design and tasks gates were first run after the contract and fixtures were drafted; they passed without changes to the package.",
+  "checks": [
+    {
+      "command": "sh tests/workspace-provider-profile.sh",
+      "result": "pass: three positive profiles export; ten negative profiles are each refused with their own reason"
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "result": "pass (88 positive, 608 negative) after nickel format"
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.nickel --no-link -L --no-write-lock-file --option builders ''",
+      "result": "pass: Nickel fixture gate (88 positive, 608 negative) and the profile refusal test"
+    }
+  ],
+  "evidence_classes": {
+    "vendor_claim": "Every Archil capability in docs/archil-workspace-evaluation.md, from Archil documentation checked 2026-11-17",
+    "deterministic_fixture": "The local baseline profile and the contract fixtures",
+    "adapter_execution": "none"
+  },
+  "remaining": [
+    "Shared corpus and local baseline through the projected materializer (#78).",
+    "Operator-run live Archil phase in a disposable environment with named time, resource, cost and retention bounds."
+  ],
+  "non_claims": [
+    "The profile contract checks declared capabilities, not provider behavior.",
+    "Vendor latency, durability and isolation figures are not Kiln measurements.",
+    "No provider is adopted and no default changes."
+  ]
+}

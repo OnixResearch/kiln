@@ -1,0 +1,485 @@
+{
+  "schema": "kiln.parallel_frontend.analysis.v1",
+  "cells": [
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": null,
+        "toolchain": "1.88.0"
+      },
+      "n": 2,
+      "successes": 2,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 2,
+        "median": 11.961045267500001,
+        "p95": 14.291605277,
+        "min": 9.630485258,
+        "max": 14.291605277
+      },
+      "end_to_end_s": {
+        "n": 2,
+        "median": 11.987364511500001,
+        "p95": 14.322709302,
+        "min": 9.652019721,
+        "max": 14.322709302
+      },
+      "cpu_seconds_mean": 15.1329535,
+      "cpu_utilization_mean": 0.31880591489047316,
+      "peak_bytes": {
+        "n": 2,
+        "median": 1533231104.0,
+        "p95": 1535361024,
+        "min": 1531101184,
+        "max": 1535361024
+      },
+      "peak_rss_bytes": {
+        "n": 2,
+        "median": 1559914496.0,
+        "p95": 1561174016,
+        "min": 1558654976,
+        "max": 1561174016
+      },
+      "queue_wait_s": {
+        "n": 2,
+        "median": 0.026319244,
+        "p95": 0.031104025,
+        "min": 0.021534463,
+        "max": 0.031104025
+      },
+      "throughput_per_min": 4.983209471228945,
+      "batch_throughput_per_min": {
+        "n": 2,
+        "median": 5.177601565001071,
+        "p95": 6.180838729852129,
+        "min": 4.174364400150012,
+        "max": 6.180838729852129
+      },
+      "insufficient": true,
+      "resource_complete": true,
+      "artifact_hash_pair": [
+        [
+          0,
+          "42ae2b46de854ab9ecd27ab0dde109442976d958096da4d7fcff93fcc36427c5"
+        ],
+        [
+          1,
+          "42ae2b46de854ab9ecd27ab0dde109442976d958096da4d7fcff93fcc36427c5"
+        ]
+      ],
+      "artifact_hash_equal": true
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 1,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 2,
+      "successes": 2,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 2,
+        "median": 9.816969740000001,
+        "p95": 9.991692624,
+        "min": 9.642246856,
+        "max": 9.991692624
+      },
+      "end_to_end_s": {
+        "n": 2,
+        "median": 9.8434357795,
+        "p95": 10.028531063,
+        "min": 9.658340496,
+        "max": 10.028531063
+      },
+      "cpu_seconds_mean": 13.539638499999999,
+      "cpu_utilization_mean": 0.34474797559323006,
+      "peak_bytes": {
+        "n": 2,
+        "median": 1543329792.0,
+        "p95": 1550286848,
+        "min": 1536372736,
+        "max": 1550286848
+      },
+      "peak_rss_bytes": {
+        "n": 2,
+        "median": 1579020288.0,
+        "p95": 1604841472,
+        "min": 1553199104,
+        "max": 1604841472
+      },
+      "queue_wait_s": {
+        "n": 2,
+        "median": 0.0264660395,
+        "p95": 0.036838439,
+        "min": 0.01609364,
+        "max": 0.036838439
+      },
+      "throughput_per_min": 6.082839859629505,
+      "batch_throughput_per_min": {
+        "n": 2,
+        "median": 6.085169706557501,
+        "p95": 6.204239072673058,
+        "min": 5.966100340441943,
+        "max": 6.204239072673058
+      },
+      "insufficient": true,
+      "resource_complete": true,
+      "artifact_hash_pair": [
+        [
+          0,
+          "b7818d64f4c79556cf41fae445d321d702993536ff58ece5c0e744416ac4565f"
+        ],
+        [
+          1,
+          "b7818d64f4c79556cf41fae445d321d702993536ff58ece5c0e744416ac4565f"
+        ]
+      ],
+      "artifact_hash_equal": true
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 8,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 2,
+      "successes": 2,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 2,
+        "median": 5.9318461955,
+        "p95": 6.03906398,
+        "min": 5.824628411,
+        "max": 6.03906398
+      },
+      "end_to_end_s": {
+        "n": 2,
+        "median": 5.9575355175,
+        "p95": 6.065467763,
+        "min": 5.849603272,
+        "max": 6.065467763
+      },
+      "cpu_seconds_mean": 15.224746,
+      "cpu_utilization_mean": 0.6415763010133521,
+      "peak_bytes": {
+        "n": 2,
+        "median": 1894574080.0,
+        "p95": 1935847424,
+        "min": 1853300736,
+        "max": 1935847424
+      },
+      "peak_rss_bytes": {
+        "n": 2,
+        "median": 1841698816.0,
+        "p95": 1854791680,
+        "min": 1828605952,
+        "max": 1854791680
+      },
+      "queue_wait_s": {
+        "n": 2,
+        "median": 0.025689322,
+        "p95": 0.026403783,
+        "min": 0.024974861,
+        "max": 0.026403783
+      },
+      "throughput_per_min": 10.014355474256144,
+      "batch_throughput_per_min": {
+        "n": 2,
+        "median": 10.017077660832468,
+        "p95": 10.18220898536638,
+        "min": 9.851946336298557,
+        "max": 10.18220898536638
+      },
+      "insufficient": true,
+      "resource_complete": true,
+      "artifact_hash_pair": [
+        [
+          0,
+          "5503183d76de78c479af0848a481ce5fa8d836b58ff90af248d6107b9abcda23"
+        ],
+        [
+          1,
+          "5503183d76de78c479af0848a481ce5fa8d836b58ff90af248d6107b9abcda23"
+        ]
+      ],
+      "artifact_hash_equal": true
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: x86_64-unknown-linux-gnu\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": null,
+        "toolchain": "1.88.0"
+      },
+      "n": 16,
+      "successes": 16,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 16,
+        "median": 14.5339134615,
+        "p95": 14.909464736,
+        "min": 13.987952868,
+        "max": 14.909464736
+      },
+      "end_to_end_s": {
+        "n": 16,
+        "median": 14.58177874,
+        "p95": 14.960669844,
+        "min": 14.023289219,
+        "max": 14.960669844
+      },
+      "cpu_seconds_mean": 20.4538970625,
+      "cpu_utilization_mean": 0.35110109342401674,
+      "peak_bytes": {
+        "n": 16,
+        "median": 1513926656.0,
+        "p95": 1569247232,
+        "min": 1475543040,
+        "max": 1569247232
+      },
+      "peak_rss_bytes": {
+        "n": 16,
+        "median": 1599498240.0,
+        "p95": 1668628480,
+        "min": 1571221504,
+        "max": 1668628480
+      },
+      "queue_wait_s": {
+        "n": 16,
+        "median": 0.046666679,
+        "p95": 0.055168708,
+        "min": 0.035336351,
+        "max": 0.055168708
+      },
+      "throughput_per_min": 32.26117674729686,
+      "batch_throughput_per_min": {
+        "n": 2,
+        "median": 32.262917255696024,
+        "p95": 32.49988535157632,
+        "min": 32.025949159815724,
+        "max": 32.49988535157632
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 1,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 16,
+      "successes": 16,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 16,
+        "median": 13.482490345,
+        "p95": 13.69197178,
+        "min": 13.125423567,
+        "max": 13.69197178
+      },
+      "end_to_end_s": {
+        "n": 16,
+        "median": 13.5237689545,
+        "p95": 13.732437649,
+        "min": 13.165266456,
+        "max": 13.732437649
+      },
+      "cpu_seconds_mean": 19.0012635,
+      "cpu_utilization_mean": 0.35269038099914973,
+      "peak_bytes": {
+        "n": 16,
+        "median": 1502955520.0,
+        "p95": 1553838080,
+        "min": 1446404096,
+        "max": 1553838080
+      },
+      "peak_rss_bytes": {
+        "n": 16,
+        "median": 1585682432.0,
+        "p95": 1605189632,
+        "min": 1527980032,
+        "max": 1605189632
+      },
+      "queue_wait_s": {
+        "n": 16,
+        "median": 0.040728617,
+        "p95": 0.043494564,
+        "min": 0.037823469,
+        "max": 0.043494564
+      },
+      "throughput_per_min": 35.03885313651797,
+      "batch_throughput_per_min": {
+        "n": 2,
+        "median": 35.039321573835636,
+        "p95": 35.167437637664165,
+        "min": 34.911205510007115,
+        "max": 35.167437637664165
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    },
+    {
+      "identity": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "threads": 8,
+        "toolchain": "nightly-2026-07-22"
+      },
+      "n": 16,
+      "successes": 16,
+      "failures": 0,
+      "ooms": 0,
+      "wall_s": {
+        "n": 16,
+        "median": 11.016785329000001,
+        "p95": 11.339099913,
+        "min": 10.649844696,
+        "max": 11.339099913
+      },
+      "end_to_end_s": {
+        "n": 16,
+        "median": 11.060367688500001,
+        "p95": 11.389950074,
+        "min": 10.684251662,
+        "max": 11.389950074
+      },
+      "cpu_seconds_mean": 24.794290625000002,
+      "cpu_utilization_mean": 0.5637097826600251,
+      "peak_bytes": {
+        "n": 16,
+        "median": 1755865088.0,
+        "p95": 1820344320,
+        "min": 1696915456,
+        "max": 1820344320
+      },
+      "peak_rss_bytes": {
+        "n": 16,
+        "median": 1841203200.0,
+        "p95": 1903435776,
+        "min": 1778495488,
+        "max": 1903435776
+      },
+      "queue_wait_s": {
+        "n": 16,
+        "median": 0.043982004000000005,
+        "p95": 0.05408842,
+        "min": 0.034406966,
+        "max": 0.05408842
+      },
+      "throughput_per_min": 42.598942615888845,
+      "batch_throughput_per_min": {
+        "n": 2,
+        "median": 42.60644794894097,
+        "p95": 43.17193497976003,
+        "min": 42.0409609181219,
+        "max": 43.17193497976003
+      },
+      "insufficient": false,
+      "resource_complete": true,
+      "artifact_hash_pair": [],
+      "artifact_hash_equal": null
+    }
+  ],
+  "recommendations": [
+    {
+      "cohort": {
+        "cargo_jobs": 4,
+        "concurrency": 1,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "toolchain": "nightly-2026-07-22"
+      },
+      "thread_count": null,
+      "status": "no recommendation",
+      "reason": "missing sufficient baseline/candidate or threads=1 maximizes throughput"
+    },
+    {
+      "cohort": {
+        "cargo_jobs": 4,
+        "concurrency": 8,
+        "cpu_quota": "400%",
+        "crate": "onix-kiln-core",
+        "host_cpu_count": 32,
+        "host_memory_bytes": 200111300608,
+        "memory_max": "4G",
+        "mode": "build",
+        "rustc_vv": "rustc 1.99.0-nightly (0e29c21d9 2026-07-21)\nbinary: rustc\ncommit-hash: 0e29c21d93abc9bdc330182be1fbd33cfd5fee68\ncommit-date: 2026-07-21\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0-nightly\nLLVM version: 22.1.8\n",
+        "source_revision": "e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d",
+        "toolchain": "nightly-2026-07-22"
+      },
+      "thread_count": 8,
+      "status": "recommended",
+      "reason": "winner exceeds threads=1 beyond observed per-batch throughput spread"
+    }
+  ],
+  "method": "nearest-rank p95; successes only for performance; failed jobs retained; batch throughput = successes / sum measured batch makespans"
+}

@@ -118,6 +118,33 @@ class Admission(unittest.TestCase):
             stderr.write_text("warning: only\n")
             self.assertEqual(runner.compiler_commands(stderr), [])
 
+    def test_build_artifact_matches_the_package_even_with_a_renamed_library(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            rlib = root / "libkiln_core-0123.rlib"
+            rlib.write_bytes(b"rlib")
+            other = root / "libkiln_core-4567.rlib"
+            other.write_bytes(b"other")
+            def artifact(package_id, path, kind="lib"):
+                return json.dumps({"reason": "compiler-artifact", "package_id": package_id,
+                                   "target": {"name": "kiln_core", "kind": [kind]}, "filenames": [str(path)]})
+            stdout = root / "stdout.jsonl"
+            stdout.write_text("\n".join([
+                "not json",
+                artifact("path+file:///src/crates/kiln-core#onix-kiln-core@0.1.0", rlib),
+                # Another package with the same library name is not the measured crate.
+                artifact("registry+https://github.com/rust-lang/crates.io-index#kiln-core@9.0.0", other),
+            ]) + "\n")
+            self.assertEqual(runner.artifact_path(stdout, "onix-kiln-core"), rlib)
+            self.assertEqual(runner.package_name("path+file:///src/onix-kiln-core#0.1.0"), "onix-kiln-core")
+            self.assertEqual(runner.package_name("onix-kiln-core 0.1.0 (path+file:///src/crates/kiln-core)"), "onix-kiln-core")
+            for lines in ([artifact("path+file:///src/crates/kiln-core#onix-kiln-core@0.1.0", rlib, kind="bin")],
+                          [artifact("path+file:///src/crates/kiln-core#onix-kiln-core@0.1.0", rlib)] * 2,
+                          [artifact("path+file:///src/crates/kiln-core#onix-kiln-core@0.1.0", root / "absent.rlib")]):
+                stdout.write_text("\n".join(lines) + "\n")
+                with self.assertRaises(ValueError):
+                    runner.artifact_path(stdout, "onix-kiln-core")
+
     def test_cli_refuses_floating_toolchain_before_any_command(self):
         with tempfile.TemporaryDirectory() as temporary, \
                 patch.object(runner.subprocess, "run") as run, \

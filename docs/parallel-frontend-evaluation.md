@@ -3,7 +3,8 @@
 Issue #88's decision is whether a pinned nightly's experimental frontend
 parallelism improves an agent-worker edit/rebuild loop under contention. This is
 an **evaluation harness, not a production build setting or a speedup claim**.
-No matrix was run while implementing it. The default Rust 1.88.0 toolchain,
+The retained matrix and recommendation are under [Results](#results-17-november-2026).
+The default Rust 1.88.0 toolchain,
 Cargo configuration, Nix defaults and production build flags are unchanged.
 
 ## Prerequisites and command
@@ -60,10 +61,13 @@ python3 scripts/parallel-frontend-bench.py \
   --out /run/user/$(id -u)/kiln-parallel-frontend-build
 ```
 
-Build mode refuses to start without `b3sum`. It hashes the selected crate's
-`.rlib` after each successful dev-profile repeat; `artifact_hash_pair` and
-`artifact_hash_equal` in analysis compare the first two repeat hashes within
-the same cell. The target directory and unrelated artifacts are **not** hashed.
+Build mode refuses to start without `b3sum`. It hashes the selected package's
+library `.rlib` after each successful dev-profile repeat, finding it by package
+name in Cargo's artifact messages, so a package that renames its library (such
+as `onix-kiln-core`, which builds `libkiln_core`) is still found.
+`artifact_hash_pair` and `artifact_hash_equal` in analysis compare the first
+two repeat hashes within the same cell. The target directory and unrelated
+artifacts are **not** hashed.
 A mismatch needs investigation; an equality is only local repeat evidence on
 one source/toolchain/host, not a deterministic-nightly or cross-host guarantee.
 Nightly flags, metadata paths, build scripts, linker inputs and compiler
@@ -151,8 +155,65 @@ Failures/OOMs remain visible and are never converted to successes or imputed
 into latency. Operators should inspect them before acting even when a cell has
 three successful samples.
 
+## Results (17 November 2026)
+
+Retained in
+[`.cairn/changes/evaluate-parallel-frontend-builds/evidence/`](../.cairn/changes/evaluate-parallel-frontend-builds/evidence/)
+(`matrix-check` and `matrix-build`, each with `jobs.jsonl`, `analysis.json` and
+the host load at start and end). Source was an exact `git archive` of
+`e6b3bca0b1b50a1a4b70d713fcfcd68ae5d7523d`; crate `onix-kiln-core` (about 44,000
+lines); nightly-2026-07-22 (`rustc 1.99.0-nightly 0e29c21d9`) against pinned
+1.88.0; per-job `CPUQuota=400%`, `MemoryMax=4G`, `CARGO_BUILD_JOBS=4`; one
+32-CPU, 186 GiB host. Concurrency 8 reserves all 32 CPUs through the per-job
+quotas. Every job succeeded; no OOM kill occurred.
+
+Check mode, three repeats per cell (medians; throughput in completed jobs per
+minute):
+
+| Toolchain | Threads | Concurrency | Wall s | p95 s | Jobs/min | CPU s per job | Memory peak GB |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1.88.0 | — | 1 | 6.09 | 6.37 | 9.7 | 6.1 | 0.85 |
+| nightly | 1 | 1 | 5.96 | 6.18 | 10.0 | 5.9 | 0.95 |
+| nightly | 2 | 1 | 4.48 | 4.49 | 13.4 | 7.0 | 1.05 |
+| nightly | 4 | 1 | 3.43 | 3.63 | 17.0 | 8.2 | 1.06 |
+| nightly | 8 | 1 | 3.18 | 3.29 | 18.5 | 7.5 | 1.07 |
+| 1.88.0 | — | 8 | 8.46 | 8.88 | 54.2 | 7.9 | 0.86 |
+| nightly | 1 | 8 | 7.87 | 8.26 | 58.8 | 7.5 | 0.96 |
+| nightly | 2 | 8 | 6.22 | 7.17 | 72.6 | 9.6 | 1.04 |
+| nightly | 4 | 8 | 5.58 | 5.86 | 82.8 | 11.2 | 1.06 |
+| nightly | 8 | 8 | 6.28 | 7.17 | 73.6 | 11.8 | 1.10 |
+
+The analyzer recommends threads=8 at concurrency 1 and threads=4 at
+concurrency 8: each winner's lowest per-batch throughput exceeds the highest
+threads=1 throughput on the same nightly.
+
+**Recommendation.** Frontend threads help while the job's own CPU quota has idle
+capacity: at threads=1 a job used about a quarter of its four CPUs. Without
+contention, median latency fell 42% at threads=4 and 47% at threads=8. With all
+32 CPUs reserved by eight jobs, threads=4 raised completed jobs per minute by
+41% over threads=1, while threads=8, twice the per-job quota, completed 11% fewer
+jobs than threads=4 with a wider tail. Each job spends 17–58% more CPU seconds
+(38% and 51% at threads=4) and a 10–15% higher memory peak, so when admission
+already packs jobs to their CPU need the extra threads have no idle quota to use
+[inference, not measured]. If the mode is ever enabled, keep the thread count at
+or below the per-job CPU quota and count the extra CPU and memory in admission;
+Cargo's jobserver does not coordinate this across independent workers. Nothing
+is enabled by this result: the mode stays an opt-in experiment on a pinned
+nightly.
+
+Build mode, two repeats per cell (concurrency 1 and 8, threads 1 and 8):
+every job succeeded, and at concurrency 1 each cell's two `.rlib` hashes are
+equal. The threads=1 and threads=8 artifacts of the same nightly differ from
+each other; whether that comes from compiler output or from Cargo folding the
+extra `rustc` argument into its metadata hash was not isolated, so artifacts
+and caches must not be shared across thread counts.
+
+Limits: one crate, one host, one nightly, one quota and two contention levels.
+The host carried a one-minute load of about 4 from unrelated work when the check
+matrix started and about 10 when the build check started. Equal repeat hashes
+are local repeat evidence, not a deterministic-compiler claim.
+
 To disable/omit the experiment, do not invoke this script and use the ordinary
 pinned-toolchain `cargo check`/`cargo build`. There is no feature to toggle in
 production, no persistent environment setting, and no `-Zthreads` in normal
-builds. The parent will run and retain a controlled matrix later, then write a
-recommendation or explicitly decline one based on its evidence.
+builds.
