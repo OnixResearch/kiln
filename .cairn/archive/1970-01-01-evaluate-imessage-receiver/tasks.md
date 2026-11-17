@@ -12,4 +12,4 @@
 ## Phase 2: Implementation
 
 - [x] [serial] Parent verification: run nickel and cairn gates. r[kiln.imessage.receiver]
-- [ ] [serial] (Not performed) Implement receiver; gated on all Phase 1 prerequisites. r[kiln.imessage.receiver]
+- [x] [serial] Record that no receiver is implemented: Phase 1 is a documented no-go (rustpush's SSPL exception, a stub-only OpenAbsinthe and no admissible anisette provider), so the gated prototype does not start; check the kept contract's refusals in the nickel check. r[kiln.imessage.receiver]

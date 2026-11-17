@@ -1,0 +1,29 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": "https://github.com/OnixResearch/kiln/issues/71",
+  "scope": "Phase 1 feasibility, licensing decision and typed receiver contract; Phase 2 gated on feasibility and not started because Phase 1 concluded no-go. Nickel fixtures only; nothing built, bundled or operated.",
+  "decision": "no-go: rustpush is SSPL v1 with an exception limited to OpenBubbles, OpenAbsinthe is public only as a stub, anisette needs macOS AOSKit or a remote service whose submodule is uninitialized, and an Apple ID account and genuine Apple identifiers are required. See docs/imessage-receiver-feasibility.md.",
+  "durable_capability": "config/imessage-receiver.ncl, a receiver contract over the unchanged kiln.webhook-notification.v1 payload, kept for a separately licensed future receiver.",
+  "owner": "Kiln notification adapter maintainers",
+  "checks": [
+    {
+      "command": "sh tests/imessage-receiver-profile.sh",
+      "result": "pass: the positive profile exports and ten negative profiles are each refused by the field they violate"
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "result": "pass"
+    }
+  ],
+  "evidence_classes": {
+    "build": "not performed",
+    "offline_tests": "not performed",
+    "activation": "not performed",
+    "renewal": "not performed",
+    "live_delivery": "not performed"
+  },
+  "non_claims": [
+    "No receiver, account, hardware identity or message delivery exists or was exercised.",
+    "A later receiver needs a separately recorded decision under satisfied prerequisites."
+  ]
+}

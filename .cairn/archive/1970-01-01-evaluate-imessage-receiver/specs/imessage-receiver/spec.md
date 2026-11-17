@@ -11,7 +11,7 @@ valid result of this evaluation.
 
 ### Requirement: Receiver contract
 
-r[kiln.imessage.receiver] A receiver, if ever implemented, MUST consume the
+r[kiln.imessage.receiver.contract] A receiver, if ever implemented, MUST consume the
 existing `kiln.webhook-notification.v1` payload without changing its schema or
 Kiln-owned BLAKE3 identities. Its destination MUST satisfy the existing webhook
 profile contract (HTTPS, POST, JSON, redirects disabled, no inline secrets,
