@@ -17,6 +17,7 @@ let ActiveRoots = [
   ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
   ".cairn/changes/benchmark-artifact-readiness/specs/artifact-readiness/spec.md",
   ".cairn/changes/evaluate-archil-workspace-provider/specs/workspace-provider-evaluation/spec.md",
+  ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
 ]
 in
 let Active =

@@ -2038,5 +2038,7 @@ pub fn verify_manifest(
     findings.finish(())
 }
 
+pub mod materialization;
+
 #[cfg(test)]
 mod tests;

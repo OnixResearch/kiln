@@ -9,6 +9,7 @@ pub mod cache;
 mod client;
 pub(crate) mod files;
 mod heartbeat;
+pub mod materialize;
 mod process;
 mod profile;
 mod reports;

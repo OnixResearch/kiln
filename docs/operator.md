@@ -2399,9 +2399,10 @@ scope identity. Skipped projects do not block. The `ci` checklist item lists
 
 <!-- r[related kiln.source.projection.definition] r[related kiln.source.repository_identity] -->
 `kiln_core::projection` defines how several source views over one exact
-snapshot are described and resolved. It is a pure contract: no service,
-console page or materializer consumes it yet, and the project API still
-reports the path-derived `repository_key`.
+snapshot are described and resolved. It is a pure contract; the only consumer
+so far is the worker materializer below, which no dispatch, service or console
+page calls yet, and the project API still reports the path-derived
+`repository_key`.
 
 - **Repository identity.** BLAKE3 over the source provider profile and the
   provider-native repository reference. Local cache paths and remote URLs are
@@ -2438,6 +2439,24 @@ reports the path-derived `repository_key`.
 `ProjectionDefinition::from_project_scope` converts an admitted monorepo scope
 into an equivalent definition labeled `monorepo_project_scope.v1`; its
 `depends_on` and graph kinds stay affected-project facts.
+
+<!-- r[related kiln.source.projection.materialization] -->
+**Materialization.** `kiln_core::projection::materialization::plan` turns a
+complete projection and a `kiln.materializer-profile.v1` profile into the
+entries to write, a reusable input identity (manifest, content and profile)
+and, per attempt, an overlay identity (input, attempt and a non-zero fence).
+The `eager_local_directory` profile refuses symbolic links, generated entries,
+executable entries on a platform without executable bits, a platform whose
+case rules differ from the projection target and over-long destinations.
+`kiln_web_service::worker::materialize` writes a plan under a private store:
+it verifies each Git blob against its object identity, writes only the planned
+entries into a fresh preparing directory, seals them read-only, publishes the
+input with a no-replace rename and then records its binding. A reused input is
+verified again; an attempt overlay is a private writable copy with its own
+binding, and the same attempt and fence resume it. A directory or binding
+without its counterpart, or bound to another plan, is refused and left as it
+is, and an interrupted preparing directory is never adopted. Dispatch pinning,
+current-authority checks at retrieval and restricted runtimes are not wired yet.
 
 ### Remote Lattice workers
 

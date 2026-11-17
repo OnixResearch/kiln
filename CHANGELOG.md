@@ -45,6 +45,15 @@ entry describes the source tree prepared for the first tagged release.
   checked for tampering and staleness but never admitted. Monorepo scopes
   convert through a labeled compatibility profile. (#75; unit tests, doctests
   and Nickel fixtures; no consumer or authority wiring yet)
+- Materialize a complete source projection into a verified immutable input
+  and private per-attempt writable overlays. A pure plan derives a reusable
+  input identity from the manifest and materializer profile and an overlay
+  identity from the input, attempt and fence, refusing symbolic links,
+  generated entries and platforms that cannot represent the target. The local
+  shell verifies each Git blob, publishes inputs by no-replace rename before
+  binding them, re-verifies reused inputs, and never reuses or overwrites a
+  directory without its matching binding. (#78; unit and temporary-repository
+  tests; no dispatch, authority or restricted-runtime wiring yet)
 - A versioned durable-workspace provider profile in typed Nickel keeps canonical
   BLAKE3 identities apart from provider disk, branch and checkpoint references
   and refuses profiles that rely on a documented-insufficient mechanism: a

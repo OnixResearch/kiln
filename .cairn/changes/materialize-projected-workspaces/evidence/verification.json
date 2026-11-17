@@ -1,0 +1,41 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": "https://github.com/OnixResearch/kiln/issues/78",
+  "scope": "Phase 1: the pure materialization plan and the eager local worker materializer. Unit tests and tests over a temporary bare Git repository; no dispatch, worker job, authority provider or restricted runtime.",
+  "source_parent_revision": "70b97fe3003faa9f399a87eddad860d96bbc55d6",
+  "immediate_outcome": "A complete projection materializes into a verified, sealed immutable input with a reusable identity and into private writable overlays per attempt and fence; missing, corrupt, damaged, truncated and unbound state is refused without publishing or overwriting anything.",
+  "durable_capability": "kiln_core::projection::materialization (plan, MaterializationPlan, overlay_identity) and kiln_web_service::worker::materialize (prepare_input, prepare_overlay).",
+  "owner": "Kiln source-projection and worker maintainers",
+  "ordering": "The proposal, design and tasks gates passed before implementation.",
+  "checks": [
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core --lib projection",
+      "result": "pass, including plan_identities_follow_the_manifest_profile_attempt_and_fence and unsupported_entries_and_platforms_are_refused_before_any_effect",
+      "passed": 16,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-web-service --lib worker::materialize",
+      "result": "pass: repeated materialization, overlay isolation and resumption, missing, corrupt, damaged, truncated and unbound refusals, and an interrupted preparation never adopted",
+      "passed": 4,
+      "failed": 0
+    },
+    {
+      "command": "cargo clippy --offline --locked -p onix-kiln-core -p kiln-web-service --all-targets -- -D warnings; cargo fmt --all --check",
+      "result": "pass"
+    }
+  ],
+  "cargo_environment": {
+    "rustc": "1.88.0",
+    "wrapper": "dev-shell environment with pkg-config and OpenSSL and a private TMPDIR"
+  },
+  "remaining": [
+    "Pin source, definition, manifest, materializer profile and overlay generation in dispatch and retained workspace metadata.",
+    "Apply #69/#70 authority at retrieval and workspace effects; qualify restricted-runtime negatives and the two-project build profile of #77."
+  ],
+  "non_claims": [
+    "Materializing grants no read, write or execution authority, and no caller uses it in dispatch yet.",
+    "Inputs are not fsynced; a crash can leave a damaged published input, which re-verification refuses.",
+    "Tests run as an unprivileged user; read-only modes are not a confinement boundary against a privileged process."
+  ]
+}
