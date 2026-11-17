@@ -109,6 +109,8 @@ pub enum AdmissionResult {
     NotWinner {
         selected: Option<ContentId>,
     },
+    /// An exact claim found another active or unreconciled repository writer.
+    WriterBusy,
     Owner {
         reason: AdmissionReason,
     },
@@ -378,9 +380,7 @@ impl Implementer {
                         &expected_work_version,
                         &current.repository,
                     )? {
-                        return Err(refusal(
-                            "repository already has an active or unreconciled writer",
-                        ));
+                        return Ok(AdmissionResult::WriterBusy);
                     }
                     let inputs = eligible_inputs(
                         &work,

@@ -199,6 +199,78 @@ the disabled-by-default, operator-started deployment wrapper. Scripted local
 fixtures, real-model qualification and remote-effect qualification remain
 separate evidence scopes.
 
+<!-- r[related kiln.implementation.campaign.continuation] -->
+### Continue a selected campaign
+
+One drive stops when no admissible work remains. A supervisor resumes the
+campaign with a one-shot continuation step over the same profile:
+
+```text
+kiln-web-service continue-implementation-campaign --profile FILE --campaign-id ID
+```
+
+A step takes no expected version. Before each batch it rereads canonical
+campaign state and decides from it and a durable continuation record stored
+beside the campaign:
+
+1. Stop when the campaign is complete, cancelled with no effect left to
+   reconcile, or when consecutive failures reach the failure budget.
+2. Wait during a failure backoff, or for an operator while admission is paused
+   and no effect is unresolved.
+3. Drive after an operation-limit batch, when a wake hint is pending, to retry a
+   failed batch after its backoff, on the first step, when the campaign version
+   moved since the last batch, or when the rescan interval elapsed.
+4. Otherwise wait until the rescan deadline.
+
+A step runs at most `max_batches` driver batches of at most `maximum_operations`
+operations each. It prints every batch (`reason`, `outcome`, steps, any claim
+`refusal` or `error`) and the `next` step: `drive`, `wait` with `until_ms` (none
+while paused), or `stop`. A `drive` result means the batch bound ended the step
+with eligible work left. Run the step again at once for `drive`, at `until_ms`
+for `wait`, or after a wake for `wait` without `until_ms`.
+
+Batch outcomes are `operation_limit`, `waiting`, `awaiting_owner`,
+`admission_refused`, `paused`, `needs_replan`, `cancelled`, `complete`,
+`stale_version` and `failed`. Only `failed` counts against the budget, with a
+doubling backoff capped at `retry_max_ms`. A `stale_version` rereads at once.
+A canonical claim refusal is `admission_refused`: another work unit won the
+exact admission or another active or unreconciled writer holds the repository.
+It waits for a `capacity` wake or the rescan. Lineage, policy and currency
+refusals stay driver failures.
+
+An unresolved owner effect waits for its owner's wake, a version change or the
+rescan instead of rereading on every step. It reconciles even while the campaign
+is paused or cancelled. A cancelled campaign stops once nothing remains to
+reconcile.
+
+Owners and supervisors record wake hints with:
+
+```text
+kiln-web-service wake-implementation-campaign --database DB --campaign-id ID --kind KIND [--observed-version N]
+```
+
+`KIND` is `review`, `verification`, `source`, `capacity`, `reconciliation`,
+`integration` or `operator`. Hints coalesce per campaign. Each one only asks the
+next step to reread canonical state; it never grants an effect, a resource or
+completion. A hint recorded while a batch runs remains pending afterwards. An
+`operator` hint also clears the failure count and backoff. The campaign
+operator's `resolve_decision` records a `review` hint and `continue` records an
+`operator` hint in the same transaction as the transition. The command refuses
+an uninitialized campaign and never creates a database.
+
+The optional profile `continuation` record sets `rescan_interval_ms`,
+`retry_base_ms`, `retry_max_ms` (each 1 s to 1 day, base not above maximum),
+`max_consecutive_failures` (1 to 64) and `max_batches` (1 to 32). Without it the
+named defaults apply: a 5-minute rescan, a 30-second base delay capped at 1 hour,
+8 failures and 4 batches.
+
+The continuation record holds demand, the last outcome, failures and backoff
+only. Selection, claims, fences, effect intents and reconciliation stay with
+their owners, so restarting the supervisor or the host loses no demand and
+repeats no claim, dispatch, publication or integration. Two concurrent steps
+can both reach the driver, but campaign compare-and-swap keeps each effect
+single. Run one supervisor per campaign anyway.
+
 ## Qualification prerequisites and evidence
 
 The baseline pilot needs one real reproducible bug and one feature, one writing worker per repository, immutable source/executable profiles, actual isolated workspace/kernel/network qualification, real model admission and operator-approved remote credentials. Cross-host two-worker/shared-model qualification additionally needs actual independent execution/inference leases, per-worker/service usage and cancellation/restart evidence; inventory snapshots and reservation-only accounting are not measurements or grants. Current authenticated-model credential delivery and unattended GitHub landing are explicitly unqualified.

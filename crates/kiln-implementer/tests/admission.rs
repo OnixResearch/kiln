@@ -1175,10 +1175,11 @@ fn campaign_claim_scopes_ranking_before_claiming_unrelated_work() {
             .unwrap_or_else(|_| unreachable!()),
         kiln_implementer::campaign_consumer::CampaignClaimOutcome::Claimed(attempt.clone())
     );
-    assert!(
+    assert_eq!(
         implementer
             .claim_campaign_work(&global_winner, &global_parent, 101, 200)
-            .is_err()
+            .unwrap_or_else(|error| unreachable!("{error}")),
+        kiln_implementer::campaign_consumer::CampaignClaimOutcome::WriterBusy
     );
     let after_claim = implementer
         .admission_snapshot()

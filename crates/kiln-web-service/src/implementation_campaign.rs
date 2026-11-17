@@ -15,26 +15,30 @@ use kiln_core::{
     implementation::{
         AttemptPhase, ImplementationWork,
         campaign::{
-            CampaignOperation, CampaignState, EffectState, MemberObservation, MemberStage,
-            RecoveryDisposition,
+            CampaignOperation, CampaignState, EffectState, MAX_ID_BYTES, MemberObservation,
+            MemberStage, RecoveryDisposition,
         },
+        continuation::ContinuationPolicy,
     },
     types::ContentId,
 };
 use kiln_implementer::{
     campaign::{
-        CampaignDriveShell, CampaignEffectConsumer, CampaignOwnerObservation, CampaignStore,
-        drive_bounded,
+        CampaignClaim, CampaignDriveShell, CampaignEffectConsumer, CampaignOwnerObservation,
+        CampaignStore, drive_bounded,
     },
-    campaign_consumer::CanonicalCampaignLedgers,
+    campaign_consumer::{CampaignClaimOutcome, CanonicalCampaignLedgers},
 };
 use serde::{Deserialize, Serialize};
 
 mod binding;
 mod context;
+mod continuation;
 mod delivery;
 mod observation;
 mod workspace;
+
+pub use continuation::{continue_cli_args, wake_cli_args};
 
 const MAX_VERIFICATION_ROUTES: usize = 64;
 const MAX_DRIVE_OPERATIONS: u32 = 128;
@@ -107,12 +111,15 @@ struct ImplementationCampaignDriveProfile {
     pub claim_lease_ms: u64,
     pub maximum_operations: u32,
     pub workspace: workspace::WorkspaceProfile,
+    /// Continuation pacing; absent profiles use the named defaults.
+    #[serde(default)]
+    pub continuation: Option<ContinuationPolicy>,
 }
 impl ImplementationCampaignDriveProfile {
     pub fn validate(&self) -> Result<(), String> {
         if self.schema != PROFILE_SCHEMA
             || self.campaign_id.trim().is_empty()
-            || self.campaign_id.len() > 256
+            || self.campaign_id.len() > MAX_ID_BYTES
             || !self.campaign_database.is_absolute()
             || !self.implementation_database.is_absolute()
             || !self.bound_input_directory.is_absolute()
@@ -185,6 +192,9 @@ impl ImplementationCampaignDriveProfile {
         if self.claim_lease_ms == 0 {
             return Err("campaign claim lease must be finite and positive".into());
         }
+        if let Some(policy) = &self.continuation {
+            policy.validate().map_err(show)?;
+        }
         if !self.roles.worker.arguments.is_empty()
             || self.roles.exporter.arguments != ["implementation-attempt", "export-candidate"]
             || self.roles.capture.arguments != ["capture-candidate"]
@@ -246,34 +256,15 @@ fn read_profile(path: &Path) -> Result<ImplementationCampaignDriveProfile, Strin
 }
 
 fn run(args: DriveArguments) -> Result<String, String> {
-    if args.campaign_id.trim().is_empty() || args.campaign_id.len() > 256 {
-        return Err("campaign identity is malformed".into());
-    }
-    let profile = read_profile(&args.profile)?;
-    if args.campaign_id != profile.campaign_id {
-        return Err("campaign id differs from the typed drive profile".into());
-    }
-    preflight_roles(&profile)?;
-    let existing =
-        kiln_implementer::campaign::CampaignObservation::open(&profile.campaign_database)?;
-    let (_, existing_version) = existing
-        .inspect(&args.campaign_id)?
-        .ok_or("canonical campaign is not initialized")?;
-    if existing_version != args.expected_version {
-        return Err("stale campaign version; no canonical database was mutated".into());
-    }
-    CanonicalCampaignLedgers::read(&profile.implementation_database)?;
-    let contexts = context::load(&profile)?;
-    let mut store = CampaignStore::open(&profile.campaign_database)?;
+    let (mut store, mut consumer) = open_native(
+        &args.profile,
+        &args.campaign_id,
+        Some(args.expected_version),
+    )?;
     if store.version(&args.campaign_id)? != Some(args.expected_version) {
         return Err("stale campaign version; no canonical work was claimed".into());
     }
-    let maximum_operations = profile.maximum_operations;
-    let mut consumer = NativeCampaignConsumer {
-        profile,
-        contexts,
-        worker: None,
-    };
+    let maximum_operations = consumer.profile.maximum_operations;
     let drive = drive_bounded(
         &mut store,
         &args.campaign_id,
@@ -289,8 +280,46 @@ fn run(args: DriveArguments) -> Result<String, String> {
         "basis": evaluation.basis,
         "holds": evaluation.holds,
         "steps": drive.steps,
+        "refusal": drive.refusal,
     }))
     .map_err(text)
+}
+
+/// Profile, role, campaign and canonical-ledger preflight shared by the drive
+/// and continuation commands. A stale expected version fails before the
+/// campaign store is opened for writing.
+fn open_native(
+    profile: &Path,
+    campaign_id: &str,
+    expected_version: Option<u64>,
+) -> Result<(CampaignStore, NativeCampaignConsumer), String> {
+    if campaign_id.trim().is_empty() || campaign_id.len() > MAX_ID_BYTES {
+        return Err("campaign identity is malformed".into());
+    }
+    let profile = read_profile(profile)?;
+    if campaign_id != profile.campaign_id {
+        return Err("campaign id differs from the typed drive profile".into());
+    }
+    preflight_roles(&profile)?;
+    let existing =
+        kiln_implementer::campaign::CampaignObservation::open(&profile.campaign_database)?;
+    let (_, existing_version) = existing
+        .inspect(campaign_id)?
+        .ok_or("canonical campaign is not initialized")?;
+    if expected_version.is_some_and(|expected| expected != existing_version) {
+        return Err("stale campaign version; no canonical database was mutated".into());
+    }
+    CanonicalCampaignLedgers::read(&profile.implementation_database)?;
+    let contexts = context::load(&profile)?;
+    let store = CampaignStore::open(&profile.campaign_database)?;
+    Ok((
+        store,
+        NativeCampaignConsumer {
+            profile,
+            contexts,
+            worker: None,
+        },
+    ))
 }
 
 struct NativeCampaignConsumer {
@@ -364,7 +393,7 @@ impl CampaignDriveShell for NativeCampaignConsumer {
         mut version: u64,
         state: &CampaignState,
         member_key: &str,
-    ) -> Result<u64, String> {
+    ) -> Result<CampaignClaim, String> {
         let profile = &self.profile;
         let observation = state
             .observations
@@ -390,10 +419,16 @@ impl CampaignDriveShell for NativeCampaignConsumer {
             wall_clock_ms()?,
             profile.claim_lease_ms,
         )? {
-            kiln_implementer::campaign_consumer::CampaignClaimOutcome::Claimed(attempt) => *attempt,
-            kiln_implementer::campaign_consumer::CampaignClaimOutcome::NotWinner { selected } => {
-                return Err(format!(
+            CampaignClaimOutcome::Claimed(attempt) => *attempt,
+            CampaignClaimOutcome::NotWinner { selected } => {
+                return Ok(CampaignClaim::Refused(format!(
                     "campaign work is not the canonical admission winner ({selected:?}); no work was claimed"
+                )));
+            }
+            CampaignClaimOutcome::WriterBusy => {
+                return Ok(CampaignClaim::Refused(
+                    "repository already has an active or unreconciled writer; no work was claimed"
+                        .into(),
                 ));
             }
         };
@@ -417,6 +452,7 @@ impl CampaignDriveShell for NativeCampaignConsumer {
             &attempt,
             &self.contexts,
         )
+        .map(CampaignClaim::Bound)
     }
 }
 

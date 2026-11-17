@@ -22,6 +22,16 @@ fn main() {
         Some("drive-implementation-campaign") => projection_result(
             kiln_web_service::implementation_campaign::run_cli_args(&arguments.collect::<Vec<_>>()),
         ),
+        Some("continue-implementation-campaign") => projection_result(
+            kiln_web_service::implementation_campaign::continue_cli_args(
+                &arguments.collect::<Vec<_>>(),
+            ),
+        ),
+        Some("wake-implementation-campaign") => {
+            projection_result(kiln_web_service::implementation_campaign::wake_cli_args(
+                &arguments.collect::<Vec<_>>(),
+            ))
+        }
         Some("verify-implementation") => implementation_verification_cli::run(arguments),
         Some("inventory") => projection_result(kiln_web_service::inventory::run_cli_args(
             &arguments.collect::<Vec<_>>(),
@@ -72,6 +82,12 @@ fn usage() -> i32 {
     );
     eprintln!(
         "       kiln-web-service drive-implementation-campaign --profile PROFILE --campaign-id ID --expected-version N"
+    );
+    eprintln!(
+        "       kiln-web-service continue-implementation-campaign --profile PROFILE --campaign-id ID"
+    );
+    eprintln!(
+        "       kiln-web-service wake-implementation-campaign --database DB --campaign-id ID --kind KIND [--observed-version N]"
     );
     2
 }

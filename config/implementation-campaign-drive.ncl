@@ -179,6 +179,17 @@ in
     delivery | Delivery | DeliverySelection,
     claim_lease_ms | Positive,
     maximum_operations | Integer 1 128,
+    # Optional pacing for continue-implementation-campaign; absent profiles
+    # use the named defaults. retry_base_ms must not exceed retry_max_ms.
+    continuation
+      | {
+        rescan_interval_ms | Integer 1000 86400000,
+        retry_base_ms | Integer 1000 86400000,
+        retry_max_ms | Integer 1000 86400000,
+        max_consecutive_failures | Integer 1 64,
+        max_batches | Integer 1 32,
+      }
+      | optional,
     workspace
       | {
         repository | Text,

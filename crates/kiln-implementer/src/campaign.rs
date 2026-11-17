@@ -2,9 +2,15 @@
 use std::{path::Path, time::Duration};
 
 use kiln_core::{
-    implementation::campaign::{
-        CampaignContract, CampaignDecision, CampaignOperation, CampaignState, EffectState,
-        MemberObservation, MemberStage, PendingEffect, SelectionBasis,
+    implementation::{
+        campaign::{
+            CampaignContract, CampaignDecision, CampaignOperation, CampaignState, EffectState,
+            MemberObservation, MemberStage, PendingEffect, SelectionBasis,
+        },
+        continuation::{
+            BatchOutcome, CampaignView, ContinuationPolicy, ContinuationRecord, ContinuationStep,
+            DriveReason, WakeHint, WakeKind,
+        },
     },
     types::ContentId,
 };
@@ -24,7 +30,11 @@ pub struct CampaignDecisionAnswer<'a> {
 }
 
 const MAX_CAMPAIGN_BYTES: i64 = 32 * 1024 * 1024;
-const SCHEMA: &str = "CREATE TABLE IF NOT EXISTS implementation_campaign (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL);";
+const SCHEMA: &str = "CREATE TABLE IF NOT EXISTS implementation_campaign (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL); CREATE TABLE IF NOT EXISTS implementation_campaign_continuation (campaign_id TEXT PRIMARY KEY, version INTEGER NOT NULL, bytes BLOB NOT NULL);";
+/// Prefix of every refusal caused by a campaign version that moved.
+pub const STALE_CAMPAIGN_VERSION: &str = "stale campaign version";
+/// Largest stored continuation record; it holds pacing only.
+const MAX_CONTINUATION_BYTES: i64 = 64 * 1024;
 
 #[derive(Debug)]
 pub struct CampaignStore {
@@ -166,7 +176,7 @@ impl CampaignStore {
         let (mut state, version) = load_tx(&tx, campaign_id)?;
         if version != expected_version {
             return Err(format!(
-                "stale campaign version: expected {expected_version}, current {version}"
+                "{STALE_CAMPAIGN_VERSION}: expected {expected_version}, current {version}"
             ));
         }
         let mut statement = tx
@@ -217,7 +227,7 @@ impl CampaignStore {
         let (mut state, version) = load_tx(&tx, campaign_id)?;
         if version != expected_version {
             return Err(format!(
-                "stale campaign version: expected {expected_version}, current {version}"
+                "{STALE_CAMPAIGN_VERSION}: expected {expected_version}, current {version}"
             ));
         }
         let mut statement = tx
@@ -257,16 +267,21 @@ impl CampaignStore {
         expected_version: u64,
         answer: CampaignDecisionAnswer<'_>,
     ) -> Result<CampaignState, String> {
-        self.mutate(campaign_id, expected_version, |mut state| {
-            state.resolve_decision(
-                answer.identity,
-                answer.work,
-                answer.policy,
-                answer.candidate,
-                answer.answer,
-            )?;
-            Ok(state)
-        })
+        self.mutate_hinted(
+            campaign_id,
+            expected_version,
+            Some(WakeKind::Review),
+            |mut state| {
+                state.resolve_decision(
+                    answer.identity,
+                    answer.work,
+                    answer.policy,
+                    answer.candidate,
+                    answer.answer,
+                )?;
+                Ok(state)
+            },
+        )
     }
     pub fn cancel(
         &mut self,
@@ -283,10 +298,15 @@ impl CampaignStore {
         campaign_id: &str,
         expected_version: u64,
     ) -> Result<CampaignState, String> {
-        self.mutate(campaign_id, expected_version, |mut state| {
-            state.continue_admission();
-            Ok(state)
-        })
+        self.mutate_hinted(
+            campaign_id,
+            expected_version,
+            Some(WakeKind::Operator),
+            |mut state| {
+                state.continue_admission();
+                Ok(state)
+            },
+        )
     }
     pub fn pause(
         &mut self,
@@ -508,6 +528,66 @@ impl CampaignStore {
             .filter(|e| !e.progress_applied)
             .collect())
     }
+    /// The continuation record of an existing campaign and its row version
+    /// (`0` before the first write).
+    pub fn continuation(&self, campaign_id: &str) -> Result<(ContinuationRecord, u64), String> {
+        if self.version(campaign_id)?.is_none() {
+            return Err("campaign not found".into());
+        }
+        load_continuation(&self.connection, campaign_id)
+    }
+    // r[impl kiln.implementation.campaign.continuation.scenario.restart]
+    /// Coalesce one wake hint into an existing campaign's continuation record.
+    /// The hint grants nothing; it only makes the next step reread.
+    pub fn record_wake(
+        &mut self,
+        campaign_id: &str,
+        hint: WakeHint,
+    ) -> Result<(ContinuationRecord, u64), String> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let exists: bool = tx
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM implementation_campaign WHERE campaign_id=?1)",
+                params![campaign_id],
+                |r| r.get(0),
+            )
+            .map_err(text)?;
+        if !exists {
+            return Err("campaign not found".into());
+        }
+        let (mut record, version) = load_continuation(&tx, campaign_id)?;
+        record.record_hint(hint);
+        let version = save_continuation(&tx, &record, version)?;
+        tx.commit().map_err(text)?;
+        Ok((record, version))
+    }
+    /// Merge one batch outcome into the current record. Hints recorded during
+    /// the batch stay pending: consumption stops at the sequence read before it.
+    pub fn record_batch(
+        &mut self,
+        campaign_id: &str,
+        batch: RecordedBatch,
+        policy: &ContinuationPolicy,
+    ) -> Result<(ContinuationRecord, u64), String> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (mut record, version) = load_continuation(&tx, campaign_id)?;
+        record.apply_outcome(
+            batch.outcome,
+            batch.store_version,
+            batch.consumed_sequence,
+            batch.finished_ms,
+            policy,
+        );
+        let version = save_continuation(&tx, &record, version)?;
+        tx.commit().map_err(text)?;
+        Ok((record, version))
+    }
     fn load(&self, campaign_id: &str) -> Result<Option<CampaignState>, String> {
         let row:Option<(i64,Option<Vec<u8>>)>=self.connection.query_row("SELECT length(bytes), CASE WHEN length(bytes)<=?2 THEN bytes ELSE NULL END FROM implementation_campaign WHERE campaign_id=?1",params![campaign_id,MAX_CAMPAIGN_BYTES],|r|Ok((r.get(0)?,r.get(1)?))).optional().map_err(text)?;
         match row {
@@ -525,6 +605,17 @@ impl CampaignStore {
         expected_version: u64,
         apply: impl FnOnce(CampaignState) -> Result<CampaignState, kiln_core::types::Diagnostic>,
     ) -> Result<CampaignState, String> {
+        self.mutate_hinted(campaign_id, expected_version, None, apply)
+    }
+    /// Apply one transition and, in the same transaction, coalesce a wake hint
+    /// for the version it produced, so a committed transition never loses it.
+    fn mutate_hinted(
+        &mut self,
+        campaign_id: &str,
+        expected_version: u64,
+        hint: Option<WakeKind>,
+        apply: impl FnOnce(CampaignState) -> Result<CampaignState, kiln_core::types::Diagnostic>,
+    ) -> Result<CampaignState, String> {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -532,7 +623,7 @@ impl CampaignStore {
         let (state, version) = load_tx(&tx, campaign_id)?;
         if version != expected_version {
             return Err(format!(
-                "stale campaign version: expected {expected_version}, current {version}"
+                "{STALE_CAMPAIGN_VERSION}: expected {expected_version}, current {version}"
             ));
         }
         let next = apply(state).map_err(diagnostic)?;
@@ -541,6 +632,14 @@ impl CampaignStore {
             return Err("campaign mutation changed identity".into());
         }
         save(&tx, &next, version)?;
+        if let Some(kind) = hint {
+            let (mut record, record_version) = load_continuation(&tx, campaign_id)?;
+            record.record_hint(WakeHint {
+                kind,
+                observed_version: version.checked_add(1),
+            });
+            save_continuation(&tx, &record, record_version)?;
+        }
         tx.commit().map_err(text)?;
         Ok(next)
     }
@@ -730,7 +829,8 @@ pub trait CampaignDriveShell: CampaignEffectConsumer {
         member: &str,
     ) -> Result<Option<u64>, String>;
     /// Claim or reattach the canonical work for a selected writer operation.
-    /// Canonical admission owns the decision; a refusal stops the drive.
+    /// Canonical admission owns the decision; a refusal ends the drive as a
+    /// capacity wait.
     fn claim(
         &mut self,
         store: &mut CampaignStore,
@@ -738,7 +838,17 @@ pub trait CampaignDriveShell: CampaignEffectConsumer {
         version: u64,
         state: &CampaignState,
         member: &str,
-    ) -> Result<u64, String>;
+    ) -> Result<CampaignClaim, String>;
+}
+
+/// What canonical admission decided for a selected writer operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CampaignClaim {
+    /// The claim is bound and the campaign store is at this version.
+    Bound(u64),
+    /// Admission refused it: another winner, a busy repository writer, or a
+    /// budget or lineage refusal. Nothing was persisted.
+    Refused(String),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -752,12 +862,15 @@ pub struct CampaignDriveRun {
     pub version: u64,
     pub state: CampaignState,
     pub steps: Vec<CampaignDriveStep>,
+    /// Canonical admission refused the selected claim; no intent was persisted.
+    pub refusal: Option<String>,
 }
 
 // r[impl kiln.implementation.campaign.independent_progress.scenario.driver]
 /// Run at most `maximum_operations` operations. The drive stops after an
 /// operation without an effect, after an effect whose outcome is still
-/// unobserved, and at a blocked, replan, decision-request or complete decision.
+/// unobserved, at a refused claim, and at a blocked, replan, decision-request
+/// or complete decision.
 pub fn drive_bounded<S: CampaignDriveShell>(
     store: &mut CampaignStore,
     campaign_id: &str,
@@ -767,9 +880,16 @@ pub fn drive_bounded<S: CampaignDriveShell>(
 ) -> Result<CampaignDriveRun, String> {
     let mut steps = Vec::new();
     let mut latest = None;
+    let mut refusal = None;
     for _ in 0..maximum_operations {
         version = shell.refresh(store, campaign_id, version)?;
-        version = prepare_selected(store, campaign_id, version, shell)?;
+        version = match prepare_selected(store, campaign_id, version, shell)? {
+            CampaignClaim::Bound(version) => version,
+            CampaignClaim::Refused(reason) => {
+                refusal = Some(reason);
+                break;
+            }
+        };
         let result = drive_one(store, campaign_id, version, shell)?;
         version = store
             .version(campaign_id)?
@@ -799,11 +919,17 @@ pub fn drive_bounded<S: CampaignDriveShell>(
             break;
         }
     }
-    let state = latest.ok_or("bounded controller produced no state observation")?;
+    let state = match latest {
+        Some(state) => state,
+        None => store
+            .inspect(campaign_id)?
+            .ok_or("bounded controller produced no state observation")?,
+    };
     Ok(CampaignDriveRun {
         version,
         state,
         steps,
+        refusal,
     })
 }
 
@@ -815,7 +941,7 @@ fn prepare_selected<S: CampaignDriveShell>(
     campaign_id: &str,
     version: u64,
     shell: &mut S,
-) -> Result<u64, String> {
+) -> Result<CampaignClaim, String> {
     let state = store.inspect(campaign_id)?.ok_or("campaign not found")?;
     let evaluation = state.evaluate();
     let decision = &evaluation.decision;
@@ -827,7 +953,7 @@ fn prepare_selected<S: CampaignDriveShell>(
         return shell.claim(store, campaign_id, version, &state, member);
     }
     if evaluation.basis != SelectionBasis::MemberHold {
-        return Ok(version);
+        return Ok(CampaignClaim::Bound(version));
     }
     for hold in evaluation
         .holds
@@ -845,11 +971,204 @@ fn prepare_selected<S: CampaignDriveShell>(
             if let Some(recovered) =
                 shell.recover_executing(store, campaign_id, version, &state, member)?
             {
-                return Ok(recovered);
+                return Ok(CampaignClaim::Bound(recovered));
             }
         }
     }
-    Ok(version)
+    Ok(CampaignClaim::Bound(version))
+}
+
+// r[impl kiln.implementation.campaign.continuation.scenario.rescan]
+/// Classify one bounded driver batch. A stale version and a refused claim are
+/// not failures: the first needs a reread, the second waits for capacity.
+#[must_use]
+pub fn classify_batch(
+    result: &Result<CampaignDriveRun, String>,
+    maximum_operations: u32,
+) -> BatchOutcome {
+    let run = match result {
+        Ok(run) => run,
+        Err(error) if error.starts_with(STALE_CAMPAIGN_VERSION) => {
+            return BatchOutcome::StaleVersion;
+        }
+        Err(_) => return BatchOutcome::Failed,
+    };
+    if run.refusal.is_some() {
+        return BatchOutcome::AdmissionRefused;
+    }
+    let state = &run.state;
+    if state.complete() {
+        return BatchOutcome::Complete;
+    }
+    if state
+        .pending_effects
+        .values()
+        .any(|effect| !effect.progress_applied)
+    {
+        return BatchOutcome::AwaitingOwner;
+    }
+    if state.cancelled {
+        return BatchOutcome::Cancelled;
+    }
+    if state.paused {
+        return BatchOutcome::Paused;
+    }
+    let decision = state.evaluate().decision;
+    let exhausted = run.steps.len() >= usize::try_from(maximum_operations).unwrap_or(usize::MAX);
+    if exhausted && decision.operation.is_owner_effect() {
+        return BatchOutcome::OperationLimit;
+    }
+    if decision.operation == CampaignOperation::Replan {
+        return BatchOutcome::NeedsReplan;
+    }
+    BatchOutcome::Waiting
+}
+
+/// One batch outcome to merge into the continuation record.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RecordedBatch {
+    pub outcome: BatchOutcome,
+    /// Campaign store version after the batch.
+    pub store_version: u64,
+    /// Demand sequence read before the batch started.
+    pub consumed_sequence: u64,
+    pub finished_ms: u64,
+}
+
+/// One driver batch run by [`continue_bounded`].
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ContinuationBatch {
+    pub reason: DriveReason,
+    pub outcome: BatchOutcome,
+    /// Campaign store version after the batch.
+    pub store_version: u64,
+    pub steps: Vec<CampaignDriveStep>,
+    pub refusal: Option<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ContinuationRun {
+    pub batches: Vec<ContinuationBatch>,
+    /// The step after the last batch. A `drive` step here means the batch
+    /// bound ended this invocation while work was still eligible.
+    pub next: ContinuationStep,
+    pub record: ContinuationRecord,
+    pub record_version: u64,
+}
+
+// r[impl kiln.implementation.campaign.continuation.scenario.resume]
+/// One bounded continuation step over the existing driver. Every decision
+/// rereads canonical state, at most `policy.max_batches` batches run, and the
+/// outcome of each is merged into the durable continuation record.
+pub fn continue_bounded<S, C>(
+    store: &mut CampaignStore,
+    campaign_id: &str,
+    policy: &ContinuationPolicy,
+    maximum_operations: u32,
+    clock: &mut C,
+    shell: &mut S,
+) -> Result<ContinuationRun, String>
+where
+    S: CampaignDriveShell,
+    C: FnMut() -> Result<u64, String>,
+{
+    policy.validate().map_err(diagnostic)?;
+    let batch_bound = usize::try_from(policy.max_batches).unwrap_or(usize::MAX);
+    let mut batches = Vec::new();
+    loop {
+        let now_ms = clock()?;
+        let (record, record_version) = store.continuation(campaign_id)?;
+        let state = store.inspect(campaign_id)?.ok_or("campaign not found")?;
+        let store_version = store.version(campaign_id)?.ok_or("campaign not found")?;
+        let next = record.decide(CampaignView::of(&state, store_version), now_ms, policy);
+        let reason = match next {
+            ContinuationStep::Drive { reason } if batches.len() < batch_bound => reason,
+            _ => {
+                return Ok(ContinuationRun {
+                    batches,
+                    next,
+                    record,
+                    record_version,
+                });
+            }
+        };
+        let consumed_sequence = record.demand_sequence;
+        let result = drive_bounded(store, campaign_id, store_version, maximum_operations, shell);
+        let outcome = classify_batch(&result, maximum_operations);
+        let after = store
+            .version(campaign_id)?
+            .ok_or("campaign disappeared during continuation")?;
+        let finished_ms = clock()?;
+        store.record_batch(
+            campaign_id,
+            RecordedBatch {
+                outcome,
+                store_version: after,
+                consumed_sequence,
+                finished_ms,
+            },
+            policy,
+        )?;
+        let (steps, refusal, error) = match result {
+            Ok(run) => (run.steps, run.refusal, None),
+            Err(error) => (Vec::new(), None, Some(error)),
+        };
+        batches.push(ContinuationBatch {
+            reason,
+            outcome,
+            store_version: after,
+            steps,
+            refusal,
+            error,
+        });
+    }
+}
+
+fn load_continuation(
+    connection: &Connection,
+    campaign_id: &str,
+) -> Result<(ContinuationRecord, u64), String> {
+    let row: Option<(i64, i64, Option<Vec<u8>>)> = connection
+        .query_row(
+            "SELECT version,length(bytes),CASE WHEN length(bytes)<=?2 THEN bytes ELSE NULL END FROM implementation_campaign_continuation WHERE campaign_id=?1",
+            params![campaign_id, MAX_CONTINUATION_BYTES],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .optional()
+        .map_err(text)?;
+    let Some((version, length, bytes)) = row else {
+        return Ok((ContinuationRecord::new(campaign_id), 0));
+    };
+    let (Some(bytes), true) = (bytes, (0..=MAX_CONTINUATION_BYTES).contains(&length)) else {
+        return Err("continuation record exceeds its bound".into());
+    };
+    let record: ContinuationRecord = decode(&bytes)?;
+    record.validate().map_err(diagnostic)?;
+    if record.campaign_id != campaign_id {
+        return Err("continuation key and payload identity differ".into());
+    }
+    Ok((record, u64::try_from(version).map_err(text)?))
+}
+
+fn save_continuation(
+    tx: &rusqlite::Transaction<'_>,
+    record: &ContinuationRecord,
+    version: u64,
+) -> Result<u64, String> {
+    let bytes = serde_json::to_vec(record).map_err(text)?;
+    if bytes.len() as i64 > MAX_CONTINUATION_BYTES {
+        return Err("continuation record exceeds its bound".into());
+    }
+    let next = version
+        .checked_add(1)
+        .ok_or("continuation version exhausted")?;
+    tx.execute(
+        "INSERT INTO implementation_campaign_continuation(campaign_id,version,bytes) VALUES(?1,?2,?3) ON CONFLICT(campaign_id) DO UPDATE SET version=excluded.version,bytes=excluded.bytes",
+        params![record.campaign_id, i64::try_from(next).map_err(text)?, bytes],
+    )
+    .map_err(text)?;
+    Ok(next)
 }
 
 fn intent_identity(

@@ -225,9 +225,11 @@ impl CampaignDriveShell for ScriptedOwners {
         version: u64,
         state: &CampaignState,
         member: &str,
-    ) -> Result<u64, String> {
+    ) -> Result<CampaignClaim, String> {
         if self.refuse_claims {
-            return Err("canonical admission refused the claim: parent budget exhausted".into());
+            return Ok(CampaignClaim::Refused(
+                "canonical admission refused the claim: parent budget exhausted".into(),
+            ));
         }
         self.claims.push(member.into());
         let mut bound = state
@@ -240,6 +242,7 @@ impl CampaignDriveShell for ScriptedOwners {
         store.observe(campaign_id, version, bound)?;
         store
             .version(campaign_id)?
+            .map(CampaignClaim::Bound)
             .ok_or_else(|| "campaign disappeared after claim".into())
     }
 }
@@ -321,10 +324,16 @@ fn refused_canonical_claim_stops_before_intent_or_dispatch() {
         refuse_claims: true,
         ..ScriptedOwners::default()
     };
-    let refused = drive_bounded(&mut store, CAMPAIGN, version, 8, &mut owners)
-        .err()
+    let run = drive_bounded(&mut store, CAMPAIGN, version, 8, &mut owners)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let refused = run
+        .refusal
+        .as_deref()
         .unwrap_or_else(|| unreachable!("refused claim was driven"));
     assert!(refused.contains("parent budget exhausted"), "{refused}");
+    assert!(run.steps.is_empty());
+    assert_eq!(run.version, version);
+    assert_eq!(classify_batch(&Ok(run), 8), BatchOutcome::AdmissionRefused);
     assert!(owners.dispatched.is_empty());
     let state = store
         .inspect(CAMPAIGN)
@@ -336,3 +345,6 @@ fn refused_canonical_claim_stops_before_intent_or_dispatch() {
     assert_eq!(selected.operation, CampaignOperation::Code);
     assert_eq!(selected.member.as_deref(), Some(C));
 }
+
+#[path = "continuation_tests.rs"]
+mod continuation_tests;

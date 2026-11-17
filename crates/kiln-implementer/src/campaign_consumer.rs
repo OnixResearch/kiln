@@ -9,7 +9,12 @@ use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, text};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CampaignClaimOutcome {
     Claimed(Box<ImplementationAttempt>),
-    NotWinner { selected: Option<ContentId> },
+    NotWinner {
+        selected: Option<ContentId>,
+    },
+    /// Another active or unreconciled writer holds the repository; nothing
+    /// was claimed.
+    WriterBusy,
 }
 
 impl Implementer {
@@ -28,6 +33,7 @@ impl Implementer {
             crate::admission::AdmissionResult::NotWinner { selected } => {
                 Ok(CampaignClaimOutcome::NotWinner { selected })
             }
+            crate::admission::AdmissionResult::WriterBusy => Ok(CampaignClaimOutcome::WriterBusy),
             crate::admission::AdmissionResult::Claimed { attempt: None } => {
                 Err("exact admission winner produced no durable attempt".into())
             }

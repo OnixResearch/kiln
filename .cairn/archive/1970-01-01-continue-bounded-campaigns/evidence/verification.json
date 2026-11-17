@@ -1,0 +1,100 @@
+{
+  "observed_on": "2026-11-16",
+  "issue": "https://github.com/OnixResearch/kiln/issues/87",
+  "scope": "Working-copy campaign continuation core, durable continuation record, bounded continuation loop, typed claim refusal, native continue and wake commands, optional profile policy and its Nickel contract. Unit tests and scripted owners over the real SQLite campaign store; no real worker, model, credential, provider or remote effect, and no supervisor deployment.",
+  "source_parent_revision": "ee607ff6fd26d6b7cb1eff85f263f850a39cb7c0",
+  "immediate_outcome": "A selected campaign resumes eligible work after a review answer, owner progress, recovered capacity, a moved version or the bounded rescan without a new campaign start; waiting campaigns do not drive, and only driver failures consume a bounded, backed-off retry budget.",
+  "durable_capability": "kiln_core::implementation::continuation (wake coalescing, decide, classify and backoff) and kiln_implementer::campaign::continue_bounded over the existing drive_bounded loop, shared by the native controller and scripted owners.",
+  "owner": "Kiln implementation and web-service maintainers",
+  "checks": [
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core --lib implementation::continuation",
+      "result": "pass",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-implementer --lib campaign::",
+      "result": "pass; re-run after the last test edit",
+      "passed": 18,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-implementer --test admission",
+      "result": "pass; exact admission returns writer_busy for a busy repository writer",
+      "passed": 16,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p kiln-web-service --lib implementation_campaign",
+      "result": "pass",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "command": "cargo clippy --offline --locked -p onix-kiln-core -p kiln-implementer -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass; kiln-implementer re-checked after the last test edit"
+    },
+    {
+      "command": "cargo fmt --all --check; cargo clippy --offline --locked --workspace --all-targets -j 16 -- -D warnings; cargo test --offline --locked --workspace -j 16",
+      "result": "pass",
+      "passed": 1856,
+      "ignored": 11,
+      "failed": 0
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "result": "pass (84 positive, 589 negative)"
+    },
+    {
+      "command": "nickel export of the profile continuation contract over one positive and three negative values",
+      "result": "the named defaults are accepted; a zero rescan interval, 33 batches and an unknown field are rejected; nickel typecheck of config/implementation-campaign-drive.ncl passes"
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L --no-write-lock-file --option builders ''; nix flake check path:$PWD --no-write-lock-file --keep-going -L --option builders ''",
+      "result": "pass on the final source: Octet consumer checks report 0 findings and nix flake check exits 0",
+      "builder_note": "remote builders were disabled for these invocations, as for #85, so every check built locally"
+    }
+  ],
+  "cargo_environment": {
+    "rustc": "1.88.0",
+    "wrapper": "dev-shell environment with pkg-config and OpenSSL and a private TMPDIR"
+  },
+  "cairn": {
+    "gates": "proposal, design and tasks PASS after the final package edits",
+    "validate": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json: valid"
+  },
+  "traceability": {
+    "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+    "new_requirement_ids_missing_markers": [],
+    "pre_existing_dangling": [
+      "kiln.dashboard.campaign.projection",
+      "kiln.github.publication.scenario.upload"
+    ],
+    "pre_existing_missing": [
+      "kiln.github.landing.merge.scenario.landed",
+      "kiln.github.source_status.scenario.close",
+      "kiln.hosted.mobility.runtime.scenario.control",
+      "kiln.hosted.mobility.runtime.scenario.control-observed"
+    ],
+    "note": "The command exits nonzero for these pre-existing entries only; registering this change's delta root added nine requirement ids and no dangling or missing id."
+  },
+  "acceptance": {
+    "review_verification_source_capacity_resume": "resolved_review_resumes_the_campaign_without_a_new_start, lifecycle_only_members_continue_after_an_integration_hint, failures_back_off_under_the_budget_and_refusals_wait_for_capacity (capacity hint), stale_versions_reread_and_lost_notifications_resume_on_the_rescan (owner progress)",
+    "duplicate_simultaneous_out_of_order_hints": "duplicate_hints_coalesce_and_a_mid_batch_hint_stays_pending, wake_hints_coalesce_into_the_initialized_campaign_record",
+    "lost_notification_and_incomplete_reads": "stale_versions_reread_and_lost_notifications_resume_on_the_rescan, only_a_complete_canonical_read_completes_the_continuation",
+    "stale_versions": "stale_versions_reread_and_lost_notifications_resume_on_the_rescan",
+    "unknown_effects_reconcile_first": "restart_preserves_demand_failures_backoff_selection_and_pending_effects, duplicate_hints_coalesce_and_a_mid_batch_hint_stays_pending",
+    "pause_cancel": "pause_and_cancellation_close_admission_but_retained_effects_reconcile",
+    "paused_observations_and_frozen_selection": "pause_and_cancellation_close_admission_but_retained_effects_reconcile",
+    "operation_limit_and_idle": "waiting_campaigns_idle_and_operation_limit_batches_stay_bounded, waiting_campaigns_do_not_drive_until_news_or_the_rescan",
+    "restart": "restart_preserves_demand_failures_backoff_selection_and_pending_effects",
+    "qualification_scopes": "every check above is a unit or scripted-owner fixture; see non_claims"
+  },
+  "non_claims": [
+    "Scripted owners prove continuation ordering, coalescing, persistence, backoff and restart behavior, not native worker, model, verifier or provider behavior.",
+    "No supervisor, timer or path unit was deployed or run; onix-core owns that composition (#49).",
+    "Owner processes do not emit wake hints yet; without a hint, owner progress resumes within one rescan interval.",
+    "Authority revocation (#69/#70) and authenticated web commands (#86) are not part of this change."
+  ]
+}

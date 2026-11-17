@@ -254,6 +254,18 @@ entry describes the source tree prepared for the first tagged release.
   projections, and require the named canonical checks. Native source observation
   uses bounded immutable commit snapshots and explicit remote-target freshness;
   it does not inherit ambient credentials or qualify unsupported delivery goals.
+- Selected campaigns resume through `kiln-web-service
+  continue-implementation-campaign`, a one-shot step a supervisor invokes. Each
+  step rereads canonical state and runs at most a configured number of bounded
+  driver batches. It drives on a coalesced wake hint
+  (`wake-implementation-campaign`, or an operator `continue` or decision
+  answer), a moved campaign version, an operation-limit batch, a retry after
+  backoff or the bounded rescan; otherwise it waits or stops. Wake demand,
+  failures and backoff persist beside the campaign. Only driver failures count
+  against the budget: a stale version rereads, and a canonical claim refusal
+  (another winner or a busy repository writer, now typed `writer_busy`) waits
+  for capacity. (#87; unit and scripted-owner fixtures; no live campaign or
+  supervisor deployment)
 
 ### Fixed
 
