@@ -728,3 +728,405 @@ fn the_index_reports_truncation_and_empty_stores() {
     let empty = index(&CanonicalSnapshot::default()).unwrap_or_else(|code| unreachable!("{code}"));
     assert!(empty.changes.is_empty() && !empty.truncated && !empty.snapshot.work_recorded);
 }
+
+fn facets_of(
+    readiness: &'static str,
+    execution: &str,
+    evidence: &'static str,
+    integration: &str,
+    lifecycle: &'static str,
+) -> Facets {
+    Facets {
+        readiness,
+        execution: execution.into(),
+        evidence,
+        integration: integration.into(),
+        lifecycle,
+    }
+}
+
+#[test]
+// r[verify kiln.cairn.workspace.scenario.lanes]
+fn every_stop_needs_attention_and_only_current_facts_advance_a_unit() {
+    let base = || {
+        facets_of(
+            "ready",
+            "not_started",
+            "none",
+            "not_published",
+            "not_observed",
+        )
+    };
+    assert_eq!(lane(&base()), "ready");
+    // Every stop wins over any advance, including an observed lifecycle receipt.
+    for stopped in [
+        Facets {
+            readiness: "blocked",
+            ..base()
+        },
+        Facets {
+            readiness: "unknown",
+            ..base()
+        },
+        Facets {
+            evidence: "current_failed",
+            execution: "verifying".into(),
+            ..base()
+        },
+        Facets {
+            readiness: "blocked",
+            lifecycle: "receipt_observed",
+            ..base()
+        },
+    ] {
+        assert_eq!(lane(&stopped), "attention", "{stopped:?}");
+    }
+    for phase in [
+        "blocked",
+        "failed",
+        "cancelled",
+        "superseded",
+        "paused-by-a-newer-owner",
+    ] {
+        assert_eq!(
+            lane(&Facets {
+                execution: phase.into(),
+                ..base()
+            }),
+            "attention",
+            "{phase}"
+        );
+    }
+    assert_eq!(
+        lane(&Facets {
+            readiness: "not_admitted",
+            ..base()
+        }),
+        "awaiting"
+    );
+    for phase in ["claimed", "executing", "candidate_produced", "verifying"] {
+        assert_eq!(
+            lane(&Facets {
+                execution: phase.into(),
+                ..base()
+            }),
+            "in_progress",
+            "{phase}"
+        );
+    }
+    // Historical verification never advances a unit.
+    assert_eq!(
+        lane(&Facets {
+            evidence: "historical_only",
+            ..base()
+        }),
+        "ready"
+    );
+    let verified = || Facets {
+        execution: "verified".into(),
+        evidence: "current_verified",
+        ..base()
+    };
+    assert_eq!(lane(&verified()), "verified");
+    assert_eq!(
+        lane(&Facets {
+            integration: "pull_request_published".into(),
+            ..verified()
+        }),
+        "verified"
+    );
+    for integrated in ["integrated", "source_reconciled"] {
+        assert_eq!(
+            lane(&Facets {
+                integration: integrated.into(),
+                ..verified()
+            }),
+            "integrated"
+        );
+    }
+    assert_eq!(
+        lane(&Facets {
+            integration: "integrated".into(),
+            lifecycle: "receipt_observed",
+            ..verified()
+        }),
+        "recorded"
+    );
+
+    let fixture = fixture();
+    let detail = read_detail(&fixture, CHANGE);
+    let lanes: Vec<(&str, &str)> = detail
+        .units
+        .iter()
+        .map(|unit| (unit.native_id.as_str(), unit.lane))
+        .collect();
+    assert_eq!(
+        lanes,
+        vec![
+            ("chg/task-a", "attention"),
+            ("chg/task-b", "ready"),
+            ("chg/task-c", "in_progress"),
+            ("chg/task-d", "awaiting"),
+            ("chg/task-x", "attention"),
+            ("chg/task-y", "attention"),
+        ]
+    );
+    assert_eq!(detail.overview.lane, "attention");
+    assert_eq!(
+        detail.overview.lanes,
+        BTreeMap::from([
+            ("attention", 3),
+            ("awaiting", 1),
+            ("ready", 1),
+            ("in_progress", 1),
+            ("verified", 0),
+            ("integrated", 0),
+            ("recorded", 0),
+        ])
+    );
+    // Without a stop a change sits with its least-advanced unit; naming no
+    // unit awaits work.
+    let moving: Vec<UnitView> = detail
+        .units
+        .iter()
+        .filter(|unit| unit.lane != "attention")
+        .cloned()
+        .collect();
+    assert_eq!(change_lane(&moving), "awaiting");
+    let started: Vec<UnitView> = moving
+        .iter()
+        .filter(|unit| unit.lane != "awaiting")
+        .cloned()
+        .collect();
+    assert_eq!(change_lane(&started), "ready");
+    assert_eq!(change_lane(&[]), "awaiting");
+    let other = read_detail(&fixture, "other");
+    assert_eq!((other.overview.lane, other.units.len()), ("awaiting", 1));
+    let elsewhere = detail_in(&fixture, OTHER_REPOSITORY, CHANGE);
+    assert_eq!(
+        (
+            elsewhere.overview.lane,
+            elsewhere.overview.lanes.values().sum::<usize>()
+        ),
+        ("awaiting", 0)
+    );
+
+    let index = index(&fixture.snapshot).unwrap_or_else(|code| unreachable!("{code}"));
+    for entry in &index.changes {
+        let detail = detail_in(
+            &fixture,
+            if entry.repository_identity == repository_identity(REPOSITORY) {
+                REPOSITORY
+            } else {
+                OTHER_REPOSITORY
+            },
+            &entry.change,
+        );
+        assert_eq!(
+            (
+                entry.lane,
+                &entry.lanes,
+                entry.lanes.values().sum::<usize>(),
+                entry.open_decisions,
+                entry.first_blocker.as_ref()
+            ),
+            (
+                detail.overview.lane,
+                &detail.overview.lanes,
+                entry.units,
+                detail.overview.open_decisions,
+                detail.blockers.first()
+            )
+        );
+    }
+}
+
+#[test]
+// r[verify kiln.cairn.workspace.scenario.blockers]
+fn blockers_rank_by_condition_and_name_their_target() {
+    let detail = read_detail(&fixture(), CHANGE);
+    let ranks: Vec<usize> = detail
+        .blockers
+        .iter()
+        .map(|blocker| blocker_rank(blocker.condition))
+        .collect();
+    assert!(
+        ranks
+            .iter()
+            .zip(ranks.iter().skip(1))
+            .all(|(left, right)| left <= right),
+        "{ranks:?}"
+    );
+    assert!(ranks.iter().all(|rank| *rank < BLOCKER_RANK.len()));
+    assert_eq!(
+        detail
+            .overview
+            .first_blocker
+            .as_ref()
+            .map(|blocker| blocker.condition),
+        Some("dispatch_recovery")
+    );
+    for blocker in &detail.blockers {
+        let expected = match blocker.condition {
+            "dispatch_recovery"
+            | "missing_dependency"
+            | "no_acceptance_obligations"
+            | "dependency_cycle" => ("unit", None),
+            _ => ("member", Some(CAMPAIGN)),
+        };
+        assert_eq!(
+            (blocker.subject_kind, blocker.campaign_id.as_deref()),
+            expected,
+            "{blocker:?}"
+        );
+    }
+    assert!(
+        detail
+            .blockers
+            .iter()
+            .any(|blocker| blocker.subject_kind == "member")
+    );
+    assert_eq!(blocker_rank("unrecognized_condition"), BLOCKER_RANK.len());
+}
+
+#[test]
+// r[verify kiln.cairn.workspace.scenario.dependencies]
+fn dependents_name_current_work_waiting_on_a_unit_across_changes() {
+    let fixture = fixture();
+    let detail = read_detail(&fixture, CHANGE);
+    let dependents = |native_id| -> Vec<(String, &'static str, Vec<String>, Option<String>)> {
+        unit(&detail, native_id)
+            .current_work
+            .iter()
+            .flat_map(|work| &work.dependents)
+            .map(|view| {
+                (
+                    view.identity.clone(),
+                    view.state,
+                    view.native_ids.clone(),
+                    view.repository_identity.clone(),
+                )
+            })
+            .collect()
+    };
+    let task_b = unit(&detail, "chg/task-b")
+        .current_work
+        .first()
+        .map(|work| work.identity.clone())
+        .unwrap_or_else(|| unreachable!("task-b is current"));
+    assert_eq!(
+        dependents("chg/task-a"),
+        vec![(
+            task_b,
+            "current",
+            vec!["chg/task-b".to_owned()],
+            Some(repository_identity(REPOSITORY))
+        )]
+    );
+    assert!(dependents("chg/task-b").is_empty());
+    // A dependency on work that is not current stays visible without a unit
+    // or repository.
+    let missing: Vec<(&str, &str, usize, Option<&str>)> = unit(&detail, "chg/task-x")
+        .current_work
+        .iter()
+        .flat_map(|work| &work.dependencies)
+        .map(|view| {
+            (
+                view.identity.as_str(),
+                view.state,
+                view.native_ids.len(),
+                view.repository_identity.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(missing, vec![(id('f').as_str(), "not_current", 0, None)]);
+
+    // A unit of another change that depends on this change's work is named.
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from([REPOSITORY.to_string()]),
+        actors: BTreeSet::from(["operator".to_string()]),
+    };
+    let mut ledger = WorkLedger::default();
+    let prerequisite = work(REPOSITORY, "chg/task-a", 1, '1', Vec::new());
+    let prerequisite_identity = prerequisite.identity().unwrap_or_else(|_| unreachable!());
+    let dependent = work(
+        REPOSITORY,
+        "next/task-z",
+        1,
+        '2',
+        vec![prerequisite_identity],
+    );
+    for admitted in [&prerequisite, &dependent] {
+        ledger
+            .admit(admitted, None, &enrollment)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+    }
+    let snapshot = CanonicalSnapshot {
+        work: Some(ledger),
+        ..CanonicalSnapshot::default()
+    };
+    let crossed = super::detail(&snapshot, &key(REPOSITORY, CHANGE))
+        .unwrap_or_else(|code| unreachable!("{code}"))
+        .unwrap_or_else(|| unreachable!("chg is named"));
+    let names: Vec<&str> = crossed
+        .units
+        .iter()
+        .flat_map(|unit| &unit.current_work)
+        .flat_map(|work| &work.dependents)
+        .flat_map(|view| &view.native_ids)
+        .map(String::as_str)
+        .collect();
+    assert_eq!(names, vec!["next/task-z"]);
+}
+
+#[test]
+// r[verify kiln.cairn.workspace.scenario.lanes]
+fn open_decisions_count_unissued_and_outstanding_requests_only() {
+    let fixture = fixture();
+    let mut snapshot = fixture.snapshot.clone();
+    let (state, _) = snapshot
+        .campaigns
+        .first_mut()
+        .unwrap_or_else(|| unreachable!("the fixture has a campaign"));
+    for (byte, member, request_state) in [
+        ('1', "chg/task-c", DecisionRequestState::Outstanding),
+        ('2', "chg/task-d", DecisionRequestState::Unissued),
+        ('3', "chg/task-c", DecisionRequestState::Resolved),
+        ('4', "chg/task-c", DecisionRequestState::Expired),
+        ('5', "other/*", DecisionRequestState::Outstanding),
+    ] {
+        state.decisions.insert(
+            id(byte),
+            kiln_core::implementation::campaign::HumanDecisionRequest {
+                identity: id(byte),
+                kind: DecisionKind::Preference,
+                member: member.into(),
+                work_identity: None,
+                decision_revision: None,
+                policy_identity: id('a'),
+                candidate_identity: None,
+                state: request_state,
+                created_ms: 1,
+                question: "which?".into(),
+                options: vec!["one".into(), "two".into()],
+                recommendation: None,
+                priority: 1,
+                pending_reason: None,
+                resolved_answer: None,
+                active_effort_ms: None,
+            },
+        );
+    }
+    let read = |change: &str| {
+        detail(&snapshot, &key(REPOSITORY, change))
+            .unwrap_or_else(|code| unreachable!("{code}"))
+            .unwrap_or_else(|| unreachable!("{change} is named"))
+    };
+    let selected = read(CHANGE);
+    assert_eq!(
+        (selected.decisions.len(), selected.overview.open_decisions),
+        (4, 2)
+    );
+    assert_eq!(read("other").overview.open_decisions, 1);
+    assert_eq!(read_detail(&fixture, CHANGE).overview.open_decisions, 0);
+}

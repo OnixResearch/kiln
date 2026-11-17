@@ -1299,8 +1299,10 @@
       receipt: (params.get("receipt") || "").slice(0, 128), receipt_q: (params.get("receipt_q") || "").slice(0, 256), receipt_decision: (params.get("receipt_decision") || "").slice(0, 32),
       worker_q: (params.get("worker_q") || "").slice(0, 256), worker_status: Object.hasOwn(window.KilnWorkers.statuses, params.get("worker_status")) ? params.get("worker_status") : "", worker: params.get("worker") || "",
       worker_campaign: params.get("worker_campaign") || "",
-      // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change and its search are bound to the URL.
+      // r[impl kiln.cairn.workspace.scenario.reload] The selected Cairn change, its open unit, register view and filters are bound to the URL.
       cairn_repository: (params.get("cairn_repository") || "").slice(0, 64), cairn_change: (params.get("cairn_change") || "").slice(0, 1024), cairn_q: (params.get("cairn_q") || "").slice(0, 256),
+      cairn_unit: (params.get("cairn_unit") || "").slice(0, 2048), cairn_lane: (params.get("cairn_lane") || "").slice(0, 32),
+      cairn_blocked: params.get("cairn_blocked") === "1" ? "1" : "", cairn_decisions: params.get("cairn_decisions") === "1" ? "1" : "", cairn_view: params.get("cairn_view") === "board" ? "board" : "",
       work_id: (params.get("work_id") || "").slice(0, 128), work_kind: (params.get("work_kind") || "").slice(0, 32), work_q: (params.get("work_q") || "").slice(0, 256),
       work_status: (params.get("work_status") || "").slice(0, 128), work_assignee: (params.get("work_assignee") || "").slice(0, 128), work_project: (params.get("work_project") || "").slice(0, 16_384),
       work_ci_project: (params.get("work_ci_project") || "").slice(0, 16_384), work_ci_repository: (params.get("work_ci_repository") || "").slice(0, 16_384),
@@ -1940,7 +1942,7 @@
     // r[impl kiln.cairn.workspace] The Cairn changes page renders through cairn.js.
     if (route.page === "cairn") {
       if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
-      await window.KilnCairn.load($("cairn-content"), { api, navigate, route });
+      await window.KilnCairn.load($("cairn-content"), { api, navigate, route, runLink });
     }
     if (route.page === "runs") await loadRunView();
   }

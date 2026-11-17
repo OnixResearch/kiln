@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { webcrypto } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
@@ -1165,46 +1166,67 @@ test("expired or unknown heartbeats never turn historical free slots or a passed
 
 const cairn = context.window.KilnCairn;
 const CAIRN_REPOSITORY = "ab".repeat(32);
+const LANE_KEYS = ["attention", "awaiting", "ready", "in_progress", "verified", "integrated", "recorded"];
+const laneCounts = (lane = "awaiting") => Object.fromEntries(LANE_KEYS.map((key) => [key, Number(key === lane)]));
 const cairnDetail = (change, extra = {}) => ({
-  schema: "kiln.cairn-workspace-detail.v1", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
+  schema: "kiln.cairn-workspace-detail.v2", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
   snapshot: { work_recorded: true, attempts_recorded: true, campaigns_read: 0, campaigns_truncated: false, lifecycle_truncated: false },
-  overview: { units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: 0, blockers: 0, first_blocker: null },
-  units: [{ native_id: `${change}/unit-of-${change}`, unit: `unit-of-${change}`, sources: ["campaign_selection"], current_work: [], superseded_work: [], attempts: [],
+  overview: { units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: 0, blockers: 0, open_decisions: 0, lane: "awaiting", lanes: laneCounts() },
+  units: [{ native_id: `${change}/unit-of-${change}`, unit: `unit-of-${change}`, lane: "awaiting", sources: ["campaign_selection"], current_work: [], superseded_work: [], attempts: [],
     facets: { readiness: "not_admitted", execution: "not_started", evidence: "none", integration: "not_published", lifecycle: "not_observed" } }],
   memberships: [], decisions: [], blockers: [], non_claims: ["display is not campaign, work, verification or lifecycle authority"], ...extra,
 });
 
 // r[verify kiln.cairn.workspace.scenario.reload]
-test("the URL selects one exact Cairn change or none, and the detail must echo it", () => {
-  const route = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "add cairn&docs", cairn_q: "q".repeat(300) });
-  assert.deepEqual(plain(route), { repository: CAIRN_REPOSITORY, change: "add cairn&docs", q: "q".repeat(256), invalid: false });
+test("the URL preserves exact Cairn selection, filters and unit, and detail must echo it", () => {
+  const route = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "add cairn&docs", cairn_unit: "add cairn&docs/unit-one", cairn_q: "q".repeat(300), cairn_lane: "attention", cairn_blocked: "1", cairn_decisions: "1", cairn_view: "board" });
+  assert.deepEqual(plain(route), { repository: CAIRN_REPOSITORY, change: "add cairn&docs", unit: "add cairn&docs/unit-one", q: "q".repeat(256), lane: "attention", blocked: true, decisions: true, view: "board", invalid: false, invalidUnit: false });
   assert.equal(cairn.detailPath(route), `/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=add%20cairn%26docs`);
+  assert.deepEqual(plain(cairn.filterPatch(route)), { cairn_q: "q".repeat(256), cairn_lane: "attention", cairn_blocked: "1", cairn_decisions: "1", cairn_view: "board" });
   for (const [repository, change] of [["AB".repeat(32), "a"], ["ab".repeat(31), "a"], [CAIRN_REPOSITORY, "a/b"], [CAIRN_REPOSITORY, " "], [CAIRN_REPOSITORY, "a\u0085b"], [CAIRN_REPOSITORY, "é".repeat(129)], ["", "a"], [CAIRN_REPOSITORY, ""]]) {
     const rejected = cairn.normalizeRoute({ cairn_repository: repository, cairn_change: change });
     assert.deepEqual([rejected.repository, rejected.change, rejected.invalid], ["", "", true], `${repository} ${change}`);
   }
+  for (const unit of ["other/unit-one", "add cairn&docs/", "add cairn&docs/a\u0000b", "add cairn&docs/" + "é".repeat(512)]) {
+    const rejected = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "add cairn&docs", cairn_unit: unit });
+    assert.deepEqual([rejected.change, rejected.unit, rejected.invalidUnit], ["add cairn&docs", "", true]);
+  }
   assert.equal(cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "é".repeat(128) }).change, "é".repeat(128));
-  assert.equal(cairn.normalizeRoute({}).invalid, false);
+  assert.deepEqual(plain(cairn.normalizeRoute({ cairn_unit: "orphan", cairn_lane: "unknown", cairn_blocked: "true", cairn_decisions: "0", cairn_view: "unknown" })),
+    { repository: "", change: "", unit: "", q: "", lane: "", blocked: false, decisions: false, view: "list", invalid: false, invalidUnit: true });
   const selected = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" });
   assert.equal(cairn.admitDetail(cairnDetail("wanted"), selected).change, "wanted");
-  for (const crossed of [cairnDetail("other"), cairnDetail("wanted", { repository_identity: "cd".repeat(32) }), cairnDetail("wanted", { schema: "kiln.cairn-workspace-index.v1" }),
+  for (const crossed of [cairnDetail("other"), cairnDetail("wanted", { repository_identity: "cd".repeat(32) }), cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v1" }),
     cairnDetail("wanted", { overview: { units: 1 } }), cairnDetail("wanted", { units: null }), null]) {
     assert.throws(() => cairn.admitDetail(crossed, selected), /No other change was substituted/);
   }
 });
 
-// r[verify kiln.cairn.workspace]
-test("the change register puts blockers first, never lists a key twice and searches every name", () => {
-  const entry = (change, blockers, extra = {}) => ({ repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"], units: 1, current_work: 1, attempts: 0, active_attempts: 0, campaigns: ["campaign-1"], blockers, ...extra });
-  const rows = cairn.indexRows({ schema: "kiln.cairn-workspace-index.v1", changes: [
-    entry("calm", 0), entry("busy", 3), entry("alpha", 3), entry("busy", 9), entry("odd", null), entry("bad/name", 1), entry("other-repo", 0, { repository_identity: "cd".repeat(32), projects: ["infra"] }),
+// r[verify kiln.cairn.workspace.scenario.register]
+test("the register orders by lane, blockers, decisions and identity; filters and neighbors keep exact keys", () => {
+  const entry = (change, lane, blockers, openDecisions, extra = {}) => ({ repository_identity: CAIRN_REPOSITORY, change, lane, lanes: laneCounts(lane), projects: ["kiln"], units: 1, current_work: 1, attempts: 0, active_attempts: 0, campaigns: ["campaign-1"], blockers, open_decisions: openDecisions, first_blocker: blockers ? { condition: "dispatch_recovery", subject: `${change}/unit`, owner: "operator" } : null, ...extra });
+  const rows = cairn.indexRows({ schema: "kiln.cairn-workspace-index.v2", changes: [
+    entry("ready-z", "ready", 1, 0), entry("attention-z", "attention", 2, 0), entry("attention-a", "attention", 2, 2),
+    entry("attention-b", "attention", 2, 2), entry("attention-b", "attention", 99, 99), entry("unknown", "surprise", null, null),
+    entry("ready-a", "ready", 0, 1), entry("ready-a", "ready", 0, 1, { repository_identity: "cd".repeat(32), projects: ["infra"] }), entry("bad/name", "attention", 1, 1),
   ] });
-  assert.deepEqual(plain(rows.map((row) => [row.change, row.blockers])), [["odd", null], ["alpha", 3], ["busy", 3], ["calm", 0], ["other-repo", 0]]);
-  const visible = (query) => plain(rows.filter((row) => cairn.matches(row, query)).map((row) => row.change));
-  assert.deepEqual(visible("INFRA"), ["other-repo"]);
-  assert.deepEqual(visible("campaign-1"), plain(rows.map((row) => row.change)));
-  assert.deepEqual(visible("  "), plain(rows.map((row) => row.change)));
-  assert.throws(() => cairn.indexRows({ schema: "kiln.cairn-workspace-detail.v1", changes: [] }));
+  assert.deepEqual(plain(rows.map((row) => row.change)), ["unknown", "attention-a", "attention-b", "attention-z", "ready-z", "ready-a", "ready-a"]);
+  assert.equal(rows[1].firstBlocker.condition, "dispatch_recovery");
+  assert.equal(cairn.lane("surprise").tone === "good", false);
+  const names = (filters) => plain(rows.filter((row) => cairn.matches(row, filters)).map((row) => row.change));
+  assert.deepEqual(names({ q: "INFRA" }), ["ready-a"]);
+  assert.equal(names({ q: "campaign-1" }).length, rows.length);
+  assert.equal(names({ q: "  " }).length, rows.length);
+  assert.deepEqual(names({ lane: "attention", blocked: true, decisions: true }), ["unknown", "attention-a", "attention-b"]);
+  assert.deepEqual(names({ lane: "ready", blocked: true }), ["ready-z"]);
+  const counts = cairn.filterCounts(rows, { lane: "attention", blocked: true });
+  assert.deepEqual([counts.all, counts.blocked, counts.decisions, counts.lanes.get("attention"), counts.lanes.get("ready")], [5, 4, 3, 4, 1]);
+  const around = cairn.neighbors(rows, { lane: "attention", decisions: true }, `${CAIRN_REPOSITORY}/attention-a`);
+  assert.deepEqual([around.previous.change, around.next.change, around.position, around.total, around.filtered], ["unknown", "attention-b", 2, 3, true]);
+  const hidden = cairn.neighbors(rows, { lane: "attention" }, `${CAIRN_REPOSITORY}/ready-z`);
+  assert.deepEqual([hidden.previous.change, hidden.next.change, hidden.filtered, hidden.listed], ["attention-z", "ready-a", false, true]);
+  assert.equal(cairn.neighbors(rows, {}, `${CAIRN_REPOSITORY}/absent`).listed, false);
+  assert.throws(() => cairn.indexRows({ schema: "kiln.cairn-workspace-index.v1", changes: [] }));
   assert.throws(() => cairn.indexRows(null));
 });
 
@@ -1232,28 +1254,102 @@ test("every facet value reads in its own words and anything else never reads as 
   }
   assert.equal(cairn.facet("evidence", "historical_only").tone, "warning");
   assert.equal(cairn.facet("evidence", "current_verified").tone, "good");
-  assert.deepEqual(["current", "stale", "unknown_work", "not_bound"].map((key) => cairn.binding(key).tone), ["good", "warning", "warning", "info"]);
   assert.ok(cairn.binding("stalest").label.startsWith("Unrecognized"));
   for (const key of ["missing_dependency", "no_acceptance_obligations", "dependency_cycle", "campaign_hold", "pending_effect", "dispatch_recovery", "stale_work_binding"]) {
     assert.ok(!cairn.condition(key).label.startsWith("Unrecognized"), key);
   }
 });
 
+// r[verify kiln.cairn.workspace.scenario.lanes]
+test("each board lane stays distinct while an unknown lane never reads as progress", () => {
+  const words = LANE_KEYS.map((key) => cairn.lane(key).label);
+  assert.equal(new Set(words).size, LANE_KEYS.length);
+  assert.ok(!words.some((word) => word.startsWith("Unrecognized")));
+  for (const unknown of ["constructor", "__proto__", "completed"]) {
+    assert.match(cairn.lane(unknown).label, /^Unrecognized/);
+    assert.notEqual(cairn.lane(unknown).tone, "good");
+  }
+});
+
+// r[verify kiln.cairn.workspace.scenario.dependencies]
+test("dependency depth preserves cross-repository identity, absent work and every edge in cycles", () => {
+  const otherRepo = "cd".repeat(32);
+  const view = (identity, repository_identity, native_ids, state = "current") => ({ identity, repository_identity, native_ids, state });
+  const unit = (native_id, dependencies = [], dependents = []) => ({ native_id, lane: "ready", current_work: [{ dependencies, dependents }] });
+  const a = "chain/A", b = "chain/B", c = "chain/C";
+  const detail = cairnDetail("chain", { units: [
+    unit(a, [view("1", CAIRN_REPOSITORY, [b]), view("2", otherRepo, ["chain/A"]), view("3", CAIRN_REPOSITORY, [], "not_current")]),
+    unit(b, [view("4", CAIRN_REPOSITORY, [c])]), unit(c),
+  ] });
+  const graph = cairn.dependencyGraph(detail);
+  const node = (id) => graph.nodes.find((entry) => entry.id === id);
+  const own = (id) => `unit:${CAIRN_REPOSITORY}/${id}`;
+  assert.equal(node(own(c)).depth, 0);
+  assert.equal(node(own(b)).depth, 1);
+  assert.equal(node(own(a)).depth, 2);
+  assert.equal(node(`unit:${otherRepo}/${a}`).kind, "external");
+  assert.notEqual(node(`unit:${otherRepo}/${a}`).id, node(own(a)).id);
+  assert.deepEqual([node("work:3").kind, node("work:3").state], ["work", "not_current"]);
+  assert.equal(graph.edges.filter((edge) => edge.to === own(a)).length, 3);
+  assert.equal(graph.cyclic, false);
+  const multi = cairn.dependencyGraph(cairnDetail("chain", { units: [unit(a, [view("5", CAIRN_REPOSITORY, [b, c])]), unit(b), unit(c)] }));
+  assert.equal(multi.edges.length, 2);
+  const cycle = cairn.dependencyGraph(cairnDetail("chain", { units: [unit(a, [view("6", CAIRN_REPOSITORY, [b])]), unit(b, [view("7", CAIRN_REPOSITORY, [a])]), unit(c)] }));
+  assert.equal(cycle.cyclic, true);
+  assert.deepEqual(plain(cycle.nodes.filter((entry) => entry.cycle).map((entry) => entry.nativeId).sort()), [a, b]);
+  assert.equal(cycle.nodes.find((entry) => entry.nativeId === c).cycle, false);
+  const self = cairn.dependencyGraph(cairnDetail("chain", { units: [unit(a, [view("8", CAIRN_REPOSITORY, [a])])] }));
+  assert.equal(self.cyclic, true);
+  assert.deepEqual(plain(self.edges), [{ from: own(a), to: own(a) }]);
+});
+
 // A small DOM, enough for the page module to draw into a container.
 class CairnNode {
-  constructor(tag) { this.tagName = tag; this.children = []; this.attributes = new Map(); this.dataset = {}; this.listeners = new Map(); this.isConnected = true; this.hidden = false; this.text = ""; }
+  constructor(tag) {
+    this.tagName = tag; this.children = []; this.attributes = new Map(); this.dataset = {}; this.listeners = new Map();
+    this.isConnected = true; this.hidden = false; this.text = ""; this.style = {};
+    this.classList = { add: (name) => { this.className = `${this.className || ""} ${name}`.trim(); }, contains: (name) => (this.className || "").split(/\s+/).includes(name) };
+  }
   get textContent() { return [this.text, ...this.children.map((child) => child.textContent)].join(" "); }
   set textContent(value) { this.text = String(value); this.children = []; }
   get firstChild() { return this.children[0] || null; }
-  append(...nodes) { for (const node of nodes) { if (node === null || node === undefined) continue; if (typeof node === "string") { const text = new CairnNode("#text"); text.text = node; this.children.push(text); } else this.children.push(node); } }
+  get lastChild() { return this.children.at(-1) || null; }
+  get parentElement() { return this.parent || null; }
+  append(...nodes) { for (const node of nodes) { if (node === null || node === undefined) continue; const child = typeof node === "string" ? Object.assign(new CairnNode("#text"), { text: node }) : node; child.parent = this; this.children.push(child); } }
+  prepend(...nodes) { for (const node of nodes.reverse()) { node.parent = this; this.children.unshift(node); } }
   replaceChildren(...nodes) { for (const child of this.children) child.isConnected = false; this.children = []; this.append(...nodes); }
+  replaceWith(node) { if (!this.parent) return; const at = this.parent.children.indexOf(this); this.parent.children.splice(at, 1, node); node.parent = this.parent; this.isConnected = false; }
+  remove() { if (this.parent) this.parent.children = this.parent.children.filter((node) => node !== this); this.isConnected = false; }
   setAttribute(key, value) { this.attributes.set(key, String(value)); }
   getAttribute(key) { return this.attributes.has(key) ? this.attributes.get(key) : null; }
+  removeAttribute(key) { this.attributes.delete(key); }
   addEventListener(type, handler) { this.listeners.set(type, [...(this.listeners.get(type) || []), handler]); }
-  focus() {}
+  matches(selector) {
+    const notHidden = selector.endsWith(":not([hidden])");
+    const simple = notHidden ? selector.slice(0, -":not([hidden])".length) : selector;
+    if (notHidden && this.hidden) return false;
+    if (simple.startsWith(".")) return this.classList.contains(simple.slice(1));
+    if (simple === "[data-focus-key]") return Boolean(this.dataset.focusKey);
+    if (simple === "details[data-cairn-disclosure]") return this.tagName === "details" && Boolean(this.dataset.cairnDisclosure);
+    return this.tagName === simple;
+  }
+  querySelectorAll(selector) {
+    const parts = selector.split(" ");
+    const walk = (root, part) => root.children.flatMap((child) => [...(child.matches(part) ? [child] : []), ...walk(child, part)]);
+    return parts.reduce((parents, part) => parents.flatMap((parent) => walk(parent, part)), [this]);
+  }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  contains(node) { return node === this || this.children.some((child) => child.contains(node)); }
+  closest(selector) { return selector === "[hidden]" && this.hidden ? this : this.parent?.closest(selector) || null; }
+  focus() { if (this.ownerDocument) this.ownerDocument.activeElement = this; else if (this.parent) this.parent.focusedChild = this; }
+  scrollIntoView() {}
 }
 function cairnPage() {
-  const page = { window: {}, document: { createElement: (tag) => new CairnNode(tag), activeElement: null, title: "" }, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout };
+  const document = { activeElement: null, title: "" };
+  document.createElement = (tag) => Object.assign(new CairnNode(tag), { ownerDocument: document });
+  document.createTextNode = (text) => Object.assign(new CairnNode("#text"), { text, ownerDocument: document });
+  const page = { window: {}, document, location: { search: "" }, URLSearchParams, setTimeout, clearTimeout, crypto: webcrypto };
+  vm.runInNewContext(asset("inventory.js"), page);
   vm.runInNewContext(asset("cairn.js"), page);
   return page;
 }
@@ -1263,8 +1359,8 @@ function deferredApi() {
   const answer = (target, value) => { for (const entry of pending.filter((item) => item.target === target)) { pending.splice(pending.indexOf(entry), 1); entry.resolve(value); } };
   return { api, answer };
 }
-const cairnIndex = (...changes) => ({ schema: "kiln.cairn-workspace-index.v1", truncated: false, snapshot: {}, non_claims: [],
-  changes: changes.map((change) => ({ repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"], units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: [], blockers: 0 })) });
+const cairnIndex = (...changes) => ({ schema: "kiln.cairn-workspace-index.v2", truncated: false, snapshot: {}, non_claims: [],
+  changes: changes.map((change) => ({ repository_identity: CAIRN_REPOSITORY, change, lane: "awaiting", lanes: laneCounts(), open_decisions: 0, first_blocker: null, projects: ["kiln"], units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: [], blockers: 0 })) });
 
 // r[verify kiln.cairn.workspace.scenario.reload]
 test("a late response for an earlier selection never draws over the URL's selection", async () => {
@@ -1280,13 +1376,15 @@ test("a late response for an earlier selection never draws over the URL's select
   answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=first`, cairnDetail("first"));
   await first;
   const text = container.textContent;
-  assert.match(text, /second\/unit-of-second/);
-  assert.doesNotMatch(text, /first\/unit-of-first/);
+  assert.match(text, /unit-of-second/);
+  assert.doesNotMatch(text, /unit-of-first/);
   assert.equal(page.document.title, "Kiln · Cairn changes · second");
 
   // A detail for another change is refused, never drawn in place of the selection.
   const crossed = deferredApi();
   const load = page.window.KilnCairn.load(container, { api: crossed.api, navigate() {}, route: route("wanted") });
+  // A new selection must remove the old change and its actions before its read settles.
+  assert.doesNotMatch(container.textContent, /unit-of-second/);
   crossed.answer("/api/implementation/cairn", cairnIndex("wanted", "other"));
   crossed.answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=wanted`, cairnDetail("other"));
   await load;
@@ -1313,5 +1411,179 @@ test("an unconfigured store and an empty store say so instead of drawing nothing
   assert.match(container.textContent, /not proof that no Cairn change exists/);
   await page.window.KilnCairn.load(container, { api: async () => cairnIndex(), navigate() {}, route: {} });
   assert.match(container.textContent, /No Cairn change is named yet/);
-  assert.match(container.textContent, /How to read a Cairn change/);
+});
+
+// r[verify kiln.cairn.workspace.scenario.blockers]
+test("ranked blockers keep their structured subject, owner and campaign targets", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const blockers = [
+    { condition: "dispatch_recovery", subject_kind: "unit", subject: "wanted/unit-of-wanted", operation: "reconcile", owner: "dispatcher", observation: "a".repeat(64), detail: "not a command" },
+    { condition: "campaign_hold", subject_kind: "member", subject: "wanted/*", campaign_id: "selected", operation: "wait", owner: "reviewer", observation: "b".repeat(64), detail: "resolve_decision is only displayed text" },
+  ];
+  const detail = cairnDetail("wanted", { blockers, memberships: [{ campaign_id: "selected", member: "wanted/*", pending_effects: [] }], overview: { ...cairnDetail("wanted").overview, blockers: 2, first_blocker: blockers[0] } });
+  await page.window.KilnCairn.load(root, { route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" }, navigate() {}, async api(path) { return path === "/api/implementation/cairn" ? { ...cairnIndex("wanted"), changes: [{ ...cairnIndex("wanted").changes[0], blockers: 2, first_blocker: blockers[0] }] } : detail; } });
+  const items = root.querySelectorAll(".cairn-blocker");
+  assert.equal(items.length, 2);
+  assert.match(items[0].textContent, /Unknown dispatch outcome/);
+  assert.match(items[1].textContent, /Campaign hold/);
+  assert.equal(items[0].querySelector(".cairn-subject").tagName, "a");
+  assert.equal(items[1].querySelector(".cairn-subject").tagName, "button");
+  assert.equal(items[1].querySelector(".cairn-campaign-link").href.includes("worker_campaign=selected"), true);
+  assert.equal(root.querySelectorAll(".cairn-decision form").length, 0);
+  page.window.KilnCairn.clear();
+});
+
+// r[verify kiln.cairn.workspace.scenario.reload]
+test("missing changes and units remain named, including an empty detail, without opening a neighbor", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const route = (unit) => ({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted", cairn_unit: unit });
+  const api = async (path) => path === "/api/implementation/cairn" ? cairnIndex("other") : cairnDetail("wanted", { units: [] });
+  await page.window.KilnCairn.load(root, { api, navigate() {}, route: route("wanted/missing") });
+  assert.match(root.textContent, /wanted\/missing.*does not list/);
+  assert.equal(root.querySelectorAll(".cairn-unit-toggle").length, 0);
+  await page.window.KilnCairn.load(root, { api, navigate() {}, route: route("other/unit") });
+  assert.match(root.textContent, /invalid unit/);
+  assert.equal(root.querySelectorAll(".cairn-unit-toggle").length, 0);
+  await page.window.KilnCairn.load(root, { api: async (path) => { if (path === "/api/implementation/cairn") return cairnIndex("other"); throw Object.assign(new Error("not found"), { status: 404 }); }, navigate() {}, route: route("") });
+  assert.match(root.textContent, /wanted is not named/);
+  assert.doesNotMatch(root.textContent, /other\/unit-of-other/);
+});
+
+// r[verify kiln.cairn.workspace.scenario.reload]
+test("an exact unit URL opens only its named row and preserves filters on the detail", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const route = { cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted", cairn_unit: "wanted/two", cairn_q: "wanted", cairn_lane: "ready", cairn_view: "board" };
+  const units = ["wanted/one", "wanted/two"].map((native_id) => ({ ...cairnDetail("wanted").units[0], native_id, unit: native_id.split("/")[1] }));
+  const api = async (path) => path === "/api/implementation/cairn" ? cairnIndex("wanted") : cairnDetail("wanted", { units, overview: { ...cairnDetail("wanted").overview, units: 2, lanes: { ...laneCounts(), awaiting: 2 } } });
+  await page.window.KilnCairn.load(root, { route, api, navigate() {} });
+  const toggles = root.querySelectorAll(".cairn-unit-toggle");
+  assert.deepEqual(toggles.map((node) => [node.dataset.unit, node.getAttribute("aria-expanded")]), [["wanted/one", "false"], ["wanted/two", "true"]]);
+  assert.equal(root.querySelector(".cairn-unit-detail-row").hidden, true);
+  assert.equal(root.querySelectorAll(".cairn-unit-detail-row")[1].hidden, false);
+  assert.equal(root.querySelector(".cairn-register").querySelector("input").value, "wanted");
+  page.window.KilnCairn.clear();
+});
+
+// r[verify kiln.cairn.workspace.scenario.register]
+test("list arrows skip the hidden board and filters narrow locally without another read", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  let reads = 0;
+  const navigations = [];
+  const ctx = { route: {}, api: async () => { reads += 1; return cairnIndex("alpha", "beta"); }, navigate: (patch) => navigations.push(patch) };
+  await page.window.KilnCairn.load(root, ctx);
+  const body = root.querySelector(".cairn-register-body");
+  const links = body.querySelectorAll("tr:not([hidden]) .cairn-change-link");
+  assert.equal(links.length, 2);
+  links[0].focus();
+  let prevented = false;
+  body.listeners.get("keydown")[0]({ key: "ArrowDown", preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.equal(page.document.activeElement, links[1]);
+  const search = root.querySelector("input");
+  search.value = "beta";
+  search.listeners.get("input")[0]();
+  assert.match(root.querySelector(".cairn-count").textContent, /1 of 2 changes/);
+  assert.equal(reads, 1);
+  root.querySelector("form").listeners.get("submit")[0]({ preventDefault() {} });
+  assert.equal(navigations.at(-1).cairn_q, "beta");
+  assert.equal(reads, 1);
+  page.window.KilnCairn.clear();
+});
+
+// r[verify kiln.cairn.workspace.scenario.decisions]
+test("inline actions require exact decision, exact member and the requested campaign's inbox", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const hex = (digit) => digit.repeat(64);
+  const member = (name) => ({ campaign_id: "selected", member: name, work_binding: "not_bound", stage: "planning", admission: "open", pending_effects: [], remaining_obligations: [], blockers: [] });
+  const decision = (identity, memberName, state = "outstanding") => ({ campaign_id: "selected", identity: hex(identity), member: memberName, category: "required_review", state, question: `${identity} question`, options: ["yes", "no"], scope: "current", priority: 1 });
+  const own = decision("a", "wanted/one");
+  const issue = decision("b", "wanted/two", "unissued");
+  const wrongMember = decision("c", "wanted/one");
+  const foreign = decision("d", "other/one");
+  const projected = cairnDetail("wanted", { memberships: [member("wanted/one"), member("wanted/two")], decisions: [own, issue, wrongMember, foreign], overview: { ...cairnDetail("wanted").overview, open_decisions: 4 } });
+  const inboxDecision = (entry, actions, memberName = entry.member) => ({ ...entry, member: memberName, work_identity: hex("e"), policy_identity: hex("f"), candidate_identity: hex("1"), review_roles: [], actions });
+  const inbox = { schema: "kiln.campaign-inbox.v1", campaign_id: "selected", store_version: 17, campaign_identity: hex("2"), principal: "local:operator", admission: "open", operations: ["pause", "cancel"], non_claims: [], decisions: [
+    inboxDecision(foreign, ["resolve"]), inboxDecision(wrongMember, ["resolve"], "wanted/two"), inboxDecision(own, ["resolve"]), inboxDecision(issue, ["issue"]),
+  ] };
+  const calls = [];
+  const ctx = { route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" }, navigate() {}, async api(path, request) {
+    calls.push({ path, request });
+    if (path === "/api/implementation/cairn") return cairnIndex("wanted");
+    if (path.includes("/cairn/detail?")) return projected;
+    if (path.includes("/campaigns/inbox?")) return inbox;
+    return { replayed: false, command: request.body.command, store_version: 18, admission: "open", request_id: request.body.request_id };
+  } };
+  await page.window.KilnCairn.load(root, ctx);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const card = (id) => root.querySelectorAll(".cairn-decision").find((node) => node.dataset.decision === hex(id));
+  assert.equal(card("a").querySelectorAll("form").length, 1);
+  assert.equal(card("b").querySelectorAll("button").filter((node) => node.textContent === "Issue to reviewers").length, 1);
+  assert.equal(card("c").querySelectorAll("form").length, 0);
+  assert.equal(card("d").querySelectorAll("form").length, 0);
+  assert.equal(root.querySelectorAll("button").some((node) => /Pause|Cancel|Start|Continue/.test(node.textContent)), false);
+  const form = card("a").querySelector("form");
+  form.querySelectorAll("input").find((node) => node.value === "no").checked = true;
+  form.listeners.get("submit")[0]({ preventDefault() {} });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const command = calls.find((call) => call.request?.method === "POST");
+  assert.equal(command.path, "/api/implementation/campaigns/commands");
+  assert.deepEqual(plain(command.request.body), { command: "resolve_decision", campaign_id: "selected", expected_version: 17, decision_identity: hex("a"), work_identity: hex("e"), policy_identity: hex("f"), candidate_identity: hex("1"), answer: "no", request_id: command.request.body.request_id });
+  assert.ok(command.request.body.request_id);
+  page.window.KilnCairn.clear();
+});
+
+// r[verify kiln.cairn.workspace.scenario.reload]
+test("an in-flight index renders the latest local filters but never a changed selection", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const pending = deferredApi();
+  const ctx = { route: {}, api: pending.api, navigate() {} };
+  const loading = page.window.KilnCairn.load(root, ctx);
+  ctx.route = { cairn_q: "beta", cairn_view: "board" };
+  pending.answer("/api/implementation/cairn", cairnIndex("alpha", "beta"));
+  await loading;
+  assert.match(root.querySelector(".cairn-count").textContent, /1 of 2 changes/);
+  assert.equal(root.querySelector(".cairn-board").hidden, false);
+  const next = deferredApi();
+  const old = page.window.KilnCairn.load(root, { route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "alpha" }, api: next.api, navigate() {} });
+  const current = { route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "beta" }, api: async (path) => path === "/api/implementation/cairn" ? cairnIndex("beta") : cairnDetail("beta"), navigate() {} };
+  await page.window.KilnCairn.load(root, current);
+  next.answer("/api/implementation/cairn", cairnIndex("alpha"));
+  next.answer(`/api/implementation/cairn/detail?repository=${CAIRN_REPOSITORY}&change=alpha`, cairnDetail("alpha"));
+  await old;
+  assert.match(root.textContent, /unit-of-beta/);
+  assert.doesNotMatch(root.textContent, /unit-of-alpha/);
+  page.window.KilnCairn.clear();
+});
+
+// r[verify kiln.cairn.workspace.scenario.decisions]
+test("unavailable or crossed campaign inbox leaves the decision read-only", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const id = "e".repeat(64);
+  const decision = { campaign_id: "selected", identity: id, member: "wanted/one", state: "outstanding", category: "required_review", question: "Ready?", options: ["yes"], scope: "current" };
+  const detail = cairnDetail("wanted", { memberships: [{ campaign_id: "selected", member: "wanted/one", pending_effects: [] }], decisions: [decision] });
+  const base = { route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" }, navigate() {} };
+  const api = async (path) => {
+    if (path === "/api/implementation/cairn") return cairnIndex("wanted");
+    if (path.includes("/cairn/detail?")) return detail;
+    throw Object.assign(new Error("campaign_controls_not_configured"), { status: 503 });
+  };
+  await page.window.KilnCairn.load(root, { ...base, api });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(root.querySelectorAll(".cairn-decision form").length, 0);
+  assert.match(root.textContent, /read-only|not configured/i);
+  assert.ok(root.querySelector(".cairn-answer-note a"));
+  const crossed = { schema: "kiln.campaign-inbox.v1", campaign_id: "other", store_version: 2, campaign_identity: "a".repeat(64), principal: "local:operator", admission: "open", operations: [], non_claims: [], decisions: [{ ...decision, policy_identity: "a".repeat(64), work_identity: null, candidate_identity: null, review_roles: [], actions: ["resolve"] }] };
+  page.window.KilnCairn.clear();
+  await page.window.KilnCairn.load(root, { ...base, api: async (path) => path.includes("/campaigns/inbox?") ? crossed : api(path) });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(root.querySelectorAll(".cairn-decision form").length, 0);
+  assert.match(root.textContent, /different campaign/);
+  page.window.KilnCairn.clear();
 });

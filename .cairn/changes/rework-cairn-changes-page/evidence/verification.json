@@ -1,0 +1,110 @@
+{
+  "change": "rework-cairn-changes-page",
+  "scope": "Working-tree implementation and local verification; not a revision-bound release, acceptance, sync or archive receipt.",
+  "immediate_outcome": "A full-width List/Board change register and next-step-first change detail, with exact unit navigation and inbox-admitted inline campaign decisions.",
+  "durable_capability": "Reusable shared campaign answer and command path, versioned v2 change projections, deterministic register/graph helpers and consumer-visible boundary regressions.",
+  "current_consumer": "Kiln operator console, including the disposable website explorer over canonical local stores.",
+  "maintenance_owner": "Kiln web-service maintainers",
+  "repeatability": {
+    "command": "nix develop path:$PWD -c cargo run --locked -p kiln-web-service --example explore -- --port 18787",
+    "entrypoint": "http://127.0.0.1:18787/?page=cairn",
+    "reset": "Stop and restart the explorer to replace its disposable stores.",
+    "provider_boundary": "No provider was contacted and no source, worker, publication, integration or native lifecycle operation was executed. The answered decision changed only the disposable local campaign store."
+  },
+  "rust": {
+    "suite_command": "nix develop path:$PWD -c cargo test --locked -p kiln-web-service --all-targets",
+    "result": "passed",
+    "library": { "passed": 258, "failed": 0, "ignored": 1 },
+    "explorer": { "passed": 13, "failed": 0 },
+    "other_targets": "All integration and example targets in this invocation passed.",
+    "formatting": "Applied cargo fmt -p kiln-web-service after the initial formatting check reported the new test formatting.",
+    "strict_lint_command": "nix develop path:$PWD -c cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+    "strict_lint_result": "passed after replacing indexing in the new blocker-order assertion with iterator pairs",
+    "post_fix_test_command": "nix develop path:$PWD -c cargo test --locked -p kiln-web-service --lib blockers_rank_by_condition_and_name_their_target",
+    "post_fix_test_result": "1 passed; 0 failed",
+    "environment_note": "Kache reported an index disk I/O error and disabled caching. Cargo compilation, tests and the final strict lint still completed successfully."
+  },
+  "javascript": {
+    "syntax_checked": [
+      "crates/kiln-web-service/src/cairn.js",
+      "crates/kiln-web-service/src/inventory.js",
+      "crates/kiln-web-service/src/web.js",
+      "crates/kiln-web-service/src/ui.js"
+    ],
+    "final_command": "node --test tests/live-console-ui.test.mjs tests/inventory-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs tests/console-inventory.test.mjs",
+    "final_result": { "passed": 102, "failed": 0, "skipped": 0 },
+    "coverage": [
+      "v2 admission and v1 refusal; exact repository/change/unit identity and no substitution",
+      "deterministic lanes, ordering, text/lane/blocker/decision filters, counts and filtered neighbors",
+      "dependency depth, external and not-current nodes, cross-repository separation, cycles and self cycles",
+      "late responses, clear, missing units, local route updates and removal of old actions during a new selection read",
+      "exact campaign, decision and member admission; expected-version binding; ambiguous-response request-ID reuse and conflict reload",
+      "console inventory and shared style/token contracts"
+    ]
+  },
+  "browser": {
+    "mechanism": "Real working-tree explorer assets and headless Chromium interactions; no response or DOM behavior mocks.",
+    "layout_review": [
+      { "viewport_width": 1440, "theme": "light", "surface": "board", "document_width": 1440 },
+      { "viewport_width": 1440, "theme": "dark", "surface": "expanded unit and dependencies", "document_width": 1440 },
+      { "viewport_width": 768, "theme": "light", "surface": "list", "document_width": 768 },
+      { "viewport_width": 768, "theme": "dark", "surface": "expanded unit and dependencies", "document_width": 768 },
+      { "viewport_width": 390, "theme": "light", "surface": "list", "document_width": 390 },
+      { "viewport_width": 390, "theme": "dark", "surface": "expanded unit and dependencies", "document_width": 390 }
+    ],
+    "layout_observations": [
+      "No page-level horizontal overflow at the reviewed widths.",
+      "At phone width the board and dependency graph scroll inside their own regions.",
+      "Graph node content stayed inside its node after applying normal whitespace; measured client and scroll widths were both 203 px.",
+      "Screenshots were inspected through the browser tool; screenshot binaries are not retained in this repository."
+    ],
+    "interactions": [
+      "List ArrowDown and Board ArrowRight moved focus to the next visible change.",
+      "Search, lane, blocker and open-decision filters updated locally; the chip sequence issued zero Cairn GET requests.",
+      "Board/search state restored after reload.",
+      "The exact current unit restored after navigation/reload; synthetic-ready showed two attempts, one explicitly historical.",
+      "The prerequisite graph opened synthetic-planning/task-plan from synthetic-assurance, with its unit expanded.",
+      "A member blocker focused its exact member card; its campaign link opened Workers with the selected campaign controls.",
+      "Filtered Next opened synthetic-ready, Previous returned to synthetic-assurance, and All changes restored that link's focus with Board and open-decision filters intact.",
+      "The final rebuilt explorer was used for the pending-selection/navigation proof; its browser error collection was empty."
+    ],
+    "inline_answer": {
+      "campaign_id": "synthetic-selected-cairn",
+      "member": "synthetic-lifecycle/*",
+      "command_route": "/api/implementation/campaigns/commands",
+      "command": "resolve_decision",
+      "answer": "sync",
+      "expected_version": 8,
+      "observed_store_version": 9,
+      "request_id": "console-56cebf0b7f1338d17053d45072ccb3ce",
+      "observed_result": "Applied; the change reloaded, its answer form disappeared, and the decision was no longer open. No lifecycle operation followed."
+    }
+  },
+  "lifecycle": {
+    "policy_freshness": { "command": "cairn policy export --check", "result": "policy fresh: cairn-policy/generated/cairn-policy.json" },
+    "validation": {
+      "command": "cairn validate rework-cairn-changes-page --root . --policy $PWD/cairn-policy/generated/cairn-policy.json",
+      "result": "passed with no issues or findings",
+      "receipt_hash": "3693b5807d5da216c10b886a3ecd4c0b0d57811dabbda745fa634cfe8762d3ec"
+    },
+    "active_delta": ".cairn/changes/rework-cairn-changes-page/specs/cairn-workspace/spec.md",
+    "traceability": {
+      "export_command": "cairn policy export --source cairn-policy/development-coverage.ncl --output target/development-coverage-policy.json",
+      "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+      "result": "failed; workspace-wide gate remains held",
+      "requirements": 1928,
+      "referenced": 1926,
+      "missing": [
+        "kiln.github.landing.merge.scenario.landed",
+        "kiln.github.source_status.scenario.close"
+      ],
+      "dangling": [
+        "kiln.dashboard.campaign.projection",
+        "kiln.github.publication.scenario.upload"
+      ],
+      "cairn_workspace_missing_or_dangling": [],
+      "receipt_hash": "1ffe223511fa1efabc95bb01c91885fa3b4cb3e059cbc4cf255a788d6e2d59eb",
+      "boundary": "The report includes other active capabilities. Their evidence was not changed or fabricated to pass this UI change. The final lifecycle task remains open; no acceptance, sync, archive or release-readiness claim is made."
+    }
+  }
+}

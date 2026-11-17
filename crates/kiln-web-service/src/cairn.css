@@ -1,51 +1,205 @@
-/* r[impl kiln.cairn.workspace] Cairn changes: the change register beside the selected change. Shared tokens and
-   components only (split view, panels, fact tables, data tables, state badges). */
-.cairn-list-panel, .cairn-detail { display: grid; gap: var(--space-3); align-content: start; min-width: 0; }
-.cairn-list-panel > *, .cairn-detail > * { margin: 0; }
-.cairn-list-panel > h2 { font-size: var(--text-lg); font-weight: 700; }
-.cairn-filters { display: grid; gap: var(--space-1); }
-.cairn-filters > label { margin: 0; }
+/* r[impl kiln.cairn.workspace] Cairn changes: a register of changes (ruled list or lane board), then one change as next
+   steps, a unit-by-stage matrix, a dependency graph and campaign members. Shared tokens and components only (panels,
+   chips, segmented controls, side metrics, ruled tables, state badges, DAG nodes); lanes reuse the signal colours. */
+.cairn-page { display: grid; gap: var(--space-4); min-width: 0; }
+.cairn-page > * { margin: 0; }
 
-/* The register reads as a ruled list: one row per change, the selection an inverted-tone cell with an ink frame. */
-.cairn-list { display: grid; margin: 0; padding: 0; list-style: none; max-height: min(70vh, 48rem); overflow-y: auto; border-block: 1px solid var(--frame); }
-.cairn-list > li { min-width: 0; border-bottom: 1px solid var(--border); }
-.cairn-list > li:last-child { border-bottom: 0; }
-.cairn-row { display: grid; gap: .35rem; min-width: 0; padding: var(--space-3) var(--space-2); color: var(--foreground); text-decoration: none; }
-.cairn-row:hover { background: var(--list-hover); text-decoration: none; }
-.cairn-row[aria-current="true"] { background: var(--list-active); box-shadow: inset 0 0 0 1px var(--list-active-border); }
-.cairn-row:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
-.cairn-row-title { font-size: var(--text-md); font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+/* Lane colour: one signal per lane, used by the unit bar, row accents, board columns and graph nodes. */
+[data-lane="attention"] { --cairn-lane: var(--danger); }
+[data-lane="awaiting"] { --cairn-lane: var(--border-emphasis); }
+[data-lane="ready"] { --cairn-lane: color-mix(in srgb, var(--info) 45%, var(--secondary)); }
+[data-lane="in_progress"] { --cairn-lane: var(--info); }
+[data-lane="verified"] { --cairn-lane: color-mix(in srgb, var(--success) 55%, var(--secondary)); }
+[data-lane="integrated"] { --cairn-lane: var(--success); }
+[data-lane="recorded"] { --cairn-lane: var(--foreground); }
+
+/* ---------- Register ---------- */
+.cairn-register { display: grid; gap: var(--space-3); min-width: 0; }
+.cairn-register > * { margin: 0; }
+.cairn-register-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.cairn-register-head > div:first-child { display: grid; gap: var(--space-1); max-width: 48rem; }
+.cairn-register-head h2 { margin: 0; font-size: var(--text-lg); }
+.cairn-register-head p { margin: 0; }
+.cairn-search { display: grid; gap: var(--space-1); max-width: 36rem; }
+.cairn-search label { margin: 0; }
+.cairn-search input { width: 100%; min-width: 0; }
+.cairn-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-chip { gap: var(--space-2); }
+.cairn-chip[data-lane]::before { content: ""; width: .6rem; height: .6rem; flex: 0 0 auto; background: var(--cairn-lane); }
+.cairn-chip-count { font: 600 var(--text-xs)/1 var(--mono); font-variant-numeric: tabular-nums; }
+.cairn-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.cairn-tools > * { margin: 0; }
+.cairn-register-body { display: grid; min-width: 0; }
+
+/* The list: a ruled table led by the change name, with a lane accent on its first cell. */
+.cairn-table { table-layout: fixed; }
+.cairn-table th:nth-child(1) { width: 26%; }
+.cairn-table th:nth-child(2) { width: 24%; }
+.cairn-table th:nth-child(3) { width: 28%; }
+.cairn-table th:nth-child(4) { width: 12%; }
+.cairn-table td { vertical-align: top; }
+.cairn-table td:first-child { box-shadow: inset 4px 0 0 var(--cairn-lane, transparent); padding-left: calc(.75rem + 4px); }
+.cairn-table td > * + * { margin-top: .35rem; }
+.cairn-change-link { font-weight: 700; font-size: var(--text-md); line-height: 1.35; overflow-wrap: anywhere; }
+.cairn-change-link[aria-current="true"] { text-decoration: underline; text-decoration-thickness: 2px; }
 .cairn-row-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem var(--space-3); margin: 0; color: var(--muted-foreground); font-size: var(--text-xs); }
-.cairn-row-meta code { font-family: var(--mono); }
+.cairn-short { font-family: var(--mono); font-size: var(--text-xs); }
+.cairn-next-cell { display: grid; justify-items: start; gap: .3rem; min-width: 0; }
+.cairn-subject { font-family: var(--mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+button.cairn-subject { min-height: 0; padding: 0; color: var(--foreground); text-decoration: underline; text-underline-offset: 2px; }
 
-/* The selected change: identities, then blockers, units and campaign members, each under a technical label. */
-.cairn-howto, .cairn-sheet { display: grid; gap: var(--space-4); min-width: 0; }
-.cairn-howto > *, .cairn-sheet > * { margin: 0; }
-.cairn-howto > h2 { font-size: var(--text-lg); font-weight: 700; }
-.cairn-head { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 2px solid var(--foreground); }
-.cairn-title { margin: 0; font-size: var(--text-2xl); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; }
+/* The unit bar: how a change's units spread across lanes, with the counts in words. */
+.cairn-lanebar { display: grid; gap: .3rem; min-width: 0; }
+.cairn-lanebar-track { display: flex; gap: 2px; height: .5rem; min-width: 0; background: var(--muted); border: 1px solid var(--border); }
+.cairn-lanebar-track[data-empty="true"] { background: repeating-linear-gradient(135deg, var(--muted) 0 4px, var(--secondary) 4px 8px); }
+.cairn-lanebar-seg { flex: 0 0 0; min-width: 4px; background: var(--cairn-lane); }
+.cairn-lanebar-text { color: var(--muted-foreground); font-size: var(--text-xs); line-height: 1.4; }
+
+/* The board: one column per lane, scrolling sideways in a narrow region. */
+.cairn-board { display: grid; grid-template-columns: repeat(7, minmax(11.5rem, 1fr)); gap: var(--space-3); min-width: 0; overflow-x: auto; padding-bottom: var(--space-2); }
+.cairn-board-column { display: grid; align-content: start; gap: var(--space-2); min-width: 0; padding: var(--space-2); border: 1px solid var(--border); border-top: 3px solid var(--cairn-lane); background: var(--muted); }
+.cairn-board-title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); margin: 0; font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--foreground); }
+.cairn-board-cards { display: grid; gap: var(--space-2); min-width: 0; }
+.cairn-board-empty { margin: 0; }
+.cairn-card { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-emphasis); border-left: 4px solid var(--cairn-lane); background: var(--secondary); }
+.cairn-card > * { margin: 0; }
+.cairn-card-title { margin: 0; font-size: var(--text-md); }
+.cairn-card-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-2); }
+
+/* ---------- Change ---------- */
+.cairn-change-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-change-nav > p { flex: 1 1 100%; margin: 0; }
+.cairn-back { gap: var(--space-2); }
+.cairn-step[aria-disabled="true"] { opacity: .5; cursor: default; }
+.cairn-position { font-variant-numeric: tabular-nums; }
+.cairn-change { display: grid; gap: var(--space-5); min-width: 0; }
+.cairn-change > * { margin: 0; }
+.cairn-head { display: grid; gap: var(--space-2); padding-bottom: var(--space-4); border-bottom: 2px solid var(--foreground); }
+.cairn-head > * { margin: 0; }
+.cairn-eyebrow { font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--muted-foreground); }
+.cairn-title { font-size: var(--text-2xl); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; overflow-wrap: anywhere; scroll-margin-top: calc(var(--topbar-height) + var(--space-5)); }
+.cairn-head > .cairn-lanebar { max-width: 32rem; }
+.cairn-readouts { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: var(--space-2); }
 .cairn-section { display: grid; gap: var(--space-3); min-width: 0; }
 .cairn-section > * { margin: 0; }
 .cairn-section-title { padding-bottom: var(--space-1); border-bottom: 1px solid var(--frame); color: var(--foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
-.cairn-unit, .cairn-member, .cairn-blocker, .cairn-decision { display: grid; gap: var(--space-2); min-width: 0; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
-.cairn-unit > *, .cairn-member > *, .cairn-blocker > *, .cairn-decision > * { margin: 0; }
-.cairn-item-title { font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
-.cairn-subject { font-family: var(--mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
-/* Attempt cells break between words, never inside one; identities are shortened and keep the exact value in their title. */
-.cairn-attempts-table td, .cairn-attempts-table .state-badge { overflow-wrap: normal; }
-.cairn-attempt-id { display: grid; gap: .15rem; }
-.cairn-attempt-id > code { color: var(--muted-foreground); font-family: var(--mono); font-size: var(--text-xs); }
-@container data-table (max-width: 48rem) {
-  .data-table-stack.cairn-attempts-table tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .cairn-attempts-table td::before { content: attr(data-label); display: block; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
-}
-.cairn-unit-title { font-family: var(--mono); font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
-.cairn-list-items { display: grid; gap: var(--space-1); margin: 0; padding-left: 1.1rem; }
-.cairn-about > summary { color: var(--foreground); font-weight: 600; }
-.cairn-back { display: none; justify-self: start; }
+.cairn-subhead { margin: 0; font-size: var(--text-md); font-weight: 700; }
 
-/* Stacked, an opened change comes first and keeps a way back to the register. */
+/* Next steps: a checklist in the reader's order, each blocker with its owner and where it is resolved. */
+.cairn-next { display: grid; gap: var(--space-4); min-width: 0; }
+.cairn-next > * { margin: 0; }
+.cairn-checklist { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; border: 1px solid var(--border-emphasis); }
+.cairn-blocker { display: grid; gap: var(--space-1); min-width: 0; padding: var(--space-3) var(--space-3) var(--space-3) calc(var(--space-3) + 4px); border-bottom: 1px solid var(--border); background: var(--secondary); box-shadow: inset 4px 0 0 var(--warning); }
+.cairn-blocker[data-tone="failure"] { box-shadow: inset 4px 0 0 var(--danger); }
+.cairn-blocker:last-child { border-bottom: 0; }
+.cairn-blocker > * { margin: 0; }
+.cairn-blocker-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-blocker-meaning { font-size: var(--text-sm); }
+.cairn-blocker-next { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem; font-size: var(--text-sm); }
+.cairn-blocker-next .kiln-label, .cairn-blocker-next > span:first-child { font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--muted-foreground); }
+.cairn-blocker-detail q { font-style: italic; }
+.cairn-clear { padding: var(--space-3); border: 1px dashed var(--border-emphasis); }
+.cairn-notice:not([hidden]) { padding: var(--space-2) var(--space-3); border: 1px solid var(--frame); background: var(--secondary); color: var(--foreground); }
+.cairn-decisions { display: grid; gap: var(--space-3); min-width: 0; }
+.cairn-decisions > * { margin: 0; }
+.cairn-decision { display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid var(--border-emphasis); background: var(--secondary); }
+.cairn-decision > * { margin: 0; }
+.cairn-decision-question { font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
+.cairn-decision-about { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem; }
+.cairn-decision-answer { display: grid; gap: var(--space-2); justify-items: start; min-width: 0; }
+.cairn-decision-answer > * { margin: 0; }
+.cairn-decision-answer fieldset { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border); }
+.cairn-decision-answer legend { padding-inline: var(--space-1); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+.cairn-decision-answer label { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; margin: 0; }
+.cairn-decision-answer form { display: grid; gap: var(--space-2); justify-items: start; }
+.cairn-command-status { display: grid; gap: var(--space-2); }
+.cairn-command { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-command > * { margin: 0; }
+
+/* Units: one row per unit, one column per facet; the open unit's work and attempts sit beneath its row. */
+.cairn-units { table-layout: fixed; }
+.cairn-units th:first-child { width: 22%; }
+.cairn-units td { vertical-align: top; }
+.cairn-unit-row td:first-child { box-shadow: inset 4px 0 0 var(--cairn-lane, transparent); padding-left: calc(.75rem + 4px); }
+.cairn-unit-row[data-open="true"] td { background: var(--list-active); }
+.cairn-unit-toggle { display: grid; justify-content: stretch; justify-items: start; gap: .15rem; width: 100%; min-height: 2.75rem; padding: .25rem .4rem; border-color: transparent; background: transparent; text-align: left; white-space: normal; }
+.cairn-unit-toggle:hover:not(:disabled) { border-color: var(--frame); }
+.cairn-unit-name { display: flex; align-items: center; gap: var(--space-1); font: 700 var(--text-md)/1.35 var(--mono); overflow-wrap: anywhere; }
+.cairn-unit-name > .icon { flex-shrink: 0; transform: rotate(-90deg); }
+.cairn-unit-toggle[aria-expanded="true"] .cairn-unit-name > .icon { transform: none; }
+.cairn-unit-detail-row > td { padding: var(--space-3) var(--space-4) var(--space-4); background: var(--group-box); }
+.data-table tbody tr.cairn-unit-detail-row:hover td { background: var(--group-box); }
+.cairn-unit-detail { display: grid; gap: var(--space-3); min-width: 0; }
+.cairn-unit-detail > * { margin: 0; }
+.cairn-work { display: grid; gap: var(--space-2); min-width: 0; }
+.cairn-work > * { margin: 0; }
+.cairn-work-title { font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
+.cairn-bullets { display: grid; gap: var(--space-1); margin: 0; padding-left: 1.1rem; }
+.cairn-bullets > li > * + * { margin-left: .3rem; }
+.cairn-unit-ref { font-family: var(--mono); overflow-wrap: anywhere; }
+
+/* The attempt timeline: oldest first on a ruled spine; historical attempts are muted and dashed. */
+.cairn-timeline { display: grid; gap: var(--space-3); margin: 0; padding: 0 0 0 var(--space-4); list-style: none; border-left: 2px solid var(--frame); }
+.cairn-attempt { position: relative; display: grid; gap: var(--space-2); min-width: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--border-emphasis); background: var(--secondary); }
+.cairn-attempt::before { content: ""; position: absolute; left: calc(-1 * var(--space-4) - 6px); top: .9rem; width: 10px; height: 10px; border: 2px solid var(--frame); background: var(--secondary); }
+.cairn-attempt[data-applicability="current"]::before { background: var(--foreground); }
+.cairn-attempt[data-applicability="historical"] { border-style: dashed; color: var(--muted-foreground); background: var(--muted); }
+.cairn-attempt > * { margin: 0; }
+.cairn-attempt-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.cairn-attempt-times { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem; }
+.cairn-attempt-facts { font-size: var(--text-xs); }
+
+/* Dependencies: the shared DAG treatment; units of other changes are dashed, work without a unit dotted. */
+.cairn-graph { max-width: 100%; overflow-x: auto; border: 1px solid var(--border-emphasis); background: var(--group-box); }
+.cairn-graph-canvas .dag-stage { width: 13rem; flex-basis: 13rem; }
+.cairn-graph-node { color: var(--foreground); text-decoration: none; white-space: normal; }
+.cairn-graph-node > .small { display: block; }
+.cairn-graph-node[data-kind="external"] { border-style: dashed; }
+.cairn-graph-node[data-kind="work"] { border-style: dotted; background: var(--muted); }
+
+/* Campaign members, each with its binding, stage and hold. */
+.cairn-members { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); gap: var(--space-3); min-width: 0; }
+.cairn-member { display: grid; align-content: start; gap: var(--space-2); min-width: 0; padding: var(--space-3); border: 1px solid var(--border-emphasis); background: var(--secondary); scroll-margin-top: calc(var(--topbar-height) + var(--space-5)); }
+.cairn-member:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.cairn-member > * { margin: 0; }
+.cairn-member-title { font: 700 var(--text-md)/1.35 var(--mono); overflow-wrap: anywhere; }
+.cairn-hold { font-size: var(--text-xs); }
+
+/* Disclosures: exact identities, decision facts, the legend and Browse changes. */
+.cairn-disclosure { min-width: 0; border-top: 1px solid var(--border); }
+.cairn-disclosure > summary { min-height: max(var(--control-height), 2.75rem); padding-block: var(--space-2); color: var(--foreground); font-weight: 600; }
+.cairn-disclosure[open] > summary { margin-bottom: var(--space-2); }
+.cairn-disclosure > * + * { margin-top: var(--space-2); }
+.cairn-page > .cairn-disclosure[data-cairn-disclosure="browse"] { padding: var(--space-3) var(--space-4); border: 1px solid var(--frame); background: var(--group-box); }
+.cairn-page > .cairn-disclosure[data-cairn-disclosure="browse"] > summary { font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; }
+.cairn-disclosure > .cairn-register { padding: 0; border: 0; box-shadow: none; background: transparent; }
+.cairn-legend .badges { gap: var(--space-1); }
+.cairn-copy { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); min-width: 0; }
+.cairn-copy code { font: var(--text-xs)/1.6 var(--mono); overflow-wrap: anywhere; user-select: all; }
+.cairn-copy-button { min-height: 2rem; padding: .1rem .5rem; }
+
+@container data-table (max-width: 48rem) {
+  .cairn-table tr, .cairn-units tr { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .cairn-table td:not(:first-child), .cairn-units td:not(:first-child) { display: grid; grid-template-columns: minmax(7rem, .3fr) minmax(0, 1fr); align-items: start; gap: var(--space-1) var(--space-3); }
+  .cairn-table td:not(:first-child)::before, .cairn-units td:not(:first-child)::before { content: attr(data-label); grid-column: 1; grid-row: 1 / span 4; color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; padding-top: .2rem; }
+  .cairn-table td:not(:first-child) > *, .cairn-units td:not(:first-child) > * { grid-column: 2; }
+  .cairn-table td > * + * { margin-top: 0; }
+  .cairn-table td:first-child, .cairn-unit-row td:first-child { box-shadow: none; padding-left: 0; }
+  .cairn-table tr[data-lane], .cairn-unit-row[data-lane] { box-shadow: inset 4px 0 0 var(--cairn-lane); padding-left: calc(.75rem + 4px); }
+  .cairn-unit-detail-row > td { padding: var(--space-3) 0 0; background: transparent; }
+  .cairn-unit-detail-row > td::before { content: none; }
+}
 @media (max-width: 65rem) {
-  .cairn-layout[data-selected="true"] > .cairn-detail { order: -1; }
-  .cairn-back { display: inline-flex; }
+  .cairn-readouts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 40rem) {
+  .cairn-readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cairn-title { font-size: var(--text-xl); }
+  .cairn-page > .cairn-disclosure[data-cairn-disclosure="browse"] { padding: var(--space-3); }
+  .cairn-timeline { padding-left: var(--space-3); }
+  .cairn-attempt::before { left: calc(-1 * var(--space-3) - 6px); }
+}
+@media (forced-colors: active) {
+  .cairn-lanebar-seg, .cairn-chip[data-lane]::before { forced-color-adjust: none; outline: 1px solid CanvasText; }
+  .cairn-unit-row[data-open="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }

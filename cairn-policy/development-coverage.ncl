@@ -7,6 +7,7 @@ let ActiveRoots = [
   ".cairn/changes/adopt-technical-graphics-standard/specs/live-console-design/spec.md",
   ".cairn/changes/clarify-patchgate-receipts/specs/patchgate-review-adapter/spec.md",
   ".cairn/changes/clarify-workers-page/specs/dashboard-workers/spec.md",
+  ".cairn/changes/rework-cairn-changes-page/specs/cairn-workspace/spec.md",
   ".cairn/changes/add-website-exploration-examples/specs/website-exploration/spec.md",
   ".cairn/changes/add-bombadil-web-exploration/specs/web-exploration-bombadil/spec.md",
   ".cairn/changes/fix-console-topbar-overflow/specs/live-console-design/spec.md",

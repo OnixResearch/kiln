@@ -28,8 +28,8 @@ use serde::Serialize;
 
 use crate::inventory::campaign_projection::repository_identity;
 
-pub const INDEX_SCHEMA: &str = "kiln.cairn-workspace-index.v1";
-pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v1";
+pub const INDEX_SCHEMA: &str = "kiln.cairn-workspace-index.v2";
+pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v2";
 /// Changes one index lists before reporting truncation.
 pub const MAX_INDEX_CHANGES: usize = 512;
 /// Error code of a retained record the projection cannot identify.
@@ -41,6 +41,38 @@ const NON_CLAIMS: [&str; 4] = [
     "no claim, dispatch, reservation, publication or lifecycle mutation follows from this view",
     "every authenticated viewer and operator sees the same projection; capability-restricted observers are not implemented",
     "requirement text is limited to canonical acceptance obligations; native Cairn requirement references are not read",
+];
+/// Board lanes in display order. A lane is a position derived from a unit's
+/// facets; the facets stay the evidence.
+pub const LANES: [&str; 7] = [
+    "attention",
+    "awaiting",
+    "ready",
+    "in_progress",
+    "verified",
+    "integrated",
+    "recorded",
+];
+/// Attempt phases that do not stop a unit; any other latest phase, including
+/// one this projection does not know, places it in `attention`.
+const MOVING_PHASES: [&str; 6] = [
+    "not_started",
+    "claimed",
+    "executing",
+    "candidate_produced",
+    "verifying",
+    "verified",
+];
+/// Blocker conditions in the order a reader must act on them. An unknown
+/// dispatch outcome refuses every further attempt, so it comes first.
+const BLOCKER_RANK: [&str; 7] = [
+    "dispatch_recovery",
+    "dependency_cycle",
+    "no_acceptance_obligations",
+    "missing_dependency",
+    "stale_work_binding",
+    "pending_effect",
+    "campaign_hold",
 ];
 
 /// One Cairn change in one repository.
@@ -131,6 +163,10 @@ struct Context<'a> {
     lifecycle: &'a BTreeMap<String, NativeCairnLifecycleReceipt>,
     /// Current canonical work identity to its Cairn native identities.
     current: BTreeMap<String, Vec<String>>,
+    /// Current canonical work identity to its repository identity.
+    repositories: BTreeMap<String, String>,
+    /// Current canonical work identity to the current work that depends on it.
+    dependents: BTreeMap<String, BTreeSet<String>>,
     superseded: BTreeSet<String>,
     /// Attempts whose unknown provider outcome is not reconciled.
     unresolved: BTreeSet<String>,
@@ -141,10 +177,22 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     fn new(snapshot: &'a CanonicalSnapshot) -> Result<Self, &'static str> {
         let mut current = BTreeMap::new();
+        let mut repositories = BTreeMap::new();
+        let mut dependents: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
         let mut superseded = BTreeSet::new();
         if let Some(ledger) = &snapshot.work {
             for work in ledger.current() {
                 let identity = work.identity().map_err(|_| MALFORMED)?;
+                for dependency in &work.dependencies {
+                    dependents
+                        .entry(dependency.as_str().to_owned())
+                        .or_default()
+                        .insert(identity.as_str().to_owned());
+                }
+                repositories.insert(
+                    identity.as_str().to_owned(),
+                    repository_identity(&work.repository),
+                );
                 current.insert(
                     identity.as_str().to_owned(),
                     cairn_aliases(work)
@@ -185,6 +233,8 @@ impl<'a> Context<'a> {
             attempts: snapshot.attempts.as_ref(),
             lifecycle: &snapshot.lifecycle,
             current,
+            repositories,
+            dependents,
             superseded,
             unresolved,
             holds,
@@ -197,6 +247,22 @@ impl<'a> Context<'a> {
             Some(identity) if self.current.contains_key(identity.as_str()) => "current",
             Some(identity) if self.superseded.contains(identity.as_str()) => "stale",
             Some(_) => "unknown_work",
+        }
+    }
+
+    /// One work identity as a dependency or dependent: its Cairn units and
+    /// repository when it is current work, otherwise only its identity.
+    fn dependency_view(&self, identity: &str) -> DependencyView {
+        let native_ids = self.current.get(identity);
+        DependencyView {
+            identity: identity.to_owned(),
+            state: if native_ids.is_some() {
+                "current"
+            } else {
+                "not_current"
+            },
+            native_ids: native_ids.cloned().unwrap_or_default(),
+            repository_identity: self.repositories.get(identity).cloned(),
         }
     }
 }
@@ -227,6 +293,8 @@ pub struct DependencyView {
     pub state: &'static str,
     /// Cairn native identities of the dependency when it is current.
     pub native_ids: Vec<String>,
+    /// Repository identity of the dependency when it is current work.
+    pub repository_identity: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -241,6 +309,8 @@ pub struct WorkView {
     pub readiness_snapshot: String,
     pub acceptance: Vec<AcceptanceObligation>,
     pub dependencies: Vec<DependencyView>,
+    /// Current canonical work that names this work as a dependency.
+    pub dependents: Vec<DependencyView>,
     pub terminal_policy: TerminalPolicy,
     pub priority: u8,
     /// `ready`, `blocked`, or `unknown` when canonical eligibility is unavailable.
@@ -343,6 +413,8 @@ pub struct UnitView {
     pub current_work: Vec<WorkView>,
     pub superseded_work: Vec<WorkRevisionView>,
     pub facets: Facets,
+    /// Board lane from [`LANES`], derived from `facets` by [`lane`].
+    pub lane: &'static str,
     pub attempts: Vec<AttemptView>,
 }
 
@@ -407,6 +479,10 @@ pub struct Blocker {
     pub condition: &'static str,
     /// Native unit identity or campaign member key.
     pub subject: String,
+    /// `unit` for a native unit subject, `member` for a campaign member key.
+    pub subject_kind: &'static str,
+    /// The campaign that owns a member subject; absent for a unit subject.
+    pub campaign_id: Option<String>,
     /// Supporting observation: `work:`, `attempt:`, `campaign:` or `effect:` identity.
     pub observation: String,
     pub operation: CampaignOperation,
@@ -423,6 +499,12 @@ pub struct Overview {
     pub campaigns: usize,
     pub blockers: usize,
     pub first_blocker: Option<Blocker>,
+    /// Board lane of the change, by [`change_lane`].
+    pub lane: &'static str,
+    /// Units in each of [`LANES`].
+    pub lanes: BTreeMap<&'static str, usize>,
+    /// Decisions of the change's members that are unissued or outstanding.
+    pub open_decisions: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -453,6 +535,10 @@ pub struct IndexEntry {
     pub active_attempts: usize,
     pub campaigns: Vec<String>,
     pub blockers: usize,
+    pub first_blocker: Option<Blocker>,
+    pub lane: &'static str,
+    pub lanes: BTreeMap<&'static str, usize>,
+    pub open_decisions: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -498,18 +584,14 @@ fn work_view(
         dependencies: work
             .dependencies
             .iter()
-            .map(|dependency| {
-                let native_ids = context.current.get(dependency.as_str());
-                DependencyView {
-                    identity: dependency.as_str().to_owned(),
-                    state: if native_ids.is_some() {
-                        "current"
-                    } else {
-                        "not_current"
-                    },
-                    native_ids: native_ids.cloned().unwrap_or_default(),
-                }
-            })
+            .map(|dependency| context.dependency_view(dependency.as_str()))
+            .collect(),
+        dependents: context
+            .dependents
+            .get(identity.as_str())
+            .into_iter()
+            .flatten()
+            .map(|dependent| context.dependency_view(dependent))
             .collect(),
         terminal_policy: work.terminal_policy,
         priority: work.priority,
@@ -682,6 +764,63 @@ fn facets(current_work: &[WorkView], attempts: &[AttemptView]) -> Facets {
     }
 }
 
+// r[impl kiln.cairn.workspace.scenario.lanes]
+/// The board lane of one unit. Any stop wins; otherwise the furthest stage
+/// the facets show. Only current verification advances a unit, so historical
+/// evidence never does, and an unknown attempt phase stops it.
+fn lane(facets: &Facets) -> &'static str {
+    let stopped = matches!(facets.readiness, "blocked" | "unknown")
+        || !MOVING_PHASES.contains(&facets.execution.as_str())
+        || facets.evidence == "current_failed";
+    if stopped {
+        "attention"
+    } else if facets.readiness == "not_admitted" {
+        "awaiting"
+    } else if facets.lifecycle == "receipt_observed" {
+        "recorded"
+    } else if matches!(
+        facets.integration.as_str(),
+        "integrated" | "source_reconciled"
+    ) {
+        "integrated"
+    } else if facets.evidence == "current_verified" {
+        "verified"
+    } else if facets.execution == "not_started" {
+        "ready"
+    } else {
+        "in_progress"
+    }
+}
+
+fn lane_rank(lane: &str) -> usize {
+    LANES
+        .iter()
+        .position(|known| *known == lane)
+        .unwrap_or(LANES.len())
+}
+
+/// A change needs attention when any unit does; otherwise it sits in the lane
+/// of its least-advanced unit, or awaits work when it names no unit.
+fn change_lane(units: &[UnitView]) -> &'static str {
+    if units.iter().any(|unit| unit.lane == "attention") {
+        return "attention";
+    }
+    units
+        .iter()
+        .map(|unit| unit.lane)
+        .min_by_key(|lane| lane_rank(lane))
+        .unwrap_or("awaiting")
+}
+
+/// Units in each lane, with every lane present.
+fn lane_counts(units: &[UnitView]) -> BTreeMap<&'static str, usize> {
+    let mut counts: BTreeMap<&'static str, usize> = LANES.iter().map(|lane| (*lane, 0)).collect();
+    for unit in units {
+        *counts.entry(unit.lane).or_default() += 1;
+    }
+    counts
+}
+
 /// Units of one change from canonical aliases, campaign task selections and
 /// campaign remaining obligations. A whole-change selection names the change,
 /// not a unit.
@@ -763,8 +902,10 @@ fn units(
             .unwrap_or_default();
         attempts.sort_by_key(|attempt| (attempt.ordinal, attempt.fence));
         let unit = split_unit(&native_id).map_or_else(String::new, |(_, unit)| unit.to_owned());
+        let facets = facets(&current_work, &attempts);
         units.push(UnitView {
-            facets: facets(&current_work, &attempts),
+            lane: lane(&facets),
+            facets,
             native_id,
             unit,
             sources,
@@ -862,6 +1003,8 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
                 blockers.push(Blocker {
                     condition,
                     subject: unit.native_id.clone(),
+                    subject_kind: "unit",
+                    campaign_id: None,
                     observation: format!("work:{}", work.identity),
                     operation,
                     owner: NATIVE_SOURCE_OWNER.to_owned(),
@@ -877,6 +1020,8 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
             blockers.push(Blocker {
                 condition: "dispatch_recovery",
                 subject: unit.native_id.clone(),
+                subject_kind: "unit",
+                campaign_id: None,
                 observation: format!("attempt:{}", attempt.identity),
                 operation: CampaignOperation::Reconcile,
                 owner: CampaignOperation::Reconcile.owner().to_owned(),
@@ -894,6 +1039,8 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
             blockers.push(Blocker {
                 condition: "campaign_hold",
                 subject: membership.member.clone(),
+                subject_kind: "member",
+                campaign_id: Some(membership.campaign_id.clone()),
                 observation: campaign.clone(),
                 operation: hold.operation,
                 owner: hold
@@ -911,6 +1058,8 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
             blockers.push(Blocker {
                 condition: "pending_effect",
                 subject: membership.member.clone(),
+                subject_kind: "member",
+                campaign_id: Some(membership.campaign_id.clone()),
                 observation: format!("effect:{}", effect.effect_id),
                 operation: CampaignOperation::Reconcile,
                 owner: effect.owner.clone(),
@@ -925,6 +1074,8 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
             blockers.push(Blocker {
                 condition: "stale_work_binding",
                 subject: membership.member.clone(),
+                subject_kind: "member",
+                campaign_id: Some(membership.campaign_id.clone()),
                 observation: campaign,
                 operation: CampaignOperation::Replan,
                 owner: CampaignOperation::Replan.owner().to_owned(),
@@ -937,9 +1088,20 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
         }
     }
     blockers.sort_by(|a, b| {
-        (a.condition, &a.subject, &a.observation).cmp(&(b.condition, &b.subject, &b.observation))
+        (blocker_rank(a.condition), &a.subject, &a.observation).cmp(&(
+            blocker_rank(b.condition),
+            &b.subject,
+            &b.observation,
+        ))
     });
     blockers
+}
+
+fn blocker_rank(condition: &str) -> usize {
+    BLOCKER_RANK
+        .iter()
+        .position(|known| *known == condition)
+        .unwrap_or(BLOCKER_RANK.len())
 }
 
 fn decisions(facts: &ChangeFacts<'_>) -> Vec<DecisionView> {
@@ -1003,6 +1165,16 @@ fn project(
         .iter()
         .map(|(state, _, _)| state.contract.campaign_id.as_str())
         .collect();
+    let decisions = decisions(facts);
+    let open_decisions = decisions
+        .iter()
+        .filter(|decision| {
+            matches!(
+                decision.state,
+                DecisionRequestState::Unissued | DecisionRequestState::Outstanding
+            )
+        })
+        .count();
     Ok(Detail {
         schema: DETAIL_SCHEMA,
         identity: String::new(),
@@ -1022,10 +1194,13 @@ fn project(
             campaigns: campaigns.len(),
             blockers: blockers.len(),
             first_blocker: blockers.first().cloned(),
+            lane: change_lane(&units),
+            lanes: lane_counts(&units),
+            open_decisions,
         },
         units,
         memberships,
-        decisions: decisions(facts),
+        decisions,
         blockers,
         non_claims: NON_CLAIMS,
     })
@@ -1077,6 +1252,10 @@ fn index_bounded(snapshot: &CanonicalSnapshot, max_changes: usize) -> Result<Ind
             attempts: detail.overview.attempts,
             active_attempts: detail.overview.active_attempts,
             blockers: detail.overview.blockers,
+            first_blocker: detail.overview.first_blocker,
+            lane: detail.overview.lane,
+            lanes: detail.overview.lanes,
+            open_decisions: detail.overview.open_decisions,
         });
     }
     Ok(Index {

@@ -317,20 +317,23 @@ entry describes the source tree prepared for the first tagged release.
   refused and audited before the owner is reached. The campaign operator gains
   `pause`. (#86; unit, scripted-store, Node and browser checks over the
   synthetic exploration workspace; no live campaign)
-- Follow one Cairn change across canonical work, attempts and selected campaigns
-  on the read-only **Cairn changes** page (2.7). `GET /api/implementation/cairn`
-  and its `detail` route join, from one bounded read of the implementation
-  database, every unit named by a canonical Cairn alias, a campaign task
-  selection or a campaign's remaining obligations. Readiness, execution,
-  evidence, integration and lifecycle read as separate facets; attempts on a
-  superseded work version stay historical, and crossed lifecycle receipts never
-  count. Blockers name their condition, supporting observation, proposed
-  operation and owner, and their reasons are display text only. The URL keeps
-  the selection, late responses never draw over it, and campaign views link to
-  each selected change. The exploration workspace seeds a prerequisite with a
-  failed attempt, its dependent, a superseded attempt with a stale campaign
-  binding and a completion-only member. (#84; unit, snapshot-store, Node and
-  browser checks over the synthetic exploration workspace; no live campaign)
+- A full-width **Cairn changes** register (2.7) presents List and Board views
+  over the same deterministic lane, blocker, decision, name and repository order.
+  Search, lane, blocker and decision filters, selected change and expanded unit
+  survive URL reloads; Previous/Next and Browse changes preserve the filtered
+  register. Read-only index/detail `v2` projections join exact canonical work,
+  attempts, verification, publication, lifecycle and campaign members; the
+  console refuses `v1`. Lanes and unit spread summarize separately visible
+  readiness, execution, evidence, integration and lifecycle facets, never
+  acceptance authority. Detail leads with ranked blockers, owners and open
+  decisions, then expandable units and historical/current attempt timelines,
+  exact dependency/dependent graph including cycles and not-current work,
+  campaign members and disclosed copyable identities. Only answer/issue actions
+  listed by the canonical campaign inbox for this change's exact members appear
+  inline; the shared command runner retains store-version, request-ID retry and
+  conflict behavior. The disposable explorer has A→B, historical C and
+  completion-only D without provider execution. (#84; synthetic local rehearsal,
+  not a live campaign, worker or lifecycle completion claim)
 - Adopt already implemented work for a freshly selected completion-only Cairn
   change instead of blocking it. Every required native unit needs current
   canonical work whose latest attempt is verified with exactly one passing

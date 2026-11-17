@@ -35,6 +35,13 @@ A failing check names the entry and the missing reference, for example
 same change that adds, removes or renames a destination, panel, module, global,
 stylesheet, anchor, API path or Node test.
 
+For **Cairn changes** (2.7), inventory both read-only workspace GET routes and
+the shared campaign inbox/command paths used solely for inbox-admitted answer
+and issue actions. Its URL state records repository, change, expanded unit,
+search, lane, blocker and open-decision filters, and List/Board view. The
+inventory is a description of the served console, not a new command surface:
+the canonical campaign owner still admits every decision command separately.
+
 ## Cohorts
 
 | Order | Cohort | Routes |

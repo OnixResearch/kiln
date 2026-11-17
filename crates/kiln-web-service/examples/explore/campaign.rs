@@ -168,29 +168,29 @@ pub fn examples() -> Vec<Example> {
     };
     vec![
         Example::new(
-            "Cairn changes: one change across work, attempts and campaigns",
+            "Cairn changes: filter, board and inspect next steps",
             "/?page=cairn",
-            "Browse the synthetic Cairn changes named by canonical work or the selected campaign, most blockers first. Every row joins the real canonical stores; no Cairn, worker or provider is contacted.",
+            "Switch the change register between List and Board, filter by lane, blockers or open decisions, and open a change's next steps. Lanes summarize the least-advanced unit, not lifecycle authority. The canonical stores are disposable; no Cairn, worker or provider is contacted.",
         ),
         Example::new(
             "Prerequisite with a failed attempt",
             change("synthetic-planning"),
-            "A's one attempt failed and its planning member waits with partial enumeration. Readiness, execution, evidence, integration and lifecycle read as separate facets.",
+            "A needs attention: its attempt failed and its planning member waits with partial enumeration. Open its unit row for the attempt timeline and follow the dependency graph to B. All five stages stay separate.",
         ),
         Example::new(
             "Dependent task and its review wait",
             change("synthetic-assurance"),
-            "B depends on A's exact work identity, shown as a current dependency; its required review waits as a campaign hold whose reason is display text only.",
+            "B is ready to start and depends on A's exact work identity. Its next steps name the review owner; inspect the graph, open the prerequisite, or answer only the review decision the campaign inbox admits.",
         ),
         Example::new(
             "Superseded attempt and stale campaign binding",
             change("synthetic-ready"),
-            "C's revision 1 attempt reads historical after revision 2 replaced it, and the campaign member still binds revision 1, so a stale-binding blocker names its replan owner.",
+            "C is in progress on revision 2. Expand its unit to compare the historical revision 1 attempt with the active attempt. Its stale campaign binding names the replan owner; its empirical question stays read-only until the campaign can issue it.",
         ),
         Example::new(
             "Completion-only selection without canonical work",
             change("synthetic-lifecycle"),
-            "D is selected for native lifecycle completion only. It has no canonical work or attempts, and its member stays visible with its stage and decisions.",
+            "D awaits work: selected for native lifecycle completion only, it has no canonical work or attempts. Inspect its member and open decision; All changes and Browse changes keep your register filters.",
         ),
     ]
 }
@@ -618,6 +618,29 @@ mod tests {
                 "synthetic-lifecycle",
                 "synthetic-planning",
                 "synthetic-ready"
+            ]
+        );
+        // A needs attention, B is ready, C is in progress and D awaits work;
+        // only A has no open decision.
+        let lanes: Vec<(&str, &str, u64)> = index["changes"]
+            .as_array()
+            .ok_or("index has no changes")?
+            .iter()
+            .filter_map(|change| {
+                Some((
+                    change["change"].as_str()?,
+                    change["lane"].as_str()?,
+                    change["open_decisions"].as_u64()?,
+                ))
+            })
+            .collect();
+        assert_eq!(
+            lanes,
+            [
+                ("synthetic-assurance", "ready", 1),
+                ("synthetic-lifecycle", "awaiting", 1),
+                ("synthetic-planning", "attention", 0),
+                ("synthetic-ready", "in_progress", 1)
             ]
         );
         let detail = |change: &str| {

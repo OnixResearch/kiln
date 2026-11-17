@@ -264,6 +264,33 @@ test("campaign controls offer only listed operations and answers bound to the di
   assert.throws(() => inventory.validateInbox(inboxFixture({ decisions: [{ ...inboxFixture().decisions[0], actions: ["approve_all"] }] })));
 });
 
+// r[verify kiln.cairn.workspace.scenario.decisions]
+test("shared answer and issue actions bind the exact inbox version and refuse unlisted actions", async () => {
+  const inventory = setup();
+  const inbox = inboxFixture({ store_version: 23, operations: ["pause", "cancel"] });
+  const answer = { ...inbox.decisions[0], member: "change-a/task", actions: ["resolve"] };
+  const issue = { ...inbox.decisions[1], member: "change-a/task", actions: ["issue"] };
+  const sent = [];
+  const controls = [];
+  const answerNodes = inventory.decisionAnswer(inbox, answer, (intent) => sent.push(intent), controls);
+  const issueNodes = inventory.decisionAnswer(inbox, issue, (intent) => sent.push(intent), controls);
+  assert.deepEqual(buttons({ children: answerNodes }).map((node) => node.textContent), ["Submit answer"]);
+  assert.deepEqual(buttons({ children: issueNodes }).map((node) => node.textContent), ["Issue to reviewers"]);
+  const form = answerNodes[0];
+  form.listeners.get("submit")({ preventDefault() {} });
+  assert.equal(sent.length, 0);
+  descendants(form).find((node) => node.type === "radio" && node.value === "reject").checked = true;
+  form.listeners.get("submit")({ preventDefault() {} });
+  issueNodes[0].listeners.get("click")();
+  assert.deepEqual(plain(sent), [
+    { command: "resolve_decision", campaign_id: "selected", expected_version: 23, decision_identity: answer.identity, work_identity: HEX_A, policy_identity: HEX_A, candidate_identity: "c".repeat(64), answer: "reject" },
+    { command: "issue_decision", campaign_id: "selected", expected_version: 23, decision_identity: issue.identity },
+  ]);
+  assert.equal(inventory.decisionAnswer(inbox, { ...answer, actions: [] }, () => assert.fail("unlisted action sent"), []).length, 0);
+  await assert.rejects(inventory.readInbox({ api: async () => inboxFixture({ campaign_id: "another" }) }, "selected"), /invalid|different|campaign/i);
+  assert.equal((await inventory.readInbox({ api: async (path) => { assert.equal(path, "/api/implementation/campaigns/inbox?campaign=selected"); return inbox; } }, "selected")).store_version, 23);
+});
+
 // r[verify kiln.implementation.campaign.controls.scenario.console]
 test("a lost response retries the same request ID and a conflict reloads without applying", async () => {
   const inventory = setup();
@@ -274,6 +301,7 @@ test("a lost response retries the same request ID and a conflict reloads without
   const runner = inventory.commandRunner({
     async api(path, request) {
       assert.equal(path, "/api/implementation/campaigns/commands");
+      assert.equal(request.method, "POST");
       bodies.push(request.body);
       attempts += 1;
       if (attempts === 1) throw new TypeError("network connection lost");
@@ -285,8 +313,12 @@ test("a lost response retries the same request ID and a conflict reloads without
   assert.ok(lost.status.textContent.includes("may have applied"));
   lost.retry.listeners.get("click")();
   await tick();
-  assert.deepEqual(bodies.map((body) => body.request_id), ["console-request-1", "console-request-1"]);
+  assert.deepEqual(plain(bodies), [
+    { command: "pause", campaign_id: "selected", expected_version: 7, request_id: "console-request-1" },
+    { command: "pause", campaign_id: "selected", expected_version: 7, request_id: "console-request-1" },
+  ]);
   assert.equal(lost.applied.length, 1);
+  assert.equal(lost.reloads, 0);
   assert.ok(lost.status.textContent.startsWith("Already applied"));
 
   for (const [status, reloads] of [[409, 1], [403, 0]]) {

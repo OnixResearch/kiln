@@ -1571,6 +1571,7 @@ embedded assets.
 | Planning | Initiative, project, milestone, cycle and team with a custom review/blocked workflow, dates and related issues. |
 | Requests, saved views and boards | Incoming/accepted/declined requests with original customer/source retained; private/shared/favorite filters, status board with keyboard/drag move controls and a CI-project board retaining unlinked issues. |
 | Code review | Requested review, multiple exact revisions/interdiff, line/split/structural comparison, historical blocking discussion, private draft and publication, viewed files, votes, unmet exact-CI requirements, dependency stack, WIP, submitted/abandoned changes, queue registration and self-declared agent authorship. |
+| Cairn changes | Full-width List/Board, lane spread and filters over synthetic A→B (failed prerequisite and ready dependent with review wait), C (superseded historical attempt and stale binding) and completion-only D (awaiting work). Open a unit for its timeline/dependencies and follow campaign links; any inline answer/issue uses only the admitted local campaign inbox. |
 | Source | Two disposable Git repositories, branches/tag, directories, highlighted Rust/Nickel/Markdown, exact file/line links, commit history, rename and binary-file changes. |
 | Patchgate receipts and raw collaboration history | All nine receipt decisions with recorded reasons/paths/times/coverage; exact retained documents; issue, patch and Cairn-change raw histories with multiple local ref tips. |
 | Feeds | Repository Atom/RSS and OPML publication; parsed illustrative upstream entries in observed/paused/pending/failing states; filtering, pause/resume/rename/remove, offline-catalog subscription and OPML import/export. Try `https://examples.invalid/new.atom`. |
@@ -4833,34 +4834,33 @@ twice. A 409 reports that nothing was applied and reloads the current state.
 ### Cairn changes
 
 <!-- r[related kiln.cairn.workspace] -->
-The **Cairn changes** page (2.7) shows one read-only view per Cairn change. A
-change is keyed by its repository identity (the same BLAKE3 digest of the
-repository binding the campaign projection uses) and its change name. The view
-joins, by exact identity, the canonical work whose Cairn aliases (`cairn_task`
-or `cairn_artifact`, `<change>/<unit>`) name the change, the attempts on that
-work with their verification, publication and native lifecycle records, and
-every selected campaign member whose selector names the change. One bounded
-read transaction over the `--implementation-work` database supplies all of it.
-Nothing on the page claims, dispatches, mutates lifecycle or answers a decision.
+The **Cairn changes** page (2.7) opens as a full-width register, with a List or
+Board view over the same changes. Each change is keyed by its repository identity
+(the BLAKE3 digest of the repository binding used by the campaign projection)
+and its change name. One bounded read transaction over `--implementation-work`
+joins exact canonical Cairn aliases (`cairn_task` or `cairn_artifact`,
+`<change>/<unit>`), current and superseded work, attempts, verification,
+publication and native lifecycle records, and selected campaign members. The
+index and detail routes are **read-only**; neither grants claim, dispatch,
+integration, lifecycle or campaign authority. Decisions can be answered or
+issued here only through the separately admitted canonical campaign command
+path described below.
 
 | Route | Method | Purpose |
 | --- | --- | --- |
-| `/api/implementation/cairn` | GET | `kiln.cairn-workspace-index.v1`: every change named by canonical work or a selected campaign member, with unit, work, attempt, campaign and blocker counts |
-| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v1`: the change's units, members, decisions and structured blockers with a BLAKE3 view identity |
+| `/api/implementation/cairn` | GET | `kiln.cairn-workspace-index.v2`: changes with stage lane, unit spread, open decisions, first ranked blocker and counts |
+| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v2`: exact change's units, attempts, dependencies, memberships, decisions and ranked blockers with a BLAKE3 view identity |
 
-Viewers and operators read both routes; worker principals are refused. The
-detail admits exactly the `repository=HEX&change=NAME` query: a 64-character
-lowercase hex identity and a percent-encoded change name of at most 256 bytes
-without `/` or control characters. Both responses are bounded to 4 MiB, and the
-index lists at most 512 changes, reporting truncation. Without
+The console refuses older `v1` index/detail documents rather than inferring
+missing lane facts. Viewers and operators may read both routes; worker principals
+are refused. The detail admits exactly `repository=HEX&change=NAME`: a
+64-character lowercase hex identity and a percent-encoded change name of at
+most 256 bytes without `/` or control characters. Both responses are bounded
+to 4 MiB; the index lists at most 512 changes and reports truncation. Without
 `--implementation-work` both routes return 503
-`cairn_workspace_input_not_configured`; the page says so instead of showing no
-changes.
+`cairn_workspace_input_not_configured`, not an empty workspace.
 
-A unit comes from a canonical alias, a campaign task selection or a campaign
-member's remaining obligations, and records which sources named it. A
-whole-change selection names the change, not a unit. Each unit reads in five
-separate facets:
+Each unit reads in five separate facets:
 
 | Facet | Values |
 | --- | --- |
@@ -4870,34 +4870,101 @@ separate facets:
 | Integration | publication phase of that attempt, or `not_published` |
 | Lifecycle | `receipt_observed` or `not_observed` |
 
-An attempt applies to current work only when its work identity equals the
-unit's current canonical version; otherwise it reads as historical, and its
-verification never makes changed work look accepted. A lifecycle receipt
-counts only when it binds the attempt's own work identity and fence; otherwise
-it reads as crossed. A campaign member's binding is `current`, `stale` (a
-superseded version), `unknown_work` (not in the ledger) or `not_bound`.
+The lane is a **summary position**, not readiness, acceptance, integration or
+lifecycle authority. Its display order is **Needs attention** (`attention`),
+**Awaiting work** (`awaiting`), **Ready to start** (`ready`), **In progress**
+(`in_progress`), **Verified** (`verified`), **Integrated** (`integrated`) and
+**Lifecycle recorded** (`recorded`). A blocked/unknown readiness, a stopped or
+unrecognized current attempt, or failed current verification takes precedence
+over any advance; without current work the unit awaits work. Otherwise the
+furthest observed lane applies. A
+change with any stopped unit needs attention, otherwise it uses the
+least-advanced unit's lane (or awaits work when it names no unit). The unit
+spread shows counts in every lane, while each unit retains all five facets.
+Historical verification and unrecognized values never advance a unit.
+Campaign-level review waits, holds, stale bindings and pending effects are
+shown as blockers, not silently folded into the lane.
 
-Blockers carry a condition, the native unit or member, the supporting
-observation (`work:`, `attempt:`, `campaign:ID@VERSION` or `effect:`), a
-proposed campaign operation and its owner:
+A unit comes from a canonical alias, a campaign task selection or a campaign
+member's remaining obligations, and records which sources named it. A
+whole-change selection names the change, not a unit. An attempt applies to
+current work only when its work identity equals the unit's current canonical
+version; otherwise it reads as historical. A lifecycle receipt counts only
+when it binds the attempt's own work identity and fence; otherwise it reads as
+crossed. A campaign member's binding is `current`, `stale` (superseded),
+`unknown_work` (not in the ledger) or `not_bound`.
 
-| Condition | Source | Operation and owner |
-| --- | --- | --- |
-| `missing_dependency` | Canonical eligibility | `wait` by `native-source-owner` |
-| `no_acceptance_obligations`, `dependency_cycle` | Canonical eligibility | `blocked` by `native-source-owner` |
-| `campaign_hold` | The campaign's own selection hold | The hold's operation and owner |
-| `pending_effect` | An owner effect whose progress is not applied | `reconcile` by the effect's owner |
-| `dispatch_recovery` | An unknown provider outcome without an observed termination | `reconcile` by `attempt-reconciliation-owner` |
-| `stale_work_binding` | A member bound to stale or unknown work | `replan` by `campaign-policy` |
+The register sorts independently of arrival: lane rank, blocker count
+descending, open-decision count descending, change name, then repository
+identity. List rows and Board cards show the lane, unit spread, first blocker
+with subject and owner, open decisions, and attempt counts; each Board column
+has a count. Search covers change, repository identity, projects and campaigns.
+Choose one lane chip, toggle **Has blockers** or **Has open decisions**, or
+clear filters; the count line shows matches out of the bounded total. Filtering
+is local and immediate, with search committed to the URL after 350 ms rather
+than issuing a read per keystroke. Arrow keys move among visible change links;
+on the Board, left and right move between columns.
 
-Reasons and details are display text and are never parsed into decisions.
-Decisions are listed for reading; answer them in the campaign's own view, which
-links each selected change to its Cairn change.
+The URL binds `cairn_repository` and `cairn_change` together, plus
+`cairn_unit` for one expanded unit. Register state uses `cairn_q` (at most 256
+characters), `cairn_lane` (one known lane), `cairn_blocked=1`,
+`cairn_decisions=1` and `cairn_view=board` (otherwise List). Reload restores
+the selection, unit, filters and view. **All changes** clears the selection and
+returns focus to its register link; **Previous** and **Next** use the filtered
+order, or the complete order with an explanation if this change is outside the
+filters. **Browse changes** reveals the preserved register in the detail. A
+missing or malformed requested change or unit is named rather than replaced,
+and a late response cannot draw over a newer selection.
 
-The page keeps `cairn_repository`, `cairn_change` and `cairn_q` in the URL, so a
-reload reproduces the selection. A response for an earlier selection never
-draws over a newer one, and a detail that does not echo the requested key is
-refused rather than substituted. Requirement text is limited to canonical
+The selected change fills the page. Its header gives the lane, unit spread,
+projects and counts; **Next steps** ranks blockers by `dispatch_recovery`,
+`dependency_cycle`, `no_acceptance_obligations`, `missing_dependency`,
+`stale_work_binding`, `pending_effect`, then `campaign_hold`, with subject and
+observation breaking ties. Each blocker names its condition and meaning, exact
+unit or campaign member, proposed operation, owner, display-only detail and
+supporting observation (`work:`, `attempt:`, `campaign:ID@VERSION` or
+`effect:`). Unit subjects open their unit; member subjects reveal the member
+card and link its campaign. Reason text is never parsed into a decision. No
+structured blocker on its own does not prove readiness.
+
+**Units** is a five-facet matrix. Open one unit at a time to see its current
+work title, outcome, revision, priority, terminal policy, acceptance
+obligations, exact dependencies and current dependents, superseded versions,
+and oldest-to-newest attempt timeline. The timeline distinguishes current
+from historical attempts and shows phase, times, dispatch and unknown outcome,
+verification with an exact run link, publication and lifecycle receipts.
+Dependencies that are not current stay visible with their identity. The
+**Dependencies** graph layers prerequisite to dependent, includes external
+and not-current work, and marks cycles rather than looping. **Campaigns**
+shows every selected member, including completion-only and waiting members:
+binding, stage, selection and goal, admission, enumeration, hold and owner,
+pending effects, remaining obligations and member blockers. **About this
+view** keeps copyable repository and view identities, snapshot/truncation facts,
+non-claims and the lane/facet legend outside the main reading path.
+
+Open decisions follow the blockers. For each campaign, the page reads its
+inbox and matches exact decision identity and this change's member key. Only
+the inbox-listed **Submit answer** (`resolve_decision`) or **Issue to
+reviewers** (`issue_decision`) action is mounted for the principal; if controls
+or inbox are unavailable, or no action is listed, the decision remains
+read-only with a campaign link. These commands go to
+`/api/implementation/campaigns/commands`, not to either Cairn GET route. The
+shared campaign runner submits the inbox store version and a fresh request ID;
+a retry after an uncertain response reuses that ID, and a 409 reports nothing
+applied and reloads. Applied commands reload the change. Start, pause,
+continue and cancel are available only through the campaign's own controls,
+never here. This does not imply any worker, remote provider or lifecycle
+completion occurred.
+
+For repeatable rehearsal, start the disposable explorer above and open its
+**Cairn changes** examples: A has a failed prerequisite attempt and needs
+attention; B depends on A's exact current work and is ready despite a campaign
+review wait; C has a historical superseded attempt, a stale campaign binding
+and current in-progress work; D is completion-only, with no canonical work and
+an awaiting-work lane. Try List/Board and URL filters, then a change's next
+steps, unit expansion/timeline, A→B graph, campaign link and an inbox-admitted
+decision action if offered. These are local synthetic canonical stores, not a
+live campaign or provider execution. Requirement text is limited to canonical
 acceptance obligations; native Cairn requirement references are not read.
 
 Canonical work keys hash the alias set without the repository. Two enrolled

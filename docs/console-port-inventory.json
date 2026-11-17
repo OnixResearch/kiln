@@ -773,19 +773,29 @@
       ],
       "api": [
         "/api/implementation/cairn",
-        "/api/implementation/cairn/detail"
+        "/api/implementation/cairn/detail",
+        "/api/implementation/campaigns/inbox",
+        "/api/implementation/campaigns/commands"
       ],
       "url_state": [
         "cairn_repository",
         "cairn_change",
-        "cairn_q"
+        "cairn_unit",
+        "cairn_q",
+        "cairn_lane",
+        "cairn_blocked",
+        "cairn_decisions",
+        "cairn_view"
       ],
       "states": [
         "loading",
         "empty",
         "error",
+        "denied",
         "stale",
-        "unknown"
+        "unknown",
+        "partial-retry",
+        "truncated"
       ]
     },
     {

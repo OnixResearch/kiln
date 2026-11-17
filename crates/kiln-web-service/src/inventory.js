@@ -185,13 +185,10 @@
     const button = element("button", label); button.type = "button"; button.allowed = allowed;
     return button;
   }
-  function decisionArticle(inbox, decision, send, buttons) {
-    const article = element("article", undefined, "inventory-row campaign-decision");
-    article.append(element("h4", `${text(decision.category).replaceAll("_", " ")} · ${text(decision.state)}`), element("p", decision.question),
-      facts([["Member", decision.member], ["Options", decision.options.join(", ")], ["Recommendation", decision.recommendation ?? "None supplied"],
-        ["Scope", SCOPE[decision.scope]], ["Bound work / policy / candidate", `${decision.work_identity ?? "no work binding"} / ${decision.policy_identity} / ${decision.candidate_identity ?? "no candidate binding"}`],
-        ["Priority / created", `${number(decision.priority)} / ${number(decision.created_ms)} ms`], ["Queue note", decision.pending_reason ?? "None"],
-        ["Resolved answer", decision.resolved_answer ?? "Not resolved"], ["Required review roles", decision.review_roles.length ? decision.review_roles.join(", ") : "None declared"]]));
+  // r[impl kiln.cairn.workspace.scenario.decisions] The answer and issue actions the inbox lists for one decision, shared
+  // by the campaign view and the Cairn changes page. Nothing is offered for an action the inbox does not list.
+  function decisionAnswer(inbox, decision, send, buttons) {
+    const nodes = [];
     const binding = { campaign_id: inbox.campaign_id, expected_version: inbox.store_version, decision_identity: decision.identity };
     if (decision.actions.includes("resolve")) {
       const form = element("form", undefined, "campaign-decision-answer");
@@ -211,13 +208,23 @@
         if (!chosen) { note.textContent = "Choose one of the declared options."; return; }
         send({ command: "resolve_decision", ...binding, work_identity: decision.work_identity, policy_identity: decision.policy_identity, candidate_identity: decision.candidate_identity, answer: chosen.value });
       });
-      article.append(form);
+      nodes.push(form);
     }
     if (decision.actions.includes("issue")) {
       const issue = controlButton("Issue to reviewers"); buttons.push(issue);
       issue.addEventListener("click", () => send({ command: "issue_decision", ...binding }));
-      article.append(issue);
+      nodes.push(issue);
     }
+    return nodes;
+  }
+  function decisionArticle(inbox, decision, send, buttons) {
+    const article = element("article", undefined, "inventory-row campaign-decision");
+    article.append(element("h4", `${text(decision.category).replaceAll("_", " ")} · ${text(decision.state)}`), element("p", decision.question),
+      facts([["Member", decision.member], ["Options", decision.options.join(", ")], ["Recommendation", decision.recommendation ?? "None supplied"],
+        ["Scope", SCOPE[decision.scope]], ["Bound work / policy / candidate", `${decision.work_identity ?? "no work binding"} / ${decision.policy_identity} / ${decision.candidate_identity ?? "no candidate binding"}`],
+        ["Priority / created", `${number(decision.priority)} / ${number(decision.created_ms)} ms`], ["Queue note", decision.pending_reason ?? "None"],
+        ["Resolved answer", decision.resolved_answer ?? "Not resolved"], ["Required review roles", decision.review_roles.length ? decision.review_roles.join(", ") : "None declared"]]),
+      ...decisionAnswer(inbox, decision, send, buttons));
     return article;
   }
   function renderControls(value, send) {
@@ -335,10 +342,16 @@
     const configured = !(error?.status === 503 && text(error?.message).startsWith("campaign_controls_not_configured"));
     return element("p", configured ? `${subject} unavailable: ${text(error?.message)} No control is offered.` : "Campaign controls are not configured for this service; the campaign projection is read-only.", "small");
   }
+  // r[impl kiln.cairn.workspace.scenario.decisions] One campaign's inbox, admitted before any control is offered.
+  async function readInbox(ctx, campaignId) {
+    const inbox = validateInbox(await ctx.api(`/api/implementation/campaigns/inbox?campaign=${encodeURIComponent(campaignId)}`));
+    if (inbox.campaign_id !== campaignId) throw new Error("The campaign inbox names a different campaign; no control is offered.");
+    return inbox;
+  }
   async function loadControls(holder, ctx, campaignId, live, reload, newId, notice) {
     holder.replaceChildren(element("p", "Reading campaign controls…", "small"));
     try {
-      const inbox = await ctx.api(`/api/implementation/campaigns/inbox?campaign=${encodeURIComponent(campaignId)}`);
+      const inbox = await readInbox(ctx, campaignId);
       if (!live()) return;
       const panel = {};
       const ui = runnerUi(panel, reload, (result, message) => reload(message), notice);
@@ -498,5 +511,5 @@
       root.replaceChildren(panel);
     } finally { if (live()) root.removeAttribute("aria-busy"); }
   }
-  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, load, loadCampaign, loadDefinitions, clear, scopes: SCOPE });
+  window.KilnInventory = Object.freeze({ validate, sourceBasis, refText, render, validateCampaign, renderCampaign, cairnLinks, validateInbox, validateDefinitions, renderControls, renderDefinitions, commandRunner, runnerUi, decisionAnswer, readInbox, controlsUnavailable, newRequestId, load, loadCampaign, loadDefinitions, clear, scopes: SCOPE });
 })();
