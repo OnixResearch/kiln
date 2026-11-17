@@ -1,0 +1,102 @@
+{
+  "observed_on": "2026-11-16",
+  "issue": "https://github.com/OnixResearch/kiln/issues/75",
+  "scope": "Pure kiln-core projection contract, Nickel authoring contract and fixtures. No consumer, authority, materialization, writeback or web-service wiring.",
+  "source_parent_revision": "470e8be34846b6ff09d8650586879c59f6999d4a",
+  "immediate_outcome": "Repository identity no longer depends on a checkout path in this contract, and two projections over one snapshot resolve to reproducible, verifiable manifests with complete origins.",
+  "durable_capability": "kiln_core::projection: repository identity, admitted definitions, a deterministic resolver, partial and complete type states, manifest verification and a monorepo scope compatibility profile.",
+  "owner": "Kiln core maintainers",
+  "checks": [
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core --lib projection::",
+      "result": "pass",
+      "passed": 11,
+      "failed": 0
+    },
+    {
+      "command": "cargo test --offline --locked -p onix-kiln-core --doc projection",
+      "result": "pass; 1 positive doctest and 4 compile_fail doctests"
+    },
+    {
+      "command": "cargo +nightly-2026-07-22 test --offline --locked -p onix-kiln-core --doc projection",
+      "result": "pass; nightly rustdoc verified error codes E0308, E0451, E0277 and E0277",
+      "negative_control": "changing the private-field doctest's expected code to E0308 failed with 'Some expected error codes were not found', reporting the actual E0451"
+    },
+    {
+      "command": "cargo clippy --offline --locked -p onix-kiln-core --all-targets -- -D warnings",
+      "result": "pass after boxing the manifest inside AdmittedPartialView (clippy::result_large_err)"
+    },
+    {
+      "command": "cargo fmt -p onix-kiln-core --check",
+      "result": "pass"
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "result": "pass (84 positive, 589 negative), including the committed export freshness comparison"
+    },
+    {
+      "command": "nickel export of each config/fixtures/negative-source-projection-*.ncl",
+      "result": "all four refused with 'contract broken by a value' (navigation creation destination, runnable without exact_tree, unsafe root, embedded grants field), not merge conflicts"
+    },
+    {
+      "command": "cairn gate proposal|design|tasks define-source-projection-contract --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "PASS for all three gates, before implementation and after"
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "result": "valid; 25 changes, 166 specs, 0 issues"
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+      "result": "every kiln.source.* requirement and scenario has impl and verify markers; the remaining 2 dangling and 4 missing ids pre-date this change"
+    },
+    {
+      "command": "cargo fmt --all --check; cargo clippy --offline --locked --workspace --all-targets -j 16 -- -D warnings; cargo test --offline --locked --workspace -j 16",
+      "result": "pass on the combined working copy, including stable-rustdoc doctests",
+      "passed": 1839,
+      "ignored": 11,
+      "failed": 0
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json; cairn release-readiness --root .",
+      "result": "fail, as before this change: the accepted-spec profile reports every in-flight change's markers (graphics standard, Workers view and others) as dangling until the change is accepted; release-readiness fails only on that traceability check"
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L --no-write-lock-file --option builders ''; nix flake check path:$PWD --no-write-lock-file --keep-going -L --option builders ''",
+      "result": "pass on the combined working copy, including the kiln-nickel check that runs scripts/check-nickel-fixtures.sh with the export freshness comparison and the kiln-no-std check; Octet consumer checks clean with 0 findings",
+      "builder_note": "the configured remote builder grpc://aspen1.local failed in the build hook (unexpected EOF) before building anything, so remote builders were disabled for these invocations and the checks built locally"
+    }
+  ],
+  "unsatisfied_issue_criteria": [
+    {
+      "criterion": "Capability-scoped admission, audience-restricted results, opaque handles, disclosure-equivalent responses, cache and cursor binding to effective scope, revocation invalidation and delegation ceilings",
+      "owner": "#69/#70 authority with Basalt #3; #76 delivery",
+      "reason": "no current authority owner exists to supply the effective-scope input; this contract embeds no grants and treats visibility as non-authorizing"
+    },
+    {
+      "criterion": "Missing and unauthorized-object probes produce equivalent public responses; narrowed or revoked authority invalidates delivery",
+      "owner": "#76 with #69/#70",
+      "reason": "requires an authority-checked delivery surface"
+    },
+    {
+      "criterion": "Partial updates preserve omitted content; full replacement needs completeness and current authority",
+      "owner": "#79 mapped writes",
+      "reason": "writeback consumes this contract's origins; no writer exists yet"
+    },
+    {
+      "criterion": "Cairn context and evidence disclosure projections",
+      "owner": "#76 and Cairn #14 / Kiln #83 #84",
+      "reason": "depends on the same authority-checked disclosure contract"
+    },
+    {
+      "criterion": "Web-service repository_key derived from the stable identity",
+      "owner": "a follow-up consumer change",
+      "reason": "feed URNs and automation head keys depend on the current key; migrating them is a compatibility change outside this contract"
+    }
+  ],
+  "non_claims": [
+    "Structural completeness is not read, write, delegation or publication authority.",
+    "BLAKE3 identities detect inconsistency and staleness; they are not message authentication.",
+    "Case-insensitive folding uses Unicode lowercase and does not model every filesystem's normalization."
+  ]
+}

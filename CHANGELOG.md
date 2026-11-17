@@ -37,6 +37,14 @@ entry describes the source tree prepared for the first tagged release.
   (Pijul rail exercised locally; Git and Jujutsu fixture-tested)
 - Exact Radicle signed-reference acquisition and admission through a pure source
   contract that carries no provider runtime. (fixture-tested)
+- A pure source projection contract: a repository identity bound to the
+  provider-native reference instead of a checkout path, Nickel-authored
+  navigation, runnable and writable definitions, and frozen manifests that map
+  every destination to a native or generated origin. Partial views and
+  completeness witnesses are distinct types, and a stored manifest can be
+  checked for tampering and staleness but never admitted. Monorepo scopes
+  convert through a labeled compatibility profile. (#75; unit tests, doctests
+  and Nickel fixtures; no consumer or authority wiring yet)
 
 **Forges and triggers**
 

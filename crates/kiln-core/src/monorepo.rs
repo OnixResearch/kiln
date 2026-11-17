@@ -851,19 +851,23 @@ fn update_reason(hasher: &mut blake3::Hasher, reason: &Reason) {
     }
 }
 
-fn update_field(hasher: &mut blake3::Hasher, label: &str, value: &[u8]) {
+pub(crate) fn update_field(hasher: &mut blake3::Hasher, label: &str, value: &[u8]) {
     update_usize(hasher, label, value.len());
     hasher.update(value);
 }
 
-fn update_usize(hasher: &mut blake3::Hasher, label: &str, value: usize) {
+pub(crate) fn update_usize(hasher: &mut blake3::Hasher, label: &str, value: usize) {
     let label_length = u64::try_from(label.len()).unwrap_or(u64::MAX);
     hasher.update(&label_length.to_le_bytes());
     hasher.update(label.as_bytes());
     hasher.update(&u64::try_from(value).unwrap_or(u64::MAX).to_le_bytes());
 }
 
-fn update_set<'a>(hasher: &mut blake3::Hasher, label: &str, items: impl Iterator<Item = &'a str>) {
+pub(crate) fn update_set<'a>(
+    hasher: &mut blake3::Hasher,
+    label: &str,
+    items: impl Iterator<Item = &'a str>,
+) {
     let items: Vec<&str> = items.collect();
     update_usize(hasher, label, items.len());
     for item in items {
@@ -871,7 +875,7 @@ fn update_set<'a>(hasher: &mut blake3::Hasher, label: &str, items: impl Iterator
     }
 }
 
-fn finish(hasher: blake3::Hasher) -> ContentId {
+pub(crate) fn finish(hasher: blake3::Hasher) -> ContentId {
     ContentId::from_blake3_hex(hasher.finalize().to_hex().to_string())
         .unwrap_or_else(|_| unreachable!())
 }

@@ -17,6 +17,7 @@ pub mod monorepo;
 pub mod operations;
 pub mod paths;
 pub mod preview;
+pub mod projection;
 pub mod provider;
 pub mod remote;
 pub mod review;

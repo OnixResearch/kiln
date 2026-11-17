@@ -2395,6 +2395,50 @@ scope identity. Skipped projects do not block. The `ci` checklist item lists
 `ci_projects` with a state of `passed`, `failed`, `pending`, `missing` or
 `stale_scope`; CI from another project or an older scope never satisfies it.
 
+### Source projection definitions
+
+<!-- r[related kiln.source.projection.definition] r[related kiln.source.repository_identity] -->
+`kiln_core::projection` defines how several source views over one exact
+snapshot are described and resolved. It is a pure contract: no service,
+console page or materializer consumes it yet, and the project API still
+reports the path-derived `repository_key`.
+
+- **Repository identity.** BLAKE3 over the source provider profile and the
+  provider-native repository reference. Local cache paths and remote URLs are
+  admitted locators and never enter it, so moving a cache keeps the identity
+  and two checkouts both named `kiln` stay distinct. One handle with two
+  provider bindings is refused unless a reconciliation names both; the
+  retired identity is then recorded as superseded.
+- **Definitions** are authored in Nickel against
+  `config/source-projection-contracts.ncl` (`Definition`). The profile is
+  `navigation`, `runnable` or `writable`. The selection uses the monorepo
+  `root`/`include`/`exclude` semantics above. Mounts map source prefixes to
+  destination prefixes; every matching mount emits, so one source can appear
+  twice as an alias. Creation destinations are writable-only, runnable and
+  writable profiles require `exact_tree`, admitted generated inputs are
+  runnable-only, and the target profile must represent every required
+  capability. Rust admission is authoritative and computes the definition
+  identity from the canonical form, so reordering declarations changes
+  nothing.
+- **Manifests** bind the repository identity, exact revision, existing
+  `canonical_tree`, definition, evaluator and adapter versions, target,
+  coverage and dependency bindings. Every destination records a native origin
+  (source path, provider-native object and an origin identity) or a generated
+  origin (generator and input identity). `content_identity` covers what a
+  consumer would materialize; `identity` covers everything. Faults (unsafe
+  paths, unmapped selected paths, collisions including case-fold and
+  file/directory conflicts, unsupported capabilities, bounds) are reported as
+  sorted diagnostics before any effect.
+- **Completeness** is a type. A navigation, truncated, missing- or
+  denied-dependency, or generated selection cannot become a complete build or
+  write workspace, and a stored manifest is only checked for consistency and
+  staleness. A complete projection still grants no read, write, delegation or
+  publication authority.
+
+`ProjectionDefinition::from_project_scope` converts an admitted monorepo scope
+into an equivalent definition labeled `monorepo_project_scope.v1`; its
+`depends_on` and graph kinds stay affected-project facts.
+
 ### Remote Lattice workers
 
 The live service uses the existing [Iroh workflow bridge](#iroh-remote-workflow-execution).

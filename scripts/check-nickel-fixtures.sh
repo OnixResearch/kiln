@@ -57,6 +57,15 @@ if ! nickel export config/hosted-pipeline-example.ncl >/dev/null; then
   exit 1
 fi
 
+# The Rust projection admission test reads this committed export.
+projection_export=$(mktemp)
+trap 'rm -f "$projection_export"' EXIT
+nickel export --format json config/fixtures/source-projection-positive.ncl >"$projection_export"
+if ! cmp -s "$projection_export" fixtures/source-projection/definition.json; then
+  printf 'stale export: regenerate fixtures/source-projection/definition.json from config/fixtures/source-projection-positive.ncl\n' >&2
+  exit 1
+fi
+
 for profile in config/*.ncl deployment/*.ncl; do
   if ! nickel typecheck "$profile" >/dev/null; then
     printf 'Nickel typecheck failed: %s\n' "$profile" >&2

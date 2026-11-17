@@ -1,0 +1,42 @@
+{
+  "creation_destinations": [],
+  "dependencies": [
+    {
+      "name": "workspace-manifest",
+      "required": true
+    }
+  ],
+  "generated_inputs": "refused",
+  "id": "kiln-core-build",
+  "mounts": [
+    {
+      "destination_prefix": "kiln-core",
+      "source_prefix": "crates/kiln-core"
+    },
+    {
+      "destination_prefix": "manifests/kiln-core.toml",
+      "source_prefix": "crates/kiln-core/Cargo.toml"
+    }
+  ],
+  "profile": "runnable",
+  "required_capabilities": [
+    "exact_tree",
+    "executable_bit"
+  ],
+  "schema": "kiln.source-projection.definition.v1",
+  "selection": {
+    "exclude": [
+      "target/**"
+    ],
+    "include": [
+      "**"
+    ],
+    "root": "crates/kiln-core"
+  },
+  "target": {
+    "case_sensitive": true,
+    "executable_bit": true,
+    "max_path_bytes": 4096,
+    "symlinks": true
+  }
+}
