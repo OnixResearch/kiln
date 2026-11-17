@@ -1,0 +1,51 @@
+{
+  "observed_on": "2026-11-17",
+  "issue": "https://github.com/OnixResearch/kiln/issues/45",
+  "scope": "Pure attempt-ledger refusal of a provider run already recorded on another attempt, and ledger fixtures for the remaining cases of the issue's completion and cancellation race matrix. Unit fixtures over the serialized ledger; no assembled provider race, worker or Lattice workflow was run.",
+  "source_revision": "8b81c792f65f7d890e1b078d1bb4615af659682a",
+  "immediate_outcome": "Acknowledging or reconciling a dispatch with a run already recorded on another attempt is refused with implementation_dispatch_crossed after fence and phase authorization, leaving both attempts unchanged; late, predecessor and never-admitted callbacks never create, resurrect or attach an attempt.",
+  "durable_capability": "kiln_core::implementation::attempt keeps provider run identity bound to at most one attempt; the implementation runbook maps every race-matrix case to its fixture.",
+  "owner": "Kiln implementation maintainers",
+  "checks": [
+    {
+      "command": "cargo test --offline --locked --workspace --no-fail-fast -j 16 (includes implementation::attempt)",
+      "result": "pass; implementation::attempt 12 passed",
+      "passed": 1894,
+      "ignored": 11,
+      "failed": 0
+    },
+    {
+      "command": "cargo clippy --offline --locked --workspace --all-targets -j 16 -- -D warnings; cargo fmt --all --check",
+      "result": "pass"
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L --no-write-lock-file --option builders ''",
+      "result": "pass: Octet consumer checks report 0 findings and 0 errors"
+    },
+    {
+      "command": "nix flake check path:$PWD --no-write-lock-file --keep-going -L --option builders ''",
+      "result": "pass: all checks passed on x86_64-linux; aarch64-linux omitted as incompatible"
+    }
+  ],
+  "cargo_environment": {
+    "rustc": "1.88.0",
+    "wrapper": "dev-shell environment with pkg-config and OpenSSL and a private TMPDIR"
+  },
+  "cairn": {
+    "gates": "proposal, design and tasks PASS",
+    "sync": "cairn sync refused at first because the accepted implementation-work spec held an exact duplicate of the durable dispatch reservation requirement; the duplicate block was removed and the sync then merged this delta",
+    "validate": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json: valid after sync and archive"
+  },
+  "traceability": {
+    "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json",
+    "new_requirement_ids_missing_markers": [],
+    "pre_existing_missing": [
+      "kiln.github.landing.merge.scenario.landed",
+      "kiln.github.source_status.scenario.close"
+    ]
+  },
+  "non_claims": [
+    "Ledger fixtures prove refusal and non-mutation under the pure transitions, not an assembled provider, worker or Lattice race.",
+    "Live integration and recovery qualification remain with the onix-core deployment (#49)."
+  ]
+}

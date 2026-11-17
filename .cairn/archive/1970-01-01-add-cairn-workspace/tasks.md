@@ -11,4 +11,4 @@
 
 ## Phase 3: Verification
 
-- [ ] [serial] Update the operator guide and changelog, register the active delta root, run focused, workspace and Nix gates, and pass Cairn gates, validation and traceability. r[kiln.cairn.workspace]
+- [x] [serial] Update the operator guide and changelog, register the active delta root, run focused, workspace and Nix gates, and pass Cairn gates, validation and traceability. r[kiln.cairn.workspace]

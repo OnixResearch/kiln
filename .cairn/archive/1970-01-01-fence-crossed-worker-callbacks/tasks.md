@@ -8,4 +8,4 @@
 
 ## Phase 3: Verification
 
-- [ ] [serial] Record the race coverage table in the implementation runbook, update the changelog, register the delta root, and pass focused tests, clippy and Cairn gates. r[kiln.implementation.execution_identity]
+- [x] [serial] Record the race coverage table in the implementation runbook, update the changelog, register the delta root, and pass focused tests, clippy and Cairn gates. r[kiln.implementation.execution_identity]
