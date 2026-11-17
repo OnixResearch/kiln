@@ -1,0 +1,59 @@
+{
+  "change": "complete-independent-verification",
+  "observed": "2026-11-17",
+  "command": "<kiln_implementer unit-test binary> verification --include-ignored, with KILN_VERIFICATION_TEST_ROOT, KILN_VERIFICATION_TEST_GIT and KILN_VERIFICATION_TEST_SHELL set",
+  "cohort": {
+    "root": "private 0700 directory under the operator's home, not /tmp",
+    "git": "/nix/store/xgw813vgzl2q0696sq45adpj0xd690jq-git-2.56.0/bin/git",
+    "shell": "/nix/store/kwyi4bq5s2qgwbhz6cs4gjy57c2zdxws-bash-interactive-5.3p20/bin/bash"
+  },
+  "tests": [
+    {
+      "name": "verification::capture::tests::native_hash_framing_keeps_add_modify_delete_distinct",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::artifacts_require_nonempty_regular_files_not_symlinks_or_missing_paths",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::frozen_proof_invocation_identity_changes_with_program_args_and_limits",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::bounded_process_timeout_and_signal_cannot_synthesize_success",
+      "result": "ok"
+    },
+    {
+      "name": "verification::capture::tests::actual_host_snapshot_materializes_git_and_refuses_forged_receipt_or_omitted_deletion",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::independent_no_change_needs_explicit_policy_and_passing_evidence",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::lifecycle_source_requires_exact_trusted_preparation_not_worker_archive",
+      "result": "ok"
+    },
+    {
+      "name": "verification::capture::tests::unchanged_host_source_reaches_independent_verification_only_under_both_policies",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::missing_artifact_incomplete_paths_and_changed_policy_cannot_pass",
+      "result": "ok"
+    },
+    {
+      "name": "verification::tests::real_bug_and_feature_execute_frozen_oracle_and_refuse_replay_or_substitution",
+      "result": "ok"
+    }
+  ],
+  "summary": "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 1.12s",
+  "scope": "Local fixture repository and bounded frozen commands on one Linux host. The gated fixtures execute a frozen oracle for a fixture bug and feature, refuse replay, stale fence, changed work revision, forged artifact, incomplete paths, an artifact-free zero exit, weakened requirements, a worker-written Cairn archive and an omitted deletion, and admit no-change only under explicit policy.",
+  "non_claims": [
+    "not the operator qualification of a real bug and feature",
+    "no separated verifier UID, hostile-isolation or network qualification",
+    "no live worker, model, provider or remote effect"
+  ]
+}
