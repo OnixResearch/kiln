@@ -381,7 +381,7 @@ mod tests {
     }
 
     #[test]
-    // r[verify kiln.publication.atomicity]
+    // r[verify kiln.publication.atomicity] r[verify kiln.github.source_status.scenario.open]
     fn refuses_open_source_without_racing_a_patch() {
         let (endpoint, server) = serve(vec![(
             "200 OK",

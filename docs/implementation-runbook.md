@@ -225,12 +225,12 @@ observation or the ledger's exact lease-expiry disposition.
 
 The deny-unknown-fields `kiln.github-publication-source.v1` profile is operator-owned and binds `repository_path`, a `NativeRemoteProfile`, its `remote_identity`, and explicit `fixture` context. The source repository is resolved to the exact `<attempt>-<fence>/candidate` export before any push. Production requires the exact enrolled `https://github.com/<owner>/<repo>.git` URL; its scoped Git credential is never offered to another URL. `local_bare_fixture` is accepted only with `fixture: true` and the feature-gated loopback GitHub fixture endpoint. No GitHub REST branch-ref creation substitutes for object transfer.
 
-<!-- r[related kiln.github.landing.merge.scenario.landed] r[related kiln.github.landing.merge.scenario.refused] -->
+<!-- r[related kiln.github.landing.merge.scenario.recovered] r[related kiln.github.landing.merge.scenario.refused] -->
 <!-- r[related kiln.github.landing.merge_ancestry] r[related kiln.github.landing.merge_ancestry.scenario.advanced] -->
-<!-- r[related kiln.github.source_status.scenario.close] -->
-These accepted landing/closure criteria remain unqualified for the ordinary
-GitHub route; the following refusal and read-only observation paths do not
-claim that an unsupported mutation was performed.
+<!-- r[related kiln.github.source_status.scenario.open] -->
+The accepted landing and closure criteria describe only refusal and read-only
+observation for the ordinary GitHub route; neither path performs or claims an
+unsupported mutation.
 
 Ordinary GitHub PR-head-guarded merge does not atomically guard the base. `land` therefore refuses before transport; unsupported repositories/strategies stay PR-ready. There is no read-base/unguarded-merge fallback. A qualified protected merge-queue/provider route and real race/read-back evidence are prerequisites to enable unattended landing.
 

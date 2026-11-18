@@ -1170,6 +1170,7 @@ mod tests {
 
     #[test]
     // r[verify kiln.publication.exact.scenario.external] r[verify kiln.github.landing.merge_ancestry] r[verify kiln.github.landing.merge_ancestry.scenario.advanced]
+    // r[verify kiln.github.landing.merge.scenario.recovered]
     fn reconciles_external_exact_merge_and_advanced_target_without_mutation() {
         for advanced in [false, true] {
             let mut responses = vec![

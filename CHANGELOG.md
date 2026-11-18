@@ -426,6 +426,13 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Fixed
 
+- Bring the accepted GitHub landing, source-status and publication
+  requirements in line with the clients: unattended landing and issue closure
+  are refused, only an exact external merge is recovered, and candidate upload
+  before pull-request transport is a defined scenario. The stale merge and
+  close scenarios left the specifications, and the active-development
+  traceability profile no longer reports missing requirements. (specification
+  and marker change; no behaviour change)
 - Keep the random artifact-preview launch capability independent of its public
   descriptor identity, and bind both in the loopback path so the producer,
   review catalog and browser agree without admitting a substituted descriptor.

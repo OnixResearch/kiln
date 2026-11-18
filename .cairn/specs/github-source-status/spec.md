@@ -8,18 +8,20 @@ Defines the `github-source-status` capability.
 
 ### Requirement: Idempotent GitHub source closure
 
-r[kiln.github.source_status] The GitHub source-status client MUST close only the
-exact admitted issue identity and only when it is open. An already closed issue
-MUST be returned idempotently. After a PATCH close the client MUST read the issue
-back and return `closed` only when observed. It MUST NOT comment, reopen, edit
-other fields, mutate pull requests or follow redirects/proxies.
+r[kiln.github.source_status] The GitHub source-status client MUST read only the
+exact admitted issue identity and MUST NOT send a close mutation: GitHub's issue
+update has no qualified source-version guard, so a close could act on an issue
+that was edited or reopened after admission. An issue already observed closed
+MUST be returned idempotently, and an open issue MUST be refused for operator
+reconciliation. The client MUST NOT comment, reopen, edit other fields, mutate
+pull requests or follow redirects or proxies.
 
-#### Scenario: Open source is closed
+#### Scenario: An open source is left for reconciliation
 
-r[kiln.github.source_status.scenario.close]
+r[kiln.github.source_status.scenario.open]
 - GIVEN an open exact source issue
 - WHEN closure runs
-- THEN one close mutation MUST be followed by a closed read-back
+- THEN it MUST be refused after one read, and no request MUST mutate the issue
 
 #### Scenario: Closed source is reused
 
