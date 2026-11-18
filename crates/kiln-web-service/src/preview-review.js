@@ -78,6 +78,79 @@ export function laneFacts(row) {
     ["Exit status", o.result?.status ?? "No exit status"], ["Error", o.result?.error || "None"],
   ];
 }
+// r[impl kiln.preview.structural] Opt-in, display-only structural evidence that the
+// service computed for the two exact revisions; no grammar runs here.
+const MAX_STRUCTURAL_FILES = 64, MAX_STRUCTURAL_ROWS = 400;
+export const STRUCTURAL_REASONS = Object.freeze({
+  unsupported_language: "No pinned grammar parses this file.",
+  binary: "Binary content.",
+  too_large: "A side exceeds the byte bound.",
+  too_many_nodes: "A side exceeds the token bound.",
+  work_bound: "Matching exceeded the work bound.",
+  interrupted: "Matching exceeded the time bound.",
+  parse_error: "A side does not parse.",
+  truncated: "The provider truncated this comparison.",
+  unsupported_provider: "The review provider cannot read these revisions.",
+  source_unavailable: "The review provider could not read the two revisions.",
+  evidence_exhausted: "The record exceeded its size bound, so it keeps no files.",
+});
+export function structuralReason(code) {
+  return STRUCTURAL_REASONS[code] || COMPARISON_REASONS[code] || `Unrecognised reason: ${code}`;
+}
+// Evidence applies only to the comparison and the exact revisions it was computed for.
+export function acceptStructural(response) {
+  const record = response?.structural, e = record?.evidence;
+  return !!e && OBSERVATION_IDENTITY.test(record.identity || "") && e.comparison === response?.comparison?.identity
+    && e.baseline_revision === response?.baseline?.observation?.binding?.revision
+    && e.candidate_revision === response?.candidate?.observation?.binding?.revision;
+}
+export function structuralSummary(file) {
+  if (file?.status !== "structural") return `Fallback: ${structuralReason(file?.reason)} No partial tree is shown.`;
+  const hunks = Array.isArray(file.hunks) ? file.hunks.length : 0, moved = Array.isArray(file.moved) ? file.moved.length : 0;
+  if (!hunks && !moved) return "No syntactic change: identical or formatting only.";
+  return `${hunks} changed region${hunks === 1 ? "" : "s"} and ${moved} moved unchanged block${moved === 1 ? "" : "s"}; ${file.novel_old_tokens ?? 0} removed and ${file.novel_new_tokens ?? 0} added tokens.`;
+}
+// Rows as "<side> <old line> <new line>  <text>"; exact blob line numbers, bounded.
+export function structuralLines(file, limit = MAX_STRUCTURAL_ROWS) {
+  const rows = (Array.isArray(file?.hunks) ? file.hunks : []).flatMap(hunk => Array.isArray(hunk?.rows) ? hunk.rows : []);
+  const mark = { old: "-", new: "+", both: " " };
+  const lines = rows.slice(0, limit).map(row => `${mark[row?.side] || "?"} ${String(row?.old_line ?? "").padStart(5)} ${String(row?.new_line ?? "").padStart(5)}  ${String(row?.text ?? "")}`);
+  return { lines, omitted: Math.max(0, rows.length - limit) };
+}
+export function renderStructural(parent, response) {
+  const make = (tag, text, cls) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = String(text); if (cls) el.className = cls; return el; };
+  const section = make("section", undefined, "cr-operation cr-preview-structural"); parent.append(section);
+  section.append(make("h4", "Structural source evidence"), make("p", "Opt-in, display-only preview evidence: the service compared the two exact revisions with the review's structural engine. It never changes CI, review approval, merge or completion state and does not measure review time.", "cr-muted"));
+  if (!acceptStructural(response)) { section.append(make("p", "Structural evidence is missing or bound to another comparison. Nothing was substituted.", "cr-notice")); return section; }
+  const { identity, evidence } = response.structural, settings = evidence.settings || {};
+  const facts = make("dl", undefined, "cr-facts");
+  for (const [key, value] of [["Evidence", identity], ["Comparison", evidence.comparison], ["Baseline source", evidence.baseline_revision], ["Candidate source", evidence.candidate_revision],
+    ["Rules", `${settings.rules} · engine ${settings.engine_rules}`], ["Grammar identity", settings.grammar_identity],
+    ["Bounds", `${settings.max_bytes} bytes, ${settings.max_nodes} tokens and ${settings.max_steps} steps per file; ${settings.deadline_ms} ms; ${settings.context_lines} context lines`], ["Whitespace", settings.whitespace]]) {
+    facts.append(make("dt", key), make("dd", value ?? "Not recorded", "cr-principal"));
+  }
+  section.append(facts);
+  const reasons = Array.isArray(evidence.reasons) ? evidence.reasons : [];
+  if (evidence.status !== "structural") {
+    section.append(make("p", evidence.status === "incompatible" ? "Structural evidence withheld: the subjects are not comparable, so source is not compared as if only it changed." : "Structural evidence unavailable. No other revision was substituted.", "cr-notice"));
+    const list = make("ul"); for (const code of reasons) list.append(make("li", structuralReason(code))); section.append(list);
+    return section;
+  }
+  const files = Array.isArray(evidence.files) ? evidence.files : [];
+  if (!files.length) { section.append(make("p", "No source change between the two revisions.")); return section; }
+  const list = make("ul");
+  for (const file of files.slice(0, MAX_STRUCTURAL_FILES)) {
+    const item = make("li"); item.append(make("code", file?.path || "?"), make("p", structuralSummary(file)));
+    for (const block of file?.status === "structural" && Array.isArray(file.moved) ? file.moved : []) item.append(make("p", `Moved unchanged: lines ${block.old_start}–${block.old_end} → ${block.new_start}–${block.new_end}.`, "cr-muted"));
+    const { lines, omitted } = structuralLines(file);
+    if (lines.length) { const rows = make("pre", lines.join("\n")); rows.setAttribute("aria-label", `${file.path} structural rows: removed, added and context lines with baseline and candidate line numbers`); item.append(rows); }
+    if (omitted) item.append(make("p", `${omitted} more rows are not shown.`, "cr-muted"));
+    list.append(item);
+  }
+  section.append(list);
+  if (files.length > MAX_STRUCTURAL_FILES) section.append(make("p", `${files.length - MAX_STRUCTURAL_FILES} more files are not shown.`, "cr-muted"));
+  return section;
+}
 export function renderComparison(parent, observations, context) {
   const make = (tag, text, cls) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = String(text); if (cls) el.className = cls; return el; };
   const box = make("section", undefined, "card cr-card cr-preview-compare"); box.setAttribute("aria-labelledby", "cr-preview-compare-title");
@@ -99,14 +172,16 @@ export function renderComparison(parent, observations, context) {
     wrapper.append(field); form.append(wrapper); return field;
   };
   const baseline = select("Baseline", baselines, requested?.baseline), candidate = select("Current candidate", candidates, requested?.candidate);
+  const option = make("label", undefined, "cr-field cr-check"), structural = make("input"); structural.type = "checkbox"; structural.checked = context.structural === true;
+  option.append(make("span", "Structural source evidence (opt-in)"), structural); form.append(option);
   const submit = make("button", "Compare"); submit.type = "submit"; form.append(submit);
-  form.addEventListener("submit", event => { event.preventDefault(); context.select(`${baseline.value}~${candidate.value}`); });
+  form.addEventListener("submit", event => { event.preventDefault(); context.select(`${baseline.value}~${candidate.value}`, structural.checked); });
   box.append(form);
   const result = make("div", undefined, "cr-preview-result"); result.setAttribute("aria-live", "polite"); box.append(result);
   if (!linked) return box;
   const pair = `${requested.baseline}~${requested.candidate}`;
   result.append(make("p", "Comparing exact observations…", "cr-muted"));
-  context.compare(requested.baseline, requested.candidate).then(response => {
+  context.compare(requested.baseline, requested.candidate, context.structural === true).then(response => {
     if (!acceptComparison(pair, context.selected(), response, context.isCurrent)) return;
     result.replaceChildren();
     result.append(make("p", `Comparison ${response.comparison.identity} · rules ${response.comparison.rules}`, "cr-principal"));
@@ -120,7 +195,7 @@ export function renderComparison(parent, observations, context) {
       const output = make("pre", String(row?.observation?.result?.output || "").slice(0, MAX_LANE_OUTPUT)); output.setAttribute("aria-label", `${label} program output`); lane.append(output);
       lane.append(make("p", note, "cr-muted")); lanes.append(lane);
     }
-    result.append(lanes); title.focus();
+    result.append(lanes); if (context.structural === true) renderStructural(result, response); title.focus();
   }).catch(error => {
     if (context.selected() !== pair || !context.isCurrent()) return;
     result.replaceChildren(make("p", `Comparison unavailable: ${String(error?.message || error).slice(0, 256)}. No substitute was selected; CI evidence is unchanged.`, "cr-notice"));

@@ -1,0 +1,94 @@
+[
+  {
+    "path": "broken.rs",
+    "reason": "parse_error",
+    "status": "fallback"
+  },
+  {
+    "hunks": [
+      {
+        "rows": [
+          {
+            "new_line": null,
+            "novel": [
+              [
+                23,
+                24
+              ]
+            ],
+            "old_line": 1,
+            "side": "old",
+            "text": "pub const LIMIT: u32 = 2;"
+          },
+          {
+            "new_line": 1,
+            "novel": [
+              [
+                23,
+                24
+              ]
+            ],
+            "old_line": null,
+            "side": "new",
+            "text": "pub const LIMIT: u32 = 3;"
+          },
+          {
+            "new_line": 3,
+            "novel": [],
+            "old_line": 3,
+            "side": "both",
+            "text": "pub fn limit() -> u32 {"
+          },
+          {
+            "new_line": 4,
+            "novel": [],
+            "old_line": 4,
+            "side": "both",
+            "text": "    LIMIT"
+          }
+        ]
+      }
+    ],
+    "language": "rust",
+    "moved": [],
+    "novel_new_tokens": 1,
+    "novel_old_tokens": 1,
+    "path": "edited.rs",
+    "status": "structural"
+  },
+  {
+    "hunks": [],
+    "language": "rust",
+    "moved": [
+      {
+        "new_end": 3,
+        "new_start": 1,
+        "old_end": 11,
+        "old_start": 9
+      }
+    ],
+    "novel_new_tokens": 0,
+    "novel_old_tokens": 0,
+    "path": "moved.rs",
+    "status": "structural"
+  },
+  {
+    "path": "notes.txt",
+    "reason": "unsupported_language",
+    "status": "fallback"
+  },
+  {
+    "path": "pixel.bin",
+    "reason": "binary",
+    "status": "fallback"
+  },
+  {
+    "hunks": [],
+    "language": "rust",
+    "moved": [],
+    "novel_new_tokens": 0,
+    "novel_old_tokens": 0,
+    "path": "reformat.rs",
+    "status": "structural"
+  }
+]

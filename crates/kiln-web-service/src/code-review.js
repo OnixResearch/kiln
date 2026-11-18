@@ -63,7 +63,7 @@
   }
   const editableTarget = target => target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), [role='textbox']"));
   const RENDER_LIMIT = 65536, TOKEN_LIMIT = 4096;
-  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "" };
+  const ALL_CHANGES = { review_change: "", review_revision: "", review_base: "", review_interdiff: "", review_interdiff_change: "", review_commits: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "", review_preview_structural: "" };
   // r[impl kiln.web.readable_observations]
   // Presentation only: KilnUi (loaded before this script) humanizes times; exact instants stay in title/datetime.
   const ui = () => window.KilnUi;
@@ -471,7 +471,7 @@
   function href(patch) { const q = new URLSearchParams(window.location.search); q.set("page", "code-review"); for (const [k, v] of Object.entries(patch)) v == null || v === "" ? q.delete(k) : q.set(k, String(v)); return `?${q}`; }
   function backLink() { const a = link("All changes", ALL_CHANGES, "cr-back"); a.prepend(icon("arrow-left")); return a; }
   function link(text, patch, cls) { const a = node("a", text, cls); a.href = href(patch); a.addEventListener("click", event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && event.button === 0) { event.preventDefault(); route(patch); } }); return a; }
-  function changeLink(id, text = id) { return link(text, { review_change: id, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "" }); }
+  function changeLink(id, text = id) { return link(text, { review_change: id, review_revision: "", review_base: "", review_file: "", review_side: "", review_line: "", review_preview_compare: "", review_preview_structural: "" }); }
   // r[impl kiln.web.design_system]
   // One overlay at a time: a confirmation hides the dialog that raised it and reopens it on dismissal, then focus returns to the trigger.
   function modal(title, alert = false) {
@@ -792,9 +792,11 @@
       if (!arr(observations).length && !state.route.review_preview_compare) return;
       module.renderComparison(comparisonSlot, observations, {
         requested: state.route.review_preview_compare || "",
+        // r[impl kiln.preview.structural.scenario.off] Structural evidence only when the route selects it.
+        structural: state.route.review_preview_structural === "1",
         selected: () => state.route.review_preview_compare || "",
-        select: pair => route({ review_preview_compare: pair }),
-        compare: (baseline, candidate) => state.context.api(`${path(id)}/preview-comparison?${new URLSearchParams({ baseline, candidate })}`),
+        select: (pair, structural) => route({ review_preview_compare: pair, review_preview_structural: structural ? "1" : "" }),
+        compare: (baseline, candidate, structural) => state.context.api(`${path(id)}/preview-comparison?${new URLSearchParams({ baseline, candidate, ...(structural ? { structural: "1" } : {}) })}`),
         isCurrent: () => isCurrent() && comparisonSlot.isConnected,
       });
     }).catch(() => { if (card.isConnected) card.append(node("p", "Preview adapter unavailable. CI evidence is unchanged.", "cr-muted")); });

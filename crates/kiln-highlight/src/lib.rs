@@ -17,11 +17,15 @@ mod classes;
 mod diff;
 mod grammar;
 mod lines;
+mod pins;
 mod structural;
 
 use serde::{Serialize, Serializer};
 
 pub use diff::{DiffFile, DiffRow, DiffSide, highlight_diff, highlight_diff_files};
+pub use pins::{
+    GRAMMAR_PINS, GrammarPin, GrammarSet, STRUCTURAL_RULES, grammar_package, grammar_set,
+};
 pub use structural::{
     MAX_STRUCTURAL_BYTES, MAX_STRUCTURAL_NODES, MAX_STRUCTURAL_STEPS, MovedBlock, RowSide,
     STRUCTURAL_CONTEXT_LINES, StructuralBounds, StructuralFallback, StructuralFile, StructuralHunk,
@@ -350,6 +354,8 @@ fn textual(bytes: &[u8]) -> Option<&str> {
     std::str::from_utf8(bytes).ok()
 }
 
+#[cfg(test)]
+mod pins_tests;
 #[cfg(test)]
 mod structural_tests;
 #[cfg(test)]

@@ -244,6 +244,16 @@ entry describes the source tree prepared for the first tagged release.
   deep link; the baseline never launches and observations never change CI,
   review or merge state. (exercised in one local canonical browser cohort; a
   historical baseline and a moved candidate are unit-tested only)
+- Opt-in structural source evidence on the preview comparison (`structural=1`):
+  the review's structural function compares the two observations' exact
+  revision commits. The result is a BLAKE3-identified record bound to the
+  comparison, both commits, the rule versions, the bounds and a grammar
+  identity checked against `Cargo.lock`. Incompatible subjects, unreadable
+  sources and oversized records keep no files and name their reason. The review
+  page shows the record below both lanes only when it is selected. Display only;
+  no review-time claim. (#65; frozen fixture equal to structural mode at route
+  level, fake-provider fallbacks, Node renderer and a disposable browser layout
+  check; no live preview cohort)
 - A checked inventory of the live console as the reference for its
   Rats/Meteorite port: every registered destination with its rollout cohort,
   page panel, renderer and supporting modules, stylesheets, API paths, route

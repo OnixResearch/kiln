@@ -604,6 +604,7 @@
         "review_commits",
         "review_mode",
         "review_preview_compare",
+        "review_preview_structural",
         "review_q",
         "review_view",
         "review_status",

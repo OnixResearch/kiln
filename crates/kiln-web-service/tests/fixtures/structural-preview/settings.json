@@ -1,0 +1,16 @@
+{
+  "context_lines": 3,
+  "deadline_ms": 2000,
+  "diff_limits": {
+    "max_bytes": 2000000,
+    "max_files": 256,
+    "max_lines": 20000
+  },
+  "engine_rules": "kiln.highlight.structural-rules.v1",
+  "grammar_identity": "996fb7d581f2fbd1de77ac0485a0ad14d60ba0d698d5254c41d8ddebf5291561",
+  "max_bytes": 262144,
+  "max_nodes": 40000,
+  "max_steps": 4000000,
+  "rules": "kiln.preview.structural-rules.v1",
+  "whitespace": "exact"
+}

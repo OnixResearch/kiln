@@ -33,6 +33,8 @@ pub mod queue;
 mod speculation;
 mod store;
 mod structural;
+#[cfg(test)]
+mod structural_preview_route_tests;
 mod suggestions;
 mod untrusted;
 mod views;
@@ -450,11 +452,19 @@ struct PreviewProjection {
 }
 
 /// Compare one projected baseline with the current candidate; never substitutes subjects.
+/// `structural=1` adds display-only structural evidence for the two revision commits.
 // r[impl kiln.preview.comparison]
 fn preview_comparison(
+    provider: &impl ChangeReviewPort,
     observations: &[crate::preview::observation::ProjectedObservation],
     query: &BTreeMap<String, String>,
 ) -> Result<ApiResponse, Failure> {
+    // r[impl kiln.preview.structural.scenario.off]
+    let structural = match query.get("structural").map(String::as_str) {
+        None => false,
+        Some("1") => true,
+        Some(_) => return reject(400, "preview_comparison_query_invalid"),
+    };
     let field = |key: &str| query.get(key).map(String::as_str).unwrap_or_default();
     let (baseline, candidate) = crate::preview::observation::select_pair(
         observations,
@@ -464,9 +474,19 @@ fn preview_comparison(
     .map_err(|(status, code)| Failure::Api(status, code.into()))?;
     let comparison = crate::preview::observation::compare(baseline.subject(), candidate.subject())
         .map_err(|_| Failure::Unavailable)?;
-    response(
-        json!({"schema":"kiln.preview.comparison.v1","comparison":comparison,"baseline":baseline,"candidate":candidate}),
-    )
+    let mut value = json!({"schema":"kiln.preview.comparison.v1","comparison":comparison,"baseline":baseline,"candidate":candidate});
+    if structural {
+        let evidence = structural::preview_evidence(
+            provider,
+            &comparison,
+            &baseline.observation.binding.revision,
+            &candidate.observation.binding.revision,
+        )?;
+        if let Some(object) = value.as_object_mut() {
+            object.insert("structural".into(), evidence);
+        }
+    }
+    response(value)
 }
 
 /// Authenticated shell observations held stable for one review request.
@@ -1092,7 +1112,7 @@ impl Workspace {
         untrusted::annotate_checklist(&mut checklist, ci, change, facts.integration.as_ref())?;
         let previews = self.preview_projection(change, &checklist, ci, canonical_builds, now_ms)?;
         if comparison {
-            return preview_comparison(&previews.observations, &query);
+            return preview_comparison(&provider, &previews.observations, &query);
         }
         let dependencies: Vec<_> = change
             .dependencies

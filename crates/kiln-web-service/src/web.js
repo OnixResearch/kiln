@@ -1317,6 +1317,8 @@
       review_mode: params.get("review_mode") === "structural" ? "structural" : "",
       // r[impl kiln.preview.comparison] Exact baseline~candidate observation identities.
       review_preview_compare: /^[0-9a-f]{64}~[0-9a-f]{64}$/.test(params.get("review_preview_compare") || "") ? params.get("review_preview_compare") : "",
+      // r[impl kiln.preview.structural.scenario.off] Opt-in structural evidence for that pair.
+      review_preview_structural: params.get("review_preview_structural") === "1" ? "1" : "",
       review_q: (params.get("review_q") || "").slice(0, 256),
       feed_q: (params.get("feed_q") || "").slice(0, 256), review_view: ["all", "awaiting_review", "owned_needs_revision", "unresolved"].includes(params.get("review_view")) ? params.get("review_view") : "", review_status: ["open", "abandoned", "submitted"].includes(params.get("review_status")) ? params.get("review_status") : "",
       review_advisory: ["with", "without"].includes(params.get("review_advisory")) ? params.get("review_advisory") : "",

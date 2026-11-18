@@ -3659,6 +3659,38 @@ wide widths. Forged report submissions and forged retained records were
 refused, and review state was unchanged. Both observations bind the current
 revision, so a historical baseline and a moved candidate are unit-tested only.
 
+<!-- r[impl kiln.preview.structural] -->
+Structural source evidence is off by default. Add `structural=1` to the
+comparison read, or tick **Structural source evidence** in the comparison form
+(`review_preview_structural=1`), to add a `kiln.preview.structural.v1` record.
+Any other value returns `400 preview_comparison_query_invalid`, and without the
+parameter the response is unchanged. The service compares the two observations'
+exact revision commits with exact whitespace and the default diff limits, and
+passes the result to the same per-file function as the structural review mode.
+For the same commits, each file therefore carries the rows or the named
+fallback that `base=<baseline revision>&mode=structural` shows. No grammar runs
+in the browser.
+
+The record binds the comparison identity, both commits, its settings and every
+file's outcome, plus fixed display-only provenance, under a domain-tagged BLAKE3
+identity. The settings are the preview and engine rule versions, the bounds,
+the deadline, the diff limits and a grammar identity. That identity covers the
+package, version and `Cargo.lock` checksum of the Tree-sitter runtime, the
+highlight engine and every grammar; a `kiln-highlight` test fails when the pins
+drift from the lock file. An incompatible comparison yields `incompatible` with
+its reasons and no files, because unlike runtime cohorts are never compared as
+if only the source changed. A provider that cannot read the revisions yields
+`unavailable` with `unsupported_provider` or `source_unavailable`. A record over
+2 MiB yields `unavailable` with `evidence_exhausted`. Records are computed per
+request and not retained. They describe source structure only: they change no
+CI, review approval, merge or completion state and measure no review time.
+
+The frozen fixture in `crates/kiln-web-service/tests/fixtures/structural-preview/`
+holds a pure reformat, a moved unchanged function, one edit, a parse error, a
+file without a grammar and a binary file. It retains its settings and expected
+outcomes, and a route-level test requires the preview record to equal structural
+mode for the same commits.
+
 #### Worker target inventory
 
 Authenticated viewers and operators can read `GET /api/workers`; worker-scoped
