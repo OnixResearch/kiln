@@ -23,6 +23,7 @@ pub mod remote;
 pub mod review;
 pub mod semantic_merge;
 pub mod source;
+pub mod source_graph;
 pub mod task_ops;
 pub mod trigger;
 pub mod trigger_filter;

@@ -78,6 +78,19 @@ entry describes the source tree prepared for the first tagged release.
   projected-workspace contract retains it as a reference, with branch-per-attempt
   isolation the one mechanism worth qualifying for unrestricted profiles. (#82;
   Nickel fixtures; no Archil account, adapter or live experiment)
+- An optional graph-backed source model in pure `kiln-core`. File and package
+  identities are minted once by their creating operation, never from bytes or
+  paths; immutable revisions and snapshot roots are separate identities.
+  Memberships, aliases, copies, forks and pinned dependencies are versioned
+  records, and membership removal, alias removal and deletion have distinct
+  outcomes. Imports keep an entity only through its recorded path or an
+  explicit mapping and record other additions as unresolved continuity;
+  deterministic exports preserve bytes, executable modes and deletions. One
+  authority mode per repository refuses stale or independent publications
+  until reconciled, and evidence names every changed identity. A prototype
+  reproduces one snapshot, two layouts and a shared entity after restart.
+  (#81; unit and prototype fixtures; no store, provider adapter, repository
+  conversion or publication)
 
 **Forges and triggers**
 
