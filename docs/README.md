@@ -68,6 +68,7 @@ The sections below group the maintained documents by the question they answer.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
 - [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
 - [Console port inventory](console-port-inventory.md): checked route, shell and state inventory of the live console, the reference for its Rats/Meteorite port; no route is migrated.
+- [Atlas view note](atlas-view.md): planned default-off isometric topology view in which every payload stays labeled declared or observed; nothing is implemented.
 
 ## Hosted composition and commercial plan
 

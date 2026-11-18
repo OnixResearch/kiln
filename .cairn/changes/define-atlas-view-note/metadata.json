@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Adds a planning note for issue 92 and its documentation index entry. No accepted requirement, runtime behavior, console route, profile option, asset or configuration changes; any later atlas implementation needs its own spec-driven change.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}
