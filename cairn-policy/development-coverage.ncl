@@ -20,6 +20,7 @@ let ActiveRoots = [
   ".cairn/changes/evaluate-archil-workspace-provider/specs/workspace-provider-evaluation/spec.md",
   ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
   ".cairn/changes/resolve-projected-build-inputs/specs/source-projection/spec.md",
+  ".cairn/changes/capture-projected-writeback/specs/source-projection/spec.md",
 ]
 in
 let Active =

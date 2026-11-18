@@ -17,6 +17,7 @@ mod sandbox;
 pub(crate) mod source;
 mod streaming;
 mod telemetry;
+pub mod writeback;
 
 pub use client::{ExecutionBinding, LogBounds, ServiceClient, ServiceConnection};
 pub use heartbeat::cli_main as heartbeat_cli_main;

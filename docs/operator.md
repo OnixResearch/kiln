@@ -2401,9 +2401,9 @@ scope identity. Skipped projects do not block. The `ci` checklist item lists
 <!-- r[related kiln.source.projection.definition] r[related kiln.source.repository_identity] -->
 `kiln_core::projection` defines how several source views over one exact
 snapshot are described and resolved. It is a pure contract; its only consumers
-so far are the worker materializer and the build-input planner below, which no
-dispatch, service or console page calls yet, and the project API still reports
-the path-derived `repository_key`.
+so far are the worker materializer, the build-input planner and projected
+writeback below, which no dispatch, service or console page calls yet, and the
+project API still reports the path-derived `repository_key`.
 
 - **Repository identity.** BLAKE3 over the source provider profile and the
   provider-native repository reference. Local cache paths and remote URLs are
@@ -2536,6 +2536,45 @@ configuration above the overlay, absolute paths and the host toolchain stay
 outside the plan, and no restricted runtime confines the commands.
 Relocation, generated-input providers and joining plan identities to
 verification evidence and the build cache are later work.
+
+<!-- r[related kiln.source.projection.writeback] -->
+**Writeback.** A writable view's overlay is not a repository diff: it omits
+and rearranges source files. `kiln_core::projection::writeback::capture` takes
+a completeness witness for a write, its admitted definition, the overlay's
+workspace pin, the shell's observation of the overlay and the attempt's
+current fence and source facts. It maps every overlay file back through the
+manifest and the mounts:
+
+| Overlay | Captured as |
+| --- | --- |
+| Every destination of one origin unchanged | Nothing |
+| Every destination of one origin changed to the same bytes and kind | One `edit` naming the expected base object |
+| Every destination of one origin removed | One `delete` naming the expected base object |
+| Destinations of one origin that disagree | Refused: `contradictory_alias` |
+| A new file under a creation destination that one mount maps to an absent, selected source path | One `create` |
+| A new file outside every creation destination | Refused: `undeclared_new_file` |
+| A new file that no mount or several mounts map to a source path | Refused: `ambiguous_new_file` |
+| A new file over a source file the view does not hold | Refused: `create_over_hidden_source` |
+| A new file whose source path is outside the selection | Refused: `new_file_outside_selection` |
+| A symbolic link | Refused: `unsupported_entry` |
+
+A capture is also refused when the source moved since the view was resolved
+(`source_moved`; an explicit rebase is later work), the attempt's fence moved
+(`superseded_attempt`), the pin names another view or the witness is for a
+build. A rename is captured as a delete and a create. The sealed candidate
+(`kiln.projection.writeback-candidate.v1`) has a BLAKE3 identity over its base,
+definition, manifest, overlay pin and operations, and
+`SealedCandidate::reconstruct` applies the operations to the base entries.
+
+`kiln_web_service::worker::writeback::observe` hashes every overlay file as a
+Git blob without following links. `seal` re-reads each captured file, refuses
+bytes that changed after capture, writes only those blobs over the base tree,
+and checks that the tree differs from the base at exactly the operation paths
+and lists the reconstruction. It then commits with the base as parent and moves
+no reference. Another attempt's pinned overlay keeps the old bytes; a view
+resolved at the sealed commit shows the new ones. Handing candidates to
+independent verification, publication and current-authority checks are
+separate, later steps.
 
 ### Remote Lattice workers
 

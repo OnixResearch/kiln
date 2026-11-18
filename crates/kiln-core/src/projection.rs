@@ -747,6 +747,12 @@ impl AdmittedDefinition {
     pub fn selects(&self, path: &str) -> bool {
         self.selection.contains(path)
     }
+    /// Mounts in canonical order; every mount that holds a destination maps
+    /// it back to one source path.
+    #[must_use]
+    pub fn mounts(&self) -> &BTreeSet<Mount> {
+        &self.mounts
+    }
     /// BLAKE3 identity over the canonical definition.
     #[must_use]
     pub fn identity(&self) -> &ContentId {
@@ -2040,6 +2046,7 @@ pub fn verify_manifest(
 
 pub mod build_inputs;
 pub mod materialization;
+pub mod writeback;
 
 #[cfg(test)]
 mod tests;

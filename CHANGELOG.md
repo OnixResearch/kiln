@@ -91,6 +91,19 @@ entry describes the source tree prepared for the first tagged release.
   fails, and a shared-dependency edit selects the project outside the view.
   (#77; unit, layout and frozen-receipt tests and a Nix check; no worker job,
   relocation or authority wiring yet)
+- Capture and seal edits made in a writable projected workspace. A pure
+  capture maps each overlay file back through the frozen manifest and the
+  definition's mounts to one typed `edit`, `create` or `delete` naming its
+  expected base object. It refuses disagreeing aliases, new files outside
+  creation destinations, ambiguous new-file routing, creates over hidden
+  source files or outside the selection, symbolic links, a moved source, a
+  superseded fence and a pin for another view. The sealed candidate has one
+  BLAKE3 identity and a pure reconstruction. The worker shell hashes overlay
+  files as Git blobs, re-reads them at sealing and refuses any that changed
+  after capture, and commits a tree that differs from the base at exactly the
+  operation paths, without moving a reference. (#79; unit and
+  temporary-repository round-trip tests; no verification, publication,
+  rebase or authority wiring yet)
 - A versioned durable-workspace provider profile in typed Nickel keeps canonical
   BLAKE3 identities apart from provider disk, branch and checkpoint references
   and refuses profiles that rely on a documented-insufficient mechanism: a

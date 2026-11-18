@@ -1,0 +1,44 @@
+{
+  "observed_on": "2026-11-18",
+  "issue": "https://github.com/OnixResearch/kiln/issues/79",
+  "scope": "First writeback slice: a pure capture of typed source operations from a writable view's overlay, its refusals, a sealed identity and reconstruction, and a worker shell that observes overlays and seals candidates into commits over their base.",
+  "source_parent_revision": "a3008bb8374f574e3c44b61bcd30e3f859067eb0",
+  "immediate_outcome": "An edit to a shared file at both alias destinations, a new file under a creation destination and a removed file in one attempt overlay become one edit, one create and one delete. The sealed commit differs from its base at exactly those paths, keeps every other object and mode (beta's files, the excluded file and the equal-byte license included), appears in a beta view resolved at the commit, and leaves another attempt's pinned overlay unchanged.",
+  "durable_capability": "kiln_core::projection::writeback (capture, SealedCandidate::reconstruct), AdmittedDefinition::mounts and kiln_web_service::worker::writeback (observe, seal).",
+  "owner": "Kiln source-projection maintainers",
+  "ordering": "The proposal, design and tasks gates passed before any implementation file was written.",
+  "checks": [
+    {
+      "command": "cargo test --locked -p onix-kiln-core --lib projection::",
+      "result": "pass: 29 passed, including 5 writeback tests (no-op capture, typed operations with reconstruction and identity, equal bytes at two origins, ambiguous and contradictory edits, stale and superseded captures)"
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service --lib writeback",
+      "result": "pass: 3 passed (round trip of a shared edit, sealed immutability with a refused re-seal after a later write, observed kinds and a refused symbolic link)"
+    },
+    {
+      "command": "cargo clippy --locked -p onix-kiln-core -p kiln-web-service --all-targets -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "rustfmt --check --edition 2024 (changed Rust files)",
+      "result": "pass"
+    },
+    {
+      "command": "cairn gate proposal|design|tasks capture-projected-writeback; cairn validate; cairn traceability coverage --profile kiln-active-development",
+      "result": "gates PASS; validate valid with 0 issues; 1987 of 1987 requirements referenced; the only dangling ID is the pre-existing kiln.dashboard.campaign.projection"
+    }
+  ],
+  "remaining": [
+    "Explicit rebase of a candidate over a moved source, and rename, alias, membership and fork operations.",
+    "Handing sealed candidates to independent verification (#46) and build qualification (#77), and publication (#47/#63).",
+    "Current-authority checks and restricted results (#69/#70).",
+    "Selecting projected writeback in a live worker job."
+  ],
+  "non_claims": [
+    "A sealed candidate is not verified, accepted or published; sealing moves no reference.",
+    "Capture refuses any source movement; it does not merge or rebase.",
+    "Captures and refusals name hidden paths; they are controller facts, not results for a restricted worker.",
+    "Overlay observation hashes regular files and reports links; it is not a confinement boundary against a privileged process."
+  ]
+}
