@@ -67,21 +67,28 @@ require rustc 1.96, while Kiln pins Rust 1.88.0. Cargo cannot resolve two
 same-name, same-version path packages, so a second vendored UCAN copy is not an
 option either.
 
+A second measurement widened the upstream path. Basalt's consumer graph also
+requires `bounded-http` (workspace pin 1.96, but both crates build on 1.88),
+`detect-coding-agent` 0.1.1 (declares 1.91, builds on 1.88) through
+`secretspec 0.17.0` with default features off (which also builds on 1.88), and
+Basalt's own optional durable cores still point at the 1.96 revision. Cargo
+checks the declarations of the whole resolved graph, so a 1.88 consumer needs
+every one of those declarations fixed, not just the two cores.
+
 One cohort therefore requires one of:
 
-1. Upgrade Kiln's Rust pin to 1.96 and import the two additional pinned sources,
-   then import Basalt with a repo-owned script that omits `vendor/` and rewrites
-   its three UCAN path dependencies to Kiln's single `vendor/ucan*` copy.
-2. Consume Basalt from a source-distinct (git) dependency and keep two cohorts,
+1. Align MSRVs upstream across durable-authority-state, bounded-http, the
+   third-party `detect-coding-agent` pin, UCAN and Basalt, then import Basalt
+   with a repo-owned script that omits `vendor/` and rewrites its UCAN path
+   dependencies to Kiln's single `vendor/ucan*` copy.
+2. Upgrade Kiln's Rust pin to 1.96 and import the extra pinned sources, avoiding
+   the five-component declaration alignment.
+3. Consume Basalt from a source-distinct (git) dependency and keep two cohorts,
    accepting the Nix prefetch and dual-verification-profile cost.
-3. Keep Basalt out of process, which cannot return the live session this design
-   requires.
 
-Option 1 is preferred: one cohort, an additive upstream delta, and no duplicate
-UCAN crate. It is a toolchain change with its own validation, so it must be an
-explicit decision rather than a side effect of this feature. Until it lands, this
-change stops after the coverage contract; the authority port and enforcement
-tasks stay open.
+The operator selected option 1. Until that upstream alignment lands, this change
+stops after the coverage contract; the authority port and enforcement tasks stay
+open.
 
 Basalt stays AGPL-3.0-or-later; `LICENSES.md` will record the linked cohort.
 

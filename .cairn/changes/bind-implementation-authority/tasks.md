@@ -27,10 +27,17 @@
 
 ## Blocked prerequisite
 
-Phase 2 cannot proceed under the current pins. Basalt's UCAN cohort `c483c7b`
-requires rustc 1.96 through `replay-ledger-core` and `revocation-view-core` at
-`a0de7930`, while Kiln pins Rust 1.88.0, and two same-name same-version vendored
-UCAN path packages cannot coexist. The operator must choose the single-cohort
-toolchain upgrade, the source-distinct dual-cohort dependency, or defer the
-adapter. The rejected attempt was reverted byte-for-byte; the workspace checks
-clean at `a125e597`.
+Phase 2 cannot proceed under the current pins. Kiln pins Rust 1.88.0 and Cargo
+rejects the resolved graph on these declarations: `replay-ledger-core` and
+`revocation-view-core` at `a0de7930` (1.96), `bounded-http` (1.96),
+`detect-coding-agent` (1.91, via `secretspec 0.17.0` with default features off),
+and Basalt's own optional durable pins. Two same-name same-version vendored UCAN
+path packages also cannot coexist.
+
+Measured on rustc 1.88.0: the two durable cores, both `bounded-http` crates,
+`detect-coding-agent` 0.1.1 and `secretspec 0.17.0` without default features all
+compile, so declaration alignment is technically feasible. The operator selected
+that upstream alignment. Order: durable-authority-state cores, bounded-http,
+the `detect-coding-agent` pin, UCAN's dependency bump, Basalt's re-vendor, then
+this change. The rejected local UCAN upgrade was reverted byte-for-byte; the
+workspace checks clean at `a125e597`.
