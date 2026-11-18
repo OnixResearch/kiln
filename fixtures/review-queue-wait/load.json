@@ -1,0 +1,71 @@
+{
+  "candidates": [
+    {
+      "arrival_tick": 0,
+      "ci": "pass",
+      "ci_ticks": 3,
+      "id": "alpha"
+    },
+    {
+      "arrival_tick": 0,
+      "ci": "pass",
+      "ci_ticks": 3,
+      "id": "bravo"
+    },
+    {
+      "arrival_tick": 0,
+      "ci": "fail",
+      "ci_ticks": 2,
+      "id": "charlie"
+    },
+    {
+      "arrival_tick": 1,
+      "ci": "pass",
+      "ci_ticks": 3,
+      "deadline_ticks": 8,
+      "id": "delta"
+    },
+    {
+      "arrival_tick": 1,
+      "ci": "pass",
+      "ci_ticks": 3,
+      "id": "echo"
+    },
+    {
+      "arrival_tick": 2,
+      "ci": "unknown",
+      "ci_ticks": 2,
+      "id": "foxtrot"
+    },
+    {
+      "arrival_tick": 2,
+      "ci": "pass",
+      "ci_ticks": 2,
+      "id": "golf"
+    },
+    {
+      "arrival_tick": 3,
+      "ci": "pass",
+      "ci_ticks": 2,
+      "id": "hotel"
+    }
+  ],
+  "horizon_ticks": 40,
+  "max_entries": 7,
+  "modes": [
+    {
+      "mode": "serial"
+    },
+    {
+      "mode": "speculative",
+      "window": {
+        "ceiling": 3,
+        "decrease": 1,
+        "floor": 1,
+        "increase": 1
+      }
+    }
+  ],
+  "schema": "kiln.review-queue-wait.load.v1",
+  "tick_ms": 1000
+}

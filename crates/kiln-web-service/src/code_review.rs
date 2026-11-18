@@ -30,6 +30,7 @@ mod noise_advisory_tests;
 #[cfg(test)]
 mod outcome_tests;
 pub mod queue;
+pub mod queue_wait;
 mod speculation;
 mod store;
 mod structural;

@@ -1,0 +1,792 @@
+{
+  "schema": "kiln.review-queue-wait.receipt.v1",
+  "load_identity": "65985688ab2eb5c9ca653d01acb2a1535d3d8496002127f5e05a89c1addd1467",
+  "load": {
+    "schema": "kiln.review-queue-wait.load.v1",
+    "tick_ms": 1000,
+    "horizon_ticks": 40,
+    "max_entries": 7,
+    "modes": [
+      {
+        "mode": "serial"
+      },
+      {
+        "mode": "speculative",
+        "window": {
+          "floor": 1,
+          "ceiling": 3,
+          "increase": 1,
+          "decrease": 1
+        }
+      }
+    ],
+    "candidates": [
+      {
+        "id": "alpha",
+        "arrival_tick": 0,
+        "ci": "pass",
+        "ci_ticks": 3
+      },
+      {
+        "id": "bravo",
+        "arrival_tick": 0,
+        "ci": "pass",
+        "ci_ticks": 3
+      },
+      {
+        "id": "charlie",
+        "arrival_tick": 0,
+        "ci": "fail",
+        "ci_ticks": 2
+      },
+      {
+        "id": "delta",
+        "arrival_tick": 1,
+        "ci": "pass",
+        "ci_ticks": 3,
+        "deadline_ticks": 8
+      },
+      {
+        "id": "echo",
+        "arrival_tick": 1,
+        "ci": "pass",
+        "ci_ticks": 3
+      },
+      {
+        "id": "foxtrot",
+        "arrival_tick": 2,
+        "ci": "unknown",
+        "ci_ticks": 2
+      },
+      {
+        "id": "golf",
+        "arrival_tick": 2,
+        "ci": "pass",
+        "ci_ticks": 2
+      },
+      {
+        "id": "hotel",
+        "arrival_tick": 3,
+        "ci": "pass",
+        "ci_ticks": 2
+      }
+    ]
+  },
+  "series": {
+    "review_queue_wait": {
+      "series": "review_queue_wait",
+      "measurement": {
+        "status": "measured",
+        "value": {
+          "arms": [
+            {
+              "mode": {
+                "mode": "serial"
+              },
+              "ci_slots": 1,
+              "max_candidate_builds": 16,
+              "candidates": [
+                {
+                  "observed": {
+                    "candidate": "alpha",
+                    "source_commit": "ee4f30df32d2bb1f5f27f78c923c4c7bac1812a0",
+                    "change": "647db924a75f596ee5f5dfc876ce3475d1721bbfa670a5b134fd85331be8cd5a",
+                    "arrival_ms": 0,
+                    "refusal": null,
+                    "enqueue_ms": 0,
+                    "start_ms": 0,
+                    "ci_requested_ms": 1000,
+                    "ci_dispatches_ms": [
+                      1000
+                    ],
+                    "terminal_ms": 4000,
+                    "withdrawn_ms": null,
+                    "status": "submitted",
+                    "detail": "Exact integration candidate submitted and independently read back",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "d6b42f127082c4e6a61d936a5fedb854b5f29cf7"
+                    ],
+                    "ci_runs": [
+                      "web-run-6dc39f7eb37f74687211f8ec2ca56ad26fe59e26d6462d5caacac71e9118ff5d"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 0,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 4000,
+                        "status": "submitted"
+                      }
+                    ]
+                  },
+                  "outcome": "submitted",
+                  "code": null
+                },
+                {
+                  "observed": {
+                    "candidate": "bravo",
+                    "source_commit": "5a52e76e4822f01d2449e273f171757dc0bcb496",
+                    "change": "a6e89845200735057fd43a482e05ea7071735401495812f280cab8d0d5c6994f",
+                    "arrival_ms": 0,
+                    "refusal": null,
+                    "enqueue_ms": 0,
+                    "start_ms": 6000,
+                    "ci_requested_ms": 7000,
+                    "ci_dispatches_ms": [
+                      7000
+                    ],
+                    "terminal_ms": 10000,
+                    "withdrawn_ms": null,
+                    "status": "submitted",
+                    "detail": "Exact integration candidate submitted and independently read back",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "dac93542c0cef3469e8b5a3545245ce318cc0d02"
+                    ],
+                    "ci_runs": [
+                      "web-run-24992807a80c41173d170dd7290d3238eca65976ce19b5deae88c1c57cdf8052"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 0,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 6000,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 10000,
+                        "status": "submitted"
+                      }
+                    ]
+                  },
+                  "outcome": "submitted",
+                  "code": null
+                },
+                {
+                  "observed": {
+                    "candidate": "charlie",
+                    "source_commit": "6de8d95ec8eec0ac727a6883a48149f01535bb3f",
+                    "change": "8853549e68ac8533fe457d0b297a8052ed172a08b093b36217c59eafd8a4aefa",
+                    "arrival_ms": 0,
+                    "refusal": null,
+                    "enqueue_ms": 0,
+                    "start_ms": 12000,
+                    "ci_requested_ms": 13000,
+                    "ci_dispatches_ms": [
+                      13000
+                    ],
+                    "terminal_ms": 15000,
+                    "withdrawn_ms": null,
+                    "status": "blocked",
+                    "detail": "review_queue_ci_failed",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "a5e0606516a6525e9d0ece134dee7ab9e703338b"
+                    ],
+                    "ci_runs": [
+                      "web-run-6312346cf4b65f4da8eba99cfc84effd262da688c104e13eefb781638762bcaa"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 0,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 12000,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 15000,
+                        "status": "blocked"
+                      }
+                    ]
+                  },
+                  "outcome": "failed",
+                  "code": "review_queue_ci_failed"
+                },
+                {
+                  "observed": {
+                    "candidate": "delta",
+                    "source_commit": "d3ebb0c59f9fcdb16ffb51e82b59e49563fe5d38",
+                    "change": "81e2e6769785f7115d1a85a4858be92d259d683891d0edf610768aa88ef2abf2",
+                    "arrival_ms": 1000,
+                    "refusal": null,
+                    "enqueue_ms": 1000,
+                    "start_ms": null,
+                    "ci_requested_ms": null,
+                    "ci_dispatches_ms": [],
+                    "terminal_ms": 9000,
+                    "withdrawn_ms": 9000,
+                    "status": "cancelled",
+                    "detail": "Cancelled by authenticated review participant",
+                    "ci_unknown": false,
+                    "candidate_commits": [],
+                    "ci_runs": [],
+                    "transitions": [
+                      {
+                        "at_ms": 1000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 9000,
+                        "status": "cancelled"
+                      }
+                    ]
+                  },
+                  "outcome": "expired",
+                  "code": "withdrawn_at_deadline"
+                },
+                {
+                  "observed": {
+                    "candidate": "echo",
+                    "source_commit": "09016741511d7f19dd683b47100edd63da857560",
+                    "change": "7afd2f683b031820571b2fb8155e829dbc51079eb12276d4c9503d2cc2bd2146",
+                    "arrival_ms": 1000,
+                    "refusal": null,
+                    "enqueue_ms": 1000,
+                    "start_ms": 17000,
+                    "ci_requested_ms": 18000,
+                    "ci_dispatches_ms": [
+                      18000
+                    ],
+                    "terminal_ms": 21000,
+                    "withdrawn_ms": null,
+                    "status": "submitted",
+                    "detail": "Exact integration candidate submitted and independently read back",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "41e69011a65b52e54d1c65b596ecf59e56db99ab"
+                    ],
+                    "ci_runs": [
+                      "web-run-c42183e5e96da07a22521d365e55e8b887860e8c89783ae05d6669cebbfbbc2e"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 1000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 17000,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 21000,
+                        "status": "submitted"
+                      }
+                    ]
+                  },
+                  "outcome": "submitted",
+                  "code": null
+                },
+                {
+                  "observed": {
+                    "candidate": "foxtrot",
+                    "source_commit": "64c8d97450a3d114f922dbd2ae825047733e5c47",
+                    "change": "7ee935cee7c5af3f6b4b596b3a501f01d1ee45b04df14c61bfbfb3e5cedc62f4",
+                    "arrival_ms": 2000,
+                    "refusal": null,
+                    "enqueue_ms": 2000,
+                    "start_ms": 23000,
+                    "ci_requested_ms": 24000,
+                    "ci_dispatches_ms": [
+                      24000
+                    ],
+                    "terminal_ms": null,
+                    "withdrawn_ms": null,
+                    "status": "waiting_ci",
+                    "detail": "Canonical workflow executing exact integration commit",
+                    "ci_unknown": true,
+                    "candidate_commits": [
+                      "e49d326b690247c2b6db51f5de41b1f82050c2aa"
+                    ],
+                    "ci_runs": [
+                      "web-run-c2e663db6f77ade49b87fd25facd9d634e3566ae26f3079c3b765305a8ff8531"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 2000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 23000,
+                        "status": "waiting_ci"
+                      }
+                    ]
+                  },
+                  "outcome": "unknown",
+                  "code": "ci_outcome_unknown"
+                },
+                {
+                  "observed": {
+                    "candidate": "golf",
+                    "source_commit": "7c2d743ece66eac15bfdfdf2fd33b784a70d866c",
+                    "change": "8e88c5905c3ccd9becc92f2085c7cc25d728d3644b9c2608c961836b92c894e6",
+                    "arrival_ms": 2000,
+                    "refusal": null,
+                    "enqueue_ms": 2000,
+                    "start_ms": null,
+                    "ci_requested_ms": null,
+                    "ci_dispatches_ms": [],
+                    "terminal_ms": null,
+                    "withdrawn_ms": null,
+                    "status": "queued",
+                    "detail": "Authorized to construct and test exact integration candidates, then submit after fresh admission",
+                    "ci_unknown": false,
+                    "candidate_commits": [],
+                    "ci_runs": [],
+                    "transitions": [
+                      {
+                        "at_ms": 2000,
+                        "status": "queued"
+                      }
+                    ]
+                  },
+                  "outcome": "waiting",
+                  "code": "queued"
+                },
+                {
+                  "observed": {
+                    "candidate": "hotel",
+                    "source_commit": "b13e2c94dd574a55daa5fa47b96ace55a5a610ed",
+                    "change": "deae707131ad0164f8bab5cbe2445e074b9fbd2237b61836bf1681087d8e16e3",
+                    "arrival_ms": 3000,
+                    "refusal": "review_queue_bound",
+                    "enqueue_ms": null,
+                    "start_ms": null,
+                    "ci_requested_ms": null,
+                    "ci_dispatches_ms": [],
+                    "terminal_ms": 3000,
+                    "withdrawn_ms": null,
+                    "status": null,
+                    "detail": null,
+                    "ci_unknown": false,
+                    "candidate_commits": [],
+                    "ci_runs": [],
+                    "transitions": []
+                  },
+                  "outcome": "rejected",
+                  "code": "review_queue_bound"
+                }
+              ],
+              "summary": {
+                "candidates": 8,
+                "outcomes": {
+                  "submitted": 3,
+                  "waiting": 1,
+                  "rejected": 1,
+                  "expired": 1,
+                  "failed": 1,
+                  "unknown": 1,
+                  "cancelled": 0
+                },
+                "enqueue_to_start_ms": {
+                  "samples": 5,
+                  "min": 0,
+                  "p50": 12000,
+                  "p95": 21000,
+                  "max": 21000
+                },
+                "enqueue_to_ci_dispatch_ms": {
+                  "samples": 5,
+                  "min": 1000,
+                  "p50": 13000,
+                  "p95": 22000,
+                  "max": 22000
+                },
+                "enqueue_to_submitted_ms": {
+                  "samples": 3,
+                  "min": 4000,
+                  "p50": 10000,
+                  "p95": 20000,
+                  "max": 20000
+                }
+              }
+            },
+            {
+              "mode": {
+                "mode": "speculative",
+                "window": {
+                  "floor": 1,
+                  "ceiling": 3,
+                  "increase": 1,
+                  "decrease": 1
+                }
+              },
+              "ci_slots": 1,
+              "max_candidate_builds": 16,
+              "candidates": [
+                {
+                  "observed": {
+                    "candidate": "alpha",
+                    "source_commit": "ee4f30df32d2bb1f5f27f78c923c4c7bac1812a0",
+                    "change": "647db924a75f596ee5f5dfc876ce3475d1721bbfa670a5b134fd85331be8cd5a",
+                    "arrival_ms": 0,
+                    "refusal": null,
+                    "enqueue_ms": 0,
+                    "start_ms": 0,
+                    "ci_requested_ms": 0,
+                    "ci_dispatches_ms": [
+                      0
+                    ],
+                    "terminal_ms": 3000,
+                    "withdrawn_ms": null,
+                    "status": "submitted",
+                    "detail": "Exact integration candidate submitted and independently read back",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "dcc4c21c8041ada10b07a5125cb62c301e4c0991"
+                    ],
+                    "ci_runs": [
+                      "web-run-3695fa5cce3a038e6e082236538045b19466115a2445f7f352b8093dc947e722"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 0,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 3000,
+                        "status": "submitted"
+                      }
+                    ]
+                  },
+                  "outcome": "submitted",
+                  "code": null
+                },
+                {
+                  "observed": {
+                    "candidate": "bravo",
+                    "source_commit": "5a52e76e4822f01d2449e273f171757dc0bcb496",
+                    "change": "a6e89845200735057fd43a482e05ea7071735401495812f280cab8d0d5c6994f",
+                    "arrival_ms": 0,
+                    "refusal": null,
+                    "enqueue_ms": 0,
+                    "start_ms": 0,
+                    "ci_requested_ms": 0,
+                    "ci_dispatches_ms": [
+                      3000
+                    ],
+                    "terminal_ms": 6000,
+                    "withdrawn_ms": null,
+                    "status": "submitted",
+                    "detail": "Exact integration candidate submitted and independently read back",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "73028029d29d2df7a0db2c13a94c28e05ed04a78"
+                    ],
+                    "ci_runs": [
+                      "web-run-6d1a5b1624168e22274b965e6b669609d2f12fa44563fb90d5ed054103a7ece2"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 0,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 6000,
+                        "status": "submitted"
+                      }
+                    ]
+                  },
+                  "outcome": "submitted",
+                  "code": null
+                },
+                {
+                  "observed": {
+                    "candidate": "charlie",
+                    "source_commit": "6de8d95ec8eec0ac727a6883a48149f01535bb3f",
+                    "change": "8853549e68ac8533fe457d0b297a8052ed172a08b093b36217c59eafd8a4aefa",
+                    "arrival_ms": 0,
+                    "refusal": null,
+                    "enqueue_ms": 0,
+                    "start_ms": 0,
+                    "ci_requested_ms": 0,
+                    "ci_dispatches_ms": [
+                      6000
+                    ],
+                    "terminal_ms": 8000,
+                    "withdrawn_ms": null,
+                    "status": "blocked",
+                    "detail": "review_queue_ci_failed",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "4d153ba382d55d85e46fc174a04096ab1f4d0862"
+                    ],
+                    "ci_runs": [
+                      "web-run-1813b05dfd845ceeb2f3d684f105457ba6ba5b2792c62990684ae0c1acfbf330"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 0,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 8000,
+                        "status": "blocked"
+                      }
+                    ]
+                  },
+                  "outcome": "failed",
+                  "code": "review_queue_ci_failed"
+                },
+                {
+                  "observed": {
+                    "candidate": "delta",
+                    "source_commit": "d3ebb0c59f9fcdb16ffb51e82b59e49563fe5d38",
+                    "change": "81e2e6769785f7115d1a85a4858be92d259d683891d0edf610768aa88ef2abf2",
+                    "arrival_ms": 1000,
+                    "refusal": null,
+                    "enqueue_ms": 1000,
+                    "start_ms": 4000,
+                    "ci_requested_ms": 4000,
+                    "ci_dispatches_ms": [
+                      8000,
+                      11000
+                    ],
+                    "terminal_ms": 9000,
+                    "withdrawn_ms": 9000,
+                    "status": "cancelled",
+                    "detail": "Cancelled by authenticated review participant",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "859fe3cd514d49d605dd27f24ce414159348fa2a",
+                      "8e2b45867c26f18678c54ce071b10ce40b5d8dba"
+                    ],
+                    "ci_runs": [
+                      "web-run-2afe923fef04bd925f86a940df4cfbf55905dfc651a73dd6b72ed9895638f3d5",
+                      "web-run-1dd1663cbd5ced9511addc5c9104de2b1a4b52ef713ea7013fbfff1b5dd8b7e1"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 1000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 4000,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 9000,
+                        "status": "cancelled"
+                      }
+                    ]
+                  },
+                  "outcome": "expired",
+                  "code": "withdrawn_at_deadline"
+                },
+                {
+                  "observed": {
+                    "candidate": "echo",
+                    "source_commit": "09016741511d7f19dd683b47100edd63da857560",
+                    "change": "7afd2f683b031820571b2fb8155e829dbc51079eb12276d4c9503d2cc2bd2146",
+                    "arrival_ms": 1000,
+                    "refusal": null,
+                    "enqueue_ms": 1000,
+                    "start_ms": 7000,
+                    "ci_requested_ms": 7000,
+                    "ci_dispatches_ms": [
+                      14000
+                    ],
+                    "terminal_ms": 17000,
+                    "withdrawn_ms": null,
+                    "status": "submitted",
+                    "detail": "Exact integration candidate submitted and independently read back",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "a2acaa9d7f39330f7a29893bdf4ed63940763560",
+                      "d74627f24d44d52667bdedc437f7b95646fa7347",
+                      "587f44bfc478ba4c42dec15103daf29f08036734"
+                    ],
+                    "ci_runs": [
+                      "web-run-dc2dd4b01d5eb30f9bdabf9231615d28077dd8b6656df37682d6a949a1c2515d",
+                      "web-run-f323ab2b461b82ebe9c3995efd5f9c6ce32b97e4b45ad0adcc1ca53196992229",
+                      "web-run-69b030f9caa0f32eaf192674045ac8b9171f7442c4c46bab6e793815e6cceead"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 1000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 7000,
+                        "status": "waiting_ci"
+                      },
+                      {
+                        "at_ms": 17000,
+                        "status": "submitted"
+                      }
+                    ]
+                  },
+                  "outcome": "submitted",
+                  "code": null
+                },
+                {
+                  "observed": {
+                    "candidate": "foxtrot",
+                    "source_commit": "64c8d97450a3d114f922dbd2ae825047733e5c47",
+                    "change": "7ee935cee7c5af3f6b4b596b3a501f01d1ee45b04df14c61bfbfb3e5cedc62f4",
+                    "arrival_ms": 2000,
+                    "refusal": null,
+                    "enqueue_ms": 2000,
+                    "start_ms": 9000,
+                    "ci_requested_ms": 9000,
+                    "ci_dispatches_ms": [
+                      17000
+                    ],
+                    "terminal_ms": null,
+                    "withdrawn_ms": null,
+                    "status": "waiting_ci",
+                    "detail": "Canonical workflow executing exact speculative candidate on its assumed predecessors",
+                    "ci_unknown": true,
+                    "candidate_commits": [
+                      "97fa03fcea96643589dd4c929b04501715f9778f"
+                    ],
+                    "ci_runs": [
+                      "web-run-f9d0905b2a77fa899aa687014d589ec2dca43326fb5d74938155c15404b585b7"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 2000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 9000,
+                        "status": "waiting_ci"
+                      }
+                    ]
+                  },
+                  "outcome": "unknown",
+                  "code": "ci_outcome_unknown"
+                },
+                {
+                  "observed": {
+                    "candidate": "golf",
+                    "source_commit": "7c2d743ece66eac15bfdfdf2fd33b784a70d866c",
+                    "change": "8e88c5905c3ccd9becc92f2085c7cc25d728d3644b9c2608c961836b92c894e6",
+                    "arrival_ms": 2000,
+                    "refusal": null,
+                    "enqueue_ms": 2000,
+                    "start_ms": 18000,
+                    "ci_requested_ms": 18000,
+                    "ci_dispatches_ms": [],
+                    "terminal_ms": null,
+                    "withdrawn_ms": null,
+                    "status": "waiting_ci",
+                    "detail": "Canonical workflow executing exact speculative candidate on its assumed predecessors",
+                    "ci_unknown": false,
+                    "candidate_commits": [
+                      "4a0ddf60a59d05e9de5d2122cc31579886377a80"
+                    ],
+                    "ci_runs": [
+                      "web-run-a8e0eda1922e6fa94726def45eac7ccbe20b340d77e1f97db1b9a93f0be361d9"
+                    ],
+                    "transitions": [
+                      {
+                        "at_ms": 2000,
+                        "status": "queued"
+                      },
+                      {
+                        "at_ms": 18000,
+                        "status": "waiting_ci"
+                      }
+                    ]
+                  },
+                  "outcome": "waiting",
+                  "code": "waiting_ci"
+                },
+                {
+                  "observed": {
+                    "candidate": "hotel",
+                    "source_commit": "b13e2c94dd574a55daa5fa47b96ace55a5a610ed",
+                    "change": "deae707131ad0164f8bab5cbe2445e074b9fbd2237b61836bf1681087d8e16e3",
+                    "arrival_ms": 3000,
+                    "refusal": "review_queue_bound",
+                    "enqueue_ms": null,
+                    "start_ms": null,
+                    "ci_requested_ms": null,
+                    "ci_dispatches_ms": [],
+                    "terminal_ms": 3000,
+                    "withdrawn_ms": null,
+                    "status": null,
+                    "detail": null,
+                    "ci_unknown": false,
+                    "candidate_commits": [],
+                    "ci_runs": [],
+                    "transitions": []
+                  },
+                  "outcome": "rejected",
+                  "code": "review_queue_bound"
+                }
+              ],
+              "summary": {
+                "candidates": 8,
+                "outcomes": {
+                  "submitted": 3,
+                  "waiting": 1,
+                  "rejected": 1,
+                  "expired": 1,
+                  "failed": 1,
+                  "unknown": 1,
+                  "cancelled": 0
+                },
+                "enqueue_to_start_ms": {
+                  "samples": 7,
+                  "min": 0,
+                  "p50": 3000,
+                  "p95": 16000,
+                  "max": 16000
+                },
+                "enqueue_to_ci_dispatch_ms": {
+                  "samples": 6,
+                  "min": 0,
+                  "p50": 6000,
+                  "p95": 15000,
+                  "max": 15000
+                },
+                "enqueue_to_submitted_ms": {
+                  "samples": 3,
+                  "min": 3000,
+                  "p50": 6000,
+                  "p95": 16000,
+                  "max": 16000
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "merge_queue_wait": {
+      "series": "merge_queue_wait",
+      "measurement": {
+        "status": "not_measured",
+        "reason": "No external merge or landing queue is in this fixture's path; candidates land through the review queue's exact-target submit"
+      }
+    },
+    "ready_work_admission_wait": {
+      "series": "ready_work_admission_wait",
+      "measurement": {
+        "status": "not_measured",
+        "reason": "Implementation work admission is not exercised by this fixture"
+      }
+    },
+    "inference_backpressure": {
+      "series": "inference_backpressure",
+      "measurement": {
+        "status": "not_measured",
+        "reason": "No inference requests are issued by this fixture"
+      }
+    }
+  },
+  "non_claims": [
+    "Synthetic clock and scripted CI durations; not production CI, reviewer or merge latency",
+    "One CI execution slot for the fixture project",
+    "No admission, queue or budget policy was changed",
+    "Times are observed at tick boundaries; resolution is one tick",
+    "Expired means the synthetic submitter withdrew its entry at its declared deadline; the review queue has no entry deadline"
+  ]
+}

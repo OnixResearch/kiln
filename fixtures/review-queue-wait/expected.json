@@ -1,0 +1,481 @@
+{
+  "serial": {
+    "candidates": [
+      {
+        "arrival_ms": 0,
+        "candidate": "alpha",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          1000
+        ],
+        "ci_requested_ms": 1000,
+        "ci_runs": 1,
+        "code": null,
+        "enqueue_ms": 0,
+        "outcome": "submitted",
+        "start_ms": 0,
+        "statuses": [
+          [
+            0,
+            "waiting_ci"
+          ],
+          [
+            4000,
+            "submitted"
+          ]
+        ],
+        "terminal_ms": 4000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 0,
+        "candidate": "bravo",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          7000
+        ],
+        "ci_requested_ms": 7000,
+        "ci_runs": 1,
+        "code": null,
+        "enqueue_ms": 0,
+        "outcome": "submitted",
+        "start_ms": 6000,
+        "statuses": [
+          [
+            0,
+            "queued"
+          ],
+          [
+            6000,
+            "waiting_ci"
+          ],
+          [
+            10000,
+            "submitted"
+          ]
+        ],
+        "terminal_ms": 10000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 0,
+        "candidate": "charlie",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          13000
+        ],
+        "ci_requested_ms": 13000,
+        "ci_runs": 1,
+        "code": "review_queue_ci_failed",
+        "enqueue_ms": 0,
+        "outcome": "failed",
+        "start_ms": 12000,
+        "statuses": [
+          [
+            0,
+            "queued"
+          ],
+          [
+            12000,
+            "waiting_ci"
+          ],
+          [
+            15000,
+            "blocked"
+          ]
+        ],
+        "terminal_ms": 15000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 1000,
+        "candidate": "delta",
+        "candidate_builds": 0,
+        "ci_dispatches_ms": [],
+        "ci_requested_ms": null,
+        "ci_runs": 0,
+        "code": "withdrawn_at_deadline",
+        "enqueue_ms": 1000,
+        "outcome": "expired",
+        "start_ms": null,
+        "statuses": [
+          [
+            1000,
+            "queued"
+          ],
+          [
+            9000,
+            "cancelled"
+          ]
+        ],
+        "terminal_ms": 9000,
+        "withdrawn_ms": 9000
+      },
+      {
+        "arrival_ms": 1000,
+        "candidate": "echo",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          18000
+        ],
+        "ci_requested_ms": 18000,
+        "ci_runs": 1,
+        "code": null,
+        "enqueue_ms": 1000,
+        "outcome": "submitted",
+        "start_ms": 17000,
+        "statuses": [
+          [
+            1000,
+            "queued"
+          ],
+          [
+            17000,
+            "waiting_ci"
+          ],
+          [
+            21000,
+            "submitted"
+          ]
+        ],
+        "terminal_ms": 21000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 2000,
+        "candidate": "foxtrot",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          24000
+        ],
+        "ci_requested_ms": 24000,
+        "ci_runs": 1,
+        "code": "ci_outcome_unknown",
+        "enqueue_ms": 2000,
+        "outcome": "unknown",
+        "start_ms": 23000,
+        "statuses": [
+          [
+            2000,
+            "queued"
+          ],
+          [
+            23000,
+            "waiting_ci"
+          ]
+        ],
+        "terminal_ms": null,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 2000,
+        "candidate": "golf",
+        "candidate_builds": 0,
+        "ci_dispatches_ms": [],
+        "ci_requested_ms": null,
+        "ci_runs": 0,
+        "code": "queued",
+        "enqueue_ms": 2000,
+        "outcome": "waiting",
+        "start_ms": null,
+        "statuses": [
+          [
+            2000,
+            "queued"
+          ]
+        ],
+        "terminal_ms": null,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 3000,
+        "candidate": "hotel",
+        "candidate_builds": 0,
+        "ci_dispatches_ms": [],
+        "ci_requested_ms": null,
+        "ci_runs": 0,
+        "code": "review_queue_bound",
+        "enqueue_ms": null,
+        "outcome": "rejected",
+        "start_ms": null,
+        "statuses": [],
+        "terminal_ms": 3000,
+        "withdrawn_ms": null
+      }
+    ],
+    "summary": {
+      "candidates": 8,
+      "enqueue_to_ci_dispatch_ms": {
+        "max": 22000,
+        "min": 1000,
+        "p50": 13000,
+        "p95": 22000,
+        "samples": 5
+      },
+      "enqueue_to_start_ms": {
+        "max": 21000,
+        "min": 0,
+        "p50": 12000,
+        "p95": 21000,
+        "samples": 5
+      },
+      "enqueue_to_submitted_ms": {
+        "max": 20000,
+        "min": 4000,
+        "p50": 10000,
+        "p95": 20000,
+        "samples": 3
+      },
+      "outcomes": {
+        "cancelled": 0,
+        "expired": 1,
+        "failed": 1,
+        "rejected": 1,
+        "submitted": 3,
+        "unknown": 1,
+        "waiting": 1
+      }
+    }
+  },
+  "speculative": {
+    "candidates": [
+      {
+        "arrival_ms": 0,
+        "candidate": "alpha",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          0
+        ],
+        "ci_requested_ms": 0,
+        "ci_runs": 1,
+        "code": null,
+        "enqueue_ms": 0,
+        "outcome": "submitted",
+        "start_ms": 0,
+        "statuses": [
+          [
+            0,
+            "waiting_ci"
+          ],
+          [
+            3000,
+            "submitted"
+          ]
+        ],
+        "terminal_ms": 3000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 0,
+        "candidate": "bravo",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          3000
+        ],
+        "ci_requested_ms": 0,
+        "ci_runs": 1,
+        "code": null,
+        "enqueue_ms": 0,
+        "outcome": "submitted",
+        "start_ms": 0,
+        "statuses": [
+          [
+            0,
+            "waiting_ci"
+          ],
+          [
+            6000,
+            "submitted"
+          ]
+        ],
+        "terminal_ms": 6000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 0,
+        "candidate": "charlie",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          6000
+        ],
+        "ci_requested_ms": 0,
+        "ci_runs": 1,
+        "code": "review_queue_ci_failed",
+        "enqueue_ms": 0,
+        "outcome": "failed",
+        "start_ms": 0,
+        "statuses": [
+          [
+            0,
+            "waiting_ci"
+          ],
+          [
+            8000,
+            "blocked"
+          ]
+        ],
+        "terminal_ms": 8000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 1000,
+        "candidate": "delta",
+        "candidate_builds": 2,
+        "ci_dispatches_ms": [
+          8000,
+          11000
+        ],
+        "ci_requested_ms": 4000,
+        "ci_runs": 2,
+        "code": "withdrawn_at_deadline",
+        "enqueue_ms": 1000,
+        "outcome": "expired",
+        "start_ms": 4000,
+        "statuses": [
+          [
+            1000,
+            "queued"
+          ],
+          [
+            4000,
+            "waiting_ci"
+          ],
+          [
+            9000,
+            "cancelled"
+          ]
+        ],
+        "terminal_ms": 9000,
+        "withdrawn_ms": 9000
+      },
+      {
+        "arrival_ms": 1000,
+        "candidate": "echo",
+        "candidate_builds": 3,
+        "ci_dispatches_ms": [
+          14000
+        ],
+        "ci_requested_ms": 7000,
+        "ci_runs": 3,
+        "code": null,
+        "enqueue_ms": 1000,
+        "outcome": "submitted",
+        "start_ms": 7000,
+        "statuses": [
+          [
+            1000,
+            "queued"
+          ],
+          [
+            7000,
+            "waiting_ci"
+          ],
+          [
+            17000,
+            "submitted"
+          ]
+        ],
+        "terminal_ms": 17000,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 2000,
+        "candidate": "foxtrot",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [
+          17000
+        ],
+        "ci_requested_ms": 9000,
+        "ci_runs": 1,
+        "code": "ci_outcome_unknown",
+        "enqueue_ms": 2000,
+        "outcome": "unknown",
+        "start_ms": 9000,
+        "statuses": [
+          [
+            2000,
+            "queued"
+          ],
+          [
+            9000,
+            "waiting_ci"
+          ]
+        ],
+        "terminal_ms": null,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 2000,
+        "candidate": "golf",
+        "candidate_builds": 1,
+        "ci_dispatches_ms": [],
+        "ci_requested_ms": 18000,
+        "ci_runs": 1,
+        "code": "waiting_ci",
+        "enqueue_ms": 2000,
+        "outcome": "waiting",
+        "start_ms": 18000,
+        "statuses": [
+          [
+            2000,
+            "queued"
+          ],
+          [
+            18000,
+            "waiting_ci"
+          ]
+        ],
+        "terminal_ms": null,
+        "withdrawn_ms": null
+      },
+      {
+        "arrival_ms": 3000,
+        "candidate": "hotel",
+        "candidate_builds": 0,
+        "ci_dispatches_ms": [],
+        "ci_requested_ms": null,
+        "ci_runs": 0,
+        "code": "review_queue_bound",
+        "enqueue_ms": null,
+        "outcome": "rejected",
+        "start_ms": null,
+        "statuses": [],
+        "terminal_ms": 3000,
+        "withdrawn_ms": null
+      }
+    ],
+    "summary": {
+      "candidates": 8,
+      "enqueue_to_ci_dispatch_ms": {
+        "max": 15000,
+        "min": 0,
+        "p50": 6000,
+        "p95": 15000,
+        "samples": 6
+      },
+      "enqueue_to_start_ms": {
+        "max": 16000,
+        "min": 0,
+        "p50": 3000,
+        "p95": 16000,
+        "samples": 7
+      },
+      "enqueue_to_submitted_ms": {
+        "max": 16000,
+        "min": 3000,
+        "p50": 6000,
+        "p95": 16000,
+        "samples": 3
+      },
+      "outcomes": {
+        "cancelled": 0,
+        "expired": 1,
+        "failed": 1,
+        "rejected": 1,
+        "submitted": 3,
+        "unknown": 1,
+        "waiting": 1
+      }
+    }
+  }
+}

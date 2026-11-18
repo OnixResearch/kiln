@@ -169,6 +169,115 @@ removed to admit more work. A full finite history fails closed with an explicit
 outcome; this implementation does not perform shared GC or erase accounting
 windows. Operator disposition for a new reviewed campaign/window is separate.
 
+## Review-queue wait measurement
+
+<!-- r[impl kiln.admission.queue_wait] -->
+Before any admission, budget or backpressure change aimed at parallel-agent
+review congestion, Kiln measures how long candidates wait in its own review
+queue. The fixture is off by default: it runs only from the `review-queue-wait`
+example and its integration test, never inside a service, and it changes no
+admission, queue or budget default.
+
+```console
+nickel export --format json config/fixtures/review-queue-wait-positive.ncl
+cargo run --locked -p kiln-web-service --example review-queue-wait -- \
+  --load fixtures/review-queue-wait/load.json --out receipt.json
+cargo test --locked -p kiln-web-service --test review_queue_wait
+```
+
+The load (`kiln.review-queue-wait.load.v1`, contract in
+`config/review-queue-wait-contracts.ncl`) declares the following:
+
+- a synthetic tick;
+- a finite horizon;
+- the queue bound;
+- the queue modes;
+- up to 16 candidates. Each has an arrival tick, a CI result (`pass`, `fail` or
+  `unknown`) reported a set number of ticks after dispatch, and an optional
+  submitter deadline.
+
+The frozen load has eight candidates over 40 one-second ticks, with a queue
+bound of seven entries. It runs serially and with a speculative window of one to
+three. The Rust core admits the committed export again with the same bounds.
+`scripts/check-nickel-fixtures.sh` refuses a stale export, and the negative
+fixture must fail to export.
+
+For each mode, the harness builds:
+
+- a disposable bare Git repository with one source commit per candidate;
+- the SQLite review store;
+- the engine, which dispatches one CI execution for the project at a time;
+- a scripted workflow provider.
+
+In each tick it takes these steps, in order:
+
+1. Enqueues the tick's arrivals with `enqueue`.
+2. Withdraws entries past their deadline with `dequeue`.
+3. Reports due CI results.
+4. Polls the engine.
+5. Advances the queue.
+6. Reads `GET /api/code-review` and the candidates' runs.
+
+Every time is the first tick boundary at which that state was visible, in
+synthetic milliseconds since tick 0.
+
+For each candidate, the receipt (`kiln.review-queue-wait.receipt.v1`) records:
+
+- the exact source commit;
+- every integration candidate and CI run;
+- the arrival, enqueue, start, CI request and terminal times, where start is the
+  first time the queue was seen constructing or testing the exact candidate;
+- every dispatch of its CI to the workflow provider;
+- its status transitions;
+- one outcome from the table below.
+
+| Outcome | Recorded signal |
+| --- | --- |
+| `submitted` | The queue submitted the exact candidate |
+| `failed` | The queue blocked the entry with `review_queue_ci_failed` |
+| `rejected` | `enqueue` was refused, for example with `review_queue_bound`, or the queue blocked the entry with another code |
+| `expired` | The synthetic submitter withdrew the entry at its declared deadline; the review queue itself has no entry deadline |
+| `cancelled` | Any other cancellation |
+| `unknown` | The entry is `uncertain`, or its current CI run's outcome is unknown at the horizon |
+| `waiting` | The entry is still active at the horizon |
+
+A withdrawn entry's CI run that is still queued in the engine is dispatched
+anyway. Its dispatch time can therefore follow its terminal time.
+
+Review-queue wait, merge-queue wait, ready-work admission wait and inference
+backpressure are separate typed series, and this fixture fills only the first.
+The other three are `not_measured` with their reasons:
+
+- merge-queue wait: no external merge or landing queue is in the path;
+- ready-work admission wait: no implementation work is admitted;
+- inference backpressure: no inference request is issued.
+
+Those three cannot hold numbers. Reading a receipt back refuses:
+
+- a series under another series' name;
+- an edited summary;
+- an outcome that does not follow its recorded signals;
+- a load identity that does not match the embedded load.
+
+Summaries count every outcome, zero included. They also give nearest-rank
+distributions of the enqueue-to-start, enqueue-to-CI-dispatch and
+enqueue-to-submit waits; an absent wait is never counted as zero.
+
+Results describe queue mechanics under this declared load: scripted CI
+durations, one CI slot and tick resolution. They are not production CI, reviewer
+or merge latency. Two outside reports are context for why this is measured, not
+loads, targets or pass criteria:
+
+- Chen and Stratton's 14 November 2026 working paper,
+  [Artificial Intelligence in the Firm: Bottlenecks in Software Production](https://fion.ac/jellyfish.pdf),
+  reports a 56.1 percent rise in time from pull request submission to approval
+  associated with agent adoption.
+- Posters on X describe merge-queue stalls when several agents open pull
+  requests at once.
+
+A later admission, budget or backpressure change needs its own design, which
+cites a retained receipt and names the measured bottleneck.
+
 ## Repeatability and limitations
 
 Focused commands for the integration owner (not live qualification):

@@ -270,6 +270,15 @@ entry describes the source tree prepared for the first tagged release.
 - Exact-candidate required-CI merge automation and a separate speculative merge
   queue. (exercised locally; no deployment, publication, lifecycle acceptance or
   release authority)
+- An off-by-default synthetic review-queue wait fixture runs a frozen, typed
+  Nickel load through the real queue in serial and speculative modes, under a
+  synthetic clock with one CI slot. Its receipt gives each candidate's exact
+  identities, observed arrival, enqueue, start, CI and terminal times, and one
+  named outcome. Review-queue wait is the only measured series; merge-queue,
+  ready-work admission and inference series are recorded as not measured.
+  Admission, queue and budget defaults are unchanged. (#61; frozen-load
+  integration test and core fixtures; no production or external merge-queue
+  measurement)
 
 **Observation**
 
