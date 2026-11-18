@@ -33,12 +33,14 @@ in
 let distinct = fun values =>
   std.array.all (fun value => std.array.length (std.array.filter (fun other => other == value) values) == 1) values
 in
-let File = { path | Path, text | Text, executable | Bool } in
+let CorpusFile = { path | Path, text | Text, executable | Bool } in
 let Dependency = { name | Name, identity | Hex64 } in
 {
+  # One corpus file, reused by the build-input corpus (#77).
+  File = CorpusFile,
   Corpus = {
     schema | Exact "kiln.workspace-corpus.v1",
-    files | Array File,
+    files | Array CorpusFile,
     dependencies | Array Dependency,
     projections | Array projection.Definition,
     attempts | Array Name,

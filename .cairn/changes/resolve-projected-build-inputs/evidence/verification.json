@@ -1,0 +1,80 @@
+{
+  "observed_on": "2026-11-18",
+  "issue": "https://github.com/OnixResearch/kiln/issues/77",
+  "scope": "First build-input slice: Cargo layout facts from exact manifest bytes, a pure planner with the cargo_compatibility.v1 and nix_compatibility.v1 profiles and a plan identity, and a typed two-project Cargo corpus qualified through the projected materializer with real Cargo executions under a cleared environment.",
+  "source_parent_revision": "b6171df5981896cd31a298943cd2506af8f9a4ae",
+  "immediate_outcome": "A view holding alpha, its shared path dependency and the root lockfile, configuration and toolchain files is planned and passes its tests with its entries unchanged. A view whose code reads a file of another package fails although the working checkout holds that file. Views without the dependency or the configuration, and a relocated view, are refused before anything runs. An edit to the shared dependency through the alpha view selects beta, which the view does not hold.",
+  "durable_capability": "kiln_core::projection::build_inputs (plan_cargo, plan_nix, BuildInputPlan::accepts_evidence), kiln_build_graph::cargo_layout, config/build-input-contracts.ncl with its fixtures and checked export fixtures/build-inputs/corpus.json, and the harness shared by the off-by-default build-input-qualification example and the build_input_qualification test, whose build-input-fixtures feature runs in the build-input-fixtures Nix check.",
+  "owner": "Kiln source-projection maintainers",
+  "ordering": "The proposal, design and tasks gates passed before any implementation file was written.",
+  "receipt": "evidence/qualification-receipt.json (kiln.build-input.qualification.receipt.v1)",
+  "cargo_behavior_observed": {
+    "toolchain": "cargo 1.88.0 (873a06493 2025-05-10), rustc 1.88.0 (6b00bc388 2025-06-23)",
+    "observations": [
+      "A literal workspace member that is absent, or present without its targets, stops a build of another member.",
+      "A wholly absent glob member is ignored; a glob member present without its targets stops the build.",
+      "With --locked and no lockfile, Cargo refuses to create one.",
+      "Without --locked and with a member absent, Cargo rewrites the lockfile; with --locked the restricted view built and left the lockfile unchanged."
+    ]
+  },
+  "checks": [
+    {
+      "command": "cargo test --locked -p onix-kiln-core --lib build_inputs",
+      "result": "pass: 11 passed (planned view, external packages, refusals by role, lockfile absent from the candidate, workspace members, layouts, targets and build roots, relocated, generated and stale entries, malformed requests and write witnesses, applicability, Nix views)"
+    },
+    {
+      "command": "cargo test --locked -p kiln-build-graph",
+      "result": "pass: 4 unit, 8 graph and 3 layout tests"
+    },
+    {
+      "command": "cargo run --locked -q -p kiln-web-service --example build-input-qualification -- --corpus fixtures/build-inputs/corpus.json --out /tmp/build-input-receipt.json --execute",
+      "result": "alpha-tests planned and passed; beta-tests planned and failed on the undeclared read of projects/alpha/assets/banner.txt; alpha-without-proto, alpha-without-configuration and alpha-relocated refused and not run; receipt retained as evidence/qualification-receipt.json"
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service --test engine monorepo::",
+      "result": "pass: 6 passed; affected-project decisions over the shared Cargo parse are unchanged"
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service --test build_input_qualification",
+      "result": "pass: 2 passed; plans and the shared-edit decision match fixtures/build-inputs/expected.json without executions, and a duplicate path, an unknown edit case, an escaping case id and a wrong schema are each refused with nothing written"
+    },
+    {
+      "command": "cargo test --locked -p kiln-web-service --features build-input-fixtures --test build_input_qualification",
+      "result": "pass: 3 passed; the full receipt including executions matches the expectation apart from timings and the observed toolchain, beta's log names alpha's asset and the checkout holds it"
+    },
+    {
+      "command": "cargo clippy --locked -p onix-kiln-core -p kiln-build-graph -p kiln-web-service --all-targets -- -D warnings; cargo clippy --locked -p kiln-web-service --all-targets --features build-input-fixtures -- -D warnings",
+      "result": "pass"
+    },
+    {
+      "command": "rustfmt --check --edition 2024 (changed Rust files)",
+      "result": "pass"
+    },
+    {
+      "command": "bash scripts/check-nickel-fixtures.sh",
+      "result": "pass (95 positive, 623 negative), including the build-input corpus export check; the four build-input negatives are refused by the duplicate path, the empty program, the environment name and the profile"
+    },
+    {
+      "command": "nix build path:$PWD#checks.x86_64-linux.nickel path:$PWD#checks.x86_64-linux.build-input-fixtures --no-link -L --no-write-lock-file --option builders ''",
+      "result": "pass: Nickel fixture gate (95 positive, 623 negative); in the Nix sandbox the feature test ran all three tests, including real Cargo executions of the planned views"
+    },
+    {
+      "command": "cairn gate proposal|design|tasks resolve-projected-build-inputs; cairn validate; cairn traceability coverage --profile kiln-active-development",
+      "result": "gates PASS; validate valid with 0 issues; 1981 of 1981 requirements referenced; the only dangling ID is the pre-existing kiln.dashboard.campaign.projection"
+    }
+  ],
+  "remaining": [
+    "Relocation and generated-manifest transformations with recorded rewrites and read-only derived files.",
+    "Generated-input providers and plans that span several workspaces.",
+    "Joining plan identities to #46/#64 verification evidence and the local build cache.",
+    "Restricted-runtime confinement and current authority (#69/#70), including disclosure projections of plans for restricted workers.",
+    "Selecting the projected route in a live worker job."
+  ],
+  "non_claims": [
+    "A plan shows that declared inputs are present, not that a build passes; only the recorded executions show that this corpus builds with Cargo 1.88.0.",
+    "Whole-package inputs over-approximate what a build reads, and reads across package boundaries are not detected before execution.",
+    "Absolute paths, Cargo configuration above the overlay and the host toolchain are outside the plan; no restricted runtime confined the commands.",
+    "Registry, Git and flake inputs are pinned only by their lockfiles; their availability is a provider fact.",
+    "No Nix build was executed; the Nix profile is covered by planner tests only."
+  ]
+}

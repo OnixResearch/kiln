@@ -63,6 +63,9 @@ fuzzing = []
 jj-fixtures = ["kiln-adapter-jj/jj-fixtures"]
 
 implementation-fixtures = []
+# Build-input qualification runs every planned Cargo command of the corpus
+# (KILN_CARGO_EXE, else `cargo` on PATH).
+build-input-fixtures = []
 
 [[bin]]
 name = "kiln-implementation-fixture"

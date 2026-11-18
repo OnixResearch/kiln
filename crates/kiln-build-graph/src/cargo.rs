@@ -13,11 +13,21 @@
 //! from path `[patch]` entries that replace a dependency by name. A package
 //! inheriting from a workspace below the repository root also depends on that
 //! workspace root, so a change to its manifest reaches the members.
+//!
+//! The same parse yields [`cargo_layout`] for build-input planning: each
+//! package's workspace, its path dependencies outside the repository and
+//! whether a registry or Git dependency remains, and each workspace's literal
+//! and glob members. A nested workspace whose members cannot be read, or name a
+//! directory without a package manifest, has unknown members rather than
+//! making the layout unavailable.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use kiln_core::monorepo::{GraphFacts, GraphKind};
+use kiln_core::monorepo::{GraphFacts, GraphKind, MAX_GRAPH_EDGES, MAX_GRAPH_PACKAGES};
 use kiln_core::paths;
+use kiln_core::projection::build_inputs::{
+    CargoLayout, CargoLayoutResult, CargoMembers, CargoPackage, CargoWorkspace,
+};
 use toml::{Table, Value};
 
 use crate::{
@@ -33,21 +43,102 @@ const DEPENDENCY_TABLES: [&str; 5] = [
     "build_dependencies",
 ];
 const WORKSPACE_PACKAGE_PREFIX: &str = "workspace:";
+const GLOB_CHARS: [char; 6] = ['*', '?', '[', ']', '{', '}'];
 
 /// Derive the Cargo graph of the exact tree.
 // r[impl kiln.monorepo.graph]
 #[must_use]
 pub fn cargo_graph(tree: &ManifestTree) -> GraphFacts {
-    facts(GraphKind::Cargo, cargo(tree))
+    facts(GraphKind::Cargo, parse(tree).and_then(Parsed::graph))
+}
+
+/// Derive the Cargo layout of the exact tree. Uncertain input is unavailable,
+/// never a partial layout.
+// r[impl kiln.source.projection.build_inputs]
+#[must_use]
+pub fn cargo_layout(tree: &ManifestTree) -> CargoLayoutResult {
+    match parse(tree).and_then(Parsed::layout) {
+        Ok(layout) => CargoLayoutResult::Available(layout),
+        Err(reason) => CargoLayoutResult::Unavailable(reason),
+    }
 }
 
 struct Workspace<'a> {
     dependencies: Option<&'a Table>,
     /// Excluded directories, repository-relative.
     exclude: Vec<String>,
+    members: CargoMembers,
 }
 
-fn cargo(tree: &ManifestTree) -> Facts<crate::BuildGraph> {
+/// One package as the parse saw it.
+struct PackageFacts {
+    name: String,
+    workspace: Option<String>,
+    outside_paths: usize,
+    external_packages: bool,
+}
+
+/// Everything one parse of the tree's manifests yields.
+struct Parsed {
+    /// Package facts by package directory.
+    packages: BTreeMap<String, PackageFacts>,
+    /// Path dependencies between package directories.
+    edges: BTreeSet<(String, String)>,
+    workspaces: Vec<CargoWorkspace>,
+}
+
+impl Parsed {
+    fn graph(self) -> Facts<crate::BuildGraph> {
+        let mut edges = self.edges;
+        let mut workspace_roots = BTreeSet::new();
+        for (dir, package) in &self.packages {
+            if let Some(root) = &package.workspace
+                && !root.is_empty()
+                && root != dir
+            {
+                workspace_roots.insert(root.clone());
+                edges.insert((dir.clone(), root.clone()));
+            }
+        }
+        let mut packages: BTreeMap<String, String> = self
+            .packages
+            .into_iter()
+            .map(|(dir, package)| (dir, package.name))
+            .collect();
+        for root in workspace_roots {
+            packages
+                .entry(root.clone())
+                .or_insert_with(|| format!("{WORKSPACE_PACKAGE_PREFIX}{root}"));
+        }
+        finish_graph(packages, edges, &CARGO_ROOTS_TOUCHING_ALL)
+    }
+
+    fn layout(self) -> Facts<CargoLayout> {
+        if self.packages.len() > MAX_GRAPH_PACKAGES {
+            return Err("layout exceeds the maximum package count".to_string());
+        }
+        if self.edges.len() > MAX_GRAPH_EDGES {
+            return Err("layout exceeds the maximum edge count".to_string());
+        }
+        Ok(CargoLayout {
+            packages: self
+                .packages
+                .into_iter()
+                .map(|(dir, package)| CargoPackage {
+                    name: package.name,
+                    dir,
+                    workspace: package.workspace,
+                    outside_paths: package.outside_paths,
+                    external_packages: package.external_packages,
+                })
+                .collect(),
+            workspaces: self.workspaces,
+            edges: self.edges.into_iter().collect(),
+        })
+    }
+}
+
+fn parse(tree: &ManifestTree) -> Facts<Parsed> {
     admit_tree(tree)?;
     let mut manifests: BTreeMap<&str, Table> = BTreeMap::new();
     for path in tree
@@ -59,61 +150,88 @@ fn cargo(tree: &ManifestTree) -> Facts<crate::BuildGraph> {
             .map_err(|error| format!("unparsable manifest {path}: {}", bounded(error.message())))?;
         manifests.insert(dir_of(path), table);
     }
-    let workspaces = workspaces(&manifests, &tree.paths)?;
-    let mut packages: BTreeMap<String, String> = BTreeMap::new();
+    let workspaces = workspaces(&manifests, &directories(&tree.paths))?;
+    let mut names: BTreeMap<String, String> = BTreeMap::new();
     for (dir, manifest) in &manifests {
         if let Some(package) = manifest.get("package") {
             let name = package
                 .get("name")
                 .and_then(Value::as_str)
                 .ok_or_else(|| format!("manifest {} has no package name", manifest_path(dir)))?;
-            packages.insert((*dir).to_string(), name.to_string());
+            names.insert((*dir).to_string(), name.to_string());
         }
     }
-    let patches = patches(&manifests, &packages)?;
+    let patches = patches(&manifests, &names)?;
+    let mut packages = BTreeMap::new();
     let mut edges = BTreeSet::new();
-    let mut workspace_roots = BTreeSet::new();
     for (dir, manifest) in &manifests {
-        let Some(package) = manifest.get("package") else {
+        let (Some(package), Some(name)) = (manifest.get("package"), names.get(*dir)) else {
             continue;
         };
         let workspace = workspace_of(dir, package, &workspaces)?;
-        if let Some(root) = workspace
-            && !root.is_empty()
-            && root != *dir
-        {
-            workspace_roots.insert(root.to_string());
-            edges.insert(((*dir).to_string(), root.to_string()));
-        }
         let context = Context {
             dir,
             workspace: workspace.and_then(|root| Some((root, workspaces.get(root)?))),
-            packages: &packages,
+            packages: &names,
             patches: &patches,
+        };
+        let mut facts = PackageFacts {
+            name: name.clone(),
+            workspace: workspace.map(str::to_string),
+            outside_paths: 0,
+            external_packages: false,
         };
         for table in dependency_tables(manifest) {
             for (key, value) in table? {
-                for target in context.dependency(key, value)? {
-                    edges.insert(((*dir).to_string(), target));
+                match context.dependency(key, value)? {
+                    Resolved::Packages(targets) => {
+                        edges.extend(
+                            targets
+                                .into_iter()
+                                .map(|target| ((*dir).to_string(), target)),
+                        );
+                    }
+                    Resolved::OutsidePath => {
+                        facts.outside_paths = facts.outside_paths.saturating_add(1);
+                    }
+                    Resolved::External => facts.external_packages = true,
                 }
             }
         }
+        packages.insert((*dir).to_string(), facts);
     }
-    for root in workspace_roots {
-        packages
-            .entry(root.clone())
-            .or_insert_with(|| format!("{WORKSPACE_PACKAGE_PREFIX}{root}"));
-    }
-    finish_graph(packages, edges, &CARGO_ROOTS_TOUCHING_ALL)
+    Ok(Parsed {
+        packages,
+        edges,
+        workspaces: workspaces
+            .into_iter()
+            .map(|(dir, workspace)| CargoWorkspace {
+                dir: dir.to_string(),
+                members: workspace.members,
+            })
+            .collect(),
+    })
 }
 
 fn manifest_path(dir: &str) -> String {
     in_dir(dir, CARGO_MANIFEST)
 }
 
+/// Every directory that holds a listed file, at any depth.
+fn directories(listing: &BTreeSet<String>) -> BTreeSet<&str> {
+    let mut directories: BTreeSet<&str> = BTreeSet::new();
+    for file in listing {
+        let mut dir = dir_of(file);
+        while !dir.is_empty() && directories.insert(dir) {
+            dir = dir_of(dir);
+        }
+    }
+    directories
+}
+
 fn workspaces<'a>(
     manifests: &'a BTreeMap<&str, Table>,
-    listing: &BTreeSet<String>,
+    directories: &BTreeSet<&str>,
 ) -> Facts<BTreeMap<&'a str, Workspace<'a>>> {
     let mut workspaces = BTreeMap::new();
     for (dir, manifest) in manifests {
@@ -132,9 +250,14 @@ fn workspaces<'a>(
                 Err(error) => Some(Err(error)),
             })
             .collect::<Facts<Vec<_>>>()?;
-        if dir.is_empty() {
-            check_root_members(manifests, listing, workspace, &exclude)?;
-        }
+        let listed = members(manifests, directories, dir, workspace, &exclude);
+        let members = match listed {
+            Ok((literal, glob)) => CargoMembers::Known { literal, glob },
+            // The root workspace's members are graph facts; a nested workspace
+            // may be a partial vendored import.
+            Err(reason) if !dir.is_empty() => CargoMembers::Unknown { reason },
+            Err(reason) => return Err(reason),
+        };
         let dependencies =
             match workspace.get("dependencies") {
                 None => None,
@@ -147,6 +270,7 @@ fn workspaces<'a>(
             Workspace {
                 dependencies,
                 exclude,
+                members,
             },
         );
     }
@@ -167,29 +291,27 @@ fn strings<'a>(table: &'a Table, key: &str, path: &str) -> Facts<Vec<&'a str>> {
     }
 }
 
-/// Every root-workspace member, literal or glob-expanded against the listing's
-/// directories and minus `exclude`, must have a package manifest.
-fn check_root_members(
+/// Literal and glob-expanded member directories of the workspace at `dir`.
+/// Globs expand against the listing's directories, minus `exclude`; every
+/// member must have a package manifest. A directory both named and matched is
+/// a literal member.
+fn members(
     manifests: &BTreeMap<&str, Table>,
-    listing: &BTreeSet<String>,
+    directories: &BTreeSet<&str>,
+    dir: &str,
     workspace: &Table,
     exclude: &[String],
-) -> Facts<()> {
-    let path = manifest_path("");
-    let mut directories: BTreeSet<&str> = BTreeSet::new();
-    for file in listing {
-        let mut dir = dir_of(file);
-        while !dir.is_empty() && directories.insert(dir) {
-            dir = dir_of(dir);
-        }
-    }
+) -> Facts<(Vec<String>, Vec<String>)> {
+    let path = manifest_path(dir);
+    let (mut literal, mut glob) = (BTreeSet::new(), BTreeSet::new());
     for member in strings(workspace, "members", &path)? {
-        let Joined::Inside(member) = join("", member)? else {
+        let Joined::Inside(member) = join(dir, member)? else {
             return Err(format!(
                 "manifest {path} has a member outside the repository"
             ));
         };
-        let expanded: Vec<&str> = if member.contains(['*', '?', '[', ']', '{', '}']) {
+        let is_glob = member.contains(GLOB_CHARS);
+        let expanded: Vec<String> = if is_glob {
             if !paths::valid_pattern(&member) {
                 return Err(format!(
                     "manifest {path} has an unsupported member pattern {:?}",
@@ -198,34 +320,42 @@ fn check_root_members(
             }
             directories
                 .iter()
-                .copied()
-                .filter(|dir| paths::matches(&member, dir))
-                .filter(|dir| !exclude.iter().any(|excluded| dir_under(dir, excluded)))
+                .filter(|candidate| paths::matches(&member, candidate))
+                .filter(|candidate| {
+                    !exclude
+                        .iter()
+                        .any(|excluded| dir_under(candidate, excluded))
+                })
+                .map(|candidate| (*candidate).to_string())
                 .collect()
         } else {
-            vec![member.as_str()]
+            vec![member]
         };
-        for member in expanded {
+        for found in &expanded {
             if !manifests
-                .get(member)
+                .get(found.as_str())
                 .is_some_and(|manifest| manifest.contains_key("package"))
             {
-                return Err(format!(
-                    "missing workspace member {}",
-                    manifest_path(member)
-                ));
+                return Err(format!("missing workspace member {}", manifest_path(found)));
             }
         }
+        if is_glob {
+            glob.extend(expanded);
+        } else {
+            literal.extend(expanded);
+        }
     }
-    Ok(())
+    let glob = glob.difference(&literal).cloned().collect();
+    Ok((literal.into_iter().collect(), glob))
 }
 
-/// Path `[patch.<source>]` entries of every manifest, by replaced package name.
+/// Path `[patch.<source>]` entries of every manifest, by replaced package name,
+/// and the names a patch replaces with a path outside the repository.
 fn patches(
     manifests: &BTreeMap<&str, Table>,
     packages: &BTreeMap<String, String>,
-) -> Facts<BTreeMap<String, BTreeSet<String>>> {
-    let mut patches: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+) -> Facts<Patches> {
+    let mut patches = Patches::default();
     for (dir, manifest) in manifests {
         let Some(sources) = manifest.get("patch").and_then(Value::as_table) else {
             continue;
@@ -238,16 +368,29 @@ fn patches(
                 let Some(path) = entry.get("path").and_then(Value::as_str) else {
                     continue;
                 };
+                let name = entry.get("package").and_then(Value::as_str).unwrap_or(key);
                 let Joined::Inside(target) = join(dir, path)? else {
+                    patches.outside.insert(name.to_string());
                     continue;
                 };
                 require_package(packages, &target, dir)?;
-                let name = entry.get("package").and_then(Value::as_str).unwrap_or(key);
-                patches.entry(name.to_string()).or_default().insert(target);
+                patches
+                    .inside
+                    .entry(name.to_string())
+                    .or_default()
+                    .insert(target);
             }
         }
     }
     Ok(patches)
+}
+
+#[derive(Default)]
+struct Patches {
+    /// Package directories that replace a dependency, by replaced name.
+    inside: BTreeMap<String, BTreeSet<String>>,
+    /// Names replaced by a path outside the repository.
+    outside: BTreeSet<String>,
 }
 
 fn require_package(packages: &BTreeMap<String, String>, target: &str, from: &str) -> Facts<()> {
@@ -320,18 +463,28 @@ fn dependency_tables(manifest: &Table) -> Vec<Facts<&Table>> {
         .collect()
 }
 
+/// Where one dependency entry resolves.
+enum Resolved {
+    /// Package directories inside the repository; none for the package itself.
+    Packages(Vec<String>),
+    /// A `path` that resolves outside the repository.
+    OutsidePath,
+    /// A registry or Git dependency that no path `[patch]` replaces.
+    External,
+}
+
 struct Context<'a> {
     dir: &'a str,
     workspace: Option<(&'a str, &'a Workspace<'a>)>,
     packages: &'a BTreeMap<String, String>,
-    patches: &'a BTreeMap<String, BTreeSet<String>>,
+    patches: &'a Patches,
 }
 
 impl Context<'_> {
-    /// The package directories a dependency entry resolves to inside the repository.
-    fn dependency(&self, key: &str, value: &Value) -> Facts<Vec<String>> {
+    /// Where a dependency entry resolves.
+    fn dependency(&self, key: &str, value: &Value) -> Facts<Resolved> {
         let Some(entry) = value.as_table() else {
-            return self.patched(key);
+            return Ok(self.patched(key));
         };
         let (base, entry) = if entry.get("workspace").and_then(Value::as_bool) == Some(true) {
             let Some((root, workspace)) = self.workspace else {
@@ -351,14 +504,14 @@ impl Context<'_> {
                 })?;
             match inherited.as_table() {
                 Some(inherited) => (root, inherited),
-                None => return self.patched(key),
+                None => return Ok(self.patched(key)),
             }
         } else {
             (self.dir, entry)
         };
         let name = entry.get("package").and_then(Value::as_str).unwrap_or(key);
         let Some(path) = entry.get("path") else {
-            return self.patched(name);
+            return Ok(self.patched(name));
         };
         let path = path.as_str().ok_or_else(|| {
             format!(
@@ -367,23 +520,30 @@ impl Context<'_> {
             )
         })?;
         match join(base, path)? {
-            Joined::Outside => Ok(Vec::new()),
+            Joined::Outside => Ok(Resolved::OutsidePath),
             Joined::Inside(target) => {
                 require_package(self.packages, &target, self.dir)?;
-                Ok((target != self.dir).then_some(target).into_iter().collect())
+                Ok(Resolved::Packages(
+                    (target != self.dir).then_some(target).into_iter().collect(),
+                ))
             }
         }
     }
 
-    /// A registry or Git dependency replaced by a path `[patch]` entry.
-    fn patched(&self, name: &str) -> Facts<Vec<String>> {
-        Ok(self
-            .patches
-            .get(name)
-            .into_iter()
-            .flatten()
-            .filter(|target| *target != self.dir)
-            .cloned()
-            .collect())
+    /// A registry or Git dependency, unless a path `[patch]` replaces it.
+    fn patched(&self, name: &str) -> Resolved {
+        if let Some(targets) = self.patches.inside.get(name) {
+            Resolved::Packages(
+                targets
+                    .iter()
+                    .filter(|target| *target != self.dir)
+                    .cloned()
+                    .collect(),
+            )
+        } else if self.patches.outside.contains(name) {
+            Resolved::OutsidePath
+        } else {
+            Resolved::External
+        }
     }
 }

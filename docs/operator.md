@@ -2400,10 +2400,10 @@ scope identity. Skipped projects do not block. The `ci` checklist item lists
 
 <!-- r[related kiln.source.projection.definition] r[related kiln.source.repository_identity] -->
 `kiln_core::projection` defines how several source views over one exact
-snapshot are described and resolved. It is a pure contract; the only consumer
-so far is the worker materializer below, which no dispatch, service or console
-page calls yet, and the project API still reports the path-derived
-`repository_key`.
+snapshot are described and resolved. It is a pure contract; its only consumers
+so far are the worker materializer and the build-input planner below, which no
+dispatch, service or console page calls yet, and the project API still reports
+the path-derived `repository_key`.
 
 - **Repository identity.** BLAKE3 over the source provider profile and the
   provider-native repository reference. Local cache paths and remote URLs are
@@ -2474,6 +2474,68 @@ plan it is given, and resumes an overlay only when its
 bindings are refused, not adopted. No worker job selects projected workspaces
 yet, and current-authority checks at retrieval and restricted runtimes are not
 wired.
+
+<!-- r[related kiln.source.projection.build_inputs] -->
+**Build inputs.** A complete projection is not yet a complete build input.
+`kiln_core::projection::build_inputs` plans one build of a view from a
+`kiln.build-input.request.v1` request: profile, targets, command, toolchain and
+the whole declared environment. Layout facts come from
+`kiln_build_graph::cargo_layout` (or the Nix graph) over the full candidate.
+Every required input must be in the view at its own source path, and every
+fault is refused before anything runs.
+
+| Profile | Required inputs | Refused |
+| --- | --- | --- |
+| `cargo_compatibility.v1` | Every file of each target package, of every workspace member Cargo loads (every literal member and each glob member the view holds part of) and of their path-dependency closure; each workspace manifest those packages inherit from; the build root's `Cargo.lock`; `.cargo/config(.toml)` and `rust-toolchain(.toml)` at the build root and its ancestors | Relocated or generated entries; unknown or ambiguous targets; targets in several workspaces; unknown members; a path dependency outside the repository; any absent required input; a candidate without a lockfile |
+| `nix_compatibility.v1` | The files of the target flakes and their path-input closure | Any view that omits a source file, because Nix expressions can read sibling paths no input declares |
+
+Registry, Git and external flake inputs are recorded as `pinned_by_lockfile`,
+never as part of the source closure. A `kiln.build-input.plan.v1` plan's BLAKE3
+identity covers the candidate, the projection manifest and content, the
+profile, every required input's path, role and object, the command, the
+toolchain and the environment. `BuildInputPlan::accepts_evidence` accepts only
+evidence recorded for that identity, so a changed layout, input, lockfile,
+toolchain, command or environment needs new evidence. A plan names hidden
+paths, so it stays with the controller. It grants no authority and does not
+say that the build passes.
+
+The off-by-default `build-input-qualification` example qualifies the typed
+corpus in `config/build-input-contracts.ncl`
+(`fixtures/build-inputs/corpus.json`): a two-project Cargo workspace with glob
+members, a shared path dependency, inherited workspace fields, a root
+lockfile, Cargo configuration and a toolchain file.
+
+```console
+cargo run -p kiln-web-service --example build-input-qualification -- \
+    --corpus fixtures/build-inputs/corpus.json --out receipt.json --execute
+```
+
+It commits the corpus with a working checkout, plans each case and
+materializes planned views into attempt overlays. With `--execute` (and the
+`build-input-fixtures` test feature, run by the `build-input-fixtures` Nix
+check) it first confirms that `cargo --version` and `rustc --version` report
+the declared toolchain. It then runs each planned command at its overlay's
+build root. The environment holds only the declared variables, `PATH`, and
+private `HOME`, `CARGO_HOME` and `CARGO_TARGET_DIR` directories. The
+`kiln.build-input.qualification.receipt.v1` receipt records the cases below.
+
+| Case | Plan | Execution |
+| --- | --- | --- |
+| `alpha-tests`: alpha, the shared dependency and root files | Planned | Passes; entries unchanged |
+| `beta-tests`: beta, the shared dependency and root files | Planned | Fails: beta reads a file of alpha's package that no manifest declares, and the overlay does not hold it, although the working checkout does |
+| `alpha-without-proto` | Refused: the shared dependency is absent | Not run |
+| `alpha-without-configuration` | Refused: `.cargo/config.toml` is absent | Not run |
+| `alpha-relocated` | Refused: relocation is not a qualified transformation | Not run |
+
+An edit to the shared dependency written through the `alpha-tests` overlay maps
+back to `shared/proto/src/lib.rs`. `monorepo::affected` over the full
+candidate's Cargo graph then selects both alpha and beta, although beta is
+outside the editing view. The receipt is compared, without timings and the
+observed toolchain, to `fixtures/build-inputs/expected.json`. Cargo
+configuration above the overlay, absolute paths and the host toolchain stay
+outside the plan, and no restricted runtime confines the commands.
+Relocation, generated-input providers and joining plan identities to
+verification evidence and the build cache are later work.
 
 ### Remote Lattice workers
 

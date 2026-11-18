@@ -99,8 +99,10 @@ The `workspace_baseline` test compares the receipt, without timings, to
 
 ## Remaining work
 
-- The two-project build profile of #77 is not part of the baseline: the corpus
-  is materialized, not built.
+- The baseline materializes its corpus without building it. #77's build-input
+  qualification ([operator guide](operator.md#source-projection-definitions))
+  builds a separate two-project Cargo corpus through the same materializer; an
+  Archil comparison of builds would reuse that corpus.
 - The live phase needs an explicitly configured disposable Archil environment:
   region, client and SDK versions, storage format, mount mode, cache policy and
   named time, resource, cost and retention bounds. It must exercise independent

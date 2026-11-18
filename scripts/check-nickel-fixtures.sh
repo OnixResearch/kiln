@@ -62,7 +62,8 @@ projection_export=$(mktemp)
 load_export=$(mktemp)
 cases_export=$(mktemp)
 corpus_export=$(mktemp)
-trap 'rm -f "$projection_export" "$load_export" "$cases_export" "$corpus_export"' EXIT
+build_export=$(mktemp)
+trap 'rm -f "$projection_export" "$load_export" "$cases_export" "$corpus_export" "$build_export"' EXIT
 nickel export --format json config/fixtures/source-projection-positive.ncl >"$projection_export"
 if ! cmp -s "$projection_export" fixtures/source-projection/definition.json; then
   printf 'stale export: regenerate fixtures/source-projection/definition.json from config/fixtures/source-projection-positive.ncl\n' >&2
@@ -87,6 +88,13 @@ fi
 nickel export --format json config/fixtures/workspace-corpus-positive.ncl >"$corpus_export"
 if ! cmp -s "$corpus_export" fixtures/workspace-corpus/corpus.json; then
   printf 'stale export: regenerate fixtures/workspace-corpus/corpus.json from config/fixtures/workspace-corpus-positive.ncl\n' >&2
+  exit 1
+fi
+
+# The build-input qualification harness and its tests read this committed export.
+nickel export --format json config/fixtures/build-input-corpus-positive.ncl >"$build_export"
+if ! cmp -s "$build_export" fixtures/build-inputs/corpus.json; then
+  printf 'stale export: regenerate fixtures/build-inputs/corpus.json from config/fixtures/build-input-corpus-positive.ncl\n' >&2
   exit 1
 fi
 

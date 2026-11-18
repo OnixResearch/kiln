@@ -13,6 +13,12 @@
 //! files read across package boundaries and Nix expressions that read sibling
 //! directories without a `path` input are invisible; scopes declare those with
 //! `depends_on`.
+//!
+//! [`cargo_layout`] reads the same manifests into the
+//! [`kiln_core::projection::build_inputs::CargoLayout`] a build-input plan
+//! needs: workspace membership, path dependencies outside the repository and
+//! remaining registry or Git dependencies. In a graph those outside paths are
+//! ignored; in a layout they are counted, so a plan can refuse them.
 
 mod cargo;
 mod nix;
@@ -23,7 +29,7 @@ use kiln_core::monorepo::{
     BuildGraph, GraphFacts, GraphKind, GraphResult, MAX_GRAPH_EDGES, MAX_GRAPH_PACKAGES, Package,
 };
 
-pub use cargo::cargo_graph;
+pub use cargo::{cargo_graph, cargo_layout};
 pub use nix::nix_graph;
 
 /// Paths accepted in one tree listing.

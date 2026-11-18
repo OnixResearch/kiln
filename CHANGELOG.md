@@ -74,6 +74,23 @@ entry describes the source tree prepared for the first tagged release.
   only under the same retained pin. Plans without a pin keep their identity.
   (#78; unit, dispatch and temporary-repository tests; no worker job, authority
   or restricted-runtime wiring yet)
+- Plan the source inputs of a projected build. Versioned
+  `cargo_compatibility.v1` and `nix_compatibility.v1` profiles require, at
+  their own paths, every file of the target packages, of the workspace members
+  Cargo loads and of their path-dependency closure, plus the workspace
+  manifest, lockfile, Cargo configuration and toolchain files; restricted Nix
+  views are refused because sibling reads are invisible. Relocated or generated
+  entries, unknown or ambiguous targets, outside path dependencies and absent
+  inputs are refused before anything runs. The plan identity binds inputs,
+  command, toolchain and environment, and evidence applies only to the same
+  identity. `kiln_build_graph::cargo_layout` supplies workspace membership and
+  external dependencies. A typed two-project Cargo corpus is planned and
+  materialized by the off-by-default `build-input-qualification` example. With
+  the `build-input-fixtures` feature its commands run under a cleared
+  environment: one view passes, one with an undeclared cross-package read
+  fails, and a shared-dependency edit selects the project outside the view.
+  (#77; unit, layout and frozen-receipt tests and a Nix check; no worker job,
+  relocation or authority wiring yet)
 - A versioned durable-workspace provider profile in typed Nickel keeps canonical
   BLAKE3 identities apart from provider disk, branch and checkpoint references
   and refuses profiles that rely on a documented-insufficient mechanism: a

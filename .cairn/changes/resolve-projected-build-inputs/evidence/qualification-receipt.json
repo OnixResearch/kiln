@@ -1,0 +1,288 @@
+{
+  "schema": "kiln.build-input.qualification.receipt.v1",
+  "corpus": "26a14239856c3e08d840fba3f495ea771afd6594d1cf82946b0b132c3de10899",
+  "revision": "c49181cf6beac0d8694d4f1c8caedc449c0937c1",
+  "toolchain": {
+    "declared": [
+      "1.88.0"
+    ],
+    "observed": {
+      "cargo": "cargo 1.88.0 (873a06493 2025-05-10)",
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)"
+    }
+  },
+  "cases": [
+    {
+      "id": "alpha-tests",
+      "plan": {
+        "outcome": "planned",
+        "identity": "6d61d5e3bc91a93610a034ac87a24b5baffb0e6e37e59fb20d44cf5501ae3bd6",
+        "build_root": "",
+        "packages": [
+          "projects/alpha",
+          "shared/proto"
+        ],
+        "inputs": [
+          {
+            "path": ".cargo/config.toml",
+            "role": "configuration"
+          },
+          {
+            "path": "Cargo.lock",
+            "role": "lockfile"
+          },
+          {
+            "path": "Cargo.toml",
+            "role": "workspace_manifest"
+          },
+          {
+            "path": "projects/alpha/Cargo.toml",
+            "role": "package"
+          },
+          {
+            "path": "projects/alpha/assets/banner.txt",
+            "role": "package"
+          },
+          {
+            "path": "projects/alpha/build.rs",
+            "role": "package"
+          },
+          {
+            "path": "projects/alpha/src/lib.rs",
+            "role": "package"
+          },
+          {
+            "path": "rust-toolchain.toml",
+            "role": "toolchain"
+          },
+          {
+            "path": "shared/proto/Cargo.toml",
+            "role": "package"
+          },
+          {
+            "path": "shared/proto/src/lib.rs",
+            "role": "package"
+          }
+        ],
+        "external_packages": "none",
+        "materialized": "7fd281885e0be6ad9c0694d162c5095b065e01f035818363bf9aab6b62b6b10d"
+      },
+      "execution": {
+        "outcome": "passed",
+        "sources_unchanged": true
+      }
+    },
+    {
+      "id": "beta-tests",
+      "plan": {
+        "outcome": "planned",
+        "identity": "7d0624ba74b33caf1b092f0c4bd6c44d23923f0ef041c285c5de8f84bc1ef922",
+        "build_root": "",
+        "packages": [
+          "projects/beta",
+          "shared/proto"
+        ],
+        "inputs": [
+          {
+            "path": ".cargo/config.toml",
+            "role": "configuration"
+          },
+          {
+            "path": "Cargo.lock",
+            "role": "lockfile"
+          },
+          {
+            "path": "Cargo.toml",
+            "role": "workspace_manifest"
+          },
+          {
+            "path": "projects/beta/Cargo.toml",
+            "role": "package"
+          },
+          {
+            "path": "projects/beta/src/lib.rs",
+            "role": "package"
+          },
+          {
+            "path": "rust-toolchain.toml",
+            "role": "toolchain"
+          },
+          {
+            "path": "shared/proto/Cargo.toml",
+            "role": "package"
+          },
+          {
+            "path": "shared/proto/src/lib.rs",
+            "role": "package"
+          }
+        ],
+        "external_packages": "none",
+        "materialized": "2044c2654a2b60ecfa0a459d154a08a982d2a299e81e1a590e36621d472e23ba"
+      },
+      "execution": {
+        "outcome": "failed",
+        "exit_code": 101,
+        "sources_unchanged": true
+      }
+    },
+    {
+      "id": "alpha-without-proto",
+      "plan": {
+        "outcome": "refused",
+        "stage": "planning",
+        "diagnostics": [
+          {
+            "code": "required_input_absent",
+            "field": "inputs.shared/proto/Cargo.toml",
+            "message": "the view lacks this package input at its source path"
+          },
+          {
+            "code": "required_input_absent",
+            "field": "inputs.shared/proto/src/lib.rs",
+            "message": "the view lacks this package input at its source path"
+          }
+        ]
+      },
+      "execution": {
+        "outcome": "not_run",
+        "reason": "the plan was refused"
+      }
+    },
+    {
+      "id": "alpha-without-configuration",
+      "plan": {
+        "outcome": "refused",
+        "stage": "planning",
+        "diagnostics": [
+          {
+            "code": "required_input_absent",
+            "field": "inputs..cargo/config.toml",
+            "message": "the view lacks this configuration input at its source path"
+          }
+        ]
+      },
+      "execution": {
+        "outcome": "not_run",
+        "reason": "the plan was refused"
+      }
+    },
+    {
+      "id": "alpha-relocated",
+      "plan": {
+        "outcome": "refused",
+        "stage": "planning",
+        "diagnostics": [
+          {
+            "code": "relocation_not_qualified",
+            "field": "destinations.alpha/Cargo.toml",
+            "message": "an entry is laid out away from its source path; relocation is not a qualified transformation"
+          },
+          {
+            "code": "relocation_not_qualified",
+            "field": "destinations.alpha/assets/banner.txt",
+            "message": "an entry is laid out away from its source path; relocation is not a qualified transformation"
+          },
+          {
+            "code": "relocation_not_qualified",
+            "field": "destinations.alpha/build.rs",
+            "message": "an entry is laid out away from its source path; relocation is not a qualified transformation"
+          },
+          {
+            "code": "relocation_not_qualified",
+            "field": "destinations.alpha/src/lib.rs",
+            "message": "an entry is laid out away from its source path; relocation is not a qualified transformation"
+          }
+        ]
+      },
+      "execution": {
+        "outcome": "not_run",
+        "reason": "the plan was refused"
+      }
+    }
+  ],
+  "shared_edit": {
+    "case": "alpha-tests",
+    "changed": [
+      "shared/proto/src/lib.rs"
+    ],
+    "projects": [
+      {
+        "project": "alpha",
+        "affected": true,
+        "in_view": true
+      },
+      {
+        "project": "beta",
+        "affected": true,
+        "in_view": false
+      }
+    ],
+    "decisions": {
+      "identity": "73a06fd40b160b391f52c98d76d775fe1920391c2e91b39efaa5bd4cc40a3a5a",
+      "decisions": [
+        {
+          "project_id": "alpha",
+          "outcome": "affected",
+          "reasons": [
+            {
+              "kind": "graph",
+              "graph": "cargo",
+              "from_package": "proto",
+              "via_package": "alpha"
+            }
+          ]
+        },
+        {
+          "project_id": "beta",
+          "outcome": "affected",
+          "reasons": [
+            {
+              "kind": "graph",
+              "graph": "cargo",
+              "from_package": "proto",
+              "via_package": "beta"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "timings": [
+    {
+      "case": "alpha-tests",
+      "plan_us": 2077,
+      "materialize_us": 1666,
+      "execute_us": 362294
+    },
+    {
+      "case": "beta-tests",
+      "plan_us": 1869,
+      "materialize_us": 1523,
+      "execute_us": 81179
+    },
+    {
+      "case": "alpha-without-proto",
+      "plan_us": 1629,
+      "materialize_us": null,
+      "execute_us": null
+    },
+    {
+      "case": "alpha-without-configuration",
+      "plan_us": 1514,
+      "materialize_us": null,
+      "execute_us": null
+    },
+    {
+      "case": "alpha-relocated",
+      "plan_us": 1827,
+      "materialize_us": null,
+      "execute_us": null
+    }
+  ],
+  "non_claims": [
+    "A plan shows that declared inputs are present; only these executions show that this corpus builds with this toolchain.",
+    "Absolute paths, Cargo configuration above the overlay and the host toolchain are outside the plan; no restricted runtime confined the commands.",
+    "Plans and diagnostics name every path; they are controller facts, not results for a restricted worker.",
+    "The corpus is synthetic and small; timings describe this host only."
+  ]
+}

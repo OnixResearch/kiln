@@ -2038,6 +2038,7 @@ pub fn verify_manifest(
     findings.finish(())
 }
 
+pub mod build_inputs;
 pub mod materialization;
 
 #[cfg(test)]

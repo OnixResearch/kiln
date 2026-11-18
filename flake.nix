@@ -1208,6 +1208,35 @@
               touch "$out"
             '';
           };
+          # Planned build-input views built by the pinned Cargo toolchain.
+          # r[verify kiln.source.projection.build_inputs.scenario.qualified]
+          build-input-fixtures = rustPlatform.buildRustPackage {
+            pname = "kiln-build-input-fixtures";
+            version = "0.1.0";
+            src = self;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.pkg-config
+            ];
+            buildInputs = [
+              pkgs.zlib
+              pkgs.openssl
+            ];
+            buildPhase = ''
+              runHook preBuild
+              KILN_CARGO_EXE=$(command -v cargo)
+              export KILN_CARGO_EXE
+              cargo test -p kiln-web-service --features build-input-fixtures --test build_input_qualification --offline
+              runHook postBuild
+            '';
+            doCheck = false;
+            installPhase = ''
+              touch "$out"
+            '';
+          };
           # Exact Git acquisition (SHA-1 and SHA-256) and the loopback spindle flow.
           # r[verify kiln.tangled.source]
           tangled-git-fixtures = rustPlatform.buildRustPackage {
