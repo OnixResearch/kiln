@@ -1,0 +1,153 @@
+{
+  "schema": "kiln.operator-authorized.redeployment.v1",
+  "source_commit": "9e9c91ed62670977d046711456a34cfd4b4ba1f8",
+  "package": "/nix/store/pyh0mxj6ma8mb072aid7k18gv4ybbxmg-kiln-web-service-0.1.0",
+  "derivation": "/nix/store/4xhrbfcczvac2xalhjmwcxzasirsv7vh-kiln-web-service-0.1.0.drv",
+  "frozen_source": "/nix/store/rw3lmkm460v3baky69bibwqpyd7caziv-source",
+  "previous_package": "/nix/store/nvb0j0jv4hy0dx1b778x7qsm9f2k50b3-kiln-web-service-0.1.0",
+  "running_executable": "/nix/store/pyh0mxj6ma8mb072aid7k18gv4ybbxmg-kiln-web-service-0.1.0/bin/kiln-web-service",
+  "pid": "674452",
+  "private_backup": "/home/brittonr/.local/state/kiln/redeploy-9e9c91ed-0guvsx2h",
+  "preflight": "all eight installed unchanged profile arguments passed",
+  "activation": [
+    "remove only kiln-web-service profile element",
+    "add exact built package",
+    "restart only kiln-web-service.service",
+    "start existing dependent kiln-tailnet-proxy.service after its auth dependency became ready"
+  ],
+  "services": {
+    "kiln-web-service.service": {
+      "Id": "kiln-web-service.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "674452"
+    },
+    "kiln-web-lattice.service": {
+      "Id": "kiln-web-lattice.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "2908912"
+    },
+    "kiln-tailnet-proxy.service": {
+      "Id": "kiln-tailnet-proxy.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "674545"
+    },
+    "kiln-web-proxy-auth.service": {
+      "Id": "kiln-web-proxy-auth.service",
+      "ActiveState": "active",
+      "SubState": "running",
+      "MainPID": "674524"
+    }
+  },
+  "health": {
+    "https://localhost:9443": {
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    "https://britton-desktop.bison-tailor.ts.net:9443": {
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    }
+  },
+  "preserved_runs": 19,
+  "configuration_files_unchanged": 116,
+  "unrelated_profile_elements_unchanged": true,
+  "lattice_pid_unchanged": "2908912",
+  "served_assets_match_frozen_source": {
+    "/icons.js": {
+      "bytes": 20099,
+      "blake3": "f5909322243820298c118b1c5c109e888da28c6da199ec35fafab9b62e69265a"
+    },
+    "/ui.js": {
+      "bytes": 43726,
+      "blake3": "c21f625e0fc024a5f475421244cb495909b6e6971ff884dff90250207c4793f5"
+    },
+    "/code-review.js": {
+      "bytes": 164069,
+      "blake3": "842964ce263d9fdb0c89f45621107f7bb9847d3a68b2b5c5fb892358abb5460c"
+    },
+    "/inventory.js": {
+      "bytes": 43203,
+      "blake3": "189bc75640c96fd8efe02ab06dfbb807c70fe41cb0d7c1deafb36b16108b2424"
+    },
+    "/cairn.js": {
+      "bytes": 90939,
+      "blake3": "3577509150b8f25bd4782cf19172acd859cc53655872a90aa8a6397138106538"
+    },
+    "/workers.js": {
+      "bytes": 34329,
+      "blake3": "aa02e6a0b722c2610263d7001a9937c1f7cc713c680842ce6e09835116007bf3"
+    },
+    "/web.js": {
+      "bytes": 236014,
+      "blake3": "7943770bde75bb77a6827259560db9cac2cec5a2438722f82b47db50fcc9638d"
+    },
+    "/work-evidence.js": {
+      "bytes": 4504,
+      "blake3": "11947114c9965be167194e71e8495f31a25be40ad52da516c5133c41b9899918"
+    },
+    "/work-board.js": {
+      "bytes": 11158,
+      "blake3": "f5164caf4b6e91d0261278d07b762009918286771a1fa85701bb56934e0125a9"
+    },
+    "/work.js": {
+      "bytes": 108250,
+      "blake3": "61f4be484c3777f4a57928e14dc8eac03587ec0d4fe69334550dec5a0aae176c"
+    },
+    "/work-interaction.js": {
+      "bytes": 34712,
+      "blake3": "dedf81c3e86868da14ddc811d2587059a080e84172b51466d3ad179508b65ca9"
+    },
+    "/project.js": {
+      "bytes": 28080,
+      "blake3": "e1739655b58565738a05c56ef1dbbd305a913df489ce57ebe5dab61e583e7061"
+    },
+    "/source.js": {
+      "bytes": 61618,
+      "blake3": "5b61b8c807d74abd6ff29946499e06857ad09100509c473e737ee276a6458d6a"
+    },
+    "/receipts.js": {
+      "bytes": 52998,
+      "blake3": "d88938616e8e20f1fe8162ed0e5ef4ffcea17204747c0de6574afb0d40363c57"
+    }
+  },
+  "browser": "navigation refused by Chromium private-CA trust; no certificate exception or security bypass applied",
+  "non_claims": [
+    "No profile, credential, workflow or durable-state reset",
+    "No whole-repository release-readiness claim",
+    "No rendered browser UI verification; native CA-verified HTTPS and exact served asset bytes were checked"
+  ],
+  "authority": "Explicit user request: commit push deploy and continue",
+  "maintenance_owner": "Kiln maintainers; operator owns profiles, credentials and activation",
+  "publication": {
+    "rid": "rad:z2wsvXm5S2sJGvuV1k5JHiwi1PbKE",
+    "canonical_revision": "9e9c91ed62670977d046711456a34cfd4b4ba1f8",
+    "github_revision": "9e9c91ed62670977d046711456a34cfd4b4ba1f8",
+    "route": "jj git push in an isolated exact-source clone after original checkout helper failure",
+    "signed_ref_workflow_preserved": true,
+    "remote_helper_reported_synced_seeds": 2,
+    "signed_refs": {
+      "signer": "z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx",
+      "sigrefs_commit": "2ba39d63b3ca2dca77b4ef8b2e3821a26dea0b0c",
+      "feature": "parent"
+    },
+    "delegates": [
+      "did:key:z6MksnXbFoE8zkCkGWhHc8zuxpnEUhrJHv2KECRV4GSv9gkx"
+    ],
+    "threshold": 1,
+    "github_api_readback": "https://api.github.com/repos/OnixResearch/kiln/git/ref/heads/main",
+    "governance_changed": false
+  },
+  "source_archive": {
+    "format": "Nix NAR of exact frozen source",
+    "blake3": "12ab00ddea48488a4e05d4f14eb60929bc889c3e1ea9fabcda68181cb7909d0a",
+    "method": "nix-store --dump frozen_source | b3sum",
+    "non_claim": "Not a fresh remote archive acquisition"
+  }
+}
