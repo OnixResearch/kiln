@@ -1,0 +1,235 @@
+{
+  "schema": "kiln.workspace-baseline.receipt.v1",
+  "corpus": "e1fe8c6b2d372a289091af848979e54db16018a5898b4f32fa3ea483106d7724",
+  "provider": "local-materialization",
+  "materializer_profile": "48a5453235180edf722bff40d8b746955b7bceb82698c064224ab5f85f4d476b",
+  "revision": "289569fd94482b160e28d164269df1b64fddf6a1",
+  "projections": [
+    {
+      "id": "alpha-build",
+      "manifest": "518b80f99015e26f282272809aff8c4cf72f195ebfce8d4a4ee327f5bd2197a2",
+      "input": "f7b32ba9a6f56a934aaefd232a5bb32ba7a835a637c058567a0fd9725fc8443c",
+      "dependencies": [
+        "shared-proto"
+      ],
+      "entries": [
+        {
+          "destination": "alpha/Cargo.toml",
+          "executable": false,
+          "origin": "306aa53e71c7cdbfb30fcba777f346dcf5c5a580ba2f0c4a216b02d1ad7d1a4a",
+          "object": "9062c6ed50970e87cf14e68464c2a389bb5f2326"
+        },
+        {
+          "destination": "alpha/LICENSE",
+          "executable": false,
+          "origin": "3eab8a73b17145dbbe04b02d0a886392993de7fde5d8d57900fb2e8dc7a84da5",
+          "object": "feea0423566cd7b5cf86f96083a319c4b8b79161"
+        },
+        {
+          "destination": "alpha/run.sh",
+          "executable": true,
+          "origin": "444a01ac0f83b260b8203132e0a4ab6e44641a15b0317629c5430bfcd97a6cc4",
+          "object": "724a554ada91628f326d219a940d0cb90c02ff11"
+        },
+        {
+          "destination": "alpha/src/lib.rs",
+          "executable": false,
+          "origin": "48e9ecd6129f7e2a7adbe9af1b38673111fb3ad97f9c284fc692ca88922599dc",
+          "object": "0badad19122fdeef3721ab1c94aeef2b26ff63ff"
+        },
+        {
+          "destination": "shared/proto/VERSION",
+          "executable": false,
+          "origin": "ef58a9236184fbc742804b4a95d7722f421c7dc24d5411d0e362f9d23df0b0e8",
+          "object": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+        },
+        {
+          "destination": "shared/proto/schema.proto",
+          "executable": false,
+          "origin": "328ba2324037d5c4187e1ff28873c6fa9c1a3e6697b774982923881a6809fa82",
+          "object": "b50cd3844979d89f082af2d749db77a730cfea5c"
+        }
+      ],
+      "overlays": [
+        {
+          "attempt": "attempt-one",
+          "overlay": "541a8a818d132fba1054d4236ccf001baabc12b4dae295cb819052b1c070f9ba"
+        },
+        {
+          "attempt": "attempt-two",
+          "overlay": "0b0168810e2df0dc5b64d9631e9c958b2c5b1e23a280e196c648233432a9e2e0"
+        }
+      ]
+    },
+    {
+      "id": "beta-build",
+      "manifest": "325c643416a6faa7197173b2cd133e4ff50196fb453d278ae8a46eacb8577d76",
+      "input": "8ffd0e6eeeecfb7906f4926a2d7a44dfb197d19bded4ecea77583687be821e9d",
+      "dependencies": [
+        "shared-proto"
+      ],
+      "entries": [
+        {
+          "destination": "beta/Cargo.toml",
+          "executable": false,
+          "origin": "83211c02eda91111137999e2de5e6664d64ce747d85881283b2c323f741b1b07",
+          "object": "650119ca6e1ba233849f8053d65d4eb8a9a01463"
+        },
+        {
+          "destination": "beta/LICENSE",
+          "executable": false,
+          "origin": "06eda1b7171a2647b9ebf6f2286a403f7df03e59fe13d326b7a59f72b23f3720",
+          "object": "feea0423566cd7b5cf86f96083a319c4b8b79161"
+        },
+        {
+          "destination": "beta/src/lib.rs",
+          "executable": false,
+          "origin": "945fd4f2a45fdda3169c24a2a8f5295853a518dc3d3a5b12679239647af0d711",
+          "object": "25bc871c1a4398e194674dfde824603e6735a89d"
+        },
+        {
+          "destination": "shared/proto/VERSION",
+          "executable": false,
+          "origin": "ef58a9236184fbc742804b4a95d7722f421c7dc24d5411d0e362f9d23df0b0e8",
+          "object": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d"
+        },
+        {
+          "destination": "shared/proto/schema.proto",
+          "executable": false,
+          "origin": "328ba2324037d5c4187e1ff28873c6fa9c1a3e6697b774982923881a6809fa82",
+          "object": "b50cd3844979d89f082af2d749db77a730cfea5c"
+        }
+      ],
+      "overlays": [
+        {
+          "attempt": "attempt-one",
+          "overlay": "bf18d1b2027f16c9eda2635106548bd61972be8095d222d3928cfb1de98d964e"
+        },
+        {
+          "attempt": "attempt-two",
+          "overlay": "f3e48e3ab1a7bcc388bd19e6f18b7b3c2c7f9d2e7e651f43e917aefeed92fcd9"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "check": "reproducible_input",
+      "local": {
+        "outcome": "passed",
+        "detail": "2 projections materialized into two stores with byte- and mode-identical inputs"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "independent_attempts",
+      "local": {
+        "outcome": "passed",
+        "detail": "edits in the first attempt's overlay left the second attempt's overlay and the shared input unchanged in 2 projections"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "verified_input_reuse",
+      "local": {
+        "outcome": "passed",
+        "detail": "a second preparation re-verified and reused the published input of every projection"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "executable_modes",
+      "local": {
+        "outcome": "passed",
+        "detail": "1 executable and 10 other entries keep sealed 0555/0444 input modes and 0755/0644 overlay modes"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "distinct_origins",
+      "local": {
+        "outcome": "passed",
+        "detail": "objects with equal bytes at several origins: 1; distinct origin identities: 2; materialized bytes identical"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "excluded_entry_absent",
+      "local": {
+        "outcome": "passed",
+        "detail": "excluded corpus files absent: 1; every input holds exactly its manifest entries"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "shared_dependency",
+      "local": {
+        "outcome": "passed",
+        "detail": "2 shared entries and the declared dependencies are bound in all 2 projections with identical bytes"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "damaged_input_refused",
+      "local": {
+        "outcome": "passed",
+        "detail": "a published input whose file changed after publication was refused on reuse"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    },
+    {
+      "check": "exact_pin_reopen",
+      "local": {
+        "outcome": "passed",
+        "detail": "attempt-one's overlay reopened with its edits under the exact pin, and a pin naming another manifest was refused"
+      },
+      "archil": {
+        "outcome": "not_run",
+        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
+      }
+    }
+  ],
+  "timings": [
+    {
+      "projection": "alpha-build",
+      "input_cold_us": 450,
+      "input_reuse_us": 110,
+      "overlays_us": 575
+    },
+    {
+      "projection": "beta-build",
+      "input_cold_us": 407,
+      "input_reuse_us": 90,
+      "overlays_us": 518
+    }
+  ],
+  "non_claims": [
+    "The corpus is synthetic and small; timings describe this host and corpus only.",
+    "Local modes and copies are not a confinement boundary against a privileged process.",
+    "No Archil disk, branch, checkpoint or credential was used."
+  ]
+}

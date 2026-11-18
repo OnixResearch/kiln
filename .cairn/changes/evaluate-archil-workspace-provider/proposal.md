@@ -16,8 +16,8 @@ Issue [#82](https://github.com/OnixResearch/kiln/issues/82) asks which parts of 
 
 ## Impact
 
-New Nickel contract, fixtures, a shell test run in the `nickel` Nix check, and documentation. No Archil dependency, credential, adapter, network call or default.
+New Nickel contract, fixtures, a shell test run in the `nickel` Nix check, and documentation. A typed shared corpus (`kiln.workspace-corpus.v1`) with its checked export, and a local baseline harness in `kiln-web-service` used by an off-by-default example and a test, run the corpus through #78's projected materializer and write a `kiln.workspace-baseline.receipt.v1` receipt with an Archil column that stays not run. No Archil dependency, credential, adapter, network call or default.
 
 ## Non-goals
 
-The shared corpus and local baseline run (they need #78's projected materializer), the live Archil experiment (an operator-configured disposable environment with named time, resource, cost and retention bounds), and any production provider selection.
+The live Archil experiment (an operator-configured disposable environment with named time, resource, cost and retention bounds), the two-project build profile of #77, and any production provider selection.

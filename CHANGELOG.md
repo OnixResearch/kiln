@@ -81,8 +81,13 @@ entry describes the source tree prepared for the first tagged release.
   copy as a durable acknowledgement, forced ownership as a retry, or a vendor
   claim as qualification. A documentation review of Archil against the
   projected-workspace contract retains it as a reference, with branch-per-attempt
-  isolation the one mechanism worth qualifying for unrestricted profiles. (#82;
-  Nickel fixtures; no Archil account, adapter or live experiment)
+  isolation the one mechanism worth qualifying for unrestricted profiles. A
+  typed shared corpus (two projects, a shared dependency, an executable file,
+  equal-byte files at two origins and an excluded entry) runs through #78's
+  projected materializer in the off-by-default `workspace-baseline` example,
+  whose receipt records nine local contract checks and timings beside Archil
+  outcomes that stay not run. (#82; Nickel fixtures and a frozen local baseline;
+  no Archil account, adapter or live experiment)
 - An optional graph-backed source model in pure `kiln-core`. File and package
   identities are minted once by their creating operation, never from bytes or
   paths; immutable revisions and snapshot roots are separate identities.

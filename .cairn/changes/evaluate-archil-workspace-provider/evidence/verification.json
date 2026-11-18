@@ -21,14 +21,52 @@
       "result": "pass: Nickel fixture gate (88 positive, 608 negative) and the profile refusal test"
     }
   ],
+  "baseline": {
+    "observed_on": "2026-11-18",
+    "source_parent_revision": "c7824b2ac440570a17f67844cefc1ba0cfabcd37",
+    "immediate_outcome": "The frozen shared corpus (two projects, a shared dependency, an executable file, equal-byte files at two origins and an excluded entry) materializes through the projected materializer for two attempts; all nine local contract checks pass and every Archil outcome stays not_run.",
+    "durable_capability": "config/workspace-corpus-contracts.ncl (kiln.workspace-corpus.v1) with its checked export fixtures/workspace-corpus/corpus.json, the harness shared by the off-by-default workspace-baseline example and the workspace_baseline test, and the frozen expectation fixtures/workspace-corpus/expected.json. A later Archil adapter can run the same corpus and checks.",
+    "receipt": "evidence/baseline-receipt.json (kiln.workspace-baseline.receipt.v1)",
+    "local_timings_us": {
+      "alpha-build": { "input_cold": 450, "input_reuse": 110, "overlays": 575 },
+      "beta-build": { "input_cold": 407, "input_reuse": 90, "overlays": 518 }
+    },
+    "checks": [
+      {
+        "command": "cargo run --locked -q -p kiln-web-service --example workspace-baseline -- --corpus fixtures/workspace-corpus/corpus.json --out /tmp/workspace-baseline.json",
+        "result": "pass: reproducible_input, independent_attempts, verified_input_reuse, executable_modes, distinct_origins, excluded_entry_absent, shared_dependency, damaged_input_refused and exact_pin_reopen passed; the receipt is retained as evidence/baseline-receipt.json"
+      },
+      {
+        "command": "cargo test --locked -p kiln-web-service --test workspace_baseline",
+        "result": "pass: 2 passed; the receipt without timings matches fixtures/workspace-corpus/expected.json, and a duplicate path, a single attempt and a wrong schema are each refused with nothing written"
+      },
+      {
+        "command": "cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+        "result": "pass"
+      },
+      {
+        "command": "bash scripts/check-nickel-fixtures.sh",
+        "result": "pass (94 positive, 619 negative), including the corpus export freshness check and the duplicate-path negative corpus"
+      },
+      {
+        "command": "nix build path:$PWD#checks.x86_64-linux.nickel --no-link -L --no-write-lock-file --option builders ''",
+        "result": "pass: Nickel fixture gate (94 positive, 619 negative) with the corpus export check, and the profile refusal test"
+      },
+      {
+        "command": "cairn gate proposal|design|tasks evaluate-archil-workspace-provider; cairn validate; cairn traceability coverage --profile kiln-active-development",
+        "result": "gates PASS; validate valid with 0 issues; 1975 of 1975 requirements referenced; the only dangling ID is the pre-existing kiln.dashboard.campaign.projection"
+      }
+    ]
+  },
   "evidence_classes": {
     "vendor_claim": "Every Archil capability in docs/archil-workspace-evaluation.md, from Archil documentation checked 2026-11-17",
-    "deterministic_fixture": "The local baseline profile and the contract fixtures",
+    "deterministic_fixture": "The local baseline profile, the contract fixtures and the shared corpus",
+    "local_execution": "The local baseline receipt over the frozen corpus; timings describe this host and corpus only",
     "adapter_execution": "none"
   },
   "remaining": [
-    "Shared corpus and local baseline through the projected materializer (#78).",
-    "Operator-run live Archil phase in a disposable environment with named time, resource, cost and retention bounds."
+    "Operator-run live Archil phase in a disposable environment with named time, resource, cost and retention bounds, running the same corpus and checks.",
+    "The two-project build profile of #77; the baseline materializes the corpus but does not build it."
   ],
   "non_claims": [
     "The profile contract checks declared capabilities, not provider behavior.",

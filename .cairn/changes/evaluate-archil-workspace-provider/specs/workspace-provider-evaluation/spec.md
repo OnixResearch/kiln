@@ -19,3 +19,10 @@ r[kiln.workspace_provider.evaluation.scenario.claims]
 - GIVEN a profile whose evidence is a vendor claim or a deterministic fixture
 - WHEN it declares itself qualified
 - THEN the profile contract MUST refuse it
+
+#### Scenario: The local baseline runs the shared corpus
+
+r[kiln.workspace_provider.evaluation.scenario.baseline]
+- GIVEN the frozen shared corpus: two projects, a shared dependency, an executable file, equal-byte files at two origins and an excluded entry
+- WHEN the local baseline materializes every projection through the projected materializer for two attempts
+- THEN the receipt MUST record each contract check's local outcome and timings, mark every Archil outcome as not run until an adapter execution supplies it, and match the committed expectation apart from timings

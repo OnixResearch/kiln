@@ -1,0 +1,155 @@
+{
+  "attempts": [
+    "attempt-one",
+    "attempt-two"
+  ],
+  "dependencies": [
+    {
+      "identity": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "name": "shared-proto"
+    }
+  ],
+  "files": [
+    {
+      "executable": false,
+      "path": "projects/alpha/Cargo.toml",
+      "text": "[package]\nname = \"alpha\"\nversion = \"0.1.0\"\n"
+    },
+    {
+      "executable": false,
+      "path": "projects/alpha/src/lib.rs",
+      "text": "pub fn alpha() -> &'static str {\n    \"alpha\"\n}\n"
+    },
+    {
+      "executable": true,
+      "path": "projects/alpha/run.sh",
+      "text": "#!/bin/sh\nexec cargo test --offline\n"
+    },
+    {
+      "executable": false,
+      "path": "projects/alpha/LICENSE",
+      "text": "Licensed under MIT OR Apache-2.0.\n"
+    },
+    {
+      "executable": false,
+      "path": "projects/alpha/.env",
+      "text": "TOKEN=never-materialized\n"
+    },
+    {
+      "executable": false,
+      "path": "projects/beta/Cargo.toml",
+      "text": "[package]\nname = \"beta\"\nversion = \"0.1.0\"\n"
+    },
+    {
+      "executable": false,
+      "path": "projects/beta/src/lib.rs",
+      "text": "pub fn beta() -> &'static str {\n    \"beta\"\n}\n"
+    },
+    {
+      "executable": false,
+      "path": "projects/beta/LICENSE",
+      "text": "Licensed under MIT OR Apache-2.0.\n"
+    },
+    {
+      "executable": false,
+      "path": "shared/proto/schema.proto",
+      "text": "syntax = \"proto3\";\nmessage Ping {}\n"
+    },
+    {
+      "executable": false,
+      "path": "shared/proto/VERSION",
+      "text": "1\n"
+    },
+    {
+      "executable": false,
+      "path": "docs/README.md",
+      "text": "# Corpus\n\nSelected by neither project.\n"
+    }
+  ],
+  "projections": [
+    {
+      "creation_destinations": [],
+      "dependencies": [
+        {
+          "name": "shared-proto",
+          "required": true
+        }
+      ],
+      "generated_inputs": "refused",
+      "id": "alpha-build",
+      "mounts": [
+        {
+          "destination_prefix": "alpha",
+          "source_prefix": "projects/alpha"
+        },
+        {
+          "destination_prefix": "shared/proto",
+          "source_prefix": "shared/proto"
+        }
+      ],
+      "profile": "runnable",
+      "required_capabilities": [
+        "exact_tree",
+        "executable_bit"
+      ],
+      "schema": "kiln.source-projection.definition.v1",
+      "selection": {
+        "exclude": [
+          "projects/alpha/.env"
+        ],
+        "include": [
+          "projects/alpha/**",
+          "shared/proto/**"
+        ],
+        "root": ""
+      },
+      "target": {
+        "case_sensitive": true,
+        "executable_bit": true,
+        "max_path_bytes": 4096,
+        "symlinks": true
+      }
+    },
+    {
+      "creation_destinations": [],
+      "dependencies": [
+        {
+          "name": "shared-proto",
+          "required": true
+        }
+      ],
+      "generated_inputs": "refused",
+      "id": "beta-build",
+      "mounts": [
+        {
+          "destination_prefix": "beta",
+          "source_prefix": "projects/beta"
+        },
+        {
+          "destination_prefix": "shared/proto",
+          "source_prefix": "shared/proto"
+        }
+      ],
+      "profile": "runnable",
+      "required_capabilities": [
+        "exact_tree"
+      ],
+      "schema": "kiln.source-projection.definition.v1",
+      "selection": {
+        "exclude": [],
+        "include": [
+          "projects/beta/**",
+          "shared/proto/**"
+        ],
+        "root": ""
+      },
+      "target": {
+        "case_sensitive": true,
+        "executable_bit": true,
+        "max_path_bytes": 4096,
+        "symlinks": true
+      }
+    }
+  ],
+  "schema": "kiln.workspace-corpus.v1"
+}

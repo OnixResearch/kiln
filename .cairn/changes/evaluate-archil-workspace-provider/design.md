@@ -28,11 +28,22 @@ A reviewer can see, per contract requirement, what Archil documents and whether 
 
 **Rationale:** documented credential scope rules out in-disk restriction, and documented bucket behavior rules out the bucket copy as completion or reconstruction evidence.
 
+### Decision: a typed shared corpus and a local baseline receipt
+
+**Choice:**
+
+- `config/workspace-corpus-contracts.ncl` types the corpus: files with text and an executable bit, dependency facts, two projection definitions checked by the existing source-projection `Definition` contract, and two attempt labels. `config/fixtures/workspace-corpus-positive.ncl` exports `fixtures/workspace-corpus/corpus.json`, a negative fixture with a duplicate file path is refused, and the check script refuses a stale export.
+- A harness shared by the off-by-default `workspace-baseline` example and its test writes the files into a temporary bare Git repository with one commit at a fixed signature time, so revisions, manifests and input identities are deterministic. It resolves each projection, plans it with the eager local-directory materializer profile and prepares inputs and pinned overlays through `kiln_web_service::worker::materialize`.
+- The checks are: reproducible input, independent attempts, verified input reuse, executable modes, distinct origins for equal bytes, the excluded entry absent, the shared dependency in both projects, a damaged input refused and reopening only under the exact pin.
+- The `kiln.workspace-baseline.receipt.v1` receipt records each check's local outcome beside an Archil outcome of `not_run` with its reason, each projection's identities and entries, and cold-input, verified-reuse and overlay timings. The test compares the receipt without timings to `fixtures/workspace-corpus/expected.json`.
+
+**Rationale:** one data-defined corpus can later drive an Archil adapter against the same checks. Deterministic identities keep the expectation stable, and timings are recorded but never asserted.
+
 ## Risks / Trade-offs
 
 - Vendor documentation can change; the report records its check date and the contract refuses only what the profile itself declares.
-- The corpus comparison waits for #78; until then no Archil profile can move beyond a vendor claim.
+- The corpus is synthetic and small; local timings describe this host and corpus only. Until an adapter execution runs, every Archil outcome stays a vendor claim.
 
 ## Verification Strategy
 
-Export the positive fixtures and check that every negative fixture fails with its own reason, in `tests/workspace-provider-profile.sh`, run by the `nickel` Nix check alongside `scripts/check-nickel-fixtures.sh`. Then run Cairn gates, validation and traceability.
+Export the positive fixtures and check that every negative fixture fails with its own reason, in `tests/workspace-provider-profile.sh`, run by the `nickel` Nix check alongside `scripts/check-nickel-fixtures.sh`. Run the baseline test and example over the frozen corpus. Then run Cairn gates, validation and traceability.
