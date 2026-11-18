@@ -391,6 +391,20 @@ entry describes the source tree prepared for the first tagged release.
   integrated stage, so the existing lifecycle step can run without a claim or
   coding dispatch. Each missing or stale fact stays a named blocker. (#47; pure
   decision, ledger extraction and local Git fixtures; no live campaign)
+- Opt-in ordered-stack publication of one verified attempt. The single verified
+  pull request stays the default and is kept on hosts without stacked pull
+  requests; Origin stacks are refused before any effect. The attempt's verified
+  candidate is the top layer, and each lower layer is an ancestor with its own
+  canonical CI verification under the same rules. A plan binds two to sixteen
+  exact layers, their parents and a deterministic branch chain. The GitHub
+  adapter probes stack support, checks every layer's tree and ancestry and reads
+  every layer before the first push. It then publishes branches and pull
+  requests from the bottom up and creates or reuses one exact stack; a re-run
+  only reads. A layer may land only over ready or integrated layers, and
+  read-only recovery admits only an exact bottom prefix of two-parent merges.
+  Kiln never merges, rebases, retargets or unstacks. (#89; pure-core, local bare
+  Git and loopback GitHub fixtures; not exercised on live GitHub, and not yet
+  selectable from the operator CLI)
 
 ### Fixed
 

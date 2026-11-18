@@ -7,6 +7,11 @@
 use std::io::Read;
 use std::time::Duration;
 
+use kiln_core::implementation::{
+    AdmittedStackIntegration, IntegrationMapping, LayerState, STACK_INTEGRATION_SCHEMA,
+    StackIntegration, StackLayerIntegration, StackPlan, StackPublication, admit_stack_integration,
+    admit_stack_publication,
+};
 use kiln_core::types::{ContentId, Diagnostic, ExternalRef};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 use serde::{Deserialize, Serialize};
@@ -84,6 +89,37 @@ pub struct LandingReceipt {
     pub base_ref: String,
     pub base_head: String,
     pub mapping: kiln_core::implementation::IntegrationMapping,
+}
+
+/// The recovered, admitted bottom prefix of a landed stack.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StackLandingReceipt {
+    pub integration: StackIntegration,
+    pub admitted: AdmittedStackIntegration,
+    /// The trunk head read back after the topmost recovered merge.
+    pub trunk_head: String,
+}
+
+/// Gate state of one layer that has not landed, from its #48 observation:
+/// a domain refusal blocks, and any other failure leaves the layer unknown.
+// r[impl kiln.implementation.stack.gate]
+#[must_use]
+pub fn layer_state(observation: &PortResult<LandingObservation>) -> LayerState {
+    match observation {
+        Ok(_) => LayerState::Ready,
+        Err(PortFailure::Domain(diagnostic)) => LayerState::Refused {
+            code: diagnostic.code.clone(),
+        },
+        Err(
+            PortFailure::Infrastructure(failure)
+            | PortFailure::Retryable(failure)
+            | PortFailure::TimedOut(failure)
+            | PortFailure::Cancelled(failure)
+            | PortFailure::Unknown(failure),
+        ) => LayerState::Unknown {
+            code: failure.code.clone(),
+        },
+    }
 }
 
 /// Admit a read-only observation as exact landing evidence.
@@ -558,6 +594,169 @@ impl GithubLandingClient {
         }))
     }
 
+    /// Observe every layer of a stack for the bottom-up gate: the recovered
+    /// integrated prefix, then the #48 observation of each layer above it.
+    #[must_use]
+    pub fn observe_stack(
+        &self,
+        plans: &[LandingPlan],
+        integrated_layers: usize,
+    ) -> Vec<LayerState> {
+        plans
+            .iter()
+            .enumerate()
+            .map(|(index, plan)| {
+                if index < integrated_layers {
+                    LayerState::Integrated
+                } else {
+                    layer_state(&self.observe(plan))
+                }
+            })
+            .collect()
+    }
+
+    /// Recover the landed bottom prefix of a published stack without any
+    /// mutation. Each merged layer must keep its verified head and be merged
+    /// with the frozen base, or the merge below, as first parent and its
+    /// candidate as second parent, onto the candidate's tree. A merged layer
+    /// above one that has not merged is unknown, and the trunk must descend
+    /// from the topmost recovered merge.
+    // r[impl kiln.github.stack]
+    // r[impl kiln.implementation.stack.gate.scenario.integration]
+    pub fn recover_stack_landed(
+        &self,
+        plan: &StackPlan,
+        publication: &StackPublication,
+    ) -> PortResult<Option<StackLandingReceipt>> {
+        admit_stack_publication(plan, publication)?;
+        let (owner, repository) = stack_repository(&plan.repository)?;
+        let mut layers = Vec::new();
+        let mut first_parent = plan.base.native_id.as_str().to_string();
+        let mut unmerged_below = false;
+        for (index, (layer, pull_request)) in plan
+            .layers
+            .iter()
+            .zip(&publication.pull_requests)
+            .enumerate()
+        {
+            let head = layer.candidate.native_id.as_str();
+            let number = pull_number(pull_request)?;
+            if !commit(head) {
+                return Err(stack_landing_plan_error());
+            }
+            let pull: RawPull = self.get_json(&format!(
+                "{}/repos/{owner}/{repository}/pulls/{number}",
+                self.endpoint
+            ))?;
+            if !pull.merged {
+                if pull.state != "open" {
+                    return Err(domain(
+                        "github_stack_layer_closed",
+                        "stack.landing",
+                        "a stack layer is closed unmerged",
+                    ));
+                }
+                unmerged_below = true;
+                continue;
+            }
+            if unmerged_below {
+                return Err(PortFailure::Unknown(InfrastructureFailure {
+                    code: "github_stack_out_of_order".to_string(),
+                    message: "a stack layer merged above a layer that has not merged".to_string(),
+                }));
+            }
+            if pull.head.sha != head {
+                return Err(domain(
+                    "github_stack_layer_head_changed",
+                    "stack.landing",
+                    "merged layer head differs from its verified candidate",
+                ));
+            }
+            let Some(merge_commit) = pull.merge_commit_sha.as_deref() else {
+                return Err(PortFailure::Unknown(InfrastructureFailure {
+                    code: "github_landing_merge_unknown".to_string(),
+                    message: "merged pull request has no observable merge commit".to_string(),
+                }));
+            };
+            if !commit(merge_commit) {
+                return Err(domain(
+                    "github_landing_merge_identity",
+                    "landing.merge",
+                    "malformed merge commit identity",
+                ));
+            }
+            let merge: RawCommit = self.get_json(&format!(
+                "{}/repos/{owner}/{repository}/git/commits/{merge_commit}",
+                self.endpoint
+            ))?;
+            let candidate: RawCommit = self.get_json(&format!(
+                "{}/repos/{owner}/{repository}/git/commits/{head}",
+                self.endpoint
+            ))?;
+            if !exact_merge(merge_commit, &merge, &first_parent, head, &candidate) {
+                return Err(domain(
+                    "github_stack_merge_mapping",
+                    "stack.landing",
+                    "merged layer is not the exact stacked merge of its verified candidate",
+                ));
+            }
+            layers.push(StackLayerIntegration {
+                position: u32::try_from(index + 1).map_err(|_| stack_landing_plan_error())?,
+                pull_request: pull_request.clone(),
+                candidate: layer.candidate.clone(),
+                merge_commit: ExternalRef::new("git", "commit", merge_commit)?,
+                mapping: IntegrationMapping {
+                    expected_base: ExternalRef::new("git", "commit", &first_parent)?,
+                    candidate_tree: ExternalRef::new("git", "tree", &candidate.tree.sha)?,
+                    landed_tree: ExternalRef::new("git", "tree", &merge.tree.sha)?,
+                },
+            });
+            first_parent = merge_commit.to_string();
+        }
+        if layers.is_empty() {
+            return Ok(None);
+        }
+        let trunk: RawRef = self.get_json(&format!(
+            "{}/repos/{owner}/{repository}/git/ref/heads/{}",
+            self.endpoint,
+            encode(&plan.trunk_branch)
+        ))?;
+        let trunk_head = trunk.object.sha;
+        if !commit(&trunk_head) {
+            return Err(domain(
+                "github_stack_trunk_identity",
+                "stack.landing",
+                "malformed trunk head identity",
+            ));
+        }
+        if trunk_head != first_parent {
+            let compare: RawCompare = self.get_json(&format!(
+                "{}/repos/{owner}/{repository}/compare/{first_parent}...{trunk_head}",
+                self.endpoint
+            ))?;
+            if !matches!(compare.status.as_str(), "ahead" | "identical")
+                || compare.merge_base_commit.sha != first_parent
+            {
+                return Err(PortFailure::Unknown(InfrastructureFailure {
+                    code: "github_stack_trunk_unknown".to_string(),
+                    message: "trunk head does not descend from the topmost stacked merge"
+                        .to_string(),
+                }));
+            }
+        }
+        let integration = StackIntegration {
+            schema: STACK_INTEGRATION_SCHEMA.to_string(),
+            stack: publication.stack.clone(),
+            layers,
+        };
+        let admitted = admit_stack_integration(plan, publication, &integration)?;
+        Ok(Some(StackLandingReceipt {
+            integration,
+            admitted,
+            trunk_head,
+        }))
+    }
+
     fn decode<T: serde::de::DeserializeOwned>(&self, response: ureq::Response) -> PortResult<T> {
         let mut bytes = Vec::new();
         response
@@ -668,20 +867,7 @@ fn admit_merge_mapping(
     merge: &RawCommit,
     candidate: &RawCommit,
 ) -> PortResult<()> {
-    if merge.sha != merge_sha
-        || candidate.sha != plan.head_sha
-        || merge.parents.len() != 2
-        || merge
-            .parents
-            .first()
-            .is_none_or(|parent| parent.sha != plan.base_head)
-        || merge
-            .parents
-            .get(1)
-            .is_none_or(|parent| parent.sha != plan.head_sha)
-        || !commit(&candidate.tree.sha)
-        || merge.tree.sha != candidate.tree.sha
-    {
+    if !exact_merge(merge_sha, merge, &plan.base_head, &plan.head_sha, candidate) {
         return Err(domain(
             "github_landing_merge_mapping",
             "landing.merge",
@@ -689,6 +875,29 @@ fn admit_merge_mapping(
         ));
     }
     Ok(())
+}
+
+/// A two-parent merge of `head` onto `first_parent` whose tree is the head's.
+fn exact_merge(
+    merge_sha: &str,
+    merge: &RawCommit,
+    first_parent: &str,
+    head: &str,
+    candidate: &RawCommit,
+) -> bool {
+    merge.sha == merge_sha
+        && candidate.sha == head
+        && merge.parents.len() == 2
+        && merge
+            .parents
+            .first()
+            .is_some_and(|parent| parent.sha == first_parent)
+        && merge
+            .parents
+            .get(1)
+            .is_some_and(|parent| parent.sha == head)
+        && commit(&candidate.tree.sha)
+        && merge.tree.sha == candidate.tree.sha
 }
 
 #[derive(Deserialize)]
@@ -738,6 +947,31 @@ fn landing_repository(plan: &LandingPlan) -> PortResult<(&str, &str)> {
     Ok((&plan.owner, &plan.repository))
 }
 
+fn stack_repository(repository: &str) -> PortResult<(&str, &str)> {
+    match repository.split_once('/') {
+        Some((owner, name)) if identifier(owner) && identifier(name) => Ok((owner, name)),
+        _ => Err(stack_landing_plan_error()),
+    }
+}
+
+fn pull_number(pull_request: &ExternalRef) -> PortResult<u64> {
+    pull_request
+        .native_id
+        .as_str()
+        .rsplit_once('#')
+        .and_then(|(_, number)| number.parse::<u64>().ok())
+        .filter(|number| *number != 0)
+        .ok_or_else(stack_landing_plan_error)
+}
+
+fn stack_landing_plan_error() -> PortFailure {
+    domain(
+        "github_stack_landing_plan",
+        "stack.landing",
+        "stack repository, layer head or pull request identity is malformed",
+    )
+}
+
 fn has_next_link(link: Option<&str>) -> PortResult<bool> {
     let Some(link) = link else {
         return Ok(false);
@@ -772,12 +1006,16 @@ fn refusal(code: &str, field: &str, message: &str) -> Diagnostic {
 }
 
 #[cfg(test)]
+#[path = "landing_stack_tests.rs"]
+mod stack_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::io::Write as _;
     use std::net::TcpListener;
 
-    fn token() -> ResolvedSecret {
+    pub(super) fn token() -> ResolvedSecret {
         ResolvedSecret::from_bytes(b"fixture-token".to_vec()).unwrap_or_else(|_| unreachable!())
     }
 
@@ -797,7 +1035,7 @@ mod tests {
         }
     }
 
-    fn serve(
+    pub(super) fn serve(
         responses: Vec<(&'static str, String)>,
     ) -> (String, std::thread::JoinHandle<Vec<String>>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());
@@ -924,7 +1162,7 @@ mod tests {
         .to_string()
     }
 
-    fn commit_body(sha: char, tree: char, parents: &[char]) -> String {
+    pub(super) fn commit_body(sha: char, tree: char, parents: &[char]) -> String {
         serde_json::json!({"sha": sha.to_string().repeat(40),
             "tree": {"sha": tree.to_string().repeat(40)},
             "parents": parents.iter().map(|parent| serde_json::json!({"sha": parent.to_string().repeat(40)})).collect::<Vec<_>>()}).to_string()

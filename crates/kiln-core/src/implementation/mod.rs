@@ -20,6 +20,7 @@ pub mod metrics;
 pub mod native_git;
 pub mod proof_evidence;
 pub mod publication;
+pub mod stack;
 pub mod verification;
 
 pub use attempt::*;
@@ -30,6 +31,7 @@ pub use metrics::*;
 pub use native_git::*;
 pub use proof_evidence::*;
 pub use publication::*;
+pub use stack::*;
 pub use verification::*;
 
 use alloc::collections::{BTreeMap, BTreeSet};

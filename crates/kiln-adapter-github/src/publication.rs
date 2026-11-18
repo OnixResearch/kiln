@@ -13,7 +13,10 @@ use kiln_adapter_git::native_publication::{
     NativeRemoteProfile, NativeTransport, PushObservation, push_exact_ref, read_remote_ref,
     remote_identity,
 };
-use kiln_core::implementation::PublicationPlan;
+use kiln_core::implementation::{
+    MAX_STACK_LAYERS, MIN_STACK_LAYERS, PublicationPlan, STACK_PUBLICATION_SCHEMA, STACK_SCHEMA,
+    StackPlan, StackPublication, admit_stack_publication, layer_publication_plans, stack_identity,
+};
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_provider_api::{InfrastructureFailure, PortFailure, PortResult};
 use serde::Deserialize;
@@ -266,10 +269,10 @@ impl GithubPublicationClient {
     /// Ensure exactly one open PR exists for the candidate branch and base.
     // r[impl kiln.github.publication]
     pub fn ensure_pull_request(&self, plan: &PublicationPlan) -> PortResult<PublicationOutcome> {
-        if let Some(outcome) = self.reconcile_pull_request(plan)? {
+        if let Some(outcome) = self.find_pull_request(plan, true)? {
             return Ok(outcome);
         }
-        self.create_pull_request(plan)
+        self.create_pull_request(plan, true)
     }
 
     /// Inspect all PR states so closed or externally merged PRs cannot be
@@ -278,14 +281,29 @@ impl GithubPublicationClient {
         &self,
         plan: &PublicationPlan,
     ) -> PortResult<Option<PublicationOutcome>> {
+        self.find_pull_request(plan, true)
+    }
+
+    /// With `by_base` false the head branch alone selects the pull request,
+    /// so a stack layer that GitHub retargeted after a lower merge is found
+    /// and refused by `outcome` instead of being created a second time.
+    fn find_pull_request(
+        &self,
+        plan: &PublicationPlan,
+        by_base: bool,
+    ) -> PortResult<Option<PublicationOutcome>> {
         validate_plan(plan)?;
         let (owner, repository) = repository_parts(&plan.repository)?;
+        let base = if by_base {
+            format!("&base={}", encode(&plan.base_branch))
+        } else {
+            String::new()
+        };
         let list = format!(
-            "{}/repos/{owner}/{repository}/pulls?state=all&head={}:{}&base={}&per_page=100",
+            "{}/repos/{owner}/{repository}/pulls?state=all&head={}:{}{base}&per_page=100",
             self.endpoint,
             encode(owner),
             encode(&plan.branch),
-            encode(&plan.base_branch)
         );
         let response = self.get(&list).map_err(HttpError::into_failure)?;
         if has_next_link(response.header("link"))? {
@@ -307,7 +325,11 @@ impl GithubPublicationClient {
         }
     }
 
-    fn create_pull_request(&self, plan: &PublicationPlan) -> PortResult<PublicationOutcome> {
+    fn create_pull_request(
+        &self,
+        plan: &PublicationPlan,
+        by_base: bool,
+    ) -> PortResult<PublicationOutcome> {
         validate_plan(plan)?;
         let (owner, repository) = repository_parts(&plan.repository)?;
         let body = serde_json::json!({
@@ -331,7 +353,7 @@ impl GithubPublicationClient {
                 outcome(plan, &pull)
             }
             Err(HttpError::Status(422 | 409)) => {
-                self.reconcile_pull_request(plan)?.ok_or_else(|| {
+                self.find_pull_request(plan, by_base)?.ok_or_else(|| {
                     unknown(
                         "github_publication_pr_race",
                         "pull request creation raced and remained unreconciled",
@@ -339,6 +361,139 @@ impl GithubPublicationClient {
                 })
             }
             Err(error) => Err(error.into_mutation_failure()),
+        }
+    }
+
+    /// Whether the repository has stacked pull requests. GitHub answers 404
+    /// from every stack endpoint when they are not enabled.
+    // r[impl kiln.github.stack]
+    pub fn supports_stacks(&self, repository: &str) -> PortResult<bool> {
+        let (owner, name) = repository_parts(repository)?;
+        match self.get(&format!(
+            "{}/repos/{owner}/{name}/stacks?per_page=1",
+            self.endpoint
+        )) {
+            Ok(response) => self.decode::<Vec<RawStack>>(response).map(|_| true),
+            Err(HttpError::Status(404)) => Ok(false),
+            Err(error) => Err(error.into_failure()),
+        }
+    }
+
+    /// Publish a stack plan as exact layer branches, pull requests and one
+    /// GitHub stack, bottom-up. Support, every layer's tree and ancestry, and
+    /// every layer's remote state are read before the first mutation, so a
+    /// re-run reuses what exists and mutates nothing. Kiln never adds to,
+    /// removes from, retargets or dissolves a stack.
+    // r[impl kiln.github.stack]
+    pub fn publish_stack(
+        &self,
+        plan: &StackPlan,
+        source: &PublicationSourceProfile,
+    ) -> PortResult<StackPublication> {
+        let layers = validate_stack_plan(plan)?;
+        if !self.supports_stacks(&plan.repository)? {
+            return Err(domain(
+                "github_stack_unsupported",
+                "stack.repository",
+                "repository has no stacked pull requests; publish one pull request instead",
+            ));
+        }
+        check_stack_layers(&layers, source, &self.endpoint)?;
+        let mut existing = Vec::with_capacity(layers.len());
+        for layer in &layers {
+            let pull = self.find_pull_request(layer, false)?;
+            if pull.is_none() {
+                self.publish_candidate_branch(layer, source, false)?;
+            }
+            existing.push(pull);
+        }
+        let mut pulls = Vec::with_capacity(layers.len());
+        for (layer, pull) in layers.iter().zip(existing) {
+            let pull = match pull {
+                Some(pull) => pull,
+                None => {
+                    self.publish_candidate_branch(layer, source, true)?
+                        .ok_or_else(publication_remote_error)?;
+                    self.create_pull_request(layer, false)?
+                }
+            };
+            pulls.push(pull);
+        }
+        let number = self.ensure_stack(plan, &pulls)?;
+        let publication = StackPublication {
+            schema: STACK_PUBLICATION_SCHEMA.to_string(),
+            stack: stack_identity(plan)?,
+            provider_stack: ExternalRef::new(
+                "github",
+                "stack",
+                &format!("{}#{number}", plan.repository),
+            )?,
+            pull_requests: pulls.into_iter().map(|pull| pull.pull_request).collect(),
+        };
+        admit_stack_publication(plan, &publication)?;
+        Ok(publication)
+    }
+
+    /// Reuse the exact stack or create it once. A conflict, lost response or
+    /// unreadable body is reconciled once and otherwise stays unknown.
+    fn ensure_stack(&self, plan: &StackPlan, pulls: &[PublicationOutcome]) -> PortResult<u64> {
+        if let Some(number) = self.find_stack(plan, pulls)? {
+            return Ok(number);
+        }
+        let (owner, repository) = repository_parts(&plan.repository)?;
+        let numbers: Vec<u64> = pulls.iter().map(|pull| pull.number).collect();
+        let body = serde_json::json!({ "pull_requests": numbers }).to_string();
+        let created = match self.post(
+            &format!("{}/repos/{owner}/{repository}/stacks", self.endpoint),
+            &body,
+        ) {
+            Ok(response) => self.decode::<RawStack>(response).ok(),
+            Err(HttpError::Status(status @ (401 | 403 | 404))) => {
+                return Err(HttpError::Status(status).into_failure());
+            }
+            Err(_) => None,
+        };
+        match created {
+            Some(stack) => {
+                exact_stack(plan, pulls, &stack)?;
+                Ok(stack.number)
+            }
+            None => self.find_stack(plan, pulls)?.ok_or_else(|| {
+                unknown(
+                    "github_stack_unknown",
+                    "stack creation outcome remains unresolved; reconcile before retry",
+                )
+            }),
+        }
+    }
+
+    fn find_stack(
+        &self,
+        plan: &StackPlan,
+        pulls: &[PublicationOutcome],
+    ) -> PortResult<Option<u64>> {
+        let (owner, repository) = repository_parts(&plan.repository)?;
+        let bottom = pulls.first().ok_or_else(stack_plan_error)?.number;
+        let response = self
+            .get(&format!(
+                "{}/repos/{owner}/{repository}/stacks?pull_request={bottom}&per_page=100",
+                self.endpoint
+            ))
+            .map_err(HttpError::into_failure)?;
+        if has_next_link(response.header("link"))? {
+            return Err(unknown(
+                "github_stack_pagination",
+                "stack reconciliation is incomplete across pages",
+            ));
+        }
+        let stacks: Vec<RawStack> = self.decode(response)?;
+        match stacks.as_slice() {
+            [] => Ok(None),
+            [stack] => exact_stack(plan, pulls, stack).map(|()| Some(stack.number)),
+            _ => Err(unknown(
+                "github_stack_ambiguous",
+                "more than one stack contains the bottom pull request",
+            )),
         }
     }
 
@@ -484,6 +639,101 @@ fn candidate_repository_path(
         plan.fence
     ));
     std::fs::canonicalize(path).map_err(|_| publication_source_error())
+}
+
+/// Shape of a stack plan the adapter relies on; full admission is the core's.
+fn validate_stack_plan(plan: &StackPlan) -> PortResult<Vec<PublicationPlan>> {
+    repository_parts(&plan.repository)?;
+    let layers = layer_publication_plans(plan);
+    let chained = layers.iter().enumerate().all(|(index, layer)| {
+        match index.checked_sub(1).and_then(|below| layers.get(below)) {
+            None => layer.base_branch == plan.trunk_branch && layer.base == plan.base,
+            Some(below) => layer.base_branch == below.branch && layer.base == below.candidate,
+        }
+    });
+    if plan.schema != STACK_SCHEMA
+        || !(MIN_STACK_LAYERS..=MAX_STACK_LAYERS).contains(&layers.len())
+        || !chained
+    {
+        return Err(stack_plan_error());
+    }
+    for layer in &layers {
+        validate_plan(layer)?;
+    }
+    Ok(layers)
+}
+
+/// Check every layer's tree and ancestry in the captured export before any push.
+fn check_stack_layers(
+    layers: &[PublicationPlan],
+    source: &PublicationSourceProfile,
+    endpoint: &str,
+) -> PortResult<()> {
+    let top = layers.last().ok_or_else(stack_plan_error)?;
+    validate_source_profile(top, source, endpoint)?;
+    let path = candidate_repository_path(top, source)?;
+    let repository = Repository::open_bare(&path)
+        .or_else(|_| Repository::open(&path))
+        .map_err(|_| publication_source_error())?;
+    for layer in layers {
+        let oid = Oid::from_str(layer.candidate.native_id.as_str())
+            .map_err(|_| publication_source_error())?;
+        let parent =
+            Oid::from_str(layer.base.native_id.as_str()).map_err(|_| publication_source_error())?;
+        let commit = repository
+            .find_commit(oid)
+            .map_err(|_| publication_source_error())?;
+        if commit.tree_id().to_string() != layer.tree.native_id.as_str() {
+            return Err(domain(
+                "github_publication_tree_conflict",
+                "publication.tree",
+                "captured candidate tree differs from verified plan",
+            ));
+        }
+        if !repository
+            .graph_descendant_of(oid, parent)
+            .map_err(|_| publication_source_error())?
+        {
+            return Err(domain(
+                "github_stack_ancestry",
+                "stack.layers",
+                "layer candidate does not descend from its planned parent",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn exact_stack(plan: &StackPlan, pulls: &[PublicationOutcome], stack: &RawStack) -> PortResult<()> {
+    let exact = stack.number != 0
+        && stack.base.r#ref == plan.trunk_branch
+        && stack.pull_requests.len() == plan.layers.len()
+        && pulls.len() == plan.layers.len()
+        && stack
+            .pull_requests
+            .iter()
+            .zip(plan.layers.iter().zip(pulls))
+            .all(|(member, (layer, pull))| {
+                member.number == pull.number
+                    && member.head.r#ref == layer.branch
+                    && member.head.sha == layer.candidate.native_id.as_str()
+            });
+    if exact {
+        return Ok(());
+    }
+    Err(domain(
+        "github_stack_conflict",
+        "stack.provider",
+        "existing stack differs from the plan; Kiln never edits or dissolves a stack",
+    ))
+}
+
+fn stack_plan_error() -> PortFailure {
+    domain(
+        "github_stack_plan",
+        "stack.plan",
+        "stack plan has malformed layers or a broken parent or branch chain",
+    )
 }
 
 fn publication_source_error() -> PortFailure {
@@ -721,6 +971,23 @@ struct RawBase {
     r#ref: String,
 }
 
+/// The stack resource; list, create and get share these fields.
+#[derive(Deserialize)]
+struct RawStack {
+    number: u64,
+    base: RawBase,
+    pull_requests: Vec<RawStackPull>,
+}
+#[derive(Deserialize)]
+struct RawStackPull {
+    number: u64,
+    head: RawHead,
+}
+
+#[cfg(test)]
+#[path = "publication_stack_tests.rs"]
+mod stack_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -742,7 +1009,7 @@ mod tests {
         assert!(has_next_link(Some("malformed page metadata")).is_err());
     }
 
-    fn token() -> ResolvedSecret {
+    pub(super) fn token() -> ResolvedSecret {
         ResolvedSecret::from_bytes(b"fixture-token".to_vec()).unwrap_or_else(|_| unreachable!())
     }
 
@@ -895,7 +1162,7 @@ mod tests {
         }
     }
 
-    fn serve(
+    pub(super) fn serve(
         responses: Vec<(&'static str, String)>,
     ) -> (String, std::thread::JoinHandle<Vec<String>>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!());

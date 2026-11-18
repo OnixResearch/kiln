@@ -57,26 +57,66 @@ pub fn admit_candidate_verification(
         || verification.tree != handoff.tree
         || verification.base != handoff.base
         || verification.verification_profile != work.verification_profile
-        || verification.run.project != work.project
-        || verification.run.repository != work.repository
-        || verification.run.revision != handoff.candidate.native_id.as_str()
-        || verification.run.ordinal == 0
-        || !identifier(&verification.run.run_id, MAX_CHECK_NAME_BYTES)
-        || !verification.run.terminal
-        || !verification.run.success
-        || !verification.run.full_run
-        || !verification.run.clean
-        || verification.run.untrusted.is_some()
-        || verification.run.checks.is_empty()
-        || verification.run.checks.len() > MAX_VERIFICATION_CHECKS
     {
-        return Err(refusal(
-            "implementation_verification_binding",
-            "verification.receipt",
-            "verification evidence does not bind the exact candidate, work or attempt",
-        ));
+        return Err(binding_refusal());
     }
-    let mut checks = verification.run.checks.clone();
+    let checks = admit_verification_run(
+        work,
+        handoff.candidate.native_id.as_str(),
+        &verification.run,
+    )?;
+    let mut bytes = Vec::new();
+    push_str(&mut bytes, VERIFICATION_SCHEMA)?;
+    for value in [
+        verification.handoff.as_str(),
+        verification.work_identity.as_str(),
+    ] {
+        push_str(&mut bytes, value)?;
+    }
+    bytes.extend_from_slice(&verification.work_revision.to_be_bytes());
+    push_str(&mut bytes, verification.attempt.as_str())?;
+    bytes.extend_from_slice(&verification.fence.to_be_bytes());
+    push_external(&mut bytes, Some(&verification.candidate))?;
+    push_external(&mut bytes, Some(&verification.tree))?;
+    push_external(&mut bytes, verification.base.as_ref())?;
+    push_str(&mut bytes, verification.verification_profile.as_str())?;
+    push_run(&mut bytes, &verification.run, &checks)?;
+    content_identity(&bytes)
+}
+
+fn binding_refusal() -> Diagnostic {
+    refusal(
+        "implementation_verification_binding",
+        "verification.receipt",
+        "verification evidence does not bind the exact candidate, work or attempt",
+    )
+}
+
+/// The canonical CI rules shared by candidate and stack-layer verification: a
+/// trusted, terminal, successful, full and clean run of exactly `revision` in
+/// the work's project and repository, whose bounded, unique checks all pass
+/// with artifact digests. Returns the checks in canonical order.
+pub(super) fn admit_verification_run(
+    work: &ImplementationWork,
+    revision: &str,
+    run: &CiFact,
+) -> CoreResult<Vec<CiCheck>> {
+    if run.project != work.project
+        || run.repository != work.repository
+        || run.revision != revision
+        || run.ordinal == 0
+        || !identifier(&run.run_id, MAX_CHECK_NAME_BYTES)
+        || !run.terminal
+        || !run.success
+        || !run.full_run
+        || !run.clean
+        || run.untrusted.is_some()
+        || run.checks.is_empty()
+        || run.checks.len() > MAX_VERIFICATION_CHECKS
+    {
+        return Err(binding_refusal());
+    }
+    let mut checks = run.checks.clone();
     checks.sort_by(|left, right| {
         left.name
             .cmp(&right.name)
@@ -102,37 +142,27 @@ pub fn admit_candidate_verification(
             ));
         }
     }
-    let mut bytes = Vec::new();
-    push_str(&mut bytes, VERIFICATION_SCHEMA)?;
-    for value in [
-        verification.handoff.as_str(),
-        verification.work_identity.as_str(),
-    ] {
-        push_str(&mut bytes, value)?;
-    }
-    bytes.extend_from_slice(&verification.work_revision.to_be_bytes());
-    push_str(&mut bytes, verification.attempt.as_str())?;
-    bytes.extend_from_slice(&verification.fence.to_be_bytes());
-    push_external(&mut bytes, Some(&verification.candidate))?;
-    push_external(&mut bytes, Some(&verification.tree))?;
-    push_external(&mut bytes, verification.base.as_ref())?;
-    push_str(&mut bytes, verification.verification_profile.as_str())?;
-    push_str(&mut bytes, &verification.run.project)?;
-    push_str(&mut bytes, &verification.run.repository)?;
-    push_str(&mut bytes, &verification.run.revision)?;
-    push_str(&mut bytes, &verification.run.run_id)?;
-    bytes.extend_from_slice(&verification.run.ordinal.to_be_bytes());
-    bytes.push(u8::from(verification.run.terminal));
-    bytes.push(u8::from(verification.run.success));
-    bytes.push(u8::from(verification.run.full_run));
-    bytes.push(u8::from(verification.run.clean));
-    if let Some(scope) = &verification.run.scope_identity {
-        push_str(&mut bytes, scope)?;
+    Ok(checks)
+}
+
+/// The canonical bytes of an admitted run, in the order both identities use.
+pub(super) fn push_run(bytes: &mut Vec<u8>, run: &CiFact, checks: &[CiCheck]) -> CoreResult<()> {
+    push_str(bytes, &run.project)?;
+    push_str(bytes, &run.repository)?;
+    push_str(bytes, &run.revision)?;
+    push_str(bytes, &run.run_id)?;
+    bytes.extend_from_slice(&run.ordinal.to_be_bytes());
+    bytes.push(u8::from(run.terminal));
+    bytes.push(u8::from(run.success));
+    bytes.push(u8::from(run.full_run));
+    bytes.push(u8::from(run.clean));
+    if let Some(scope) = &run.scope_identity {
+        push_str(bytes, scope)?;
     }
     for check in checks {
-        push_check(&mut bytes, &check)?;
+        push_check(bytes, check)?;
     }
-    content_identity(&bytes)
+    Ok(())
 }
 
 fn push_check(bytes: &mut Vec<u8>, check: &CiCheck) -> CoreResult<()> {

@@ -32,8 +32,8 @@ The sections below group the maintained documents by the question they answer.
 - [Radicle status](radicle-status.md): a rebuildable `xyz.radicle.ci-job` projection; no merge authority.
 - [Radicle job publication](radicle-jobs.md): a local `xyz.radworks.job` projection for one exact commit.
 - [Radicle mutation](radicle-mutation.md): appends only the declared `review` action to a declared patch.
-- [GitHub publication](github-publication.md): idempotent verified-PR delivery; never force-pushes or merges.
-- [GitHub landing observation](github-landing-observation.md): reads one pull request and its check runs into bounded landing evidence; strictly read-only.
+- [GitHub publication](github-publication.md): idempotent verified-PR delivery and opt-in ordered stacks; never force-pushes or merges.
+- [GitHub landing observation](github-landing-observation.md): reads one pull request and its check runs into bounded landing evidence, and recovers exact stacked merges; strictly read-only.
 - [Repository feeds](repository-feeds.md): read-only Atom and RSS observations, not CI evidence.
 - [GitHub CI adapter](operator.md#github-ci-adapter): operator procedure for webhook intake and exact-source jobs.
 - [iMessage receiver feasibility](imessage-receiver-feasibility.md): documented no-go for an OpenBubbles receiver; a typed contract kept for a separately licensed one.

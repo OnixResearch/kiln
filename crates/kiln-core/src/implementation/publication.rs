@@ -435,13 +435,13 @@ pub fn admit_source_status_receipt(
     content_identity(&bytes)
 }
 
-fn push_external(bytes: &mut Vec<u8>, external: &ExternalRef) -> CoreResult<()> {
+pub(super) fn push_external(bytes: &mut Vec<u8>, external: &ExternalRef) -> CoreResult<()> {
     push_str(bytes, external.provider_namespace.as_str())?;
     push_str(bytes, external.native_kind.as_str())?;
     push_str(bytes, external.native_id.as_str())
 }
 
-fn github_repository(value: &str) -> bool {
+pub(super) fn github_repository(value: &str) -> bool {
     let Some((owner, repository)) = value.split_once('/') else {
         return false;
     };
@@ -458,7 +458,7 @@ fn github_repository(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
 }
 
-fn bounded_branch(value: &str) -> bool {
+pub(super) fn bounded_branch(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_BRANCH_BYTES
         && !value.starts_with('/')
@@ -467,7 +467,7 @@ fn bounded_branch(value: &str) -> bool {
         && !value.chars().any(char::is_control)
 }
 
-fn bounded(value: &str, max: usize) -> bool {
+pub(super) fn bounded(value: &str, max: usize) -> bool {
     !value.is_empty()
         && value.len() <= max
         && !value
