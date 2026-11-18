@@ -24,3 +24,13 @@
 - [ ] [serial] [depends:kiln.implementation.authority.enforcement] Add the explicit local-operator profile with recorded provenance and no role-only or fallback path. r[kiln.implementation.authority.compatibility]
 - [ ] [serial] [depends:kiln.implementation.authority.currentness] Record bounded redacted decisions with principal, work/attempt/fence, policy, operation and denial reasons. r[kiln.implementation.authority.enforcement.scenario.replay]
 - [ ] [serial] [depends:kiln.implementation.authority.compatibility] Update the operator guide, changelog, license map and run the focused, workspace and Cairn checks. r[kiln.implementation.authority.cohort]
+
+## Blocked prerequisite
+
+Phase 2 cannot proceed under the current pins. Basalt's UCAN cohort `c483c7b`
+requires rustc 1.96 through `replay-ledger-core` and `revocation-view-core` at
+`a0de7930`, while Kiln pins Rust 1.88.0, and two same-name same-version vendored
+UCAN path packages cannot coexist. The operator must choose the single-cohort
+toolchain upgrade, the source-distinct dual-cohort dependency, or defer the
+adapter. The rejected attempt was reverted byte-for-byte; the workspace checks
+clean at `a125e597`.

@@ -59,12 +59,31 @@ capability. There is no missing-authority or alternate-provider fallback.
 
 ### Cohort and import
 
-Kiln's vendored UCAN `d46816f` is an ancestor of Basalt's `c483c7b`. Kiln upgrades
-its single vendored snapshot to `c483c7b` and imports Basalt with a repo-owned
-script that copies the crate, omits `vendor/` and rewrites the three UCAN path
-dependencies to `vendor/ucan*`. The import records the source repository, commit,
-archive hash and rewrite so the transform is reproducible and reviewable. Basalt
-stays AGPL-3.0-or-later; `LICENSES.md` records the linked cohort.
+Kiln's vendored UCAN `d46816f` is an ancestor of Basalt's `c483c7b`, but the two
+snapshots are not interchangeable under Kiln's current toolchain. Attempting the
+upgrade showed that `c483c7b` adds a durable-authority module whose
+`replay-ledger-core` and `revocation-view-core` dependencies at `a0de7930`
+require rustc 1.96, while Kiln pins Rust 1.88.0. Cargo cannot resolve two
+same-name, same-version path packages, so a second vendored UCAN copy is not an
+option either.
+
+One cohort therefore requires one of:
+
+1. Upgrade Kiln's Rust pin to 1.96 and import the two additional pinned sources,
+   then import Basalt with a repo-owned script that omits `vendor/` and rewrites
+   its three UCAN path dependencies to Kiln's single `vendor/ucan*` copy.
+2. Consume Basalt from a source-distinct (git) dependency and keep two cohorts,
+   accepting the Nix prefetch and dual-verification-profile cost.
+3. Keep Basalt out of process, which cannot return the live session this design
+   requires.
+
+Option 1 is preferred: one cohort, an additive upstream delta, and no duplicate
+UCAN crate. It is a toolchain change with its own validation, so it must be an
+explicit decision rather than a side effect of this feature. Until it lands, this
+change stops after the coverage contract; the authority port and enforcement
+tasks stay open.
+
+Basalt stays AGPL-3.0-or-later; `LICENSES.md` will record the linked cohort.
 
 ### Non-claims
 
