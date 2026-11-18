@@ -159,6 +159,10 @@ fn set_mode(path: &Path, mode: u32) {
     ok(fs::set_permissions(path, fs::Permissions::from_mode(mode)));
 }
 
+fn pin(plan: &MaterializationPlan, attempt: &ContentId, fence: u64) -> WorkspacePin {
+    ok(plan.pin(attempt, fence))
+}
+
 // r[verify kiln.source.projection.materialization.scenario.repeat]
 #[test]
 fn repeated_materialization_is_byte_and_mode_equivalent() {
@@ -206,8 +210,16 @@ fn attempt_overlays_share_the_input_but_not_their_writes() {
     let plan = fixture_plan(&fixture);
     let input = ok(prepare_input(&fixture.store, &plan, &fixture.repository));
     let (attempt_a, attempt_b) = (content("attempt-a"), content("attempt-b"));
-    let a = ok(prepare_overlay(&fixture.store, &plan, &attempt_a, 1));
-    let b = ok(prepare_overlay(&fixture.store, &plan, &attempt_b, 1));
+    let a = ok(prepare_overlay(
+        &fixture.store,
+        &plan,
+        &pin(&plan, &attempt_a, 1),
+    ));
+    let b = ok(prepare_overlay(
+        &fixture.store,
+        &plan,
+        &pin(&plan, &attempt_b, 1),
+    ));
     assert_ne!(a, b);
     let before = snapshot(&input);
     let modes: Vec<(String, u32)> = snapshot(&a)
@@ -235,17 +247,30 @@ fn attempt_overlays_share_the_input_but_not_their_writes() {
 
     // The attempt resumes its own overlay, edits included; a later fence of
     // the same attempt gets a fresh overlay from the unchanged input.
-    assert_eq!(ok(prepare_overlay(&fixture.store, &plan, &attempt_a, 1)), a);
+    assert_eq!(
+        ok(prepare_overlay(
+            &fixture.store,
+            &plan,
+            &pin(&plan, &attempt_a, 1)
+        )),
+        a
+    );
     assert_eq!(
         ok(read_file(&a.join("kiln-core/src/lib.rs"))),
         b"pub fn edited() {}\n"
     );
-    let replacement = ok(prepare_overlay(&fixture.store, &plan, &attempt_a, 2));
+    let replacement = ok(prepare_overlay(
+        &fixture.store,
+        &plan,
+        &pin(&plan, &attempt_a, 2),
+    ));
     assert_eq!(
         ok(read_file(&replacement.join("kiln-core/src/lib.rs"))),
         LIB
     );
-    assert!(prepare_overlay(&fixture.store, &plan, &attempt_a, 0).is_err());
+    let mut zero = pin(&plan, &attempt_a, 1);
+    zero.fence = 0;
+    assert!(prepare_overlay(&fixture.store, &plan, &zero).is_err());
     release(fixture);
 }
 
@@ -322,15 +347,15 @@ fn missing_corrupt_damaged_and_unbound_state_is_never_admitted() {
     ok(fs::write(unbound.join("operator-note"), b"keep"));
     assert!(prepare_input(&unbound_store, &plan, &fixture.repository).is_err());
     assert_eq!(ok(read_file(&unbound.join("operator-note"))), b"keep");
-    assert!(prepare_overlay(&unbound_store, &plan, &content("attempt"), 1).is_err());
+    let attempt = content("attempt");
+    assert!(prepare_overlay(&unbound_store, &plan, &pin(&plan, &attempt, 1)).is_err());
 
     // An overlay directory without its binding is refused and kept.
-    let attempt = content("attempt");
     let identity = ok(plan.overlay_identity(&attempt, 3));
     let overlays = private(fixture.store.join(OVERLAYS));
     let stray = overlays.join(identity.as_str());
     ok(fs::create_dir(&stray));
-    assert!(prepare_overlay(&fixture.store, &plan, &attempt, 3).is_err());
+    assert!(prepare_overlay(&fixture.store, &plan, &pin(&plan, &attempt, 3)).is_err());
     assert!(stray.exists());
     release(fixture);
 }
@@ -353,5 +378,61 @@ fn an_interrupted_preparation_is_never_adopted() {
         ok(read_file(&leftover.join("kiln-core/Cargo.toml"))),
         b"partial"
     );
+    release(fixture);
+}
+
+// r[verify kiln.source.projection.materialization.scenario.pinned]
+#[test]
+fn an_overlay_is_prepared_and_resumed_only_for_its_exact_pin() {
+    let fixture = fixture();
+    let plan = fixture_plan(&fixture);
+    ok(prepare_input(&fixture.store, &plan, &fixture.repository));
+    let attempt = content("attempt");
+    let exact = pin(&plan, &attempt, 1);
+    let overlay = ok(prepare_overlay(&fixture.store, &plan, &exact));
+    let binding_path = fixture
+        .store
+        .join(OVERLAYS)
+        .join(format!("{}.json", exact.overlay.as_str()));
+    let binding = ok(read_binding(&binding_path)).unwrap_or_else(|| unreachable!());
+    assert_eq!(binding.overlay.as_ref(), Some(&exact));
+
+    // A pin naming another source, definition, manifest or profile than the
+    // plan is refused, even though its overlay generation is consistent.
+    type PinChange = fn(&mut WorkspacePin);
+    let changes: [PinChange; 4] = [
+        |pin| pin.source = external("git", "commit", &"c".repeat(40)),
+        |pin| pin.definition = content("other-definition"),
+        |pin| pin.manifest = content("other-manifest"),
+        |pin| pin.profile = content("other-profile"),
+    ];
+    for change in changes {
+        let mut forged = exact.clone();
+        change(&mut forged);
+        assert_eq!(forged.validate(), Ok(()));
+        assert!(prepare_overlay(&fixture.store, &plan, &forged).is_err());
+    }
+
+    // A retained overlay whose binding records another pin, or a version 1
+    // binding without one, is neither resumed nor overwritten.
+    let mut recorded = binding;
+    if let Some(retained) = recorded.overlay.as_mut() {
+        retained.definition = content("other-definition");
+    }
+    let v1 = serde_json::json!({
+        "schema": "kiln.materialization.binding.v1",
+        "manifest": plan.manifest(),
+        "input": plan.input_identity(),
+        "overlay": {"identity": exact.overlay, "attempt": attempt, "fence": 1}
+    });
+    for retained in [
+        ok(serde_json::to_vec(&recorded)),
+        v1.to_string().into_bytes(),
+    ] {
+        ok(fs::remove_file(&binding_path));
+        ok(fs::write(&binding_path, retained));
+        assert!(prepare_overlay(&fixture.store, &plan, &exact).is_err());
+        assert!(overlay.join("kiln-core/Cargo.toml").exists());
+    }
     release(fixture);
 }

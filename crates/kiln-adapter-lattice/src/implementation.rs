@@ -278,6 +278,7 @@ mod tests {
                 isolation: WorkspaceIsolation::IsolatedSnapshot,
                 network: false,
                 credentials: false,
+                projection: None,
             },
             provider_profile: ProviderProfileId::new("lattice").unwrap_or_else(|_| unreachable!()),
             permitted_paths: vec!["crates".to_string()],
@@ -446,6 +447,7 @@ mod tests {
                     isolation: WorkspaceIsolation::IsolatedSnapshot,
                     network: false,
                     credentials: false,
+                    projection: None,
                 },
                 provider_profile: ProviderProfileId::new("lattice")
                     .unwrap_or_else(|_| unreachable!()),

@@ -5,10 +5,11 @@
 //! shell verifies every Git blob against its object identity, writes only the
 //! planned entries into a private preparing directory, publishes the immutable
 //! input by a no-replace rename and only then records its binding. An attempt
-//! overlay is a private writable copy of a published input. A directory whose
-//! binding is missing or different is never reused or overwritten, and a
-//! reused input is verified again. Materializing grants no read, write or
-//! execution authority; callers admit those separately.
+//! overlay is a private writable copy of a published input, prepared for one
+//! dispatch `WorkspacePin` and bound to it. A directory whose binding is
+//! missing or different is never reused or overwritten, and a reused input is
+//! verified again. Materializing grants no read, write or execution
+//! authority; callers admit those separately.
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
@@ -16,14 +17,14 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use git2::{ObjectType, Oid, Repository};
-use kiln_core::projection::materialization::{MaterializationPlan, PlannedEntry};
+use kiln_core::projection::materialization::{MaterializationPlan, PlannedEntry, WorkspacePin};
 use kiln_core::types::ContentId;
 use nix::fcntl::{AT_FDCWD, RenameFlags, renameat2};
 use serde::{Deserialize, Serialize};
 
 use super::files::owned_directory;
 
-const BINDING_SCHEMA: &str = "kiln.materialization.binding.v1";
+const BINDING_SCHEMA: &str = "kiln.materialization.binding.v2";
 const INPUTS: &str = "inputs";
 const OVERLAYS: &str = "overlays";
 const PREPARING_PREFIX: &str = ".preparing-";
@@ -39,15 +40,8 @@ const WRITABLE_EXECUTABLE: u32 = 0o755;
 const WRITABLE_DIRECTORY: u32 = 0o755;
 const PRIVATE_DIRECTORY: u32 = 0o700;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct OverlayBinding {
-    identity: ContentId,
-    attempt: ContentId,
-    fence: u64,
-}
-
-/// What a published input or overlay directory was prepared for.
+/// What a published input or overlay directory was prepared for. An overlay
+/// records the whole dispatch pin of its attempt.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Binding {
@@ -55,7 +49,7 @@ struct Binding {
     manifest: ContentId,
     input: ContentId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    overlay: Option<OverlayBinding>,
+    overlay: Option<WorkspacePin>,
 }
 
 impl Binding {
@@ -100,18 +94,26 @@ pub fn prepare_input(
 }
 
 // r[impl kiln.source.projection.materialization.scenario.isolated]
-/// Prepare, or resume, the private writable overlay of one attempt over the
-/// published input of `plan`.
+// r[impl kiln.source.projection.materialization.scenario.pinned]
+/// Prepare, or resume, the private writable overlay that `pin` names over the
+/// published input of `plan`. The pin must be exactly the one `plan` derives
+/// for its attempt and fence, and an existing overlay is resumed only when its
+/// binding records that same pin.
 pub fn prepare_overlay(
     store: &Path,
     plan: &MaterializationPlan,
-    attempt: &ContentId,
-    fence: u64,
+    pin: &WorkspacePin,
 ) -> Result<PathBuf, String> {
     owned_directory(store)?;
-    let identity = plan
-        .overlay_identity(attempt, fence)
+    let derived = plan
+        .pin(&pin.attempt, pin.fence)
         .map_err(|error| format!("{}: {}", error.code, error.message))?;
+    if &derived != pin {
+        return Err(
+            "the dispatch pin differs from the materialization plan; prepare a new overlay generation"
+                .into(),
+        );
+    }
     let input = store.join(INPUTS).join(plan.input_identity().as_str());
     let input_binding = store
         .join(INPUTS)
@@ -120,15 +122,11 @@ pub fn prepare_overlay(
         return Err("the overlay's input has not been published".into());
     }
     let overlays = private_child(store, OVERLAYS)?;
-    let name = identity.as_str();
+    let name = pin.overlay.as_str();
     let published = overlays.join(name);
     let binding_path = overlays.join(format!("{name}.json"));
     let mut expected = Binding::input(plan);
-    expected.overlay = Some(OverlayBinding {
-        identity: identity.clone(),
-        attempt: attempt.clone(),
-        fence,
-    });
+    expected.overlay = Some(pin.clone());
     // The attempt resumes its own overlay, edits included.
     if bound(&published, &binding_path, &expected, "overlay")? {
         return Ok(published);

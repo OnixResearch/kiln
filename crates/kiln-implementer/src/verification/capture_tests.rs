@@ -176,6 +176,7 @@ fn dispatched(
             isolation: WorkspaceIsolation::IsolatedSnapshot,
             network: false,
             credentials: false,
+            projection: None,
         },
         provider_profile: ProviderProfileId::new("lattice-implementation")
             .map_err(|error| format!("{error:?}"))?,

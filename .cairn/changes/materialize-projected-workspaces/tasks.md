@@ -5,5 +5,5 @@
 
 ## Phase 2: Integration
 
-- [ ] [serial] Pin source, definition, manifest, materializer profile and overlay generation in dispatch and retained workspace metadata, refusing mismatches. r[kiln.source.projection.materialization]
+- [x] [serial] Pin source, definition, manifest, materializer profile and overlay generation in dispatch and retained workspace metadata, refusing mismatches. r[kiln.source.projection.materialization] r[kiln.source.projection.materialization.scenario.pinned]
 - [ ] [serial] Apply #69/#70 authority at retrieval and workspace effects and qualify the restricted runtime negatives and the two-project build profile from #77. r[kiln.source.projection.materialization]

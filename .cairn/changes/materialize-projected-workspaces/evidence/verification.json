@@ -30,12 +30,59 @@
     "wrapper": "dev-shell environment with pkg-config and OpenSSL and a private TMPDIR"
   },
   "remaining": [
-    "Pin source, definition, manifest, materializer profile and overlay generation in dispatch and retained workspace metadata.",
     "Apply #69/#70 authority at retrieval and workspace effects; qualify restricted-runtime negatives and the two-project build profile of #77."
   ],
   "non_claims": [
     "Materializing grants no read, write or execution authority, and no caller uses it in dispatch yet.",
     "Inputs are not fsynced; a crash can leave a damaged published input, which re-verification refuses.",
     "Tests run as an unprivileged user; read-only modes are not a confinement boundary against a privileged process."
-  ]
+  ],
+  "phase_2_pinning": {
+    "observed_on": "2026-11-18",
+    "scope": "Phase 2, task 1: the workspace pin shared by the implementation dispatch plan and the retained overlay binding. Unit, dispatch and temporary-repository tests; no worker job selects a projected workspace, and no authority provider or restricted runtime is involved.",
+    "source_parent_revision": "d628fd5aa623e31618c6365da7dd06a6568b8331",
+    "immediate_outcome": "A dispatch plan can pin the admitted repository, exact source revision, definition, manifest, materializer profile, input and overlay generation for its attempt and fence. Admission refuses a pin for another attempt, fence or base, an inconsistent overlay and a workspace that is not that overlay; the plan identity includes the pin, while a plan without one keeps its frozen identity. The worker prepares or resumes an overlay only for the exact pin its plan derives and its v2 binding records.",
+    "durable_capability": "kiln_core::projection::materialization (WorkspacePin, MaterializationPlan::pin, MaterializerProfile::identity, overlay_identity), DispatchWorkspace.projection with admit_dispatch_plan, and kiln_web_service::worker::materialize::prepare_overlay with the kiln.materialization.binding.v2 overlay binding.",
+    "ordering": "The proposal, design and tasks gates passed again after the contract was extended and before the code changed; the frozen unpinned plan identity was captured from the code before the change.",
+    "checks": [
+      {
+        "command": "cargo test --locked -p onix-kiln-core --lib",
+        "result": "pass, including a_plan_without_a_workspace_pin_keeps_its_identity, a_workspace_pin_binds_the_attempt_fence_base_and_overlay and pins_bind_the_exact_source_definition_manifest_profile_and_overlay",
+        "passed": 373,
+        "failed": 0
+      },
+      {
+        "command": "cargo test --locked -p kiln-web-service --lib worker",
+        "result": "pass, including an_overlay_is_prepared_and_resumed_only_for_its_exact_pin",
+        "passed": 52,
+        "ignored": 2,
+        "failed": 0
+      },
+      {
+        "command": "cargo test --locked -p kiln-implementer; cargo test --locked -p kiln-adapter-lattice; cargo test --locked -p kiln-adapter-github --test implementer_cli",
+        "result": "pass; existing dispatch fixtures carry no pin"
+      },
+      {
+        "command": "cargo clippy --locked -p onix-kiln-core -p kiln-web-service -p kiln-implementer -p kiln-adapter-lattice -p kiln-adapter-github --all-targets -- -D warnings",
+        "result": "pass"
+      },
+      {
+        "command": "scoped rustfmt --check --edition 2024 on the touched Rust files",
+        "result": "pass"
+      },
+      {
+        "command": "cairn gate proposal|design|tasks materialize-projected-workspaces; cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+        "result": "pass; validate reports 0 issues"
+      },
+      {
+        "command": "cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json",
+        "result": "every kiln.source.projection.materialization ID, including scenario.pinned, is defined and referenced; the command still fails only for the pre-existing kiln.github.landing.merge.scenario.landed and kiln.github.source_status.scenario.close and the dangling kiln.dashboard.campaign.projection and kiln.github.publication.scenario.upload"
+      }
+    ],
+    "non_claims": [
+      "No worker job, service or console selects the projected route yet; full-tree preparation is unchanged.",
+      "Input and overlay bindings moved to kiln.materialization.binding.v2. A store prepared before this change is refused rather than adopted; no deployed caller relies on one.",
+      "A pin is consistency evidence, not authority: #69/#70 still own retrieval and workspace-effect authority."
+    ]
+  }
 }

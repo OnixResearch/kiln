@@ -67,8 +67,13 @@ entry describes the source tree prepared for the first tagged release.
   generated entries and platforms that cannot represent the target. The local
   shell verifies each Git blob, publishes inputs by no-replace rename before
   binding them, re-verifies reused inputs, and never reuses or overwrites a
-  directory without its matching binding. (#78; unit and temporary-repository
-  tests; no dispatch, authority or restricted-runtime wiring yet)
+  directory without its matching binding. An implementation dispatch plan can
+  pin the projected workspace (repository, exact source, definition, manifest,
+  materializer profile, input and overlay generation for its attempt and
+  fence); admission refuses a crossed pin, and the worker resumes an overlay
+  only under the same retained pin. Plans without a pin keep their identity.
+  (#78; unit, dispatch and temporary-repository tests; no worker job, authority
+  or restricted-runtime wiring yet)
 - A versioned durable-workspace provider profile in typed Nickel keeps canonical
   BLAKE3 identities apart from provider disk, branch and checkpoint references
   and refuses profiles that rely on a documented-insufficient mechanism: a

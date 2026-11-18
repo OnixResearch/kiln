@@ -2454,10 +2454,26 @@ it verifies each Git blob against its object identity, writes only the planned
 entries into a fresh preparing directory, seals them read-only, publishes the
 input with a no-replace rename and then records its binding. A reused input is
 verified again; an attempt overlay is a private writable copy with its own
-binding, and the same attempt and fence resume it. A directory or binding
-without its counterpart, or bound to another plan, is refused and left as it
-is, and an interrupted preparing directory is never adopted. Dispatch pinning,
-current-authority checks at retrieval and restricted runtimes are not wired yet.
+binding. A directory or binding without its counterpart, or bound to another
+plan, is refused and left as it is, and an interrupted preparing directory is
+never adopted.
+
+<!-- r[related kiln.source.projection.materialization.scenario.pinned] -->
+**Workspace pins.** `MaterializationPlan::pin` derives a
+`kiln.materialization.workspace-pin.v1` record for one attempt and fence: the
+admitted repository identity, exact source revision, definition and manifest
+identities, materializer profile identity, input identity and overlay
+generation. An implementation dispatch plan may carry it as
+`workspace.projection`. Admission then refuses a pin for another attempt, fence
+or base revision, an overlay that is not the identity of its input, attempt and
+fence, and a workspace identity other than that overlay, and the plan identity
+includes the pin. A plan without one keeps its earlier identity.
+`prepare_overlay` takes the dispatch pin, refuses one that differs from the
+plan it is given, and resumes an overlay only when its
+`kiln.materialization.binding.v2` binding records exactly that pin; v1
+bindings are refused, not adopted. No worker job selects projected workspaces
+yet, and current-authority checks at retrieval and restricted runtimes are not
+wired.
 
 ### Remote Lattice workers
 

@@ -280,6 +280,7 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
             isolation: kiln_core::implementation::WorkspaceIsolation::IsolatedSnapshot,
             network: false,
             credentials: false,
+            projection: None,
         },
         provider_profile: kiln_core::types::ProviderProfileId::new("lattice-implementation")
             .unwrap_or_else(|_| unreachable!()),

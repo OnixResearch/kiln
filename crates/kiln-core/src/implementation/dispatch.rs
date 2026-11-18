@@ -13,6 +13,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use super::{ImplementationWork, content_identity, push_str};
+use crate::projection::materialization::{WORKSPACE_PIN_SCHEMA, WorkspacePin};
 use crate::types::{ContentId, CoreResult, Diagnostic, ExternalRef, ProviderProfileId};
 
 pub const DISPATCH_PLAN_SCHEMA: &str = "kiln.implementation-dispatch-plan.v2";
@@ -37,6 +38,10 @@ pub struct DispatchWorkspace {
     pub network: bool,
     /// Publisher, forge and host credentials remain outside the worker.
     pub credentials: bool,
+    /// The projected workspace this plan prepares, when it uses one. Absent,
+    /// the plan keeps the full-tree route and its earlier identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub projection: Option<WorkspacePin>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -192,6 +197,20 @@ pub fn admit_dispatch_plan(
             "implementation_dispatch_workspace",
             "dispatch.workspace",
             "network requires explicit model-service admissions; ambient credentials are refused",
+        ));
+    }
+    // r[impl kiln.source.projection.materialization.scenario.pinned]
+    if let Some(pin) = &plan.workspace.projection
+        && (pin.validate().is_err()
+            || pin.attempt != plan.attempt_identity
+            || pin.fence != plan.fence
+            || Some(&pin.source) != plan.base.as_ref()
+            || pin.overlay != plan.workspace.identity)
+    {
+        return Err(refusal(
+            "implementation_dispatch_projection",
+            "dispatch.workspace.projection",
+            "workspace pin does not bind this attempt, fence, base and overlay",
         ));
     }
     if plan.deadline_minutes == 0
@@ -361,6 +380,23 @@ pub fn admit_dispatch_plan(
             push_str(&mut bytes, profile.as_str())?;
         }
     }
+    // Appended only when present, so a plan without a pin keeps its identity.
+    if let Some(pin) = &plan.workspace.projection {
+        push_str(&mut bytes, WORKSPACE_PIN_SCHEMA)?;
+        for identity in [
+            &pin.repository,
+            &pin.definition,
+            &pin.manifest,
+            &pin.profile,
+            &pin.input,
+            &pin.overlay,
+        ] {
+            push_str(&mut bytes, identity.as_str())?;
+        }
+        push_str(&mut bytes, pin.source.provider_namespace.as_str())?;
+        push_str(&mut bytes, pin.source.native_kind.as_str())?;
+        push_str(&mut bytes, pin.source.native_id.as_str())?;
+    }
     content_identity(&bytes)
 }
 
@@ -438,6 +474,7 @@ mod tests {
                 isolation: WorkspaceIsolation::IsolatedSnapshot,
                 network: false,
                 credentials: false,
+                projection: None,
             },
             provider_profile: ProviderProfileId::new("lattice-implementation")
                 .unwrap_or_else(|_| unreachable!()),
@@ -692,5 +729,119 @@ mod tests {
                 .is_err()
         );
         assert_eq!(ledger.dispatch_plan(&attempt.identity), Some(&bound));
+    }
+
+    #[test]
+    // r[verify kiln.source.projection.materialization.scenario.pinned]
+    fn a_plan_without_a_workspace_pin_keeps_its_identity() {
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let identity = admit_dispatch_plan(&work, &attempt, &plan(&work, &attempt))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        // Computed before workspace pins existed; a plan without one keeps it.
+        assert_eq!(
+            identity.as_str(),
+            "304916eeffed3042a8c0089ef23e2a82637c01dba1a2fa90d79378c7d83ce164"
+        );
+    }
+
+    #[test]
+    // r[verify kiln.source.projection.materialization.scenario.pinned]
+    fn a_workspace_pin_binds_the_attempt_fence_base_and_overlay() {
+        use crate::projection::materialization::overlay_identity;
+        // A self-consistent pin for whatever attempt and fence it names.
+        fn regenerate(plan: &mut ImplementationDispatchPlan) {
+            if let Some(pin) = plan.workspace.projection.as_mut() {
+                pin.overlay = overlay_identity(&pin.input, &pin.attempt, pin.fence)
+                    .unwrap_or_else(|_| unreachable!());
+                plan.workspace.identity = pin.overlay.clone();
+            }
+        }
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let unpinned = plan(&work, &attempt);
+        let unpinned_identity = admit_dispatch_plan(&work, &attempt, &unpinned)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let mut pinned = unpinned.clone();
+        pinned.workspace.projection = Some(WorkspacePin {
+            schema: WORKSPACE_PIN_SCHEMA.to_string(),
+            repository: content('1'),
+            source: work.base.clone().unwrap_or_else(|| unreachable!()),
+            definition: content('2'),
+            manifest: content('3'),
+            profile: content('4'),
+            input: content('5'),
+            overlay: content('5'),
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+        });
+        regenerate(&mut pinned);
+        let identity = admit_dispatch_plan(&work, &attempt, &pinned)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_ne!(identity, unpinned_identity);
+        let reservation = ledger
+            .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &pinned)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(reservation.plan, identity);
+        let mut other_manifest = pinned.clone();
+        if let Some(pin) = other_manifest.workspace.projection.as_mut() {
+            pin.manifest = content('6');
+        }
+        assert_ne!(
+            admit_dispatch_plan(&work, &attempt, &other_manifest)
+                .unwrap_or_else(|error| unreachable!("{error:?}")),
+            identity
+        );
+
+        type PlanChange = fn(&mut ImplementationDispatchPlan);
+        let refused: [(&str, PlanChange); 6] = [
+            ("another attempt", |plan| {
+                if let Some(pin) = plan.workspace.projection.as_mut() {
+                    pin.attempt = content('a');
+                }
+                regenerate(plan);
+            }),
+            ("another fence", |plan| {
+                if let Some(pin) = plan.workspace.projection.as_mut() {
+                    pin.fence += 1;
+                }
+                regenerate(plan);
+            }),
+            ("another base", |plan| {
+                if let Some(pin) = plan.workspace.projection.as_mut() {
+                    pin.source = ExternalRef::new("git", "commit", "other")
+                        .unwrap_or_else(|_| unreachable!());
+                }
+            }),
+            ("workspace is not the overlay", |plan| {
+                plan.workspace.identity = content('e');
+            }),
+            ("inconsistent overlay", |plan| {
+                if let Some(pin) = plan.workspace.projection.as_mut() {
+                    pin.overlay = content('e');
+                }
+                plan.workspace.identity = content('e');
+            }),
+            ("schema", |plan| {
+                if let Some(pin) = plan.workspace.projection.as_mut() {
+                    pin.schema = "kiln.materialization.workspace-pin.v0".to_string();
+                }
+            }),
+        ];
+        for (name, change) in refused {
+            let mut plan = pinned.clone();
+            change(&mut plan);
+            assert_eq!(
+                admit_dispatch_plan(&work, &attempt, &plan).map_err(|error| error.code),
+                Err("implementation_dispatch_projection".to_string()),
+                "{name}"
+            );
+        }
     }
 }
