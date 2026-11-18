@@ -36,6 +36,16 @@ The same manifest and profile always produce the same input identity and a byte-
 
 **Rationale:** dispatch and the worker then agree on one exact source, definition, manifest, profile and overlay generation. A changed input, a new attempt or fence, or a substituted manifest yields a different pin and a fresh overlay, never a silently reused one.
 
+### Decision: a typed shared corpus with a frozen local baseline
+
+**Choice:**
+
+- `config/workspace-corpus-contracts.ncl` types the corpus `kiln.workspace-corpus.v1`: files with text and an executable bit, dependency facts, at least two projection definitions checked by the source-projection `Definition` contract, and at least two attempt labels. `config/fixtures/workspace-corpus-positive.ncl` exports `fixtures/workspace-corpus/corpus.json`, a negative fixture with a duplicate file path is refused, and the fixture check script refuses a stale export.
+- A harness shared by the off-by-default `workspace-baseline` example and its test commits the corpus to a temporary bare Git repository at a fixed time, resolves and plans each projection with the eager local-directory profile, and prepares inputs and pinned overlays for every attempt.
+- Its `kiln.workspace-baseline.receipt.v2` receipt records each projection's manifest, input, entries and overlays, nine contract checks (reproducible input, independent attempts, verified input reuse, executable modes, distinct origins for equal bytes, the excluded entry absent, the shared dependency in both projects, a damaged input refused and reopening only under the exact pin) and cold-input, verified-reuse and overlay timings. The test compares the receipt without timings to `fixtures/workspace-corpus/expected.json`.
+
+**Rationale:** one data-defined corpus exercises the whole contract end to end with deterministic identities, so a materializer change that alters any of them shows up as a reviewed expectation change. Timings are recorded but never asserted.
+
 ## Risks / Trade-offs
 
 - Re-verifying a reused input costs a full read; it is what keeps a damaged cache from being admitted.
@@ -43,4 +53,4 @@ The same manifest and profile always produce the same input identity and a byte-
 
 ## Verification Strategy
 
-Pure tests cover plan identities, each refusal, pin derivation and pin consistency. Dispatch tests cover an admitted pinned plan, each pin mismatch, and an identity that changes with the pin and is unchanged without one. Shell tests over a temporary Git repository cover repeated materialization, overlay isolation, missing and corrupt objects, damaged reuse, pre-existing unbound directories, overlay binding mismatch, a dispatch pin that differs from the plan and interrupted preparation. Then Clippy, formatting and Cairn gates.
+Pure tests cover plan identities, each refusal, pin derivation and pin consistency. Dispatch tests cover an admitted pinned plan, each pin mismatch, and an identity that changes with the pin and is unchanged without one. Shell tests over a temporary Git repository cover repeated materialization, overlay isolation, missing and corrupt objects, damaged reuse, pre-existing unbound directories, overlay binding mismatch, a dispatch pin that differs from the plan and interrupted preparation. The baseline test runs the frozen corpus. Then Clippy, formatting and Cairn gates.

@@ -1,7 +1,7 @@
 //! Off-by-default local baseline of the shared projected-workspace corpus
-//! (#82, #78). Materializes every projection of the frozen corpus through the
+//! (#78). Materializes every projection of the frozen corpus through the
 //! projected materializer in a temporary directory and writes a
-//! `kiln.workspace-baseline.receipt.v1` receipt. It contacts no provider and
+//! `kiln.workspace-baseline.receipt.v2` receipt. It contacts no provider and
 //! changes no default.
 //!
 //! ```console
@@ -43,12 +43,11 @@ fn run() -> harness::Result {
         .open(&out_path)?
         .write_all(&bytes)?;
     for check in &receipt.checks {
-        let local = match &check.local {
+        let outcome = match &check.result {
             harness::Outcome::Passed { .. } => "passed",
             harness::Outcome::Failed { .. } => "failed",
-            harness::Outcome::NotRun { .. } => "not run",
         };
-        println!("{}: {local}", check.check);
+        println!("{}: {outcome}", check.check);
     }
     Ok(())
 }

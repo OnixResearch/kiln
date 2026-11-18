@@ -33,3 +33,10 @@ r[kiln.source.projection.materialization.scenario.pinned]
 - GIVEN a dispatch plan whose workspace pins one materialization plan for its attempt and fence
 - WHEN the plan is admitted, or the overlay is prepared or resumed for that pin
 - THEN a pin for another attempt, fence or base revision, an overlay that is not the identity of its input, attempt and fence, a workspace identity other than that overlay, or a pin that differs from the current materialization plan or the retained overlay binding MUST be refused, and a plan without a pin MUST keep its previous identity
+
+#### Scenario: A shared corpus has a frozen local baseline
+
+r[kiln.source.projection.materialization.scenario.baseline]
+- GIVEN a typed shared corpus with two projects, a shared dependency, an executable file, equal-byte files at two origins and an excluded entry
+- WHEN every projection is materialized through the eager local materializer for two attempts
+- THEN the receipt MUST record each contract check's outcome and the timings, and match the committed expectation apart from timings

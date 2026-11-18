@@ -1,4 +1,4 @@
-//! The frozen shared projected-workspace corpus (#82, #78) through the local
+//! The frozen shared projected-workspace corpus (#78) through the local
 //! projected materializer, compared with its committed expectation apart from
 //! timings. Refresh `fixtures/workspace-corpus/expected.json` only after
 //! reviewing a deliberate corpus or materializer change.
@@ -8,7 +8,7 @@ mod harness;
 const CORPUS: &[u8] = include_bytes!("../../../fixtures/workspace-corpus/corpus.json");
 const EXPECTED: &[u8] = include_bytes!("../../../fixtures/workspace-corpus/expected.json");
 
-// r[verify kiln.workspace_provider.evaluation.scenario.baseline]
+// r[verify kiln.source.projection.materialization.scenario.baseline]
 #[test]
 fn the_shared_corpus_matches_its_local_baseline() -> harness::Result {
     let scratch = tempfile::tempdir()?;
@@ -23,7 +23,7 @@ fn the_shared_corpus_matches_its_local_baseline() -> harness::Result {
     Ok(())
 }
 
-// r[verify kiln.workspace_provider.evaluation.scenario.baseline]
+// r[verify kiln.source.projection.materialization.scenario.baseline]
 #[test]
 fn a_malformed_corpus_is_refused_before_anything_is_written() -> harness::Result {
     let corpus: serde_json::Value = serde_json::from_slice(CORPUS)?;

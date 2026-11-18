@@ -74,6 +74,12 @@ entry describes the source tree prepared for the first tagged release.
   only under the same retained pin. Plans without a pin keep their identity.
   (#78; unit, dispatch and temporary-repository tests; no worker job, authority
   or restricted-runtime wiring yet)
+- A typed shared corpus (two projects, a shared dependency, an executable file,
+  equal-byte files at two origins and an excluded entry) runs through the eager
+  local materializer for two attempts in the off-by-default
+  `workspace-baseline` example. Its receipt records nine contract checks and
+  the timings, and a test compares it with a committed expectation apart from
+  timings. (#78; Nickel fixtures and a frozen receipt)
 - Plan the source inputs of a projected build. Versioned
   `cargo_compatibility.v1` and `nix_compatibility.v1` profiles require, at
   their own paths, every file of the target packages, of the workspace members
@@ -104,20 +110,6 @@ entry describes the source tree prepared for the first tagged release.
   operation paths, without moving a reference. (#79; unit and
   temporary-repository round-trip tests; no verification, publication,
   rebase or authority wiring yet)
-- A versioned durable-workspace provider profile in typed Nickel keeps canonical
-  BLAKE3 identities apart from provider disk, branch and checkpoint references
-  and refuses profiles that rely on a documented-insufficient mechanism: a
-  branch as an access boundary, checkpoints on a native-format bucket, a bucket
-  copy as a durable acknowledgement, forced ownership as a retry, or a vendor
-  claim as qualification. A documentation review of Archil against the
-  projected-workspace contract retains it as a reference, with branch-per-attempt
-  isolation the one mechanism worth qualifying for unrestricted profiles. A
-  typed shared corpus (two projects, a shared dependency, an executable file,
-  equal-byte files at two origins and an excluded entry) runs through #78's
-  projected materializer in the off-by-default `workspace-baseline` example,
-  whose receipt records nine local contract checks and timings beside Archil
-  outcomes that stay not run. (#82; Nickel fixtures and a frozen local baseline;
-  no Archil account, adapter or live experiment)
 - An optional graph-backed source model in pure `kiln-core`. File and package
   identities are minted once by their creating operation, never from bytes or
   paths; immutable revisions and snapshot roots are separate identities.

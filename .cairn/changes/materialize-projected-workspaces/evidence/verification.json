@@ -84,5 +84,30 @@
       "Input and overlay bindings moved to kiln.materialization.binding.v2. A store prepared before this change is refused rather than adopted; no deployed caller relies on one.",
       "A pin is consistency evidence, not authority: #69/#70 still own retrieval and workspace-effect authority."
     ]
+  },
+  "phase_2_baseline": {
+    "observed_on": "2026-11-18",
+    "scope": "Phase 2: a typed shared corpus and its frozen local baseline through the eager local materializer. The corpus and harness were first added under the Archil provider evaluation (#82, commit b6171df5); that evaluation was withdrawn, and the baseline now belongs to this change without its Archil column.",
+    "immediate_outcome": "The frozen corpus (two projects, a shared dependency, an executable file, equal-byte files at two origins and an excluded entry) materializes for two attempts and all nine contract checks pass, with the same manifest, input and overlay identities as the earlier receipt.",
+    "durable_capability": "config/workspace-corpus-contracts.ncl (kiln.workspace-corpus.v1) with its checked export fixtures/workspace-corpus/corpus.json, the harness shared by the off-by-default workspace-baseline example and the workspace_baseline test, and the frozen expectation fixtures/workspace-corpus/expected.json.",
+    "receipt": "evidence/baseline-receipt.json (kiln.workspace-baseline.receipt.v2)",
+    "checks": [
+      {
+        "command": "cargo run --locked -q -p kiln-web-service --example workspace-baseline -- --corpus fixtures/workspace-corpus/corpus.json --out /tmp/workspace-baseline-v2.json",
+        "result": "pass: reproducible_input, independent_attempts, verified_input_reuse, executable_modes, distinct_origins, excluded_entry_absent, shared_dependency, damaged_input_refused and exact_pin_reopen passed"
+      },
+      {
+        "command": "cargo test --locked -p kiln-web-service --test workspace_baseline --test build_input_qualification; cargo clippy --locked -p kiln-web-service --all-targets -- -D warnings",
+        "result": "pass: the receipt without timings matches fixtures/workspace-corpus/expected.json, a malformed corpus is refused with nothing written, and the build-input corpus that reuses the corpus file contract still plans; Clippy clean"
+      },
+      {
+        "command": "nix build path:$PWD#checks.x86_64-linux.nickel --no-link -L --no-write-lock-file --option builders ''",
+        "result": "pass: Nickel fixture gate (92 positive, 613 negative), including the corpus export freshness check"
+      }
+    ],
+    "non_claims": [
+      "The corpus is synthetic and small; timings describe this host and corpus only.",
+      "Local modes and copies are not a confinement boundary against a privileged process."
+    ]
   }
 }

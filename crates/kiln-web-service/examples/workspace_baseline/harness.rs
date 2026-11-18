@@ -1,14 +1,13 @@
-//! Local baseline of the shared projected-workspace corpus (#82, #78).
+//! Local baseline of the shared projected-workspace corpus (#78).
 //!
 //! The corpus is written into a temporary bare Git repository with one commit
 //! at a fixed time, so revisions, manifests and input identities are
 //! deterministic. Each projection is admitted and resolved by Kiln's
-//! source-projection core, planned with the eager local POSIX profile and
+//! source-projection core, planned with the eager local-directory profile and
 //! materialized through `kiln_web_service::worker::materialize` for every
-//! attempt under its dispatch pin. Each contract check records the local
-//! outcome; the Archil outcome stays `not_run` until an adapter execution
-//! supplies one. Nothing here grants source, workspace or execution authority.
-// r[impl kiln.workspace_provider.evaluation.scenario.baseline]
+//! attempt under its dispatch pin, and each contract check records its
+//! outcome. Nothing here grants source, workspace or execution authority.
+// r[impl kiln.source.projection.materialization.scenario.baseline]
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::fs;
@@ -35,7 +34,7 @@ use serde::{Deserialize, Serialize};
 pub type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
 
 pub const CORPUS_SCHEMA: &str = "kiln.workspace-corpus.v1";
-pub const RECEIPT_SCHEMA: &str = "kiln.workspace-baseline.receipt.v1";
+pub const RECEIPT_SCHEMA: &str = "kiln.workspace-baseline.receipt.v2";
 /// Largest corpus document the harness admits.
 pub const MAX_CORPUS_BYTES: u64 = 256 * 1024;
 const MAX_FILES: usize = 64;
@@ -49,12 +48,9 @@ const SEALED_FILE: u32 = 0o444;
 const SEALED_EXECUTABLE: u32 = 0o555;
 const WRITABLE_FILE: u32 = 0o644;
 const WRITABLE_EXECUTABLE: u32 = 0o755;
-const ARCHIL_NOT_RUN: &str =
-    "no Archil adapter execution has run; its documented behaviour stays a vendor claim";
-const NON_CLAIMS: [&str; 3] = [
+const NON_CLAIMS: [&str; 2] = [
     "The corpus is synthetic and small; timings describe this host and corpus only.",
     "Local modes and copies are not a confinement boundary against a privileged process.",
-    "No Archil disk, branch, checkpoint or credential was used.",
 ];
 
 #[derive(Debug, Deserialize)]
@@ -88,14 +84,13 @@ pub struct Receipt {
     pub schema: &'static str,
     /// BLAKE3 over the corpus document.
     pub corpus: ContentId,
-    pub provider: &'static str,
     pub materializer_profile: ContentId,
     pub revision: String,
     pub projections: Vec<ProjectionRecord>,
     pub checks: Vec<CheckRecord>,
     /// Measured on this host; never part of the committed expectation.
     pub timings: Vec<Timing>,
-    pub non_claims: [&'static str; 3],
+    pub non_claims: [&'static str; 2],
 }
 
 #[derive(Debug, Serialize)]
@@ -125,8 +120,8 @@ pub struct OverlayRecord {
 #[derive(Debug, Serialize)]
 pub struct CheckRecord {
     pub check: &'static str,
-    pub local: Outcome,
-    pub archil: Outcome,
+    #[serde(flatten)]
+    pub result: Outcome,
 }
 
 #[derive(Debug, Serialize)]
@@ -134,7 +129,6 @@ pub struct CheckRecord {
 pub enum Outcome {
     Passed { detail: String },
     Failed { detail: String },
-    NotRun { reason: &'static str },
 }
 
 #[derive(Debug, Serialize)]
@@ -230,7 +224,6 @@ fn measure(corpus: &Corpus, bytes: &[u8], scratch: &Path) -> Result<Receipt> {
     Ok(Receipt {
         schema: RECEIPT_SCHEMA,
         corpus: digest(bytes)?,
-        provider: "local-materialization",
         materializer_profile: profile.identity(),
         revision: revision.to_string(),
         projections,
@@ -693,13 +686,10 @@ fn check(
 fn record_check(check: &'static str, passed: bool, detail: String) -> CheckRecord {
     CheckRecord {
         check,
-        local: if passed {
+        result: if passed {
             Outcome::Passed { detail }
         } else {
             Outcome::Failed { detail }
-        },
-        archil: Outcome::NotRun {
-            reason: ARCHIL_NOT_RUN,
         },
     }
 }

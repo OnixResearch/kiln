@@ -1,7 +1,6 @@
 {
-  "schema": "kiln.workspace-baseline.receipt.v1",
+  "schema": "kiln.workspace-baseline.receipt.v2",
   "corpus": "e1fe8c6b2d372a289091af848979e54db16018a5898b4f32fa3ea483106d7724",
-  "provider": "local-materialization",
   "materializer_profile": "48a5453235180edf722bff40d8b746955b7bceb82698c064224ab5f85f4d476b",
   "revision": "289569fd94482b160e28d164269df1b64fddf6a1",
   "projections": [
@@ -115,121 +114,66 @@
   "checks": [
     {
       "check": "reproducible_input",
-      "local": {
-        "outcome": "passed",
-        "detail": "2 projections materialized into two stores with byte- and mode-identical inputs"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "2 projections materialized into two stores with byte- and mode-identical inputs"
     },
     {
       "check": "independent_attempts",
-      "local": {
-        "outcome": "passed",
-        "detail": "edits in the first attempt's overlay left the second attempt's overlay and the shared input unchanged in 2 projections"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "edits in the first attempt's overlay left the second attempt's overlay and the shared input unchanged in 2 projections"
     },
     {
       "check": "verified_input_reuse",
-      "local": {
-        "outcome": "passed",
-        "detail": "a second preparation re-verified and reused the published input of every projection"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "a second preparation re-verified and reused the published input of every projection"
     },
     {
       "check": "executable_modes",
-      "local": {
-        "outcome": "passed",
-        "detail": "1 executable and 10 other entries keep sealed 0555/0444 input modes and 0755/0644 overlay modes"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "1 executable and 10 other entries keep sealed 0555/0444 input modes and 0755/0644 overlay modes"
     },
     {
       "check": "distinct_origins",
-      "local": {
-        "outcome": "passed",
-        "detail": "objects with equal bytes at several origins: 1; distinct origin identities: 2; materialized bytes identical"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "objects with equal bytes at several origins: 1; distinct origin identities: 2; materialized bytes identical"
     },
     {
       "check": "excluded_entry_absent",
-      "local": {
-        "outcome": "passed",
-        "detail": "excluded corpus files absent: 1; every input holds exactly its manifest entries"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "excluded corpus files absent: 1; every input holds exactly its manifest entries"
     },
     {
       "check": "shared_dependency",
-      "local": {
-        "outcome": "passed",
-        "detail": "2 shared entries and the declared dependencies are bound in all 2 projections with identical bytes"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "2 shared entries and the declared dependencies are bound in all 2 projections with identical bytes"
     },
     {
       "check": "damaged_input_refused",
-      "local": {
-        "outcome": "passed",
-        "detail": "a published input whose file changed after publication was refused on reuse"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "a published input whose file changed after publication was refused on reuse"
     },
     {
       "check": "exact_pin_reopen",
-      "local": {
-        "outcome": "passed",
-        "detail": "attempt-one's overlay reopened with its edits under the exact pin, and a pin naming another manifest was refused"
-      },
-      "archil": {
-        "outcome": "not_run",
-        "reason": "no Archil adapter execution has run; its documented behaviour stays a vendor claim"
-      }
+      "outcome": "passed",
+      "detail": "attempt-one's overlay reopened with its edits under the exact pin, and a pin naming another manifest was refused"
     }
   ],
   "timings": [
     {
       "projection": "alpha-build",
-      "input_cold_us": 450,
-      "input_reuse_us": 110,
-      "overlays_us": 575
+      "input_cold_us": 560,
+      "input_reuse_us": 147,
+      "overlays_us": 715
     },
     {
       "projection": "beta-build",
-      "input_cold_us": 407,
-      "input_reuse_us": 90,
-      "overlays_us": 518
+      "input_cold_us": 514,
+      "input_reuse_us": 129,
+      "overlays_us": 613
     }
   ],
   "non_claims": [
     "The corpus is synthetic and small; timings describe this host and corpus only.",
-    "Local modes and copies are not a confinement boundary against a privileged process.",
-    "No Archil disk, branch, checkpoint or credential was used."
+    "Local modes and copies are not a confinement boundary against a privileged process."
   ]
 }

@@ -6,4 +6,5 @@
 ## Phase 2: Integration
 
 - [x] [serial] Pin source, definition, manifest, materializer profile and overlay generation in dispatch and retained workspace metadata, refusing mismatches. r[kiln.source.projection.materialization] r[kiln.source.projection.materialization.scenario.pinned]
+- [x] [serial] Run a typed shared corpus through the eager local materializer for two attempts in a harness shared by an off-by-default example and a test, and freeze its receipt apart from timings. r[kiln.source.projection.materialization.scenario.baseline]
 - [ ] [serial] Apply #69/#70 authority at retrieval and workspace effects and qualify the restricted runtime negatives and the two-project build profile from #77. r[kiln.source.projection.materialization]

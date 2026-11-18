@@ -16,7 +16,7 @@ Issue [#78](https://github.com/OnixResearch/kiln/issues/78) needs a workspace pr
 
 ## Impact
 
-New `kiln_core::projection::materialization` module and `kiln-web-service` worker materializer with tests. An optional workspace pin on the implementation dispatch plan binds a projected workspace to the attempt, and the worker's overlay binding retains the same pin. Plans without a pin keep their identity, and full-tree worker preparation is unchanged and stays the current route.
+New `kiln_core::projection::materialization` module and `kiln-web-service` worker materializer with tests. An optional workspace pin on the implementation dispatch plan binds a projected workspace to the attempt, and the worker's overlay binding retains the same pin. Plans without a pin keep their identity, and full-tree worker preparation is unchanged and stays the current route. A typed shared corpus (`kiln.workspace-corpus.v1`) has a frozen local baseline through the materializer, run by an off-by-default `workspace-baseline` example and a test.
 
 ## Non-goals
 

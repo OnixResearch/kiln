@@ -2475,6 +2475,41 @@ bindings are refused, not adopted. No worker job selects projected workspaces
 yet, and current-authority checks at retrieval and restricted runtimes are not
 wired.
 
+<!-- r[related kiln.source.projection.materialization.scenario.baseline] -->
+**Materializer baseline.** `config/workspace-corpus-contracts.ncl` types a
+shared corpus (`kiln.workspace-corpus.v1`; export
+`fixtures/workspace-corpus/corpus.json`): two projects that share a protocol
+directory and its declared dependency, an executable script, equal-byte
+license files at two origins, an excluded environment file and a file neither
+project selects.
+
+```console
+cargo run -p kiln-web-service --example workspace-baseline -- \
+    --corpus fixtures/workspace-corpus/corpus.json --out receipt.json
+```
+
+The off-by-default example commits the corpus to a temporary bare Git
+repository at a fixed time. It then materializes every projection through the
+eager local materializer for two attempts and writes a
+`kiln.workspace-baseline.receipt.v2` receipt with each projection's manifest,
+input, entries and overlays, these checks and the timings:
+
+| Check | Evidence |
+| --- | --- |
+| `reproducible_input` | Two stores hold byte- and mode-identical inputs |
+| `independent_attempts` | An edit in one attempt's overlay leaves the other overlay and the input unchanged |
+| `verified_input_reuse` | A second preparation re-verifies and reuses the published input |
+| `executable_modes` | Sealed 0555/0444 input modes and writable 0755/0644 overlay modes |
+| `distinct_origins` | Equal bytes at two paths keep two origin identities |
+| `excluded_entry_absent` | An excluded file is absent; each input holds exactly its manifest entries |
+| `shared_dependency` | Shared entries and the declared dependency are bound in both projects with identical bytes |
+| `damaged_input_refused` | A file changed after publication is refused on reuse |
+| `exact_pin_reopen` | An overlay reopens with its edits only under its exact dispatch pin |
+
+The `workspace_baseline` test compares the receipt, without timings, to
+`fixtures/workspace-corpus/expected.json`; timings describe one host and are
+never asserted.
+
 <!-- r[related kiln.source.projection.build_inputs] -->
 **Build inputs.** A complete projection is not yet a complete build input.
 `kiln_core::projection::build_inputs` plans one build of a view from a

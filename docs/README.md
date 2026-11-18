@@ -49,7 +49,6 @@ The sections below group the maintained documents by the question they answer.
 - [Kiln Aspen host](../runtime/kiln-aspen-host/README.md): deployable shell for private Kiln-on-Aspen cohorts.
 - [Artifact readiness](artifact-readiness.md): opt-in real hosted/Nix phase measurements and matched-cohort analysis; no unmeasured speedup claim.
 - [Parallel frontend evaluation](parallel-frontend-evaluation.md): opt-in pinned-nightly `-Zthreads` benchmark under per-job contention limits, with a retained two-level matrix and a quota-bounded recommendation; default builds unchanged.
-- [Archil workspace evaluation](archil-workspace-evaluation.md): versioned workspace-provider profile contract, a documentation-review comparison and a frozen local baseline of the shared corpus through the projected materializer; retained as reference, no provider adopted.
 - [celld event store](celld-event-store.md): versioned Worker entry for the pinned celld SQLite API.
 
 ## Gates, review and merge checks

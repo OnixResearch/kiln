@@ -1,4 +1,4 @@
-# Typed authoring contract for the shared projected-workspace corpus (#82, #78).
+# Typed authoring contract for the shared projected-workspace corpus (#78).
 # The local baseline harness in `kiln-web-service` is authoritative: it admits
 # every projection through Kiln's source-projection admission and refuses a
 # malformed corpus before writing anything.

@@ -1546,7 +1546,6 @@
           nickel = pkgs.runCommand "kiln-nickel" { nativeBuildInputs = [ pkgs.nickel ]; } ''
             ${copySource}
             bash scripts/check-nickel-fixtures.sh
-            sh tests/workspace-provider-profile.sh
             sh tests/imessage-receiver-profile.sh
             nickel format --check \
               config/radicle-nix-provider.ncl \
