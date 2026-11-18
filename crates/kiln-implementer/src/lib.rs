@@ -27,9 +27,9 @@ use std::time::Duration;
 use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
     CandidateVerification, DispatchReservation, Enrollment, ImplementationAttempt,
-    ImplementationDispatchPlan, ImplementationWork, IntegrationReceipt, PublicationPlan,
-    PublicationRecord, SourceMapping, SourceStatusPlan, SourceStatusReceipt, VerificationOutcome,
-    WorkLedger, WorkerObservation,
+    ImplementationDispatchPlan, ImplementationWork, IntegrationReceipt, PlanFeedback,
+    PlanReviewCommand, PlanReviewResult, PublicationPlan, PublicationRecord, SourceMapping,
+    SourceStatusPlan, SourceStatusReceipt, VerificationOutcome, WorkLedger, WorkerObservation,
 };
 use kiln_core::types::ContentId;
 use rusqlite::{Connection, Transaction, TransactionBehavior, params};
@@ -705,6 +705,18 @@ impl Implementer {
         identity: &ContentId,
     ) -> Result<Option<ImplementationAttempt>, String> {
         self.with_ledgers(|_, attempts| Ok(attempts.get(identity).cloned()))
+    }
+
+    /// Apply one plan-review command in the work-ledger transaction (#93).
+    /// Acceptance only records a decision; a claim still needs ready work.
+    // r[impl kiln.implementation.plan_review]
+    pub fn plan_review(&mut self, command: &PlanReviewCommand) -> Result<PlanReviewResult, String> {
+        self.with_ledgers(|ledger, _| ledger.apply_plan_review(command))
+    }
+
+    /// Feedback on the latest plan of one exact work version, for its author.
+    pub fn plan_feedback(&mut self, work: &ContentId) -> Result<PlanFeedback, String> {
+        self.with_ledgers(|ledger, _| ledger.plan_feedback(work))
     }
 
     fn with_ledgers<T>(

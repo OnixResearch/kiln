@@ -1604,3 +1604,75 @@ fn abort_active_replaced_and_expired_fences_never_resolve_history()
     );
     Ok(())
 }
+
+// r[verify kiln.implementation.plan_review.scenario.blocked]
+#[test]
+fn opted_in_work_is_claimed_only_after_its_plan_is_accepted() {
+    use kiln_core::implementation::{
+        ImplementationPlan, PLAN_REVIEW_POLICY_SCHEMA, PLAN_SCHEMA, PlanDecision, PlanGate,
+        PlanReviewCommand, PlanReviewPolicy, PlanReviewResult, PlanStep, PlanVerdict,
+    };
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = directory.path().join("implementation.db");
+    let work = work();
+    let identity = work.identity().unwrap_or_else(|_| unreachable!());
+    let mut store = open(&path);
+    store
+        .admit(&work, None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    store
+        .plan_review(&PlanReviewCommand::Configure {
+            policy: Some(PlanReviewPolicy {
+                schema: PLAN_REVIEW_POLICY_SCHEMA.to_string(),
+                repositories: BTreeSet::from(["onix/kiln".to_string()]),
+                reviewers: BTreeSet::from(["reviewer".to_string()]),
+            }),
+        })
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(
+        store.claim_next(1_000, LEASE).map(|claim| claim.is_some()),
+        Ok(false)
+    );
+    let proposal = PlanReviewCommand::Propose {
+        plan: ImplementationPlan {
+            schema: PLAN_SCHEMA.to_string(),
+            work_identity: identity.clone(),
+            revision: 1,
+            previous: None,
+            author: "agent".to_string(),
+            steps: vec![PlanStep {
+                id: "implement".to_string(),
+                text: "Implement the admitted work.".to_string(),
+            }],
+        },
+    };
+    let plan = match store.plan_review(&proposal) {
+        Ok(PlanReviewResult::Proposed { plan }) => plan,
+        other => unreachable!("{other:?}"),
+    };
+    assert_eq!(
+        store.plan_review(&PlanReviewCommand::Decide {
+            work: identity.clone(),
+            decision: PlanDecision {
+                plan: plan.clone(),
+                reviewer: "reviewer".to_string(),
+                verdict: PlanVerdict::Accepted,
+            },
+        }),
+        Ok(PlanReviewResult::Reviewed {
+            gate: PlanGate::Accepted { plan },
+        })
+    );
+    drop(store);
+    // Acceptance is durable and records a decision only.
+    let mut reopened = open(&path);
+    assert_eq!(
+        reopened.attempts().map(|ledger| ledger.attempts().count()),
+        Ok(0)
+    );
+    let attempt = reopened
+        .claim_next(2_000, LEASE)
+        .unwrap_or_else(|error| unreachable!("{error}"))
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(attempt.work_identity, identity);
+}

@@ -643,3 +643,231 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
         maximum_deliveries: 8,
     };
 }
+
+fn run_implementer(arguments: &[&str], database: &Path, enrollment: &Path) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .args(arguments)
+        .arg("--database")
+        .arg(database)
+        .arg("--enrollment")
+        .arg(enrollment)
+        .output()
+        .unwrap_or_else(|_| unreachable!())
+}
+
+fn json_output(output: &std::process::Output) -> serde_json::Value {
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap_or_else(|_| unreachable!())
+}
+
+// r[verify kiln.implementation.plan_review.scenario.blocked] r[verify kiln.implementation.plan_review.scenario.revision]
+#[test]
+fn plan_review_commands_gate_the_claim_and_return_feedback() {
+    use kiln_core::implementation::{
+        IMPLEMENTATION_WORK_SCHEMA, ImplementationPlan, ImplementationWork,
+        PLAN_REVIEW_POLICY_SCHEMA, PLAN_SCHEMA, PlanAnnotation, PlanDecision, PlanNote, PlanRegion,
+        PlanResolution, PlanReviewCommand, PlanReviewPolicy, PlanStep, PlanVerdict, SourceRef,
+        WorkSourceKind,
+    };
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let database = directory.path().join("work.sqlite");
+    let enrollment_file = directory.path().join("enrollment.json");
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+        actors: BTreeSet::from(["octocat".to_string()]),
+    };
+    write(
+        &enrollment_file,
+        &serde_json::to_vec(&enrollment).unwrap_or_else(|_| unreachable!()),
+    );
+    let work = ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+        revision: 1,
+        actor: "octocat".to_string(),
+        repository: "octocat/hello-world".to_string(),
+        project: "kiln".to_string(),
+        base: None,
+        title: "Review the plan first".to_string(),
+        requested_outcome: "implement".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        verification_profile: content('a'),
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: kiln_core::types::ExternalRef::new("github", "issue", "octocat/hello-world#93")
+                .unwrap_or_else(|_| unreachable!()),
+            native_id: "octocat/hello-world#93".to_string(),
+            version: content('1'),
+        }],
+    };
+    let identity = work.identity().unwrap_or_else(|_| unreachable!());
+    Implementer::open(&database, enrollment)
+        .and_then(|mut implementer| implementer.admit(&work, None))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let apply = |name: &str, command: &PlanReviewCommand| {
+        let path = directory.path().join(format!("{name}.json"));
+        write(
+            &path,
+            &serde_json::to_vec(command).unwrap_or_else(|_| unreachable!()),
+        );
+        let path = path.to_str().unwrap_or_else(|| unreachable!());
+        run_implementer(
+            &["plan-review", "--command-file", path],
+            &database,
+            &enrollment_file,
+        )
+    };
+    let claim = || run_implementer(&["claim"], &database, &enrollment_file);
+    let feedback = || {
+        json_output(&run_implementer(
+            &["plan-feedback", "--work", identity.as_str()],
+            &database,
+            &enrollment_file,
+        ))
+    };
+    let plan = |revision: u32, previous: Option<kiln_core::types::ContentId>, push: &str| {
+        PlanReviewCommand::Propose {
+            plan: ImplementationPlan {
+                schema: PLAN_SCHEMA.to_string(),
+                work_identity: identity.clone(),
+                revision,
+                previous,
+                author: "agent".to_string(),
+                steps: vec![
+                    PlanStep {
+                        id: "push".to_string(),
+                        text: push.to_string(),
+                    },
+                    PlanStep {
+                        id: "test".to_string(),
+                        text: "Run the tests.".to_string(),
+                    },
+                ],
+            },
+        }
+    };
+    let pinned = |output: &std::process::Output| {
+        json_output(output)
+            .get("plan")
+            .and_then(serde_json::Value::as_str)
+            .and_then(|plan| kiln_core::types::ContentId::from_blake3_hex(plan).ok())
+            .unwrap_or_else(|| unreachable!())
+    };
+
+    let configured = apply(
+        "configure",
+        &PlanReviewCommand::Configure {
+            policy: Some(PlanReviewPolicy {
+                schema: PLAN_REVIEW_POLICY_SCHEMA.to_string(),
+                repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+                reviewers: BTreeSet::from(["reviewer".to_string()]),
+            }),
+        },
+    );
+    assert_eq!(
+        json_output(&configured),
+        serde_json::json!({"result": "configured"})
+    );
+    let waiting = claim();
+    assert!(waiting.status.success());
+    assert_eq!(String::from_utf8_lossy(&waiting.stdout).trim(), "null");
+
+    let first = pinned(&apply("first", &plan(1, None, "Force-push the branch.")));
+    let annotation = |reviewer: &str| PlanReviewCommand::Annotate {
+        work: identity.clone(),
+        annotation: PlanAnnotation {
+            id: "no-force".to_string(),
+            plan: first.clone(),
+            reviewer: reviewer.to_string(),
+            region: PlanRegion {
+                step: "push".to_string(),
+                span: None,
+            },
+            note: PlanNote::Replace {
+                text: "Push only an absent branch.".to_string(),
+            },
+            blocking: true,
+        },
+    };
+    let self_review = apply("self-review", &annotation("agent"));
+    assert!(!self_review.status.success());
+    assert!(String::from_utf8_lossy(&self_review.stderr).contains("implementation_plan_reviewer"));
+    json_output(&apply("annotate", &annotation("reviewer")));
+    let returned = feedback();
+    assert_eq!(
+        returned
+            .pointer("/gate/gate")
+            .and_then(serde_json::Value::as_str),
+        Some("unresolved")
+    );
+    assert_eq!(
+        returned
+            .pointer("/items/0/quoted")
+            .and_then(serde_json::Value::as_str),
+        Some("Force-push the branch.")
+    );
+
+    let second = pinned(&apply(
+        "second",
+        &plan(2, Some(first.clone()), "Push only an absent branch."),
+    ));
+    json_output(&apply(
+        "resolve",
+        &PlanReviewCommand::Resolve {
+            work: identity.clone(),
+            resolution: PlanResolution {
+                annotation: "no-force".to_string(),
+                plan: second.clone(),
+                reviewer: "reviewer".to_string(),
+            },
+        },
+    ));
+    json_output(&apply(
+        "accept",
+        &PlanReviewCommand::Decide {
+            work: identity.clone(),
+            decision: PlanDecision {
+                plan: second,
+                reviewer: "reviewer".to_string(),
+                verdict: PlanVerdict::Accepted,
+            },
+        },
+    ));
+    let returned = feedback();
+    assert_eq!(
+        returned
+            .pointer("/gate/gate")
+            .and_then(serde_json::Value::as_str),
+        Some("accepted")
+    );
+    assert_eq!(
+        returned.pointer("/comparison/changed"),
+        Some(&serde_json::json!(["push"]))
+    );
+    assert_eq!(
+        returned.pointer("/items/0/resolved_in"),
+        Some(&serde_json::json!(2))
+    );
+    let claimed = json_output(&claim());
+    assert_eq!(
+        claimed
+            .get("work_identity")
+            .and_then(serde_json::Value::as_str),
+        Some(identity.as_str())
+    );
+}

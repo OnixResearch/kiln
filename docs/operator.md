@@ -4991,7 +4991,8 @@ and a late response cannot draw over a newer selection.
 The selected change fills the page. Its header gives the lane, unit spread,
 projects and counts; **Next steps** ranks blockers by `dispatch_recovery`,
 `dependency_cycle`, `no_acceptance_obligations`, `missing_dependency`,
-`stale_work_binding`, `pending_effect`, then `campaign_hold`, with subject and
+`plan_not_accepted` (opt-in plan review only), `stale_work_binding`,
+`pending_effect`, then `campaign_hold`, with subject and
 observation breaking ties. Each blocker names its condition and meaning, exact
 unit or campaign member, proposed operation, owner, display-only detail and
 supporting observation (`work:`, `attempt:`, `campaign:ID@VERSION` or

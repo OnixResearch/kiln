@@ -87,6 +87,7 @@
     ["dependency_cycle", "Dependency cycle", "failure", "The dependency graph reaches this work again."],
     ["no_acceptance_obligations", "No acceptance obligations", "failure", "The work admits no acceptance obligation."],
     ["missing_dependency", "Missing dependency", "failure", "A prerequisite work identity is not current canonical work."],
+    ["plan_not_accepted", "Plan not accepted", "warning", "Opt-in plan review has no accepted plan for this exact work version."],
     ["stale_work_binding", "Stale work binding", "warning", "A campaign member binds work that is not current."],
     ["pending_effect", "Unapplied campaign effect", "warning", "An owner effect is persisted as intent and its progress is not applied."],
     ["campaign_hold", "Campaign hold", "warning", "The campaign's own selection holds this member."],

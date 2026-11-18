@@ -36,6 +36,10 @@ key and are ordered by an adapter-supplied monotonic `revision`.
   mappings, unrelated same-title work, and partial mappings are refused.
 - Missing dependencies, empty acceptance obligations, and dependency cycles are
   visible `blocked` reasons. Blocked work is never ranked.
+- Under an explicitly configured plan-review policy, work in a selected
+  repository is also blocked with `plan_not_accepted` until its exact version
+  has an accepted plan. Without the policy this reason never appears; see
+  [plan review](plan-review.md).
 - Only ready work is ranked, by reviewed priority and then canonical key.
 - Unenrolled repositories or actors, unknown schemas, unsafe paths, unknown
   effects, missing budgets, and oversized fields fail admission before any

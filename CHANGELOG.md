@@ -405,6 +405,19 @@ entry describes the source tree prepared for the first tagged release.
   Kiln never merges, rebases, retargets or unstacks. (#89; pure-core, local bare
   Git and loopback GitHub fixtures; not exercised on live GitHub, and not yet
   selectable from the operator CLI)
+- Opt-in plan review before implementation admission. An operator-configured
+  policy names repositories and reviewers; without it, eligibility, claims and
+  the stored work ledger are unchanged. A plan is pinned by BLAKE3 to one exact
+  work version, and each revision names the plan it replaces. Reviewers other
+  than the author annotate a whole step or a text span with a comment, a
+  deletion or a suggested replacement, resolve blocking feedback, and accept
+  or request changes on the latest revision. Selected work stays blocked with
+  `plan_not_accepted` until its exact version has an accepted plan; acceptance
+  itself claims nothing. `kiln-implementer plan-review`, `plan-feedback` and
+  `plan-review-receipt` apply commands, return quoted feedback with a revision
+  comparison, and replay frozen synthetic cases (one changed, one prevented,
+  one unchanged, two unavailable). (#93; pure-core, durable-store, CLI and
+  Nickel-fixture tests; no captured agent plan or measured quality gain)
 
 ### Fixed
 

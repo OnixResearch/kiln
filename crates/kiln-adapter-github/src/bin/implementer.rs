@@ -45,7 +45,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -89,6 +89,9 @@ fn run() -> Result<(), ()> {
         "observe-cairn-lifecycle" => observe_cairn_lifecycle(&flags),
         "inspect-work" => inspect_work(&flags),
         "inspect-attempt" => inspect_attempt(&flags),
+        "plan-review" => plan_review(&flags),
+        "plan-feedback" => plan_feedback(&flags),
+        "plan-review-receipt" => plan_review_receipt(&flags),
         _ => fail("unknown command"),
     }
 }
@@ -1322,6 +1325,61 @@ fn metrics_report(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             .map_err(|_| "--to-ms must be a nonnegative integer")?;
         let report = open_implementer(flags)?.metrics_report(from_ms, to_ms)?;
         serde_json::to_string(&report).map_err(|_| "metrics report could not be encoded".to_owned())
+    })();
+    match result {
+        Ok(document) => {
+            println!("{document}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+/// Apply one plan-review command file to the durable work ledger.
+// r[impl kiln.implementation.plan_review]
+fn plan_review(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<_, String> {
+        let command: kiln_core::implementation::PlanReviewCommand =
+            read_json(&required_path(flags, "--command-file")?)?;
+        let result = open_implementer(flags)?.plan_review(&command)?;
+        serde_json::to_string(&result).map_err(|_| "plan review could not be encoded".to_owned())
+    })();
+    match result {
+        Ok(document) => {
+            println!("{document}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+/// Print the feedback on one work version's latest plan for its author.
+fn plan_feedback(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<_, String> {
+        let work = required_identity(flags, "--work")?;
+        let feedback = open_implementer(flags)?.plan_feedback(&work)?;
+        serde_json::to_string(&feedback)
+            .map_err(|_| "plan feedback could not be encoded".to_owned())
+    })();
+    match result {
+        Ok(document) => {
+            println!("{document}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
+/// Replay frozen plan-review cases into a receipt. No database is opened.
+// r[impl kiln.implementation.plan_review.comparison]
+fn plan_review_receipt(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<_, String> {
+        let cases: kiln_core::implementation::PlanCases =
+            read_json(&required_path(flags, "--cases")?)?;
+        let receipt = kiln_core::implementation::plan_review_receipt(&cases)
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        serde_json::to_string(&receipt)
+            .map_err(|_| "plan-review receipt could not be encoded".to_owned())
     })();
     match result {
         Ok(document) => {

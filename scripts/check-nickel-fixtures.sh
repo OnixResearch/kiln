@@ -60,7 +60,8 @@ fi
 # The Rust projection admission test reads this committed export.
 projection_export=$(mktemp)
 load_export=$(mktemp)
-trap 'rm -f "$projection_export" "$load_export"' EXIT
+cases_export=$(mktemp)
+trap 'rm -f "$projection_export" "$load_export" "$cases_export"' EXIT
 nickel export --format json config/fixtures/source-projection-positive.ncl >"$projection_export"
 if ! cmp -s "$projection_export" fixtures/source-projection/definition.json; then
   printf 'stale export: regenerate fixtures/source-projection/definition.json from config/fixtures/source-projection-positive.ncl\n' >&2
@@ -71,6 +72,13 @@ fi
 nickel export --format json config/fixtures/review-queue-wait-positive.ncl >"$load_export"
 if ! cmp -s "$load_export" fixtures/review-queue-wait/load.json; then
   printf 'stale export: regenerate fixtures/review-queue-wait/load.json from config/fixtures/review-queue-wait-positive.ncl\n' >&2
+  exit 1
+fi
+
+# The plan-review receipt and its test read this committed export.
+nickel export --format json config/fixtures/plan-review-positive.ncl >"$cases_export"
+if ! cmp -s "$cases_export" fixtures/plan-review/cases.json; then
+  printf 'stale export: regenerate fixtures/plan-review/cases.json from config/fixtures/plan-review-positive.ncl\n' >&2
   exit 1
 fi
 

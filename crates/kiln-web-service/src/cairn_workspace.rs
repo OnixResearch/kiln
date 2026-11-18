@@ -65,11 +65,12 @@ const MOVING_PHASES: [&str; 6] = [
 ];
 /// Blocker conditions in the order a reader must act on them. An unknown
 /// dispatch outcome refuses every further attempt, so it comes first.
-const BLOCKER_RANK: [&str; 7] = [
+const BLOCKER_RANK: [&str; 8] = [
     "dispatch_recovery",
     "dependency_cycle",
     "no_acceptance_obligations",
     "missing_dependency",
+    "plan_not_accepted",
     "stale_work_binding",
     "pending_effect",
     "campaign_hold",
@@ -998,6 +999,12 @@ fn blockers(units: &[UnitView], memberships: &[MembershipView]) -> Vec<Blocker> 
                         "dependency_cycle",
                         CampaignOperation::Blocked,
                         "the dependency graph reaches this work again".to_owned(),
+                    ),
+                    BlockReason::PlanNotAccepted => (
+                        "plan_not_accepted",
+                        CampaignOperation::RequestDecision,
+                        "opt-in plan review has no accepted plan for this exact work version"
+                            .to_owned(),
                     ),
                 };
                 blockers.push(Blocker {

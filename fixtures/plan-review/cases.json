@@ -1,0 +1,188 @@
+{
+  "cases": [
+    {
+      "annotations": [
+        {
+          "blocking": true,
+          "id": "no-overwrite",
+          "note": {
+            "kind": "replace",
+            "text": "Push each layer branch only when it is absent, and refuse a branch whose head differs."
+          },
+          "region": {
+            "step": "push"
+          },
+          "revision": 1
+        }
+      ],
+      "author": "agent",
+      "decisions": [
+        {
+          "revision": 1,
+          "verdict": "changes_requested"
+        },
+        {
+          "revision": 2,
+          "verdict": "accepted"
+        }
+      ],
+      "id": "overwrite-branch",
+      "provenance": "synthetic",
+      "resolutions": [
+        {
+          "annotation": "no-overwrite",
+          "revision": 2
+        }
+      ],
+      "revisions": [
+        [
+          {
+            "id": "types",
+            "text": "Add a stack plan type that binds every layer to its verified candidate."
+          },
+          {
+            "id": "push",
+            "text": "Force-push each layer branch so that a re-run replaces stale heads."
+          },
+          {
+            "id": "stack",
+            "text": "Create the GitHub stack after every pull request exists."
+          }
+        ],
+        [
+          {
+            "id": "types",
+            "text": "Add a stack plan type that binds every layer to its verified candidate."
+          },
+          {
+            "id": "push",
+            "text": "Push each layer branch only when it is absent, and refuse a branch whose head differs."
+          },
+          {
+            "id": "stack",
+            "text": "Create the GitHub stack after every pull request exists."
+          }
+        ]
+      ]
+    },
+    {
+      "annotations": [
+        {
+          "blocking": true,
+          "id": "layer-ci",
+          "note": {
+            "kind": "comment",
+            "text": "Each lower layer needs its own canonical CI run."
+          },
+          "region": {
+            "step": "verify"
+          },
+          "revision": 1
+        },
+        {
+          "blocking": true,
+          "id": "no-merge",
+          "note": {
+            "kind": "delete"
+          },
+          "region": {
+            "step": "merge"
+          },
+          "revision": 1
+        }
+      ],
+      "author": "agent",
+      "decisions": [
+        {
+          "revision": 1,
+          "verdict": "changes_requested"
+        }
+      ],
+      "id": "unverified-layers",
+      "provenance": "synthetic",
+      "resolutions": [],
+      "revisions": [
+        [
+          {
+            "id": "verify",
+            "text": "Verify only the top layer and reuse its result for the layers below."
+          },
+          {
+            "id": "merge",
+            "text": "Merge the stack from the bottom up through the API."
+          }
+        ]
+      ]
+    },
+    {
+      "annotations": [
+        {
+          "blocking": false,
+          "id": "name-default",
+          "note": {
+            "kind": "comment",
+            "text": "Name this default in the guide as well."
+          },
+          "region": {
+            "span": {
+              "end": 47,
+              "start": 28
+            },
+            "step": "route"
+          },
+          "revision": 1
+        }
+      ],
+      "author": "agent",
+      "decisions": [
+        {
+          "revision": 1,
+          "verdict": "accepted"
+        }
+      ],
+      "id": "comment-only",
+      "provenance": "synthetic",
+      "resolutions": [],
+      "revisions": [
+        [
+          {
+            "id": "route",
+            "text": "Add the route enum with the single pull request as the default."
+          },
+          {
+            "id": "origin",
+            "text": "Refuse Origin stacks before any effect."
+          }
+        ]
+      ]
+    },
+    {
+      "annotations": [],
+      "author": "agent",
+      "decisions": [],
+      "id": "never-reviewed",
+      "provenance": "synthetic",
+      "resolutions": [],
+      "revisions": [
+        [
+          {
+            "id": "pin",
+            "text": "Pin the plan by its content identity."
+          }
+        ]
+      ]
+    },
+    {
+      "annotations": [],
+      "author": "agent",
+      "decisions": [],
+      "id": "captured-agent-plan",
+      "provenance": "agent_capture",
+      "resolutions": [],
+      "revisions": []
+    }
+  ],
+  "reviewer": "reviewer",
+  "schema": "kiln.plan-review.cases.v1",
+  "work_identity": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+}

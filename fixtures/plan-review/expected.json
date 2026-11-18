@@ -1,0 +1,81 @@
+{
+  "schema": "kiln.plan-review.receipt.v1",
+  "cases": "ced17f4d7eda99997dd27bd4ca1a57b1d4ad4ebdcea14f5cf2be56e67c9e9a7d",
+  "results": [
+    {
+      "id": "overwrite-branch",
+      "provenance": "synthetic",
+      "first": "dc46df4818a05365ca4b2b4744137e1aee82cdbaae8524a9d07c00a9ac34f49c",
+      "outcome": {
+        "outcome": "changed",
+        "accepted": "0ba21b4d297ec767086bd69b268a81a66b8a4ed6079321e1492c9076767dd302",
+        "comparison": {
+          "previous": "dc46df4818a05365ca4b2b4744137e1aee82cdbaae8524a9d07c00a9ac34f49c",
+          "current": "0ba21b4d297ec767086bd69b268a81a66b8a4ed6079321e1492c9076767dd302",
+          "kept": [
+            "types",
+            "stack"
+          ],
+          "changed": [
+            "push"
+          ],
+          "added": [],
+          "removed": [],
+          "reordered": false
+        }
+      }
+    },
+    {
+      "id": "unverified-layers",
+      "provenance": "synthetic",
+      "first": "946af9ad435e68f904dff67b181fca3c7f355e347c33a5556c49c5d0ce41617c",
+      "outcome": {
+        "outcome": "prevented",
+        "gate": {
+          "gate": "unresolved",
+          "annotations": [
+            "layer-ci",
+            "no-merge"
+          ]
+        }
+      }
+    },
+    {
+      "id": "comment-only",
+      "provenance": "synthetic",
+      "first": "41ea3aa19786b742e33ced90c4f0e1db848b8b02994337897346533926f517de",
+      "outcome": {
+        "outcome": "unchanged",
+        "accepted": "41ea3aa19786b742e33ced90c4f0e1db848b8b02994337897346533926f517de"
+      }
+    },
+    {
+      "id": "never-reviewed",
+      "provenance": "synthetic",
+      "first": "b438e889bb7524b07121e15f0056f777b7645d2fb658fa7c18d703c34ff98724",
+      "outcome": {
+        "outcome": "unavailable",
+        "reason": "not_reviewed"
+      }
+    },
+    {
+      "id": "captured-agent-plan",
+      "provenance": "agent_capture",
+      "outcome": {
+        "outcome": "unavailable",
+        "reason": "missing_plan"
+      }
+    }
+  ],
+  "counts": {
+    "changed": 1,
+    "prevented": 1,
+    "unchanged": 1,
+    "unavailable": 2
+  },
+  "non_claims": [
+    "Synthetic cases show the review mechanism and its accounting, not a measured quality gain.",
+    "Accepting the first revision unchanged stands in for skim-and-approve; no reviewer behaviour was observed.",
+    "An unavailable case is not a pass."
+  ]
+}

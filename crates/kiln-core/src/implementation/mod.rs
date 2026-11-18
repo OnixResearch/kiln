@@ -18,6 +18,7 @@ pub mod continuation;
 pub mod dispatch;
 pub mod metrics;
 pub mod native_git;
+pub mod plan_review;
 pub mod proof_evidence;
 pub mod publication;
 pub mod stack;
@@ -29,6 +30,7 @@ pub use candidate::*;
 pub use dispatch::*;
 pub use metrics::*;
 pub use native_git::*;
+pub use plan_review::*;
 pub use proof_evidence::*;
 pub use publication::*;
 pub use stack::*;
@@ -249,9 +251,14 @@ pub struct Enrollment {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
 pub enum BlockReason {
-    MissingDependency { identity: ContentId },
+    MissingDependency {
+        identity: ContentId,
+    },
     NoAcceptanceObligations,
     DependencyCycle,
+    /// An opt-in plan-review policy selects this work, and its exact version
+    /// has no accepted latest plan.
+    PlanNotAccepted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -287,6 +294,13 @@ pub enum AdmissionDecision {
 pub struct WorkLedger {
     current: BTreeMap<String, ImplementationWork>,
     superseded: Vec<ImplementationWork>,
+    /// Opt-in plan review (#93). Absent, eligibility and the stored form are
+    /// unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    plan_review: Option<PlanReviewPolicy>,
+    /// Plan review threads by exact work identity.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    plan_threads: BTreeMap<String, PlanThread>,
 }
 
 impl WorkLedger {
@@ -394,10 +408,108 @@ impl WorkLedger {
         self.eligibility(work, &identity).ok()
     }
 
+    /// Apply one plan-review command. Acceptance records a decision only; a
+    /// claim still needs ready work through the existing admission path. A
+    /// refused command leaves the thread unchanged.
+    // r[impl kiln.implementation.plan_review]
+    pub fn apply_plan_review(
+        &mut self,
+        command: &PlanReviewCommand,
+    ) -> CoreResult<PlanReviewResult> {
+        let work = match command {
+            PlanReviewCommand::Configure { policy } => {
+                if let Some(policy) = policy {
+                    policy.validate()?;
+                }
+                self.plan_review = policy.clone();
+                return Ok(PlanReviewResult::Configured);
+            }
+            PlanReviewCommand::Propose { plan } => &plan.work_identity,
+            PlanReviewCommand::Annotate { work, .. }
+            | PlanReviewCommand::Resolve { work, .. }
+            | PlanReviewCommand::Decide { work, .. } => work,
+        };
+        let reviewers = self.selecting_reviewers(work)?;
+        let mut thread = self
+            .plan_threads
+            .get(work.as_str())
+            .cloned()
+            .unwrap_or_default();
+        let result = match command {
+            PlanReviewCommand::Configure { .. } => PlanReviewResult::Configured,
+            PlanReviewCommand::Propose { plan } => PlanReviewResult::Proposed {
+                plan: thread.propose(work, plan)?,
+            },
+            PlanReviewCommand::Annotate { annotation, .. } => {
+                thread.annotate(&reviewers, annotation)?;
+                PlanReviewResult::Reviewed {
+                    gate: thread.gate()?,
+                }
+            }
+            PlanReviewCommand::Resolve { resolution, .. } => {
+                thread.resolve(&reviewers, resolution)?;
+                PlanReviewResult::Reviewed {
+                    gate: thread.gate()?,
+                }
+            }
+            PlanReviewCommand::Decide { decision, .. } => PlanReviewResult::Reviewed {
+                gate: thread.decide(&reviewers, decision)?,
+            },
+        };
+        self.plan_threads.insert(work.as_str().to_string(), thread);
+        Ok(result)
+    }
+
+    #[must_use]
+    pub fn plan_review_policy(&self) -> Option<&PlanReviewPolicy> {
+        self.plan_review.as_ref()
+    }
+
+    #[must_use]
+    pub fn plan_thread(&self, work: &ContentId) -> Option<&PlanThread> {
+        self.plan_threads.get(work.as_str())
+    }
+
+    /// Feedback on the latest plan of one work version, for its author.
+    pub fn plan_feedback(&self, work: &ContentId) -> CoreResult<PlanFeedback> {
+        self.plan_threads
+            .get(work.as_str())
+            .ok_or_else(|| {
+                refusal(
+                    "implementation_plan_missing",
+                    "plan_review.work",
+                    "the work version has no plan-review thread",
+                )
+            })?
+            .feedback()
+    }
+
+    /// Reviewers of a configured policy that selects this exact current work.
+    fn selecting_reviewers(&self, work: &ContentId) -> CoreResult<BTreeSet<String>> {
+        let policy = self.plan_review.as_ref().ok_or_else(|| {
+            refusal(
+                "implementation_plan_review_disabled",
+                "plan_review.policy",
+                "plan review is not configured",
+            )
+        })?;
+        let selected = self.current.values().any(|current| {
+            policy.selects(current) && current.identity().is_ok_and(|identity| &identity == work)
+        });
+        if !selected {
+            return Err(refusal(
+                "implementation_plan_work",
+                "plan_review.work",
+                "plan review needs a current work version that the policy selects",
+            ));
+        }
+        Ok(policy.reviewers.clone())
+    }
+
     fn eligibility(
         &self,
         work: &ImplementationWork,
-        _identity: &ContentId,
+        identity: &ContentId,
     ) -> CoreResult<Eligibility> {
         let mut reasons = Vec::new();
         if work.acceptance.is_empty() {
@@ -418,6 +530,17 @@ impl WorkLedger {
         }
         if self.reaches_cycle(work)? {
             reasons.push(BlockReason::DependencyCycle);
+        }
+        if let Some(policy) = &self.plan_review
+            && policy.selects(work)
+        {
+            let accepted = match self.plan_threads.get(identity.as_str()) {
+                Some(thread) => matches!(thread.gate()?, PlanGate::Accepted { .. }),
+                None => false,
+            };
+            if !accepted {
+                reasons.push(BlockReason::PlanNotAccepted);
+            }
         }
         reasons.sort();
         reasons.dedup();
