@@ -12,6 +12,7 @@
 
 pub mod attempt;
 pub mod attempt_report;
+pub mod authority;
 pub mod campaign;
 pub mod candidate;
 pub mod continuation;

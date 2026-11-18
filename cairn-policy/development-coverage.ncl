@@ -3,6 +3,7 @@ let Accepted = std.array.at 0 Base.traceability_policy.profiles in
 # Delta-spec roots of changes in flight. A root stays here only until its change
 # is accepted and archived. Add only active roots.
 let ActiveRoots = [
+  ".cairn/changes/bind-implementation-authority/specs/implementation-authority/spec.md",
   ".cairn/changes/complete-independent-verification/specs/independent-verification/spec.md",
   ".cairn/changes/recover-exact-publication/specs/publication-recovery/spec.md",
   ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
