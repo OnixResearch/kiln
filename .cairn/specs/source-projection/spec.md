@@ -99,3 +99,120 @@ r[kiln.source.projection.compatibility.scenario.scope]
 - GIVEN an admitted project scope with a root, include and exclude patterns, and source facts
 - WHEN the scope is converted and resolved
 - THEN the projected files MUST be exactly the paths the scope contains, and the definition MUST record the compatibility profile and scope identity
+
+### Requirement: Captured and sealed projected edits
+
+r[kiln.source.projection.writeback] A capture MUST accept only a completeness witness for a write, its admitted definition, the overlay's workspace pin, the shell's observation of that overlay and the attempt's current fence and source facts. It MUST map each changed, created or removed overlay file back through the manifest and mounts to one typed source operation (edit, create or delete) that names its expected base object. Before any effect it MUST refuse a moved source, a superseded fence, a pin for another view, aliases that disagree, a new file outside the declared creation destinations, a new file that maps to no source path or to several, a new file outside the selection or over a source file the view does not hold, and unsupported entries. A sealed candidate MUST carry a BLAKE3 identity over its base, definition, manifest, pin and operations. A sealing shell MUST write exactly the captured bytes, refuse an overlay that changed after capture, and build the candidate from the base tree so that every path outside the operations keeps its object and mode. Capture and sealing MUST NOT move a reference or grant publication authority.
+
+#### Scenario: A shared edit round-trips into one source update
+
+r[kiln.source.projection.writeback.scenario.round_trip]
+- GIVEN a writable view of one project and a shared directory mounted twice, materialized into a pinned attempt overlay
+- WHEN the shared file is edited at both destinations, a file is created under a creation destination and another is removed, and the overlay is captured and sealed
+- THEN the candidate MUST hold exactly one edit, one create and one delete, every other path MUST keep its base object and mode, a view resolved at the candidate MUST show the new version, and another attempt's pinned overlay MUST keep the old one
+
+#### Scenario: Equal bytes at two origins stay independent
+
+r[kiln.source.projection.writeback.scenario.independent]
+- GIVEN two source files with equal bytes at different origins, one of them in the view
+- WHEN the one in the view is edited and the overlay is captured
+- THEN only that origin MUST change
+
+#### Scenario: Ambiguous and contradictory edits are refused
+
+r[kiln.source.projection.writeback.scenario.refused]
+- GIVEN an alias edited at one destination only, a new file outside every creation destination, a new file that two mounts map to different source paths, a new file over a source file the view does not hold, or a symbolic link
+- WHEN the overlay is captured
+- THEN the capture MUST be refused with a diagnostic for each fault and nothing MUST be sealed
+
+#### Scenario: Stale and superseded captures are refused
+
+r[kiln.source.projection.writeback.scenario.stale]
+- GIVEN source facts at another revision, a current fence beyond the pin's, a pin for another manifest, or a completeness witness for a build
+- WHEN the overlay is captured
+- THEN the capture MUST be refused
+
+#### Scenario: A sealed candidate is immutable
+
+r[kiln.source.projection.writeback.scenario.sealed]
+- GIVEN a candidate that was captured and sealed
+- WHEN the worker writes to the overlay again
+- THEN sealing the earlier capture MUST be refused, a new capture MUST have another identity, and the earlier sealed commit MUST be unchanged
+
+### Requirement: Materialized projection inputs and attempt overlays
+
+r[kiln.source.projection.materialization] A materializer MUST accept only a completeness witness and a versioned materializer profile, and MUST derive a reusable input identity from the manifest identity, its content identity and the profile, and an attempt overlay identity from the input identity, the attempt and a non-zero fence. It MUST write only the planned entries and modes after verifying every provider object against its native identity, MUST refuse entries the profile cannot represent, MUST publish an input only after it is complete, and MUST NOT reuse or overwrite a directory whose binding is missing or mismatched. Attempt overlays MUST be private writable copies whose writes cannot change the shared input or another overlay. A dispatch plan that uses a projected workspace MUST pin the admitted repository, exact source revision, projection definition, resolved manifest, materializer profile, input and overlay generation for its attempt and fence, and the retained overlay binding MUST record the same pin. Materialization MUST NOT grant read, write or execution authority.
+
+#### Scenario: Repeated materialization is equivalent
+
+r[kiln.source.projection.materialization.scenario.repeat]
+- GIVEN one complete projection and one materializer profile
+- WHEN it is materialized twice
+- THEN both inputs MUST have the same identity and byte- and mode-equivalent trees
+
+#### Scenario: Overlays are isolated
+
+r[kiln.source.projection.materialization.scenario.isolated]
+- GIVEN two attempt overlays prepared from one input
+- WHEN one overlay is edited
+- THEN neither the input nor the other overlay MUST change
+
+#### Scenario: Damaged or unbound state is never admitted
+
+r[kiln.source.projection.materialization.scenario.refused]
+- GIVEN a missing, corrupt or truncated object, an unsupported entry, a damaged reused input or an existing directory without a matching binding
+- WHEN preparation runs
+- THEN it MUST fail without publishing or overwriting any input or overlay
+
+#### Scenario: Dispatch and retained overlays pin the workspace
+
+r[kiln.source.projection.materialization.scenario.pinned]
+- GIVEN a dispatch plan whose workspace pins one materialization plan for its attempt and fence
+- WHEN the plan is admitted, or the overlay is prepared or resumed for that pin
+- THEN a pin for another attempt, fence or base revision, an overlay that is not the identity of its input, attempt and fence, a workspace identity other than that overlay, or a pin that differs from the current materialization plan or the retained overlay binding MUST be refused, and a plan without a pin MUST keep its previous identity
+
+#### Scenario: A shared corpus has a frozen local baseline
+
+r[kiln.source.projection.materialization.scenario.baseline]
+- GIVEN a typed shared corpus with two projects, a shared dependency, an executable file, equal-byte files at two origins and an excluded entry
+- WHEN every projection is materialized through the eager local materializer for two attempts
+- THEN the receipt MUST record each contract check's outcome and the timings, and match the committed expectation apart from timings
+
+### Requirement: Planned build inputs for projected views
+
+r[kiln.source.projection.build_inputs] A build-input planner MUST accept only a completeness witness for a build, exact facts and layout facts of the same full source candidate, and a versioned build request naming its profile, targets, command, toolchain and environment. Under the Cargo compatibility profile it MUST require, at their own source paths, every file of each target package, of every workspace member Cargo loads and of their path-dependency closure, together with the build root's workspace manifest and lockfile and the Cargo configuration and toolchain files at the build root and its ancestors. Under the Nix compatibility profile it MUST refuse a view that omits any source file. Before any execution it MUST refuse unavailable or stale facts, relocated or generated entries, unknown or ambiguous targets, targets with several build roots, path dependencies outside the repository and every absent required input. An admitted plan MUST carry a BLAKE3 identity over the full candidate, the projection manifest and content, the profile, the required inputs with their roles and objects, the command, the toolchain and the environment, and evidence MUST apply only to a plan with that identity. A plan MUST NOT grant read, write, execution or publication authority and MUST NOT be reported as a successful build.
+
+#### Scenario: A project view with its shared dependency is planned
+
+r[kiln.source.projection.build_inputs.scenario.planned]
+- GIVEN a two-project Cargo workspace with glob members, a shared path dependency, inherited workspace fields, a root lockfile and Cargo configuration
+- WHEN a view holding one project, the shared dependency and the root files is planned for that project
+- THEN the plan MUST list exactly those packages and root files with their roles, and name the workspace root as the build root
+
+#### Scenario: Missing, relocated and unsupported inputs are refused
+
+r[kiln.source.projection.build_inputs.scenario.refused]
+- GIVEN unavailable layout facts, facts from another candidate, a relocated or generated entry, an unknown or ambiguous target, targets with several build roots, an absent dependency, lockfile, configuration or toolchain file, an absent literal member, a partly held glob member or a path dependency outside the repository
+- WHEN the view is planned
+- THEN the planner MUST refuse it with a diagnostic for each fault and plan nothing
+
+#### Scenario: Restricted Nix views are refused
+
+r[kiln.source.projection.build_inputs.scenario.nix]
+- GIVEN a Nix flake with a declared path input and a sibling read that no input declares
+- WHEN a view without the sibling and a view of the whole tree are planned
+- THEN the restricted view MUST be refused and the whole-tree plan MUST include the declared path input
+
+#### Scenario: Evidence follows the plan identity
+
+r[kiln.source.projection.build_inputs.scenario.applicability]
+- GIVEN evidence recorded for one plan
+- WHEN the layout, a required input object, the toolchain, the command or the environment changes
+- THEN the new plan MUST have another identity and the evidence MUST NOT apply to it
+
+#### Scenario: A planned view is qualified through the materializer
+
+r[kiln.source.projection.build_inputs.scenario.qualified]
+- GIVEN the Cargo corpus committed with a working checkout and its planned views materialized through the projected materializer
+- WHEN the declared toolchain matches and each planned command runs at the build root of an attempt overlay with a cleared environment and a private target directory, and the shared dependency is edited through one view
+- THEN the complete view MUST pass its tests without changing its entries, a view whose code reads a file outside it MUST fail although the checkout holds that file, and the edit MUST select the dependent project outside the editing view

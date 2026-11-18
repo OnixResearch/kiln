@@ -78,6 +78,7 @@ pub enum WorkflowProfile {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+// r[impl kiln.implementation.campaign.context]
 pub struct DecisionContextBinding {
     pub decision_id: String,
     pub native_adr_id: Option<String>,
@@ -91,6 +92,7 @@ pub struct DecisionContextBinding {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+// r[impl kiln.implementation.campaign.bindings]
 pub struct MemberBinding {
     pub selector: MemberSelector,
     pub profile: WorkflowProfile,
@@ -107,6 +109,7 @@ pub struct MemberBinding {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+// r[impl kiln.implementation.campaign.scope]
 pub struct CampaignContract {
     pub schema: String,
     pub campaign_id: String,
@@ -638,6 +641,7 @@ impl CampaignState {
         self.observe_source(observation, true)
     }
 
+    // r[impl kiln.implementation.campaign.scope.scenario.freeze]
     fn observe_source(
         &mut self,
         observation: MemberObservation,
@@ -1077,6 +1081,7 @@ impl CampaignState {
     }
 
     /// Campaign-wide conditions that precede every member action.
+    // r[impl kiln.implementation.campaign.controller.scenario.restart]
     fn campaign_barrier(&self) -> Option<CampaignDecision> {
         if let Some(effect) = self.pending_effects.values().find(|e| !e.progress_applied) {
             let reason = if matches!(
@@ -1169,6 +1174,7 @@ impl CampaignState {
 
     /// Every unsatisfied selected member in deterministic selection order:
     /// unblocked before blocked, then by canonical member key.
+    // r[impl kiln.implementation.campaign.controller]
     fn evaluate_members(&self) -> Vec<MemberEvaluation> {
         let active = self
             .observations
@@ -1411,6 +1417,7 @@ impl CampaignState {
             hold(operation, key, reason, operation.owner(), None)
         }
     }
+    // r[impl kiln.implementation.campaign.completion]
     fn member_endpoint_satisfied(
         &self,
         binding: &MemberBinding,
@@ -1819,6 +1826,7 @@ mod tests {
         assert!(!state.complete());
     }
     #[test]
+    // r[verify kiln.implementation.campaign.controller.scenario.dependencies]
     fn independent_member_can_progress_when_dependency_waits() {
         let mut state = CampaignState::start(contract()).unwrap_or_else(|_| unreachable!());
         let a = key_at(&state, 0);
@@ -1838,6 +1846,7 @@ mod tests {
         assert_eq!(action.operation, CampaignOperation::Code);
     }
     #[test]
+    // r[verify kiln.implementation.campaign.context.scenario.drift]
     fn decision_context_drift_is_not_candidate_drift() {
         let mut state = CampaignState::start(contract()).unwrap_or_else(|_| unreachable!());
         let key = key_at(&state, 1);
@@ -1870,6 +1879,7 @@ mod tests {
         );
     }
     #[test]
+    // r[verify kiln.implementation.campaign.scope.scenario.partial]
     fn incomplete_enumeration_and_missing_member_never_complete() {
         let mut c = contract();
         c.members.truncate(1);
@@ -1890,6 +1900,7 @@ mod tests {
         );
     }
     #[test]
+    // r[verify kiln.implementation.campaign.completion.scenario.endpoint]
     fn verified_pr_and_lifecycle_goals_are_distinct() {
         let mut c = contract();
         c.members.truncate(1);
@@ -2113,6 +2124,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.campaign.context.scenario.backpressure]
     fn paused_campaign_holds_unissued_decisions() {
         let mut c = contract();
         c.members.truncate(1);
@@ -2631,6 +2643,7 @@ mod tests {
 
     #[test]
     // r[verify kiln.implementation.campaign.independent_progress.scenario.review_gate]
+    // r[verify kiln.implementation.campaign.bindings.scenario.review]
     fn required_review_holds_its_candidate_until_an_exact_answer_and_owner_evidence() {
         let mut selected = independence_contract("change-a", "change-b", "change-c");
         selected.members.truncate(1);

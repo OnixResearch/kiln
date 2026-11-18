@@ -200,6 +200,7 @@ pub fn record_lifecycle(
 
 /// Execute exactly one operator-authorized native Git qualification request.
 /// The caller must pass `--execute`; this command can perform real ref updates.
+// r[impl kiln.implementation.native_git]
 pub fn run(
     request_path: &Path,
     enrollment_path: &Path,

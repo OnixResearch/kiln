@@ -444,6 +444,7 @@ pub fn finalize_identity(projection: &mut CampaignProjection) -> Result<(), Stri
 
 /// Join only exact campaign work/attempt/fence identities from a separate resource projection.
 /// This copies admitted observation bindings; it does not confer readiness or hide inventory failure.
+// r[impl kiln.dashboard.campaign.projection.scenario.unknown]
 fn join_resource_inventory(projection: &mut CampaignProjection, inventory: &InventoryProjection) {
     for member in &mut projection.members {
         member.resource_inventory_identity = Some(inventory.identity.clone());
@@ -749,6 +750,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.dashboard.campaign.projection.scenario.partial]
     fn absent_campaign_store_does_not_create_database_and_keeps_selection_obligation() {
         let directory = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error:?}"));
         let path = directory.path().join("absent.db");
@@ -788,6 +790,8 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.dashboard.campaign.projection.scenario.identity]
+    // r[verify kiln.dashboard.campaign.projection.scenario.readonly]
     fn canonical_campaign_projection_is_read_only_and_identity_tracks_stored_version() {
         let directory = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error:?}"));
         let path = directory.path().join("campaign.db");
@@ -826,6 +830,7 @@ mod tests {
         assert!(!cli_html.contains("<script"));
     }
     #[test]
+    // r[verify kiln.dashboard.campaign.projection.scenario.current_work]
     fn unchanged_campaign_row_gets_new_identity_when_current_work_observation_changes() {
         let state =
             CampaignState::start(contract()).unwrap_or_else(|error| unreachable!("{error:?}"));

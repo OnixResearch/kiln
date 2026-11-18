@@ -9,7 +9,7 @@ Defines the `live-console-design` capability.
 ### Requirement: Cohesive live console presentation
 
 r[kiln.web.visual_design]
-The live workspace MUST present a cohesive console in the Kiln identity: warm porcelain and soot surfaces with ember action emphasis, built from one shared token layer (spacing, type, radii, elevation, motion and semantic status colors), consistent typography and clear hierarchy across CI, work and code-review views. Each view MUST expose a single primary action, with secondary and session actions visually subordinate. Light, dark, system appearance, compact density and reduced motion MUST remain functional. The Overview project list, the run list, a project's run history and the code-review change list MUST stack their rows into lines when their own region is 48rem or narrower, and a status label in them MUST be shown whole. The visual change MUST preserve existing routes, identity, state, authority, confirmation and keyboard contracts, and MUST NOT introduce remote asset requests or fabricated observations.
+The live workspace MUST present a cohesive console in the Kiln technical graphics standard: paper and ink surfaces with solid ink action emphasis, built from one shared token layer (spacing, type, radii, elevation, motion and semantic status colors), consistent typography and clear hierarchy across CI, work and code-review views. Each view MUST expose a single primary action, with secondary and session actions visually subordinate. Light, dark, system appearance, compact density and reduced motion MUST remain functional. The Overview project list, the run list, a project's run history and the code-review change list MUST stack their rows into lines when their own region is 48rem or narrower, and a status label in them MUST be shown whole. The visual change MUST preserve existing routes, identity, state, authority, confirmation and keyboard contracts, and MUST NOT introduce remote asset requests or fabricated observations.
 
 #### Scenario: Desktop console and appearance
 
@@ -33,7 +33,7 @@ r[kiln.web.visual_design.scenario.lists]
 ### Requirement: Readable observations with exact values preserved
 
 r[kiln.web.readable_observations]
-The live workspace MUST present canonical outcomes as icon-and-label status indicators, durations in human units and timestamps as relative times, while keeping the exact canonical outcome, recorded duration and absolute local and UTC instant available to assistive technology and on hover or focus. Formatting MUST be presentation-only and MUST NOT alter stored values. Absent or invalid timing MUST render as not recorded, never as zero or the current time.
+The live workspace MUST present canonical outcomes as icon-and-label status indicators, durations in human units, byte quantities in binary units and timestamps as relative times, while keeping the exact canonical outcome, recorded duration, exact byte count and absolute local and UTC instant available to assistive technology and on hover or focus. Formatting MUST be presentation-only and MUST NOT alter stored values. Timing that a run cannot have yet MUST be named from its recorded phase: the duration of a running run reads as in progress, a queued or awaiting-approval run reads as not started, and an unfinished run's completion reads as not finished. Other absent or invalid timing MUST render as not recorded, never as zero or the current time.
 
 #### Scenario: Failed run in overview
 
@@ -45,9 +45,16 @@ r[kiln.web.readable_observations.scenario.failed]
 #### Scenario: Missing timing
 
 r[kiln.web.readable_observations.scenario.unknown]
-- GIVEN a retained run without recorded timing
+- GIVEN a retained finished, unknown or unreadable run without recorded timing
 - WHEN it is rendered anywhere in the console
 - THEN duration and time MUST read as not recorded, and no relative time or zero duration MUST be shown
+
+#### Scenario: Timing a run cannot have yet
+
+r[kiln.web.readable_observations.scenario.pending]
+- GIVEN a running run without a recorded duration, and a queued or awaiting-approval run without a recorded start
+- WHEN either is rendered in the run list, the run header, the Overview project list or a project's run history
+- THEN the running run's duration MUST read In progress, the waiting run's duration and start MUST read Not started, neither completion MUST read as recorded, a recorded value MUST still be shown as recorded, and no elapsed time, zero duration or current time MUST be substituted
 
 ### Requirement: Structured console layout
 
@@ -143,3 +150,50 @@ r[kiln.web.request_feedback.scenario.slow]
 - GIVEN an authenticated console and a read that takes longer than the delay
 - WHEN the operator opens a page and the read later settles or fails
 - THEN the progress indication MUST appear while the read is in flight and MUST be gone afterwards, and the live-observation poll alone MUST NOT show it
+
+### Requirement: Numbered wayfinding
+
+r[kiln.web.wayfinding]
+The live console MUST keep one numbered register of its destinations: each destination MUST have one section number in a numbered group, a title and a one-sentence purpose, and a page that belongs to another destination (a project's history under CI projects) MUST share that destination's number. The navigation rail, the page title block, the breadcrumb, the command palette's "Go to" commands and the Guide MUST read their numbers, titles and purposes from that register, and the console MUST admit exactly the register's pages. A Guide page MUST list every destination by number with its purpose, how each run state reads, the words Kiln uses and the keyboard reference, with a short first path for a new operator. The brand MUST return to the page that a bare console URL opens. An empty workspace MUST name its next step. When the rail scrolls, the current destination MUST be scrolled fully into the rail's own view without moving the page. A section number MUST NOT be part of a navigation link's accessible name.
+
+#### Scenario: A destination reads the same everywhere
+
+r[kiln.web.wayfinding.scenario.register]
+- GIVEN the destination register
+- WHEN the rail, the page title block, the breadcrumb, the command palette and the Guide are shown for a destination
+- THEN each MUST show that destination's number and title, the title block MUST show its group and purpose, typing the number in the command palette MUST offer that destination, and no two top-level destinations MUST share a number
+
+#### Scenario: A new operator orients
+
+r[kiln.web.wayfinding.scenario.orientation]
+- GIVEN an authenticated workspace with no enrolled project
+- WHEN the operator opens the console
+- THEN the Overview MUST offer CI projects and the Guide as next steps, and the Guide MUST explain every run state the console can show before any run exists
+
+### Requirement: Usable contained console topbar
+r[kiln.web.topbar_containment]
+The console topbar MUST remain within the document viewport while preserving useful location, account, search and live-state controls. Verifying a header fix MUST NOT weaken the existing Bombadil viewport property or grant host-maintenance or deployment authority.
+
+#### Scenario: Long location within the available header
+r[kiln.web.topbar_containment.scenario.location]
+- GIVEN the long Raw collaboration history location and the synthetic operator identity
+- WHEN the console is rendered at 390, 768, 1024 and 1440px, with the desktop rail collapsed or pinned where supported
+- THEN no document-level horizontal overflow MUST occur, and the location MUST retain a visible nonzero region rather than collapsing to zero
+
+#### Scenario: Controls remain usable when labels yield space
+r[kiln.web.topbar_containment.scenario.controls]
+- GIVEN a constrained header and full accessible names for account and search controls
+- WHEN the operator opens and dismisses the account menu or command palette with pointer or keyboard controls
+- THEN those controls MUST remain reachable, mobile targets MUST retain their existing 44px minimum, and the fix MUST NOT mask overflow by hiding the document or discarding navigation content
+
+#### Scenario: Read-only host diagnosis before bounded builds
+r[kiln.web.topbar_containment.scenario.host_safety]
+- GIVEN independently configured host automatic-GC thresholds and constrained shared storage
+- WHEN this change diagnoses policy and rebuilds the selected example
+- THEN it MUST record source-backed threshold/capacity observations, disable automatic GC per Nix invocation, and MUST NOT change host policy or perform shared cleanup, deployment or managed-service restarts without separate operator authorization
+
+#### Scenario: Retained unchanged browser-rail evidence
+r[kiln.web.topbar_containment.scenario.evidence]
+- GIVEN rebuilt local assets and an explicitly selected existing deployed example
+- WHEN the bounded Bombadil rail runs
+- THEN it MUST use the unchanged semantic properties, retain native outcomes and meaningful observed states, clean up owned processes and preserve managed services, without treating a deployed observation as deployment of this local fix or claiming exhaustive coverage or release authority

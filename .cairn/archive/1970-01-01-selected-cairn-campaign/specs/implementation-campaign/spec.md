@@ -1,10 +1,6 @@
-# Selected Cairn Campaign Specification
+# Selected Cairn Campaign delta
 
-## Purpose
-
-Defines the selected-set implementation campaign capability while preserving canonical Kiln and Cairn authority.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Frozen selected campaign and retained obligations
 

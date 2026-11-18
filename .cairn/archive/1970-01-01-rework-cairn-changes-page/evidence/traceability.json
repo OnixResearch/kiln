@@ -1,0 +1,36 @@
+{
+  "change": "rework-cairn-changes-page",
+  "non_claims": [
+    "declared reference coverage does not prove executable conformance",
+    "passing coverage does not accept a change or authorize release"
+  ],
+  "profiles": [
+    {
+      "command": "traceability coverage",
+      "dangling": [],
+      "input_hash": "529cc95131eb4eb4628d5eac7f80b337d48d856d28952c6fd05909c5bee817b9",
+      "missing": [],
+      "policy_hash": "2e724290e2820e553647e01bc2587b3e9f7b1d401272fe5b132482e9c192adfa",
+      "profile_id": "kiln-active-development",
+      "receipt_hash": "54312e2c32f8d49cd9a400d3da0e9dead768d9183a2525611d55815decda2e85",
+      "referenced": 2004,
+      "requirements": 2004,
+      "valid": true,
+      "verdict": "pass"
+    },
+    {
+      "command": "traceability coverage",
+      "dangling": [],
+      "input_hash": "62bc215111b50d1d188099f9d97267f0404faa632f029d018ebac2b40fe70e0b",
+      "missing": [],
+      "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+      "profile_id": "cairn-default",
+      "receipt_hash": "002da603b06e19d3bcf5ad3f5c0225e02b5b5317e39aa893e9f7eae34c8cc775",
+      "referenced": 2004,
+      "requirements": 2004,
+      "valid": true,
+      "verdict": "pass"
+    }
+  ],
+  "scope": "Declared reference coverage for the active delta roots and the accepted specs; not behavioral conformance, lifecycle acceptance or release eligibility."
+}

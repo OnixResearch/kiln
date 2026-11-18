@@ -13,6 +13,21 @@
 
 - [x] [serial] Assert the exploration example's lanes, then run the crate Cargo tests, rustfmt, Clippy, JS syntax checks and the Node rail and record their scope. r[kiln.cairn.workspace.scenario.example] r[kiln.cairn.workspace]
 - [x] [serial] Review real assets over the exploration workspace at desktop, tablet and phone widths in light and dark, covering filters, board, keyboard, next steps, an inline answer, unit expansion, the graph and campaign links, and record bounded evidence. r[kiln.cairn.workspace.scenario.detail] r[kiln.cairn.workspace.scenario.register]
-- [ ] [serial] Update the operator guide, console inventory and changelog, register the active delta root, and pass Cairn validation and traceability. r[kiln.cairn.workspace]
+- [x] [serial] Update the operator guide, console inventory and changelog, register the active delta root, and pass Cairn validation and traceability. r[kiln.cairn.workspace]
 
-Verification is recorded in `evidence/verification.json`. Documentation, console inventory and the active delta root are updated; Cairn validation passes. The final task remains open because the workspace-wide active-development traceability gate reports two missing GitHub requirements and two dangling non-Cairn markers. No `kiln.cairn.workspace` marker is missing or dangling. Those other capabilities were not changed to manufacture a passing receipt. No specification sync, archive or release-readiness claim is made.
+Verification is recorded in `evidence/verification.json`; the declared-coverage
+receipt for both traceability profiles is in `evidence/traceability.json`.
+Documentation, console inventory and the active delta root are updated; Cairn
+validation passes. The traceability gate now reports no missing or dangling
+requirement in either the accepted `cairn-default` profile or the
+`kiln-active-development` profile.
+
+The earlier two missing GitHub requirements were retired by the
+`retire-removed-github-mutations` change. The dangling campaign projection
+marker was resolved by rewriting the active `selected-cairn-campaign` delta as
+explicit added requirements and syncing it. Syncing every active delta exposed
+accepted campaign, campaign-projection and native-Git requirements that carried
+no reference anchor; each was anchored at its existing implementation or test
+site. No requirement text, runtime behavior or default policy changed for those
+capabilities. Declared reference coverage is not behavioral conformance or
+release eligibility.
