@@ -31,6 +31,9 @@ impl ChangeReviewPort for AmbiguousProvider<'_> {
     fn compare(&self, request: &CompareRequest) -> ReviewResult<CommitComparison> {
         self.0.compare(request)
     }
+    fn session_traces(&self, commit: &str) -> ReviewResult<domain::RevisionSessionTraces> {
+        self.0.session_traces(commit)
+    }
     fn execute(&self, request: &ReviewOperationRequest) -> ReviewResult<ReviewEffect> {
         self.0.execute(request)?;
         Err(ReviewError {
@@ -53,6 +56,9 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> TestResult<Self> {
+        Self::with_session_traces(false)
+    }
+    fn with_session_traces(enabled: bool) -> TestResult<Self> {
         let temp = tempfile::tempdir()?;
         std::fs::set_permissions(temp.path(), std::fs::Permissions::from_mode(0o700))?;
         let path = temp.path().join("review.git");
@@ -86,7 +92,8 @@ impl Fixture {
                     "owners":[BOB],"teams":[],"target_refs":[]}]}},
             "read_principals":[ALICE,BOB],"write_principals":[ALICE,BOB],
             "signature_name":"Review service","signature_email":"review@example.invalid",
-            "intake":{"default_target_ref":MAIN,"mappings":[]}
+            "intake":{"default_target_ref":MAIN,"mappings":[]},
+            "session_traces":enabled
         }))?;
         let workspace = Workspace::new(Some(profile.clone()))?;
         Ok(Self {
@@ -155,6 +162,17 @@ impl Fixture {
     /// Run one command through the real shell path with an ambiguous provider
     /// outcome, so the reserved `Pending` journal stays durable.
     fn ambiguous(&self, request: &Value, actor: &str, now_ms: i64) -> TestResult<ApiResponse> {
+        let real = LocalGitReviewProvider::open(self.profile.provider.clone())
+            .map_err(|error| error.to_string())?;
+        self.with_provider(request, actor, now_ms, &AmbiguousProvider(&real))
+    }
+    fn with_provider(
+        &self,
+        request: &Value,
+        actor: &str,
+        now_ms: i64,
+        provider: &impl ChangeReviewPort,
+    ) -> TestResult<ApiResponse> {
         let request: Request = serde_json::from_value(request.clone())?;
         let _gate = self.workspace.gate.lock().map_err(|_| "gate")?;
         let binding = self
@@ -163,12 +181,9 @@ impl Fixture {
             .map_err(|error| format!("{error:?}"))?;
         let mut store = store::Store::open(&self.profile.database, &binding)?;
         let mut state: State = store.load()?;
-        let real = LocalGitReviewProvider::open(self.profile.provider.clone())
-            .map_err(|error| error.to_string())?;
-        let provider = AmbiguousProvider(&real);
         let context = ProviderContext {
             profile: &self.profile,
-            provider: &provider,
+            provider,
             binding: &binding,
         };
         let request_context = RequestContext {
@@ -670,5 +685,317 @@ fn review_window_export_is_bounded_and_read_only() -> TestResult {
     );
     rejected(&worker, 403, "review_principal_denied")?;
     assert_eq!(fixture.document()?, document);
+    Ok(())
+}
+
+/// A real local provider with a controlled observation boundary. Counts prove
+/// opt-out performs no note read and bad bindings fail before any Git effect.
+struct TraceProvider<'a> {
+    real: &'a LocalGitReviewProvider,
+    observation: ReviewResult<domain::RevisionSessionTraces>,
+    reads: std::cell::Cell<usize>,
+    effects: std::cell::Cell<usize>,
+}
+impl ChangeReviewPort for TraceProvider<'_> {
+    fn info(&self) -> ReviewProviderInfo {
+        self.real.info()
+    }
+    fn inspect(&self, commit: &str, target_ref: &str) -> ReviewResult<CommitInspection> {
+        self.real.inspect(commit, target_ref)
+    }
+    fn compare(&self, request: &CompareRequest) -> ReviewResult<CommitComparison> {
+        self.real.compare(request)
+    }
+    fn session_traces(&self, _: &str) -> ReviewResult<domain::RevisionSessionTraces> {
+        self.reads.set(self.reads.get() + 1);
+        self.observation.clone()
+    }
+    fn execute(&self, request: &ReviewOperationRequest) -> ReviewResult<ReviewEffect> {
+        self.effects.set(self.effects.get() + 1);
+        self.real.execute(request)
+    }
+    fn reconcile(&self, request: &ReviewOperationRequest) -> ReviewResult<ReviewEffect> {
+        self.real.reconcile(request)
+    }
+}
+fn trace_provider(
+    real: &LocalGitReviewProvider,
+    observation: ReviewResult<domain::RevisionSessionTraces>,
+) -> TraceProvider<'_> {
+    TraceProvider {
+        real,
+        observation,
+        reads: std::cell::Cell::new(0),
+        effects: std::cell::Cell::new(0),
+    }
+}
+fn trace_note(fixture: &Fixture, commit: Oid, note: &str) -> TestResult {
+    let repository = Repository::open_bare(&fixture.profile.provider.repository_path)?;
+    let signature = Signature::new(
+        "Pointer fixture",
+        "pointer@example.invalid",
+        &Time::new(1_700_000_000, 0),
+    )?;
+    repository.note(
+        &signature,
+        &signature,
+        Some("refs/notes/traces"),
+        commit,
+        note,
+        true,
+    )?;
+    Ok(())
+}
+fn trace_error(kind: ReviewErrorKind) -> ReviewResult<domain::RevisionSessionTraces> {
+    Err(ReviewError {
+        kind,
+        message: "fixture observation refusal".into(),
+    })
+}
+
+// r[verify kiln.review.session_traces]
+#[test]
+fn session_traces_default_off_preserves_bytes_and_never_reads_or_backfills() -> TestResult {
+    let fixture = Fixture::new()?;
+    assert!(!fixture.profile.session_traces);
+    let serialized = serde_json::to_value(&fixture.profile)?;
+    assert!(serialized.get("session_traces").is_none());
+    let legacy: Profile = serde_json::from_value(serialized.clone())?;
+    assert!(!legacy.session_traces);
+    let mut explicit = serialized.clone();
+    explicit
+        .as_object_mut()
+        .ok_or("profile object")?
+        .insert("session_traces".into(), json!(false));
+    let decoded: Profile = serde_json::from_value(explicit)?;
+    assert_eq!(
+        serde_json::to_vec(&fixture.profile)?,
+        serde_json::to_vec(&decoded)?
+    );
+    trace_note(&fixture, fixture.first, "not even a pointer note")?;
+    let real = LocalGitReviewProvider::open(fixture.profile.provider.clone())?;
+    let provider = trace_provider(&real, trace_error(ReviewErrorKind::Unsupported));
+    let created = accepted(fixture.with_provider(
+        &create("off-create", fixture.first, None),
+        ALICE,
+        1000,
+        &provider,
+    )?)?;
+    let id = text(&created, "/change/id")?;
+    assert_eq!(provider.reads.get(), 0);
+    assert_eq!(provider.effects.get(), 1);
+    assert!(
+        field(&fixture.detail(&id)?, "/revisions/0")?
+            .get("session_traces")
+            .is_none()
+    );
+    let document = fixture.document()?;
+    // Enabling observation on restart never rewrites revisions admitted while off.
+    let mut enabled = fixture.profile.clone();
+    enabled.session_traces = true;
+    let restarted = Workspace::new(Some(enabled))?;
+    let detail = accepted(restarted.response(
+        "GET",
+        &format!("/api/code-review/changes/{id}"),
+        &[],
+        RequestContext {
+            role: Role::Viewer,
+            principal: ALICE,
+            now_ms: 2000,
+            ci: &[],
+        },
+    ))?;
+    assert!(
+        field(&detail, "/change/revisions/0")?
+            .get("session_traces")
+            .is_none()
+    );
+    assert_eq!(fixture.document()?, document);
+    Ok(())
+}
+
+// r[verify kiln.review.session_traces.scenario.replay]
+#[test]
+fn session_traces_freeze_ambiguous_journal_restart_and_commit_bindings() -> TestResult {
+    let mut fixture = Fixture::with_session_traces(true)?;
+    trace_note(
+        &fixture,
+        fixture.first,
+        "traces:shared-session https://traces.com/shared/private?secret=hidden",
+    )?;
+    let request = create("trace-journal", fixture.first, Some(agent()));
+    rejected(
+        &fixture.ambiguous(&request, ALICE, 1000)?,
+        503,
+        "review_operation_uncertain",
+    )?;
+    let pending = fixture.pending()?;
+    let captured = field(
+        pending.first().ok_or("pending journal")?,
+        "/completion/command/revision/session_traces",
+    )?
+    .clone();
+    assert_eq!(field(&captured, "/status")?, "attached");
+    assert_eq!(
+        field(&captured, "/commit")?,
+        &json!(fixture.first.to_string())
+    );
+    assert_eq!(field(&captured, "/traces/0/shared_url_host")?, "traces.com");
+    let bytes = serde_json::to_string(&captured)?;
+    assert!(!bytes.contains("private") && !bytes.contains("secret") && !bytes.contains("hidden"));
+    trace_note(
+        &fixture,
+        fixture.first,
+        "traces:replacement https://elsewhere.invalid/new",
+    )?;
+    fixture.workspace = Workspace::new(Some(fixture.profile.clone()))?;
+    let summary = accepted(fixture.get("/api/code-review", ALICE))?;
+    assert!(fixture.pending()?.is_empty());
+    let id = text(&summary, "/changes/0/id")?;
+    assert_eq!(
+        field(&fixture.detail(&id)?, "/revisions/0/session_traces")?,
+        &captured
+    );
+    let replay = accepted(fixture.post(&request, ALICE, 1000)?)?;
+    assert_eq!(field(&replay, "/replayed")?, true);
+    assert_eq!(
+        field(&fixture.detail(&id)?, "/revisions/0/session_traces")?,
+        &captured
+    );
+    // The same external ID on a different commit gets a separate Kiln binding.
+    trace_note(
+        &fixture,
+        fixture.other,
+        "traces:shared-session https://traces.com/shared/private?secret=hidden",
+    )?;
+    let change = fixture.detail(&id)?;
+    let upload = update(
+        "trace-upload",
+        &change,
+        json!({"type":"upload","commit":fixture.other.to_string()}),
+    )?;
+    accepted(fixture.post(&upload, ALICE, 3000)?)?;
+    let change = fixture.detail(&id)?;
+    let second = field(&change, "/revisions/1/session_traces")?;
+    assert_eq!(
+        field(second, "/traces/0/external_id")?,
+        field(&captured, "/traces/0/external_id")?
+    );
+    assert_ne!(
+        field(second, "/traces/0/identity")?,
+        field(&captured, "/traces/0/identity")?
+    );
+    assert_eq!(field(&change, "/revisions/0/session_traces")?, &captured);
+    let document = fixture.document()?;
+    trace_note(&fixture, fixture.other, "broken note")?;
+    fixture.workspace = Workspace::new(Some(fixture.profile.clone()))?;
+    assert_eq!(fixture.detail(&id)?, change);
+    assert_eq!(fixture.document()?, document);
+    Ok(())
+}
+
+#[test]
+fn session_traces_distinguish_absent_incompatible_and_provider_refusals() -> TestResult {
+    for (note, expected) in [
+        (None, json!({"status":"absent"})),
+        (
+            Some("   "),
+            json!({"status":"unavailable","reason":"malformed"}),
+        ),
+        (
+            Some("unknown:session"),
+            json!({"status":"unavailable","reason":"malformed"}),
+        ),
+    ] {
+        let mut fixture = Fixture::with_session_traces(true)?;
+        if let Some(note) = note {
+            trace_note(&fixture, fixture.first, note)?;
+        }
+        let created =
+            accepted(fixture.post(&create("trace-status", fixture.first, None), ALICE, 1000)?)?;
+        let change = fixture.detail(&text(&created, "/change/id")?)?;
+        let observation = field(&change, "/revisions/0/session_traces")?;
+        assert_eq!(observation.get("status"), expected.get("status"));
+        assert_eq!(observation.get("reason"), expected.get("reason"));
+        assert!(observation.get("note_digest").is_none());
+        assert!(observation.get("traces").is_none());
+        let captured = observation.clone();
+        let document = fixture.document()?;
+        trace_note(
+            &fixture,
+            fixture.first,
+            "traces:later https://traces.com/shared/later",
+        )?;
+        fixture.workspace = Workspace::new(Some(fixture.profile.clone()))?;
+        assert_eq!(
+            field(
+                &fixture.detail(&text(&created, "/change/id")?)?,
+                "/revisions/0/session_traces"
+            )?,
+            &captured
+        );
+        assert_eq!(fixture.document()?, document);
+    }
+    for (kind, expected) in [
+        (ReviewErrorKind::Unsupported, "unsupported"),
+        (ReviewErrorKind::Uncertain, "provider_unavailable"),
+        (ReviewErrorKind::Storage, "provider_unavailable"),
+        (ReviewErrorKind::NotFound, "provider_unavailable"),
+    ] {
+        let fixture = Fixture::with_session_traces(true)?;
+        let real = LocalGitReviewProvider::open(fixture.profile.provider.clone())?;
+        let provider = trace_provider(&real, trace_error(kind));
+        let created = accepted(fixture.with_provider(
+            &create("trace-refusal", fixture.first, None),
+            ALICE,
+            1000,
+            &provider,
+        )?)?;
+        let change = fixture.detail(&text(&created, "/change/id")?)?;
+        let observation = field(&change, "/revisions/0/session_traces")?;
+        assert_eq!(field(observation, "/status")?, "unavailable");
+        assert_eq!(field(observation, "/reason")?, expected);
+        assert_eq!(
+            field(observation, "/commit")?,
+            &json!(fixture.first.to_string())
+        );
+        assert!(observation.get("note_digest").is_none());
+        assert_eq!(provider.reads.get(), 1);
+        assert_eq!(provider.effects.get(), 1);
+    }
+    Ok(())
+}
+
+#[test]
+fn session_traces_reject_foreign_commit_or_forged_digest_before_reservation() -> TestResult {
+    for foreign_commit in [true, false] {
+        let fixture = Fixture::with_session_traces(true)?;
+        trace_note(
+            &fixture,
+            fixture.first,
+            "traces:session https://traces.com/shared/session",
+        )?;
+        let real = LocalGitReviewProvider::open(fixture.profile.provider.clone())?;
+        let mut observation = real.session_traces(&fixture.first.to_string())?;
+        if foreign_commit {
+            observation.commit = fixture.other.to_string();
+        } else {
+            observation.note_digest = Some(kiln_codec::identity_from_bytes(b"forged note")?);
+        }
+        let provider = trace_provider(&real, Ok(observation));
+        let before = fixture.references()?;
+        let result = fixture.with_provider(
+            &create("trace-wrong-binding", fixture.first, None),
+            ALICE,
+            1000,
+            &provider,
+        );
+        assert!(result.is_err());
+        assert_eq!(provider.reads.get(), 1);
+        assert_eq!(provider.effects.get(), 0);
+        assert!(fixture.pending()?.is_empty());
+        assert!(fixture.document()?.is_none());
+        assert_eq!(fixture.references()?, before);
+    }
     Ok(())
 }

@@ -496,6 +496,7 @@ fun input =>
         delivery | c.Nullable Delivery,
         queue | c.Nullable Queue | QueueMode,
         review | Review | optional,
+        session_traces | Bool | optional,
       }
       | SpeculativeCapability
       | ReviewRelations
@@ -518,3 +519,4 @@ fun input =>
   & (if std.record.has_field "review" admitted then { review = admitted.review } else {})
   & (if std.record.has_field "agent_principals" admitted then { agent_principals = admitted.agent_principals } else {})
   & (if std.record.has_field "agent_metadata" admitted then { agent_metadata = admitted.agent_metadata } else {})
+  & (if std.record.has_field "session_traces" admitted then { session_traces = admitted.session_traces } else {})

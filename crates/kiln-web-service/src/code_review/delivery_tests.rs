@@ -42,6 +42,7 @@ fn review() -> domain::ReviewState {
                 created_ms: 1,
                 authorship: domain::Authorship::Undeclared,
                 submitted_by: None,
+                session_traces: None,
             }],
             reviewers: BTreeMap::new(),
             votes: Vec::new(),

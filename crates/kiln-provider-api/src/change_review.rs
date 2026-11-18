@@ -365,6 +365,16 @@ pub trait ChangeReviewPort {
             message: "provider does not list revision commits".into(),
         })
     }
+    /// Optional read-only local pointer observation, never session-body evidence.
+    fn session_traces(
+        &self,
+        _commit: &str,
+    ) -> ReviewResult<kiln_core::change_review::RevisionSessionTraces> {
+        Err(ReviewError {
+            kind: ReviewErrorKind::Unsupported,
+            message: "provider does not read session trace pointers".into(),
+        })
+    }
     /// Exact blob bytes, or `None` when the blob exceeds `max_bytes`.
     fn blob(&self, _id: &str, _max_bytes: u32) -> ReviewResult<Option<Vec<u8>>> {
         Err(ReviewError {

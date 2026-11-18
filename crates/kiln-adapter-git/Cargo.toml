@@ -12,6 +12,7 @@ kiln-codec.workspace = true
 kiln-core.workspace = true
 kiln-provider-api.workspace = true
 serde.workspace = true
+url.workspace = true
 
 [lints]
 workspace = true

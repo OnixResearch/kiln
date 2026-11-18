@@ -86,6 +86,7 @@ fn change(resolved_revision: Option<&str>, resolved: bool) -> Change {
         created_ms: i64::from(number),
         authorship: Default::default(),
         submitted_by: None,
+        session_traces: None,
     };
     Change {
         id: "change".into(),

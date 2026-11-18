@@ -13,6 +13,9 @@ use git2::{
 use kiln_provider_api::change_review::*;
 use serde::{Deserialize, Serialize};
 
+#[path = "change_review_session_traces.rs"]
+mod session_traces;
+
 const MAX_FILES: u32 = 1_024;
 const MAX_LINES: u32 = 100_000;
 const MAX_BYTES: u32 = 8_000_000;
@@ -666,6 +669,15 @@ impl ChangeReviewPort for LocalGitReviewProvider {
                     .graph_descendant_of(selected.id(), current)
                     .map_err(storage)?,
         })
+    }
+    fn session_traces(
+        &self,
+        id: &str,
+    ) -> ReviewResult<kiln_core::change_review::RevisionSessionTraces> {
+        self.require(ReviewCapability::Inspect)?;
+        let repo = self.repository()?;
+        commit(&repo, id)?;
+        session_traces::read(&repo, id)
     }
     fn compare(&self, request: &CompareRequest) -> ReviewResult<CommitComparison> {
         self.require(ReviewCapability::Compare)?;

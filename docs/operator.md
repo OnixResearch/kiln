@@ -4056,6 +4056,9 @@ The exported `kiln.code-review-profile.v1` declares:
   `agent_metadata` maps these principals to declared, trimmed
   `{ harness, model? }` metadata; a key must name a declared agent. Access viewer declarations are
   merged into both fields at startup, and conflicting metadata fails startup.
+- `session_traces`: optional Boolean, absent/false by default. Enables capture of
+  untrusted local `refs/notes/traces` pointers when a new review revision is
+  constructed; it adds no provider mutation or remote access authority.
 - `policy`: named eligible reviewers and submitters, nonzero required approvals
   and explicit `require_ci`. Owner approval, ineligible votes, stale votes,
   unresolved blocking threads, WIP and unmet dependencies cannot authorize submit.
@@ -4291,6 +4294,43 @@ self-declared `authorship`: `{"kind":"human"}`, `{"kind":"mixed"}` or
 
 Authorship is self-declared and unverified. Kiln never infers or checks it, and
 it grants no review or submit authority.
+
+**Optional session-trace pointers (off by default).** Set `session_traces = true`
+in the review profile's Nickel input to capture admitted local notes on new
+exact revisions. See the [enabled fixture](../config/fixtures/web-code-review-session-traces-positive.ncl)
+and [explicit opt-out](../config/fixtures/web-code-review-session-traces-disabled-positive.ncl).
+With capture disabled, no note is read and no field or trace panel is added to
+new revisions. Existing pre-feature journals replay byte-identically. Changing
+the flag never backfills or rewrites a retained revision; previously captured
+observations remain historical even if capture is subsequently disabled.
+
+The first supported source kind is `git_notes_traces`, using the documented
+[`refs/notes/traces` pointer format](https://traces.com/docs/sharing/git-hooks):
+one `traces:<externalId>` per line, optionally followed by an absolute HTTPS
+shared URL without userinfo. IDs are ASCII letters/digits, `-`, `_` or `.`;
+unsupported formats are explained as incompatible, not silently omitted.
+Capture is bounded to 16 KiB of note content, eight distinct IDs and 256-byte
+ID/host fields. Repeated IDs must agree on their retained host. Missing notes
+are explicitly absent; malformed, oversized, too-many, unsupported-provider and
+provider-unavailable observations are distinct bounded results. The Git adapter
+checks the blob header before loading note bytes and reads only the exact
+commit's admitted local note. It never fetches notes, invokes a hook or contacts
+traces.com or another session host.
+
+The selected revision's **Session trace pointers** card separates external IDs
+and optional normalized URL hosts from Kiln's BLAKE3 pointer identity and raw
+pointer-note digest. Each identity binds the exact commit, note digest, source
+kind, ID and host; copied commit/digest/host bindings are rejected. These hashes
+identify admitted pointers, not unseen session bodies. Only declared ID/host
+metadata is retained; URL paths, queries, fragments and session bodies are
+omitted, and credential-bearing URL authorities are rejected. IDs and hosts are
+retained literally after validation: operators must not encode private data in
+them. No prompts, tool results, session-body rendering, remote fetches or
+provider links are supported.
+Pointers are inert **untrusted historical context**, separate from self-declared
+authorship and attested submission. They do not prove that a model ran, satisfy
+CI, ownership evidence or intent approval, change approval counts/checklists, or
+grant submit or merge authority.
 
 Read principals can export the canonical review window with
 `GET /api/code-review/review-window?start_ms=<ms>&end_ms=<ms>`. The range is

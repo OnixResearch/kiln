@@ -2764,6 +2764,7 @@ dependencies = [
  "kiln-provider-api",
  "onix-kiln-core",
  "serde",
+ "url",
 ]
 
 [[package]]

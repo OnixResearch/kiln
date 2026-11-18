@@ -99,6 +99,9 @@ pub struct Profile {
     /// Optional declared harness/model metadata for agent principals.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub agent_metadata: BTreeMap<String, domain::AgentIdentity>,
+    /// Capture untrusted Git note pointers only when constructing a revision.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub session_traces: bool,
 }
 
 impl Profile {

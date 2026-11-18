@@ -821,6 +821,7 @@
     const comparisonSlot = node("div", null, "cr-preview-slot"); main.append(comparisonSlot);
     drawDiscussion(main); drawSuggestions(main);
     drawApproval(aside); drawReviewers(aside); drawCi(aside); drawPreviews(aside, comparisonSlot); drawIdentity(aside); drawEvolog(aside); drawStack(aside);
+    const traceContext = sessionTraceContext(arr(c.revisions).find(item => item.id === revision())); if (traceContext) aside.append(traceContext);
     drawQueue(aside, Array.isArray(state.detail.queue) ? state.detail.queue : state.detail.queue ? [state.detail.queue] : arr(state.snapshot.queue).filter(e => e.change === c.id));
     drawSubscriptions(aside); drawOperations(aside); drawAuthorActions(aside);
   }
@@ -833,6 +834,26 @@
     // r[impl kiln.review.agent.console.scenario.label]
     if (current()?.submitted_by) { const attested = current().submitted_by; card.append(node("p", `The current revision was submitted by the attested agent principal ${attested.principal}${attested.agent ? ` (${attested.agent.harness}${attested.agent.model ? ` / ${attested.agent.model}` : ""})` : ""}. Authorship above remains self-declared and unverified.`, "cr-muted")); }
     card.append(log);
+  }
+  // r[impl kiln.review.session_traces.scenario.surface]
+  function sessionTraceContext(selectedRevision) {
+    const observation = selectedRevision?.session_traces; if (!observation) return null;
+    const card = node("section", null, "card cr-card cr-session-traces"); card.setAttribute("aria-label", "Session trace pointers");
+    card.append(node("h3", "Session trace pointers", "card-title"), node("p", "Untrusted historical context. These pointers are not verified authorship, attested submission, CI evidence or merge authority. Kiln does not fetch or display session bodies.", "cr-muted"));
+    facts(card, [["Selected revision", selectedRevision.id], ["Exact commit", observation.commit]]);
+    if (observation.status === "absent") card.append(node("p", "No trace note was present for this exact commit when the revision was captured.", "cr-muted"));
+    else if (observation.status === "attached") {
+      facts(card, [["Pointer note digest (not a session-body digest)", observation.note_digest]]);
+      const list = node("ol", null, "cr-rows");
+      for (const trace of arr(observation.traces)) {
+        const item = node("li"); facts(item, [["Kiln pointer identity", trace.identity], ["Source", trace.source_kind], ["External pointer ID", trace.external_id], ["Shared URL host (not a link)", trace.shared_url_host || "Not recorded"]]); list.append(item);
+      }
+      card.append(list);
+    } else {
+      const reasons = { unsupported: "The provider does not support trace observations.", malformed: "The trace note was malformed or incompatible.", oversized: "The trace note exceeded the capture bound.", too_many: "The trace note contained too many distinct pointers.", provider_unavailable: "The provider could not observe trace notes." };
+      card.append(node("p", `Trace observation unavailable. ${reasons[observation.reason] || "The recorded observation is unavailable."}`, "cr-muted"));
+    }
+    return card;
   }
   // r[impl kiln.review.jj_intake.evolog] jj facts are provider observations; each row links the interdiff from the previous revision.
   function drawEvolog(root) {
@@ -1416,5 +1437,5 @@
     draw();
     return refresh();
   }
-  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), savedQuery: savedQueryForRoute, savedView: savedViewRoute });
+  window.KilnCodeReview = Object.freeze({ load, refresh, clear, keys: Object.freeze({ resolve: resolveShortcut, commands: SHORTCUT_COMMANDS }), hunks: hunkApi, comparison: Object.freeze({ anchorFor, anchorBaseFor, diffMatches }), authorship: Object.freeze({ payload: authorshipPayload, label: authorshipLabel, classLabel: authorshipClassLabel, limit: AUTHORSHIP_TEXT_BYTES }), sessionTraces: Object.freeze({ render: sessionTraceContext }), savedQuery: savedQueryForRoute, savedView: savedViewRoute });
 })();

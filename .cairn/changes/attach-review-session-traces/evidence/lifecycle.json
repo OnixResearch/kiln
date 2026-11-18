@@ -1,0 +1,27 @@
+{
+  "schema": "kiln.review-session-traces.lifecycle-proof.v1",
+  "validation": {
+    "exit_code": 0,
+    "valid": true,
+    "receipt_hash": "e188d28b7ed00f77263ef1cf23835e461b75f9a49c5e74efb055138ebfa6de04",
+    "issues": []
+  },
+  "coverage": {
+    "exit_code": 1,
+    "valid": false,
+    "verdict": "fail",
+    "receipt_hash": "82308ac593941bcf22d61993fff163fba6e5f92c8cc08f62149589b520ac7be7",
+    "dangling_count": 71,
+    "missing": [
+      "kiln.github.landing.merge.scenario.landed",
+      "kiln.github.source_status.scenario.close"
+    ],
+    "new_namespace_dangling": [],
+    "new_namespace_missing": []
+  },
+  "non_claims": [
+    "Bounded projection of native Cairn output, not a replacement gate",
+    "Unrelated repository-wide traceability failures remain; no release-readiness claim",
+    "No lifecycle archive"
+  ]
+}

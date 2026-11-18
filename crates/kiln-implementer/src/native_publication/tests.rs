@@ -258,6 +258,7 @@ fn review_authority(candidate: &ExternalRef, base: &ExternalRef) -> NativeGitRev
                 created_ms: 0,
                 authorship: change_review::Authorship::Undeclared,
                 submitted_by: None,
+                session_traces: None,
             },
         },
     );

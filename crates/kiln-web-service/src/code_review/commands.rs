@@ -824,6 +824,27 @@ impl Workspace {
                 files.insert(path);
             }
         }
+        // r[impl kiln.review.session_traces.scenario.replay] Freeze once before journal reservation.
+        let session_traces = if self.profile.as_ref().is_some_and(|p| p.session_traces) {
+            let observation = match provider.session_traces(commit) {
+                Ok(observation) => observation,
+                Err(error) => domain::RevisionSessionTraces {
+                    commit: commit.into(),
+                    note_digest: None,
+                    observation: domain::SessionTraceStatus::Unavailable {
+                        reason: if error.kind == ReviewErrorKind::Unsupported {
+                            domain::SessionTraceUnavailable::Unsupported
+                        } else {
+                            domain::SessionTraceUnavailable::ProviderUnavailable
+                        },
+                    },
+                },
+            };
+            observation.validate_for(commit)?;
+            Some(observation)
+        } else {
+            None
+        };
         Ok(domain::Revision {
             id,
             number,
@@ -834,6 +855,7 @@ impl Workspace {
             created_ms: now_ms,
             authorship,
             submitted_by: None,
+            session_traces,
         })
     }
     fn admit_anchor(

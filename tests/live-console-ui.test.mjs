@@ -1587,3 +1587,53 @@ test("unavailable or crossed campaign inbox leaves the decision read-only", asyn
   assert.match(root.textContent, /different campaign/);
   page.window.KilnCairn.clear();
 });
+
+// r[verify kiln.review.session_traces.scenario.surface]
+// Exercise the actual component used for the selected revision, not its source.
+test("session pointers render as inert, untrusted historical context only", () => {
+  const page = {
+    window: {}, Node: CairnNode,
+    document: { createElement: tag => new CairnNode(tag), querySelectorAll: () => [] },
+    fetch() { assert.fail("trace context must never fetch"); },
+    location: { assign() { assert.fail("trace context must never navigate"); } },
+  };
+  vm.runInNewContext(asset("ui.js"), page);
+  vm.runInNewContext(asset("code-review.js"), page);
+  const render = page.window.KilnCodeReview.sessionTraces.render;
+  assert.equal(render(undefined), null);
+  assert.equal(render({ id: "disabled-revision" }), null, "disabled revisions add no DOM");
+  const observation = { commit: "old-commit", status: "attached", note_digest: "exact-pointer-note-digest", traces: [
+    { identity: "kiln-pointer-id", source_kind: "git_notes_traces", external_id: "<script>alert('untrusted')</script>", shared_url_host: "traces.com", shared_url: "https://traces.com/private?secret=hidden", body: "private session body" },
+    { identity: "second-kiln-id", source_kind: "git_notes_traces", external_id: "https://host.invalid/not-a-link" },
+  ] };
+  const selected = { id: "old-selected-revision", session_traces: observation, authorship: { kind: "agent", harness: "not-a-trace" }, submitted_by: { principal: "not-a-trace-principal" } };
+  const card = render(selected);
+  assert.match(card.textContent, /Untrusted historical context/);
+  assert.match(card.textContent, /not verified authorship, attested submission, CI evidence or merge authority/);
+  for (const value of ["old-selected-revision", "old-commit", "exact-pointer-note-digest", "kiln-pointer-id", "second-kiln-id", "traces.com", "<script>alert('untrusted')</script>", "https://host.invalid/not-a-link"]) assert.ok(card.textContent.includes(value), value);
+  assert.match(card.textContent, /not a session-body digest/);
+  assert.doesNotMatch(card.textContent, /private\?secret|private session body|not-a-trace/);
+  const descendants = root => [root, ...root.children.flatMap(descendants)];
+  for (const element of descendants(card)) {
+    assert.ok(!["a", "iframe", "script", "img", "button"].includes(element.tagName));
+    assert.equal(element.getAttribute("href"), null);
+    assert.equal(element.getAttribute("src"), null);
+    assert.equal(element.listeners.size, 0);
+  }
+  const absent = render({ id: "no-note", session_traces: { commit: "no-note-commit", status: "absent" } });
+  assert.match(absent.textContent, /No trace note was present/);
+  assert.doesNotMatch(absent.textContent, /observation unavailable/);
+  for (const [reason, message] of [
+    ["unsupported", "does not support"], ["malformed", "malformed or incompatible"],
+    ["oversized", "exceeded the capture bound"], ["too_many", "too many distinct pointers"],
+    ["provider_unavailable", "could not observe"],
+  ]) {
+    const unavailable = render({ id: reason, session_traces: { commit: "exact", status: "unavailable", reason } });
+    assert.ok(unavailable.textContent.includes(message));
+    assert.match(unavailable.textContent, /Trace observation unavailable/);
+    assert.doesNotMatch(unavailable.textContent, /No trace note was present/);
+  }
+  const next = render({ id: "new-selected-revision", session_traces: { commit: "new-commit", status: "absent" } });
+  assert.match(next.textContent, /new-selected-revision/);
+  assert.doesNotMatch(next.textContent, /old-selected-revision|old-commit|kiln-pointer-id/);
+});

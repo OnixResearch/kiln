@@ -1,5 +1,5 @@
 //! Interactive review semantics. Provider observations and identifiers are admitted by
-//! shells; this module never performs I/O, hashes identities, or grants provider authority.
+//! shells; this module never performs I/O or grants provider authority.
 //! `ReviewState` is persistence-only. `project` borrows caller-private drafts,
 //! inbox and saved queries; public change views must filter markers with `reviewed`.
 //! Commands validate before mutation. Submission prepares an exact candidate,
@@ -14,6 +14,10 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
+
+#[path = "change_review_session_traces.rs"]
+mod session_traces;
+pub use session_traces::*;
 
 pub type ReviewResult<T> = Result<T, ReviewError>;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -312,6 +316,9 @@ pub struct Revision {
         skip_serializing_if = "Option::is_none"
     )]
     pub submitted_by: Option<AttestedSubmission>,
+    /// Untrusted historical pointers, never execution or merge evidence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub session_traces: Option<RevisionSessionTraces>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Vote {
@@ -1506,6 +1513,10 @@ fn revision_valid(
 ) -> ReviewResult<()> {
     fresh(state, &revision.id)?;
     validate_authorship(&revision.authorship)?;
+    // r[impl kiln.review.session_traces.scenario.authority] Consistency only, never checklist evidence.
+    if let Some(traces) = &revision.session_traces {
+        traces.validate_for(&revision.commit)?;
+    }
     if facts.agents.contains(actor) && revision.authorship == Authorship::Human {
         return fail(
             "agent_authorship_mismatch",
@@ -3358,8 +3369,74 @@ mod tests {
             created_ms: 0,
             authorship: Authorship::Undeclared,
             submitted_by: None,
+            session_traces: None,
         }
     }
+    // r[verify kiln.review.session_traces.scenario.authority]
+    #[test]
+    fn session_traces_admit_only_exact_binding_and_do_not_change_checklist() -> ReviewResult<()> {
+        let (mut state, mut facts) = setup()?;
+        facts.source.as_mut().required()?.commit = "next-commit".into();
+        let digest = crate::ContentId::from_blake3_hex("a".repeat(64))
+            .unwrap_or_else(|error| unreachable!("fixture: {error:?}"));
+        let pointer = SessionTraceIdentity::new("next-commit", &digest, "session-1".into(), None)?;
+        let observation = RevisionSessionTraces {
+            commit: "next-commit".into(),
+            note_digest: Some(digest),
+            observation: SessionTraceStatus::Attached {
+                traces: vec![pointer],
+            },
+        };
+        let mut next = revision("c-r2", 2, "next-commit");
+        next.session_traces = Some(observation.clone());
+        let mut plain_state = state.clone();
+        let mut plain_facts = facts.clone();
+        let mut plain = next.clone();
+        plain.session_traces = None;
+        send(
+            &mut plain_state,
+            &mut plain_facts,
+            "alice",
+            Command::Upload {
+                change: "c".into(),
+                expected_revision: "c-r1".into(),
+                revision: plain,
+            },
+        )?;
+        let before = state.clone();
+        let mut invalid = next.clone();
+        invalid.session_traces.as_mut().required()?.commit = "other-commit".into();
+        assert!(
+            send(
+                &mut state,
+                &mut facts,
+                "alice",
+                Command::Upload {
+                    change: "c".into(),
+                    expected_revision: "c-r1".into(),
+                    revision: invalid,
+                }
+            )
+            .is_err()
+        );
+        assert_eq!(state, before);
+        send(
+            &mut state,
+            &mut facts,
+            "alice",
+            Command::Upload {
+                change: "c".into(),
+                expected_revision: "c-r1".into(),
+                revision: next,
+            },
+        )?;
+        assert_eq!(
+            checklist(&state, "c", &facts)?,
+            checklist(&plain_state, "c", &plain_facts)?
+        );
+        Ok(())
+    }
+
     fn create(state: &mut ReviewState, facts: &mut Facts, id: &str) -> ReviewResult<()> {
         facts.source.as_mut().required()?.commit = format!("commit-{id}");
         send(

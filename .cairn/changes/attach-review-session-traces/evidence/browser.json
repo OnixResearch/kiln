@@ -1,0 +1,114 @@
+{
+  "schema": "kiln.review-session-traces.browser-proof.v1",
+  "source": "Pre-commit workspace state of the #91 change; not an operated deployment",
+  "fixture": "Actual explore binary with temporary local Git-note/profile seed, subsequently restored byte-identically",
+  "revisions": [
+    {
+      "revision": "08df380e2c9b0b2360353beb5f74ab66039013025ec4dffd00fff44304eaaa4b",
+      "commit": "9a21ea6469e7f479a04f8af838b78841ffeed096",
+      "authorship": {
+        "harness": "rehearsal-harness",
+        "kind": "agent",
+        "model": "rehearsal-model"
+      },
+      "submitted_by": {
+        "agent": {
+          "harness": "rehearsal-harness",
+          "model": "rehearsal-model"
+        },
+        "principal": "viewer:trace-rehearsal"
+      },
+      "session_traces": {
+        "commit": "9a21ea6469e7f479a04f8af838b78841ffeed096",
+        "note_digest": "84790741bf0ab1d25e3b9794858cc59e7236323d04293cdce0211a4213207194",
+        "status": "attached",
+        "traces": [
+          {
+            "external_id": "rehearsal-alpha",
+            "identity": "0bccce24573caf8626a0355eaee9df0cd53399499942b9d3d402293041503617",
+            "shared_url_host": "traces.example.invalid",
+            "source_kind": "git_notes_traces"
+          },
+          {
+            "external_id": "rehearsal-beta",
+            "identity": "1d732a07682a9927016044da3db8c01e3a2a678d8a250ec463d3106af1192f4a",
+            "source_kind": "git_notes_traces"
+          }
+        ]
+      }
+    },
+    {
+      "revision": "896defd5a33027a291a7b58a7bde9d58bb72f9632f69bf4735ff85ef453c77b3",
+      "commit": "9a0ed3f7370aec60780d85d84b1832eb6976d3fc",
+      "authorship": {
+        "harness": "rehearsal-harness",
+        "kind": "agent",
+        "model": "rehearsal-model"
+      },
+      "submitted_by": {
+        "agent": {
+          "harness": "rehearsal-harness",
+          "model": "rehearsal-model"
+        },
+        "principal": "viewer:trace-rehearsal"
+      },
+      "session_traces": {
+        "commit": "9a0ed3f7370aec60780d85d84b1832eb6976d3fc",
+        "status": "absent"
+      }
+    },
+    {
+      "revision": "98afee38028c1ded10976a977080a6c0ea6fc59650fe534285828f30ed19f6aa",
+      "commit": "d2e539f1c445990347b77767e4646e38fffd2a00",
+      "authorship": {
+        "harness": "rehearsal-harness",
+        "kind": "agent",
+        "model": "rehearsal-model"
+      },
+      "submitted_by": {
+        "agent": {
+          "harness": "rehearsal-harness",
+          "model": "rehearsal-model"
+        },
+        "principal": "viewer:trace-rehearsal"
+      },
+      "session_traces": {
+        "commit": "d2e539f1c445990347b77767e4646e38fffd2a00",
+        "reason": "malformed",
+        "status": "unavailable"
+      }
+    }
+  ],
+  "observed": {
+    "selectedHistoricalPointerIds": [
+      "rehearsal-alpha",
+      "rehearsal-beta"
+    ],
+    "absentDistinctFromMalformed": true,
+    "authorshipAndAttestationSeparatelyVisible": true,
+    "noLinksOrActiveElementsInTraceCard": true,
+    "noHorizontalOverflowAtWidth": 1440,
+    "noRawSharedUrlPathOrQueryRetained": true,
+    "checklistReady": false,
+    "requiredCiSatisfied": false
+  },
+  "requestSample": {
+    "count": 192,
+    "hosts": [
+      "127.0.0.1"
+    ],
+    "externalRequests": 0
+  },
+  "disabled": {
+    "newRevisionFieldAbsent": true,
+    "tracePanelCount": 0,
+    "controlLabelsAndStructureMatchExistingBinary": true,
+    "comparedControls": 214,
+    "normalization": "Full/abbreviated volatile identities and one disposable source-path heading only"
+  },
+  "non_claims": [
+    "Synthetic fixture, not a measured model run",
+    "Pointer/note identities are not session-body digests or verification",
+    "No session body, external trace fetch, production profile change or merge authority"
+  ]
+}

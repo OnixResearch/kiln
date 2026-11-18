@@ -95,6 +95,7 @@ impl Fixture {
             review: None,
             agent_principals: Vec::new(),
             agent_metadata: std::collections::BTreeMap::new(),
+            session_traces: false,
         };
         Ok(Self {
             _temp: temp,

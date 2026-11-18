@@ -38,6 +38,13 @@ entry describes the source tree prepared for the first tagged release.
   Existing verification/publication authority and first metric receipts remain
   unchanged; current OMP JSONL events are not model turns. (#90; deterministic
   core, durable store, adapter and operator CLI fixtures)
+- Default-off, exact-revision session-trace pointer observations freeze locally
+  admitted Git notes in the existing review journal. BLAKE3 pointer/note
+  identities remain distinct from external IDs and URL hosts; missing,
+  incompatible and unavailable notes stay explicit. The selected revision's
+  inert untrusted-context card grants no authorship, CI, ownership or merge
+  authority; no session bodies, remote fetches or URL secrets are retained.
+  (#91; pure-core, local-Git, durable-journal and typed-profile fixtures)
 
 **Sources**
 

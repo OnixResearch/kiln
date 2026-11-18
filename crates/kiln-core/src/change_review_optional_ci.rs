@@ -165,6 +165,7 @@ mod tests {
                     created_ms: facts.now_ms,
                     authorship: Authorship::Undeclared,
                     submitted_by: None,
+                    session_traces: None,
                 },
             },
             facts,
