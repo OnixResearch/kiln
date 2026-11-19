@@ -20,6 +20,8 @@ pub const MAX_OUTPUT_BYTES: usize = 4 * 1_048_576;
 pub const MAX_GROUP_BYTES: usize = 64;
 pub const MAX_FROM_BYTES: usize = 256;
 pub const MAX_SERVER_BYTES: usize = 512;
+/// Child environment name through which `iroh-news` takes the post `From`.
+pub const FROM_ENVIRONMENT_NAME: &str = "IROH_NEWS_FROM";
 
 /// One explicit environment entry handed to the client process.
 pub type Environment = BTreeMap<String, String>;
@@ -44,7 +46,8 @@ pub struct SwarmConfig {
     /// Claim group.
     #[serde(default = "default_group")]
     pub group: String,
-    /// Our `From` header, used to tell our claims from other authors'.
+    /// Our `From` header, used to tell our claims from other authors'. Every
+    /// child runs with it as `IROH_NEWS_FROM`, so posts carry this address.
     pub from: String,
     /// Per-command deadline.
     #[serde(default = "default_timeout_ms")]
@@ -84,8 +87,8 @@ impl SwarmConfig {
     ///
     /// # Errors
     /// Returns a bounded diagnostic for a non-absolute path, an invalid group,
-    /// an invalid `From` header, an out-of-range limit, or an invalid
-    /// environment entry.
+    /// an invalid `From` header, an out-of-range limit, an invalid
+    /// environment entry, or an `IROH_NEWS_FROM` entry that differs from `from`.
     pub fn validate(&self) -> Result<(), String> {
         if !self.executable.is_absolute() {
             return Err("swarm executable must be an absolute path".to_owned());
@@ -130,7 +133,23 @@ impl SwarmConfig {
                 return Err("swarm environment entry is invalid".to_owned());
             }
         }
+        if self
+            .environment
+            .get(FROM_ENVIRONMENT_NAME)
+            .is_some_and(|value| value != &self.from)
+        {
+            return Err("swarm environment IROH_NEWS_FROM differs from the From header".to_owned());
+        }
         Ok(())
+    }
+
+    /// The explicit child environment: the configured entries plus
+    /// `IROH_NEWS_FROM` set to [`Self::from`].
+    #[must_use]
+    pub fn child_environment(&self) -> Environment {
+        let mut environment = self.environment.clone();
+        environment.insert(FROM_ENVIRONMENT_NAME.to_owned(), self.from.clone());
+        environment
     }
 }
 
@@ -211,5 +230,30 @@ mod tests {
         let mut from = config();
         from.from = "kiln\nforged".to_owned();
         assert!(from.validate().is_err());
+    }
+
+    #[test]
+    // r[verify kiln.implementation.swarm.transport.scenario.window]
+    fn from_environment_must_match_from_header() {
+        let mut conflicting = config();
+        conflicting.environment.insert(
+            FROM_ENVIRONMENT_NAME.to_owned(),
+            "other <other@swarm.local>".to_owned(),
+        );
+        assert!(conflicting.validate().is_err());
+
+        let mut matching = config();
+        matching
+            .environment
+            .insert(FROM_ENVIRONMENT_NAME.to_owned(), matching.from.clone());
+        matching.validate().unwrap_or_else(|_| unreachable!());
+
+        let mut extra = config();
+        extra
+            .environment
+            .insert("IROH_NEWS_USERNAME".to_owned(), "kiln-aspen1".to_owned());
+        let environment = extra.child_environment();
+        assert_eq!(environment.get(FROM_ENVIRONMENT_NAME), Some(&extra.from));
+        assert_eq!(environment.len(), 2);
     }
 }

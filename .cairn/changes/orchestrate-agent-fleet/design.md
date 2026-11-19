@@ -199,7 +199,7 @@ One binary with these subcommands:
 
     Performing `ClaimNext` means `claim_next_deferred` with a defer function backed by fleet claims and foreign swarm claims, then `reserve_dispatch_plan` with `herdr-interactive`. `Place` creates the worktree and starts the agent; then the session is bound and the prompt sent. `Capture` exports the commit tree from the trusted repository after a git fetch from `ssh_target:path`. It then writes the herdr receipt, calls `materialize_candidate`, `admit_candidate_handoff`, and the configured verification and publication argv in that order. `Stop` interrupts the agent and closes its workspace.
 
-    The two threads share one store through a mutex.
+    Each API connection and the dispatch thread open their own store connection; every store method is one SQLite transaction, so writes serialize without a shared handle (`Implementer` is not `Send`). The host is chosen at `ClaimNext`, because the plan's workspace identity binds it, and `Place` waits for a free slot there. Decision questions are posted directly with the pinned `iroh-news` as `DECISION <coordinator> attempt <attempt12>`, because the claim client posts only claim subjects.
 - **`mcp --server URL --tool NAME`:** stdio MCP, JSON-RPC 2.0, protocol `2025-06-18`, implemented without new dependencies. Tools:
 
   | Tool | API call |

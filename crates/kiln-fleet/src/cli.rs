@@ -1,0 +1,279 @@
+//! Command line. Exit 0 with JSON on stdout; 1 for refusals, conflicts and
+//! HTTP errors with JSON on stderr; 2 for usage errors.
+
+use std::collections::BTreeMap;
+use std::io::Write;
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use serde_json::{Value, json};
+
+use crate::api::Service;
+use crate::client::{ApiClient, SERVER_ENVIRONMENT};
+use crate::config::FleetConfig;
+use crate::dispatch::Dispatcher;
+use crate::mcp::McpServer;
+use crate::{log, server};
+
+pub const EXIT_OK: i32 = 0;
+pub const EXIT_REFUSED: i32 = 1;
+pub const EXIT_USAGE: i32 = 2;
+
+pub const USAGE: &str = "usage:
+  kiln-fleet run --config FILE
+  kiln-fleet check-config --config FILE
+  kiln-fleet mcp [--server URL] [--tool NAME]
+  kiln-fleet claim --scope '<target> <path>' --tool T --session S --purpose TEXT [--lease-minutes N]
+  kiln-fleet renew --claim ID --fence N [--lease-minutes N]
+  kiln-fleet release --claim ID --fence N [--note TEXT]
+  kiln-fleet claims | work | attempts | decisions
+  kiln-fleet handoff --attempt ID --fence N --commit SHA
+  kiln-fleet answer --decision ID --text TEXT
+  kiln-fleet cancel --attempt ID --reason TEXT
+client commands take --server URL (default $KILN_FLEET_SERVER)";
+
+struct Usage(String);
+
+type Flags = BTreeMap<String, String>;
+
+/// Run the command line; returns the process exit code.
+#[must_use]
+pub fn main_with(arguments: &[String]) -> i32 {
+    let Some((command, rest)) = arguments.split_first() else {
+        return usage("missing command");
+    };
+    if matches!(command.as_str(), "--help" | "-h" | "help") {
+        println!("{USAGE}");
+        return EXIT_OK;
+    }
+    let outcome = match command.as_str() {
+        "run" => flags(rest, &["--config"], &[]).map(|flags| run(&flags)),
+        "check-config" => flags(rest, &["--config"], &[]).map(|flags| check_config(&flags)),
+        "mcp" => flags(rest, &[], &["--server", "--tool"]).and_then(|flags| mcp(&flags)),
+        "claim" => flags(
+            rest,
+            &["--scope", "--tool", "--session", "--purpose"],
+            &["--lease-minutes", "--server"],
+        )
+        .and_then(|flags| {
+            let mut body = json!({
+                "scope": required(&flags, "--scope")?,
+                "tool": required(&flags, "--tool")?,
+                "session": required(&flags, "--session")?,
+                "purpose": required(&flags, "--purpose")?,
+            });
+            insert_number(&mut body, &flags, "--lease-minutes", "lease_minutes")?;
+            call(&flags, "POST", "/v1/claims".to_owned(), Some(body))
+        }),
+        "renew" => flags(rest, &["--claim", "--fence"], &["--lease-minutes", "--server"]).and_then(|flags| {
+            let mut body = json!({ "fence": number(&flags, "--fence")? });
+            insert_number(&mut body, &flags, "--lease-minutes", "lease_minutes")?;
+            let path = format!("/v1/claims/{}/renew", identity(&flags, "--claim")?);
+            call(&flags, "POST", path, Some(body))
+        }),
+        "release" => flags(rest, &["--claim", "--fence"], &["--note", "--server"]).and_then(|flags| {
+            let mut body = json!({ "fence": number(&flags, "--fence")? });
+            if let (Some(note), Some(object)) = (flags.get("--note"), body.as_object_mut()) {
+                object.insert("note".into(), json!(note));
+            }
+            let path = format!("/v1/claims/{}/release", identity(&flags, "--claim")?);
+            call(&flags, "POST", path, Some(body))
+        }),
+        "claims" | "work" | "attempts" | "decisions" => {
+            flags(rest, &[], &["--server"]).and_then(|flags| call(&flags, "GET", format!("/v1/{command}"), None))
+        }
+        "handoff" => flags(rest, &["--attempt", "--fence", "--commit"], &["--server"]).and_then(|flags| {
+            let body = json!({ "fence": number(&flags, "--fence")?, "commit": required(&flags, "--commit")? });
+            let path = format!("/v1/attempts/{}/handoff", identity(&flags, "--attempt")?);
+            call(&flags, "POST", path, Some(body))
+        }),
+        "answer" => flags(rest, &["--decision", "--text"], &["--server"]).and_then(|flags| {
+            let body = json!({ "text": required(&flags, "--text")? });
+            let path = format!("/v1/decisions/{}/answer", identity(&flags, "--decision")?);
+            call(&flags, "POST", path, Some(body))
+        }),
+        "cancel" => flags(rest, &["--attempt", "--reason"], &["--server"]).and_then(|flags| {
+            let body = json!({ "reason": required(&flags, "--reason")? });
+            let path = format!("/v1/attempts/{}/cancel", identity(&flags, "--attempt")?);
+            call(&flags, "POST", path, Some(body))
+        }),
+        other => Err(Usage(format!("unknown command {other}"))),
+    };
+    outcome.unwrap_or_else(|Usage(message)| usage(&message))
+}
+
+fn usage(message: &str) -> i32 {
+    let mut stderr = std::io::stderr().lock();
+    let _ = writeln!(stderr, "{}", json!({ "error": message, "usage": USAGE }));
+    EXIT_USAGE
+}
+
+fn refused(value: &Value) -> i32 {
+    let mut stderr = std::io::stderr().lock();
+    let _ = writeln!(stderr, "{value}");
+    EXIT_REFUSED
+}
+
+fn flags(arguments: &[String], required_flags: &[&str], optional: &[&str]) -> Result<Flags, Usage> {
+    let mut parsed = Flags::new();
+    let mut iterator = arguments.iter();
+    while let Some(name) = iterator.next() {
+        if !required_flags.contains(&name.as_str()) && !optional.contains(&name.as_str()) {
+            return Err(Usage(format!("unknown argument {name}")));
+        }
+        let value = iterator
+            .next()
+            .ok_or_else(|| Usage(format!("{name} needs a value")))?;
+        if parsed.insert(name.clone(), value.clone()).is_some() {
+            return Err(Usage(format!("{name} is repeated")));
+        }
+    }
+    for name in required_flags {
+        if !parsed.contains_key(*name) {
+            return Err(Usage(format!("{name} is required")));
+        }
+    }
+    Ok(parsed)
+}
+
+fn required(flags: &Flags, name: &str) -> Result<String, Usage> {
+    flags
+        .get(name)
+        .cloned()
+        .ok_or_else(|| Usage(format!("{name} is required")))
+}
+
+fn number(flags: &Flags, name: &str) -> Result<u64, Usage> {
+    required(flags, name)?
+        .parse::<u64>()
+        .map_err(|_| Usage(format!("{name} must be a non-negative integer")))
+}
+
+fn insert_number(body: &mut Value, flags: &Flags, name: &str, field: &str) -> Result<(), Usage> {
+    if flags.contains_key(name) {
+        let value = number(flags, name)?;
+        if let Some(object) = body.as_object_mut() {
+            object.insert(field.into(), json!(value));
+        }
+    }
+    Ok(())
+}
+
+fn identity(flags: &Flags, name: &str) -> Result<String, Usage> {
+    let value = required(flags, name)?;
+    if value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        Ok(value)
+    } else {
+        Err(Usage(format!(
+            "{name} must be a 64-character lowercase hex id"
+        )))
+    }
+}
+
+fn server(flags: &Flags) -> Result<ApiClient, Usage> {
+    let server = flags
+        .get("--server")
+        .cloned()
+        .or_else(|| std::env::var(SERVER_ENVIRONMENT).ok())
+        .ok_or_else(|| Usage(format!("--server or {SERVER_ENVIRONMENT} is required")))?;
+    ApiClient::new(&server).map_err(Usage)
+}
+
+fn call(flags: &Flags, method: &str, path: String, body: Option<Value>) -> Result<i32, Usage> {
+    let client = server(flags)?;
+    Ok(match client.request(method, &path, body.as_ref()) {
+        Ok((status, value)) if (200..300).contains(&status) => {
+            println!("{value}");
+            EXIT_OK
+        }
+        Ok((status, value)) => refused(&json!({ "status": status, "response": value })),
+        Err(error) => refused(&json!({ "error": error })),
+    })
+}
+
+fn mcp(flags: &Flags) -> Result<i32, Usage> {
+    let client = server(flags)?;
+    let mut session = McpServer::new(client, flags.get("--tool").cloned());
+    let stdin = std::io::stdin().lock();
+    let stdout = std::io::stdout().lock();
+    Ok(match session.run(stdin, stdout) {
+        Ok(()) => EXIT_OK,
+        Err(error) => refused(&json!({ "error": error })),
+    })
+}
+
+fn check_config(flags: &Flags) -> i32 {
+    let path = PathBuf::from(flags.get("--config").cloned().unwrap_or_default());
+    match FleetConfig::load(&path) {
+        Ok(config) => {
+            println!(
+                "{}",
+                json!({
+                    "valid": true,
+                    "schema": config.schema,
+                    "machine": config.machine,
+                    "listen": config.listen,
+                    "dispatch": config.dispatch.enabled,
+                    "swarm": config.active_swarm().is_some(),
+                })
+            );
+            EXIT_OK
+        }
+        Err(error) => refused(&json!({ "valid": false, "error": error })),
+    }
+}
+
+fn run(flags: &Flags) -> i32 {
+    let path = PathBuf::from(flags.get("--config").cloned().unwrap_or_default());
+    match serve(&path) {
+        Ok(()) => EXIT_OK,
+        Err(error) => {
+            log::warn("service.failed", json!({ "error": error }));
+            refused(&json!({ "error": error }))
+        }
+    }
+}
+
+/// Start the API listeners and the dispatch thread, then wait on them.
+///
+/// # Errors
+/// Returns a start-up diagnostic.
+pub fn serve(path: &std::path::Path) -> Result<(), String> {
+    let config = FleetConfig::load(path)?;
+    let addresses = config.listen_addresses()?;
+    let service = Arc::new(Service::new(config)?);
+    let listeners = server::bind(&addresses)?;
+    // The dispatcher owns a non-Send store connection, so it is built on its
+    // own thread and reports start-up through a channel.
+    let (ready, started) = std::sync::mpsc::channel::<Result<(), String>>();
+    let dispatch_service = Arc::clone(&service);
+    let dispatch = std::thread::Builder::new()
+        .name("kiln-fleet-dispatch".into())
+        .spawn(move || match Dispatcher::new(dispatch_service) {
+            Ok(dispatcher) => {
+                let _ = ready.send(Ok(()));
+                dispatcher.run();
+            }
+            Err(error) => {
+                let _ = ready.send(Err(error));
+            }
+        })
+        .map_err(|error| format!("cannot start the dispatch thread: {error}"))?;
+    started
+        .recv()
+        .map_err(|_| "the dispatch thread stopped during start-up".to_owned())??;
+    let api = server::spawn(listeners, &service)?;
+    log::info(
+        "service.started",
+        json!({ "machine": service.config.machine, "listen": service.config.listen, "dispatch": service.config.dispatch.enabled }),
+    );
+    let _ = dispatch.join();
+    for handle in api {
+        let _ = handle.join();
+    }
+    Err("the service threads stopped".to_owned())
+}

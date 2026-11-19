@@ -2825,6 +2825,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-herdr"
+version = "0.1.0"
+dependencies = [
+ "bounded-exec",
+ "onix-kiln-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-http-observe"
 version = "0.1.0"
 dependencies = [
@@ -3164,6 +3175,21 @@ dependencies = [
  "onix-kiln-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "kiln-fleet"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "bounded-exec",
+ "kiln-adapter-herdr",
+ "kiln-adapter-swarm",
+ "kiln-implementer",
+ "onix-kiln-core",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

@@ -351,6 +351,36 @@
           ];
           meta.description = "Admit complete Cairn implementation-ready snapshots into the durable Kiln work ledger";
         });
+      # Fleet orchestration: claim authority, herdr dispatcher, MCP server and
+      # client commands in one binary. Its tests drive git and tar.
+      # r[impl kiln.fleet.api]
+      kilnFleetPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        (packageFor system).overrideAttrs (old: {
+          pname = "kiln-fleet";
+          cargoBuildFlags = [
+            "-p"
+            "kiln-fleet"
+            "--bin"
+            "kiln-fleet"
+          ];
+          cargoTestFlags = [
+            "-p"
+            "kiln-fleet"
+          ];
+          nativeCheckInputs = (old.nativeCheckInputs or [ ]) ++ [
+            pkgs.git
+            pkgs.gnutar
+          ];
+          postInstall = "";
+          meta = {
+            description = "Kiln fleet orchestration: claim authority and herdr dispatcher for interactive agents";
+            mainProgram = "kiln-fleet";
+          };
+        });
       # Hosted Firecracker backend guest: the pinned nixpkgs (NixOS) kernel, a
       # makeInitrdNG initramfs rootfs and the guest agent. Not a full NixOS system.
       # r[impl kiln.hosted.microvm.protocol]
@@ -756,6 +786,7 @@
         {
           kiln = packageFor system;
           kiln-cairn-intake = kilnCairnIntakePackageFor system;
+          kiln-fleet = kilnFleetPackageFor system;
           web-service = webServicePackageFor system;
           implementation-fixtures = implementationFixturesPackageFor system;
           website-exploration = websiteExplorationPackageFor system;
@@ -807,6 +838,11 @@
           type = "app";
           program = "${kilnCairnIntakePackageFor system}/bin/kiln-cairn-intake";
           meta.description = "Admit complete Cairn implementation-ready snapshots into the durable Kiln work ledger";
+        };
+        kiln-fleet = {
+          type = "app";
+          program = "${kilnFleetPackageFor system}/bin/kiln-fleet";
+          meta.description = "Kiln fleet orchestration: claim authority and herdr dispatcher for interactive agents";
         };
         kiln-adapter-gitea = {
           type = "app";

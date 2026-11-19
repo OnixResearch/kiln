@@ -21,12 +21,29 @@ pub const MAX_DISPATCH_PATHS: usize = 64;
 pub const MAX_DISPATCH_EFFECTS: usize = 16;
 pub const MAX_DISPATCH_TOKENS: u64 = 10_000_000;
 pub const MAX_DISPATCH_INVOCATIONS: u32 = 1_000;
+/// The only provider profile that may run a plan in an interactive worktree.
+pub const INTERACTIVE_PROVIDER_PROFILE: &str = "herdr-interactive";
+/// Operator policy effect that permits a work item to run in an interactive agent.
+pub const INTERACTIVE_AGENT_EFFECT: &str = "interactive_agent";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkspaceIsolation {
     /// A provider-owned disposable snapshot; no ambient host directory.
     IsolatedSnapshot,
+    /// A fresh worktree at the exact base on an operator machine, driven by an
+    /// interactive agent session with that machine's network and credentials.
+    InteractiveWorktree,
+}
+
+impl WorkspaceIsolation {
+    /// Canonical label hashed into the plan identity.
+    const fn label(self) -> &'static str {
+        match self {
+            Self::IsolatedSnapshot => "isolated_snapshot",
+            Self::InteractiveWorktree => "interactive_worktree",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -186,12 +203,36 @@ pub fn admit_dispatch_plan(
             "implementation dispatch admits cancellation only",
         ));
     }
-    if plan.workspace.credentials
-        || (plan.workspace.network
-            && plan.execution.as_ref().is_none_or(|execution| {
-                execution.attempt.model_services.is_empty()
-                    || execution.attempt.request_admissions.is_empty()
-            }))
+    // r[impl kiln.fleet.transport.scenario.admission]
+    // An interactive worktree must declare the machine's ambient network and
+    // credentials, and is admitted only for the interactive profile on work
+    // whose operator policy permits interactive agents. The interactive profile
+    // is likewise refused in any other isolation, so it never runs a plan that
+    // under-declares its ambient authority.
+    let interactive_profile = plan.provider_profile.as_str() == INTERACTIVE_PROVIDER_PROFILE;
+    let interactive_refused = match plan.workspace.isolation {
+        WorkspaceIsolation::InteractiveWorktree => {
+            !interactive_profile
+                || !work.permitted_effects.contains(INTERACTIVE_AGENT_EFFECT)
+                || !plan.workspace.network
+                || !plan.workspace.credentials
+        }
+        WorkspaceIsolation::IsolatedSnapshot => interactive_profile,
+    };
+    if interactive_refused {
+        return Err(refusal(
+            "implementation_dispatch_workspace",
+            "dispatch.workspace",
+            "interactive worktrees require the herdr-interactive profile, work permitting interactive_agent, and declared network and credentials",
+        ));
+    }
+    if plan.workspace.isolation == WorkspaceIsolation::IsolatedSnapshot
+        && (plan.workspace.credentials
+            || (plan.workspace.network
+                && plan.execution.as_ref().is_none_or(|execution| {
+                    execution.attempt.model_services.is_empty()
+                        || execution.attempt.request_admissions.is_empty()
+                })))
     {
         return Err(refusal(
             "implementation_dispatch_workspace",
@@ -328,7 +369,7 @@ pub fn admit_dispatch_plan(
         push_str(&mut bytes, base.native_id.as_str())?;
     }
     push_str(&mut bytes, plan.workspace.identity.as_str())?;
-    push_str(&mut bytes, "isolated_snapshot")?;
+    push_str(&mut bytes, plan.workspace.isolation.label())?;
     bytes.push(u8::from(plan.workspace.network));
     bytes.push(u8::from(plan.workspace.credentials));
     push_str(&mut bytes, plan.provider_profile.as_str())?;
@@ -729,6 +770,117 @@ mod tests {
                 .is_err()
         );
         assert_eq!(ledger.dispatch_plan(&attempt.identity), Some(&bound));
+    }
+
+    fn interactive_plan(
+        work: &ImplementationWork,
+        attempt: &super::super::ImplementationAttempt,
+    ) -> ImplementationDispatchPlan {
+        let mut plan = plan(work, attempt);
+        plan.workspace.isolation = WorkspaceIsolation::InteractiveWorktree;
+        plan.workspace.network = true;
+        plan.workspace.credentials = true;
+        plan.provider_profile =
+            ProviderProfileId::new(INTERACTIVE_PROVIDER_PROFILE).unwrap_or_else(|_| unreachable!());
+        plan
+    }
+
+    fn interactive_work() -> ImplementationWork {
+        let mut work = work();
+        work.permitted_effects
+            .insert(INTERACTIVE_AGENT_EFFECT.to_string());
+        work
+    }
+
+    #[test]
+    // r[verify kiln.fleet.transport.scenario.admission]
+    fn interactive_plans_need_the_exact_profile_effect_and_declared_authority() {
+        let work = interactive_work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let interactive = interactive_plan(&work, &attempt);
+        let identity = admit_dispatch_plan(&work, &attempt, &interactive)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let reservation = ledger
+            .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &interactive)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(reservation.plan, identity);
+        // The isolation is part of the identity: the same plan in a snapshot
+        // differs, and a Lattice plan on the same work is still admitted.
+        let lattice = plan(&work, &attempt);
+        let lattice_identity = admit_dispatch_plan(&work, &attempt, &lattice)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_ne!(lattice_identity, identity);
+
+        type PlanChange = fn(&mut ImplementationDispatchPlan);
+        let refused: [(&str, PlanChange); 6] = [
+            ("another profile", |plan| {
+                plan.provider_profile = ProviderProfileId::new("lattice-implementation")
+                    .unwrap_or_else(|_| unreachable!());
+            }),
+            ("undeclared network", |plan| plan.workspace.network = false),
+            ("undeclared credentials", |plan| {
+                plan.workspace.credentials = false;
+            }),
+            ("snapshot with credentials", |plan| {
+                plan.workspace.isolation = WorkspaceIsolation::IsolatedSnapshot;
+            }),
+            ("snapshot with the interactive profile", |plan| {
+                plan.workspace.isolation = WorkspaceIsolation::IsolatedSnapshot;
+                plan.workspace.network = false;
+                plan.workspace.credentials = false;
+            }),
+            ("lattice profile with credentials", |plan| {
+                plan.workspace.isolation = WorkspaceIsolation::IsolatedSnapshot;
+                plan.provider_profile = ProviderProfileId::new("lattice-implementation")
+                    .unwrap_or_else(|_| unreachable!());
+            }),
+        ];
+        for (name, change) in refused {
+            let mut plan = interactive.clone();
+            change(&mut plan);
+            assert_eq!(
+                admit_dispatch_plan(&work, &attempt, &plan).map_err(|error| error.code),
+                Err("implementation_dispatch_workspace".to_string()),
+                "{name}"
+            );
+        }
+
+        // Work whose operator policy does not permit interactive agents.
+        let plain = self::work();
+        let mut plain_ledger = AttemptLedger::default();
+        let plain_attempt = plain_ledger
+            .claim(&plain, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            admit_dispatch_plan(
+                &plain,
+                &plain_attempt,
+                &interactive_plan(&plain, &plain_attempt)
+            )
+            .map_err(|error| error.code),
+            Err("implementation_dispatch_workspace".to_string())
+        );
+        assert!(
+            plain_ledger
+                .reserve_dispatch_plan(
+                    &plain,
+                    &plain_attempt.identity,
+                    plain_attempt.fence,
+                    1,
+                    &interactive_plan(&plain, &plain_attempt)
+                )
+                .is_err()
+        );
+        // Lattice rules are unchanged on that work.
+        assert_eq!(
+            admit_dispatch_plan(&plain, &plain_attempt, &plan(&plain, &plain_attempt))
+                .map(|identity| identity.as_str().to_string())
+                .map_err(|error| error.code),
+            Ok("304916eeffed3042a8c0089ef23e2a82637c01dba1a2fa90d79378c7d83ce164".to_string())
+        );
     }
 
     #[test]

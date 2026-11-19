@@ -16,6 +16,7 @@ use kiln_core::implementation::swarm::{
     ArticleView, ClaimArticle, admit_body, parse_rfc2822_ms, parse_subject,
 };
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 
 use crate::config::SwarmConfig;
 
@@ -49,6 +50,18 @@ impl Article {
                 .collect(),
         })
     }
+}
+
+/// One group as printed by `iroh-news groups`. Unknown fields are tolerated.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq, serde::Serialize)]
+pub struct GroupEntry {
+    pub name: String,
+    /// Highest article number, `0` when the group is empty.
+    pub high: u64,
+    /// Lowest article number, `0` when the group is empty.
+    pub low: u64,
+    /// Posting status (`y`, `n` or `m`).
+    pub posting: String,
 }
 
 /// Outcome of one post attempt.
@@ -134,21 +147,68 @@ impl SwarmClient {
         if let Some(since) = since {
             args.extend([OsString::from("--since"), OsString::from(since.to_string())]);
         }
+        self.run_json(args, "read", "a bounded article array")
+    }
+
+    /// List the server's active groups through `iroh-news groups`.
+    ///
+    /// # Errors
+    /// Returns [`SwarmFailure`] when the client cannot run, the server refuses,
+    /// or stdout is not a bounded group array.
+    pub fn groups(&self) -> Result<Vec<GroupEntry>, SwarmFailure> {
+        self.run_json(
+            vec![OsString::from("groups")],
+            "groups",
+            "a bounded group array",
+        )
+    }
+
+    // r[impl kiln.implementation.swarm.transport]
+    /// Read the newest `limit` articles of the configured group.
+    ///
+    /// The read starts after the group's high-water mark minus `limit`
+    /// (saturating at zero), so overlap and message-id lookups see the newest
+    /// articles rather than the oldest retained ones.
+    ///
+    /// # Errors
+    /// Returns [`SwarmFailure`] when the group listing fails, does not name the
+    /// configured group, or the read itself fails. A failed listing is never an
+    /// empty group.
+    pub fn read_recent(&self, limit: usize) -> Result<Vec<Article>, SwarmFailure> {
+        let limit = limit.clamp(1, self.config.read_limit);
+        let groups = self.groups()?;
+        let high = groups
+            .iter()
+            .find(|group| group.name == self.config.group)
+            .map(|group| group.high)
+            .ok_or_else(|| SwarmFailure {
+                detail: "swarm group is not listed by the server".to_owned(),
+            })?;
+        let window = u64::try_from(limit).unwrap_or(u64::MAX);
+        self.read(Some(high.saturating_sub(window)), limit)
+    }
+
+    fn run_json<T: DeserializeOwned>(
+        &self,
+        args: Vec<OsString>,
+        operation: &str,
+        shape: &str,
+    ) -> Result<T, SwarmFailure> {
         let request = self.request(args, Input::Null, 1)?;
         let output = run(request).map_err(|error| SwarmFailure {
             detail: run_detail(&error),
         })?;
         if output.completion != Completion::Exited || output.disposition != Disposition::Succeeded {
             return Err(SwarmFailure {
-                detail: classify_read(&output),
+                detail: classify_failure(&output, operation),
             });
         }
         let text = std::str::from_utf8(&output.stdout.bytes).map_err(|_| SwarmFailure {
             detail: "swarm response is not UTF-8".to_owned(),
         })?;
-        serde_json::from_str::<Vec<Article>>(text).map_err(|error| SwarmFailure {
+        serde_json::from_str::<T>(text).map_err(|error| SwarmFailure {
             detail: format!(
-                "swarm response is not a bounded article array ({error}, {} bytes)",
+                "swarm response is not {shape} ({error}, {} bytes)",
                 text.len()
             ),
         })
@@ -243,8 +303,8 @@ impl SwarmClient {
                 environment_mode: EnvironmentMode::Clear,
                 environment: self
                     .config
-                    .environment
-                    .iter()
+                    .child_environment()
+                    .into_iter()
                     .map(|(name, value)| (OsString::from(name), OsString::from(value)))
                     .collect(),
                 input,
@@ -263,18 +323,18 @@ impl SwarmClient {
     }
 }
 
-fn classify_read(output: &bounded_exec::ExecutionOutput) -> String {
+fn classify_failure(output: &bounded_exec::ExecutionOutput, operation: &str) -> String {
     if output.completion == Completion::TimedOut {
-        return "swarm read timed out".to_owned();
+        return format!("swarm {operation} timed out");
     }
     if output.completion == Completion::Cancelled {
-        return "swarm read cancelled".to_owned();
+        return format!("swarm {operation} cancelled");
     }
     if matches!(output.disposition, Disposition::OutputLimitExceeded(_)) {
         return "swarm response exceeds its bound".to_owned();
     }
     let detail = detail(&output.stderr.bytes);
-    detail.unwrap_or_else(|| "swarm read failed".to_owned())
+    detail.unwrap_or_else(|| format!("swarm {operation} failed"))
 }
 
 fn spawn_failed(error: &RunError) -> bool {
@@ -378,5 +438,16 @@ mod parse_tests {
         let articles: Vec<Article> =
             serde_json::from_str(text).unwrap_or_else(|error| unreachable!("{error:?}"));
         assert_eq!(articles.len(), 1);
+    }
+
+    #[test]
+    fn group_array_tolerates_unknown_fields_and_refuses_missing_ones() {
+        let text = r#"[{"name":"bots.claims","high":120,"low":3,"posting":"y","description":"claims","creator":"x"}]"#;
+        let groups: Vec<super::GroupEntry> =
+            serde_json::from_str(text).unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(groups.first().map(|group| group.high), Some(120));
+        assert!(
+            serde_json::from_str::<Vec<super::GroupEntry>>(r#"[{"name":"bots.claims"}]"#).is_err()
+        );
     }
 }

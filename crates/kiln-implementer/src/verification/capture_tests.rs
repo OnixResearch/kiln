@@ -1,8 +1,9 @@
 use super::super::tests::TestResult;
 use super::*;
 use kiln_core::implementation::{
-    AttemptLedger, DEFAULT_LEASE_MS, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
-    WorkspaceIsolation,
+    AcceptanceObligation, AttemptLedger, DEFAULT_LEASE_MS, DISPATCH_PLAN_SCHEMA, DispatchControls,
+    DispatchWorkspace, IMPLEMENTATION_WORK_SCHEMA, INTERACTIVE_AGENT_EFFECT, SourceRef,
+    TerminalPolicy, WorkBudget, WorkSourceKind, WorkspaceIsolation,
 };
 use kiln_core::types::ProviderProfileId;
 use serde_json::json;
@@ -155,6 +156,16 @@ fn actual_host_snapshot_materializes_git_and_refuses_forged_receipt_or_omitted_d
 fn dispatched(
     work: &ImplementationWork,
 ) -> TestResult<(ImplementationDispatchPlan, ImplementationAttempt)> {
+    dispatched_as(work, WorkspaceIsolation::IsolatedSnapshot)
+}
+
+/// A reserved plan in the given isolation: a Lattice snapshot plan, or an
+/// interactive worktree with the herdr profile and its declared authority.
+fn dispatched_as(
+    work: &ImplementationWork,
+    isolation: WorkspaceIsolation,
+) -> TestResult<(ImplementationDispatchPlan, ImplementationAttempt)> {
+    let interactive = isolation == WorkspaceIsolation::InteractiveWorktree;
     let mut ledger = AttemptLedger::default();
     let attempt = ledger
         .claim(work, 0, DEFAULT_LEASE_MS)
@@ -173,13 +184,17 @@ fn dispatched(
         base: work.base.clone(),
         workspace: DispatchWorkspace {
             identity: content('a')?,
-            isolation: WorkspaceIsolation::IsolatedSnapshot,
-            network: false,
-            credentials: false,
+            isolation,
+            network: interactive,
+            credentials: interactive,
             projection: None,
         },
-        provider_profile: ProviderProfileId::new("lattice-implementation")
-            .map_err(|error| format!("{error:?}"))?,
+        provider_profile: ProviderProfileId::new(if interactive {
+            INTERACTIVE_PROVIDER_PROFILE
+        } else {
+            "lattice-implementation"
+        })
+        .map_err(|error| format!("{error:?}"))?,
         permitted_paths: work.permitted_paths.clone(),
         permitted_effects: work.permitted_effects.clone(),
         controls: DispatchControls {
@@ -203,6 +218,292 @@ fn dispatched(
             .ok_or("attempt missing")?
             .clone(),
     ))
+}
+
+fn content(byte: char) -> TestResult<ContentId> {
+    Ok(ContentId::from_blake3_hex(byte.to_string().repeat(64))
+        .map_err(|error| format!("{error:?}"))?)
+}
+
+/// Work that permits interactive agents; no repository or frozen program is
+/// needed to bind receipts to it.
+fn interactive_work() -> TestResult<ImplementationWork> {
+    Ok(ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.into(),
+        revision: 1,
+        actor: "fixture-operator".into(),
+        repository: "fixture/repository".into(),
+        project: "fixture".into(),
+        base: Some(
+            ExternalRef::new("git", "commit", &"1".repeat(40))
+                .map_err(|error| format!("{error:?}"))?,
+        ),
+        title: "interactive fixture".into(),
+        requested_outcome: "accepted behavior".into(),
+        acceptance: vec![AcceptanceObligation {
+            id: "case".into(),
+            statement: "frozen oracle passes".into(),
+        }],
+        dependencies: vec![],
+        permitted_paths: vec!["src".into()],
+        permitted_effects: BTreeSet::from(["write_source".into(), INTERACTIVE_AGENT_EFFECT.into()]),
+        verification_profile: content('9')?,
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 5,
+        },
+        terminal_policy: TerminalPolicy::VerifiedOrAlreadySatisfied,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: ExternalRef::new("github", "issue", "fixture/repository#1")
+                .map_err(|error| format!("{error:?}"))?,
+            native_id: "fixture/repository#1".into(),
+            version: content('a')?,
+        }],
+    })
+}
+
+fn lattice_receipt(
+    work: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    dispatch: &ImplementationDispatchPlan,
+    schema: &str,
+    disposition: &str,
+) -> TestResult<serde_json::Value> {
+    Ok(
+        json!({"schema":schema, "work_id":work.identity().map_err(|error| format!("{error:?}"))?.as_str(),
+        "attempt_id":attempt.identity.as_str(), "fence":attempt.fence.to_string(), "workspace_id":dispatch.workspace.identity.as_str(),
+        "base_identity":"0".repeat(64), "candidate_identity":"0".repeat(64),
+        "diff_identity":"0".repeat(64), "changed_paths":["src/value"],
+        "disposition":disposition, "blockers":[]}),
+    )
+}
+
+/// The receipt with one field replaced or added.
+fn with(
+    receipt: &serde_json::Value,
+    field: &str,
+    value: serde_json::Value,
+) -> TestResult<serde_json::Value> {
+    let mut changed = receipt.clone();
+    changed
+        .as_object_mut()
+        .ok_or("receipt is not an object")?
+        .insert(field.into(), value);
+    Ok(changed)
+}
+
+#[test]
+// r[verify kiln.fleet.capture.scenario.receipt]
+fn each_plan_profile_admits_only_its_own_exactly_bound_receipt() -> TestResult {
+    let work = interactive_work()?;
+    let (herdr_plan, herdr_attempt) =
+        dispatched_as(&work, WorkspaceIsolation::InteractiveWorktree)?;
+    let (lattice_plan, lattice_attempt) = dispatched(&work)?;
+    let session = content('5')?;
+    let commit = "0123456789abcdef0123456789abcdef01234567";
+    let herdr = serde_json::to_value(HerdrCandidateReceipt::for_attempt(
+        &work,
+        &herdr_attempt,
+        &herdr_plan,
+        HerdrCandidateDisposition::Produced,
+        commit,
+        &session,
+    )?)?;
+    assert_eq!(
+        herdr.get("schema"),
+        Some(&json!(HERDR_CANDIDATE_RECEIPT_SCHEMA))
+    );
+    let lattice = lattice_receipt(
+        &work,
+        &lattice_attempt,
+        &lattice_plan,
+        LATTICE_CANDIDATE_RECEIPT_SCHEMA,
+        "produced",
+    )?;
+    let lattice_unchanged = lattice_receipt(
+        &work,
+        &lattice_attempt,
+        &lattice_plan,
+        LATTICE_UNCHANGED_OBSERVATION_SCHEMA,
+        "unchanged",
+    )?;
+    let admit = |plan: &ImplementationDispatchPlan,
+                 attempt: &ImplementationAttempt,
+                 receipt: &serde_json::Value|
+     -> TestResult<Result<AdmittedReceipt, String>> {
+        Ok(admit_receipt(
+            &work,
+            attempt,
+            plan,
+            &serde_json::to_vec(receipt)?,
+        ))
+    };
+
+    // Each profile admits its own receipt kind.
+    match admit(&herdr_plan, &herdr_attempt, &herdr)? {
+        Ok(AdmittedReceipt::Herdr(receipt)) => {
+            assert_eq!(receipt.candidate_commit, commit);
+            assert_eq!(receipt.session, session);
+            assert_eq!(receipt.disposition, HerdrCandidateDisposition::Produced);
+        }
+        other => return Err(format!("herdr receipt not admitted: {other:?}").into()),
+    }
+    let herdr_unchanged = with(&herdr, "disposition", json!("unchanged"))?;
+    assert!(
+        admit(&herdr_plan, &herdr_attempt, &herdr_unchanged)?
+            .is_ok_and(|receipt| receipt.unchanged())
+    );
+    assert!(matches!(
+        admit(&lattice_plan, &lattice_attempt, &lattice)?,
+        Ok(AdmittedReceipt::Lattice(_))
+    ));
+    assert!(
+        admit(&lattice_plan, &lattice_attempt, &lattice_unchanged)?
+            .is_ok_and(|receipt| receipt.unchanged())
+    );
+
+    // Neither profile admits the other's receipt, even relabelled.
+    let herdr_as_lattice = with(&herdr, "schema", json!(LATTICE_CANDIDATE_RECEIPT_SCHEMA))?;
+    let lattice_as_herdr = with(&lattice, "schema", json!(HERDR_CANDIDATE_RECEIPT_SCHEMA))?;
+    for (name, plan, attempt, receipt) in [
+        ("herdr on lattice", &lattice_plan, &lattice_attempt, &herdr),
+        (
+            "relabelled herdr on lattice",
+            &lattice_plan,
+            &lattice_attempt,
+            &herdr_as_lattice,
+        ),
+        ("lattice on herdr", &herdr_plan, &herdr_attempt, &lattice),
+        (
+            "lattice unchanged on herdr",
+            &herdr_plan,
+            &herdr_attempt,
+            &lattice_unchanged,
+        ),
+        (
+            "relabelled lattice on herdr",
+            &herdr_plan,
+            &herdr_attempt,
+            &lattice_as_herdr,
+        ),
+        (
+            "relabelled herdr on herdr",
+            &herdr_plan,
+            &herdr_attempt,
+            &herdr_as_lattice,
+        ),
+    ] {
+        assert!(admit(plan, attempt, receipt)?.is_err(), "{name}");
+    }
+
+    // A herdr receipt for another attempt, fence, workspace or work, or with a
+    // blocker, an inexact commit, an invalid session or an extra field.
+    for (name, field, value) in [
+        ("another attempt", "attempt_id", json!("b".repeat(64))),
+        ("another fence", "fence", json!(herdr_attempt.fence + 1)),
+        (
+            "fence as text",
+            "fence",
+            json!(herdr_attempt.fence.to_string()),
+        ),
+        ("another workspace", "workspace_id", json!("c".repeat(64))),
+        ("another work", "work_id", json!("d".repeat(64))),
+        ("blocked", "blockers", json!(["needs input"])),
+        ("abbreviated commit", "candidate_commit", json!("0123456")),
+        (
+            "uppercase commit",
+            "candidate_commit",
+            json!("0123456789ABCDEF0123456789ABCDEF01234567"),
+        ),
+        ("invalid session", "session", json!("not-a-session")),
+        ("unknown disposition", "disposition", json!("partial")),
+        ("unknown field", "changed_paths", json!(["src/value"])),
+    ] {
+        assert!(
+            admit(&herdr_plan, &herdr_attempt, &with(&herdr, field, value)?)?.is_err(),
+            "{name}"
+        );
+    }
+    // The Lattice receipt keeps its own attempt, fence and workspace binding.
+    for field in ["attempt_id", "fence", "workspace_id"] {
+        assert!(
+            admit(
+                &lattice_plan,
+                &lattice_attempt,
+                &with(&lattice, field, json!("9"))?
+            )?
+            .is_err(),
+            "{field}"
+        );
+    }
+    let oversized = vec![b' '; MAX_RECEIPT_BYTES + 1];
+    assert!(admit_receipt(&work, &herdr_attempt, &herdr_plan, &oversized).is_err());
+    Ok(())
+}
+
+#[test]
+#[ignore = "requires KILN_VERIFICATION_TEST_ROOT/GIT/SHELL private Linux Nix cohort"]
+// r[verify kiln.fleet.capture.scenario.receipt]
+fn herdr_commit_export_materializes_only_the_reported_commit_tree() -> TestResult {
+    let (root, authority, profile, mut work, _attempt, original) =
+        super::super::tests::real_fixture(true, false)?;
+    work.permitted_effects
+        .insert(INTERACTIVE_AGENT_EFFECT.into());
+    let (dispatch, attempt) = dispatched_as(&work, WorkspaceIsolation::InteractiveWorktree)?;
+    let repository = Repository::open(&authority.repository_root)?;
+    let agent_commit = original.candidate.native_id.as_str();
+    let agent_tree = repository
+        .find_commit(Oid::from_str(agent_commit)?)?
+        .tree()?;
+    let mut exported = Snapshot::new();
+    let mut total = 0;
+    collect_baseline(&repository, &agent_tree, "", &mut exported, &mut total)?;
+    let worker = root.path().join("herdr-export");
+    fs::create_dir(&worker)?;
+    for (path, fact) in &exported {
+        let destination = worker.join(path);
+        fs::create_dir_all(destination.parent().ok_or("destination parent missing")?)?;
+        fs::write(destination, repository.find_blob(fact.object)?.content())?;
+    }
+    let session = content('5')?;
+    let receipt = HerdrCandidateReceipt::for_attempt(
+        &work,
+        &attempt,
+        &dispatch,
+        HerdrCandidateDisposition::Produced,
+        agent_commit,
+        &session,
+    )?;
+    let materialize = |receipt: &[u8]| {
+        materialize_candidate(
+            &work, &attempt, &dispatch, &profile, &authority, &worker, receipt,
+        )
+    };
+    // A receipt naming another commit than the exported tree is refused.
+    let mut base_named = receipt.clone();
+    base_named.candidate_commit = work
+        .base
+        .as_ref()
+        .ok_or("base missing")?
+        .native_id
+        .as_str()
+        .into();
+    assert!(materialize(&serde_json::to_vec(&base_named)?).is_err());
+    // A Lattice receipt for the herdr plan is refused.
+    let lattice = lattice_receipt(
+        &work,
+        &attempt,
+        &dispatch,
+        LATTICE_CANDIDATE_RECEIPT_SCHEMA,
+        "produced",
+    )?;
+    assert!(materialize(&serde_json::to_vec(&lattice)?).is_err());
+    let handoff = materialize(&serde_json::to_vec(&receipt)?)?;
+    assert_eq!(handoff.tree.native_id.as_str(), agent_tree.id().to_string());
+    assert_eq!(handoff.changed_paths, vec!["src/feature", "src/value"]);
+    Ok(())
 }
 
 #[test]

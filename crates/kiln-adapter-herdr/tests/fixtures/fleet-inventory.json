@@ -1,0 +1,59 @@
+{
+  "environment": {
+    "home": "/home/kiln",
+    "path": "/run/current-system/sw/bin",
+    "ssh_auth_sock": null,
+    "xdg_config_home": null,
+    "xdg_runtime_dir": "/run/user/1000"
+  },
+  "executable": "/run/current-system/sw/bin/herdr",
+  "machines": [
+    {
+      "agents": [
+        {
+          "args": [],
+          "kind": "omp",
+          "slots": 2
+        },
+        {
+          "args": [],
+          "kind": "claude",
+          "slots": 1
+        }
+      ],
+      "herdr_machine": null,
+      "label": "aspen1",
+      "repositories": {
+        "OnixResearch/kiln": "/home/kiln/src/kiln"
+      },
+      "ssh_target": "brittonr@aspen1",
+      "worktree_root": "/home/kiln/worktrees"
+    },
+    {
+      "agents": [
+        {
+          "args": [],
+          "kind": "codex",
+          "slots": 1
+        },
+        {
+          "args": [],
+          "kind": "agy",
+          "slots": 1
+        }
+      ],
+      "herdr_machine": "aspen3",
+      "label": "aspen3",
+      "repositories": {
+        "OnixResearch/kiln": "/home/brittonr/git/OnixResearch/kiln"
+      },
+      "ssh_target": "brittonr@aspen3",
+      "worktree_root": "/home/brittonr/kiln-worktrees"
+    }
+  ],
+  "max_output_bytes": 1048576,
+  "schema": "kiln.fleet-inventory.v1",
+  "session": "kiln",
+  "start_timeout_ms": 60000,
+  "timeout_ms": 30000
+}

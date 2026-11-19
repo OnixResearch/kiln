@@ -1,4 +1,5 @@
-//! Lattice v1 byte-snapshot receipt -> independently materialized exact Git source.
+//! Lattice v1 byte-snapshot receipt, or a herdr interactive-agent commit
+//! receipt -> independently materialized exact Git source.
 //! No Lattice runtime is linked and worker Git metadata is never consulted.
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -8,17 +9,25 @@ use std::path::{Path, PathBuf};
 use git2::{IndexEntry, IndexTime, Oid, Repository, Signature, Time};
 use kiln_core::implementation::{
     CANDIDATE_HANDOFF_SCHEMA, CandidateEvidence, CandidateHandoff, EvidenceKind, EvidenceOutcome,
-    ImplementationAttempt, ImplementationDispatchPlan, ImplementationWork, MAX_CHANGED_PATHS,
-    acceptance_digest, admit_candidate_handoff, admit_dispatch_plan,
+    INTERACTIVE_PROVIDER_PROFILE, ImplementationAttempt, ImplementationDispatchPlan,
+    ImplementationWork, MAX_CHANGED_PATHS, acceptance_digest, admit_candidate_handoff,
+    admit_dispatch_plan,
 };
 use kiln_core::types::{ContentId, ExternalRef};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::{VerificationProfile, VerifierAuthority, digest, source, text};
 
 const MAX_SNAPSHOT_ENTRIES: usize = 50_000;
 const MAX_SNAPSHOT_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_RECEIPT_BYTES: usize = 2 * 1024 * 1024;
+const LATTICE_CANDIDATE_RECEIPT_SCHEMA: &str = "lattice.candidate-receipt.v1";
+const LATTICE_UNCHANGED_OBSERVATION_SCHEMA: &str = "lattice.unchanged-candidate-observation.v1";
+/// Receipt the fleet shell writes after exporting an interactive agent's commit.
+pub const HERDR_CANDIDATE_RECEIPT_SCHEMA: &str = "kiln.herdr.candidate-receipt.v1";
+/// A full SHA-1 Git object id; abbreviated ids are refused so the reported
+/// commit can never resolve ambiguously in the authority repository.
+const GIT_OBJECT_ID_HEX_LENGTH: usize = 40;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +43,130 @@ struct HostCandidateReceipt {
     changed_paths: Vec<String>,
     disposition: String,
     blockers: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HerdrCandidateDisposition {
+    Produced,
+    Unchanged,
+}
+
+/// Receipt for an interactive agent's handoff commit, admitted only for plans
+/// with the `herdr-interactive` provider profile. `candidate_root` must be an
+/// isolated export of exactly `candidate_commit`'s tree from the authority
+/// repository; materialization refuses any other tree.
+// The fence is a number here (the Lattice receipt carries it as text): this
+// schema is Kiln-owned, so it takes the ledger's own type.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HerdrCandidateReceipt {
+    pub schema: String,
+    pub work_id: String,
+    pub attempt_id: String,
+    pub fence: u64,
+    pub workspace_id: String,
+    pub disposition: HerdrCandidateDisposition,
+    pub blockers: Vec<String>,
+    /// The agent's full Git commit id, fetched into the authority repository.
+    pub candidate_commit: String,
+    /// The fleet session identity that reported the handoff.
+    pub session: ContentId,
+}
+
+impl HerdrCandidateReceipt {
+    /// The receipt for the exact work, attempt, fence and retained workspace.
+    pub fn for_attempt(
+        work: &ImplementationWork,
+        attempt: &ImplementationAttempt,
+        dispatch: &ImplementationDispatchPlan,
+        disposition: HerdrCandidateDisposition,
+        candidate_commit: &str,
+        session: &ContentId,
+    ) -> Result<Self, String> {
+        Ok(Self {
+            schema: HERDR_CANDIDATE_RECEIPT_SCHEMA.into(),
+            work_id: work.identity().map_err(text)?.as_str().into(),
+            attempt_id: attempt.identity.as_str().into(),
+            fence: attempt.fence,
+            workspace_id: dispatch.workspace.identity.as_str().into(),
+            disposition,
+            blockers: Vec::new(),
+            candidate_commit: candidate_commit.into(),
+            session: session.clone(),
+        })
+    }
+}
+
+/// A host receipt admitted for the retained plan's provider profile.
+#[derive(Debug)]
+enum AdmittedReceipt {
+    Lattice(HostCandidateReceipt),
+    Herdr(HerdrCandidateReceipt),
+}
+
+impl AdmittedReceipt {
+    fn unchanged(&self) -> bool {
+        match self {
+            Self::Lattice(receipt) => receipt.disposition == "unchanged",
+            Self::Herdr(receipt) => receipt.disposition == HerdrCandidateDisposition::Unchanged,
+        }
+    }
+}
+
+/// Admit exactly the receipt kind the retained plan's profile produces, bound
+/// to the exact work, attempt, fence and workspace. A herdr receipt is refused
+/// for any other profile and a Lattice receipt for the herdr profile.
+// r[impl kiln.fleet.capture.scenario.receipt]
+fn admit_receipt(
+    work: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    dispatch: &ImplementationDispatchPlan,
+    host_receipt: &[u8],
+) -> Result<AdmittedReceipt, String> {
+    if host_receipt.len() > MAX_RECEIPT_BYTES {
+        return Err("host candidate receipt exceeds bound".into());
+    }
+    let work_id = work.identity().map_err(text)?;
+    if dispatch.provider_profile.as_str() == INTERACTIVE_PROVIDER_PROFILE {
+        let receipt: HerdrCandidateReceipt = serde_json::from_slice(host_receipt).map_err(text)?;
+        if receipt.schema != HERDR_CANDIDATE_RECEIPT_SCHEMA
+            || !receipt.blockers.is_empty()
+            || receipt.work_id != work_id.as_str()
+            || receipt.attempt_id != attempt.identity.as_str()
+            || receipt.fence != attempt.fence
+            || receipt.workspace_id != dispatch.workspace.identity.as_str()
+            || receipt.session.validate().is_err()
+            || receipt.candidate_commit.len() != GIT_OBJECT_ID_HEX_LENGTH
+            || !receipt
+                .candidate_commit
+                .bytes()
+                .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+        {
+            return Err(
+                "herdr receipt is not for the exact work/attempt/fence/workspace and commit".into(),
+            );
+        }
+        return Ok(AdmittedReceipt::Herdr(receipt));
+    }
+    let receipt: HostCandidateReceipt = serde_json::from_slice(host_receipt).map_err(text)?;
+    let unchanged = receipt.disposition == "unchanged";
+    let expected_schema = if unchanged {
+        LATTICE_UNCHANGED_OBSERVATION_SCHEMA
+    } else {
+        LATTICE_CANDIDATE_RECEIPT_SCHEMA
+    };
+    if receipt.schema != expected_schema
+        || (!unchanged && receipt.disposition != "produced")
+        || !receipt.blockers.is_empty()
+        || receipt.work_id != work_id.as_str()
+        || receipt.attempt_id != attempt.identity.as_str()
+        || receipt.fence != attempt.fence.to_string()
+        || receipt.workspace_id != dispatch.workspace.identity.as_str()
+    {
+        return Err("host receipt is not produced for exact work/attempt/fence/workspace".into());
+    }
+    Ok(AdmittedReceipt::Lattice(receipt))
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -86,26 +219,8 @@ pub fn materialize_candidate(
                 .into(),
         );
     }
-    if host_receipt.len() > MAX_RECEIPT_BYTES {
-        return Err("host candidate receipt exceeds bound".into());
-    }
-    let receipt: HostCandidateReceipt = serde_json::from_slice(host_receipt).map_err(text)?;
-    let unchanged = receipt.disposition == "unchanged";
-    let expected_schema = if unchanged {
-        "lattice.unchanged-candidate-observation.v1"
-    } else {
-        "lattice.candidate-receipt.v1"
-    };
-    if receipt.schema != expected_schema
-        || (!unchanged && receipt.disposition != "produced")
-        || !receipt.blockers.is_empty()
-        || receipt.work_id != work.identity().map_err(text)?.as_str()
-        || receipt.attempt_id != attempt.identity.as_str()
-        || receipt.fence != attempt.fence.to_string()
-        || receipt.workspace_id != dispatch.workspace.identity.as_str()
-    {
-        return Err("host receipt is not produced for exact work/attempt/fence/workspace".into());
-    }
+    let receipt = admit_receipt(work, attempt, dispatch, host_receipt)?;
+    let unchanged = receipt.unchanged();
     let base_ref = work
         .base
         .as_ref()
@@ -149,13 +264,17 @@ pub fn materialize_candidate(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    if changed.is_empty() != unchanged
-        || changed.len() > MAX_CHANGED_PATHS
-        || receipt.changed_paths != changed
-        || receipt.base_identity != tree_identity(&baseline)
-        || receipt.candidate_identity.as_deref() != Some(tree_identity(&candidate).as_str())
-        || receipt.diff_identity.as_deref()
-            != Some(diff_identity(&baseline, &candidate, &changed).as_str())
+    if changed.is_empty() != unchanged || changed.len() > MAX_CHANGED_PATHS {
+        return Err(
+            "host snapshot/diff/complete paths differ from independently captured source".into(),
+        );
+    }
+    if let AdmittedReceipt::Lattice(receipt) = &receipt
+        && (receipt.changed_paths != changed
+            || receipt.base_identity != tree_identity(&baseline)
+            || receipt.candidate_identity.as_deref() != Some(tree_identity(&candidate).as_str())
+            || receipt.diff_identity.as_deref()
+                != Some(diff_identity(&baseline, &candidate, &changed).as_str()))
     {
         return Err(
             "host snapshot/diff/complete paths differ from independently captured source".into(),
@@ -192,6 +311,14 @@ pub fn materialize_candidate(
             .map_err(text)?;
     }
     let tree_id = index.write_tree_to(&repository).map_err(text)?;
+    // The export must be exactly the reported agent commit's tree, as the
+    // authority repository holds it after the fleet shell's fetch.
+    if let AdmittedReceipt::Herdr(receipt) = &receipt {
+        let reported = Oid::from_str(&receipt.candidate_commit).map_err(text)?;
+        if repository.find_commit(reported).map_err(text)?.tree_id() != tree_id {
+            return Err("exported candidate tree differs from the reported agent commit".into());
+        }
+    }
     let receipt_hash = digest(host_receipt);
     let commit_id = if unchanged {
         if tree_id != base.tree_id() {

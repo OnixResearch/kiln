@@ -78,6 +78,7 @@ The sections below group the maintained documents by the question they answer.
 ## Implementation-work service
 
 - [Implementation work admission](implementation-work.md): exact work, claims, frozen requirements and provider boundaries.
+- [Fleet orchestration](fleet-orchestration.md): Kiln as claim authority and herdr dispatcher for interactive agents across machines; claim bookkeeping and observed agent states, not agent honesty or isolation.
 - [Plan review](plan-review.md): opt-in review of an agent's plan before a claim; default admission is unchanged.
 - [Implementer service](implementer-service.md): ownership split and deployment prerequisites.
 - [Implementation runbook](implementation-runbook.md): admitted Lattice/OMP dispatch, independent canonical CI verification and journaled publication; no unattended GitHub landing qualification.

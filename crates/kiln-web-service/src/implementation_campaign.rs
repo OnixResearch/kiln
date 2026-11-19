@@ -1323,7 +1323,7 @@ fn attach_swarm_mirror(
     let from = config.from.clone();
     let client = kiln_adapter_swarm::SwarmClient::new(config)?;
     let views: Vec<kiln_core::implementation::swarm::ArticleView> = client
-        .read(None, read_limit)
+        .read_recent(read_limit)
         .map(|articles| {
             articles
                 .iter()

@@ -1,0 +1,76 @@
+{
+  "capture": {
+    "export_root": "/var/lib/kiln-fleet/exports",
+    "git": "/run/current-system/sw/bin/git",
+    "publish_argv": null,
+    "repositories": {
+      "OnixResearch/kiln": {
+        "authority": "/etc/kiln-fleet/authority/kiln.json"
+      }
+    },
+    "tar": "/run/current-system/sw/bin/tar",
+    "verification_profiles": "/etc/kiln-fleet/verification-profiles",
+    "verify_argv": [
+      "/run/current-system/sw/bin/kiln-web-service",
+      "verify-implementation",
+      "--database",
+      "{database}",
+      "--handoff",
+      "{handoff}",
+      "--profile",
+      "{verification_profile}",
+      "--authority",
+      "{authority}"
+    ]
+  },
+  "decision_group": "bots.general",
+  "dispatch": {
+    "enabled": true,
+    "kinds": [
+      "omp",
+      "claude"
+    ]
+  },
+  "implementer": {
+    "database": "/var/lib/kiln-fleet/implementer.sqlite",
+    "enrollment": "/etc/kiln-fleet/enrollment.json"
+  },
+  "inventory": "/etc/kiln-fleet/fleet-inventory.json",
+  "listen": [
+    "127.0.0.1:8095",
+    "100.110.43.11:8095"
+  ],
+  "machine": "britton-desktop",
+  "operators": [
+    "britton-desktop"
+  ],
+  "peers": {
+    "aspen3-1.bison-tailor.ts.net.": "aspen3"
+  },
+  "policy": {
+    "attempt_lease_ms": 3600000,
+    "blocked_decision_after_ms": 300000,
+    "claim_lease_ms": 14400000,
+    "max_claim_lease_ms": 86400000,
+    "max_nudges": 2,
+    "nudge_after_ms": 600000,
+    "renew_before_ms": 600000,
+    "tick_ms": 15000
+  },
+  "schema": "kiln.fleet.v1",
+  "swarm": {
+    "config_file": null,
+    "enabled": true,
+    "environment": {},
+    "executable": "/run/current-system/sw/bin/iroh-news",
+    "from": "kiln <kiln-britton-desktop@swarm.local>",
+    "group": "bots.claims",
+    "max_output_bytes": 1048576,
+    "no_relays": true,
+    "read_limit": 50,
+    "server": "swarm.blr.dev",
+    "state_dir": "/var/lib/kiln-fleet/swarm",
+    "timeout_ms": 30000
+  },
+  "tailscale": "/run/current-system/sw/bin/tailscale"
+}

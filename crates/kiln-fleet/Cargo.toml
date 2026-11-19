@@ -1,0 +1,31 @@
+[package]
+name = "kiln-fleet"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "kiln_fleet"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kiln-fleet"
+path = "src/main.rs"
+
+[dependencies]
+blake3.workspace = true
+bounded-exec.workspace = true
+kiln-adapter-herdr.workspace = true
+kiln-adapter-swarm = { path = "../kiln-adapter-swarm" }
+kiln-core.workspace = true
+kiln-implementer.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

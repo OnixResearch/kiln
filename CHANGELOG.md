@@ -51,6 +51,19 @@ entry describes the source tree prepared for the first tagged release.
   per-fence journal that never repeats a transition, and the `kiln-swarm`
   read/post CLI. No credentials enter Kiln; swarm content can only defer.
   (#94; core, adapter and CLI fixtures)
+- Default-off fleet orchestration of interactive agents (`kiln-fleet`): a
+  pure fleet core (claim scopes with containment overlap, fenced and leased
+  fleet claims that conflict with other claims, live attempts and foreign
+  swarm claims, an interactive session ledger with a pure tick planner,
+  operator decisions and attempt prompts), durable fleet state in the
+  implementation store, the `kiln-adapter-herdr` session provider, explicit
+  `interactive_worktree` dispatch plans for `herdr-interactive` work that
+  permits `interactive_agent`, herdr candidate receipts for
+  `materialize_candidate`, and one service with a Tailscale-authenticated
+  JSON API, a stdio MCP server, client commands and the dispatch loop. The
+  swarm mirror now reads the newest window, posts with Kiln's own From
+  address and defers by containment. (#96; core, store, adapter and service
+  fixtures)
 
 **Sources**
 

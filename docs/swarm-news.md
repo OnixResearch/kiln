@@ -34,19 +34,31 @@ client owns its own identity and provider.
 | `config_file` | optional generated `iroh-news` config |
 | `server` | optional ticket, endpoint id or DNS name |
 | `group` | claim group, default `bots.claims` |
-| `from` | our `From` header, used to recognize our own claims |
+| `from` | our `From` header; passed to every child as `IROH_NEWS_FROM` and used to recognize our own claims |
 | `timeout_ms` | per-command deadline, default 30 s |
 | `read_limit` | maximum articles per read, default 50 |
 | `max_output_bytes` | retained stream bound, default 1 MiB |
 | `no_relays` | dial ticket addresses only (typical for the tailnet) |
 | `environment` | explicit child environment; ambient variables are cleared |
 
-Password- and key-named environment entries are refused.
+Password- and key-named environment entries are refused, and so is an
+`IROH_NEWS_FROM` entry that differs from `from`. `from` is a configuration value,
+not a secret: Kiln sets `IROH_NEWS_FROM` itself, so posts carry Kiln's own
+address rather than the client's default.
+
+## Newest window
+
+Every overlap and message-id lookup (implementer `claim`, the campaign drive and
+mirror message-id resolution) reads the newest window: `iroh-news groups` gives
+the claim group's high-water mark `high`, then `read` runs with
+`--since max(high - limit, 0) --limit limit`. A failed or malformed group
+listing, or one that does not name the configured group, is a read failure, never
+an empty group.
 
 ## Implementer integration
 
 When the operator passes `--swarm-config-json PATH` (and the profile has
-`"enabled": true`), the implementer `claim` command reads recent claims, defers
+`"enabled": true`), the implementer `claim` command reads the newest window of claims, defers
 overlapping work with a structured stderr cause, and posts the `CLAIM` through
 the mirror journal. `cancel` posts the matching `RELEASE`. An unavailable swarm
 never fails the command. `--swarm-host` sets the signature host label.

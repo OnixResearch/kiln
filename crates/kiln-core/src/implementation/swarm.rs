@@ -13,6 +13,8 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
+use crate::fleet::scope::{FleetScope, overlaps, parse_scope};
+
 pub const MAX_REPOSITORY_BYTES: usize = 128;
 pub const MAX_SCOPE_BYTES: usize = 128;
 pub const MAX_SUBJECT_BYTES: usize = 256;
@@ -21,6 +23,8 @@ pub const MAX_MESSAGE_ID_BYTES: usize = 256;
 pub const MAX_REFERENCES: usize = 16;
 pub const STALE_CLAIM_MS: u64 = 24 * 60 * 60 * 1000;
 pub const MAX_TOKEN_RUN: usize = 32;
+/// Characters of a holder session id rendered in a fleet signature line.
+pub const SIGNATURE_SESSION_CHARS: usize = 12;
 
 /// Parsed claim scope shared by `CLAIM` and `RELEASE` subjects.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -234,7 +238,9 @@ pub fn admit_body(body: &str) -> Result<(), String> {
 /// Decide whether a prospective claim overlaps an open claim by another author.
 ///
 /// A claim is open until a `RELEASE` article lists its message id in
-/// `References`. Claims older than [`STALE_CLAIM_MS`] do not defer. Only the
+/// `References`. Claims older than [`STALE_CLAIM_MS`] do not defer. Scopes
+/// overlap under fleet scope containment ([`crate::fleet::overlaps`]); a scope
+/// that does not parse as a fleet scope falls back to exact equality. Only the
 /// subject scope and references are inspected; bodies are ignored.
 #[must_use]
 pub fn evaluate_overlap(
@@ -243,6 +249,7 @@ pub fn evaluate_overlap(
     scope: &ClaimScope,
     now_ms: u64,
 ) -> OverlapDecision {
+    let prospective = parse_scope(&scope.repository, &scope.scope).ok();
     let author = from_address(author_from);
     let mut released: BTreeSet<&str> = BTreeSet::new();
     for article in articles {
@@ -257,7 +264,7 @@ pub fn evaluate_overlap(
         let ClaimArticle::Claim(observed) = parse_subject(&article.subject) else {
             continue;
         };
-        if observed != *scope
+        if !scopes_overlap(&observed, scope, prospective.as_ref())
             || from_address(&article.from) == author
             || released.contains(article.message_id.as_str())
         {
@@ -279,6 +286,142 @@ pub fn evaluate_overlap(
         },
         None => OverlapDecision::Allowed,
     }
+}
+
+/// Observed and prospective scopes overlap under fleet containment when both
+/// parse as fleet scopes, and by exact equality otherwise.
+fn scopes_overlap(
+    observed: &ClaimScope,
+    scope: &ClaimScope,
+    prospective: Option<&FleetScope>,
+) -> bool {
+    match (
+        prospective,
+        parse_scope(&observed.repository, &observed.scope).ok(),
+    ) {
+        (Some(prospective), Some(observed)) => overlaps(prospective, &observed),
+        _ => observed == scope,
+    }
+}
+
+/// Who signs a fleet article: the coordinating Kiln and the claim holder.
+#[derive(Debug, Clone, Copy)]
+pub struct FleetSignature<'a> {
+    pub coordinator: &'a str,
+    pub tool: &'a str,
+    pub host: &'a str,
+    pub session: &'a str,
+}
+
+/// Facts a fleet claim body may carry. Nothing else is rendered.
+#[derive(Debug, Clone, Copy)]
+pub struct FleetClaimBodyFacts<'a> {
+    pub target: &'a str,
+    pub path: &'a str,
+    pub purpose: &'a str,
+    pub fence: u64,
+    pub lease_minutes: u64,
+    pub signature: FleetSignature<'a>,
+}
+
+/// Facts a fleet release body may carry. Nothing else is rendered.
+#[derive(Debug, Clone, Copy)]
+pub struct FleetReleaseBodyFacts<'a> {
+    pub target: &'a str,
+    pub path: &'a str,
+    pub reason: &'a str,
+    pub fence: u64,
+    pub signature: FleetSignature<'a>,
+}
+
+/// Render a redaction-checked fleet claim body with the signature line
+/// `— kiln on <coordinator> for <tool> on <host>, session <session>`.
+///
+/// # Errors
+/// Returns a diagnostic when a fact is invalid or the rendered body would carry
+/// secret-shaped material.
+pub fn format_fleet_claim_body(facts: &FleetClaimBodyFacts<'_>) -> Result<String, String> {
+    if facts.lease_minutes == 0 {
+        return Err("swarm claim lease must be positive".to_string());
+    }
+    admit_fleet_facts(facts.target, facts.path, facts.purpose, &facts.signature)?;
+    let body = format!(
+        "Claiming {} {} through the Kiln fleet.\npurpose: {}\nholder: {} on {}\nfence: {}\nexpected lease: {} minutes\n\n{}\n",
+        facts.target,
+        facts.path,
+        facts.purpose,
+        facts.signature.tool,
+        facts.signature.host,
+        facts.fence,
+        facts.lease_minutes,
+        fleet_signature_line(&facts.signature),
+    );
+    admit_body(&body)?;
+    Ok(body)
+}
+
+/// Render a redaction-checked fleet release body with the fleet signature line.
+///
+/// # Errors
+/// Returns a diagnostic when a fact is invalid or the rendered body would carry
+/// secret-shaped material.
+pub fn format_fleet_release_body(facts: &FleetReleaseBodyFacts<'_>) -> Result<String, String> {
+    admit_fleet_facts(facts.target, facts.path, facts.reason, &facts.signature)?;
+    let body = format!(
+        "Releasing {} {} through the Kiln fleet: {}\nholder: {} on {}\nfence: {}\n\n{}\n",
+        facts.target,
+        facts.path,
+        facts.reason,
+        facts.signature.tool,
+        facts.signature.host,
+        facts.fence,
+        fleet_signature_line(&facts.signature),
+    );
+    admit_body(&body)?;
+    Ok(body)
+}
+
+fn admit_fleet_facts(
+    target: &str,
+    path: &str,
+    text: &str,
+    signature: &FleetSignature<'_>,
+) -> Result<(), String> {
+    if !admit_field(target, MAX_REPOSITORY_BYTES) || !admit_field(path, MAX_SCOPE_BYTES) {
+        return Err("swarm claim scope is invalid".to_string());
+    }
+    for field in [
+        signature.coordinator,
+        signature.tool,
+        signature.host,
+        signature.session,
+    ] {
+        if !admit_field(field, MAX_SCOPE_BYTES)
+            || !field.bytes().all(|byte| byte.is_ascii_graphic())
+        {
+            return Err("swarm fleet signature fact is invalid".to_string());
+        }
+    }
+    if text.trim().is_empty() || text.chars().any(char::is_control) {
+        return Err("swarm fleet fact is empty or contains a control character".to_string());
+    }
+    Ok(())
+}
+
+// Deviation from the design's `session <session>`: agent session ids are often
+// UUID-shaped, which `admit_body` refuses as token-shaped runs, so the
+// signature names the session by its first `SIGNATURE_SESSION_CHARS`.
+fn fleet_signature_line(signature: &FleetSignature<'_>) -> String {
+    format!(
+        "— kiln on {} for {} on {}, session {}",
+        signature.coordinator,
+        signature.tool,
+        signature.host,
+        signature
+            .session
+            .get(..SIGNATURE_SESSION_CHARS)
+            .unwrap_or(signature.session),
+    )
 }
 
 /// Extract the address inside angle brackets, or the trimmed value.
@@ -511,6 +654,144 @@ mod tests {
             ),
             OverlapDecision::Allowed
         );
+    }
+
+    fn claim_article(subject: &str) -> ArticleView {
+        ArticleView {
+            message_id: "<claim@aspen3>".to_string(),
+            from: "omp on aspen3 <aspen3@swarm.local>".to_string(),
+            subject: subject.to_string(),
+            date_unix_ms: 1_000_000,
+            references: vec![],
+        }
+    }
+
+    #[test]
+    // r[verify kiln.implementation.swarm.overlap] r[verify kiln.implementation.swarm.overlap.scenario.defer]
+    fn containing_scopes_defer_and_disjoint_scopes_do_not() {
+        let author = "kiln <kiln-aspen1@swarm.local>";
+        for subject in [
+            "CLAIM OnixResearch/kiln crates",
+            "CLAIM OnixResearch/kiln .",
+            "CLAIM onixresearch/KILN crates/kiln-core",
+            "CLAIM OnixResearch/kiln crates/kiln-core/src",
+        ] {
+            assert_eq!(
+                evaluate_overlap(&[claim_article(subject)], author, &scope(), 1_000_500),
+                OverlapDecision::Deferred {
+                    message_id: "<claim@aspen3>".to_string(),
+                    author: "omp on aspen3 <aspen3@swarm.local>".to_string(),
+                    age_ms: 500,
+                },
+                "{subject}"
+            );
+        }
+        for subject in [
+            "CLAIM OnixResearch/kiln crates/kiln-corex",
+            "CLAIM OnixResearch/kiln docs",
+            "CLAIM OnixResearch/other crates/kiln-core",
+            "CLAIM aspen3 system",
+        ] {
+            assert_eq!(
+                evaluate_overlap(&[claim_article(subject)], author, &scope(), 1_000_500),
+                OverlapDecision::Allowed,
+                "{subject}"
+            );
+        }
+        // Scopes that are not fleet scopes fall back to exact equality.
+        let legacy = ClaimScope {
+            repository: "OnixResearch/kiln".to_string(),
+            scope: "crates kiln-core".to_string(),
+        };
+        let legacy_claim = claim_article("CLAIM OnixResearch/kiln crates kiln-core");
+        assert!(matches!(
+            evaluate_overlap(&[legacy_claim.clone()], author, &legacy, 1_000_500),
+            OverlapDecision::Deferred { .. }
+        ));
+        assert_eq!(
+            evaluate_overlap(&[legacy_claim], author, &scope(), 1_000_500),
+            OverlapDecision::Allowed
+        );
+        let parent_of_legacy = claim_article("CLAIM OnixResearch/kiln crates");
+        assert_eq!(
+            evaluate_overlap(&[parent_of_legacy], author, &legacy, 1_000_500),
+            OverlapDecision::Allowed
+        );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.swarm.overlap.scenario.release]
+    fn released_and_stale_containing_claims_do_not_defer() {
+        let author = "kiln <kiln-aspen1@swarm.local>";
+        let claim = claim_article("CLAIM OnixResearch/kiln crates");
+        let mut release = claim_article("RELEASE OnixResearch/kiln crates");
+        release.message_id = "<release@aspen3>".to_string();
+        release.references = vec!["<claim@aspen3>".to_string()];
+        assert_eq!(
+            evaluate_overlap(&[claim.clone(), release], author, &scope(), 1_000_500),
+            OverlapDecision::Allowed
+        );
+        assert_eq!(
+            evaluate_overlap(
+                &[claim.clone()],
+                author,
+                &scope(),
+                1_000_000 + STALE_CLAIM_MS + 1
+            ),
+            OverlapDecision::Allowed
+        );
+        assert_eq!(
+            evaluate_overlap(&[claim], "kiln <aspen3@swarm.local>", &scope(), 1_000_500),
+            OverlapDecision::Allowed
+        );
+    }
+
+    #[test]
+    // r[verify kiln.fleet.mirror]
+    fn fleet_bodies_carry_the_signature_and_pass_redaction() {
+        let signature = FleetSignature {
+            coordinator: "britton-desktop",
+            tool: "claude",
+            host: "aspen3",
+            session: "0b8d3f5e-6c1a-4c2e-9d7f-2f6e1b0a9c11",
+        };
+        let facts = FleetClaimBodyFacts {
+            target: "onixresearch/kiln",
+            path: "crates/kiln-core",
+            purpose: "fleet core slice",
+            fence: 7,
+            lease_minutes: 240,
+            signature,
+        };
+        let body = format_fleet_claim_body(&facts).unwrap_or_else(|_| unreachable!());
+        assert!(body.contains("Claiming onixresearch/kiln crates/kiln-core"));
+        assert!(
+            body.contains("— kiln on britton-desktop for claude on aspen3, session 0b8d3f5e-6c1")
+        );
+        assert!(admit_body(&body).is_ok());
+        let release = format_fleet_release_body(&FleetReleaseBodyFacts {
+            target: "onixresearch/kiln",
+            path: "crates/kiln-core",
+            reason: "lease expired",
+            fence: 7,
+            signature,
+        })
+        .unwrap_or_else(|_| unreachable!());
+        assert!(release.contains("Releasing onixresearch/kiln crates/kiln-core"));
+        assert!(admit_body(&release).is_ok());
+
+        let mut zero_lease = facts;
+        zero_lease.lease_minutes = 0;
+        assert!(format_fleet_claim_body(&zero_lease).is_err());
+        let mut secret = facts;
+        secret.purpose = "use ghp_ token";
+        assert!(format_fleet_claim_body(&secret).is_err());
+        let mut multiline = facts;
+        multiline.purpose = "first\nsecond";
+        assert!(format_fleet_claim_body(&multiline).is_err());
+        let mut bad_signature = facts;
+        bad_signature.signature.host = "aspen 3";
+        assert!(format_fleet_claim_body(&bad_signature).is_err());
     }
 
     #[test]

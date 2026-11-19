@@ -17,6 +17,8 @@ members = [
   "crates/kiln-radicle-source-contract",
   "crates/kiln-adapter-radicle",
   "crates/kiln-adapter-swarm",
+  "crates/kiln-adapter-herdr",
+  "crates/kiln-fleet",
   "crates/kiln-adapter-cob",
   "crates/kiln-adapter-jj",
   "crates/kiln-adapter-git",
@@ -149,6 +151,8 @@ kiln-adapter-jj = { path = "crates/kiln-adapter-jj" }
 kiln-adapter-git = { path = "crates/kiln-adapter-git" }
 kiln-adapter-pijul = { path = "crates/kiln-adapter-pijul" }
 kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
+kiln-adapter-herdr = { path = "crates/kiln-adapter-herdr" }
+kiln-fleet = { path = "crates/kiln-fleet" }
 kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }
 kiln-adapter-patchgate = { path = "crates/kiln-adapter-patchgate" }
 kiln-adapter-mantle = { path = "crates/kiln-adapter-mantle" }

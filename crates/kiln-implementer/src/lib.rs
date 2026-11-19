@@ -13,12 +13,14 @@ pub mod admission;
 pub mod campaign;
 pub mod campaign_consumer;
 pub mod campaign_operator;
+pub mod fleet;
 pub mod native_publication;
 pub mod observation;
 pub mod publication_effects;
 pub mod queue;
 pub mod verification;
 
+pub use fleet::{FLEET_STATE_KIND, FLEET_STATE_SCHEMA, FleetState};
 pub use queue::{DeliveryQueue, QueuedDelivery};
 
 use std::path::Path;

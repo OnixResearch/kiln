@@ -23,7 +23,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 mod capture;
-pub use capture::materialize_candidate;
+pub use capture::{
+    HERDR_CANDIDATE_RECEIPT_SCHEMA, HerdrCandidateDisposition, HerdrCandidateReceipt,
+    materialize_candidate,
+};
 mod process;
 mod source;
 

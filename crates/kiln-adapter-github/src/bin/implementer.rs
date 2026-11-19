@@ -1986,7 +1986,7 @@ fn open_swarm(flags: &BTreeMap<String, String>) -> Result<Option<SwarmMirror>, S
 
 impl SwarmMirror {
     fn deferral(&self, now_ms: u64) -> Deferral {
-        let views: Vec<ArticleView> = match self.client.read(None, self.client.config().read_limit)
+        let views: Vec<ArticleView> = match self.client.read_recent(self.client.config().read_limit)
         {
             Ok(articles) => articles
                 .iter()

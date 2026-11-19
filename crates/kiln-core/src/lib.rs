@@ -8,6 +8,7 @@ pub mod cob;
 pub mod discovery;
 pub mod domain;
 pub mod fair_admission;
+pub mod fleet;
 pub mod gating;
 pub mod hosting;
 pub mod implementation;

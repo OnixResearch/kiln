@@ -22,19 +22,19 @@ const MESSAGE_ID_SKEW_MS: u64 = 10 * 60 * 1000;
 /// Transport operations the reconciler needs. Implemented by the real client
 /// and by test doubles.
 pub trait MirrorTransport {
-    /// Read recent articles.
+    /// Read the newest `limit` articles of the claim group.
     ///
     /// # Errors
     /// Returns a failure when the group is unavailable.
-    fn read(&self, since: Option<u64>, limit: usize) -> Result<Vec<Article>, SwarmFailure>;
+    fn read_recent(&self, limit: usize) -> Result<Vec<Article>, SwarmFailure>;
 
     /// Post one article and return its recorded outcome.
     fn post(&self, subject: &str, references: Option<&str>, body: &str) -> PostReceipt;
 }
 
 impl MirrorTransport for SwarmClient {
-    fn read(&self, since: Option<u64>, limit: usize) -> Result<Vec<Article>, SwarmFailure> {
-        Self::read(self, since, limit)
+    fn read_recent(&self, limit: usize) -> Result<Vec<Article>, SwarmFailure> {
+        Self::read_recent(self, limit)
     }
 
     fn post(&self, subject: &str, references: Option<&str>, body: &str) -> PostReceipt {
@@ -233,7 +233,7 @@ fn resolve_message_id(
     subject: &str,
     posted_at_ms: u64,
 ) -> Option<String> {
-    let articles = transport.read(None, context.read_limit).ok()?;
+    let articles = transport.read_recent(context.read_limit).ok()?;
     let ours = from_address(context.from);
     articles
         .iter()
@@ -257,6 +257,7 @@ mod tests {
     struct Fake {
         articles: RefCell<Vec<Article>>,
         posts: RefCell<Vec<(String, Option<String>)>>,
+        reads: RefCell<Vec<usize>>,
         outcome: PostOutcome,
     }
 
@@ -265,14 +266,19 @@ mod tests {
             Self {
                 articles: RefCell::new(Vec::new()),
                 posts: RefCell::new(Vec::new()),
+                reads: RefCell::new(Vec::new()),
                 outcome,
             }
         }
     }
 
     impl MirrorTransport for Fake {
-        fn read(&self, _since: Option<u64>, _limit: usize) -> Result<Vec<Article>, SwarmFailure> {
-            Ok(self.articles.borrow().clone())
+        /// Return the newest `limit` articles, as the real newest window does.
+        fn read_recent(&self, limit: usize) -> Result<Vec<Article>, SwarmFailure> {
+            self.reads.borrow_mut().push(limit);
+            let articles = self.articles.borrow();
+            let start = articles.len().saturating_sub(limit);
+            Ok(articles.iter().skip(start).cloned().collect())
         }
 
         fn post(&self, subject: &str, references: Option<&str>, _body: &str) -> PostReceipt {
@@ -343,6 +349,43 @@ mod tests {
 
         let third = reconcile(&transport, &mut journal, &[attempt(true)], &context());
         assert_eq!(third.len(), 0);
+    }
+
+    #[test]
+    // r[verify kiln.implementation.swarm.transport.scenario.window]
+    fn message_id_resolves_from_the_newest_window() {
+        let transport = Fake::new(PostOutcome::Accepted);
+        {
+            let mut articles = transport.articles.borrow_mut();
+            for number in 1..=40 {
+                articles.push(Article {
+                    number,
+                    message_id: format!("<other{number}@aspen3>"),
+                    from: "omp <aspen3@swarm.local>".to_owned(),
+                    subject: "CLAIM OnixResearch/kiln crates/other".to_owned(),
+                    date: "Wed, 18 Nov 2026 23:01:00 +0000".to_owned(),
+                    references: String::new(),
+                });
+            }
+            articles.push(Article {
+                number: 41,
+                message_id: "<newest@aspen1>".to_owned(),
+                from: "kiln-aspen1 <kiln-aspen1@swarm.local>".to_owned(),
+                subject: "CLAIM OnixResearch/kiln crates/kiln-core".to_owned(),
+                date: "Wed, 18 Nov 2026 23:01:00 +0000".to_owned(),
+                references: String::new(),
+            });
+        }
+        let mut journal = MirrorJournal::default();
+        let actions = reconcile(&transport, &mut journal, &[attempt(false)], &context());
+        assert_eq!(actions.len(), 1);
+        assert_eq!(*transport.reads.borrow(), vec![context().read_limit]);
+        let message_id = journal
+            .entries
+            .get("attempt-a:3")
+            .and_then(|entry| entry.claim.as_ref())
+            .and_then(|claim| claim.message_id.clone());
+        assert_eq!(message_id.as_deref(), Some("<newest@aspen1>"));
     }
 
     #[test]
