@@ -8,6 +8,11 @@
 
 pub mod client;
 pub mod config;
+pub mod mirror;
 
 pub use client::{Article, PostOutcome, PostReceipt, SwarmClient, SwarmFailure};
 pub use config::SwarmConfig;
+pub use mirror::{
+    AttemptSnapshot, MirrorAction, MirrorContext, MirrorEntry, MirrorJournal, MirrorPost,
+    MirrorTransport, reconcile,
+};
