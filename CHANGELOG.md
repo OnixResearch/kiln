@@ -64,6 +64,14 @@ entry describes the source tree prepared for the first tagged release.
   swarm mirror now reads the newest window, posts with Kiln's own From
   address and defers by containment. (#96; core, store, adapter and service
   fixtures)
+- Fleet observation and operator surfaces: the console Fleet page reads one
+  long-poll SSE snapshot of claims, ranked/blocked work, attempts and open
+  decisions; the selected Cairn change shows a read-only inline fleet panel
+  joined by exact work identity; `kiln-fleet status` emits JSON, Waybar or tmux
+  counts, `kiln-fleet watch` renders a live ANSI dashboard, `/v1/metrics`
+  exposes Prometheus gauges, and the MCP server exposes read-only
+  `kiln-fleet://` resources. Commands still pass the fleet service's own
+  authority checks. (route, profile, service, CLI and console tests)
 
 **Sources**
 

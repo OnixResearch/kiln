@@ -307,6 +307,12 @@ fn scope_label(scope: &Value) -> String {
     }
 }
 
+fn label(value: &Value) -> String {
+    value
+        .as_str()
+        .map_or_else(|| value.to_string(), str::to_owned)
+}
+
 fn dashboard(snapshot: &Value) -> String {
     let (claims, ready, attempts, decisions) = counts(snapshot);
     let machine = snapshot
@@ -345,7 +351,7 @@ fn dashboard(snapshot: &Value) -> String {
             text.push_str(&format!(
                 "  {}  {:<24} {}\n",
                 identity.chars().take(12).collect::<String>(),
-                state.to_string().chars().take(24).collect::<String>(),
+                label(&state).chars().take(24).collect::<String>(),
                 repository,
             ));
         }
