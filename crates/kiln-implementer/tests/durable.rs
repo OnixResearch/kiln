@@ -1678,3 +1678,75 @@ fn opted_in_work_is_claimed_only_after_its_plan_is_accepted() {
         .unwrap_or_else(|| unreachable!());
     assert_eq!(attempt.work_identity, identity);
 }
+
+// r[verify kiln.implementation.swarm.overlap.scenario.defer]
+#[test]
+fn deferred_candidates_are_skipped_and_reported() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = directory.path().join("implementation.db");
+    let mut implementer = open(path.as_path());
+    let work = work();
+    implementer
+        .admit(&work, None)
+        .unwrap_or_else(|_| unreachable!());
+    let deferred = implementer
+        .claim_next_deferred(0, LEASE, &|candidate| {
+            Some(format!("open swarm claim for {}", candidate.repository))
+        })
+        .unwrap_or_else(|_| unreachable!());
+    assert!(deferred.attempt.is_none());
+    assert_eq!(deferred.deferred.len(), 1);
+    assert!(
+        deferred
+            .deferred
+            .first()
+            .is_some_and(|(_, cause)| cause.contains("open swarm claim"))
+    );
+    let claimed = implementer
+        .claim_next_deferred(0, LEASE, &|_| None)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(claimed.attempt.is_some());
+    assert!(claimed.deferred.is_empty());
+}
+
+struct CountingMirror(Arc<std::sync::atomic::AtomicUsize>);
+
+impl kiln_implementer::MirrorObserver for CountingMirror {
+    fn reconcile(
+        &mut self,
+        snapshots: &[kiln_core::implementation::swarm::AttemptSnapshot],
+        _now_ms: u64,
+    ) -> Result<(), String> {
+        self.0.fetch_add(
+            snapshots.len().saturating_add(1),
+            std::sync::atomic::Ordering::SeqCst,
+        );
+        Ok(())
+    }
+}
+
+#[test]
+fn mirror_observer_runs_after_claim_and_block() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = directory.path().join("implementation.db");
+    let mut implementer = open(path.as_path());
+    let counter = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    implementer.set_mirror(Some(Box::new(CountingMirror(Arc::clone(&counter)))));
+    let work = work();
+    implementer
+        .admit(&work, None)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(counter.load(std::sync::atomic::Ordering::SeqCst), 0);
+    let attempt = implementer
+        .claim_next(0, LEASE)
+        .unwrap_or_else(|_| unreachable!())
+        .unwrap_or_else(|| unreachable!("claim"));
+    let after_claim = counter.load(std::sync::atomic::Ordering::SeqCst);
+    assert!(after_claim > 0);
+    implementer
+        .block(&attempt.identity, attempt.fence, 10, "closed")
+        .unwrap_or_else(|_| unreachable!());
+    assert!(counter.load(std::sync::atomic::Ordering::SeqCst) > after_claim);
+    implementer.set_mirror(None);
+    assert!(counter.load(std::sync::atomic::Ordering::SeqCst) > 0);
+}
