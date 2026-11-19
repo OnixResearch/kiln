@@ -7,6 +7,7 @@
   const STREAM_RECONNECT_MS = 1_000;
   const STREAM_BACKOFF_MAX_MS = 30_000;
   const IDENTITY = /^[0-9a-f]{64}$/;
+  const VERSION = /^[0-9a-f]{64}$/;
   const TOOL = "kiln-web";
   const SESSION_KEY = "kiln-fleet-session";
   const QUERY_MAX = 256;
@@ -291,7 +292,7 @@
   }
 
   function applySnapshot(state, snapshot) {
-    if (!record(snapshot) || !Number.isSafeInteger(snapshot.version) || snapshot.version < 0) throw new Error("Fleet event response is invalid.");
+    if (!record(snapshot) || typeof snapshot.version !== "string" || !VERSION.test(snapshot.version)) throw new Error("Fleet event response is invalid.");
     validateHealth(snapshot.health);
     validateClaims(snapshot.claims);
     validateWork(snapshot.work);
