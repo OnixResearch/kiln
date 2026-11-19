@@ -457,6 +457,32 @@ fn handoffs_are_captured_once_and_survive_a_gone_agent() {
         ..input
     };
     assert!(plan_tick(&captured_input, &policy).is_empty());
+    // While the candidate awaits verification, its lease is renewed once per
+    // lease, and the agent is left alone.
+    let expiring = [view('1', AttemptViewState::Executing, NOW + MINUTE)];
+    let expiring_input = TickInput {
+        attempts: &expiring,
+        ..captured_input
+    };
+    let renewal = plan_tick(&expiring_input, &policy);
+    assert_eq!(
+        renewal,
+        vec![FleetEffect::Renew {
+            attempt: content('1'),
+            fence: 1
+        }]
+    );
+    let renewed = record_issued(&expiring_input, &renewal).unwrap_or_else(|_| unreachable!());
+    assert!(
+        plan_tick(
+            &TickInput {
+                ledger: &renewed,
+                ..expiring_input
+            },
+            &policy
+        )
+        .is_empty()
+    );
     // Once the attempt ends after verification, the agent is stopped.
     let ended = [view('1', AttemptViewState::Terminal, NOW + 10 * HOUR)];
     let ended_input = TickInput {

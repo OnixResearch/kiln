@@ -61,7 +61,7 @@ Every other plan keeps its existing rules, including the refusal of ambient cred
 2. Read foreign swarm claims, observe every live session through herdr, then plan.
 3. Claim the highest-ranked ready interactive work that overlaps no open claim (other work is left for Lattice), choose the least-loaded host with a free slot of a preferred agent kind, and reserve its plan, whose workspace identity binds that host and worktree path. Then take a fleet claim for its scope.
 4. Place it on the chosen host: create a worktree at the exact base on branch `kiln/impl-<work12>-<attempt12>`, start the agent, and send the rendered prompt with the outcome, every acceptance obligation, the permitted paths, the attempt and the fence. A host whose slots are full is retried on a later tick.
-5. Renew the attempt's lease, and its fleet claim, while the session is live.
+5. Renew the attempt's lease, and its fleet claim, while the session is live and while its captured candidate awaits verification, so verification that outlasts the lease does not expire the attempt and dispatch the work again.
 6. Raise one decision when the session has been blocked longer than the policy window, or has stopped twice after a nudge without a handoff. The question is posted to `decision_group` as `DECISION <coordinator> attempt <attempt12>`; an operator answer is delivered as a prompt.
 7. On `handoff`, which only the session's machine may send, fetch the commit and check that it descends from the base. Export exactly its tree. Admit it through `materialize_candidate` with a `kiln.herdr.candidate-receipt.v1` receipt, then run the configured verification and publication argv.
 8. Cancel and stop a session whose start fails or whose agent disappears before a handoff.

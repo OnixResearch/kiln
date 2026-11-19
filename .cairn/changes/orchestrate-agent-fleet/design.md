@@ -100,7 +100,7 @@ pub fn plan_tick(input: &TickInput, policy: &FleetPolicy) -> Vec<FleetEffect>;
 
 - **Claiming.** `ClaimNext` is requested when `free_slots` exceeds the sessions in `Placing` or `Starting` and ready work exists.
 - **Placing.** An attempt held by the fleet with no session gets `Place`.
-- **Renewal.** A session in `Starting`, `Prompted`, `Working`, `Blocked`, `Ready` or `HandoffReceived` gets `Renew` when its attempt lease ends within `renew_before_ms`.
+- **Renewal.** A session in `Starting`, `Prompted`, `Working`, `Blocked`, `Ready`, `HandoffReceived` or `Captured` gets `Renew` when its attempt lease ends within `renew_before_ms`. A captured candidate keeps its attempt leased until verification resolves it; only then is the agent stopped.
 - **Decisions.** `Blocked` for longer than `blocked_decision_after_ms` gets one `RaiseDecision`.
 - **Nudges.** `Ready` after work, with no handoff for `nudge_after_ms`, gets a nudge `Prompt`, up to `max_nudges`. After that comes one `RaiseDecision`.
 - **Capture.** `HandoffReceived` gets `Capture`.

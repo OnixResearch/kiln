@@ -808,12 +808,20 @@ fn plan_session(
                 effects.push(stop);
             }
         }
-        (SessionState::Captured, Some(_)) => {}
+        // The candidate awaits Kiln's verification, which may outlast the
+        // lease: keep the attempt and its claim leased so the attempt is not
+        // expired as abandoned and dispatched again. The agent stays until the
+        // attempt resolves.
+        (SessionState::Captured, Some(view)) => {
+            if renewal_due(session, view, now_ms, policy) {
+                effects.push(FleetEffect::Renew {
+                    attempt: view.attempt.clone(),
+                    fence: view.fence,
+                });
+            }
+        }
         (state, Some(view)) => {
-            if state.renews()
-                && view.lease_expires_ms.saturating_sub(now_ms) <= policy.renew_before_ms
-                && session.renew_requested_for != Some(view.lease_expires_ms)
-            {
+            if state.renews() && renewal_due(session, view, now_ms, policy) {
                 effects.push(FleetEffect::Renew {
                     attempt: view.attempt.clone(),
                     fence: view.fence,
@@ -822,6 +830,18 @@ fn plan_session(
             plan_agent(session, input, policy, effects);
         }
     }
+}
+
+/// The attempt's lease ends within `renew_before_ms` and no renewal was
+/// requested for this lease yet.
+fn renewal_due(
+    session: &FleetSession,
+    view: &AttemptView,
+    now_ms: u64,
+    policy: &FleetPolicy,
+) -> bool {
+    view.lease_expires_ms.saturating_sub(now_ms) <= policy.renew_before_ms
+        && session.renew_requested_for != Some(view.lease_expires_ms)
 }
 
 fn plan_agent(
