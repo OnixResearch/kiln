@@ -78,8 +78,9 @@ pub(crate) enum EventFrame {
     Heartbeat,
 }
 
-/// Long-poll wait stays below the console's 15 s connection deadline.
-const EVENT_WAIT_MS: u64 = 8_000;
+/// Long-poll wait leaves room for five bounded snapshot reads under the
+/// console's 15 s connection deadline.
+const EVENT_WAIT_MS: u64 = 4_000;
 const EVENT_POLL_MS: u64 = 400;
 const SNAPSHOT_ATTEMPTS: usize = 2;
 
