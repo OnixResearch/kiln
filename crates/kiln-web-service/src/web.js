@@ -1347,6 +1347,7 @@
     if (previous?.page === "source" && state.route.page !== "source") window.KilnSource?.clear();
     if (previous?.page === "reviews" && state.route.page !== "reviews") window.KilnReceipts?.clear();
     if (previous?.page === "cairn" && state.route.page !== "cairn") window.KilnCairn?.clear();
+    if (previous?.page === "fleet" && state.route.page !== "fleet") window.KilnFleet?.clear();
     // r[impl kiln.web.live_progress] Leaving the run (or the runs page) stops its elapsed ticker.
     if (previous && (state.route.page !== "runs" || previous.run !== state.route.run)) stopLiveTicker();
     const route = state.route;
@@ -1945,6 +1946,12 @@
     if (route.page === "cairn") {
       if (!window.KilnCairn) { $("cairn-content").replaceChildren(element("p", "Cairn changes are loading.", "small")); return; }
       await window.KilnCairn.load($("cairn-content"), { api, navigate, route, runLink });
+    }
+    // The Fleet page owns its bounded reads and coordinator commands; leaving the
+    // page aborts its refresh cycle.
+    if (route.page === "fleet") {
+      if (!window.KilnFleet) { $("fleet-content").replaceChildren(element("p", "Fleet coordination is loading.", "small")); return; }
+      await window.KilnFleet.load($("fleet-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session });
     }
     if (route.page === "runs") await loadRunView();
   }

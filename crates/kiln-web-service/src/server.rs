@@ -35,6 +35,8 @@ pub struct Options {
     pub preview_observations: Option<PathBuf>,
     /// Campaign control profile; requires `implementation_work`.
     pub campaign_controls: Option<PathBuf>,
+    /// Runtime-only loopback fleet coordinator endpoint.
+    pub fleet: Option<PathBuf>,
 }
 
 impl Options {
@@ -60,6 +62,9 @@ impl Options {
         if let Some(path) = &self.implementation_work {
             kiln_implementer::observation::ImplementationObservation::open(path)
                 .map_err(|_| "implementation work observation unavailable".to_owned())?;
+        }
+        if let Some(path) = &self.fleet {
+            crate::fleet::FleetProfile::load(path)?;
         }
         Ok(())
     }
@@ -252,6 +257,15 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         .map_err(|_| "listener mode failed".to_owned())?;
     let active = AtomicUsize::new(0);
     let poll_failed = AtomicBool::new(false);
+    let fleet_profile = options
+        .fleet
+        .as_deref()
+        .map(crate::fleet::FleetProfile::load)
+        .transpose()?;
+    let fleet = fleet_profile
+        .as_ref()
+        .map(crate::fleet::Client::new)
+        .transpose()?;
     let context = Context {
         profile: &profile,
         credentials: &credentials,
@@ -264,6 +278,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         inventory: options.inventory.as_deref(),
         implementation_work: options.implementation_work.as_deref(),
         campaign_controls: campaign_controls.as_ref(),
+        fleet: fleet.as_ref(),
     };
     // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
     notify::ready()?;
@@ -492,6 +507,7 @@ struct Context<'a> {
     inventory: Option<&'a Path>,
     implementation_work: Option<&'a Path>,
     campaign_controls: Option<&'a crate::campaign_controls::Controls>,
+    fleet: Option<&'a crate::fleet::Client>,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -787,6 +803,12 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         if path == "/api/implementation/campaigns" {
             return inventory_api::campaign_response(&request, context, &principal);
         }
+        if path == "/api/fleet" || path.starts_with("/api/fleet/") {
+            if principal.role == crate::engine::Role::Worker {
+                return denied(&request, context, Some(&principal), 403, "fleet_read_only");
+            }
+            return fleet_response(&request, context, &principal);
+        }
         if crate::cairn_workspace::http::ROUTES.contains(&path) {
             return crate::cairn_workspace::http::response(
                 context.implementation_work,
@@ -977,6 +999,8 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             // r[impl kiln.cairn.workspace] Cairn changes page module, served like the receipts page.
             "/cairn.js" => ("text/javascript; charset=utf-8", include_bytes!("cairn.js")),
             "/cairn.css" => ("text/css; charset=utf-8", include_bytes!("cairn.css")),
+            "/fleet.js" => ("text/javascript; charset=utf-8", include_bytes!("fleet.js")),
+            "/fleet.css" => ("text/css; charset=utf-8", include_bytes!("fleet.css")),
             "/inventory.js" => (
                 "text/javascript; charset=utf-8",
                 include_bytes!("inventory.js"),
@@ -1005,6 +1029,35 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         }
     } else {
         error_response(405, "method_denied")
+    }
+}
+
+// r[impl kiln.web.network.boundaries] The console projects only the reviewed
+// fleet coordinator routes over its loopback listener. It never stores fleet
+// authority, and every mutation still passes the fleet service's own checks.
+fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principal) -> ApiResponse {
+    if request.method == "POST" && principal.role != crate::engine::Role::Operator {
+        return denied(request, context, Some(principal), 403, "fleet_operator");
+    }
+    let Some(client) = context.fleet else {
+        return error_response(503, "fleet_unavailable");
+    };
+    let Some(path) = crate::fleet::upstream_path(&request.method, &request.target) else {
+        return error_response(404, "fleet_route_denied");
+    };
+    if request.body.len() > crate::fleet::MAX_FLEET_REQUEST_BYTES {
+        return error_response(413, "fleet_request_too_large");
+    }
+    let body = (!request.body.is_empty()).then_some(request.body.as_slice());
+    match client.call(&request.method, &path, body) {
+        Ok(reply) => ApiResponse {
+            status: reply.status,
+            content_type: "application/json; charset=utf-8",
+            body: reply.body,
+            download_name: None,
+            headers: vec![("Cache-Control", "no-store".to_owned())],
+        },
+        Err(()) => error_response(503, "fleet_unavailable"),
     }
 }
 

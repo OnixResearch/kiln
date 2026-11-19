@@ -1,0 +1,46 @@
+/* The Fleet page is a bounded operator view of the fleet coordinator's loopback
+   API. It uses the console's ruled tables, square panels and technical readouts;
+   fleet-owned state is never restyled as CI success or failure. */
+.fleet-page { display: grid; gap: var(--space-4); min-width: 0; }
+.fleet-summary { display: grid; gap: var(--space-3); }
+.fleet-summary > * + * { margin-top: 0; }
+.fleet-summary-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.fleet-summary-head > * { margin: 0; }
+.fleet-summary-head h2 { margin: 0; font-size: var(--text-lg); }
+.fleet-status { display: grid; justify-items: end; gap: var(--space-1); text-align: right; }
+.fleet-status .mono { font-size: var(--text-xs); }
+.fleet-status .small { font-size: var(--text-xs); color: var(--muted-foreground); }
+.fleet-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border: 1px solid var(--frame); background: var(--secondary); }
+.fleet-metrics > div { display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-2); min-width: 0; padding: var(--space-2) var(--space-3); border-right: 1px solid var(--border); }
+.fleet-metrics > div:last-child { border-right: 0; }
+.fleet-metrics dt { color: var(--muted-foreground); font: var(--label-font); letter-spacing: var(--label-tracking); text-transform: uppercase; overflow-wrap: anywhere; }
+.fleet-metrics dd { margin: 0; font: 600 var(--text-2xl)/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.fleet-banner { display: none; margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); border-radius: var(--radius-md); background: var(--danger-background); color: var(--danger); font-size: var(--text-sm); }
+.fleet-banner.show { display: block; }
+.fleet-section { display: grid; gap: var(--space-3); min-width: 0; }
+.fleet-section > * + * { margin-top: 0; }
+.fleet-section > h2 { margin: 0; font-size: var(--text-lg); }
+.fleet-section > p { margin: 0; }
+.fleet-section-head { display: grid; gap: var(--space-2); }
+.fleet-section-head > * { margin: 0; }
+.fleet-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+.fleet-acquire { display: grid; grid-template-columns: minmax(10rem, .8fr) minmax(12rem, 1.2fr) minmax(7rem, .4fr) auto; align-items: end; gap: var(--space-2); }
+.fleet-acquire input { width: 100%; min-width: 0; }
+.fleet-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.fleet-actions button { min-height: 1.9rem; padding-inline: var(--space-2); }
+.fleet-answer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.fleet-answer input { min-width: 10rem; width: 100%; max-width: 22rem; }
+.fleet-table td { white-space: pre-line; }
+.fleet-identity { display: inline-flex; align-items: baseline; gap: .2rem; min-width: 0; }
+.fleet-identity code { user-select: all; }
+.fleet-tag { justify-self: start; }
+@media (max-width: 60rem) {
+  .fleet-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 48rem) {
+  .fleet-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fleet-metrics > div:nth-child(2) { border-right: 0; }
+  .fleet-metrics > div:nth-child(-n + 2) { border-bottom: 1px solid var(--border); }
+  .fleet-acquire { grid-template-columns: minmax(0, 1fr); }
+  .fleet-status { justify-items: start; text-align: left; }
+}

@@ -686,6 +686,7 @@
     ["triage", "2.5", "Requests & triage", "Review incoming requests, keep their original source and decide what to take on next."],
     ["workviews", "2.6", "Saved views", "Return to private or shared filters, boards and favorites saved in this workspace."],
     ["cairn", "2.7", "Cairn changes", "Find the next step for each change; inspect its units, attempts and dependencies. Answer admitted campaign decisions in place. This page never claims, dispatches or completes work."],
+    ["fleet", "2.8", "Fleet", "Inspect this host's fleet coordinator: live claims, ranked and blocked work, attempts and open decisions. Commands are forwarded to the fleet service, which remains their authority."],
     ["source", "3.1", "Source", "Choose a repository and revision to browse files and changes without modifying source."],
     ["reviews", "3.2", "Patchgate receipts", "What Patchgate decided for each reviewed change, why and when. A receipt is evidence only: it never accepts or merges a change."],
     ["activity", "3.3", "Activity", "Browse retained canonical events and attributable audit decisions."],

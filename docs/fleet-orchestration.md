@@ -22,6 +22,33 @@ commands, unchanged.
 | Swarm adapter | `kiln-adapter-swarm` | Newest-window reads and Kiln's own From address (`IROH_NEWS_FROM`) |
 | Service | `kiln-fleet` | The HTTP API, the stdio MCP server, client commands and the dispatch loop |
 
+## Console page
+
+The Kiln web console serves `?page=fleet` beside Workers and Cairn changes. The
+page reads live claims, ranked and blocked work, attempts and decisions from the
+fleet coordinator's loopback listener, and offers the same explicit commands as
+the fleet CLI: acquire, renew, release, answer and cancel. The console forwards
+only the reviewed routes with bounded request and response bytes; the fleet
+service remains the authority for every command. Mutations require an operator
+principal, and Worker principals cannot read the page's API.
+
+Enable the projection with the runtime-only `--fleet <profile>` argument (the
+profile is outside the canonical service profile, so enabling observation does
+not change the durable CI profile binding). Without it the page reports fleet
+unavailable. The profile is a private bounded JSON file:
+
+```json
+{
+  "schema": "kiln.web-fleet.v1",
+  "address": "127.0.0.1:8095",
+  "timeout_ms": 2000,
+  "max_response_bytes": 1048576
+}
+```
+
+The address must be a loopback socket address. The console never enables the
+fleet service, never becomes its coordinator and never stores fleet state.
+
 ## Claim scopes
 
 A scope is `<owner>/<repo> <path>` or `<machine> <path>`:

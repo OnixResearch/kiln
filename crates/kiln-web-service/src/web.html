@@ -11,9 +11,9 @@
   <script src="/icons.js" defer></script><script src="/ui.js" defer></script>
   <link rel="stylesheet" href="/code-review.css"><script src="/code-review.js" defer></script>
   <link rel="stylesheet" href="/inventory.css"><script src="/inventory.js" defer></script>
-  <script src="/cairn.js" defer></script>
+  <script src="/cairn.js" defer></script><script src="/fleet.js" defer></script>
   <link rel="stylesheet" href="/catalog.css"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/work.css"><link rel="stylesheet" href="/work-interaction.css"><link rel="stylesheet" href="/project.css"><link rel="stylesheet" href="/source.css"><link rel="stylesheet" href="/receipts.css"><link rel="stylesheet" href="/workers.css"><script src="/workers.js" defer></script><script src="/web.js" defer></script><script src="/work-evidence.js" defer></script><script src="/work-board.js" defer></script><script src="/work.js" defer></script><script src="/work-interaction.js" defer></script><script src="/project.js" defer></script><script src="/source.js" defer></script><script src="/receipts.js" defer></script>
-  <link rel="stylesheet" href="/cairn.css">
+  <link rel="stylesheet" href="/cairn.css"><link rel="stylesheet" href="/fleet.css">
   <!-- r[impl kiln.dashboard.complete.shell] -->
   <!-- r[impl kiln.web.visual_design] -->
 </head>
@@ -40,6 +40,7 @@
       <a data-page="triage" href="?page=triage"><span class="icon" data-icon="funnel" aria-hidden="true"></span><span class="nav-text">Requests &amp; triage</span></a>
       <a data-page="workviews" href="?page=workviews"><span class="icon" data-icon="layers" aria-hidden="true"></span><span class="nav-text">Saved views</span></a>
       <a data-page="cairn" href="?page=cairn"><span class="icon" data-icon="file-text" aria-hidden="true"></span><span class="nav-text">Cairn changes</span></a>
+      <a data-page="fleet" href="?page=fleet"><span class="icon" data-icon="server" aria-hidden="true"></span><span class="nav-text">Fleet</span></a>
       </details>
     </section>
     <details class="nav-group nav-disclosure"><summary><span class="icon" data-icon="eye" aria-hidden="true"></span><span class="nav-text">Inspect</span><span class="icon disclosure-chevron" data-icon="chevron-down" aria-hidden="true"></span></summary>
@@ -102,6 +103,8 @@
       <section data-panel="workviews" hidden class="view-stack"><div id="workviews-content" class="view-stack"></div></section>
       <!-- r[impl kiln.cairn.workspace] Cairn changes route; cairn.js renders the register and the selected change into #cairn-content. -->
       <section data-panel="cairn" hidden class="view-stack"><div id="cairn-content" class="view-stack"></div></section>
+      <!-- The Fleet page projects the fleet coordinator's loopback API; fleet.js owns its register and commands. -->
+      <section data-panel="fleet" hidden class="view-stack"><div id="fleet-content" class="view-stack"></div></section>
       <section data-panel="code-review" hidden class="view-stack"><div id="code-review-content" class="view-stack"></div></section>
       <section data-panel="projects" hidden class="view-stack">
         <p class="meta">Project actions require operator access. Viewers can browse inventory and retained runs without changing execution.</p>

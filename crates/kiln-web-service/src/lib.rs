@@ -11,6 +11,7 @@ pub mod developer;
 pub mod engine;
 pub mod execution;
 pub mod feeds;
+pub mod fleet;
 pub mod implementation_campaign;
 pub mod inventory;
 pub mod monorepo;
