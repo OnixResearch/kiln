@@ -14,13 +14,15 @@
 ## Phase 4: Lifecycle wiring
 
 - [x] [serial] [depends:kiln.implementation.swarm.outcomes] Mirror one `CLAIM` on `Claimed` and one `RELEASE` on the terminal phase or observed lease expiry, recording intent and outcome without duplicate posts. r[kiln.implementation.swarm.outcomes]
-- [ ] [serial] [depends:kiln.implementation.swarm.overlap] Read recent claims before admission and defer on an open overlapping claim with a recorded, operator-visible cause. r[kiln.implementation.swarm.overlap.scenario.defer]
+- [x] [serial] [depends:kiln.implementation.swarm.overlap] Read recent claims before admission and defer on an open overlapping claim with a recorded, operator-visible cause. r[kiln.implementation.swarm.overlap.scenario.defer]
 - [x] [serial] [depends:kiln.implementation.swarm.transport] Add the explicit default-off operator profile, documentation, changelog and configuration fixtures. r[kiln.implementation.swarm.transport]
 - [x] [serial] [depends:kiln.implementation.swarm.outcomes] Run focused tests, Clippy, workspace checks, Nickel fixtures and Cairn gates. r[kiln.implementation.swarm.transport]
 
-The implementer now reconciles the mirror from every attempt transition:
-operator and campaign claims, `fail`, `block`, `cancel`, `supersede`, accepted
-verification and recovery-time lease expiry. `claim` additionally reads recent
-claims and defers overlaps through `claim_next_deferred`. Campaign admission
-still claims through `claim_campaign_work` without a swarm overlap pre-check;
-that is the remaining deferral task.
+The implementer reconciles the mirror from every attempt transition: operator
+and campaign claims, `fail`, `block`, `cancel`, `supersede`, accepted
+verification and recovery-time lease expiry. Operator `claim` defers overlaps
+through `claim_next_deferred`; campaign admission defers through the installed
+overlap check inside `claim_exact_winner`, returning `Overlapped { cause }` as a
+refusal without opening the claim transaction. The web-service campaign profile
+carries the optional swarm configuration and installs both the overlap check and
+the mirror observer.

@@ -56,6 +56,7 @@ pub struct Implementer {
     connection: Connection,
     enrollment: Enrollment,
     mirror: Option<Box<dyn MirrorObserver>>,
+    overlap: Option<OverlapCheck>,
 }
 
 impl std::fmt::Debug for Implementer {
@@ -66,6 +67,9 @@ impl std::fmt::Debug for Implementer {
             .finish_non_exhaustive()
     }
 }
+
+/// External overlap check for one candidate work item.
+pub type OverlapCheck = Box<dyn Fn(&ImplementationWork) -> Option<String>>;
 
 /// Optional mirror observer for attempt claim and closure transitions.
 ///
@@ -103,6 +107,7 @@ impl Implementer {
             connection,
             enrollment,
             mirror: None,
+            overlap: None,
         })
     }
 
@@ -328,6 +333,14 @@ impl Implementer {
     /// Install or remove the optional mirror observer.
     pub fn set_mirror(&mut self, mirror: Option<Box<dyn MirrorObserver>>) {
         self.mirror = mirror;
+    }
+
+    /// Install or remove the optional swarm overlap check.
+    ///
+    /// The check runs before an exact campaign claim and returns a cause when an
+    /// open external claim overlaps the work. It cannot approve or widen work.
+    pub fn set_overlap(&mut self, overlap: Option<OverlapCheck>) {
+        self.overlap = overlap;
     }
 
     fn mirror_reconcile(&mut self, now_ms: u64) {

@@ -106,6 +106,10 @@ pub enum AdmissionResult {
     Claimed {
         attempt: Option<Box<ImplementationAttempt>>,
     },
+    /// An open external claim overlaps this work; nothing was claimed.
+    Overlapped {
+        cause: String,
+    },
     NotWinner {
         selected: Option<ContentId>,
     },
@@ -176,6 +180,20 @@ impl Implementer {
         now_ms: u64,
         lease_ms: u64,
     ) -> Result<AdmissionResult, String> {
+        if let Some(overlap) = self.overlap.as_ref() {
+            let tx = self
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Deferred)
+                .map_err(text)?;
+            let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
+            if let Some(current) = work
+                .current()
+                .find(|w| w.identity().is_ok_and(|id| id == *expected_work_version))
+                && let Some(cause) = overlap(current)
+            {
+                return Ok(AdmissionResult::Overlapped { cause });
+            }
+        }
         self.admission_apply(
             AdmissionCommand::ClaimExact {
                 expected_work_version: expected_work_version.clone(),

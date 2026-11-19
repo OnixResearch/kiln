@@ -3411,6 +3411,7 @@ dependencies = [
  "kiln-adapter-jj",
  "kiln-adapter-lattice",
  "kiln-adapter-nix",
+ "kiln-adapter-swarm",
  "kiln-adapter-webhook",
  "kiln-build-graph",
  "kiln-codec",

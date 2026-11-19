@@ -15,6 +15,10 @@ pub enum CampaignClaimOutcome {
     /// Another active or unreconciled writer holds the repository; nothing
     /// was claimed.
     WriterBusy,
+    /// An open external claim overlaps this work; nothing was claimed.
+    Overlapped {
+        cause: String,
+    },
 }
 
 impl Implementer {
@@ -37,6 +41,9 @@ impl Implementer {
                 Ok(CampaignClaimOutcome::NotWinner { selected })
             }
             crate::admission::AdmissionResult::WriterBusy => Ok(CampaignClaimOutcome::WriterBusy),
+            crate::admission::AdmissionResult::Overlapped { cause } => {
+                Ok(CampaignClaimOutcome::Overlapped { cause })
+            }
             crate::admission::AdmissionResult::Claimed { attempt: None } => {
                 Err("exact admission winner produced no durable attempt".into())
             }

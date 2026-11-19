@@ -116,6 +116,9 @@ struct ImplementationCampaignDriveProfile {
     /// Continuation pacing; absent profiles use the named defaults.
     #[serde(default)]
     pub continuation: Option<ContinuationPolicy>,
+    /// Optional renews/iroh swarm claim mirror; absent or disabled is inert.
+    #[serde(default)]
+    pub swarm: Option<kiln_adapter_swarm::SwarmConfig>,
 }
 impl ImplementationCampaignDriveProfile {
     pub fn validate(&self) -> Result<(), String> {
@@ -408,6 +411,8 @@ impl CampaignDriveShell for NativeCampaignConsumer {
         let enrollment = read_json(&profile.worker.enrollment)?;
         let mut owner =
             kiln_implementer::Implementer::open(&profile.implementation_database, enrollment)?;
+        let now_ms = wall_clock_ms()?;
+        attach_swarm_mirror(profile, &mut owner, now_ms)?;
         let work = owner
             .work()?
             .current()
@@ -418,7 +423,7 @@ impl CampaignDriveShell for NativeCampaignConsumer {
         let attempt = match owner.claim_campaign_work(
             work_id,
             &state.contract.parent_budget_id,
-            wall_clock_ms()?,
+            now_ms,
             profile.claim_lease_ms,
         )? {
             CampaignClaimOutcome::Claimed(attempt) => *attempt,
@@ -432,6 +437,9 @@ impl CampaignDriveShell for NativeCampaignConsumer {
                     "repository already has an active or unreconciled writer; no work was claimed"
                         .into(),
                 ));
+            }
+            CampaignClaimOutcome::Overlapped { cause } => {
+                return Ok(CampaignClaim::Refused(cause));
             }
         };
         if observation.attempt_identity.as_ref() != Some(&attempt.identity)
@@ -1270,6 +1278,93 @@ fn validate_export_tree(
         let _ = (output, candidate, receipt, observation, exporter);
         Err("candidate export requires Unix role-separated file authority".into())
     }
+}
+
+struct CampaignSwarmMirror {
+    client: kiln_adapter_swarm::SwarmClient,
+    journal_path: PathBuf,
+    host: String,
+    from: String,
+    read_limit: usize,
+}
+
+impl kiln_implementer::MirrorObserver for CampaignSwarmMirror {
+    fn reconcile(
+        &mut self,
+        snapshots: &[kiln_core::implementation::swarm::AttemptSnapshot],
+        now_ms: u64,
+    ) -> Result<(), String> {
+        let mut journal = kiln_adapter_swarm::MirrorJournal::load(&self.journal_path)?;
+        let context = kiln_adapter_swarm::MirrorContext {
+            from: &self.from,
+            host: &self.host,
+            now_ms,
+            read_limit: self.read_limit,
+        };
+        let _actions =
+            kiln_adapter_swarm::mirror::reconcile(&self.client, &mut journal, snapshots, &context);
+        journal.save(&self.journal_path)
+    }
+}
+
+fn attach_swarm_mirror(
+    profile: &ImplementationCampaignDriveProfile,
+    owner: &mut kiln_implementer::Implementer,
+    now_ms: u64,
+) -> Result<(), String> {
+    let Some(config) = profile.swarm.clone() else {
+        return Ok(());
+    };
+    if !config.enabled {
+        return Ok(());
+    }
+    let journal_path = config.state_dir.join("kiln-mirror.json");
+    let read_limit = config.read_limit;
+    let from = config.from.clone();
+    let client = kiln_adapter_swarm::SwarmClient::new(config)?;
+    let views: Vec<kiln_core::implementation::swarm::ArticleView> = client
+        .read(None, read_limit)
+        .map(|articles| {
+            articles
+                .iter()
+                .filter_map(|article| article.view())
+                .collect()
+        })
+        .unwrap_or_default();
+    let closure_from = from.clone();
+    owner.set_overlap(Some(Box::new(move |work| {
+        let scope = kiln_core::implementation::swarm::ClaimScope {
+            repository: work.repository.clone(),
+            scope: work
+                .permitted_paths
+                .first()
+                .cloned()
+                .unwrap_or_else(|| work.project.clone()),
+        };
+        match kiln_core::implementation::swarm::evaluate_overlap(
+            &views,
+            &closure_from,
+            &scope,
+            now_ms,
+        ) {
+            kiln_core::implementation::swarm::OverlapDecision::Deferred {
+                message_id,
+                author,
+                age_ms,
+            } => Some(format!(
+                "open swarm claim {message_id} by {author} ({age_ms} ms)"
+            )),
+            kiln_core::implementation::swarm::OverlapDecision::Allowed => None,
+        }
+    })));
+    owner.set_mirror(Some(Box::new(CampaignSwarmMirror {
+        client,
+        journal_path,
+        host: "kiln".to_string(),
+        from,
+        read_limit,
+    })));
+    Ok(())
 }
 
 #[cfg(test)]

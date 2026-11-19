@@ -1134,6 +1134,58 @@ fn configured_legacy_claim_without_queue_item_is_still_revocable() {
 }
 
 #[test]
+fn campaign_claim_defers_on_an_open_swarm_claim() {
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let path = dir.path().join("ledger.db");
+    let selected = work("campaign-a");
+    let offered = offer(&selected);
+    let mut implementer = setup(&path, &[("a", selected)]);
+    let identity = match implementer
+        .admission_apply(
+            Cmd::Select {
+                inputs: vec![offered],
+            },
+            100,
+        )
+        .unwrap_or_else(|_| unreachable!())
+    {
+        ResultFact::Selected {
+            work_version: Some(identity),
+        } => identity,
+        other => unreachable!("unexpected selection {other:?}"),
+    };
+    implementer.set_overlap(Some(Box::new(|candidate| {
+        (candidate.repository == "onix/kiln")
+            .then(|| "open swarm claim <claim@aspen1> by omp".to_string())
+    })));
+    match implementer
+        .claim_campaign_work(&identity, &id("a"), 100, 200)
+        .unwrap_or_else(|error| unreachable!("{error}"))
+    {
+        kiln_implementer::campaign_consumer::CampaignClaimOutcome::Overlapped { cause } => {
+            assert!(cause.contains("open swarm claim"));
+        }
+        other => unreachable!("unexpected outcome {other:?}"),
+    }
+    assert_eq!(
+        implementer
+            .attempts()
+            .unwrap_or_else(|_| unreachable!())
+            .attempts()
+            .count(),
+        0
+    );
+    implementer.set_overlap(None);
+    match implementer
+        .claim_campaign_work(&identity, &id("a"), 100, 200)
+        .unwrap_or_else(|error| unreachable!("{error}"))
+    {
+        kiln_implementer::campaign_consumer::CampaignClaimOutcome::Claimed(_) => {}
+        other => unreachable!("unexpected admitted outcome {other:?}"),
+    }
+}
+
+#[test]
 fn campaign_claim_scopes_ranking_before_claiming_unrelated_work() {
     let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let path = dir.path().join("ledger.db");
