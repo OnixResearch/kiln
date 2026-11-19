@@ -1537,6 +1537,35 @@ test("inline actions require exact decision, exact member and the requested camp
   page.window.KilnCairn.clear();
 });
 
+// The inline fleet panel reads independently of the Cairn workspace and never blocks its detail.
+test("a selected Cairn change shows fleet claims without blocking on the fleet read", async () => {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const claim = {
+    identity: "a".repeat(64), fence: 1, purpose: "inline fleet claim",
+    holder: { tool: "omp", host: "britton-desktop", session: "s" },
+    scope: { target: { repository: "brittonr/kiln" }, path: "." },
+  };
+  const ctx = {
+    route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" }, navigate() {},
+    async api(path) {
+      if (path === "/api/implementation/cairn") return cairnIndex("wanted");
+      if (path.includes("/cairn/detail?")) return cairnDetail("wanted");
+      if (path === "/api/fleet/claims") return { claims: [claim] };
+      if (path === "/api/fleet/attempts") return { attempts: [] };
+      throw new Error(`unexpected ${path}`);
+    },
+  };
+  await page.window.KilnCairn.load(root, ctx);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const panel = root.querySelector(".cairn-fleet");
+  assert.ok(panel);
+  assert.match(panel.textContent, /Fleet coordination/);
+  assert.match(panel.textContent, /inline fleet claim/);
+  assert.match(panel.textContent, /brittonr\/kiln/);
+  page.window.KilnCairn.clear();
+});
+
 // r[verify kiln.cairn.workspace.scenario.reload]
 test("an in-flight index renders the latest local filters but never a changed selection", async () => {
   const page = cairnPage();
