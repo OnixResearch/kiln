@@ -35,7 +35,7 @@ principal, and Worker principals cannot read the page's API.
 Enable the projection with the runtime-only `--fleet <profile>` argument (the
 profile is outside the canonical service profile, so enabling observation does
 not change the durable CI profile binding). Without it the page reports fleet
-unavailable. The profile is a private bounded JSON file:
+unavailable. The profile is a bounded local JSON file:
 
 ```json
 {
