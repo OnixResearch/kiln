@@ -19,4 +19,4 @@
 
 ## Phase 4: Live
 
-- [ ] [serial] [depends:kiln.fleet.api] Run `kiln-fleet` on britton-desktop with herdr headless sessions on britton-desktop and aspen3, register the MCP server for the agents, and dispatch one admitted work item to OMP through capture. r[kiln.fleet.transport] r[kiln.fleet.capture]
+- [x] [serial] [depends:kiln.fleet.api] Run `kiln-fleet` on britton-desktop with herdr headless sessions on britton-desktop and aspen3, register the MCP server for the agents, and dispatch one admitted work item to OMP through capture (`evidence/live-dispatch.md`). r[kiln.fleet.transport] r[kiln.fleet.capture]
