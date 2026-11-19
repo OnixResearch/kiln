@@ -18,8 +18,13 @@ use std::time::{Duration, Instant};
 
 use kiln_adapter_github::implementation::{ImplementationIssuePolicy, drain_issue_queue};
 use kiln_adapter_github::profile::ImplementationQueueConfig;
+use kiln_adapter_swarm::{MirrorContext, MirrorJournal, SwarmClient, SwarmConfig, mirror};
 use kiln_core::implementation::Enrollment;
-use kiln_implementer::Implementer;
+use kiln_core::implementation::ImplementationWork;
+use kiln_core::implementation::swarm::{
+    ArticleView, ClaimScope, OverlapDecision, evaluate_overlap,
+};
+use kiln_implementer::{ClaimSelection, Implementer};
 
 const EXIT_ERROR: i32 = 2;
 const MAX_INTERVAL_MILLISECONDS: usize = 24 * 60 * 60 * 1000;
@@ -501,19 +506,49 @@ fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(value) => value.map_or(3_600_000, |value| u64::try_from(value).unwrap_or(u64::MAX)),
         Err(error) => return fail(&error),
     };
-    match implementer.claim_next(wall_clock_ms(), lease_ms) {
-        Ok(Some(attempt)) => match serde_json::to_string(&attempt) {
-            Ok(document) => {
-                println!("{document}");
-                Ok(())
+    let now_ms = wall_clock_ms();
+    let swarm = match open_swarm(flags) {
+        Ok(swarm) => swarm,
+        Err(error) => return fail(&error),
+    };
+    let selection = match &swarm {
+        Some(swarm) => {
+            let defer = swarm.deferral(now_ms);
+            match implementer.claim_next_deferred(now_ms, lease_ms, defer.as_ref()) {
+                Ok(selection) => selection,
+                Err(error) => return fail(&error),
             }
-            Err(_) => fail("attempt could not be encoded"),
+        }
+        None => match implementer.claim_next(now_ms, lease_ms) {
+            Ok(attempt) => ClaimSelection {
+                attempt,
+                deferred: Vec::new(),
+            },
+            Err(error) => return fail(&error),
         },
-        Ok(None) => {
+    };
+    if !selection.deferred.is_empty() {
+        if let Ok(json) = serde_json::to_string(&selection.deferred) {
+            eprintln!("{{\"deferred\":{json}}}");
+        }
+    }
+    match selection.attempt {
+        Some(attempt) => {
+            match serde_json::to_string(&attempt) {
+                Ok(document) => println!("{document}"),
+                Err(_) => return fail("attempt could not be encoded"),
+            }
+            if let Some(swarm) = &swarm {
+                if let Err(error) = swarm.reconcile(&mut implementer, now_ms) {
+                    eprintln!("swarm mirror: {error}");
+                }
+            }
+            Ok(())
+        }
+        None => {
             println!("null");
             Ok(())
         }
-        Err(error) => fail(&error),
     }
 }
 
@@ -538,9 +573,19 @@ fn cancel(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
     };
-    match implementer.cancel(&identity, fence, wall_clock_ms(), &cause) {
+    let now_ms = wall_clock_ms();
+    match implementer.cancel(&identity, fence, now_ms, &cause) {
         Ok(()) => {
             println!("{{\"cancelled\":\"{}\"}}", identity.as_str());
+            match open_swarm(flags) {
+                Ok(Some(swarm)) => {
+                    if let Err(error) = swarm.reconcile(&mut implementer, now_ms) {
+                        eprintln!("swarm mirror: {error}");
+                    }
+                }
+                Ok(None) => {}
+                Err(error) => eprintln!("swarm mirror: {error}"),
+            }
             Ok(())
         }
         Err(error) => fail(&error),
@@ -1913,6 +1958,89 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T
 fn fail(message: &str) -> Result<(), ()> {
     eprintln!("kiln-implementer: {message}");
     Err(())
+}
+
+type Deferral = Box<dyn Fn(&ImplementationWork) -> Option<String>>;
+
+struct SwarmMirror {
+    client: SwarmClient,
+    journal_path: PathBuf,
+    host: String,
+}
+
+fn open_swarm(flags: &BTreeMap<String, String>) -> Result<Option<SwarmMirror>, String> {
+    let Some(path) = flags.get("--swarm-config-json") else {
+        return Ok(None);
+    };
+    let text = std::fs::read_to_string(path)
+        .map_err(|_| "swarm configuration cannot be read".to_string())?;
+    let config: SwarmConfig =
+        serde_json::from_str(&text).map_err(|_| "swarm configuration is invalid".to_string())?;
+    if !config.enabled {
+        return Ok(None);
+    }
+    let journal_path = config.state_dir.join("kiln-mirror.json");
+    let client = SwarmClient::new(config)?;
+    let host = flags
+        .get("--swarm-host")
+        .cloned()
+        .unwrap_or_else(|| "kiln".to_string());
+    Ok(Some(SwarmMirror {
+        client,
+        journal_path,
+        host,
+    }))
+}
+
+impl SwarmMirror {
+    fn deferral(&self, now_ms: u64) -> Deferral {
+        let views: Vec<ArticleView> = match self.client.read(None, self.client.config().read_limit)
+        {
+            Ok(articles) => articles
+                .iter()
+                .filter_map(|article| article.view())
+                .collect(),
+            Err(failure) => {
+                eprintln!("swarm read unavailable: {}", failure.detail);
+                Vec::new()
+            }
+        };
+        let from = self.client.config().from.clone();
+        Box::new(move |work: &ImplementationWork| {
+            let scope = ClaimScope {
+                repository: work.repository.clone(),
+                scope: work
+                    .permitted_paths
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| work.project.clone()),
+            };
+            match evaluate_overlap(&views, &from, &scope, now_ms) {
+                OverlapDecision::Deferred {
+                    message_id,
+                    author,
+                    age_ms,
+                } => Some(format!(
+                    "open swarm claim {message_id} by {author} ({age_ms} ms)"
+                )),
+                OverlapDecision::Allowed => None,
+            }
+        })
+    }
+
+    fn reconcile(&self, implementer: &mut Implementer, now_ms: u64) -> Result<usize, String> {
+        let mut journal = MirrorJournal::load(&self.journal_path)?;
+        let snapshots = implementer.swarm_snapshots()?;
+        let context = MirrorContext {
+            from: &self.client.config().from,
+            host: &self.host,
+            now_ms,
+            read_limit: self.client.config().read_limit,
+        };
+        let actions = mirror::reconcile(&self.client, &mut journal, &snapshots, &context);
+        journal.save(&self.journal_path)?;
+        Ok(actions.len())
+    }
 }
 
 #[cfg(test)]

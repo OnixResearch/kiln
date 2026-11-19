@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use kiln_core::implementation::swarm::{
-    ClaimScope, claim_subject, format_claim_body, format_release_body, from_address,
-    release_subject,
+    AttemptSnapshot, ClaimScope, claim_subject, format_claim_body, format_release_body,
+    from_address, release_subject,
 };
 use serde::{Deserialize, Serialize};
 
@@ -107,18 +107,6 @@ impl MirrorJournal {
         std::fs::rename(&temporary, path)
             .map_err(|_| "swarm mirror journal cannot be replaced".to_owned())
     }
-}
-
-/// One attempt as the reconciler sees it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AttemptSnapshot {
-    pub identity: String,
-    pub fence: u64,
-    pub terminal: bool,
-    pub repository: String,
-    pub scope: String,
-    pub base_revision: String,
-    pub lease_minutes: u32,
 }
 
 /// Reconcile inputs that do not vary per attempt.
@@ -263,6 +251,7 @@ fn resolve_message_id(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AttemptSnapshot;
     use std::cell::RefCell;
 
     struct Fake {

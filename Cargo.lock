@@ -2806,6 +2806,7 @@ dependencies = [
  "kiln-adapter-cairn",
  "kiln-adapter-git",
  "kiln-adapter-lattice",
+ "kiln-adapter-swarm",
  "kiln-codec",
  "kiln-implementer",
  "kiln-provider-api",

@@ -47,6 +47,18 @@ pub struct ArticleView {
     pub references: Vec<String>,
 }
 
+/// One attempt as a swarm mirror reconcile pass sees it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttemptSnapshot {
+    pub identity: String,
+    pub fence: u64,
+    pub terminal: bool,
+    pub repository: String,
+    pub scope: String,
+    pub base_revision: String,
+    pub lease_minutes: u32,
+}
+
 /// Overlap decision for a prospective claim.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OverlapDecision {

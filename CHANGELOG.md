@@ -45,6 +45,12 @@ entry describes the source tree prepared for the first tagged release.
   inert untrusted-context card grants no authorship, CI, ownership or merge
   authority; no session bodies, remote fetches or URL secrets are retained.
   (#91; pure-core, local-Git, durable-journal and typed-profile fixtures)
+- Default-off renews/iroh swarm claim mirror: pure claim/release rules with
+  redacted bodies and a 24-hour overlap rule, a bounded `iroh-news` client whose
+  posts classify as accepted, rejected, unknown or unavailable, an atomic
+  per-fence journal that never repeats a transition, and the `kiln-swarm`
+  read/post CLI. No credentials enter Kiln; swarm content can only defer.
+  (#94; core, adapter and CLI fixtures)
 
 **Sources**
 

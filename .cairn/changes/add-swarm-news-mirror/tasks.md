@@ -15,5 +15,11 @@
 
 - [ ] [serial] [depends:kiln.implementation.swarm.outcomes] Mirror one `CLAIM` on `Claimed` and one `RELEASE` on the terminal phase or observed lease expiry, recording intent and outcome without duplicate posts. r[kiln.implementation.swarm.outcomes]
 - [ ] [serial] [depends:kiln.implementation.swarm.overlap] Read recent claims before admission and defer on an open overlapping claim with a recorded, operator-visible cause. r[kiln.implementation.swarm.overlap.scenario.defer]
-- [ ] [serial] [depends:kiln.implementation.swarm.transport] Add the explicit default-off operator profile, documentation, changelog and configuration fixtures. r[kiln.implementation.swarm.transport]
-- [ ] [serial] [depends:kiln.implementation.swarm.outcomes] Run focused tests, Clippy, workspace checks, Nickel fixtures and Cairn gates. r[kiln.implementation.swarm.transport]
+- [x] [serial] [depends:kiln.implementation.swarm.transport] Add the explicit default-off operator profile, documentation, changelog and configuration fixtures. r[kiln.implementation.swarm.transport]
+- [x] [serial] [depends:kiln.implementation.swarm.outcomes] Run focused tests, Clippy, workspace checks, Nickel fixtures and Cairn gates. r[kiln.implementation.swarm.transport]
+
+The `claim` and `cancel` operator commands now reconcile the mirror: `claim`
+reads recent claims, defers overlapping work through `claim_next_deferred`, and
+posts one `CLAIM`; `cancel` posts the matching `RELEASE`. The campaign driver and
+the remaining terminal transitions (`fail`, `block`, `supersede`, observed lease
+expiry) still need the same reconcile call before the first two tasks close.

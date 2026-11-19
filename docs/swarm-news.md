@@ -28,6 +28,7 @@ client owns its own identity and provider.
 
 | Field | Meaning |
 |---|---|
+| `enabled` | explicit enable flag; false makes no connection |
 | `executable` | absolute path to the pinned `iroh-news` |
 | `state_dir` | absolute client state directory (key, cursors) |
 | `config_file` | optional generated `iroh-news` config |
@@ -41,6 +42,14 @@ client owns its own identity and provider.
 | `environment` | explicit child environment; ambient variables are cleared |
 
 Password- and key-named environment entries are refused.
+
+## Implementer integration
+
+When the operator passes `--swarm-config-json PATH` (and the profile has
+`"enabled": true`), the implementer `claim` command reads recent claims, defers
+overlapping work with a structured stderr cause, and posts the `CLAIM` through
+the mirror journal. `cancel` posts the matching `RELEASE`. An unavailable swarm
+never fails the command. `--swarm-host` sets the signature host label.
 
 ## Operator CLI
 

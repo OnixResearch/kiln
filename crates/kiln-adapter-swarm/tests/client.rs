@@ -59,6 +59,7 @@ fn client(dir: &Path) -> SwarmClient {
 
 fn config(executable: PathBuf, state_dir: PathBuf) -> SwarmConfig {
     SwarmConfig {
+        enabled: true,
         executable,
         state_dir,
         config_file: None,

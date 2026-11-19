@@ -66,6 +66,13 @@ impl std::fmt::Debug for Implementer {
     }
 }
 
+/// One deferred claim pass: the claimed attempt, if any, and skipped candidates.
+#[derive(Clone, Debug, Default)]
+pub struct ClaimSelection {
+    pub attempt: Option<ImplementationAttempt>,
+    pub deferred: Vec<(String, String)>,
+}
+
 impl Implementer {
     /// Open or create the durable ledger. The caller owns single-writer
     /// placement; conditional claims still serialize through SQLite.
@@ -309,10 +316,29 @@ impl Implementer {
         now_ms: u64,
         lease_ms: u64,
     ) -> Result<Option<ImplementationAttempt>, String> {
+        Ok(self
+            .claim_next_deferred(now_ms, lease_ms, &|_| None)?
+            .attempt)
+    }
+
+    /// Claim the next eligible work unit, deferring candidates the caller names.
+    ///
+    /// A deferred candidate keeps its cause for operator output and does not
+    /// consume budget or a lease. Everything else matches [`Self::claim_next`].
+    ///
+    /// # Errors
+    /// Returns the ledger diagnostic when admission fails for a reason other
+    /// than another claimant, exhausted budget, prior verification or recovery.
+    pub fn claim_next_deferred(
+        &mut self,
+        now_ms: u64,
+        lease_ms: u64,
+        defer: &dyn Fn(&ImplementationWork) -> Option<String>,
+    ) -> Result<ClaimSelection, String> {
         self.with_ledgers(|ledger, attempts| {
             attempts.expire(now_ms)?;
-            let ranked = ledger.ranked();
-            for row in ranked {
+            let mut deferred = Vec::new();
+            for row in ledger.ranked() {
                 let Some(work) = ledger
                     .current()
                     .find(|work| {
@@ -323,8 +349,21 @@ impl Implementer {
                 else {
                     continue;
                 };
+                if let Some(cause) = defer(&work) {
+                    let identity = work
+                        .identity()
+                        .map(|identity| identity.as_str().to_owned())
+                        .unwrap_or_default();
+                    deferred.push((identity, cause));
+                    continue;
+                }
                 match attempts.claim(&work, now_ms, lease_ms) {
-                    Ok(attempt) => return Ok(Some(attempt)),
+                    Ok(attempt) => {
+                        return Ok(ClaimSelection {
+                            attempt: Some(attempt),
+                            deferred,
+                        });
+                    }
                     Err(error)
                         if matches!(
                             error.code.as_str(),
@@ -336,7 +375,52 @@ impl Implementer {
                     Err(error) => return Err(error),
                 }
             }
-            Ok(None)
+            Ok(ClaimSelection {
+                attempt: None,
+                deferred,
+            })
+        })
+    }
+
+    /// Return every attempt with the work facts a swarm mirror needs.
+    ///
+    /// # Errors
+    /// Returns the ledger diagnostic when the store cannot be read.
+    pub fn swarm_snapshots(
+        &mut self,
+    ) -> Result<Vec<kiln_core::implementation::swarm::AttemptSnapshot>, String> {
+        self.with_ledgers(|ledger, attempts| {
+            let mut snapshots = Vec::new();
+            for attempt in attempts.attempts() {
+                let Some(work) = ledger.current().find(|work| {
+                    work.identity()
+                        .is_ok_and(|identity| identity == attempt.work_identity)
+                }) else {
+                    continue;
+                };
+                let scope = work
+                    .permitted_paths
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| work.project.clone());
+                let base_revision = attempt
+                    .base
+                    .as_ref()
+                    .map(|base| base.native_id.as_str().to_owned())
+                    .unwrap_or_default();
+                let lease_ms = attempt.lease_until_ms.saturating_sub(attempt.claimed_at_ms);
+                let lease_minutes = u32::try_from((lease_ms / 60_000).max(1)).unwrap_or(u32::MAX);
+                snapshots.push(kiln_core::implementation::swarm::AttemptSnapshot {
+                    identity: attempt.identity.as_str().to_owned(),
+                    fence: attempt.fence,
+                    terminal: !attempt.phase.is_active(),
+                    repository: work.repository.clone(),
+                    scope,
+                    base_revision,
+                    lease_minutes,
+                });
+            }
+            Ok(snapshots)
         })
     }
 

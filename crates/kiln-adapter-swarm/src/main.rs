@@ -77,6 +77,7 @@ fn load_config(flags: &BTreeMap<String, String>) -> Result<SwarmConfig, String> 
             .map_err(|_| "swarm configuration is invalid".to_owned());
     }
     Ok(SwarmConfig {
+        enabled: true,
         executable: PathBuf::from(required(flags, "--executable")?),
         state_dir: PathBuf::from(required(flags, "--state-dir")?),
         config_file: flags.get("--config").map(PathBuf::from),

@@ -12,7 +12,7 @@ pub mod mirror;
 
 pub use client::{Article, PostOutcome, PostReceipt, SwarmClient, SwarmFailure};
 pub use config::SwarmConfig;
+pub use kiln_core::implementation::swarm::AttemptSnapshot;
 pub use mirror::{
-    AttemptSnapshot, MirrorAction, MirrorContext, MirrorEntry, MirrorJournal, MirrorPost,
-    MirrorTransport, reconcile,
+    MirrorAction, MirrorContext, MirrorEntry, MirrorJournal, MirrorPost, MirrorTransport, reconcile,
 };

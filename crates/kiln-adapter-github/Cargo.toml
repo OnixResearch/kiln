@@ -33,6 +33,7 @@ kiln-codec.workspace = true
 kiln-adapter-git.workspace = true
 kiln-adapter-lattice.workspace = true
 kiln-adapter-cairn.workspace = true
+kiln-adapter-swarm = { path = "../kiln-adapter-swarm" }
 lattice-workflow-transport.workspace = true
 bounded-exec.workspace = true
 rusqlite.workspace = true

@@ -28,6 +28,9 @@ pub type Environment = BTreeMap<String, String>;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SwarmConfig {
+    /// Explicit enable flag; absent means no connection.
+    #[serde(default)]
+    pub enabled: bool,
     /// Absolute path to the pinned `iroh-news` executable.
     pub executable: PathBuf,
     /// State directory holding the client key and cursors.
@@ -165,6 +168,7 @@ mod tests {
 
     fn config() -> SwarmConfig {
         SwarmConfig {
+            enabled: true,
             executable: PathBuf::from("/nix/store/iroh-news/bin/iroh-news"),
             state_dir: PathBuf::from("/var/lib/kiln/swarm"),
             config_file: None,
