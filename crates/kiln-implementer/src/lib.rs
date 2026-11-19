@@ -55,6 +55,7 @@ pub struct Recovery {
 pub struct Implementer {
     connection: Connection,
     enrollment: Enrollment,
+    mirror: Option<Box<dyn MirrorObserver>>,
 }
 
 impl std::fmt::Debug for Implementer {
@@ -64,6 +65,22 @@ impl std::fmt::Debug for Implementer {
             .field("enrollment", &self.enrollment)
             .finish_non_exhaustive()
     }
+}
+
+/// Optional mirror observer for attempt claim and closure transitions.
+///
+/// The observer runs after a committed transition. Its failure is not an
+/// attempt failure: the swarm records an outcome and never blocks admission.
+pub trait MirrorObserver {
+    /// Reconcile the observed attempts at `now_ms`.
+    ///
+    /// # Errors
+    /// Returns a diagnostic when the mirror journal cannot be read or written.
+    fn reconcile(
+        &mut self,
+        snapshots: &[kiln_core::implementation::swarm::AttemptSnapshot],
+        now_ms: u64,
+    ) -> Result<(), String>;
 }
 
 /// One deferred claim pass: the claimed attempt, if any, and skipped candidates.
@@ -85,6 +102,7 @@ impl Implementer {
         Ok(Self {
             connection,
             enrollment,
+            mirror: None,
         })
     }
 
@@ -307,6 +325,23 @@ impl Implementer {
         })
     }
 
+    /// Install or remove the optional mirror observer.
+    pub fn set_mirror(&mut self, mirror: Option<Box<dyn MirrorObserver>>) {
+        self.mirror = mirror;
+    }
+
+    fn mirror_reconcile(&mut self, now_ms: u64) {
+        if self.mirror.is_none() {
+            return;
+        }
+        let Ok(snapshots) = self.swarm_snapshots() else {
+            return;
+        };
+        if let Some(observer) = self.mirror.as_mut() {
+            let _ = observer.reconcile(&snapshots, now_ms);
+        }
+    }
+
     /// Claim the highest-ranked eligible work unit that is not already claimed.
     ///
     /// A second scheduler receives `None` when no other eligible work remains.
@@ -335,7 +370,7 @@ impl Implementer {
         lease_ms: u64,
         defer: &dyn Fn(&ImplementationWork) -> Option<String>,
     ) -> Result<ClaimSelection, String> {
-        self.with_ledgers(|ledger, attempts| {
+        let selection = self.with_ledgers(|ledger, attempts| {
             attempts.expire(now_ms)?;
             let mut deferred = Vec::new();
             for row in ledger.ranked() {
@@ -379,7 +414,11 @@ impl Implementer {
                 attempt: None,
                 deferred,
             })
-        })
+        })?;
+        if selection.attempt.is_some() {
+            self.mirror_reconcile(now_ms);
+        }
+        Ok(selection)
     }
 
     /// Return every attempt with the work facts a swarm mirror needs.
@@ -678,9 +717,13 @@ impl Implementer {
         handoff: &CandidateHandoff,
         verification: &CandidateVerification,
     ) -> Result<ContentId, String> {
-        self.with_ledgers(|_, attempts| {
+        let result = self.with_ledgers(|_, attempts| {
             attempts.record_verification(work, identity, fence, now_ms, handoff, verification)
-        })
+        });
+        if result.is_ok() {
+            self.mirror_reconcile(now_ms);
+        }
+        result
     }
 
     pub fn verification_receipt(
@@ -726,7 +769,12 @@ impl Implementer {
         class: kiln_core::implementation::FailureClass,
         cause: &str,
     ) -> Result<(), String> {
-        self.with_ledgers(|_, attempts| attempts.fail(identity, fence, now_ms, class, cause))
+        let result =
+            self.with_ledgers(|_, attempts| attempts.fail(identity, fence, now_ms, class, cause));
+        if result.is_ok() {
+            self.mirror_reconcile(now_ms);
+        }
+        result
     }
 
     pub fn block(
@@ -736,7 +784,12 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
-        self.with_ledgers(|_, attempts| attempts.block(identity, fence, now_ms, cause))
+        let result =
+            self.with_ledgers(|_, attempts| attempts.block(identity, fence, now_ms, cause));
+        if result.is_ok() {
+            self.mirror_reconcile(now_ms);
+        }
+        result
     }
 
     pub fn cancel(
@@ -746,7 +799,11 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
-        self.cancel_with_admission(identity, fence, now_ms, cause)
+        let result = self.cancel_with_admission(identity, fence, now_ms, cause);
+        if result.is_ok() {
+            self.mirror_reconcile(now_ms);
+        }
+        result
     }
 
     pub fn supersede(
@@ -756,9 +813,13 @@ impl Implementer {
         rule: kiln_core::implementation::SupersessionRule,
         now_ms: u64,
     ) -> Result<Option<ContentId>, String> {
-        self.with_ledgers(|_, attempts| {
+        let result = self.with_ledgers(|_, attempts| {
             attempts.supersede(canonical_key, new_revision, rule, now_ms)
-        })
+        });
+        if result.is_ok() {
+            self.mirror_reconcile(now_ms);
+        }
+        result
     }
 
     /// Expire ended leases and return the active/reconciliation set.

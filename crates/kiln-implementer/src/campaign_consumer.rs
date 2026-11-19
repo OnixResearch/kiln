@@ -29,7 +29,10 @@ impl Implementer {
         match self.claim_exact_winner(work_identity, parent_budget_identity, now_ms, lease_ms)? {
             crate::admission::AdmissionResult::Claimed {
                 attempt: Some(attempt),
-            } => Ok(CampaignClaimOutcome::Claimed(attempt)),
+            } => {
+                self.mirror_reconcile(now_ms);
+                Ok(CampaignClaimOutcome::Claimed(attempt))
+            }
             crate::admission::AdmissionResult::NotWinner { selected } => {
                 Ok(CampaignClaimOutcome::NotWinner { selected })
             }

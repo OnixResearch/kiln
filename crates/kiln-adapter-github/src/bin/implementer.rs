@@ -22,9 +22,9 @@ use kiln_adapter_swarm::{MirrorContext, MirrorJournal, SwarmClient, SwarmConfig,
 use kiln_core::implementation::Enrollment;
 use kiln_core::implementation::ImplementationWork;
 use kiln_core::implementation::swarm::{
-    ArticleView, ClaimScope, OverlapDecision, evaluate_overlap,
+    ArticleView, AttemptSnapshot, ClaimScope, OverlapDecision, evaluate_overlap,
 };
-use kiln_implementer::{ClaimSelection, Implementer};
+use kiln_implementer::{ClaimSelection, Implementer, MirrorObserver};
 
 const EXIT_ERROR: i32 = 2;
 const MAX_INTERVAL_MILLISECONDS: usize = 24 * 60 * 60 * 1000;
@@ -511,14 +511,15 @@ fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(swarm) => swarm,
         Err(error) => return fail(&error),
     };
-    let selection = match &swarm {
-        Some(swarm) => {
-            let defer = swarm.deferral(now_ms);
-            match implementer.claim_next_deferred(now_ms, lease_ms, defer.as_ref()) {
-                Ok(selection) => selection,
-                Err(error) => return fail(&error),
-            }
-        }
+    let defer = swarm.as_ref().map(|swarm| swarm.deferral(now_ms));
+    if let Some(swarm) = swarm {
+        implementer.set_mirror(Some(Box::new(swarm)));
+    }
+    let selection = match &defer {
+        Some(defer) => match implementer.claim_next_deferred(now_ms, lease_ms, defer.as_ref()) {
+            Ok(selection) => selection,
+            Err(error) => return fail(&error),
+        },
         None => match implementer.claim_next(now_ms, lease_ms) {
             Ok(attempt) => ClaimSelection {
                 attempt,
@@ -537,11 +538,6 @@ fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             match serde_json::to_string(&attempt) {
                 Ok(document) => println!("{document}"),
                 Err(_) => return fail("attempt could not be encoded"),
-            }
-            if let Some(swarm) = &swarm {
-                if let Err(error) = swarm.reconcile(&mut implementer, now_ms) {
-                    eprintln!("swarm mirror: {error}");
-                }
             }
             Ok(())
         }
@@ -574,18 +570,14 @@ fn cancel(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Err(error) => return fail(&error),
     };
     let now_ms = wall_clock_ms();
+    match open_swarm(flags) {
+        Ok(Some(swarm)) => implementer.set_mirror(Some(Box::new(swarm))),
+        Ok(None) => {}
+        Err(error) => return fail(&error),
+    }
     match implementer.cancel(&identity, fence, now_ms, &cause) {
         Ok(()) => {
             println!("{{\"cancelled\":\"{}\"}}", identity.as_str());
-            match open_swarm(flags) {
-                Ok(Some(swarm)) => {
-                    if let Err(error) = swarm.reconcile(&mut implementer, now_ms) {
-                        eprintln!("swarm mirror: {error}");
-                    }
-                }
-                Ok(None) => {}
-                Err(error) => eprintln!("swarm mirror: {error}"),
-            }
             Ok(())
         }
         Err(error) => fail(&error),
@@ -2027,19 +2019,19 @@ impl SwarmMirror {
             }
         })
     }
+}
 
-    fn reconcile(&self, implementer: &mut Implementer, now_ms: u64) -> Result<usize, String> {
+impl MirrorObserver for SwarmMirror {
+    fn reconcile(&mut self, snapshots: &[AttemptSnapshot], now_ms: u64) -> Result<(), String> {
         let mut journal = MirrorJournal::load(&self.journal_path)?;
-        let snapshots = implementer.swarm_snapshots()?;
         let context = MirrorContext {
             from: &self.client.config().from,
             host: &self.host,
             now_ms,
             read_limit: self.client.config().read_limit,
         };
-        let actions = mirror::reconcile(&self.client, &mut journal, &snapshots, &context);
-        journal.save(&self.journal_path)?;
-        Ok(actions.len())
+        let _actions = mirror::reconcile(&self.client, &mut journal, snapshots, &context);
+        journal.save(&self.journal_path)
     }
 }
 
