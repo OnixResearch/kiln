@@ -134,6 +134,35 @@ fn peers_are_loopback_or_configured_tailnet_nodes() -> TestResult {
 }
 
 #[test]
+// r[verify kiln.fleet.api] r[verify kiln.fleet.api.scenario.identity]
+fn serves_the_operator_view_only_to_authenticated_peers() -> TestResult {
+    let ip = |text: &str| text.parse::<IpAddr>().unwrap_or_else(|_| unreachable!());
+    let fixture = fixture()?;
+    let page = fixture
+        .service
+        .handle(ip("127.0.0.1"), &request("GET", "/", None));
+    assert_eq!(page.status, 200);
+    let document = page.html.as_deref().unwrap_or_default();
+    assert!(document.contains("Kiln fleet"));
+    assert!(document.contains("/v1/claims"));
+    assert!(document.contains("/v1/decisions"));
+    let mut bytes = Vec::new();
+    kiln_fleet::http::write_response(&mut bytes, &page)?;
+    let head = String::from_utf8_lossy(&bytes);
+    assert!(head.starts_with("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n"));
+    assert!(head.contains("Content-Security-Policy:"));
+    let alias = fixture
+        .service
+        .handle(ip("127.0.0.1"), &request("GET", "/ui", None));
+    assert_eq!(alias.status, 200);
+    let refused = fixture
+        .service
+        .handle(ip("100.100.1.2"), &request("GET", "/", None));
+    assert_eq!(refused.status, 403);
+    Ok(())
+}
+
+#[test]
 // r[verify kiln.fleet.api] r[verify kiln.fleet.api.scenario.identity] r[verify kiln.fleet.claims.scenario.conflict]
 fn claims_bind_the_authenticated_host_and_map_statuses() -> TestResult {
     let fixture = fixture()?;

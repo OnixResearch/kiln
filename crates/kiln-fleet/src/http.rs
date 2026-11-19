@@ -31,12 +31,28 @@ pub struct Request {
 pub struct Response {
     pub status: u16,
     pub body: Value,
+    /// `Some` serves an HTML document instead of JSON.
+    pub html: Option<String>,
 }
 
 impl Response {
     #[must_use]
     pub const fn new(status: u16, body: Value) -> Self {
-        Self { status, body }
+        Self {
+            status,
+            body,
+            html: None,
+        }
+    }
+
+    /// One HTML document response.
+    #[must_use]
+    pub const fn html(status: u16, document: String) -> Self {
+        Self {
+            status,
+            body: Value::Null,
+            html: Some(document),
+        }
     }
 
     /// `{"error": message, "code": code}`.
@@ -45,6 +61,7 @@ impl Response {
         Self {
             status,
             body: serde_json::json!({ "error": message.into(), "code": code }),
+            html: None,
         }
     }
 }
@@ -202,10 +219,21 @@ pub fn read_request(reader: &mut impl Read) -> Result<Request, HttpError> {
 /// # Errors
 /// Returns the socket error.
 pub fn write_response(writer: &mut impl Write, response: &Response) -> std::io::Result<()> {
-    let body = serde_json::to_vec(&response.body).unwrap_or_else(|_| b"{}".to_vec());
+    let (content_type, body, policy) = match &response.html {
+        Some(document) => (
+            "text/html; charset=utf-8",
+            document.as_bytes().to_vec(),
+            "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'self'\r\n",
+        ),
+        None => (
+            "application/json",
+            serde_json::to_vec(&response.body).unwrap_or_else(|_| b"{}".to_vec()),
+            "",
+        ),
+    };
     write!(
         writer,
-        "HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n",
+        "HTTP/1.1 {} {}\r\nContent-Type: {content_type}\r\n{policy}X-Content-Type-Options: nosniff\r\nContent-Length: {}\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n",
         response.status,
         reason(response.status),
         body.len()

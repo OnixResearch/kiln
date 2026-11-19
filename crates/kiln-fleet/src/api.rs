@@ -26,6 +26,8 @@ use crate::store::{Store, classify, error_code};
 use crate::swarm::SwarmLink;
 
 pub const API_VERSION: &str = "v1";
+/// Embedded operator view. Polls the v1 routes from the same origin.
+const UI_PAGE: &str = include_str!("ui.html");
 pub const MAX_LISTED_WORK: usize = 100;
 pub const MAX_LISTED_ATTEMPTS: usize = 256;
 pub const MAX_LISTED_DECISIONS: usize = 256;
@@ -135,6 +137,9 @@ impl Service {
     /// Route one request from an authenticated `machine`.
     #[must_use]
     pub fn route(&self, machine: &str, request: &Request, now_ms: u64) -> Response {
+        if request.method == "GET" && matches!(request.path.as_str(), "/" | "/ui") {
+            return Response::html(200, UI_PAGE.to_owned());
+        }
         let Some(rest) = request.path.strip_prefix("/v1/") else {
             return Response::error(404, "fleet_route", "no such route");
         };
