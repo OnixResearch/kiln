@@ -29,12 +29,13 @@
   function sessionId() {
     try {
       const existing = sessionStorage.getItem(SESSION_KEY);
-      if (existing) return existing;
-      const created = crypto.randomUUID();
+      if (existing && /^web-[a-z0-9]{6,16}$/.test(existing)) return existing;
+      const bytes = crypto.getRandomValues(new Uint8Array(8));
+      const created = `web-${Array.from(bytes, (byte) => (byte % 36).toString(36)).join("")}`;
       sessionStorage.setItem(SESSION_KEY, created);
       return created;
     } catch (_) {
-      return "kiln-web-session";
+      return "web-session";
     }
   }
 
@@ -257,6 +258,7 @@
   async function mutate(state, button, path, body, form) {
     if (state.mutating) return;
     state.mutating = true;
+    state.commandError = false;
     button.disabled = true;
     try {
       await state.context.api(path, { method: "POST", body });
@@ -264,6 +266,7 @@
       restart(state);
     } catch (error) {
       if (error?.name !== "AbortError") {
+        state.commandError = true;
         state.banner.textContent = error?.message || "The fleet coordinator rejected the command.";
         state.banner.classList.add("show");
       }
@@ -308,8 +311,10 @@
     }
     state.machine.textContent = `${snapshot.health.machine} · fleet ${snapshot.health.version}`;
     state.updated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
-    state.banner.classList.remove("show");
-    state.banner.textContent = "";
+    if (!state.commandError) {
+      state.banner.classList.remove("show");
+      state.banner.textContent = "";
+    }
     state.failures = 0;
   }
 
@@ -376,7 +381,7 @@
     clear();
     const state = {
       root, context, controller: null, timer: 0, inFlight: false, mutating: false, signature: "",
-      version: "", epoch: 0, failures: 0,
+      version: "", epoch: 0, failures: 0, commandError: false,
     };
     const page = element("div", undefined, "fleet-page");
     const head = element("section", undefined, "panel fleet-summary");
