@@ -217,7 +217,12 @@
             pkgs.cmake
             pkgs.pkg-config
           ];
-          nativeCheckInputs = [ pkgs.python3 ];
+          # The workspace tests include kiln-fleet's dispatch tests, which
+          # create and clone fixture Git repositories.
+          nativeCheckInputs = [
+            pkgs.python3
+            pkgs.git
+          ];
           buildInputs = [
             pkgs.zlib
             pkgs.openssl
