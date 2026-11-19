@@ -1,0 +1,16 @@
+{
+  "change": "qualify-lattice-worker-guest",
+  "policy": "cairn-policy/generated/cairn-policy.json",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "gates": [
+    {"stage":"proposal","command":"cairn gate proposal qualify-lattice-worker-guest --root . --policy cairn-policy/generated/cairn-policy.json","valid":true,"verdict":"PASS","receipt_hash":"d165b79ba8832bfc9c69c903c857ee0e9159a9baadef06785fef0b81c6d024dc"},
+    {"stage":"design","command":"cairn gate design qualify-lattice-worker-guest --root . --policy cairn-policy/generated/cairn-policy.json","valid":true,"verdict":"PASS","receipt_hash":"e735f8677661f726ed8629c5ebc59d44824fc5cb17c4cac6e48c455423686bea"},
+    {"stage":"tasks","command":"cairn gate tasks qualify-lattice-worker-guest --root . --policy cairn-policy/generated/cairn-policy.json","valid":true,"verdict":"PASS","receipt_hash":"491045ab7fe7d5a5e4fef8ea79b5e1220e76756c5d4c82fcb05722542ca9b0e0"}
+  ],
+  "sync": {"command":"cairn sync qualify-lattice-worker-guest --root . --policy cairn-policy/generated/cairn-policy.json --execute","destination":".cairn/specs/lattice-worker-guest/spec.md","receipt_hash":"b4634d397ffce3faccba37dbff2e5041aa421684193f75726e750d5f62435415"},
+  "ordering": "All three prerequisite gates passed on the first run before any product edit. The delta spec was synced after implementation so that code r[impl]/r[verify] markers resolve to accepted requirements.",
+  "non_claims": [
+    "A gate pass is not implementation, runtime or hardware qualification.",
+    "Sync promotes requirement text; it does not prove that M2-M5 criteria are met."
+  ]
+}

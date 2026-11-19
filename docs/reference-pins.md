@@ -429,6 +429,38 @@ selected sources/artifacts are unavailable. Changes require producer review,
 Nix-generated lock updates where applicable, remeasured pins/provenance and the
 owning checks, not hand-edited lock files or fallback sources.
 
+### Lattice worker guest cohort
+
+The x86_64-linux `lattice-worker-guest` package takes its Lattice executable
+and the `examples/workflows/log-triage.ncl` definition from
+[`runtime/lattice-worker-cohort/`](../runtime/lattice-worker-cohort/). That
+subflake has one input and a Nix-generated lock that keeps Lattice's own
+producer pins and follows edges, so the guest reuses the exact Lattice package
+and does not rebuild it against Kiln's nixpkgs.
+
+| Source | Exact revision | NAR identity |
+|---|---|---|
+| Lattice (`OnixResearch/lattice`) | `661499d282c2e79ebefbd0f9b35beb5f8d7795cd` | `sha256-6Et39KfsaVP+7Oo+/eodDN2r0qz87s/wXC5ZncbYINY=` |
+
+The root flake loads the cohort lazily through `builtins.getFlake` with subflake
+NAR identity `sha256-sItviAZF4DbExmPtXf9pkm33zfCyP1WpFsZGgKH31Cc=`. Only the
+worker guest package selects it. Normal workspace builds, development shells
+and per-job microVM guests do not. `nix flake check` evaluates the package and
+therefore needs the cohort's sources. It is independent of the Lattice
+workflow-contract import (`70496e67…`) in the build-source table: the guest
+executes the Lattice binary and imports none of its Rust crates.
+
+To move the pin:
+
+1. Edit the revision in `runtime/lattice-worker-cohort/flake.nix`.
+2. Run `nix flake lock path:$PWD/runtime/lattice-worker-cohort`.
+3. Run `nix hash path runtime/lattice-worker-cohort` and update the root NAR
+   identity.
+4. Rebuild the guest and rerun its KVM qualification.
+
+The rebuild computes a new environment identity, so attempts admitted against
+the old manifest are refused.
+
 ## Maturity and non-claims
 
 Hydra, Concourse, Buildbot, Jujutsu, and the Remote Execution API are mature references. Their maturity does not transfer to Kiln.

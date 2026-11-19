@@ -50,6 +50,7 @@ use crate::execution::{
 };
 use crate::fleet::Executable;
 
+pub mod lattice_worker;
 mod paired;
 pub mod retained;
 pub mod transfer;

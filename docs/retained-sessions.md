@@ -175,6 +175,98 @@ This required gate fails rather than skips while the selected provider/campaign
 is unavailable. Its ordinary negative admission test is not a migration success.
 No two-host migration or hardware campaign was run for this change.
 
+## Lattice worker guest (single host)
+
+`nix build path:$PWD#lattice-worker-guest` (x86_64-linux) builds the pinned
+Lattice worker guest for Kiln #51. It contains:
+
+- the reviewed guest kernel shared with the per-job images;
+- an immutable initramfs with Lattice
+  `661499d282c2e79ebefbd0f9b35beb5f8d7795cd`, the admitted `log-triage`
+  (Lattice example) and `workspace-journal` (Kiln fixture) workflows, busybox and
+  the `kiln-lattice-worker-guest` shell;
+- Cloud Hypervisor 54.0 from the guest nixpkgs pin;
+- `manifest.json`.
+
+Lattice comes from the separately locked
+`runtime/lattice-worker-cohort` subflake (see
+[reference pins](reference-pins.md#lattice-worker-guest-cohort)).
+
+The manifest has schema `kiln.lattice-worker-guest.v1`. It binds:
+
+- the kernel, initramfs and VMM paths with their BLAKE3 identities;
+- the exact `cloud-hypervisor --version` output;
+- the embedded `kiln.lattice-worker-environment.v1` record and its identity;
+- a raw workspace disk, vsock port 10241 and no NIC;
+- 1 vCPU, 768 MiB and a 64 MiB workspace.
+
+The environment record binds the Lattice revision and binary, the guest shell
+and busybox, and, for each workflow, its definition bytes. It also records the
+exact effect requirements that the pinned Lattice binary reported in the build
+sandbox.
+
+`kiln_microvm::lattice_worker` is pure. `admit_attempt` (host) and
+`admit_dispatch` (guest) refuse a request whose schema, image, environment,
+workflow, definition, workflow revision, workspace identity or generation, or
+guest identity differs, or whose deadline is spent. The workspace identity and
+the 32-hex guest machine identity are BLAKE3 key derivations over the
+attempt, the execution and the workspace generation. `authority_profile`
+renders Lattice's standalone effect-authority profile from the baked
+requirements, with the original attempt deadline as its expiry.
+
+`kiln_hosted::microvm::lattice_worker` is the host shell:
+
+- `load_manifest` re-hashes every object.
+- `backend` returns the existing `cloud-hypervisor` runner with the declared
+  version.
+- `create_workspace` creates a sparse 0600 raw image once.
+- `dispatch` sends at most one dispatch, and only to a retained session whose
+  record is `Running`. It commits `hosted_lattice_worker_dispatch` before
+  sending, accepts only the confined VMM PID on the 0600 `vsock.sock_10241`
+  listener, and records the guest report. A repeat, or a restarted controller,
+  returns the recorded report, or `ReconcileRequired` if none was recorded. It
+  never resends.
+- `observe` reports the attempt that a running incarnation carries, for
+  example after restore.
+
+The guest refuses a workspace image whose first 64 KiB were ever written. It
+formats a blank image as ext2, writes a root-owned label, Lattice config and
+authority profile, and runs `lattice import`, `lattice authority inspect`
+(which must equal the baked requirements) and `lattice run --output json` as
+uid 1000 under the original deadline. It persists `/kiln/report.json` in the
+workspace and accepts no second dispatch in that incarnation.
+
+Single-host KVM qualification:
+
+```console
+nix build path:$PWD#lattice-worker-guest --out-link /tmp/klw-guest
+PATH=$(nix build --no-link --print-out-paths nixpkgs#e2fsprogs.bin)/bin:$PATH \
+KILN_MICROVM_REQUIRED=1 KILN_LATTICE_WORKER_GUEST=/tmp/klw-guest \
+  cargo test --locked -p kiln-hosted --test lattice_worker -- --nocapture
+```
+
+Without `/dev/kvm`, the guest, the systemd user manager or `debugfs`, the test
+prints `SKIP`. It fails instead when `KILN_MICROVM_REQUIRED=1` is set.
+
+The test drives the existing retained shell through:
+
+- host refusal of crossed attempts before any effect;
+- two concurrent cold boots that pause and then run;
+- guest refusal of a crossed dispatch;
+- `log-triage` and `workspace-journal` runs with distinct guest identities;
+- stale-generation and foreign-host refusal;
+- controller restart without redispatch;
+- pause, paired snapshot, retirement with released capacity, and refusal of a
+  cold start after retirement;
+- `debugfs` readback of each workspace;
+- checkpoint reopen, restore and resume, with the same attempt observed in
+  guest memory;
+- refusal of a workspace that attempt A already used.
+
+The test supplies a test-only `RetainedAuthority` that only checks the single
+host name. That is not ownership or fencing. The production consumer still
+refuses through the selected Aspen authority.
+
 ## Non-claims
 
 Pure modules do not establish distributed ownership. Hosted mechanisms are not

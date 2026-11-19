@@ -15,6 +15,7 @@ pub mod confinement;
 pub mod debug_hold;
 pub mod handoff;
 pub mod host;
+pub mod lattice_worker;
 pub mod lifecycle;
 pub mod plan;
 pub mod protocol;

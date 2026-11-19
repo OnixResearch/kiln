@@ -357,6 +357,16 @@ entry describes the source tree prepared for the first tagged release.
   paired local checkpoints, exact handoff/fencing receipts and bounded direct
   Iroh migration transport. Missing provider compatibility remains unsupported;
   no live or two-host migration qualification follows from local contracts.
+- Pinned Lattice worker guest (`lattice-worker-guest`): the reviewed kernel, an
+  immutable initramfs with Lattice `661499d2` and admitted workflows, Cloud
+  Hypervisor 54.0 and a `kiln.lattice-worker-guest.v1` manifest. Pure host and
+  guest attempt admission, per-attempt workspace, guest identity and effect
+  authority, and a dispatch that is journalled once and never resent. One
+  host ran two concurrent Lattice workflows inside guests through the retained
+  shell, with cold boot, pause, paired snapshot, retirement, restore and
+  continuation. (#51/#52; exercised locally on one KVM host with a test-only
+  reservation; no placement ownership, fencing, cross-host or live-migration
+  qualification)
 - Real hosted/Nix artifact-readiness measurement with exact cohorts, separate
   elapsed/CPU observations, cold/warm controls, retained failures and independent
   matched-cell analysis. An insufficient baseline cannot recommend a speedup.
