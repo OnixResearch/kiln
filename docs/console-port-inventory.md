@@ -42,12 +42,17 @@ search, lane, blocker and open-decision filters, and List/Board view. The
 inventory is a description of the served console, not a new command surface:
 the canonical campaign owner still admits every decision command separately.
 
+For **Fleet** (2.8), the five `/api/fleet/*` reads project the fleet
+coordinator's loopback API; the same paths carry the operator's acquire, renew,
+release, answer and cancel commands. The page keeps no URL state and refreshes
+only while visible. The fleet service remains the authority for every command.
+
 ## Cohorts
 
 | Order | Cohort | Routes |
 | --- | --- | --- |
 | 1 | Runs pilot and shared shell | 0.0 Guide, 1.1 Overview, 1.2 Runs |
-| 2 | Work and planning | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.5 Requests & triage, 2.6 Saved views, 2.7 Cairn changes |
+| 2 | Work and planning | 2.1 Issues, 2.2 My inbox, 2.3 Planning, 2.5 Requests & triage, 2.6 Saved views, 2.7 Cairn changes, 2.8 Fleet |
 | 3 | Code review | 2.4 Code review |
 | 4 | Projects and source | 1.3 CI projects, 1.3 CI project, 3.1 Source |
 | 5 | Workers and inventories | 1.4 Workers |
@@ -60,7 +65,9 @@ qualify any route.
 ## Recorded coverage gaps
 
 The renderers of Workers, Code review, Cairn changes, Source and Patchgate
-receipts are loaded by Node tests. The other pages have no Node test that loads
+receipts are loaded by Node tests. Fleet, its coordinator proxy and the page's
+operator commands are covered by Rust route tests and live console rails; no Node
+test loads `fleet.js` yet. The other pages have no Node test that loads
 their renderer: `web.js` renders Guide, Overview, Runs, CI projects, Activity,
 Feeds, Evidence, Automation, Operations, Raw collaboration history and Settings;
 `project.js` renders CI project; and `work.js` renders the work pages, where only

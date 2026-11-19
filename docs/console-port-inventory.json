@@ -800,6 +800,38 @@
       ]
     },
     {
+      "page": "fleet",
+      "number": "2.8",
+      "cohort": "work-planning",
+      "panel": "fleet",
+      "modules": [
+        {
+          "file": "fleet.js",
+          "global": "KilnFleet",
+          "renderer": true,
+          "node_tests": []
+        }
+      ],
+      "stylesheets": [
+        "fleet.css"
+      ],
+      "api": [
+        "/api/fleet/health",
+        "/api/fleet/claims",
+        "/api/fleet/work",
+        "/api/fleet/attempts",
+        "/api/fleet/decisions"
+      ],
+      "url_state": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "stale",
+        "unknown"
+      ]
+    },
+    {
       "page": "source",
       "number": "3.1",
       "cohort": "projects-source",
