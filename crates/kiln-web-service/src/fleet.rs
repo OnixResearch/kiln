@@ -82,7 +82,6 @@ pub(crate) enum EventFrame {
 /// console's 15 s connection deadline.
 const EVENT_WAIT_MS: u64 = 4_000;
 const EVENT_POLL_MS: u64 = 400;
-const SNAPSHOT_ATTEMPTS: usize = 2;
 
 impl Client {
     pub(crate) fn new(profile: &FleetProfile) -> Result<Self, String> {
@@ -154,10 +153,13 @@ impl Client {
         }
     }
 
-    /// Wait for a change after `after`, then return one complete snapshot.
-    /// A change already visible to the caller skips the wait. The final
-    /// version is re-read after the snapshot; a concurrent write is retried
-    /// rather than binding data to the wrong version.
+    /// Wait for a change after `after`, then return one snapshot.
+    ///
+    /// The version is read after the five bounded reads. A continuously
+    /// active coordinator can advance while the snapshot is assembled, so the
+    /// version names the state observed no earlier than the data; the next
+    /// long-poll covers any write that landed during assembly. The reads are
+    /// independent observations, not one cross-endpoint transaction.
     pub(crate) fn events(&self, after: Option<String>) -> Result<EventFrame, ()> {
         self.events_with_wait(after, EVENT_WAIT_MS)
     }
@@ -177,28 +179,22 @@ impl Client {
                 std::thread::sleep(Duration::from_millis(EVENT_POLL_MS.min(wait_ms)));
             }
         }
-        for _ in 0..SNAPSHOT_ATTEMPTS {
-            let before = self.version()?;
-            let health = self.json("/v1/health")?;
-            let claims = self.json("/v1/claims")?;
-            let work = self.json("/v1/work")?;
-            let attempts = self.json("/v1/attempts")?;
-            let decisions = self.json("/v1/decisions")?;
-            let version = self.version()?;
-            if version == before {
-                let data = serde_json::to_vec(&json!({
-                    "version": version,
-                    "health": health,
-                    "claims": claims,
-                    "work": work,
-                    "attempts": attempts,
-                    "decisions": decisions,
-                }))
-                .map_err(|_| ())?;
-                return Ok(EventFrame::Snapshot { data });
-            }
-        }
-        Err(())
+        let health = self.json("/v1/health")?;
+        let claims = self.json("/v1/claims")?;
+        let work = self.json("/v1/work")?;
+        let attempts = self.json("/v1/attempts")?;
+        let decisions = self.json("/v1/decisions")?;
+        let version = self.version()?;
+        let data = serde_json::to_vec(&json!({
+            "version": version,
+            "health": health,
+            "claims": claims,
+            "work": work,
+            "attempts": attempts,
+            "decisions": decisions,
+        }))
+        .map_err(|_| ())?;
+        Ok(EventFrame::Snapshot { data })
     }
 }
 
@@ -424,7 +420,7 @@ mod tests {
         ));
         server.join().unwrap_or_else(|_| unreachable!("server"));
 
-        let (address, server) = event_server(7);
+        let (address, server) = event_server(6);
         let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
         let Ok(EventFrame::Snapshot { data }) = client.events_with_wait(None, 0) else {
             unreachable!("snapshot")

@@ -4,7 +4,7 @@
 // attempt. The fleet service remains the authority for every command.
 (() => {
   "use strict";
-  const STREAM_RECONNECT_MS = 100;
+  const STREAM_RECONNECT_MS = 1_000;
   const STREAM_BACKOFF_MAX_MS = 30_000;
   const IDENTITY = /^[0-9a-f]{64}$/;
   const TOOL = "kiln-web";
