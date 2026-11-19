@@ -5,6 +5,7 @@ use kiln_core::implementation::campaign::{
     CampaignDecision, CampaignState, CompletionGoal, DecisionKind, DecisionRequestState,
     EnumerationState, Freshness, MemberObservation, MemberStage, SelectionBasis, selector_key,
 };
+use kiln_core::implementation::selected_work::{IntakeProfile, SelectedWorkSurface};
 use kiln_core::inventory::{AttemptBinding, InventoryProjection};
 use kiln_implementer::campaign::CampaignObservation;
 use kiln_implementer::observation::ImplementationObservation;
@@ -79,6 +80,11 @@ pub struct MemberProjection {
     pub blockers: Vec<String>,
     /// This member's retained wait, blocker or replan from campaign selection.
     pub selection_hold: Option<CampaignDecision>,
+    /// Explicit intake profile of this member's Cairn observations.
+    pub intake: IntakeProfile,
+    /// Typed selected-work surface; the same value worker context and
+    /// campaign inspection carry. Absent under the legacy intake.
+    pub selected_work: Option<SelectedWorkSurface>,
 }
 
 pub(crate) fn identify(state: &CampaignState, version: u64) -> Result<String, String> {
@@ -154,6 +160,16 @@ fn member_projection(
         wait_categories: Vec::new(),
         blockers: Vec::new(),
         selection_hold: None,
+        intake: state
+            .selected_work
+            .get(&key)
+            .map_or(IntakeProfile::LegacyReadinessCompatibility, |history| {
+                history.intake
+            }),
+        selected_work: state
+            .selected_work
+            .get(&key)
+            .and_then(|history| history.surface().ok()),
     };
     if let Some(o) = observation {
         fill_observation(&mut item, o);

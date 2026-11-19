@@ -1,0 +1,17 @@
+{
+  "bounds": {
+    "max_cells": 4096,
+    "max_contracts": 8,
+    "max_depth": 32,
+    "max_evaluations": 4000000,
+    "max_guarantees": 16,
+    "max_states": 250000
+  },
+  "queries": [
+    "assumptions_satisfiable",
+    "activation_reachable",
+    "guarantees_compatible",
+    "guarantee_constraining"
+  ],
+  "schema": "cairn.requirement-consistency-policy.v1"
+}

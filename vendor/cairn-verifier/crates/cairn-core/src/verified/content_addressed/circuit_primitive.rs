@@ -18,8 +18,6 @@
 // r[impl electrical_circuit_primitive_receipts.circuit_primitive_core_split.focused_modules.narrow_bridges]
 // r[verify electrical_circuit_primitive_receipts.circuit_primitive_core_split.behavior_preserved]
 
-use serde_json::Value;
-
 mod components;
 mod hash;
 mod issues;
@@ -41,7 +39,7 @@ pub struct CircuitPrimitiveReport {
     pub computed_graph_hash: String,
 }
 
-pub fn validate_circuit_primitive_receipt(receipt: &Value) -> CircuitPrimitiveReport {
+pub fn validate_circuit_primitive_receipt(receipt: &serde_json::Value) -> CircuitPrimitiveReport {
     let computed_graph_hash = circuit_primitive_graph_hash(receipt);
     let issues = issues::circuit_primitive_issues(receipt, &computed_graph_hash);
     let is_valid = issues.is_empty();

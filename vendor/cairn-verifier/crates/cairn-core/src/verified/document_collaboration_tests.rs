@@ -43,7 +43,6 @@
 // r[verify cairn.adr_cob.interop.negative]
 // r[verify cairn.adr_cob.materialization.conflict]
 use super::*;
-use std::collections::{BTreeMap, BTreeSet};
 
 const POLICY_HASH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const DOC_ID: &str = "rfd-0001";
@@ -58,16 +57,16 @@ fn base_revision() -> String {
 }
 
 fn roles() -> (
-    BTreeSet<String>,
-    BTreeSet<String>,
-    BTreeSet<String>,
-    BTreeSet<String>,
+    std::collections::BTreeSet<String>,
+    std::collections::BTreeSet<String>,
+    std::collections::BTreeSet<String>,
+    std::collections::BTreeSet<String>,
 ) {
     (
-        BTreeSet::from([AUTHOR.to_string()]),
-        BTreeSet::from([PARTICIPANT.to_string()]),
-        BTreeSet::from([REVIEWER.to_string()]),
-        BTreeSet::from([PUBLISHER.to_string()]),
+        std::collections::BTreeSet::from([AUTHOR.to_string()]),
+        std::collections::BTreeSet::from([PARTICIPANT.to_string()]),
+        std::collections::BTreeSet::from([REVIEWER.to_string()]),
+        std::collections::BTreeSet::from([PUBLISHER.to_string()]),
     )
 }
 
@@ -83,9 +82,12 @@ fn init_op() -> (DocumentOperation, DocumentState) {
         authors: a,
         participants: p,
         reviewers: r,
-        approvers: BTreeSet::from(["approver-pubkey".to_string()]),
+        approvers: std::collections::BTreeSet::from(["approver-pubkey".to_string()]),
         publishers: pub_,
-        artifacts: BTreeMap::from([("spec.md".to_string(), "# RFD\n".to_string())]),
+        artifacts: std::collections::BTreeMap::from([(
+            "spec.md".to_string(),
+            "# RFD\n".to_string(),
+        )]),
     };
     let op = DocumentOperation {
         id: "init-1".to_string(),
@@ -228,7 +230,7 @@ fn author_cannot_review_or_publish() {
     let reviewer_action = DocumentAction::SetLifecycle {
         status: DocumentLifecycleStatus::Review,
         subject_root: document_content_root(&state).unwrap(),
-        basis: BTreeSet::new(),
+        basis: std::collections::BTreeSet::new(),
     };
     let author_review = DocumentOperation {
         id: "author-review".to_string(),
@@ -252,7 +254,7 @@ fn author_cannot_review_or_publish() {
         role: Some(DocumentRole::Publisher),
         actions: vec![DocumentAction::SetPublication {
             publication: number,
-            basis: BTreeSet::new(),
+            basis: std::collections::BTreeSet::new(),
         }],
     };
     assert!(matches!(
@@ -298,12 +300,15 @@ fn adr_kind_rejects_mixed_schema() {
         workspace_id: WORKSPACE.to_string(),
         base_revision: base_revision(),
         policy_hash: POLICY_HASH.to_string(),
-        authors: BTreeSet::from(["author".to_string()]),
-        participants: BTreeSet::from(["participant".to_string()]),
-        reviewers: BTreeSet::from(["reviewer".to_string()]),
-        approvers: BTreeSet::from(["approver".to_string()]),
-        publishers: BTreeSet::from(["publisher".to_string()]),
-        artifacts: BTreeMap::from([("decision.md".to_string(), "# Decision\n".to_string())]),
+        authors: std::collections::BTreeSet::from(["author".to_string()]),
+        participants: std::collections::BTreeSet::from(["participant".to_string()]),
+        reviewers: std::collections::BTreeSet::from(["reviewer".to_string()]),
+        approvers: std::collections::BTreeSet::from(["approver".to_string()]),
+        publishers: std::collections::BTreeSet::from(["publisher".to_string()]),
+        artifacts: std::collections::BTreeMap::from([(
+            "decision.md".to_string(),
+            "# Decision\n".to_string(),
+        )]),
     };
     assert!(validate_document_init(&init).is_err());
     init.schema = ADR_SCHEMA_V1.to_string();
@@ -316,12 +321,12 @@ fn adr_kind_rejects_mixed_schema() {
 fn accept_requires_approver_and_freezes_artifacts() {
     let (_, mut state) = init_op();
     state.kind = "adr".to_string();
-    state.authors = BTreeSet::from(["author".to_string()]);
-    state.approvers = BTreeSet::from(["approver".to_string()]);
+    state.authors = std::collections::BTreeSet::from(["author".to_string()]);
+    state.approvers = std::collections::BTreeSet::from(["approver".to_string()]);
     let accept_action = DocumentAction::SetLifecycle {
         status: DocumentLifecycleStatus::Accepted,
         subject_root: document_content_root(&state).unwrap(),
-        basis: BTreeSet::new(),
+        basis: std::collections::BTreeSet::new(),
     };
     let author_accept = DocumentOperation {
         id: "a-accept".to_string(),
@@ -339,7 +344,7 @@ fn accept_requires_approver_and_freezes_artifacts() {
     let accept_action = DocumentAction::SetLifecycle {
         status: DocumentLifecycleStatus::Accepted,
         subject_root: document_content_root(&state).unwrap(),
-        basis: BTreeSet::new(),
+        basis: std::collections::BTreeSet::new(),
     };
     let approved = DocumentOperation {
         id: "approve".to_string(),

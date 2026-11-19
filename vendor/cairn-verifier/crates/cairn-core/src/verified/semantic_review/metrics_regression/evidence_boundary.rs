@@ -1,19 +1,15 @@
 // r[impl cairn.semantic_review.metrics_regression_split.focused_helpers]
-use std::collections::BTreeMap;
-
-use serde_json::Value;
-
-use super::super::common::push_issue;
-use super::super::SemanticReviewIssue;
-use super::common::non_empty_string;
 
 pub(super) fn evidence_ref_map<'a>(
-    evidence: &'a Value,
-    issues: &mut Vec<SemanticReviewIssue>,
-) -> BTreeMap<&'a str, &'a Value> {
-    let mut refs = BTreeMap::new();
-    let Some(entries) = evidence.get("evidence").and_then(Value::as_array) else {
-        push_issue(
+    evidence: &'a serde_json::Value,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
+) -> std::collections::BTreeMap<&'a str, &'a serde_json::Value> {
+    let mut refs = std::collections::BTreeMap::new();
+    let Some(entries) = evidence
+        .get("evidence")
+        .and_then(serde_json::Value::as_array)
+    else {
+        super::super::common::push_issue(
             issues,
             "missing_evidence_entries",
             "evidence",
@@ -22,7 +18,7 @@ pub(super) fn evidence_ref_map<'a>(
         return refs;
     };
     if entries.is_empty() {
-        push_issue(
+        super::super::common::push_issue(
             issues,
             "empty_evidence_entries",
             "evidence",
@@ -37,13 +33,13 @@ pub(super) fn evidence_ref_map<'a>(
 }
 
 fn collect_evidence_entry<'a>(
-    entry: &'a Value,
+    entry: &'a serde_json::Value,
     index: usize,
-    refs: &mut BTreeMap<&'a str, &'a Value>,
-    issues: &mut Vec<SemanticReviewIssue>,
+    refs: &mut std::collections::BTreeMap<&'a str, &'a serde_json::Value>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
     if !entry.is_object() {
-        push_issue(
+        super::super::common::push_issue(
             issues,
             "invalid_evidence_entry",
             &format!("evidence[{index}]"),
@@ -51,8 +47,8 @@ fn collect_evidence_entry<'a>(
         );
         return;
     }
-    let Some(evidence_ref) = non_empty_string(entry, "ref") else {
-        push_issue(
+    let Some(evidence_ref) = super::common::non_empty_string(entry, "ref") else {
+        super::super::common::push_issue(
             issues,
             "invalid_evidence_entry",
             &format!("evidence[{index}].ref"),
@@ -66,8 +62,8 @@ fn collect_evidence_entry<'a>(
         "metrics_stage",
         "metrics_source",
     ] {
-        if non_empty_string(entry, field).is_none() {
-            push_issue(
+        if super::common::non_empty_string(entry, field).is_none() {
+            super::super::common::push_issue(
                 issues,
                 "missing_evidence_metadata",
                 &format!("evidence[{index}].{field}"),
@@ -75,8 +71,12 @@ fn collect_evidence_entry<'a>(
             );
         }
     }
-    if entry.get("provenance").and_then(Value::as_object).is_none() {
-        push_issue(
+    if entry
+        .get("provenance")
+        .and_then(serde_json::Value::as_object)
+        .is_none()
+    {
+        super::super::common::push_issue(
             issues,
             "missing_evidence_provenance",
             &format!("evidence[{index}].provenance"),
@@ -84,7 +84,7 @@ fn collect_evidence_entry<'a>(
         );
     }
     if refs.insert(evidence_ref, entry).is_some() {
-        push_issue(
+        super::super::common::push_issue(
             issues,
             "duplicate_evidence_ref",
             &format!("evidence[{index}].ref"),
@@ -94,20 +94,23 @@ fn collect_evidence_entry<'a>(
 }
 
 pub(super) fn validate_category_evidence_refs(
-    registry: &Value,
-    evidence_refs: &BTreeMap<&str, &Value>,
-    issues: &mut Vec<SemanticReviewIssue>,
+    registry: &serde_json::Value,
+    evidence_refs: &std::collections::BTreeMap<&str, &serde_json::Value>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
-    let Some(categories) = registry.get("categories").and_then(Value::as_array) else {
+    let Some(categories) = registry
+        .get("categories")
+        .and_then(serde_json::Value::as_array)
+    else {
         return;
     };
     for (index, category) in categories.iter().enumerate() {
-        let Some(evidence_ref) = non_empty_string(category, "evidence_ref") else {
+        let Some(evidence_ref) = super::common::non_empty_string(category, "evidence_ref") else {
             continue;
         };
         match evidence_refs.get(evidence_ref) {
             Some(entry) => validate_evidence_metadata_match(category, entry, index, issues),
-            None => push_issue(
+            None => super::super::common::push_issue(
                 issues,
                 "missing_evidence_ref",
                 &format!("categories[{index}].evidence_ref"),
@@ -118,10 +121,10 @@ pub(super) fn validate_category_evidence_refs(
 }
 
 fn validate_evidence_metadata_match(
-    category: &Value,
-    entry: &Value,
+    category: &serde_json::Value,
+    entry: &serde_json::Value,
     index: usize,
-    issues: &mut Vec<SemanticReviewIssue>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
     for (category_field, evidence_field) in [
         ("code", "category_code"),
@@ -129,11 +132,11 @@ fn validate_evidence_metadata_match(
         ("metrics_stage", "metrics_stage"),
         ("metrics_source", "metrics_source"),
     ] {
-        let category_value = non_empty_string(category, category_field);
-        let evidence_value = non_empty_string(entry, evidence_field);
+        let category_value = super::common::non_empty_string(category, category_field);
+        let evidence_value = super::common::non_empty_string(entry, evidence_field);
         if category_value.is_some() && evidence_value.is_some() && category_value != evidence_value
         {
-            push_issue(
+            super::super::common::push_issue(
                 issues,
                 "evidence_metadata_mismatch",
                 &format!("categories[{index}].evidence_ref"),
@@ -144,16 +147,16 @@ fn validate_evidence_metadata_match(
 }
 
 pub(super) fn validate_secret_free_json(
-    value: &Value,
+    value: &serde_json::Value,
     field_path: &str,
-    issues: &mut Vec<SemanticReviewIssue>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
     match value {
-        Value::Object(map) => {
+        serde_json::Value::Object(map) => {
             for (key, nested) in map {
                 let nested_path = format!("{field_path}.{key}");
                 if unsafe_evidence_key(key) {
-                    push_issue(
+                    super::super::common::push_issue(
                         issues,
                         "unsafe_evidence_field",
                         &nested_path,
@@ -163,14 +166,14 @@ pub(super) fn validate_secret_free_json(
                 validate_secret_free_json(nested, &nested_path, issues);
             }
         }
-        Value::Array(items) => {
+        serde_json::Value::Array(items) => {
             for (index, item) in items.iter().enumerate() {
                 validate_secret_free_json(item, &format!("{field_path}[{index}]"), issues);
             }
         }
-        Value::String(text) => {
+        serde_json::Value::String(text) => {
             if unsafe_evidence_text(text) {
-                push_issue(
+                super::super::common::push_issue(
                     issues,
                     "unsafe_evidence_text",
                     field_path,
@@ -178,7 +181,7 @@ pub(super) fn validate_secret_free_json(
                 );
             }
         }
-        Value::Null | Value::Bool(_) | Value::Number(_) => {}
+        serde_json::Value::Null | serde_json::Value::Bool(_) | serde_json::Value::Number(_) => {}
     }
 }
 

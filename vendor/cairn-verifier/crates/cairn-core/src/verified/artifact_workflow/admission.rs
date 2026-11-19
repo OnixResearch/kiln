@@ -1,9 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    path::{Component, Path},
-};
-
-use serde_json::Value;
+use std::path::{Component, Path};
 
 use super::model::*;
 
@@ -19,7 +14,7 @@ const PREREQUISITE_ARTIFACT_PREFIX: &str = "artifact:";
 // r[impl cairn.artifact_workflow_contract.functional_boundary]
 // r[impl cairn.artifact_workflow_contract.functional_boundary.pure]
 pub fn workflow_schemas_from_value(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<Vec<WorkflowSchemaPolicy>, WorkflowAdmissionError> {
     let schemas_value = value.get("schemas").cloned().ok_or_else(|| {
         admission_error(
@@ -38,11 +33,11 @@ pub fn workflow_schemas_from_value(
         })?;
     let allowed_stages = value
         .get("lifecycle_stages")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .map(|stages| {
             stages
                 .iter()
-                .filter_map(Value::as_str)
+                .filter_map(serde_json::Value::as_str)
                 .map(ToOwned::to_owned)
                 .collect::<Vec<_>>()
         })
@@ -52,7 +47,7 @@ pub fn workflow_schemas_from_value(
 }
 
 pub fn workflow_profile_registry_from_value(
-    value: &Value,
+    value: &serde_json::Value,
     schemas: &[WorkflowSchemaPolicy],
 ) -> Result<WorkflowProfileRegistryPolicy, WorkflowAdmissionError> {
     // r[impl cairn.lifecycle_workflow_profiles.registry]
@@ -86,7 +81,7 @@ pub fn admit_workflow_profile_registry(
     let known = schemas
         .iter()
         .map(|schema| schema.id.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     if !known.contains(registry.default_profile.as_str()) {
         return Err(profile_registry_error(
             "default_profile",
@@ -99,7 +94,7 @@ pub fn admit_workflow_profile_registry(
             "at least one workflow profile must be allowed",
         ));
     }
-    let mut allowed = BTreeSet::new();
+    let mut allowed = std::collections::BTreeSet::new();
     for profile in &registry.allowed_profiles {
         if !known.contains(profile.as_str()) {
             return Err(profile_registry_error(
@@ -137,7 +132,7 @@ pub fn admit_workflow_schemas(
             "workflow schema count is outside the supported bounds",
         ));
     }
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for (schema_index, schema) in schemas.iter().enumerate() {
         let schema_path = format!("schemas[{schema_index}]");
         if !ids.insert(schema.id.clone()) {
@@ -159,8 +154,8 @@ pub fn workflow_topological_order(
         .artifacts
         .iter()
         .map(|artifact| (artifact.id.clone(), artifact.requires.len()))
-        .collect::<BTreeMap<_, _>>();
-    let mut emitted = BTreeSet::new();
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut emitted = std::collections::BTreeSet::new();
     let mut order = Vec::with_capacity(schema.artifacts.len());
 
     loop {
@@ -362,8 +357,8 @@ fn validate_artifacts(
 fn collect_artifact_ids(
     schema: &WorkflowSchemaPolicy,
     path: &str,
-) -> Result<BTreeSet<String>, WorkflowAdmissionError> {
-    let mut ids = BTreeSet::new();
+) -> Result<std::collections::BTreeSet<String>, WorkflowAdmissionError> {
+    let mut ids = std::collections::BTreeSet::new();
     for artifact in &schema.artifacts {
         if artifact.id.is_empty() || !ids.insert(artifact.id.clone()) {
             return Err(admission_error(
@@ -415,6 +410,7 @@ fn validate_artifact_shape(
             | WORKFLOW_ADMISSION_RISK
             | WORKFLOW_ADMISSION_VERIFICATION
             | WORKFLOW_ADMISSION_SEMANTIC_REVIEW
+            | WORKFLOW_ADMISSION_OUTCOME_MACHINE
     ) {
         return Err(admission_error(
             WORKFLOW_ISSUE_POLICY_ADMISSION,
@@ -449,7 +445,7 @@ fn validate_artifact_shape(
 fn validate_artifact_dependencies(
     schema: &WorkflowSchemaPolicy,
     artifact: &WorkflowArtifactPolicy,
-    known: &BTreeSet<String>,
+    known: &std::collections::BTreeSet<String>,
     path: &str,
 ) -> Result<(), WorkflowAdmissionError> {
     if artifact.requires.len() > schema.bounds.max_dependencies {
@@ -459,7 +455,7 @@ fn validate_artifact_dependencies(
             "artifact dependency count exceeds the schema bound",
         ));
     }
-    let mut unique = BTreeSet::new();
+    let mut unique = std::collections::BTreeSet::new();
     for required in &artifact.requires {
         if required == &artifact.id {
             return Err(admission_error(
@@ -488,7 +484,7 @@ fn validate_artifact_dependencies(
 
 fn validate_prerequisites(
     artifact: &WorkflowArtifactPolicy,
-    known: &BTreeSet<String>,
+    known: &std::collections::BTreeSet<String>,
     allowed_stages: &[String],
     path: &str,
 ) -> Result<(), WorkflowAdmissionError> {
@@ -593,8 +589,8 @@ fn validate_review_obligations(
         .artifacts
         .iter()
         .map(|artifact| artifact.id.as_str())
-        .collect::<BTreeSet<_>>();
-    let mut obligation_ids = BTreeSet::new();
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut obligation_ids = std::collections::BTreeSet::new();
     for (index, obligation) in schema.review_obligations.iter().enumerate() {
         let obligation_path = format!("{path}.review_obligations[{index}]");
         if obligation.id.is_empty() || !obligation_ids.insert(obligation.id.as_str()) {
@@ -662,7 +658,7 @@ fn validate_profile_shape(
         .artifacts
         .iter()
         .map(|artifact| artifact.structural_admission.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let has_delta_specs = admissions.contains(WORKFLOW_ADMISSION_DELTA_SPECS);
     let has_acceptance = admissions.contains(WORKFLOW_ADMISSION_ACCEPTANCE);
     if schema.spec_effect == WORKFLOW_SPEC_EFFECT_NONE {
@@ -691,7 +687,7 @@ fn validate_effect_profile_mappings(
     registry: &WorkflowProfileRegistryPolicy,
     schemas: &[WorkflowSchemaPolicy],
 ) -> Result<(), WorkflowAdmissionError> {
-    let mut effects = BTreeSet::new();
+    let mut effects = std::collections::BTreeSet::new();
     for mapping in &registry.required_profiles_by_effect {
         if !matches!(
             mapping.effect.as_str(),
@@ -753,11 +749,76 @@ fn validate_forbidden_profile_sources(
 fn validate_initial_profiles(
     schemas: &[WorkflowSchemaPolicy],
 ) -> Result<(), WorkflowAdmissionError> {
-    for required in ["spec-driven", "assurance", "no-spec-delta"] {
+    const OUTCOME_MACHINE_PROFILE_ID: &str = "outcome-machine";
+    for required in [
+        "spec-driven",
+        "assurance",
+        "no-spec-delta",
+        OUTCOME_MACHINE_PROFILE_ID,
+    ] {
         if !schemas.iter().any(|schema| schema.id == required) {
             return Err(profile_registry_error(
                 "schemas",
                 format!("initial workflow profile is missing: {required}"),
+            ));
+        }
+    }
+    let outcome_machine = schemas
+        .iter()
+        .find(|schema| schema.id == OUTCOME_MACHINE_PROFILE_ID)
+        .ok_or_else(|| {
+            profile_registry_error("schemas", "outcome-machine workflow profile is missing")
+        })?;
+    validate_outcome_machine_profile(outcome_machine)
+}
+
+fn validate_outcome_machine_profile(
+    profile: &WorkflowSchemaPolicy,
+) -> Result<(), WorkflowAdmissionError> {
+    // r[impl cairn.outcome_machine_profile.selection]
+    // r[impl cairn.outcome_machine_profile.verification]
+    const OUTCOME_MACHINE_ARTIFACT_ID: &str = "outcome-machine";
+    const OUTCOME_MACHINE_PATH: &str = "outcome-machine.json";
+    const DESIGN_ARTIFACT_ID: &str = "design";
+    const TASKS_ARTIFACT_ID: &str = "tasks";
+    let artifacts = profile
+        .artifacts
+        .iter()
+        .filter(|artifact| artifact.structural_admission == WORKFLOW_ADMISSION_OUTCOME_MACHINE)
+        .collect::<Vec<_>>();
+    let valid_review_artifact = artifacts.len() == 1
+        && artifacts[0].id == OUTCOME_MACHINE_ARTIFACT_ID
+        && artifacts[0].output_path == OUTCOME_MACHINE_PATH
+        && artifacts[0].path_kind == WORKFLOW_PATH_KIND_FILE
+        && artifacts[0].stage == "design"
+        && !artifacts[0].skipped;
+    if !valid_review_artifact {
+        return Err(profile_registry_error(
+            "schemas",
+            "outcome-machine profile requires one design-stage outcome-machine.json artifact",
+        ));
+    }
+    for dependent_id in [DESIGN_ARTIFACT_ID, TASKS_ARTIFACT_ID] {
+        let Some(dependent) = profile
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.id == dependent_id)
+        else {
+            return Err(profile_registry_error(
+                "schemas",
+                format!("outcome-machine profile is missing required artifact: {dependent_id}"),
+            ));
+        };
+        if !dependent
+            .requires
+            .iter()
+            .any(|required| required == OUTCOME_MACHINE_ARTIFACT_ID)
+        {
+            return Err(profile_registry_error(
+                "schemas",
+                format!(
+                    "outcome-machine profile artifact must depend on the review record: {dependent_id}"
+                ),
             ));
         }
     }
@@ -769,7 +830,7 @@ fn validate_unique_nonempty(
     path: &str,
     label: &str,
 ) -> Result<(), WorkflowAdmissionError> {
-    let mut unique = BTreeSet::new();
+    let mut unique = std::collections::BTreeSet::new();
     for value in values {
         if value.is_empty() || !unique.insert(value.as_str()) {
             return Err(admission_error(

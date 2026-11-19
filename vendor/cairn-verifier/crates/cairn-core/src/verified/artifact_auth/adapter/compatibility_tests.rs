@@ -1,15 +1,3 @@
-use std::collections::BTreeSet;
-
-use crate::{
-    AuthenticatedEvidenceIssue, AuthenticatedEvidenceReport, AUTHENTICATED_EVIDENCE_BOUNDARY,
-};
-
-use super::{
-    compare_cairn_artifact_auth, CairnArtifactAuthCompatibilityDimension,
-    CairnArtifactAuthCompatibilityDisposition, CairnArtifactAuthReport,
-    CAIRN_ARTIFACT_AUTH_BOUNDARY,
-};
-
 const LEGACY_PREIMAGE: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const STANDALONE_PREIMAGE: &str =
     "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -28,7 +16,7 @@ const SUBJECT_IDENTITY: &str = "444444444444444444444444444444444444444444444444
 fn passing_dual_run_classifies_every_dimension_without_admitting_authority() {
     let legacy = legacy_report(true, Vec::new());
     let standalone = standalone_report(true, Vec::new());
-    let report = compare_cairn_artifact_auth(
+    let report = super::compare_cairn_artifact_auth(
         LEGACY_PREIMAGE,
         Some(STANDALONE_PREIMAGE),
         &legacy,
@@ -45,11 +33,12 @@ fn passing_dual_run_classifies_every_dimension_without_admitting_authority() {
         .classifications
         .iter()
         .map(|item| item.dimension)
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(dimensions.len(), 5);
     assert!(report.classifications.iter().any(|item| {
-        item.dimension == CairnArtifactAuthCompatibilityDimension::Preimage
-            && item.disposition == CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+        item.dimension == super::CairnArtifactAuthCompatibilityDimension::Preimage
+            && item.disposition
+                == super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
     }));
 }
 
@@ -73,7 +62,7 @@ fn known_tamper_issue_expansion_is_explained_while_both_paths_reject() {
             issue("auth.signature_unverified"),
         ],
     );
-    let report = compare_cairn_artifact_auth(
+    let report = super::compare_cairn_artifact_auth(
         LEGACY_PREIMAGE,
         Some(STANDALONE_PREIMAGE),
         &legacy,
@@ -86,7 +75,8 @@ fn known_tamper_issue_expansion_is_explained_while_both_paths_reject() {
     assert!(report.classifications.iter().any(|item| {
         item.legacy.as_deref() == Some("authenticated_inputs.signature_unverified")
             && item.standalone.as_deref() == Some("auth.signature_unverified")
-            && item.disposition == CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+            && item.disposition
+                == super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
     }));
 }
 
@@ -97,7 +87,7 @@ fn unexplained_identity_issue_non_claim_and_preimage_drift_blocks() {
     let mut standalone = standalone_report(false, vec![issue("auth.unknown_new_failure")]);
     standalone.producer = "different-producer".to_string();
     standalone.non_claims.pop();
-    let report = compare_cairn_artifact_auth(
+    let report = super::compare_cairn_artifact_auth(
         LEGACY_PREIMAGE,
         Some(LEGACY_PREIMAGE),
         &legacy,
@@ -119,7 +109,7 @@ fn unexplained_identity_issue_non_claim_and_preimage_drift_blocks() {
         .blockers
         .contains(&"artifact_auth.compatibility.non_claim.required_set".to_string()));
 
-    let malformed = compare_cairn_artifact_auth(
+    let malformed = super::compare_cairn_artifact_auth(
         "not-a-blake3-identity",
         Some(STANDALONE_PREIMAGE),
         &legacy,
@@ -146,7 +136,7 @@ fn unrelated_generic_signature_rejections_do_not_create_false_parity() {
             issue("auth.signature_unverified"),
         ],
     );
-    let report = compare_cairn_artifact_auth(
+    let report = super::compare_cairn_artifact_auth(
         LEGACY_PREIMAGE,
         Some(STANDALONE_PREIMAGE),
         &legacy,
@@ -165,7 +155,8 @@ fn unrelated_generic_signature_rejections_do_not_create_false_parity() {
 fn missing_standalone_run_preserves_legacy_rollback_and_reports_blocker() {
     let legacy = legacy_report(true, Vec::new());
     let blocker = issue("artifact_auth.dual_run.signature_missing");
-    let report = compare_cairn_artifact_auth(LEGACY_PREIMAGE, None, &legacy, None, &[blocker]);
+    let report =
+        super::compare_cairn_artifact_auth(LEGACY_PREIMAGE, None, &legacy, None, &[blocker]);
 
     assert!(!report.case_explained);
     assert!(report.legacy_authoritative);
@@ -181,9 +172,9 @@ fn missing_standalone_run_preserves_legacy_rollback_and_reports_blocker() {
 
 fn legacy_report(
     passed: bool,
-    issues: Vec<AuthenticatedEvidenceIssue>,
-) -> AuthenticatedEvidenceReport {
-    AuthenticatedEvidenceReport {
+    issues: Vec<crate::AuthenticatedEvidenceIssue>,
+) -> crate::AuthenticatedEvidenceReport {
+    crate::AuthenticatedEvidenceReport {
         evidence_kind: "stack-provenance".to_string(),
         passed,
         authentication_hash: passed.then(|| LEGACY_DECISION.to_string()),
@@ -191,15 +182,15 @@ fn legacy_report(
         producer: "cairn".to_string(),
         key_id: "release-key".to_string(),
         issues,
-        boundary: AUTHENTICATED_EVIDENCE_BOUNDARY.to_string(),
+        boundary: crate::AUTHENTICATED_EVIDENCE_BOUNDARY.to_string(),
     }
 }
 
 fn standalone_report(
     passed: bool,
-    issues: Vec<AuthenticatedEvidenceIssue>,
-) -> CairnArtifactAuthReport {
-    CairnArtifactAuthReport {
+    issues: Vec<crate::AuthenticatedEvidenceIssue>,
+) -> super::CairnArtifactAuthReport {
+    super::CairnArtifactAuthReport {
         evidence_kind: "stack-provenance".to_string(),
         decision_passed: passed,
         authentication_hash: passed.then(|| STANDALONE_AUTHENTICATION.to_string()),
@@ -207,7 +198,7 @@ fn standalone_report(
         producer: "cairn".to_string(),
         key_id: "release-key".to_string(),
         issues,
-        boundary: CAIRN_ARTIFACT_AUTH_BOUNDARY.to_string(),
+        boundary: super::CAIRN_ARTIFACT_AUTH_BOUNDARY.to_string(),
         standalone_statement_blake3: Some(STANDALONE_PREIMAGE.to_string()),
         standalone_policy_blake3: POLICY_IDENTITY.to_string(),
         standalone_scope_blake3: SCOPE_IDENTITY.to_string(),
@@ -222,8 +213,8 @@ fn standalone_report(
     }
 }
 
-fn issue(code: &str) -> AuthenticatedEvidenceIssue {
-    AuthenticatedEvidenceIssue {
+fn issue(code: &str) -> crate::AuthenticatedEvidenceIssue {
+    crate::AuthenticatedEvidenceIssue {
         code: code.to_string(),
         field_path: "test.field".to_string(),
         expected: "expected".to_string(),

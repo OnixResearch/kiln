@@ -1,7 +1,3 @@
-use serde_json::{json, Value};
-
-use crate::{blake3_hex, canonical_json_hash};
-
 const BLAKE3_PREFIX: &str = "b3:";
 const BLAKE3_HEX_LENGTH: usize = blake3::OUT_LEN * 2;
 const CLAIM_SCOPE: &str = "function_address.v1.lifecycle_policy_conformance";
@@ -11,12 +7,12 @@ const REQUIRED_NON_CLAIM: &str = "not release eligibility";
 #[derive(Debug)]
 pub struct FunctionAddressStackSmokeInput<'a> {
     pub source: &'a [u8],
-    pub expected: &'a Value,
-    pub octet: &'a Value,
-    pub kamacite: &'a Value,
-    pub valence: &'a Value,
-    pub mantle: &'a Value,
-    pub graph: &'a Value,
+    pub expected: &'a serde_json::Value,
+    pub octet: &'a serde_json::Value,
+    pub kamacite: &'a serde_json::Value,
+    pub valence: &'a serde_json::Value,
+    pub mantle: &'a serde_json::Value,
+    pub graph: &'a serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,12 +30,12 @@ pub struct FunctionAddressStackSmokeReport {
 
 impl FunctionAddressStackSmokeReport {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "schema": "cairn.function-address-stack-smoke-report.v1",
             "valid": self.valid,
             "verdict": if self.valid { "PASS" } else { "FAIL" },
-            "issues": self.issues.iter().map(|issue| json!({
+            "issues": self.issues.iter().map(|issue| serde_json::json!({
                 "code": issue.code,
                 "field": issue.field,
             })).collect::<Vec<_>>(),
@@ -66,8 +62,8 @@ pub fn evaluate_function_address_stack_smoke(
     validate_non_claims(input, &mut issues);
     issues.sort_by(|left, right| (&left.code, &left.field).cmp(&(&right.code, &right.field)));
     issues.dedup();
-    let input_hash = canonical_json_hash(&json!({
-        "source_hash": blake3_hex(input.source),
+    let input_hash = crate::canonical_json_hash(&serde_json::json!({
+        "source_hash": crate::blake3_hex(input.source),
         "expected": input.expected,
         "octet": input.octet,
         "kamacite": input.kamacite,
@@ -90,9 +86,9 @@ fn validate_octet(
     let actual_source = input
         .octet
         .pointer("/source_envelopes/0/source_identity")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
-    let computed_source = format!("{BLAKE3_PREFIX}{}", blake3_hex(input.source));
+    let computed_source = format!("{BLAKE3_PREFIX}{}", crate::blake3_hex(input.source));
     require_equal(
         expected_source,
         actual_source,
@@ -107,7 +103,10 @@ fn validate_octet(
         "source/src/lib.rs",
         issues,
     );
-    let record = input.octet.pointer("/records/0").unwrap_or(&Value::Null);
+    let record = input
+        .octet
+        .pointer("/records/0")
+        .unwrap_or(&serde_json::Value::Null);
     require_equal(
         text(input.expected, "function_address"),
         text(record, "function_address"),
@@ -119,12 +118,12 @@ fn validate_octet(
 }
 
 fn validate_span(
-    record: &Value,
+    record: &serde_json::Value,
     source_len: usize,
     issues: &mut Vec<FunctionAddressStackSmokeIssue>,
 ) {
-    let start = record.get("start_byte").and_then(Value::as_u64);
-    let end = record.get("end_byte").and_then(Value::as_u64);
+    let start = record.get("start_byte").and_then(serde_json::Value::as_u64);
+    let end = record.get("end_byte").and_then(serde_json::Value::as_u64);
     let source_len = u64::try_from(source_len).unwrap_or(u64::MAX);
     if !matches!((start, end), (Some(start), Some(end)) if start < end && end <= source_len) {
         issues.push(issue(
@@ -172,7 +171,7 @@ fn validate_links(
     let has_role = input
         .valence
         .get("roles")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .is_some_and(|roles| roles.iter().any(|value| value.as_str() == Some(role)));
     if !has_role || role != REQUIRED_ROLE {
         issues.push(issue(
@@ -189,7 +188,12 @@ fn validate_links(
             issues.push(issue("function_address_smoke.claim_scope_wrong", field));
         }
     }
-    if input.graph.get("function_count").and_then(Value::as_u64) != Some(1) {
+    if input
+        .graph
+        .get("function_count")
+        .and_then(serde_json::Value::as_u64)
+        != Some(1)
+    {
         issues.push(issue(
             "function_address_smoke.graph_function_count_wrong",
             "graph.function_count",
@@ -205,12 +209,12 @@ fn validate_non_claims(
     let octet_has = input
         .octet
         .get("non_claims")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .is_some_and(|rows| rows.iter().any(|row| row.as_str() == Some(expected)));
     let kamacite_has = input
         .kamacite
         .get("non_claims")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .is_some_and(|rows| {
             rows.iter().any(|row| {
                 row.as_str().is_some_and(|text| {
@@ -251,8 +255,11 @@ fn valid_identity_if_present(value: &str) -> bool {
     }
 }
 
-fn text<'a>(value: &'a Value, field: &str) -> &'a str {
-    value.get(field).and_then(Value::as_str).unwrap_or_default()
+fn text<'a>(value: &'a serde_json::Value, field: &str) -> &'a str {
+    value
+        .get(field)
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
 }
 
 fn issue(code: &str, field: &str) -> FunctionAddressStackSmokeIssue {

@@ -6,6 +6,7 @@ mod profile;
 mod unix;
 #[cfg(target_os = "linux")]
 pub mod worker;
+pub mod workflow_intent;
 
 pub use adapter::LatticeAdapter;
 pub use implementation::{

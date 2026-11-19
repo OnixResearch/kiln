@@ -1,12 +1,5 @@
 use artifact_auth_core::{CryptographicObservation, ALGORITHM_ED25519};
 
-use crate::{
-    AuthenticatedEvidenceInput, AuthenticatedEvidencePolicy, AuthenticatedTrustedProducer,
-    CanonicalReceiptObservation, PolicyExportObservation, SignatureVerificationObservation,
-    AUTHENTICATED_EVIDENCE_CANONICALIZATION_CORRECTED_V1,
-    AUTHENTICATED_EVIDENCE_KIND_STACK_PROVENANCE, AUTHENTICATED_EVIDENCE_SCHEMA_V1,
-};
-
 use super::*;
 
 const HASH_A: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
@@ -15,17 +8,17 @@ const HASH_C: &str = "23456789abcdef0123456789abcdef0123456789abcdef0123456789ab
 const PUBLIC_KEY_HEX: &str = "456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123";
 const PURPOSE: &str = "onix.stack-provenance.release-evidence.v1";
 
-fn policy() -> AuthenticatedEvidencePolicy {
-    AuthenticatedEvidencePolicy {
-        schema_version: AUTHENTICATED_EVIDENCE_SCHEMA_V1.to_string(),
+fn policy() -> crate::AuthenticatedEvidencePolicy {
+    crate::AuthenticatedEvidencePolicy {
+        schema_version: crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1.to_string(),
         release_profile: "onix-release".to_string(),
         accepted_canonicalization_profiles: vec![
-            AUTHENTICATED_EVIDENCE_CANONICALIZATION_CORRECTED_V1.to_string(),
+            crate::AUTHENTICATED_EVIDENCE_CANONICALIZATION_CORRECTED_V1.to_string(),
         ],
         accepted_valence_integrity_receipt_path: "valence-integrity.json".to_string(),
         accepted_valence_integrity_receipt_hash: HASH_C.to_string(),
         policy_exports: vec![],
-        trusted_producers: vec![AuthenticatedTrustedProducer {
+        trusted_producers: vec![crate::AuthenticatedTrustedProducer {
             producer: "valence".to_string(),
             key_id: "release-key".to_string(),
             algorithm: ALGORITHM_ED25519.to_string(),
@@ -36,22 +29,22 @@ fn policy() -> AuthenticatedEvidencePolicy {
     }
 }
 
-fn input() -> AuthenticatedEvidenceInput {
-    AuthenticatedEvidenceInput {
-        schema_version: AUTHENTICATED_EVIDENCE_SCHEMA_V1.to_string(),
-        evidence_kind: AUTHENTICATED_EVIDENCE_KIND_STACK_PROVENANCE.to_string(),
+fn input() -> crate::AuthenticatedEvidenceInput {
+    crate::AuthenticatedEvidenceInput {
+        schema_version: crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1.to_string(),
+        evidence_kind: crate::AUTHENTICATED_EVIDENCE_KIND_STACK_PROVENANCE.to_string(),
         measurements: vec![],
-        receipt: CanonicalReceiptObservation {
-            profile: AUTHENTICATED_EVIDENCE_CANONICALIZATION_CORRECTED_V1.to_string(),
+        receipt: crate::CanonicalReceiptObservation {
+            profile: crate::AUTHENTICATED_EVIDENCE_CANONICALIZATION_CORRECTED_V1.to_string(),
             supplied_receipt_hash: HASH_A.to_string(),
             recomputed_receipt_hash: HASH_A.to_string(),
         },
-        policy_export: PolicyExportObservation {
+        policy_export: crate::PolicyExportObservation {
             path: "policy.json".to_string(),
             declared_blake3: HASH_B.to_string(),
             measured_blake3: HASH_B.to_string(),
         },
-        signature: SignatureVerificationObservation {
+        signature: crate::SignatureVerificationObservation {
             algorithm: ALGORITHM_ED25519.to_string(),
             verified: false,
             producer: "valence".to_string(),

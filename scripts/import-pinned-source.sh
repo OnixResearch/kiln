@@ -4,7 +4,7 @@ set -euo pipefail
 # A checkout is only an import input. Read the pinned Git object, never its
 # mutable working tree. Runtime Cargo/Nix acquisition uses the committed bytes.
 if (( $# != 2 )); then
-  printf 'usage: %s <lattice|cairn|cairn-verifier|valence|artifact|bounded-exec|mantle|ucan|subwayrat> <source-checkout>\n' "$0" >&2
+  printf 'usage: %s <lattice|cairn|cairn-verifier|cairn-kiln-core|valence|artifact|bounded-exec|mantle|ucan|subwayrat> <source-checkout>\n' "$0" >&2
   exit 2
 fi
 name=$1
@@ -17,14 +17,17 @@ case "$name" in
     source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   cairn-verifier)
-    source_commit=15f00875562025e7ea7e0d1f4af24d1a2e2ac06f
-    archive_blake3=068e403844cbbd718e4ced8d0848b84cbfc7eff66d601a8a85b5231f747f5e3d ;;
+    source_commit=8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0
+    archive_blake3=867504a36da1ba047bdaef11f5b9dfb58b2abfb9d728a6d64b59be477aec56c0 ;;
+  cairn-kiln-core)
+    source_commit=5d99f4e9bb954743443e340baece31256b4c53f1
+    archive_blake3=c99e9f1d5dfec309187fa7f807062fd5da6f014a65188ea51ccecb0f6f96097e ;;
   valence)
     source_commit=220307a371e7bc4e3309447b09447d0fe6c4db5f
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   artifact)
     source_commit=e41340bec587b6d049b5cc518ec7db925dde84be
-    archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
+    archive_blake3=737362f0b98f8aa4fef2aa5727b2e747136648d24ccbe4f3f903e7679d50a77d ;;
   bounded-exec)
     source_commit=29dac88ecded94457572db3fdfaaaab95fa91525
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;

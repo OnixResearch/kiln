@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TopologicalOrder {
     pub(crate) order: Vec<String>,
@@ -15,11 +13,11 @@ pub(crate) fn topological_order(
     let mut indegrees = node_ids
         .iter()
         .map(|node_id| (node_id.clone(), 0usize))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     let mut dependents = node_ids
         .iter()
         .map(|node_id| (node_id.clone(), Vec::new()))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
 
     for (dependency, dependent) in dependency_edges {
         if let Some(indegree) = indegrees.get_mut(dependent) {
@@ -38,7 +36,7 @@ pub(crate) fn topological_order(
         .iter()
         .filter(|(_node_id, indegree)| **indegree == 0)
         .map(|(node_id, _indegree)| node_id.clone())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let mut order = Vec::with_capacity(node_ids.len());
 
     while let Some(node_id) = ready.pop_first() {
@@ -57,7 +55,10 @@ pub(crate) fn topological_order(
         }
     }
 
-    let ordered = order.iter().cloned().collect::<BTreeSet<_>>();
+    let ordered = order
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
     let blocked_nodes = node_ids
         .iter()
         .filter(|node_id| !ordered.contains(*node_id))

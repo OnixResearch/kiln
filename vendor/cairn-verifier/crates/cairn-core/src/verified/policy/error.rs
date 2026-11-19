@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::error::Error;
 
 #[derive(Debug)]
 pub enum PolicyError {
@@ -22,8 +22,8 @@ pub enum PolicyError {
     },
 }
 
-impl fmt::Display for PolicyError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for PolicyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Parse { source } => write!(f, "failed to parse policy: {source}"),
             Self::MissingField(field) => write!(f, "policy missing field {field}"),

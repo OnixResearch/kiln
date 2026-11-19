@@ -1,16 +1,5 @@
 // r[impl cairn.nominal_evidence_identities.receipt_chains]
 
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use super::evidence::canonical_json_hash;
-use super::nominal_identity::{
-    ArtifactDigestRole, Blake3Digest, DigestRoleMarker, LedgerDigestRole, PolicyDigestRole,
-    StateDigestRole, RAW_BLAKE3_PROFILE,
-};
-
 pub const RELEASE_RUN_LEDGER_SCHEMA_V1: &str = "cairn.release-run-ledger.v1";
 pub const RELEASE_RUN_LEDGER_BOUNDARY: &str = "release-run ledger validation proves ledger syntax, Cairn-owned identity linkage, transition validity, and non-claim preservation only; it does not publish artifacts, does not create tags, does not create GitHub releases, does not upload registry packages, does not sign artifacts, does not prove release eligibility, does not prove evidence truth, and does not trust external services";
 pub const RELEASE_RUN_STATE_PENDING: &str = "pending";
@@ -42,13 +31,13 @@ const FORBIDDEN_CLAIMS: &[&str] = &[
     "trusts external services",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunCommandIdentity {
     pub name: String,
     pub argv_blake3: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunStep {
     pub id: String,
     pub from_state: String,
@@ -57,7 +46,7 @@ pub struct ReleaseRunStep {
     pub diagnostic_refs: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunArtifact {
     pub id: String,
     pub run_id: String,
@@ -66,7 +55,7 @@ pub struct ReleaseRunArtifact {
     pub blake3: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunDiagnostic {
     pub id: String,
     pub step_id: Option<String>,
@@ -74,7 +63,7 @@ pub struct ReleaseRunDiagnostic {
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunBlocker {
     pub id: String,
     pub step_id: String,
@@ -82,13 +71,13 @@ pub struct ReleaseRunBlocker {
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunResumeHint {
     pub step_id: String,
     pub action: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunLedger {
     pub schema_version: String,
     pub run_id: String,
@@ -105,14 +94,14 @@ pub struct ReleaseRunLedger {
     pub ledger_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunLedgerIssue {
     pub code: String,
     pub field_path: String,
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunLedgerReport {
     pub valid: bool,
     pub run_id: String,
@@ -127,7 +116,7 @@ pub struct ReleaseRunLedgerReport {
     pub boundary: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunStatusProjection {
     pub valid: bool,
     pub run_id: String,
@@ -138,7 +127,7 @@ pub struct ReleaseRunStatusProjection {
     pub next_action: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseRunExplainProjection {
     pub run_id: String,
     pub blockers: Vec<String>,
@@ -151,7 +140,7 @@ pub struct ReleaseRunExplainProjection {
 
 #[must_use]
 pub fn release_run_identity(ledger: &ReleaseRunLedger) -> String {
-    canonical_json_hash(&json!({
+    super::evidence::canonical_json_hash(&serde_json::json!({
         "lifecycle_root_identity": ledger.lifecycle_root_identity,
         "policy_hash": ledger.policy_hash,
         "command_identity": ledger.command_identity,
@@ -160,17 +149,17 @@ pub fn release_run_identity(ledger: &ReleaseRunLedger) -> String {
 }
 
 #[must_use]
-pub fn release_run_ledger_hash(value: &Value) -> String {
+pub fn release_run_ledger_hash(value: &serde_json::Value) -> String {
     let mut material = value.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove("ledger_hash");
     }
-    canonical_json_hash(&material)
+    super::evidence::canonical_json_hash(&material)
 }
 
 #[must_use]
 pub fn validate_release_run_ledger_value(
-    value: &Value,
+    value: &serde_json::Value,
     expected_policy_hash: &str,
 ) -> ReleaseRunLedgerReport {
     let computed_hash = release_run_ledger_hash(value);
@@ -219,7 +208,7 @@ pub fn release_run_explain(report: &ReleaseRunLedgerReport) -> ReleaseRunExplain
 }
 
 #[must_use]
-pub fn positive_release_run_ledger_fixture(expected_policy_hash: &str) -> Value {
+pub fn positive_release_run_ledger_fixture(expected_policy_hash: &str) -> serde_json::Value {
     let mut ledger = ReleaseRunLedger {
         schema_version: RELEASE_RUN_LEDGER_SCHEMA_V1.to_string(),
         run_id: String::new(),
@@ -258,7 +247,7 @@ pub fn positive_release_run_ledger_fixture(expected_policy_hash: &str) -> Value 
         blake3: fixture_hash('c'),
     });
     let mut value = serde_json::to_value(ledger).expect("fixture serializes");
-    value["ledger_hash"] = Value::String(release_run_ledger_hash(&value));
+    value["ledger_hash"] = serde_json::Value::String(release_run_ledger_hash(&value));
     value
 }
 
@@ -284,7 +273,10 @@ fn validate_release_run_ledger(
         &mut issues,
     );
     validate_hash(&ledger.policy_hash, "policy_hash", &mut issues);
-    if !same_digest::<PolicyDigestRole>(&ledger.policy_hash, expected_policy_hash) {
+    if !same_digest::<super::nominal_identity::PolicyDigestRole>(
+        &ledger.policy_hash,
+        expected_policy_hash,
+    ) {
         push_issue(
             &mut issues,
             "release_run_ledger.policy_stale",
@@ -305,7 +297,7 @@ fn validate_release_run_ledger(
     validate_required_text(&ledger.profile, "profile", &mut issues);
     let expected_run_id = release_run_identity(ledger);
     validate_hash(&ledger.run_id, "run_id", &mut issues);
-    if !same_digest::<StateDigestRole>(&ledger.run_id, &expected_run_id) {
+    if !same_digest::<super::nominal_identity::StateDigestRole>(&ledger.run_id, &expected_run_id) {
         push_issue(
             &mut issues,
             "release_run_ledger.run_identity_stale",
@@ -324,7 +316,10 @@ fn validate_release_run_ledger(
     );
     validate_blockers_and_hints(ledger, &step_index, &mut issues);
     validate_non_claims(&ledger.non_claims, &mut issues);
-    if !same_digest::<LedgerDigestRole>(&ledger.ledger_hash, &computed_hash) {
+    if !same_digest::<super::nominal_identity::LedgerDigestRole>(
+        &ledger.ledger_hash,
+        &computed_hash,
+    ) {
         push_issue(
             &mut issues,
             "release_run_ledger.hash_mismatch",
@@ -377,7 +372,7 @@ fn validate_release_run_ledger(
 fn validate_steps(
     steps: &[ReleaseRunStep],
     issues: &mut Vec<ReleaseRunLedgerIssue>,
-) -> BTreeMap<String, ReleaseRunStep> {
+) -> std::collections::BTreeMap<String, ReleaseRunStep> {
     if steps.is_empty() {
         push_issue(
             issues,
@@ -387,7 +382,7 @@ fn validate_steps(
         );
     }
     validate_bound(steps.len(), MAX_STEPS, "steps", issues);
-    let mut index = BTreeMap::new();
+    let mut index = std::collections::BTreeMap::new();
     for (position, step) in steps.iter().enumerate() {
         let field_path = format!("steps[{position}]");
         validate_required_text(&step.id, &format!("{field_path}.id"), issues);
@@ -432,9 +427,9 @@ fn validate_steps(
 fn validate_artifacts(
     ledger: &ReleaseRunLedger,
     issues: &mut Vec<ReleaseRunLedgerIssue>,
-) -> BTreeMap<String, ReleaseRunArtifact> {
+) -> std::collections::BTreeMap<String, ReleaseRunArtifact> {
     validate_bound(ledger.artifacts.len(), MAX_ARTIFACTS, "artifacts", issues);
-    let mut index = BTreeMap::new();
+    let mut index = std::collections::BTreeMap::new();
     for (position, artifact) in ledger.artifacts.iter().enumerate() {
         let field_path = format!("artifacts[{position}]");
         validate_required_text(&artifact.id, &format!("{field_path}.id"), issues);
@@ -449,7 +444,10 @@ fn validate_artifacts(
                 "artifact ids must be unique",
             );
         }
-        if !same_digest::<StateDigestRole>(&artifact.run_id, &ledger.run_id) {
+        if !same_digest::<super::nominal_identity::StateDigestRole>(
+            &artifact.run_id,
+            &ledger.run_id,
+        ) {
             push_issue(
                 issues,
                 "release_run_ledger.artifact_run_substitution",
@@ -466,11 +464,11 @@ fn validate_artifacts(
 
 fn validate_diagnostics(
     diagnostics: &[ReleaseRunDiagnostic],
-    steps: &BTreeMap<String, ReleaseRunStep>,
+    steps: &std::collections::BTreeMap<String, ReleaseRunStep>,
     issues: &mut Vec<ReleaseRunLedgerIssue>,
-) -> BTreeSet<String> {
+) -> std::collections::BTreeSet<String> {
     validate_bound(diagnostics.len(), MAX_DIAGNOSTICS, "diagnostics", issues);
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for (position, diagnostic) in diagnostics.iter().enumerate() {
         let field_path = format!("diagnostics[{position}]");
         validate_required_text(&diagnostic.id, &format!("{field_path}.id"), issues);
@@ -511,8 +509,8 @@ fn validate_diagnostics(
 
 fn validate_step_references(
     steps: &[ReleaseRunStep],
-    artifacts: &BTreeMap<String, ReleaseRunArtifact>,
-    diagnostics: &BTreeSet<String>,
+    artifacts: &std::collections::BTreeMap<String, ReleaseRunArtifact>,
+    diagnostics: &std::collections::BTreeSet<String>,
     issues: &mut Vec<ReleaseRunLedgerIssue>,
 ) {
     for (position, step) in steps.iter().enumerate() {
@@ -541,7 +539,7 @@ fn validate_step_references(
 
 fn validate_blockers_and_hints(
     ledger: &ReleaseRunLedger,
-    steps: &BTreeMap<String, ReleaseRunStep>,
+    steps: &std::collections::BTreeMap<String, ReleaseRunStep>,
     issues: &mut Vec<ReleaseRunLedgerIssue>,
 ) {
     validate_bound(ledger.blockers.len(), MAX_BLOCKERS, "blockers", issues);
@@ -551,8 +549,8 @@ fn validate_blockers_and_hints(
         "resume_hints",
         issues,
     );
-    let mut blocker_ids = BTreeSet::new();
-    let mut blocked_steps = BTreeSet::new();
+    let mut blocker_ids = std::collections::BTreeSet::new();
+    let mut blocked_steps = std::collections::BTreeSet::new();
     for (position, blocker) in ledger.blockers.iter().enumerate() {
         let field_path = format!("blockers[{position}]");
         validate_required_text(&blocker.id, &format!("{field_path}.id"), issues);
@@ -583,7 +581,7 @@ fn validate_blockers_and_hints(
         validate_required_text(&blocker.class, &format!("{field_path}.class"), issues);
         validate_required_text(&blocker.message, &format!("{field_path}.message"), issues);
     }
-    let mut hinted_steps = BTreeSet::new();
+    let mut hinted_steps = std::collections::BTreeSet::new();
     for (position, hint) in ledger.resume_hints.iter().enumerate() {
         let field_path = format!("resume_hints[{position}]");
         if !blocked_steps.contains(hint.step_id.as_str()) {
@@ -730,7 +728,7 @@ fn validate_unique_texts(
             "references must be non-empty",
         );
     }
-    let unique = values.iter().collect::<BTreeSet<_>>();
+    let unique = values.iter().collect::<std::collections::BTreeSet<_>>();
     if unique.len() != values.len() {
         push_issue(
             issues,
@@ -743,13 +741,13 @@ fn validate_unique_texts(
 
 fn validate_hash(value: &str, field_path: &str, issues: &mut Vec<ReleaseRunLedgerIssue>) {
     let valid = if field_path == "policy_hash" {
-        is_digest::<PolicyDigestRole>(value)
+        is_digest::<super::nominal_identity::PolicyDigestRole>(value)
     } else if field_path == "ledger_hash" {
-        is_digest::<LedgerDigestRole>(value)
+        is_digest::<super::nominal_identity::LedgerDigestRole>(value)
     } else if matches!(field_path, "lifecycle_root_identity" | "run_id") {
-        is_digest::<StateDigestRole>(value)
+        is_digest::<super::nominal_identity::StateDigestRole>(value)
     } else {
-        is_digest::<ArtifactDigestRole>(value)
+        is_digest::<super::nominal_identity::ArtifactDigestRole>(value)
     };
     if !valid {
         push_issue(
@@ -761,13 +759,26 @@ fn validate_hash(value: &str, field_path: &str, issues: &mut Vec<ReleaseRunLedge
     }
 }
 
-fn is_digest<Role: DigestRoleMarker>(value: &str) -> bool {
-    Blake3Digest::<Role>::parse(value, RAW_BLAKE3_PROFILE, "release_run.digest").is_ok()
+fn is_digest<Role: super::nominal_identity::DigestRoleMarker>(value: &str) -> bool {
+    super::nominal_identity::Blake3Digest::<Role>::parse(
+        value,
+        super::nominal_identity::RAW_BLAKE3_PROFILE,
+        "release_run.digest",
+    )
+    .is_ok()
 }
 
-fn same_digest<Role: DigestRoleMarker>(left: &str, right: &str) -> bool {
-    let left = Blake3Digest::<Role>::parse(left, RAW_BLAKE3_PROFILE, "release_run.left_digest");
-    let right = Blake3Digest::<Role>::parse(right, RAW_BLAKE3_PROFILE, "release_run.right_digest");
+fn same_digest<Role: super::nominal_identity::DigestRoleMarker>(left: &str, right: &str) -> bool {
+    let left = super::nominal_identity::Blake3Digest::<Role>::parse(
+        left,
+        super::nominal_identity::RAW_BLAKE3_PROFILE,
+        "release_run.left_digest",
+    );
+    let right = super::nominal_identity::Blake3Digest::<Role>::parse(
+        right,
+        super::nominal_identity::RAW_BLAKE3_PROFILE,
+        "release_run.right_digest",
+    );
     matches!(
         (left, right),
         (Ok(left), Ok(right)) if left.as_hex() == right.as_hex()
@@ -887,8 +898,8 @@ mod tests {
             .collect()
     }
 
-    fn rehash(value: &mut Value) {
-        value["ledger_hash"] = Value::String(release_run_ledger_hash(value));
+    fn rehash(value: &mut serde_json::Value) {
+        value["ledger_hash"] = serde_json::Value::String(release_run_ledger_hash(value));
     }
 
     #[test]
@@ -910,15 +921,16 @@ mod tests {
         // r[verify cairn.release_evidence.durable_run_ledger.status_explain]
         let policy_hash = policy_hash();
         let mut value = positive_release_run_ledger_fixture(&policy_hash);
-        value["steps"][0]["state"] = Value::String(RELEASE_RUN_STATE_BLOCKED.to_string());
-        value["steps"][0]["artifact_refs"] = Value::Array(Vec::new());
-        value["blockers"] = json!([{
+        value["steps"][0]["state"] =
+            serde_json::Value::String(RELEASE_RUN_STATE_BLOCKED.to_string());
+        value["steps"][0]["artifact_refs"] = serde_json::Value::Array(Vec::new());
+        value["blockers"] = serde_json::json!([{
             "id": "missing-evidence",
             "step_id": "validate",
             "class": "missing-evidence",
             "message": "validation receipt is absent"
         }]);
-        value["resume_hints"] = json!([{
+        value["resume_hints"] = serde_json::json!([{
             "step_id": "validate",
             "action": "run local validation and attach its receipt"
         }]);
@@ -939,9 +951,10 @@ mod tests {
         // r[verify cairn.release_evidence.durable_run_ledger.fixtures.positive]
         let policy_hash = policy_hash();
         let mut value = positive_release_run_ledger_fixture(&policy_hash);
-        value["steps"][0]["state"] = Value::String(RELEASE_RUN_STATE_BLOCKED.to_string());
-        value["steps"][0]["artifact_refs"] = Value::Array(Vec::new());
-        value["blockers"] = json!([{
+        value["steps"][0]["state"] =
+            serde_json::Value::String(RELEASE_RUN_STATE_BLOCKED.to_string());
+        value["steps"][0]["artifact_refs"] = serde_json::Value::Array(Vec::new());
+        value["blockers"] = serde_json::json!([{
             "id": "operator-decision",
             "step_id": "validate",
             "class": "operator-decision",
@@ -978,24 +991,28 @@ mod tests {
         for (case, expected) in cases {
             let mut value = positive_release_run_ledger_fixture(&policy_hash);
             match case {
-                "stale-policy" => value["policy_hash"] = Value::String(fixture_hash('e')),
+                "stale-policy" => {
+                    value["policy_hash"] = serde_json::Value::String(fixture_hash('e'))
+                }
                 "missing-command" => {
-                    value["command_identity"]["name"] = Value::String(String::new())
+                    value["command_identity"]["name"] = serde_json::Value::String(String::new())
                 }
                 "invalid-transition" => {
                     value["steps"][0]["from_state"] =
-                        Value::String(RELEASE_RUN_STATE_PASSED.to_string());
+                        serde_json::Value::String(RELEASE_RUN_STATE_PASSED.to_string());
                     value["steps"][0]["state"] =
-                        Value::String(RELEASE_RUN_STATE_PENDING.to_string());
+                        serde_json::Value::String(RELEASE_RUN_STATE_PENDING.to_string());
                 }
-                "weakened-boundary" => value["non_claims"] = json!(["proves everything"]),
+                "weakened-boundary" => {
+                    value["non_claims"] = serde_json::json!(["proves everything"])
+                }
                 "artifact-substitution" => {
-                    value["artifacts"][0]["run_id"] = Value::String(fixture_hash('f'))
+                    value["artifacts"][0]["run_id"] = serde_json::Value::String(fixture_hash('f'))
                 }
                 "publish-overclaim" => value["non_claims"]
                     .as_array_mut()
                     .expect("fixture non-claims array")
-                    .push(Value::String("publishes artifacts".to_string())),
+                    .push(serde_json::Value::String("publishes artifacts".to_string())),
                 _ => unreachable!(),
             }
             rehash(&mut value);
@@ -1013,7 +1030,7 @@ mod tests {
     fn ledger_hash_detects_tampering() {
         let policy_hash = policy_hash();
         let mut value = positive_release_run_ledger_fixture(&policy_hash);
-        value["profile"] = Value::String("changed".to_string());
+        value["profile"] = serde_json::Value::String("changed".to_string());
         let report = validate_release_run_ledger_value(&value, &policy_hash);
         assert!(!report.valid);
         assert!(codes(&report).contains(&"release_run_ledger.hash_mismatch"));

@@ -2,9 +2,126 @@
 
 <img width="400" height="400" alt="Cairn project logo" src="https://github.com/user-attachments/assets/5f3ecfb2-0abb-42c8-b03c-8cd35afa7b77" />
 
-Cairn is a Rust lifecycle engine for repository work. It uses a native `.cairn/` layout and a Nickel-authored policy layer.
+**Deterministic lifecycle gates for repositories that humans and coding agents change together.**
 
-Old `cairn/`, `ironspec/`, and `openspec/` trees are migration inputs only. Normal commands do not use them as a fallback.
+Coding agents can produce changes faster than review can verify them. Cairn makes
+each change explicit — proposal, design, tasks, and specs — then evaluates
+policy-owned gates and emits deterministic receipts that a person, a CI job, or
+another agent can inspect.
+
+Cairn is a Rust lifecycle engine with a native `.cairn/` layout and a
+Nickel-authored policy layer. It runs locally, does not call a model, and does
+not publish anything on its own.
+
+## What you get
+
+- **A bounded change package.** `cairn scaffold change` creates the same
+  reviewable shape every time instead of a free-form prompt result.
+- **Policy-owned gates.** Stages, required artifacts, exemptions, and profiles
+  live in Nickel and compile to checked-in generated JSON.
+- **Deterministic receipts.** Validation, gates, readiness, evidence, and release
+  checks return stable JSON with policy and input identities.
+- **One machine outcome.** `cairn --machine <command>` gives a direct CLI agent
+  one versioned result instead of command-specific prose and exit rules.
+- **Agent and CI adapters.** MCP tools, generated project guidance, check
+  evidence, gate interchange, and release-run ledgers share the same contracts.
+- **A pure core.** `cairn-core` holds deterministic transforms;
+  `cairn-cli` owns arguments, files, policy loading, output, exits, and mutation.
+
+## Who it is for
+
+- Maintainers using coding agents in repositories where “the tests pass” is not
+  enough evidence for a release.
+- Multi-repository Rust and Nix teams that need the same lifecycle rules across
+  projects without copying prose.
+- Tool and platform teams that want a machine-readable gate boundary rather than
+  another dashboard.
+
+Cairn is deliberately narrower than a project manager: it does not schedule
+work, assign people, or claim that a passing gate proves code correctness.
+
+## Install
+
+The supported install is the Nix flake. It includes the pinned Nickel cohort and
+`nickel-export` needed for policy commands.
+
+```bash
+nix profile install github:OnixResearch/cairn#cairn
+cairn --version
+```
+
+Pin a release for repeatable automation:
+
+```bash
+nix profile install github:OnixResearch/cairn/v0.2.1#cairn
+```
+
+Run it once without installing:
+
+```bash
+nix run github:OnixResearch/cairn#cairn -- --help
+```
+
+Install from source with Cargo:
+
+```bash
+cargo install --git https://github.com/OnixResearch/cairn cairn-cli --locked
+```
+
+A Cargo install provides the CLI; `policy export` and policy regeneration also
+need the pinned Nickel cohort and `nickel-export` on `PATH`. The Nix package
+installs both, enables the `redb-registry` feature, and points `CAIRN_POLICY` at
+its bundled generated policy, so it works from any working directory. Add
+`--features redb-registry` to a Cargo install if you need the redb registry
+adapter. Pass `--policy PATH` to override the packaged default.
+
+<!-- r[impl cairn.supersede.packaged_default_policy.docs] -->
+
+## 60-second demo
+
+```bash
+export REPO=$(mktemp -d)
+
+cairn init --root "$REPO"
+
+cairn scaffold change add-friendly-start \
+  --root "$REPO" \
+  --request "Add a friendly start path for first-time users." \
+  --execute
+
+cairn validate --root "$REPO"
+cairn gate proposal add-friendly-start --root "$REPO"
+cairn readiness add-friendly-start --root "$REPO" --format summary
+```
+
+`init` creates `.cairn/specs`, `.cairn/changes`, and `.cairn/archive`.
+`scaffold` writes a preview unless `--execute` is present. Each gate prints a
+JSON receipt with validity, issues, policy hash, input hash, and receipt hash.
+
+Ask for the versioned machine outcome instead:
+
+```bash
+cairn --machine validate --root "$REPO"
+```
+
+## Project status
+
+Cairn `0.2.x` is the current release line. Documented stable receipt fields are compatibility
+surfaces. Other commands, schemas, and policy can change in a minor release with
+release notes.
+
+The release gate is verified on x86_64 Linux. aarch64 Linux is packaged but not
+claimed until a builder-backed validation receipt exists. See
+[`docs/aarch64-release-support.md`](docs/aarch64-release-support.md).
+
+A passing Cairn gate proves conformance to selected policy and declared inputs.
+It does not prove code correctness, evidence truth, build reproducibility,
+deployment safety, or release eligibility.
+
+Legacy `cairn/`, `ironspec/`, and `openspec/` trees are migration inputs only.
+Normal commands do not use them as a fallback.
+
+## Architecture
 
 Cairn separates a pure core from an imperative shell:
 
@@ -14,13 +131,7 @@ Cairn separates a pure core from an imperative shell:
 - `cairn-cli` owns arguments, files, policy loading, output, exits, and mutation.
 - Runtime commands use checked-in generated policy JSON.
 
-The strict core is in `crates/cairn-core/src/verified/`. Slotcar checks its purity boundary.
-
-## Project status
-
-Cairn is under active development. Documented stable receipt fields are compatibility surfaces. Other commands, schemas, and policy can change.
-
-A passing Cairn gate proves conformance to selected policy and inputs. It does not prove code correctness, evidence truth, or release eligibility.
+The strict core is in `crates/cairn-core/src/verified/`. Octet checks its purity boundary.
 
 ## Repository layout
 
@@ -82,6 +193,8 @@ nix run path:$CAIRN_SOURCE#cairn -- gate tasks add-friendly-start --root "$REPO"
 Templates, scaffolds, sync, archive, and migration are preview-first. Add `--execute` only after you review the plan.
 
 Read the [Make a Cairn tutorial](docs/tutorials/make-a-cairn.md) or the [copyable example](examples/make-a-cairn/README.md).
+[Consumer bootstrap](docs/consumer-bootstrap-preview.md) previews and applies an exact policy and project-local guidance plan.
+Apply requires `--execute --plan-hash HASH`. Interrupted installation requires explicit manual recovery.
 
 Direct CLI agents can use `cairn --machine <command> ...` for one versioned JSON outcome.
 Read the [CLI machine contract](docs/cli-machine-contract.md) before you depend on its status and failure rules.
@@ -93,6 +206,7 @@ Select a policy-owned workflow profile when you create a change:
 ```bash
 nix run path:$PWD#cairn -- change create NAME --profile spec-driven --root .
 nix run path:$PWD#cairn -- change create NAME --profile assurance --root .
+nix run path:$PWD#cairn -- change create NAME --profile outcome-machine --root .
 nix run path:$PWD#cairn -- change create NAME --profile no-spec-delta --root .
 ```
 
@@ -106,9 +220,15 @@ nix run path:$PWD#cairn -- context --root . --profile assurance --artifact tasks
 
 Read [Workflow profiles](docs/workflow-profiles.md) for selection, obligations, review evidence, sync, archive, compatibility, and non-claims.
 Read [Artifact workflow inspection](docs/artifact-workflow.md) for states, fields, MCP parity, and claim boundaries.
+Read [Change readiness](docs/change-readiness.md) for the additive report, explicit completion inputs, and current observation limits. Read [Workspace contract matrix](docs/workspace-contract-matrix.md) for cross-repository edge validation and its non-claims. Read [Oxide lifecycle patterns](docs/oxide-lifecycle-patterns.md) for bounded saga, document-plan, golden, and bundle inspection. Read [State-machine receipts](docs/state-machine-receipts.md) for bounded checker-witness validation. Read [Authenticated evidence readiness](docs/authenticated-evidence-readiness.md) for producer-key admission and readiness profiles.
+Read [Implementation-ready projection](docs/implementation-ready.md) for selectable task units, bounded enumeration, and non-claims.
+Read [Assurance targets and convergence](docs/convergence.md) for target authoring, the Octet projection, convergence states, the completeness rule, and non-claims.
 Read [Agent guidance context](docs/agent-guidance-context.md) before you declare local context or advisory text.
 Read [Generated agent workflows](docs/generated-agent-workflows.md) before you install project-local agent guidance.
 Read [Developer-loop profiles](docs/developer-loop-profiles.md) before you define or verify a fast local loop.
+Read [Offline agent benchmarks](docs/agent-benchmark.md) for exact saved-run accounting, repository-owned outcome oracles, cohort comparison, and measurement non-claims.
+Read [Check evidence producer](docs/check-evidence-producer.md) for pure admission, read-only planning, and the current execution/import blockers.
+Read [Verification guidance](docs/verification-impact.md) for advisory check selection, exact plan requests, and structural evidence limits.
 Read [RFD collaboration](docs/rfd-collaboration.md) before you use the RFD document commands.
 Read [ADR collaboration](docs/adr-collaboration.md) before you use the ADR document commands.
 Read [Verification-obligation collaboration](docs/verification-obligation.md) before you use the verification-obligation commands.
@@ -120,6 +240,76 @@ Read [Policy-exception collaboration](docs/policy-exception.md) before you use t
 <!-- r[impl cairn.developer_loop_profiles.docs] -->
 <!-- r[impl cairn.agent_guidance_context.docs] -->
 
+## Advisory prose checks
+
+Check explicit files or one active change without rewriting source:
+
+```bash
+cairn prose check --root . README.md docs/prose-check.md
+cairn prose check --root . --change add-friendly-start --format text
+```
+
+JSON/machine defaults remain unchanged. Optional text, GitHub warning, and SARIF
+formats support human and CI/editor review; exported rule profiles and scoped
+suppressions keep configuration reviewable. Opt-in v2 reports bind original
+content and effective configuration; `cairn prose verify` rejects stale or altered
+suggestions. Findings remain advisory and never determine lifecycle gates or
+requirement validity. Read [Advisory prose checks](docs/prose-check.md) for the
+complete formats, selection, bounds, freshness, and claim boundaries.
+
+## Detached source-review evidence
+
+`cairn_core::source_review` is the pure producer and independent verification
+boundary for `cairn.source-review-attachment.v1`. It binds the exact
+`mantle-release-source` v1 source projection, existing claim root and review-policy
+digest in each signed claim. Subject, claim and attachment logical identities use
+BLAKE3 over their schema domain plus NUL plus recursively key-sorted compact JSON.
+Attachment rows normalize by full key digest then Artifact Auth statement identity;
+the digest of an input file's exact bytes is a separate artifact identity.
+
+The read-only shell never generates keys or signs. Supply an explicit reviewed
+claim and verification policy, with operator-owned public keys, currentness
+observations, generations and revocations. All file arguments are relative to
+`--root`; each read is capability-confined and limited to 1 MiB. DTOs reject unknown
+and duplicate fields, unsupported schemas, malformed lowercase hex and incorrect
+non-claims. At most 64 reviews, trusted keys and author-key hashes are admitted.
+
+```bash
+cairn source-review signing-request --root "$EVIDENCE" \
+  --claim claim.json --policy verification-policy.json \
+  --producer "$REVIEWER" --key-id "$KEY_LABEL" --generation "$GENERATION" \
+  --public-key-hex "$PUBLIC_KEY_HEX" > request.json
+cairn source-review signing-request --root "$EVIDENCE" \
+  --claim claim.json --policy verification-policy.json \
+  --producer "$REVIEWER" --key-id "$KEY_LABEL" --generation "$GENERATION" \
+  --public-key-hex "$PUBLIC_KEY_HEX" --raw > unsigned-statement.bin
+# An operator's external signer signs unsigned-statement.bin, not JSON or its digest.
+cairn source-review assemble --root "$EVIDENCE" \
+  --request request.json --policy verification-policy.json \
+  --signature-hex "$DETACHED_SIGNATURE_HEX" > attachment.json
+cairn source-review verify --root "$EVIDENCE" \
+  --attachment attachment.json --policy verification-policy.json
+```
+
+Keep redirected files inside `$EVIDENCE` (or use absolute redirect destinations);
+redirection is performed by your shell, not Cairn. The JSON signing request also
+exports `canonical_statement_hex`, the exact unsigned bytes encoded as hex.
+`assemble` checks the request against policy, verifies the detached signature and
+emits an attachment; optional repeated `--include signed-row.json` adds separately
+signed `SignedSourceReview` rows. It never fabricates approval. An insufficient
+attachment, including an authenticated `needs_revision`, can be assembled;
+`verify` emits `insufficient` and exits nonzero until distinct approved full keys
+meet the nonzero threshold. Invalid evidence also exits nonzero. Display names do
+not count, duplicate full keys are rejected, author keys are excluded when policy
+requires it, and review keys must be authorized exclusively for
+`source-review-approval` with currentness references matching the explicit signed
+verifier context. Source-review evidence never counts as build witnesses or
+release signatures. Every claim, policy and attachment carries the exact sorted
+seven bounded non-claims: review does not prove source correctness, review quality,
+build correctness, reproducibility, witness independence, deployment safety or
+release eligibility. A verifier must load and verify the signatures independently,
+not trust a producer report.
+
 ## Local checks
 
 ```bash
@@ -127,14 +317,22 @@ nix run path:$PWD#cairn -- policy export --check
 cargo fmt --check
 cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
-cargo tigerstyle check --output-format json --artifact-dir artifacts/slotcar-run
+nix develop -c cargo octet check -- --all-targets --features redb-registry
+nix build path:$PWD#checks.x86_64-linux.octet --no-link -L
 nix run path:$PWD#cairn -- validate --root .
 nix flake check path:$PWD -L
 nix run path:$PWD#cairn -- doctor --root fixtures/basic
 nix run path:$PWD#cairn -- status --root fixtures/basic
 ```
 
-`nix flake check` covers policy freshness, formatting, tests, lifecycle checks, traceability, Clippy, Slotcar, and self-dogfood.
+`nix flake check` covers policy freshness, formatting, tests, lifecycle checks, traceability, Clippy, Octet, and self-dogfood.
+
+The Octet input uses an immutable revision from `OnixResearch/octet`.
+`checks.<system>.octet-integration` verifies its source identity, canonical config, command, and consumer scope with positive and negative controls.
+That integration check does not replace `checks.<system>.octet`, which runs the producer check.
+Historical receipts retain their original command text.
+
+<!-- r[verify cairn.octet_integration.guidance] r[verify cairn.octet_integration.evidence] -->
 
 Cairn keeps maintained gates in Rust and Nickel. It does not use checked-in Python or shell helpers for these checks.
 
@@ -185,6 +383,17 @@ cairn traceability show cairn.trace_index.query \
 
 Read [Content-bound trace index](docs/content-bound-trace-index.md) for identities, workflow, freshness checks, retained live-proof receipts, and non-claims.
 
+Run the advisory declared comparison qualification:
+
+```bash
+cairn traceability compare \
+  --root . \
+  --fixtures fixtures/buoy-comparison/v1 \
+  --out target/buoy-comparison/receipt.json
+```
+
+Read [Buoy traceability comparison](docs/buoy-traceability-comparison.md) for the pinned upstream identity, executed native mutation evidence, declared unsupported cases, and reuse decision.
+
 <!-- r[impl cairn.trace_index.docs] -->
 
 ## Policy and deterministic enforcement
@@ -192,6 +401,8 @@ Read [Content-bound trace index](docs/content-bound-trace-index.md) for identiti
 Nickel policy source is in `cairn-policy/`. Runtime commands do not run Nickel.
 
 During development, `cairn policy export` checks the contracts and writes `cairn-policy/generated/cairn-policy.json`.
+
+Read [Standalone Nickel export boundary](docs/standalone-nickel-export.md) for pinned evaluator/export identities and parity checks.
 
 Run this command before you trust a policy change:
 
@@ -236,6 +447,7 @@ A matching witness checkpoint proves only a bounded witnessed prefix. Cairn does
 ### Stable receipt compatibility
 
 Stable public gate fields include `change`, `stage`, `verdict`, `valid`, issues, and receipt hashes.
+CLI gates also report `policy_selection` with the exact source, locator, and BLAKE3 identity. This field does not certify installation.
 
 Stable public lifecycle
 receipt fields include the command result, actions, policy identity, and receipt identity. The sync receipts also include `delta_specs`.
@@ -282,6 +494,8 @@ Gates do not run probe commands by default. Run probes first, save their receipt
 cairn probe run --out target/probe-receipts
 cairn gate proposal my-change --root .
 ```
+
+Read [`docs/authoritative-probe-gates.md`](docs/authoritative-probe-gates.md) for saved-probe gate composition, status rules, and bounds.
 
 Kani uses the same saved-evidence boundary. Read [`docs/kani-receipt-gates.md`](docs/kani-receipt-gates.md).
 
@@ -355,6 +569,8 @@ Actor and workspace values are declarations. They are not signatures or remote a
 ### Radicle COB format
 
 The `radicle-cob.v1` adapter uses an explicit Git repository and keystore. It does not run a Radicle node.
+
+The local COB Git storage and explicit signer loader come from the commit-pinned, in-repository `onix-radicle-cob-git-store` vendor package. Cairn continues to own reducers, authority, locks, and receipts. See [the source pin, archive digest, and import procedure](docs/radicle-cob-git-store-adoption.md); this local source import is not a published transport or remote.
 
 ```bash
 cairn collaboration import my-change \
@@ -544,7 +760,7 @@ nix run path:$PWD#cairn -- compact unpack --root . --archive 2026-05-18-example-
 
 The lossless pack stores raw objects under BLAKE3 identities and retains canonical manifests and pointers.
 
-A hash-chained ledger detects changed, inserted, removed, or reordered operations inside the observed ledger.
+A hash-chained ledger detects changed, inserted, removed, or reordered operations inside the observed ledger. Read [Release-run ledgers](docs/release-run-ledgers.md) for bounded durable-run validation and projections.
 
 Only `lossless-pack` can execute. Cairn rejects `lossy-summary` unless a later policy adds explicit irreversible behavior and non-claims.
 
@@ -602,6 +818,8 @@ cairn evidence republish --root . --imported target/cairn-imported-evidence/ --o
 Each normal evidence export includes `requirement-registry.json`, `trace-index.json`, and `trace-index-verification.json`. The manifest binds the trace index to the exact registry. Evidence verification also compares the saved index with the current root.
 
 Cairn preserves these artifacts through import, republish, indexing, registry selection, mirror verification, and local fetch workflows.
+
+Read [`docs/requirement-id-registry.md`](docs/requirement-id-registry.md) and [`docs/global-registry.md`](docs/global-registry.md) for registry identity, selection, and mirror verification rules.
 
 These commands do not perform network transport or credential handling. They do not establish remote trust. Trace artifacts record declared linkage and freshness only. They do not prove requirement satisfaction or implementation correctness.
 
@@ -675,6 +893,9 @@ Normal lifecycle commands reject a legacy-only `cairn/` root. Run the explicit m
 
 ## Agent workflow source
 
+The [agent efficiency roadmap](docs/agent-efficiency-roadmap.md) tracks planned improvements to agent guidance, context, readiness, MCP output, and token measurement.
+These changes are plans, not implemented features.
+
 `docs/hermes/cairn-workflow-skill.md` contains the repository-maintained agent workflow. It documents native lifecycle, boundaries, checks, commands, and known errors.
 
 Cairn also generates bounded, project-local workflows for Agent Skills, Claude, and Codex. Generation uses the checked policy projection without network or model calls.
@@ -688,9 +909,9 @@ Installation is preview-first. Add `--execute --plan-hash <PLAN_HASH>` only afte
 
 ## License
 
-`cairn-core` and reusable templates use `MIT OR Apache-2.0`. The `cairn-cli` shell uses `AGPL-3.0-or-later`.
+`cairn-core` and reusable templates use `MIT OR Apache-2.0`. The `cairn-cli` shell uses `AGPL-3.0-or-later`. The [named policy inputs and projection](cairn-policy/LICENSING.md), including their pinned historical versions, also offer an `MIT OR Apache-2.0` choice.
 
-Complete texts are in [LICENSES](LICENSES). The package map is in [docs/licensing.md](docs/licensing.md).
+Complete texts are in [LICENSES](LICENSES). The repository license map is in [docs/licensing.md](docs/licensing.md).
 
 The license split does not turn lifecycle conformance into code-correctness or release evidence.
 

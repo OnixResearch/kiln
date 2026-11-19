@@ -1,0 +1,489 @@
+{
+  "snapshot": "cc5547d1accbcff447ef9407a6b771f60de9ceb1b6886349b40287b5380bcfca",
+  "intake": "typed_snapshot_v1",
+  "producer_schema": "cairn.selected-work.v1",
+  "selection": {
+    "change": "sample",
+    "task": null
+  },
+  "cohort": {
+    "source": "109c8ec45a98a7a1df5848c73c7d198edf15ce45ee8ff1699442bef7bfe60326",
+    "intent": "38f4fb1e80a3a8c8ba2c4e716037047ebae78a0d7223603026e8586e0a6e23c1",
+    "context": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
+    "verification_subject": "fd5865417004c951791b27615a50cc213280edc7c14a17f75743ffccbcab6c71",
+    "dependencies": "25a78c4686effdbd529ba8f6ef8beda5ddadfa313cba1f0dc63733fb55546d6c",
+    "obligations": "ebc4fbda209d8ebeab668a270072c31e1849fdf0c4d1658a20fc86eadb5ad58e",
+    "selection": "9f0d616d6a8c508b2c70d13059026486d708d61777eccc071196e4792d7b9943",
+    "observation": "8f60b4e2482189f43d1b8f7a0a7b352a2232e13d4da1ca43c01f9c9f19ef2837"
+  },
+  "source": {
+    "revision_kind": "projection",
+    "revision": "a07980a17237e9f0c0d26d3625905bf9430cfd685f2643e009c1cc7436ffe124",
+    "artifacts": [
+      {
+        "root": "lifecycle",
+        "path": ".cairn/changes/sample/tasks.md",
+        "bytes": 21,
+        "content": "0000000000000000000000000000000000000000000000000000000000000002",
+        "status": "present"
+      }
+    ]
+  },
+  "policy": "0000000000000000000000000000000000000000000000000000000000000004",
+  "profile": "spec-driven",
+  "profile_identity": "0000000000000000000000000000000000000000000000000000000000000004",
+  "completion": {
+    "state": "blocked",
+    "contract": "0000000000000000000000000000000000000000000000000000000000000015",
+    "results": null,
+    "subject": "0000000000000000000000000000000000000000000000000000000000000016"
+  },
+  "context": {
+    "selection": "0000000000000000000000000000000000000000000000000000000000000005",
+    "portable": "0000000000000000000000000000000000000000000000000000000000000007",
+    "entries": []
+  },
+  "readiness": {
+    "receipt": "000000000000000000000000000000000000000000000000000000000000000d",
+    "input": "000000000000000000000000000000000000000000000000000000000000000c",
+    "policy": "000000000000000000000000000000000000000000000000000000000000000b",
+    "source": "0000000000000000000000000000000000000000000000000000000000000008",
+    "evidence": "0000000000000000000000000000000000000000000000000000000000000009",
+    "valid": true,
+    "classification": "blocked",
+    "stages": [
+      {
+        "stage": "artifact",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "proposal",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "design",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "tasks",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "completion",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "sync",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "archive",
+        "state": "blocked",
+        "decision": "000000000000000000000000000000000000000000000000000000000000000a"
+      }
+    ],
+    "blockers": [
+      {
+        "id": "completion.missing-results",
+        "stage": "completion",
+        "code": "missing_results",
+        "target": "sample"
+      }
+    ],
+    "advisory_actions": []
+  },
+  "units": [
+    {
+      "task": "t1",
+      "state": "complete",
+      "references": [
+        {
+          "kind": "requirement",
+          "id": "kiln.sample",
+          "scope": {
+            "kind": "change"
+          }
+        },
+        {
+          "kind": "acceptance",
+          "id": "kiln.sample",
+          "scope": {
+            "kind": "task",
+            "task": "t1"
+          }
+        }
+      ],
+      "verification_contracts": []
+    }
+  ],
+  "remaining": [
+    {
+      "kind": "completion",
+      "state": "blocked",
+      "subject": null
+    },
+    {
+      "kind": "sync",
+      "state": "blocked",
+      "subject": null
+    },
+    {
+      "kind": "archive",
+      "state": "blocked",
+      "subject": null
+    }
+  ],
+  "dependencies": [
+    {
+      "task": "t1",
+      "prerequisite": "t0",
+      "state": "unavailable",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000014"
+    }
+  ],
+  "enumeration": {
+    "complete": true,
+    "observed": 1,
+    "total": 1
+  },
+  "obligations": {
+    "state": "exported",
+    "plan": {
+      "workflow_id": "verify",
+      "workflow_version": 1,
+      "definition_id": "verify",
+      "binding": "823d563872eb9b7eafa858b37b706bb5d4f4017858496706c115e7a7066c2de5",
+      "intent": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
+      "workflow_policy": "0000000000000000000000000000000000000000000000000000000000000004",
+      "predicate": "d30e182282d1fb75ebb18ce6767cc45bb47ea645a0f68e83ea9309b8ecaa9271",
+      "subject": "fd5865417004c951791b27615a50cc213280edc7c14a17f75743ffccbcab6c71",
+      "context": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
+      "selected_alternatives": {
+        "verify.traceability": "receipt-chain"
+      },
+      "nodes": [
+        {
+          "id": "verify.completion",
+          "kind": "all_of",
+          "parent": null,
+          "alternative": null,
+          "children": [
+            "verify.evidence.contract",
+            "verify.evidence.pass-only",
+            "verify.evidence.freshness",
+            "verify.evidence.authority",
+            "verify.traceability",
+            "verify.conditional.claim"
+          ],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [],
+          "obligation": "642c7c431c6d985a1f5c92c4130a643c3bf534aa6176fde7b838bc7bb9ea19fa",
+          "guidance": "83d58ea214609e252386b71712a20d58b85cd6a64d40422664f9bf24d90477d0",
+          "condition": "74beacf5eded549e496a473f6471292eb03f62cacde9811af7f4ea8ec630964b"
+        },
+        {
+          "id": "verify.evidence.contract",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.verification-contract",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+              "reference": "0fd4a3f8dd1a51bb76c442773856cae837fc218074efdf312a361dea4c62e72f"
+            }
+          ],
+          "obligation": "00db49cdd385173527b6cb4842b22da3a0d6944d37e30f5ab67b6be81896ac75",
+          "guidance": "9138d311b4ee0dd4d8cff7e173ca1bc8f8f7f32f1cd4cca513fd10ed2a946c49",
+          "condition": "973bdab87d89c4aa2427b1515a1cb3d7f86afec697dec20d860afbbd83c6e7b2"
+        },
+        {
+          "id": "verify.evidence.pass-only",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.pass-only",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.pass_only",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "34abbfe64cae739b75554f48d89d0e0bc19ca8e55d54cf51a9363ffe84a6f58d",
+              "reference": "4563ac87a421f1b6e0babae8cfe0b81f5225fd358f4dc512fe4eff41501503bd"
+            }
+          ],
+          "obligation": "56178629bd12eee48e2af348f79a809657f7e2e44947599ee08c922514393c50",
+          "guidance": "8baf760be6bbe3bea1d18a7f0a91b47a2ec93beb90e2409997bc9d613c57fe22",
+          "condition": "ed72d51b96c75aad5ba75fb2ab4a95035d4c1e3025afb6ab5dd671d2e540749f"
+        },
+        {
+          "id": "verify.evidence.freshness",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.freshness",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+              "reference": "65dc0ed719eec9172cd343f16b5a60c289fb0de13367b651dc53a43b3cb53972"
+            }
+          ],
+          "obligation": "6abd2466b8c69602e70facdf1ea44ce8392947dbca019ab2496c25e30e447ae4",
+          "guidance": "bcb9f3c87f7a7280c80303026dd132b4900b42e9f76210f5da7e60cf35dd5739",
+          "condition": "807d6b1bbba1888b9f9a0120f1e5395491f671c3242ec8b4bc27e7df170776b4"
+        },
+        {
+          "id": "verify.evidence.authority",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.completion-authority",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.completion_authority",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "5427af464b1ebc00db599a9ec90cdee48d0ce7b4a0b2652c6dc1d134bd89451b",
+              "reference": "49f4149735ad199632956cab441373705df7b4e0ed0383fbd509cf7ea39a8fa7"
+            }
+          ],
+          "obligation": "73171ce0a2f4a478aa8bf70ec1df58e1cbfc5c47094c72058aee3087fd9e373d",
+          "guidance": "aa76c01cff079bfb94f92217247b87cc3acfd6f0ac1e9f6d658a77127ccbdae1",
+          "condition": "b3e9d7435707b5872c7979a91fb804cc243b1da9247b90f0617bed8f0832b02f"
+        },
+        {
+          "id": "verify.traceability",
+          "kind": "any_of",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [
+            "verify.traceability.contract",
+            "verify.traceability.freshness",
+            "verify.traceability.claim"
+          ],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [],
+          "obligation": "9dc756bca0c05fbe2741a7fa3dacb503f262366ef0ab107e5b456f63d549a510",
+          "guidance": "8049ffa416f03ade4fef76836ee81897ac21b87108c29d30863c543589d38e81",
+          "condition": "fe1eb6b11d89dacf41a644f654de3c8d4e5f85c3f19bbc342cab98ce36fb3f86"
+        },
+        {
+          "id": "verify.traceability.contract",
+          "kind": "evidence",
+          "parent": "verify.traceability",
+          "alternative": "receipt-chain",
+          "children": [],
+          "selection": "selected_alternative",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.verification-contract",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+              "reference": "0fd4a3f8dd1a51bb76c442773856cae837fc218074efdf312a361dea4c62e72f"
+            }
+          ],
+          "obligation": "fc14538d5560b012a1b5e83b3aa46995691eb0b8e8cc7adcf4a5e83cc365a5d7",
+          "guidance": "ea3798ae136564df351bfaac68a265cdc00b2a7c1ec2725a1e93cf8b843b6807",
+          "condition": "74ee8978db7b4483a25835cabac7ec0d836ff42007ea8562243f2f0cd94099b1"
+        },
+        {
+          "id": "verify.traceability.freshness",
+          "kind": "evidence",
+          "parent": "verify.traceability",
+          "alternative": "receipt-chain",
+          "children": [],
+          "selection": "selected_alternative",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.freshness",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+              "reference": "65dc0ed719eec9172cd343f16b5a60c289fb0de13367b651dc53a43b3cb53972"
+            }
+          ],
+          "obligation": "4374ac9fcce0230452c13b13f4d27eba8b1d998c3b923398782813d771a8412a",
+          "guidance": "e905f071214c44f6a4fa3a6f81d7b9d299a0d1197818a97d765782ae9629b629",
+          "condition": "3970a396086af45c0a906290d18019cdee3f6f5a539436fa7cd2f6afb2e49b7b"
+        },
+        {
+          "id": "verify.traceability.claim",
+          "kind": "evidence",
+          "parent": "verify.traceability",
+          "alternative": "claim-revision",
+          "children": [],
+          "selection": "unselected_alternative",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "verification-obligation.claim-revision",
+              "kind": "evidence",
+              "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+              "owner": "cairn_core::verified::workflow_collaboration",
+              "accepted_revision": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666",
+              "reference": "5fb5ba9d27bb4642debff45e51a8bc4787ef9c4ff78f1b885aab2399647e4b6b"
+            }
+          ],
+          "obligation": "f12d420bf6975abff2e44e1271b07652cf24eefd6a8798531fce8d6a4ae1b180",
+          "guidance": "df5777a5706df4784dbdbc0905444d5be1a732447e53bd709accad7de01de1ca",
+          "condition": "688408c2098ee33dc321922c71ae1c5751af44d78b02c4f4b3cdaf43ce55140a"
+        },
+        {
+          "id": "verify.conditional.claim",
+          "kind": "applicable",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [
+            "verify.conditional.claim.revision"
+          ],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "verification-scope.applicable",
+              "kind": "applicability",
+              "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+              "reference": "06855d32b0a5ef9108ca395da6775cceaf7ec0ae0124b39d0bdd2f31cf0c605f"
+            }
+          ],
+          "obligation": "2cd792b9b430dbf822ce6c332dc199616354ae3afa5d38784bdf6877d8f85721",
+          "guidance": "2db2420887cf79852c282ccb54db0c9c8e7ece11b8b4744d1cef9f8d2987c1cc",
+          "condition": "0ee8cc5cb52e5eed9ed6057572c360355114cadc54934a366377eb0e66f1e5ba"
+        },
+        {
+          "id": "verify.conditional.claim.revision",
+          "kind": "evidence",
+          "parent": "verify.conditional.claim",
+          "alternative": null,
+          "children": [],
+          "selection": "conditional",
+          "conditions": [
+            "verify.conditional.claim"
+          ],
+          "evidence": [
+            {
+              "predicate": "verification-obligation.claim-revision",
+              "kind": "evidence",
+              "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+              "owner": "cairn_core::verified::workflow_collaboration",
+              "accepted_revision": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666",
+              "reference": "5fb5ba9d27bb4642debff45e51a8bc4787ef9c4ff78f1b885aab2399647e4b6b"
+            }
+          ],
+          "obligation": "7b1959ce4c505c88b0636873746281ddb879846e82b73cfb3a0688bdc9428747",
+          "guidance": "9f979cd115433402dd6498c3982864fdc1b9ddce5444275dee103a04d7901fa2",
+          "condition": "18b34fe1d9fbe24506d18f0fb0df6590ecf46db4276f9f157f44e61da4b00867"
+        }
+      ],
+      "observations_supplied": true,
+      "evaluation": {
+        "outcome": "unknown",
+        "proved": false,
+        "successful_delivery": false,
+        "satisfied": [],
+        "remaining": [
+          {
+            "id": "verify.completion",
+            "kind": "all_of",
+            "state": "unknown",
+            "reason": "verify.evidence.contract: unknown; verify.evidence.pass-only: unknown; verify.evidence.freshness: unknown; verify.evidence.authority: unknown; verify.traceability: unknown; verify.conditional.claim: unknown"
+          },
+          {
+            "id": "verify.evidence.contract",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.verification_contract"
+          },
+          {
+            "id": "verify.evidence.pass-only",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.pass_only"
+          },
+          {
+            "id": "verify.evidence.freshness",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.freshness"
+          },
+          {
+            "id": "verify.evidence.authority",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.completion_authority"
+          },
+          {
+            "id": "verify.traceability",
+            "kind": "any_of",
+            "state": "unknown",
+            "reason": "selected receipt-chain; verify.traceability.contract: unknown; verify.traceability.freshness: unknown"
+          },
+          {
+            "id": "verify.traceability.contract",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.verification_contract"
+          },
+          {
+            "id": "verify.traceability.freshness",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.freshness"
+          },
+          {
+            "id": "verify.conditional.claim",
+            "kind": "applicable",
+            "state": "unknown",
+            "reason": "conditional obligation verify.conditional.claim has no admitted applicability observation for verification-scope.applicable: no observation supplied for cairn.supersede.agent_run_receipts.verification_contract"
+          },
+          {
+            "id": "verify.precondition.status",
+            "kind": "action_precondition",
+            "state": "unknown",
+            "reason": "agent-receipt.verification-contract: unknown (no observation supplied for cairn.supersede.agent_run_receipts.verification_contract)"
+          },
+          {
+            "id": "verify.precondition.gate",
+            "kind": "action_precondition",
+            "state": "unknown",
+            "reason": "agent-receipt.verification-contract: unknown (no observation supplied for cairn.supersede.agent_run_receipts.verification_contract); agent-receipt.pass-only: unknown (no observation supplied for cairn.supersede.agent_run_receipts.pass_only)"
+          }
+        ],
+        "report": "a774ecdedae2bb8ee2e0d4365e312b32daaa4b0d5c94c922feb7c6353c99bc7b"
+      }
+    }
+  }
+}

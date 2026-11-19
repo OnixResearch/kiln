@@ -1,13 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde_json::Value;
-
-use super::{
-    LifecycleStoreBounds, LifecycleStoreLocalStateSchema, LifecycleStoreOpenerProfile,
-    LifecycleStorePolicy, LifecycleStoreProjectionPolicy, LifecycleStoreReceiptPolicy,
-    LifecycleStoreRootResolutionPolicy, LifecycleStoreWorksetPolicy, PolicyError,
-};
-
 pub const LIFECYCLE_STORE_POLICY_SCHEMA_V1: &str = "cairn.lifecycle-store-policy.v1";
 
 const POLICY_FIELD: &str = "lifecycle_store_policy";
@@ -289,7 +279,9 @@ const WORKSET_STATE_FIELDS: LocalStateFields = LocalStateFields {
     symlink_paths_allowed: "lifecycle_store_policy.worksets.state.symlink_paths_allowed",
 };
 
-pub(super) fn lifecycle_store_policy(value: &Value) -> Result<LifecycleStorePolicy, PolicyError> {
+pub(super) fn lifecycle_store_policy(
+    value: &serde_json::Value,
+) -> Result<super::LifecycleStorePolicy, super::PolicyError> {
     let policy = object_field(value, "lifecycle_store_policy", POLICY_FIELD)?;
     let schema = exact_string_field(
         policy,
@@ -333,7 +325,7 @@ pub(super) fn lifecycle_store_policy(value: &Value) -> Result<LifecycleStorePoli
         nonempty_string_array_field(policy, "required_non_claims", FIELD_REQUIRED_NON_CLAIMS)?;
     validate_unique(&required_non_claims, FIELD_REQUIRED_NON_CLAIMS)?;
 
-    let parsed = LifecycleStorePolicy {
+    let parsed = super::LifecycleStorePolicy {
         schema,
         hash_algorithm,
         canonicalization,
@@ -352,9 +344,11 @@ pub(super) fn lifecycle_store_policy(value: &Value) -> Result<LifecycleStorePoli
     Ok(parsed)
 }
 
-fn parse_bounds(policy: &Value) -> Result<LifecycleStoreBounds, PolicyError> {
+fn parse_bounds(
+    policy: &serde_json::Value,
+) -> Result<super::LifecycleStoreBounds, super::PolicyError> {
     let bounds = object_field(policy, "bounds", FIELD_BOUNDS)?;
-    Ok(LifecycleStoreBounds {
+    Ok(super::LifecycleStoreBounds {
         max_store_id_bytes: positive_usize_field(
             bounds,
             "max_store_id_bytes",
@@ -404,11 +398,11 @@ fn parse_bounds(policy: &Value) -> Result<LifecycleStoreBounds, PolicyError> {
 }
 
 fn parse_projection_policy(
-    policy: &Value,
+    policy: &serde_json::Value,
     lookup: &str,
     fields: &ProjectionFields,
     expected: &ProjectionExpected,
-) -> Result<LifecycleStoreProjectionPolicy, PolicyError> {
+) -> Result<super::LifecycleStoreProjectionPolicy, super::PolicyError> {
     let projection = object_field(policy, lookup, fields.root)?;
     let source_schema = exact_string_field(
         projection,
@@ -466,7 +460,7 @@ fn parse_projection_policy(
     )?;
     validate_unique(&required_non_claims, fields.required_non_claims)?;
 
-    Ok(LifecycleStoreProjectionPolicy {
+    Ok(super::LifecycleStoreProjectionPolicy {
         source_schema,
         projection_schema,
         source_path,
@@ -480,8 +474,8 @@ fn parse_projection_policy(
 }
 
 fn parse_root_resolution(
-    policy: &Value,
-) -> Result<LifecycleStoreRootResolutionPolicy, PolicyError> {
+    policy: &serde_json::Value,
+) -> Result<super::LifecycleStoreRootResolutionPolicy, super::PolicyError> {
     let resolution = object_field(policy, "root_resolution", FIELD_ROOT_RESOLUTION)?;
     let root_flag = exact_string_field(resolution, "root_flag", FIELD_ROOT_FLAG, ROOT_FLAG)?;
     let lifecycle_store_flag = exact_string_field(
@@ -500,11 +494,11 @@ fn parse_root_resolution(
         nonempty_string_array_field(resolution, "eligible_commands", FIELD_ELIGIBLE_COMMANDS)?;
     validate_unique(&eligible_commands, FIELD_ELIGIBLE_COMMANDS)?;
     if !same_ordered_values(&eligible_commands, ELIGIBLE_ROOT_COMMANDS) {
-        return Err(PolicyError::InvalidField(FIELD_ELIGIBLE_COMMANDS));
+        return Err(super::PolicyError::InvalidField(FIELD_ELIGIBLE_COMMANDS));
     }
     let precedence = nonempty_string_array_field(resolution, "precedence", FIELD_PRECEDENCE)?;
     if !same_ordered_values(&precedence, ROOT_PRECEDENCE) {
-        return Err(PolicyError::InvalidField(FIELD_PRECEDENCE));
+        return Err(super::PolicyError::InvalidField(FIELD_PRECEDENCE));
     }
     let native_root_wins_over_project_pointer = exact_bool_field(
         resolution,
@@ -531,7 +525,7 @@ fn parse_root_resolution(
         false,
     )?;
 
-    Ok(LifecycleStoreRootResolutionPolicy {
+    Ok(super::LifecycleStoreRootResolutionPolicy {
         root_flag,
         lifecycle_store_flag,
         selectors_mutually_exclusive,
@@ -545,11 +539,11 @@ fn parse_root_resolution(
 }
 
 fn parse_local_state_schema(
-    parent: &Value,
+    parent: &serde_json::Value,
     lookup: &str,
     fields: &LocalStateFields,
     expected: &LocalStateExpected,
-) -> Result<LifecycleStoreLocalStateSchema, PolicyError> {
+) -> Result<super::LifecycleStoreLocalStateSchema, super::PolicyError> {
     let state = object_field(parent, lookup, fields.root)?;
     let schema = exact_string_field(state, "schema", fields.schema, expected.schema)?;
     let relative_path = exact_string_field(
@@ -592,7 +586,7 @@ fn parse_local_state_schema(
         false,
     )?;
 
-    Ok(LifecycleStoreLocalStateSchema {
+    Ok(super::LifecycleStoreLocalStateSchema {
         schema,
         relative_path,
         state_hash_field,
@@ -605,7 +599,9 @@ fn parse_local_state_schema(
     })
 }
 
-fn parse_workset_policy(policy: &Value) -> Result<LifecycleStoreWorksetPolicy, PolicyError> {
+fn parse_workset_policy(
+    policy: &serde_json::Value,
+) -> Result<super::LifecycleStoreWorksetPolicy, super::PolicyError> {
     let worksets = object_field(policy, "worksets", FIELD_WORKSETS)?;
     let state = parse_local_state_schema(
         worksets,
@@ -633,7 +629,7 @@ fn parse_workset_policy(policy: &Value) -> Result<LifecycleStoreWorksetPolicy, P
         FIELD_REMOVAL_PRESERVES_MEMBERS,
         true,
     )?;
-    Ok(LifecycleStoreWorksetPolicy {
+    Ok(super::LifecycleStoreWorksetPolicy {
         state,
         required_fields,
         minimum_members,
@@ -642,31 +638,33 @@ fn parse_workset_policy(policy: &Value) -> Result<LifecycleStoreWorksetPolicy, P
     })
 }
 
-fn parse_opener_profiles(policy: &Value) -> Result<Vec<LifecycleStoreOpenerProfile>, PolicyError> {
+fn parse_opener_profiles(
+    policy: &serde_json::Value,
+) -> Result<Vec<super::LifecycleStoreOpenerProfile>, super::PolicyError> {
     let values = array_field(policy, "opener_profiles", FIELD_OPENER_PROFILES)?;
     if values.is_empty() {
-        return Err(PolicyError::InvalidField(FIELD_OPENER_PROFILES));
+        return Err(super::PolicyError::InvalidField(FIELD_OPENER_PROFILES));
     }
     let mut profiles = Vec::with_capacity(values.len());
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for value in values {
         let object = value
             .as_object()
-            .ok_or(PolicyError::InvalidField(FIELD_OPENER_PROFILE_SHAPE))?;
+            .ok_or(super::PolicyError::InvalidField(FIELD_OPENER_PROFILE_SHAPE))?;
         let id = string_field(value, "id", FIELD_OPENER_PROFILE_ID)?;
         if !is_store_id(&id) || !ids.insert(id.clone()) {
-            return Err(PolicyError::InvalidField(FIELD_OPENER_PROFILE_ID));
+            return Err(super::PolicyError::InvalidField(FIELD_OPENER_PROFILE_ID));
         }
         let executable = string_field(value, "executable", FIELD_OPENER_EXECUTABLE)?;
         if !is_safe_executable(&executable) {
-            return Err(PolicyError::InvalidField(FIELD_OPENER_EXECUTABLE));
+            return Err(super::PolicyError::InvalidField(FIELD_OPENER_EXECUTABLE));
         }
         let fixed_args = string_array_field(value, "fixed_args", FIELD_OPENER_FIXED_ARGS)?;
         if fixed_args
             .iter()
             .any(|argument| !is_safe_argument(argument))
         {
-            return Err(PolicyError::InvalidField(FIELD_OPENER_FIXED_ARGS));
+            return Err(super::PolicyError::InvalidField(FIELD_OPENER_FIXED_ARGS));
         }
         let member_argument_mode = exact_string_field(
             value,
@@ -680,9 +678,9 @@ fn parse_opener_profiles(policy: &Value) -> Result<Vec<LifecycleStoreOpenerProfi
                 .keys()
                 .any(|key| !OPENER_PROFILE_KEYS.contains(&key.as_str()))
         {
-            return Err(PolicyError::InvalidField(FIELD_OPENER_PROFILE_SHAPE));
+            return Err(super::PolicyError::InvalidField(FIELD_OPENER_PROFILE_SHAPE));
         }
-        profiles.push(LifecycleStoreOpenerProfile {
+        profiles.push(super::LifecycleStoreOpenerProfile {
             id,
             executable,
             fixed_args,
@@ -693,7 +691,9 @@ fn parse_opener_profiles(policy: &Value) -> Result<Vec<LifecycleStoreOpenerProfi
     Ok(profiles)
 }
 
-fn parse_receipt_policy(policy: &Value) -> Result<LifecycleStoreReceiptPolicy, PolicyError> {
+fn parse_receipt_policy(
+    policy: &serde_json::Value,
+) -> Result<super::LifecycleStoreReceiptPolicy, super::PolicyError> {
     let receipts = object_field(policy, "receipts", FIELD_RECEIPTS)?;
     let schema = exact_string_field(
         receipts,
@@ -767,7 +767,9 @@ fn parse_receipt_policy(policy: &Value) -> Result<LifecycleStoreReceiptPolicy, P
         .iter()
         .any(|field| portable_excluded_fields.contains(field))
     {
-        return Err(PolicyError::InvalidField(FIELD_RECEIPT_PORTABLE_FIELDS));
+        return Err(super::PolicyError::InvalidField(
+            FIELD_RECEIPT_PORTABLE_FIELDS,
+        ));
     }
     let local_only_by_default = exact_bool_field(
         receipts,
@@ -785,7 +787,7 @@ fn parse_receipt_policy(policy: &Value) -> Result<LifecycleStoreReceiptPolicy, P
         nonempty_string_array_field(receipts, "required_non_claims", FIELD_RECEIPT_NON_CLAIMS)?;
     validate_unique(&required_non_claims, FIELD_RECEIPT_NON_CLAIMS)?;
 
-    Ok(LifecycleStoreReceiptPolicy {
+    Ok(super::LifecycleStoreReceiptPolicy {
         schema,
         evidence_class,
         full_hash_field,
@@ -801,36 +803,38 @@ fn parse_receipt_policy(policy: &Value) -> Result<LifecycleStoreReceiptPolicy, P
     })
 }
 
-fn validate_issue_codes(issue_codes: &[String]) -> Result<(), PolicyError> {
+fn validate_issue_codes(issue_codes: &[String]) -> Result<(), super::PolicyError> {
     validate_unique(issue_codes, FIELD_ISSUE_CODES)?;
     if issue_codes.iter().any(|code| !is_issue_code(code)) {
-        return Err(PolicyError::InvalidField(FIELD_ISSUE_CODES));
+        return Err(super::PolicyError::InvalidField(FIELD_ISSUE_CODES));
     }
     Ok(())
 }
 
-fn validate_policy_relationships(policy: &LifecycleStorePolicy) -> Result<(), PolicyError> {
+fn validate_policy_relationships(
+    policy: &super::LifecycleStorePolicy,
+) -> Result<(), super::PolicyError> {
     if policy.issue_codes.len() > policy.bounds.max_issue_count {
-        return Err(PolicyError::InvalidField(FIELD_ISSUE_CODES));
+        return Err(super::PolicyError::InvalidField(FIELD_ISSUE_CODES));
     }
     if policy.required_non_claims.len() > policy.bounds.max_non_claims {
-        return Err(PolicyError::InvalidField(FIELD_REQUIRED_NON_CLAIMS));
+        return Err(super::PolicyError::InvalidField(FIELD_REQUIRED_NON_CLAIMS));
     }
     if policy.store_identity.required_non_claims.len() > policy.bounds.max_non_claims {
-        return Err(PolicyError::InvalidField(
+        return Err(super::PolicyError::InvalidField(
             STORE_PROJECTION_FIELDS.required_non_claims,
         ));
     }
     if policy.project_config.required_non_claims.len() > policy.bounds.max_non_claims {
-        return Err(PolicyError::InvalidField(
+        return Err(super::PolicyError::InvalidField(
             PROJECT_PROJECTION_FIELDS.required_non_claims,
         ));
     }
     if policy.receipts.required_non_claims != policy.required_non_claims {
-        return Err(PolicyError::InvalidField(FIELD_RECEIPT_NON_CLAIMS));
+        return Err(super::PolicyError::InvalidField(FIELD_RECEIPT_NON_CLAIMS));
     }
     if policy.worksets.minimum_members > policy.bounds.max_workset_members {
-        return Err(PolicyError::InvalidField(FIELD_MINIMUM_MEMBERS));
+        return Err(super::PolicyError::InvalidField(FIELD_MINIMUM_MEMBERS));
     }
     if policy.opener_profiles.iter().any(|profile| {
         profile.id.len() > policy.bounds.max_workset_id_bytes
@@ -840,13 +844,15 @@ fn validate_policy_relationships(policy: &LifecycleStorePolicy) -> Result<(), Po
                 .iter()
                 .any(|argument| argument.len() > policy.bounds.max_path_bytes)
     }) {
-        return Err(PolicyError::InvalidField(FIELD_OPENER_PROFILES));
+        return Err(super::PolicyError::InvalidField(FIELD_OPENER_PROFILES));
     }
     if policy.locator.relative_path.len() > policy.bounds.max_path_bytes {
-        return Err(PolicyError::InvalidField(LOCATOR_FIELDS.relative_path));
+        return Err(super::PolicyError::InvalidField(
+            LOCATOR_FIELDS.relative_path,
+        ));
     }
     if policy.worksets.state.relative_path.len() > policy.bounds.max_path_bytes {
-        return Err(PolicyError::InvalidField(
+        return Err(super::PolicyError::InvalidField(
             WORKSET_STATE_FIELDS.relative_path,
         ));
     }
@@ -854,123 +860,133 @@ fn validate_policy_relationships(policy: &LifecycleStorePolicy) -> Result<(), Po
 }
 
 fn object_field<'a>(
-    value: &'a Value,
+    value: &'a serde_json::Value,
     lookup: &str,
     field: &'static str,
-) -> Result<&'a Value, PolicyError> {
-    let selected = value.get(lookup).ok_or(PolicyError::MissingField(field))?;
+) -> Result<&'a serde_json::Value, super::PolicyError> {
+    let selected = value
+        .get(lookup)
+        .ok_or(super::PolicyError::MissingField(field))?;
     if !selected.is_object() {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(selected)
 }
 
 fn array_field<'a>(
-    value: &'a Value,
+    value: &'a serde_json::Value,
     lookup: &str,
     field: &'static str,
-) -> Result<&'a Vec<Value>, PolicyError> {
+) -> Result<&'a Vec<serde_json::Value>, super::PolicyError> {
     value
         .get(lookup)
-        .ok_or(PolicyError::MissingField(field))?
+        .ok_or(super::PolicyError::MissingField(field))?
         .as_array()
-        .ok_or(PolicyError::InvalidField(field))
+        .ok_or(super::PolicyError::InvalidField(field))
 }
 
-fn string_field(value: &Value, lookup: &str, field: &'static str) -> Result<String, PolicyError> {
+fn string_field(
+    value: &serde_json::Value,
+    lookup: &str,
+    field: &'static str,
+) -> Result<String, super::PolicyError> {
     let text = value
         .get(lookup)
-        .ok_or(PolicyError::MissingField(field))?
+        .ok_or(super::PolicyError::MissingField(field))?
         .as_str()
-        .ok_or(PolicyError::InvalidField(field))?;
+        .ok_or(super::PolicyError::InvalidField(field))?;
     if text.is_empty() {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(text.to_string())
 }
 
 fn exact_string_field(
-    value: &Value,
+    value: &serde_json::Value,
     lookup: &str,
     field: &'static str,
     expected: &str,
-) -> Result<String, PolicyError> {
+) -> Result<String, super::PolicyError> {
     let actual = string_field(value, lookup, field)?;
     if actual != expected {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(actual)
 }
 
-fn bool_field(value: &Value, lookup: &str, field: &'static str) -> Result<bool, PolicyError> {
+fn bool_field(
+    value: &serde_json::Value,
+    lookup: &str,
+    field: &'static str,
+) -> Result<bool, super::PolicyError> {
     value
         .get(lookup)
-        .ok_or(PolicyError::MissingField(field))?
+        .ok_or(super::PolicyError::MissingField(field))?
         .as_bool()
-        .ok_or(PolicyError::InvalidField(field))
+        .ok_or(super::PolicyError::InvalidField(field))
 }
 
 fn exact_bool_field(
-    value: &Value,
+    value: &serde_json::Value,
     lookup: &str,
     field: &'static str,
     expected: bool,
-) -> Result<bool, PolicyError> {
+) -> Result<bool, super::PolicyError> {
     let actual = bool_field(value, lookup, field)?;
     if actual != expected {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(actual)
 }
 
 fn positive_usize_field(
-    value: &Value,
+    value: &serde_json::Value,
     lookup: &str,
     field: &'static str,
-) -> Result<usize, PolicyError> {
+) -> Result<usize, super::PolicyError> {
     let raw = value
         .get(lookup)
-        .ok_or(PolicyError::MissingField(field))?
+        .ok_or(super::PolicyError::MissingField(field))?
         .as_u64()
-        .ok_or(PolicyError::InvalidField(field))?;
+        .ok_or(super::PolicyError::InvalidField(field))?;
     if raw == 0 {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
-    usize::try_from(raw).map_err(|_| PolicyError::InvalidField(field))
+    usize::try_from(raw).map_err(|_| super::PolicyError::InvalidField(field))
 }
 
 fn string_array_field(
-    value: &Value,
+    value: &serde_json::Value,
     lookup: &str,
     field: &'static str,
-) -> Result<Vec<String>, PolicyError> {
+) -> Result<Vec<String>, super::PolicyError> {
     array_field(value, lookup, field)?
         .iter()
         .map(|item| {
             item.as_str()
                 .filter(|text| !text.is_empty())
                 .map(str::to_string)
-                .ok_or(PolicyError::InvalidField(field))
+                .ok_or(super::PolicyError::InvalidField(field))
         })
         .collect()
 }
 
 fn nonempty_string_array_field(
-    value: &Value,
+    value: &serde_json::Value,
     lookup: &str,
     field: &'static str,
-) -> Result<Vec<String>, PolicyError> {
+) -> Result<Vec<String>, super::PolicyError> {
     let values = string_array_field(value, lookup, field)?;
     if values.is_empty() {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(values)
 }
 
-fn validate_unique(values: &[String], field: &'static str) -> Result<(), PolicyError> {
-    let unique = values.iter().collect::<BTreeSet<_>>();
+fn validate_unique(values: &[String], field: &'static str) -> Result<(), super::PolicyError> {
+    let unique = values.iter().collect::<std::collections::BTreeSet<_>>();
     if unique.len() != values.len() {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(())
 }
@@ -979,14 +995,14 @@ fn validate_string_set(
     values: &[String],
     expected: &[&str],
     field: &'static str,
-) -> Result<(), PolicyError> {
+) -> Result<(), super::PolicyError> {
     validate_unique(values, field)?;
     if values.len() != expected.len()
         || values
             .iter()
             .any(|value| !expected.contains(&value.as_str()))
     {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(())
 }

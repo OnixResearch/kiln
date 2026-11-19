@@ -1,9 +1,3 @@
-use crate::verified::{
-    change_dependencies::ChangeDependencyGraph,
-    repo::{ChangeStatus, SpecSource, TaskCounts},
-    traceability::TraceabilityCoverageReport,
-};
-
 pub const LIFECYCLE_VIEW_SCHEMA_V1: &str = "cairn.lifecycle-view.v1";
 pub const LIFECYCLE_VIEW_BOUNDARY: &str = "lifecycle views project declared Cairn state and linkage; they do not prove requirement satisfaction, implementation correctness, verification soundness, lifecycle readiness, or release eligibility";
 pub const LIFECYCLE_VIEW_NON_CLAIMS: &[&str] = &[
@@ -19,14 +13,14 @@ const KANBAN_COLUMN_COUNT: usize = 5;
 pub struct LifecycleViewInput {
     pub repository: String,
     pub changes: Vec<LifecycleViewChangeInput>,
-    pub specs: Vec<SpecSource>,
-    pub dependency_graph: ChangeDependencyGraph,
-    pub traceability: Option<TraceabilityCoverageReport>,
+    pub specs: Vec<crate::verified::repo::SpecSource>,
+    pub dependency_graph: crate::verified::change_dependencies::ChangeDependencyGraph,
+    pub traceability: Option<crate::verified::traceability::TraceabilityCoverageReport>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LifecycleViewChangeInput {
-    pub status: ChangeStatus,
+    pub status: crate::verified::repo::ChangeStatus,
     pub tasks_markdown: Option<String>,
 }
 
@@ -146,7 +140,7 @@ impl KanbanColumnKind {
 pub struct KanbanCard {
     pub change: String,
     pub metadata_status: Option<String>,
-    pub task_counts: Option<TaskCounts>,
+    pub task_counts: Option<crate::verified::repo::TaskCounts>,
     pub dependencies: Vec<String>,
     pub blocked_by: Vec<String>,
     pub reasons: Vec<String>,

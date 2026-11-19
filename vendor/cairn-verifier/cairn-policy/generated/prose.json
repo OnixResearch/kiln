@@ -1,0 +1,17 @@
+{
+  "profiles": [
+    {
+      "exclude_rules": [],
+      "include_rules": [],
+      "name": "default"
+    },
+    {
+      "exclude_rules": [],
+      "include_rules": [
+        "E0001"
+      ],
+      "name": "agreement"
+    }
+  ],
+  "schema_version": "cairn.prose-profiles.v1"
+}

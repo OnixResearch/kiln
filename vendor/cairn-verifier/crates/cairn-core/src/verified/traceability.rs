@@ -1,11 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-
-use crate::verified::requirement_id_registry::{
-    validate_requirement_id_registry, RequirementIdRegistry, RequirementReference,
-};
-
 pub const TRACEABILITY_PROFILE_CAIRN_DEFAULT: &str = "cairn-default";
 pub const TRACEABILITY_PROFILE_TRELLIS_RUST: &str = "trellis-rust";
 pub const TRACEABILITY_VERB_IMPL: &str = "impl";
@@ -40,7 +32,7 @@ const TRACEABILITY_MARKER_ISSUE_DUPLICATE: &str = "traceability_marker.duplicate
 const TRACEABILITY_MARKER_ISSUE_MISSING_REGISTRY: &str = "traceability_marker.missing_registry";
 const TRACEABILITY_MARKER_ISSUE_OVERCLAIM: &str = "traceability_marker.overclaim";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TraceabilityProfile {
     pub id: String,
@@ -49,9 +41,11 @@ pub struct TraceabilityProfile {
     pub marker_verbs: Vec<String>,
     pub assurance_level: String,
     pub anchor_kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rust_configuration_path: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TraceabilitySource {
     pub root: String,
@@ -105,7 +99,7 @@ pub struct TraceabilityMarkerValidationInput {
     pub marker_strings: Vec<String>,
     pub vocabulary: Vec<String>,
     pub allowed_namespaces: Vec<String>,
-    pub registry: Option<RequirementIdRegistry>,
+    pub registry: Option<crate::verified::requirement_id_registry::RequirementIdRegistry>,
     pub consumer: String,
     pub expected_owner: String,
     pub require_registry: bool,
@@ -123,9 +117,10 @@ pub struct TraceabilityMarkerValidationReport {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TraceabilityCoverageReport {
-    pub requirements: BTreeMap<String, Vec<TraceabilityRequirementOccurrence>>,
-    pub coverage_references: BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
-    pub all_references: BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
+    pub requirements: std::collections::BTreeMap<String, Vec<TraceabilityRequirementOccurrence>>,
+    pub coverage_references:
+        std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
+    pub all_references: std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
     pub missing: Vec<String>,
     pub dangling: Vec<String>,
     pub requirement_count: usize,
@@ -456,7 +451,7 @@ fn validate_duplicate_links(
     if allow_duplicate_links {
         return;
     }
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     for link in links {
         let key = format!("{}:{}", link.verb, link.requirement_id);
         if !seen.insert(key) {
@@ -490,13 +485,15 @@ fn validate_registry_links(
     };
     let references = links
         .iter()
-        .map(|link| RequirementReference {
-            requirement_id: link.requirement_id.clone(),
-            consumer: input.consumer.clone(),
-            expected_owner: input.expected_owner.clone(),
-        })
+        .map(
+            |link| crate::verified::requirement_id_registry::RequirementReference {
+                requirement_id: link.requirement_id.clone(),
+                consumer: input.consumer.clone(),
+                expected_owner: input.expected_owner.clone(),
+            },
+        )
         .collect::<Vec<_>>();
-    let report = validate_requirement_id_registry(
+    let report = crate::verified::requirement_id_registry::validate_requirement_id_registry(
         registry,
         &references,
         TRACEABILITY_MARKER_REGISTRY_HASH.to_string(),
@@ -538,8 +535,8 @@ fn sort_marker_issues(issues: &mut [TraceabilityMarkerIssue]) {
 
 fn collect_requirement_markers(
     files: &[TraceabilityFile],
-) -> BTreeMap<String, Vec<TraceabilityRequirementOccurrence>> {
-    let mut requirements = BTreeMap::new();
+) -> std::collections::BTreeMap<String, Vec<TraceabilityRequirementOccurrence>> {
+    let mut requirements = std::collections::BTreeMap::new();
     for file in files {
         for (line_index, line) in file.text.lines().enumerate() {
             if let Some(requirement_id) = traceability_spec_marker(line.trim()) {
@@ -559,8 +556,8 @@ fn collect_requirement_markers(
 fn collect_reference_markers(
     files: &[TraceabilityFile],
     allowed_verbs: &[String],
-) -> BTreeMap<String, Vec<TraceabilityReferenceOccurrence>> {
-    let mut references = BTreeMap::new();
+) -> std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>> {
+    let mut references = std::collections::BTreeMap::new();
     for file in files {
         for (line_index, line) in file.text.lines().enumerate() {
             for marker in traceability_ref_markers(line, allowed_verbs) {
@@ -579,8 +576,8 @@ fn collect_reference_markers(
 }
 
 fn coverage_references(
-    all_references: &BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
-) -> BTreeMap<String, Vec<TraceabilityReferenceOccurrence>> {
+    all_references: &std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
+) -> std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>> {
     all_references
         .iter()
         .filter_map(|(requirement_id, references)| {
@@ -599,8 +596,8 @@ fn coverage_references(
 }
 
 fn missing_requirements(
-    requirements: &BTreeMap<String, Vec<TraceabilityRequirementOccurrence>>,
-    coverage_references: &BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
+    requirements: &std::collections::BTreeMap<String, Vec<TraceabilityRequirementOccurrence>>,
+    coverage_references: &std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
 ) -> Vec<String> {
     requirements
         .keys()
@@ -610,8 +607,8 @@ fn missing_requirements(
 }
 
 fn dangling_references(
-    requirements: &BTreeMap<String, Vec<TraceabilityRequirementOccurrence>>,
-    all_references: &BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
+    requirements: &std::collections::BTreeMap<String, Vec<TraceabilityRequirementOccurrence>>,
+    all_references: &std::collections::BTreeMap<String, Vec<TraceabilityReferenceOccurrence>>,
 ) -> Vec<String> {
     all_references
         .keys()
@@ -624,17 +621,13 @@ pub fn unique_sorted_strings(values: &[String]) -> Vec<String> {
     values
         .iter()
         .cloned()
-        .collect::<BTreeSet<_>>()
+        .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::verified::requirement_id_registry::{
-        RequirementIdAlias, RequirementIdRegistry, RequirementRegistryRow,
-        REQUIREMENT_ID_REGISTRY_BOUNDARY, REQUIREMENT_ID_REGISTRY_SCHEMA_V1,
-    };
 
     use super::*;
 
@@ -659,6 +652,7 @@ mod tests {
             ],
             assurance_level: "declared".to_string(),
             anchor_kind: "exact_marker_bytes".to_string(),
+            rust_configuration_path: None,
         }
     }
 
@@ -702,23 +696,30 @@ mod tests {
         }
     }
 
-    fn marker_registry() -> RequirementIdRegistry {
-        RequirementIdRegistry {
-            schema_version: REQUIREMENT_ID_REGISTRY_SCHEMA_V1.to_string(),
-            boundary: REQUIREMENT_ID_REGISTRY_BOUNDARY.to_string(),
-            rows: vec![RequirementRegistryRow {
-                requirement_id: "cairn.marker.contract".to_string(),
-                namespace: "cairn.marker".to_string(),
-                owner_repo: "cairn".to_string(),
-                accepted_spec: ".cairn/specs/requirement-id-registry/spec.md".to_string(),
-                status: "active".to_string(),
-                aliases: vec![RequirementIdAlias {
-                    id: "cairn.marker.compat".to_string(),
+    fn marker_registry() -> crate::verified::requirement_id_registry::RequirementIdRegistry {
+        crate::verified::requirement_id_registry::RequirementIdRegistry {
+            schema_version:
+                crate::verified::requirement_id_registry::REQUIREMENT_ID_REGISTRY_SCHEMA_V1
+                    .to_string(),
+            boundary: crate::verified::requirement_id_registry::REQUIREMENT_ID_REGISTRY_BOUNDARY
+                .to_string(),
+            rows: vec![
+                crate::verified::requirement_id_registry::RequirementRegistryRow {
+                    requirement_id: "cairn.marker.contract".to_string(),
+                    namespace: "cairn.marker".to_string(),
+                    owner_repo: "cairn".to_string(),
+                    accepted_spec: ".cairn/specs/requirement-id-registry/spec.md".to_string(),
                     status: "active".to_string(),
-                    reason: "compatibility spelling".to_string(),
-                }],
-                allowed_consumers: vec!["cairn".to_string()],
-            }],
+                    aliases: vec![
+                        crate::verified::requirement_id_registry::RequirementIdAlias {
+                            id: "cairn.marker.compat".to_string(),
+                            status: "active".to_string(),
+                            reason: "compatibility spelling".to_string(),
+                        },
+                    ],
+                    allowed_consumers: vec!["cairn".to_string()],
+                },
+            ],
             non_claims: vec![
                 "not requirement satisfaction".to_string(),
                 "not implementation correctness".to_string(),

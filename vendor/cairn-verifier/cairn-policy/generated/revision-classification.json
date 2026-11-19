@@ -1,0 +1,22 @@
+{
+  "comparison": {
+    "max_domain_values": 256,
+    "max_domains": 64,
+    "max_evidence": 1024,
+    "max_observables": 64,
+    "max_steps": 10000000,
+    "max_worlds": 1048576
+  },
+  "policy_fragment": {
+    "max_accepted": 10000000,
+    "max_assumption_sets": 4096,
+    "max_assumptions": 64,
+    "max_checks": 128,
+    "max_roles": 64
+  },
+  "schema": "cairn.revision-classification-policy.v1",
+  "transfer": {
+    "admission_rules": [],
+    "enabled": false
+  }
+}

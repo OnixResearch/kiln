@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use super::evidence::canonical_json_hash;
@@ -18,7 +17,7 @@ const BLAKE3_HEX_LENGTH: usize = 64;
 pub const BASE_REVISION_KIND_GIT_OID: &str = "git_oid";
 
 // r[impl cairn.workflow_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowKind {
     VerificationObligation,
@@ -56,7 +55,7 @@ impl TryFrom<&str> for WorkflowKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowRole {
     Submitter,
@@ -77,7 +76,7 @@ impl WorkflowRole {
 }
 
 // r[impl cairn.workflow_collaboration.evidence]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowEvidenceReference {
     pub id: String,
@@ -88,7 +87,7 @@ pub struct WorkflowEvidenceReference {
 }
 
 // r[impl cairn.verification_obligation_cob.findings]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowFinding {
     pub id: String,
@@ -100,7 +99,7 @@ pub struct WorkflowFinding {
 }
 
 // r[impl cairn.verification_obligation_cob.claim_revision]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ClaimRoot {
     pub claim_identity: String,
@@ -108,7 +107,7 @@ pub struct ClaimRoot {
     pub revision: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowLifecycleRecord {
     pub status: String,
@@ -116,7 +115,7 @@ pub struct WorkflowLifecycleRecord {
 }
 
 // r[impl cairn.workflow_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowState {
     pub schema: String,
@@ -126,32 +125,32 @@ pub struct WorkflowState {
     pub base_revision: String,
     pub policy_hash: String,
     pub claim_root: ClaimRoot,
-    pub submitters: BTreeSet<String>,
-    pub contributors: BTreeSet<String>,
-    pub verifiers: BTreeSet<String>,
-    pub invalidators: BTreeSet<String>,
-    pub fields: BTreeMap<String, WorkflowRevisionSet>,
-    pub findings: BTreeMap<String, WorkflowFinding>,
-    pub evidence: BTreeMap<String, WorkflowEvidenceReference>,
+    pub submitters: std::collections::BTreeSet<String>,
+    pub contributors: std::collections::BTreeSet<String>,
+    pub verifiers: std::collections::BTreeSet<String>,
+    pub invalidators: std::collections::BTreeSet<String>,
+    pub fields: std::collections::BTreeMap<String, WorkflowRevisionSet>,
+    pub findings: std::collections::BTreeMap<String, WorkflowFinding>,
+    pub evidence: std::collections::BTreeMap<String, WorkflowEvidenceReference>,
     pub lifecycle: WorkflowLifecycleRecord,
-    pub operations: BTreeSet<String>,
+    pub operations: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowRevisionSet {
-    pub revisions: BTreeMap<String, String>,
-    pub supersedes: BTreeMap<String, BTreeSet<String>>,
+    pub revisions: std::collections::BTreeMap<String, String>,
+    pub supersedes: std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
 }
 
 impl WorkflowRevisionSet {
-    pub fn head_ids(&self) -> BTreeSet<String> {
+    pub fn head_ids(&self) -> std::collections::BTreeSet<String> {
         let superseded = self
             .supersedes
             .values()
             .flatten()
             .cloned()
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
         self.revisions
             .keys()
             .filter(|id| !superseded.contains(*id))
@@ -164,7 +163,7 @@ impl WorkflowRevisionSet {
 }
 
 // r[impl cairn.workflow_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowInit {
     pub schema: String,
@@ -174,14 +173,14 @@ pub struct WorkflowInit {
     pub base_revision: String,
     pub policy_hash: String,
     pub claim_root: ClaimRoot,
-    pub submitters: BTreeSet<String>,
-    pub contributors: BTreeSet<String>,
-    pub verifiers: BTreeSet<String>,
-    pub invalidators: BTreeSet<String>,
-    pub fields: BTreeMap<String, String>,
+    pub submitters: std::collections::BTreeSet<String>,
+    pub contributors: std::collections::BTreeSet<String>,
+    pub verifiers: std::collections::BTreeSet<String>,
+    pub invalidators: std::collections::BTreeSet<String>,
+    pub fields: std::collections::BTreeMap<String, String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum WorkflowAction {
     Init {
@@ -190,7 +189,7 @@ pub enum WorkflowAction {
     SetField {
         field: String,
         content: Option<String>,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
     AttachEvidence {
         evidence: WorkflowEvidenceReference,
@@ -222,7 +221,7 @@ pub enum WorkflowAction {
     ResolveField {
         field: String,
         content: String,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
 }
 

@@ -14,8 +14,6 @@
 //! bind the role to a provenance-validated receipt so `property` vs
 //! `recorded_only` is meaningful end-to-end.
 
-use serde_json::Value;
-
 /// The stable role strings recognized by the classifier.
 pub const ROLE_PROPERTY: &str = "property";
 pub const ROLE_RECORDED_ONLY: &str = "recorded_only";
@@ -111,13 +109,13 @@ impl VerificationRoleSummary {
     /// reading the `verification_role` field from each. Artifacts without the
     /// field are counted as `unknown`.
     #[must_use]
-    pub fn from_artifacts(artifacts: &[Value]) -> Self {
+    pub fn from_artifacts(artifacts: &[serde_json::Value]) -> Self {
         let roles: Vec<&str> = artifacts
             .iter()
             .map(|artifact| {
                 artifact
                     .get("verification_role")
-                    .and_then(Value::as_str)
+                    .and_then(serde_json::Value::as_str)
                     .unwrap_or("")
             })
             .collect();
@@ -126,7 +124,7 @@ impl VerificationRoleSummary {
 
     /// Render the summary as a JSON object with the boundary non-claim.
     #[must_use]
-    pub fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "property_count": self.property_count,
             "recorded_only_count": self.recorded_only_count,

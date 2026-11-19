@@ -59,6 +59,53 @@ fn policy() -> GeneratedAgentWorkflowPolicy {
                 permission: GeneratedWorkflowPermission::Read,
             },
         ],
+        command_catalog: vec![
+            GeneratedWorkflowCommand {
+                id: "change-create".to_string(),
+                command_class: "mutate".to_string(),
+                invocation: "cairn change create <name> --profile <profile> --root PATH".to_string(),
+            },
+            GeneratedWorkflowCommand {
+                id: "doctor".to_string(),
+                command_class: "read".to_string(),
+                invocation: "cairn doctor --root PATH".to_string(),
+            },
+            GeneratedWorkflowCommand {
+                id: "status".to_string(),
+                command_class: "read".to_string(),
+                invocation: "cairn status --root PATH".to_string(),
+            },
+            GeneratedWorkflowCommand {
+                id: "workflow-instructions".to_string(),
+                command_class: "read".to_string(),
+                invocation: "cairn workflow instructions <artifact> --change <change> --root PATH"
+                    .to_string(),
+            },
+            GeneratedWorkflowCommand {
+                id: "workflow-status".to_string(),
+                command_class: "read".to_string(),
+                invocation: "cairn workflow status <change> --root PATH".to_string(),
+            },
+        ],
+        entry: GeneratedWorkflowEntryGuide {
+            id: "entry".to_string(),
+            version: 1,
+            goal: "Find the current project state and request one artifact's stage instructions."
+                .to_string(),
+            layout: GENERATED_AGENT_WORKFLOW_NATIVE_LAYOUT.to_string(),
+            discovery_routes: vec!["status".to_string(), "workflow-status".to_string()],
+            readiness_routes: vec!["doctor".to_string()],
+            stage_route: "workflow-instructions".to_string(),
+            profile_route: "change-create".to_string(),
+            profiles: vec!["assurance".to_string(), "spec-driven".to_string()],
+            boundaries: vec![
+                "Generated guidance does not grant command, filesystem, network, model, gate, or release authority.".to_string(),
+                "Report checked evidence or an exact blocker; generated text alone never proves implementation, gate passage, or release eligibility.".to_string(),
+            ],
+            required_evidence: vec!["Current status and workflow receipts".to_string()],
+            max_bytes: 4096,
+            max_stage_route_bytes: 512,
+        },
         descriptors,
         adapters: vec![
             GeneratedWorkflowAdapter {
@@ -69,7 +116,7 @@ fn policy() -> GeneratedAgentWorkflowPolicy {
                 file_suffix: String::new(),
                 directory_suffix: "/SKILL.md".to_string(),
                 front_matter: true,
-                max_files: 6,
+                max_files: 8,
             },
             GeneratedWorkflowAdapter {
                 id: "claude".to_string(),
@@ -79,7 +126,7 @@ fn policy() -> GeneratedAgentWorkflowPolicy {
                 file_suffix: ".md".to_string(),
                 directory_suffix: String::new(),
                 front_matter: false,
-                max_files: 6,
+                max_files: 8,
             },
             GeneratedWorkflowAdapter {
                 id: "codex".to_string(),
@@ -89,7 +136,7 @@ fn policy() -> GeneratedAgentWorkflowPolicy {
                 file_suffix: ".md".to_string(),
                 directory_suffix: String::new(),
                 front_matter: false,
-                max_files: 6,
+                max_files: 8,
             },
         ],
         bounds: GeneratedWorkflowBounds {
@@ -126,6 +173,7 @@ fn empty_snapshot() -> GeneratedWorkflowDestinationSnapshot {
     GeneratedWorkflowDestinationSnapshot {
         files: Vec::new(),
         manifest: GeneratedWorkflowManifestObservation::Missing,
+        pending_transactions: Vec::new(),
     }
 }
 
@@ -141,6 +189,7 @@ fn installed_snapshot(plan: &GeneratedWorkflowInstallPlan) -> GeneratedWorkflowD
             })
             .collect(),
         manifest: GeneratedWorkflowManifestObservation::Present(Box::new(plan.manifest.clone())),
+        pending_transactions: Vec::new(),
     }
 }
 
@@ -149,7 +198,7 @@ fn admits_and_renders_each_bounded_adapter() {
     let catalog = admit_generated_agent_workflow_policy(&policy()).expect("admitted policy");
     for adapter in INITIAL_ADAPTER_IDS {
         let files = render_generated_agent_workflows(&catalog, adapter).expect("rendered files");
-        assert_eq!(files.len(), INITIAL_WORKFLOW_IDS.len());
+        assert_eq!(files.len(), INITIAL_WORKFLOW_IDS.len() + 1);
         assert!(files.iter().all(|file| file.contents.contains("## Goal")));
         assert!(files
             .iter()
@@ -161,6 +210,12 @@ fn admits_and_renders_each_bounded_adapter() {
         assert!(explore
             .contents
             .contains(GENERATED_AGENT_WORKFLOW_EXPLORE_NO_WRITE));
+        let entry = files
+            .iter()
+            .find(|file| file.workflow_id == GENERATED_AGENT_WORKFLOW_ENTRY_ID)
+            .expect("rendered entry guide");
+        assert!(!contains_legacy_layout_reference(&entry.contents));
+        assert!(entry.contents.contains(".cairn/"));
     }
     let skill = render_generated_agent_workflows(&catalog, "agent-skills")
         .expect("skills")
@@ -262,15 +317,23 @@ fn blocks_unmanaged_modified_missing_and_symlink_destinations() {
     )
     .expect("fresh plan");
 
+    let entry_path = fresh
+        .files
+        .iter()
+        .find(|file| file.workflow_id == GENERATED_AGENT_WORKFLOW_ENTRY_ID)
+        .expect("entry file")
+        .relative_path
+        .clone();
     let unmanaged = GeneratedWorkflowDestinationSnapshot {
         files: vec![GeneratedWorkflowFileObservation {
-            relative_path: fresh.files[0].relative_path.clone(),
+            relative_path: entry_path.clone(),
             kind: GeneratedWorkflowObservedKind::Regular,
             content_blake3: Some(
                 "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
             ),
         }],
         manifest: GeneratedWorkflowManifestObservation::Missing,
+        pending_transactions: Vec::new(),
     };
     let plan = plan_generated_agent_workflow_install(
         &catalog,
@@ -281,13 +344,18 @@ fn blocks_unmanaged_modified_missing_and_symlink_destinations() {
     )
     .expect("conflict plan");
     assert!(plan.blocked());
-    assert_eq!(
-        plan.files[0].freshness,
-        GeneratedWorkflowFreshness::UnmanagedConflict
-    );
+    assert!(plan.files.iter().any(|file| {
+        file.relative_path == entry_path
+            && file.freshness == GeneratedWorkflowFreshness::UnmanagedConflict
+    }));
 
     let mut installed = installed_snapshot(&fresh);
-    installed.files[0].kind = GeneratedWorkflowObservedKind::Symlink;
+    let entry_index = installed
+        .files
+        .iter()
+        .position(|file| file.relative_path == entry_path)
+        .expect("entry observation");
+    installed.files[entry_index].kind = GeneratedWorkflowObservedKind::Symlink;
     installed.files[1].content_blake3 =
         Some("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_string());
     installed.files.remove(2);
@@ -312,6 +380,24 @@ fn blocks_unmanaged_modified_missing_and_symlink_destinations() {
         .files
         .iter()
         .any(|file| file.freshness == GeneratedWorkflowFreshness::Missing));
+
+    let mut missing_entry = installed_snapshot(&fresh);
+    missing_entry
+        .files
+        .retain(|file| file.relative_path != entry_path);
+    let missing_entry_plan = plan_generated_agent_workflow_install(
+        &catalog,
+        "claude",
+        ".claude/commands",
+        POLICY_HASH,
+        &missing_entry,
+    )
+    .expect("missing entry plan");
+    assert!(missing_entry_plan.blocked());
+    assert!(missing_entry_plan.files.iter().any(|file| {
+        file.workflow_id == GENERATED_AGENT_WORKFLOW_ENTRY_ID
+            && file.freshness == GeneratedWorkflowFreshness::Missing
+    }));
 }
 
 #[test]
@@ -431,4 +517,281 @@ fn source_change_is_stale_but_preserves_modified_file_protection() {
         changed.manifest_freshness,
         GeneratedWorkflowFreshness::StaleSource
     );
+}
+
+fn entry_file(
+    catalog: &AdmittedGeneratedWorkflowCatalog,
+    adapter: &str,
+) -> RenderedGeneratedWorkflowFile {
+    render_generated_agent_workflows(catalog, adapter)
+        .expect("rendered files")
+        .into_iter()
+        .find(|file| file.workflow_id == GENERATED_AGENT_WORKFLOW_ENTRY_ID)
+        .expect("entry guide")
+}
+
+#[test]
+fn entry_guide_routes_are_semantically_equal_across_adapters() {
+    let catalog = admit_generated_agent_workflow_policy(&policy()).expect("admitted policy");
+    for adapter in INITIAL_ADAPTER_IDS {
+        let entry = entry_file(&catalog, adapter);
+        for command in &catalog.policy.command_catalog {
+            if catalog.policy.entry.discovery_routes.contains(&command.id)
+                || catalog.policy.entry.readiness_routes.contains(&command.id)
+                || catalog.policy.entry.stage_route == command.id
+                || catalog.policy.entry.profile_route == command.id
+            {
+                assert!(
+                    entry.contents.contains(&command.invocation),
+                    "{} misses {}",
+                    adapter,
+                    command.id
+                );
+            }
+        }
+        for profile in &catalog.policy.entry.profiles {
+            assert!(
+                entry.contents.contains(profile),
+                "{adapter} misses {profile}"
+            );
+        }
+        for boundary in &catalog.policy.entry.boundaries {
+            assert!(entry.contents.contains(boundary));
+        }
+        assert!(entry
+            .contents
+            .contains("Load only that selected stage guide"));
+        assert!(!entry.contents.contains("## Immediate action"));
+        for descriptor in &catalog.policy.descriptors {
+            assert!(!entry.contents.contains(&descriptor.goal));
+        }
+    }
+}
+
+#[test]
+fn entry_guide_rejects_legacy_layouts_unknown_routes_and_profiles() {
+    let mut legacy = policy();
+    legacy.entry.layout = "cairn".to_string();
+    let issues = admit_generated_agent_workflow_policy(&legacy).expect_err("legacy layout");
+    assert!(issues.iter().any(|issue| {
+        issue.code == GENERATED_AGENT_WORKFLOW_ISSUE_ENTRY && issue.field_path.contains("entry")
+    }));
+
+    let mut unknown_route = policy();
+    unknown_route.entry.discovery_routes = vec!["remote-command".to_string()];
+    let issues = admit_generated_agent_workflow_policy(&unknown_route).expect_err("unknown route");
+    assert!(issues
+        .iter()
+        .any(|issue| issue.field_path.contains("discovery_routes")));
+
+    let mut legacy_text = policy();
+    legacy_text.entry.boundaries[0] = "Read cairn/changes for current work.".to_string();
+    let issues = admit_generated_agent_workflow_policy(&legacy_text).expect_err("legacy text");
+    assert!(issues
+        .iter()
+        .any(|issue| issue.field_path.contains("boundaries")));
+
+    let mut legacy_command = policy();
+    legacy_command.command_catalog[2].invocation = "cairn status --root cairn/specs".to_string();
+    let issues =
+        admit_generated_agent_workflow_policy(&legacy_command).expect_err("legacy command");
+    assert!(issues
+        .iter()
+        .any(|issue| issue.field_path.contains("invocation")));
+
+    let catalog = admit_generated_agent_workflow_policy(&policy()).expect("admitted policy");
+    assert!(find_entry_guide_profile(&catalog, "spec-driven").is_ok());
+    let issue = find_entry_guide_profile(&catalog, "remote-profile").expect_err("unknown profile");
+    assert!(issue.message.contains("spec-driven"));
+
+    assert!(contains_legacy_layout_reference("read cairn/changes"));
+    assert!(contains_legacy_layout_reference("cairn/specs"));
+    assert!(!contains_legacy_layout_reference("read .cairn/changes"));
+    assert!(!contains_legacy_layout_reference(
+        "read spec-driven/assurance"
+    ));
+}
+
+#[test]
+fn entry_guide_budget_must_carry_mandatory_constraints() {
+    let mut too_small = policy();
+    too_small.entry.max_bytes = 64;
+    let issues = admit_generated_agent_workflow_policy(&too_small).expect_err("small entry budget");
+    assert!(issues
+        .iter()
+        .any(|issue| issue.field_path.contains("entry.max_bytes")));
+
+    let mut file_bound = policy();
+    file_bound.bounds.max_file_bytes = 512;
+    let issues = admit_generated_agent_workflow_policy(&file_bound).expect_err("small file budget");
+    assert!(issues
+        .iter()
+        .any(|issue| issue.field_path.contains("entry.max_bytes")));
+
+    let mut stage_bound = policy();
+    stage_bound.entry.max_stage_route_bytes = 8;
+    let issues =
+        admit_generated_agent_workflow_policy(&stage_bound).expect_err("small stage budget");
+    assert!(issues
+        .iter()
+        .any(|issue| issue.field_path.contains("max_stage_route_bytes")));
+}
+
+#[test]
+fn command_catalog_drift_changes_entry_identity_and_reports_stale_source() {
+    let first_catalog = admit_generated_agent_workflow_policy(&policy()).expect("first policy");
+    let first = plan_generated_agent_workflow_install(
+        &first_catalog,
+        "codex",
+        ".codex/prompts",
+        POLICY_HASH,
+        &empty_snapshot(),
+    )
+    .expect("first plan");
+    let first_entry = first
+        .files
+        .iter()
+        .find(|file| file.workflow_id == GENERATED_AGENT_WORKFLOW_ENTRY_ID)
+        .expect("first entry");
+
+    let mut changed = policy();
+    changed
+        .command_catalog
+        .iter_mut()
+        .find(|command| command.id == "status")
+        .expect("status command")
+        .invocation = "cairn status --root . --format json".to_string();
+    let second_catalog = admit_generated_agent_workflow_policy(&changed).expect("second policy");
+    assert_ne!(
+        first_catalog.command_catalog_identity,
+        second_catalog.command_catalog_identity
+    );
+    assert_ne!(
+        first_catalog.catalog_identity,
+        second_catalog.catalog_identity
+    );
+    let second = plan_generated_agent_workflow_install(
+        &second_catalog,
+        "codex",
+        ".codex/prompts",
+        POLICY_HASH,
+        &installed_snapshot(&first),
+    )
+    .expect("second plan");
+    let second_entry = second
+        .files
+        .iter()
+        .find(|file| file.workflow_id == GENERATED_AGENT_WORKFLOW_ENTRY_ID)
+        .expect("second entry");
+    assert_ne!(
+        first_entry.descriptor_identity,
+        second_entry.descriptor_identity
+    );
+    assert_eq!(
+        second_entry.freshness,
+        GeneratedWorkflowFreshness::StaleSource
+    );
+    assert_eq!(
+        second.manifest_freshness,
+        GeneratedWorkflowFreshness::StaleSource
+    );
+}
+
+#[test]
+fn copied_guide_inspection_is_report_only_and_identity_bound() {
+    let catalog = admit_generated_agent_workflow_policy(&policy()).expect("admitted policy");
+    let entry = entry_file(&catalog, "claude");
+    let plan = plan_generated_agent_workflow_install(
+        &catalog,
+        "claude",
+        ".claude/commands",
+        POLICY_HASH,
+        &empty_snapshot(),
+    )
+    .expect("plan");
+    let manifest = &plan.manifest;
+    let current = inspect_copied_generated_workflow_guide(
+        &entry.contents,
+        GENERATED_AGENT_WORKFLOW_ENTRY_ID,
+        Some(manifest),
+        Some(&manifest.manifest_identity),
+    );
+    assert_eq!(
+        current.classification,
+        GeneratedWorkflowCopiedGuideClassification::Current
+    );
+    assert!(current.native_layout_current);
+    assert!(current.issues.is_empty());
+
+    let stale = inspect_copied_generated_workflow_guide(
+        "previous generated guide",
+        GENERATED_AGENT_WORKFLOW_ENTRY_ID,
+        Some(manifest),
+        Some(&manifest.manifest_identity),
+    );
+    assert_eq!(
+        stale.classification,
+        GeneratedWorkflowCopiedGuideClassification::Modified
+    );
+
+    let unclassified = inspect_copied_generated_workflow_guide(
+        &entry.contents,
+        GENERATED_AGENT_WORKFLOW_ENTRY_ID,
+        Some(manifest),
+        Some(POLICY_HASH),
+    );
+    assert_eq!(
+        unclassified.classification,
+        GeneratedWorkflowCopiedGuideClassification::Unclassified
+    );
+    assert!(unclassified
+        .issues
+        .iter()
+        .any(|issue| issue.code == GENERATED_AGENT_WORKFLOW_ISSUE_COPIED_GUIDE));
+
+    let without_identity = inspect_copied_generated_workflow_guide(
+        "arbitrary prose",
+        GENERATED_AGENT_WORKFLOW_ENTRY_ID,
+        None,
+        None,
+    );
+    assert_eq!(
+        without_identity.classification,
+        GeneratedWorkflowCopiedGuideClassification::Unclassified
+    );
+
+    let legacy = inspect_copied_generated_workflow_guide(
+        "Read cairn/changes first.",
+        GENERATED_AGENT_WORKFLOW_ENTRY_ID,
+        Some(manifest),
+        Some(&manifest.manifest_identity),
+    );
+    assert!(!legacy.native_layout_current);
+    assert!(legacy
+        .issues
+        .iter()
+        .any(|issue| issue.code == GENERATED_AGENT_WORKFLOW_ISSUE_GUIDE_LAYOUT));
+}
+
+#[test]
+fn pending_transactions_block_installation_for_deliberate_recovery() {
+    let catalog = admit_generated_agent_workflow_policy(&policy()).expect("admitted policy");
+    let mut snapshot = empty_snapshot();
+    snapshot.pending_transactions =
+        vec![".cairn/generated-agent-workflow-tmp-abc.pending".to_string()];
+    let plan = plan_generated_agent_workflow_install(
+        &catalog,
+        "agent-skills",
+        DESTINATION,
+        POLICY_HASH,
+        &snapshot,
+    )
+    .expect("recovery plan");
+    assert!(plan.blocked());
+    assert_eq!(plan.recovery_required, snapshot.pending_transactions);
+    assert!(plan
+        .blockers
+        .iter()
+        .any(|blocker| blocker.contains(GENERATED_AGENT_WORKFLOW_ISSUE_RECOVERY)));
+    assert!(!plan.current());
 }

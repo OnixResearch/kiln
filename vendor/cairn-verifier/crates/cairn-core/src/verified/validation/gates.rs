@@ -1,21 +1,3 @@
-use crate::verified::{
-    artifact_workflow::{
-        profile_issue_applies_to_stage, synthetic_acceptance_spec, tasks_with_requirement_links,
-        WorkflowArtifactState, WorkflowProfileEvaluation, WorkflowSchemaPolicy,
-        WorkflowStatusReport, WORKFLOW_ADMISSION_DELTA_SPECS, WORKFLOW_ADMISSION_DESIGN,
-        WORKFLOW_ADMISSION_PROPOSAL, WORKFLOW_ADMISSION_TASKS, WORKFLOW_SPEC_EFFECT_NONE,
-    },
-    policy::Policy,
-    repo::ChangeStatus,
-};
-
-use super::changes::change_issues;
-use super::{
-    references::reference_hygiene_issues,
-    substance::{artifact_substance_issues, ArtifactSubstanceInventory},
-    task_ordering::{build_task_ordering_graph, TaskOrderingGraph, TaskOrderingIssue},
-};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GateStage {
     Proposal,
@@ -47,8 +29,8 @@ pub struct GateReport {
     pub stage: String,
     pub verdict: String,
     pub issues: Vec<GateIssue>,
-    pub substance: Vec<ArtifactSubstanceInventory>,
-    pub task_ordering: Option<TaskOrderingGraph>,
+    pub substance: Vec<super::substance::ArtifactSubstanceInventory>,
+    pub task_ordering: Option<super::task_ordering::TaskOrderingGraph>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,7 +51,7 @@ pub struct EvidenceStrengthSummary {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GateSnapshot {
-    pub change: ChangeStatus,
+    pub change: crate::verified::repo::ChangeStatus,
     pub proposal: Option<GateArtifact>,
     pub design: Option<GateArtifact>,
     pub tasks: Option<GateArtifact>,
@@ -77,7 +59,7 @@ pub struct GateSnapshot {
 }
 
 impl GateSnapshot {
-    pub fn from_change(change: ChangeStatus) -> Self {
+    pub fn from_change(change: crate::verified::repo::ChangeStatus) -> Self {
         Self {
             change,
             proposal: None,
@@ -88,7 +70,11 @@ impl GateSnapshot {
     }
 }
 
-pub fn evaluate_gate(change: &ChangeStatus, stage: GateStage, policy: &Policy) -> GateReport {
+pub fn evaluate_gate(
+    change: &crate::verified::repo::ChangeStatus,
+    stage: GateStage,
+    policy: &crate::verified::policy::Policy,
+) -> GateReport {
     evaluate_gate_snapshot(&GateSnapshot::from_change(change.clone()), stage, policy)
 }
 
@@ -115,7 +101,7 @@ pub fn classify_gate_evidence(snapshot: &GateSnapshot) -> EvidenceStrengthSummar
 pub fn evaluate_gate_snapshot(
     snapshot: &GateSnapshot,
     stage: GateStage,
-    policy: &Policy,
+    policy: &crate::verified::policy::Policy,
 ) -> GateReport {
     // r[impl cairn.supersede.gate_policy]
     // r[impl cairn.task_ordering.gate]
@@ -137,7 +123,7 @@ pub fn evaluate_gate_snapshot(
     issues.extend(required_artifact_issues(change, stage, policy));
     let task_ordering = if matches!(stage, GateStage::Tasks) {
         snapshot.tasks.as_ref().map(|tasks| {
-            let graph = build_task_ordering_graph(&tasks.markdown, policy);
+            let graph = super::task_ordering::build_task_ordering_graph(&tasks.markdown, policy);
             issues.extend(
                 graph
                     .issues
@@ -151,14 +137,17 @@ pub fn evaluate_gate_snapshot(
     };
     if matches!(stage, GateStage::Tasks) {
         issues.extend(
-            change_issues(change, policy)
+            super::changes::change_issues(change, policy)
                 .into_iter()
                 .map(|message| gate_issue(message, policy)),
         );
     }
-    let (substance_issues, substance) = artifact_substance_issues(snapshot, stage, policy);
+    let (substance_issues, substance) =
+        super::substance::artifact_substance_issues(snapshot, stage, policy);
     issues.extend(substance_issues);
-    issues.extend(reference_hygiene_issues(snapshot, stage, policy));
+    issues.extend(super::references::reference_hygiene_issues(
+        snapshot, stage, policy,
+    ));
     let verdict = if issues.is_empty() { "PASS" } else { "FAIL" }.to_string();
     GateReport {
         change: change.name.clone(),
@@ -173,20 +162,18 @@ pub fn evaluate_gate_snapshot(
 pub fn evaluate_profile_gate_snapshot(
     snapshot: &GateSnapshot,
     stage: GateStage,
-    policy: &Policy,
-    profile: &WorkflowSchemaPolicy,
-    evaluation: &WorkflowProfileEvaluation,
-    workflow_status: &WorkflowStatusReport,
+    policy: &crate::verified::policy::Policy,
+    profile: &crate::verified::artifact_workflow::WorkflowSchemaPolicy,
+    evaluation: &crate::verified::artifact_workflow::WorkflowProfileEvaluation,
+    workflow_status: &crate::verified::artifact_workflow::WorkflowStatusReport,
 ) -> GateReport {
     // r[impl cairn.lifecycle_workflow_profiles.integration]
     // r[impl cairn.lifecycle_workflow_profiles.no_spec]
     let adjusted = profile_gate_snapshot(snapshot, profile, evaluation);
     let mut report = evaluate_gate_snapshot(&adjusted, stage, policy);
-    for profile_issue in evaluation
-        .issues
-        .iter()
-        .filter(|issue| profile_issue_applies_to_stage(issue, stage.as_str()))
-    {
+    for profile_issue in evaluation.issues.iter().filter(|issue| {
+        crate::verified::artifact_workflow::profile_issue_applies_to_stage(issue, stage.as_str())
+    }) {
         report.issues.push(GateIssue {
             code: profile_issue.code.clone(),
             message: profile_issue.message.clone(),
@@ -204,7 +191,7 @@ pub fn evaluate_profile_gate_snapshot(
         };
         profile_artifact_is_gate_specific(artifact.structural_admission.as_str())
             && artifact_stage_applies(&artifact.stage, stage)
-            && status.state != WorkflowArtifactState::Done
+            && status.state != crate::verified::artifact_workflow::WorkflowArtifactState::Done
     }) {
         report.issues.push(GateIssue {
             code: "cairn.workflow.profile.artifact".to_string(),
@@ -236,10 +223,10 @@ pub fn evaluate_profile_gate_snapshot(
 
 fn profile_gate_snapshot(
     snapshot: &GateSnapshot,
-    profile: &WorkflowSchemaPolicy,
-    evaluation: &WorkflowProfileEvaluation,
+    profile: &crate::verified::artifact_workflow::WorkflowSchemaPolicy,
+    evaluation: &crate::verified::artifact_workflow::WorkflowProfileEvaluation,
 ) -> GateSnapshot {
-    if profile.spec_effect != WORKFLOW_SPEC_EFFECT_NONE {
+    if profile.spec_effect != crate::verified::artifact_workflow::WORKFLOW_SPEC_EFFECT_NONE {
         return snapshot.clone();
     }
     let mut adjusted = snapshot.clone();
@@ -247,10 +234,13 @@ fn profile_gate_snapshot(
     adjusted.change.delta_specs = vec![synthetic_path.clone()];
     adjusted.delta_specs = vec![GateArtifact {
         path: synthetic_path,
-        markdown: synthetic_acceptance_spec(&evaluation.acceptance_ids),
+        markdown: crate::verified::artifact_workflow::synthetic_acceptance_spec(
+            &evaluation.acceptance_ids,
+        ),
     }];
     if let Some(tasks) = &mut adjusted.tasks {
-        tasks.markdown = tasks_with_requirement_links(&tasks.markdown);
+        tasks.markdown =
+            crate::verified::artifact_workflow::tasks_with_requirement_links(&tasks.markdown);
     }
     adjusted
 }
@@ -258,10 +248,10 @@ fn profile_gate_snapshot(
 fn profile_artifact_is_gate_specific(admission: &str) -> bool {
     !matches!(
         admission,
-        WORKFLOW_ADMISSION_PROPOSAL
-            | WORKFLOW_ADMISSION_DELTA_SPECS
-            | WORKFLOW_ADMISSION_DESIGN
-            | WORKFLOW_ADMISSION_TASKS
+        crate::verified::artifact_workflow::WORKFLOW_ADMISSION_PROPOSAL
+            | crate::verified::artifact_workflow::WORKFLOW_ADMISSION_DELTA_SPECS
+            | crate::verified::artifact_workflow::WORKFLOW_ADMISSION_DESIGN
+            | crate::verified::artifact_workflow::WORKFLOW_ADMISSION_TASKS
     )
 }
 
@@ -274,9 +264,9 @@ fn artifact_stage_applies(artifact_stage: &str, gate_stage: GateStage) -> bool {
 }
 
 fn required_artifact_issues(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     stage: GateStage,
-    policy: &Policy,
+    policy: &crate::verified::policy::Policy,
 ) -> Vec<GateIssue> {
     let mut issues = Vec::with_capacity(3);
     if !change.has_proposal {
@@ -345,7 +335,7 @@ pub fn validation_issue_code(message: &str) -> String {
         .collect()
 }
 
-pub(super) fn gate_issue(message: String, policy: &Policy) -> GateIssue {
+pub(super) fn gate_issue(message: String, policy: &crate::verified::policy::Policy) -> GateIssue {
     GateIssue {
         code: validation_issue_code(&message),
         message,
@@ -354,7 +344,11 @@ pub(super) fn gate_issue(message: String, policy: &Policy) -> GateIssue {
     }
 }
 
-fn task_ordering_gate_issue(path: &str, issue: &TaskOrderingIssue, policy: &Policy) -> GateIssue {
+fn task_ordering_gate_issue(
+    path: &str,
+    issue: &super::task_ordering::TaskOrderingIssue,
+    policy: &crate::verified::policy::Policy,
+) -> GateIssue {
     let location = issue
         .line
         .map_or_else(|| path.to_string(), |line| format!("{path}:{line}"));

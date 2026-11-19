@@ -57,6 +57,7 @@ exclude = [
   "vendor/lattice/crates/lattice-workflow-contract/transport",
   "vendor/cairn",
   "vendor/cairn-verifier",
+  "vendor/cairn-kiln-core",
   "vendor/valence",
   "vendor/artifact",
   "vendor/bounded-exec",
@@ -187,3 +188,11 @@ unwrap_used = "deny"
 
 [patch."ssh://git@github.com/OnixResearch/onix-artifact.git"]
 artifact-auth-core = { path = "vendor/artifact/crates/artifact-auth-core" }
+
+# The imported cairn-core names its exact producer Git dependencies over HTTPS.
+[patch."https://github.com/OnixResearch/onix-artifact.git"]
+artifact-auth-core = { path = "vendor/artifact/crates/artifact-auth-core" }
+artifact-auth-ed25519 = { path = "vendor/artifact/crates/artifact-auth-ed25519" }
+
+[patch."https://github.com/OnixResearch/kiln.git"]
+kiln-core = { path = "vendor/cairn-kiln-core/crates/kiln-core" }

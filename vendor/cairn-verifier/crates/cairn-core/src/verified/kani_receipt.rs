@@ -1,7 +1,3 @@
-use serde_json::Value;
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const KANI_RECEIPT_SCHEMA_V1: &str = "cairn.kani_receipt.v1";
 pub const KANI_NON_CLAIM_WHOLE_PROGRAM: &str = "kani.boundary.whole_program";
 pub const KANI_NON_CLAIM_VERIFIER_SOUNDNESS: &str = "kani.boundary.verifier_soundness";
@@ -82,12 +78,12 @@ pub struct KaniReceiptReport {
     pub receipt_hash: String,
 }
 
-pub fn kani_receipt_hash(value: &Value) -> String {
-    canonical_json_hash(&without_receipt_hash(value))
+pub fn kani_receipt_hash(value: &serde_json::Value) -> String {
+    crate::verified::evidence::canonical_json_hash(&without_receipt_hash(value))
 }
 
 pub fn validate_kani_receipt(
-    value: &Value,
+    value: &serde_json::Value,
     expected_requirement_id: Option<&str>,
     current_content_hash: Option<&str>,
 ) -> KaniReceiptReport {
@@ -113,7 +109,7 @@ pub fn validate_kani_receipt(
     }
 }
 
-fn validate_required_profile(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_required_profile(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     match string_field(value, "schema_version") {
         Some(KANI_RECEIPT_SCHEMA_V1) => {}
         Some(_) => push_issue(
@@ -143,7 +139,7 @@ fn validate_required_profile(value: &Value, issues: &mut Vec<KaniReceiptIssue>) 
     validate_hash_field(value, "policy_hash", issues);
 }
 
-fn validate_field_sets(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_field_sets(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     validate_known_field(
         value,
         "property_status",
@@ -204,7 +200,7 @@ fn validate_field_sets(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
 }
 
 fn validate_expected_requirement(
-    value: &Value,
+    value: &serde_json::Value,
     expected_requirement_id: Option<&str>,
     issues: &mut Vec<KaniReceiptIssue>,
 ) {
@@ -224,7 +220,7 @@ fn validate_expected_requirement(
 }
 
 fn validate_current_content(
-    value: &Value,
+    value: &serde_json::Value,
     current_content_hash: Option<&str>,
     issues: &mut Vec<KaniReceiptIssue>,
 ) {
@@ -242,7 +238,7 @@ fn validate_current_content(
     }
 }
 
-fn validate_eligibility(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_eligibility(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     if string_field(value, "property_status") == Some(PROPERTY_STATUS_FAILED) {
         push_issue(
             issues,
@@ -272,7 +268,7 @@ fn validate_eligibility(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
     }
 }
 
-fn validate_bounded_claim(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_bounded_claim(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     if !matches!(
         string_field(value, "unwind_state"),
         Some(UNWIND_STATE_BOUNDED | UNWIND_STATE_COMPLETE)
@@ -286,7 +282,7 @@ fn validate_bounded_claim(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
     }
 }
 
-fn validate_contract_claim(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_contract_claim(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     if string_field(value, "contract_state") != Some(CONTRACT_STATE_PASSING) {
         push_issue(
             issues,
@@ -297,7 +293,7 @@ fn validate_contract_claim(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
     }
 }
 
-fn validate_unbounded_claim(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_unbounded_claim(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     let has_complete_unwind = string_field(value, "unwind_state") == Some(UNWIND_STATE_COMPLETE);
     let has_contract = string_field(value, "contract_state") == Some(CONTRACT_STATE_PASSING);
     if !has_complete_unwind && !has_contract {
@@ -310,7 +306,7 @@ fn validate_unbounded_claim(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
     }
 }
 
-fn validate_non_claims(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_non_claims(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     let claims = string_array(value, "non_claims");
     if claims.is_empty() {
         push_issue(
@@ -334,7 +330,7 @@ fn validate_non_claims(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
     }
 }
 
-fn validate_optional_receipt_hash(value: &Value, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_optional_receipt_hash(value: &serde_json::Value, issues: &mut Vec<KaniReceiptIssue>) {
     if let Some(actual) = string_field(value, "receipt_hash") {
         let expected = kani_receipt_hash(value);
         if actual != expected {
@@ -348,7 +344,7 @@ fn validate_optional_receipt_hash(value: &Value, issues: &mut Vec<KaniReceiptIss
     }
 }
 
-fn profile_from_value(value: &Value) -> Option<KaniReceiptProfile> {
+fn profile_from_value(value: &serde_json::Value) -> Option<KaniReceiptProfile> {
     Some(KaniReceiptProfile {
         requirement_id: string_field(value, "requirement_id")?.to_string(),
         source_scope: string_field(value, "source_scope")?.to_string(),
@@ -370,7 +366,7 @@ fn profile_from_value(value: &Value) -> Option<KaniReceiptProfile> {
 }
 
 fn validate_known_field(
-    value: &Value,
+    value: &serde_json::Value,
     field: &'static str,
     allowed: &[&str],
     issues: &mut Vec<KaniReceiptIssue>,
@@ -387,7 +383,11 @@ fn validate_known_field(
     }
 }
 
-fn validate_hash_field(value: &Value, field: &'static str, issues: &mut Vec<KaniReceiptIssue>) {
+fn validate_hash_field(
+    value: &serde_json::Value,
+    field: &'static str,
+    issues: &mut Vec<KaniReceiptIssue>,
+) {
     if let Some(actual) = string_field(value, field) {
         if !is_blake3_hex(actual) {
             push_issue(
@@ -400,21 +400,21 @@ fn validate_hash_field(value: &Value, field: &'static str, issues: &mut Vec<Kani
     }
 }
 
-fn string_field<'a>(value: &'a Value, field: &str) -> Option<&'a str> {
+fn string_field<'a>(value: &'a serde_json::Value, field: &str) -> Option<&'a str> {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(str::trim)
         .filter(|text| !text.is_empty())
 }
 
-fn string_array<'a>(value: &'a Value, field: &str) -> Vec<&'a str> {
+fn string_array<'a>(value: &'a serde_json::Value, field: &str) -> Vec<&'a str> {
     value
         .get(field)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(Value::as_str)
+        .filter_map(serde_json::Value::as_str)
         .map(str::trim)
         .filter(|text| !text.is_empty())
         .collect()
@@ -424,7 +424,7 @@ fn is_blake3_hex(value: &str) -> bool {
     value.len() == BLAKE3_HEX_LENGTH && value.chars().all(|ch| ch.is_ascii_hexdigit())
 }
 
-fn without_receipt_hash(value: &Value) -> Value {
+fn without_receipt_hash(value: &serde_json::Value) -> serde_json::Value {
     let mut canonical = value.clone();
     if let Some(object) = canonical.as_object_mut() {
         object.remove("receipt_hash");
@@ -442,7 +442,6 @@ fn push_issue(issues: &mut Vec<KaniReceiptIssue>, code: &str, field_path: &str, 
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
 
     use super::*;
 
@@ -459,8 +458,8 @@ mod tests {
         ]
     }
 
-    fn bounded_receipt() -> Value {
-        json!({
+    fn bounded_receipt() -> serde_json::Value {
+        serde_json::json!({
             "schema_version": KANI_RECEIPT_SCHEMA_V1,
             "requirement_id": REQUIREMENT_ID,
             "source_scope": "crates/cairn-core/src/verified/example.rs::bounded",
@@ -478,11 +477,11 @@ mod tests {
         })
     }
 
-    fn contract_receipt() -> Value {
+    fn contract_receipt() -> serde_json::Value {
         let mut receipt = bounded_receipt();
-        receipt["contract_state"] = json!(CONTRACT_STATE_PASSING);
-        receipt["unwind_state"] = json!(UNWIND_STATE_MISSING);
-        receipt["claim_scope"] = json!(CLAIM_SCOPE_CONTRACT);
+        receipt["contract_state"] = serde_json::json!(CONTRACT_STATE_PASSING);
+        receipt["unwind_state"] = serde_json::json!(UNWIND_STATE_MISSING);
+        receipt["claim_scope"] = serde_json::json!(CLAIM_SCOPE_CONTRACT);
         receipt
     }
 
@@ -531,7 +530,7 @@ mod tests {
             .as_object_mut()
             .expect("receipt object")
             .remove("requirement_id");
-        receipt["property_status"] = json!(PROPERTY_STATUS_FAILED);
+        receipt["property_status"] = serde_json::json!(PROPERTY_STATUS_FAILED);
         let report = validate_kani_receipt(&receipt, Some(REQUIREMENT_ID), Some(HASH_A));
         let codes = issue_codes(&report);
 
@@ -560,8 +559,8 @@ mod tests {
         // r[verify cairn.kani_receipt_gates.negative_fixtures]
         // r[verify cairn.kani_receipt_gates.eligibility.unbounded]
         let mut receipt = bounded_receipt();
-        receipt["claim_scope"] = json!(CLAIM_SCOPE_UNBOUNDED);
-        receipt["unwind_state"] = json!(UNWIND_STATE_MISSING);
+        receipt["claim_scope"] = serde_json::json!(CLAIM_SCOPE_UNBOUNDED);
+        receipt["unwind_state"] = serde_json::json!(UNWIND_STATE_MISSING);
         let report = validate_kani_receipt(&receipt, Some(REQUIREMENT_ID), Some(HASH_A));
 
         assert!(!report.valid);
@@ -573,8 +572,8 @@ mod tests {
         // r[verify cairn.kani_receipt_gates.negative_fixtures]
         // r[verify cairn.kani_receipt_gates.negative_fixtures.stub]
         let mut receipt = bounded_receipt();
-        receipt["stub_classification"] = json!(STUB_CLASSIFICATION_UNVERIFIED);
-        receipt["non_claims"] = json!([KANI_NON_CLAIM_WHOLE_PROGRAM]);
+        receipt["stub_classification"] = serde_json::json!(STUB_CLASSIFICATION_UNVERIFIED);
+        receipt["non_claims"] = serde_json::json!([KANI_NON_CLAIM_WHOLE_PROGRAM]);
         let report = validate_kani_receipt(&receipt, Some(REQUIREMENT_ID), Some(HASH_A));
         let codes = issue_codes(&report);
 
@@ -586,7 +585,7 @@ mod tests {
     #[test]
     fn receipt_hash_mismatch_fails_deterministically() {
         let mut receipt = bounded_receipt();
-        receipt["receipt_hash"] = json!(HASH_B);
+        receipt["receipt_hash"] = serde_json::json!(HASH_B);
         let report = validate_kani_receipt(&receipt, Some(REQUIREMENT_ID), Some(HASH_A));
 
         assert!(!report.valid);

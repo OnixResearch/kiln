@@ -1,7 +1,3 @@
-use serde_json::{json, Value};
-
-use super::evidence::canonical_json_hash;
-
 pub const AST_GREP_GATE_MODE_INVENTORY: &str = "inventory";
 pub const AST_GREP_GATE_MODE_ADVISORY: &str = "advisory";
 pub const AST_GREP_GATE_MODE_BLOCKING: &str = "blocking";
@@ -101,8 +97,8 @@ pub struct AstGrepGateReport {
 
 impl AstGrepGateIssue {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "code": self.code,
             "field_path": self.field_path,
             "expected": self.expected,
@@ -113,8 +109,8 @@ impl AstGrepGateIssue {
 
 impl AstGrepGateReport {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "valid": self.valid,
             "passed": self.passed,
             "mode": self.mode,
@@ -151,12 +147,12 @@ pub fn default_ast_grep_gate_policy(mode: &str) -> AstGrepGatePolicy {
 }
 
 #[must_use]
-pub fn ast_grep_receipt_hash(receipt: &Value) -> String {
-    canonical_json_hash(&ast_grep_receipt_hash_material(receipt))
+pub fn ast_grep_receipt_hash(receipt: &serde_json::Value) -> String {
+    super::evidence::canonical_json_hash(&ast_grep_receipt_hash_material(receipt))
 }
 
 #[must_use]
-pub fn ast_grep_receipt_hash_material(receipt: &Value) -> Value {
+pub fn ast_grep_receipt_hash_material(receipt: &serde_json::Value) -> serde_json::Value {
     let mut material = receipt.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove(FIELD_RECEIPT_HASH);
@@ -165,7 +161,10 @@ pub fn ast_grep_receipt_hash_material(receipt: &Value) -> Value {
 }
 
 #[must_use]
-pub fn validate_ast_grep_receipt(policy: &AstGrepGatePolicy, receipt: &Value) -> AstGrepGateReport {
+pub fn validate_ast_grep_receipt(
+    policy: &AstGrepGatePolicy,
+    receipt: &serde_json::Value,
+) -> AstGrepGateReport {
     // r[impl cairn.ast_grep_gate.receipt]
     // r[impl cairn.ast_grep_gate.shell_boundary]
     let mut issues = Vec::new();
@@ -223,8 +222,11 @@ fn validate_policy(policy: &AstGrepGatePolicy, issues: &mut Vec<AstGrepGateIssue
     }
 }
 
-fn validate_tool_identity(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) {
-    let Some(tool) = receipt.get(FIELD_TOOL).and_then(Value::as_object) else {
+fn validate_tool_identity(receipt: &serde_json::Value, issues: &mut Vec<AstGrepGateIssue>) {
+    let Some(tool) = receipt
+        .get(FIELD_TOOL)
+        .and_then(serde_json::Value::as_object)
+    else {
         issues.push(ast_grep_issue(
             AST_GREP_GATE_ISSUE_MISSING_FIELD,
             FIELD_TOOL,
@@ -233,19 +235,19 @@ fn validate_tool_identity(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) {
         ));
         return;
     };
-    if tool.get(FIELD_NAME).and_then(Value::as_str) != Some(AST_GREP_TOOL_NAME) {
+    if tool.get(FIELD_NAME).and_then(serde_json::Value::as_str) != Some(AST_GREP_TOOL_NAME) {
         issues.push(ast_grep_issue(
             AST_GREP_GATE_ISSUE_MISSING_FIELD,
             "tool.name",
             AST_GREP_TOOL_NAME,
             tool.get(FIELD_NAME)
-                .and_then(Value::as_str)
+                .and_then(serde_json::Value::as_str)
                 .unwrap_or("missing"),
         ));
     }
     if tool
         .get(FIELD_VERSION)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default()
         .is_empty()
     {
@@ -258,10 +260,10 @@ fn validate_tool_identity(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) {
     }
 }
 
-fn validate_rule_bundle_hash(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) {
+fn validate_rule_bundle_hash(receipt: &serde_json::Value, issues: &mut Vec<AstGrepGateIssue>) {
     let hash = receipt
         .get(FIELD_RULE_BUNDLE_HASH)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if hash.is_empty() {
         issues.push(ast_grep_issue(
@@ -282,12 +284,12 @@ fn validate_rule_bundle_hash(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>
 
 fn validate_repository_scope(
     policy: &AstGrepGatePolicy,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<AstGrepGateIssue>,
 ) {
     let scope = receipt
         .get(FIELD_REPOSITORY_SCOPE)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if scope.is_empty() {
         issues.push(ast_grep_issue(
@@ -308,10 +310,10 @@ fn validate_repository_scope(
     }
 }
 
-fn validate_command_identity(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) {
+fn validate_command_identity(receipt: &serde_json::Value, issues: &mut Vec<AstGrepGateIssue>) {
     if receipt
         .get(FIELD_COMMAND)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default()
         .is_empty()
     {
@@ -326,12 +328,12 @@ fn validate_command_identity(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>
 
 fn validate_output_format(
     policy: &AstGrepGatePolicy,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<AstGrepGateIssue>,
 ) {
     let output_format = receipt
         .get(FIELD_OUTPUT_FORMAT)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if output_format.is_empty() {
         issues.push(ast_grep_issue(
@@ -356,7 +358,10 @@ fn validate_output_format(
     }
 }
 
-fn findings_summary(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) -> FindingSummary {
+fn findings_summary(
+    receipt: &serde_json::Value,
+    issues: &mut Vec<AstGrepGateIssue>,
+) -> FindingSummary {
     let Some(summary) = receipt.get(FIELD_FINDINGS_SUMMARY) else {
         issues.push(ast_grep_issue(
             AST_GREP_GATE_ISSUE_MISSING_FIELD,
@@ -394,8 +399,12 @@ fn empty_findings_summary() -> FindingSummary {
     }
 }
 
-fn summary_count(summary: &Value, field: &str, issues: &mut Vec<AstGrepGateIssue>) -> u64 {
-    let Some(value) = summary.get(field).and_then(Value::as_u64) else {
+fn summary_count(
+    summary: &serde_json::Value,
+    field: &str,
+    issues: &mut Vec<AstGrepGateIssue>,
+) -> u64 {
+    let Some(value) = summary.get(field).and_then(serde_json::Value::as_u64) else {
         issues.push(ast_grep_issue(
             AST_GREP_GATE_ISSUE_MISSING_FIELD,
             &format!("findings_summary.{field}"),
@@ -409,10 +418,13 @@ fn summary_count(summary: &Value, field: &str, issues: &mut Vec<AstGrepGateIssue
 
 fn validate_non_claims(
     policy: &AstGrepGatePolicy,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<AstGrepGateIssue>,
 ) {
-    let Some(non_claims) = receipt.get(FIELD_NON_CLAIMS).and_then(Value::as_array) else {
+    let Some(non_claims) = receipt
+        .get(FIELD_NON_CLAIMS)
+        .and_then(serde_json::Value::as_array)
+    else {
         issues.push(ast_grep_issue(
             AST_GREP_GATE_ISSUE_WEAK_NON_CLAIM,
             FIELD_NON_CLAIMS,
@@ -423,7 +435,7 @@ fn validate_non_claims(
     };
     let joined = non_claims
         .iter()
-        .filter_map(Value::as_str)
+        .filter_map(serde_json::Value::as_str)
         .collect::<Vec<_>>()
         .join("; ")
         .to_ascii_lowercase();
@@ -440,7 +452,7 @@ fn validate_non_claims(
     }
     let claim_text = receipt
         .get("claim")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default()
         .to_ascii_lowercase();
     for phrase in OVERCLAIM_PHRASES {
@@ -458,7 +470,7 @@ fn validate_non_claims(
 fn validate_mode_posture(
     policy: &AstGrepGatePolicy,
     summary: &FindingSummary,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<AstGrepGateIssue>,
 ) {
     match policy.mode.as_str() {
@@ -471,7 +483,7 @@ fn validate_mode_posture(
         AST_GREP_GATE_MODE_CODEMOD_REVIEW if summary.codemods > 0 => {
             let review = receipt
                 .get(FIELD_CODEMOD_REVIEW)
-                .and_then(Value::as_str)
+                .and_then(serde_json::Value::as_str)
                 .unwrap_or_default();
             if review != CODEMOD_REVIEWED && review != CODEMOD_NOT_REQUIRED {
                 issues.push(ast_grep_issue(
@@ -486,8 +498,14 @@ fn validate_mode_posture(
     }
 }
 
-fn validate_valence_findings(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>) -> u64 {
-    let Some(findings) = receipt.get(FIELD_FINDINGS).and_then(Value::as_array) else {
+fn validate_valence_findings(
+    receipt: &serde_json::Value,
+    issues: &mut Vec<AstGrepGateIssue>,
+) -> u64 {
+    let Some(findings) = receipt
+        .get(FIELD_FINDINGS)
+        .and_then(serde_json::Value::as_array)
+    else {
         return 0;
     };
     let mut compatible = 0;
@@ -495,12 +513,12 @@ fn validate_valence_findings(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>
         let field_path = format!("findings.{index}");
         let has_rule = finding
             .get(FIELD_RULE_ID)
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .map(|rule| !rule.is_empty())
             .unwrap_or(false);
         let has_role = finding
             .get(FIELD_VERIFICATION_ROLE)
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .map(|role| !role.is_empty())
             .unwrap_or(false);
         let has_span = validate_source_span(finding.get(FIELD_SOURCE_SPAN), &field_path, issues);
@@ -519,7 +537,7 @@ fn validate_valence_findings(receipt: &Value, issues: &mut Vec<AstGrepGateIssue>
 }
 
 fn validate_source_span(
-    span: Option<&Value>,
+    span: Option<&serde_json::Value>,
     parent_path: &str,
     issues: &mut Vec<AstGrepGateIssue>,
 ) -> bool {
@@ -528,10 +546,12 @@ fn validate_source_span(
     };
     let path = span
         .get(FIELD_PATH)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
-    let start_line = span.get(FIELD_START_LINE).and_then(Value::as_u64);
-    let end_line = span.get(FIELD_END_LINE).and_then(Value::as_u64);
+    let start_line = span
+        .get(FIELD_START_LINE)
+        .and_then(serde_json::Value::as_u64);
+    let end_line = span.get(FIELD_END_LINE).and_then(serde_json::Value::as_u64);
     let path_ok = !path.is_empty() && !path.starts_with('/') && !path.contains("..");
     let line_ok = matches!((start_line, end_line), (Some(start), Some(end)) if start <= end);
     if !path_ok || !line_ok {
@@ -568,10 +588,10 @@ fn ast_grep_issue(code: &str, field_path: &str, expected: &str, actual: &str) ->
     }
 }
 
-fn receipt_string(receipt: &Value, field: &str) -> Option<String> {
+fn receipt_string(receipt: &serde_json::Value, field: &str) -> Option<String> {
     receipt
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(str::to_string)
 }
 
@@ -609,8 +629,8 @@ mod tests {
     const RULE_HASH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const EXPECTED_VALENCE_FINDINGS: u64 = 1;
 
-    fn receipt() -> Value {
-        json!({
+    fn receipt() -> serde_json::Value {
+        serde_json::json!({
             "tool": {"name": "ast-grep", "version": "0.39.0"},
             "rule_bundle_hash": RULE_HASH,
             "repository_scope": ".",
@@ -666,7 +686,7 @@ mod tests {
     #[test]
     fn blocking_mode_fails_on_error_findings() {
         let mut receipt = receipt();
-        receipt["findings_summary"]["errors"] = json!(1);
+        receipt["findings_summary"]["errors"] = serde_json::json!(1);
         let report = validate_ast_grep_receipt(
             &default_ast_grep_gate_policy(AST_GREP_GATE_MODE_BLOCKING),
             &receipt,
@@ -680,12 +700,12 @@ mod tests {
     fn malformed_and_overclaiming_receipts_fail_closed() {
         // r[verify cairn.ast_grep_gate.negative_fixtures]
         let mut receipt = receipt();
-        receipt["tool"] = json!({"name": "other"});
-        receipt["rule_bundle_hash"] = json!("sha256:not-blake3");
-        receipt["repository_scope"] = json!("/tmp/repo");
-        receipt["output_format"] = json!("text");
-        receipt["non_claims"] = json!(["proves release eligibility"]);
-        receipt["claim"] = json!("proves source correctness");
+        receipt["tool"] = serde_json::json!({"name": "other"});
+        receipt["rule_bundle_hash"] = serde_json::json!("sha256:not-blake3");
+        receipt["repository_scope"] = serde_json::json!("/tmp/repo");
+        receipt["output_format"] = serde_json::json!("text");
+        receipt["non_claims"] = serde_json::json!(["proves release eligibility"]);
+        receipt["claim"] = serde_json::json!("proves source correctness");
         let report = validate_ast_grep_receipt(
             &default_ast_grep_gate_policy(AST_GREP_GATE_MODE_BLOCKING),
             &receipt,
@@ -704,7 +724,7 @@ mod tests {
     #[test]
     fn codemod_review_mode_requires_reviewed_codemod_evidence() {
         let mut receipt = receipt();
-        receipt["findings_summary"]["codemods"] = json!(1);
+        receipt["findings_summary"]["codemods"] = serde_json::json!(1);
         let report = validate_ast_grep_receipt(
             &default_ast_grep_gate_policy(AST_GREP_GATE_MODE_CODEMOD_REVIEW),
             &receipt,
@@ -712,7 +732,7 @@ mod tests {
         assert!(!report.passed);
         assert!(issue_codes(&report).contains(&AST_GREP_GATE_ISSUE_CODEMOD_REVIEW.to_string()));
 
-        receipt["codemod_review"] = json!(CODEMOD_REVIEWED);
+        receipt["codemod_review"] = serde_json::json!(CODEMOD_REVIEWED);
         let reviewed = validate_ast_grep_receipt(
             &default_ast_grep_gate_policy(AST_GREP_GATE_MODE_CODEMOD_REVIEW),
             &receipt,

@@ -1,0 +1,16 @@
+{
+  "bounds": {
+    "max_artifact_bytes": 1048576,
+    "max_diagnostics": 64,
+    "max_heading_depth": 6,
+    "max_references": 64,
+    "max_selected_bytes": 65536,
+    "max_selector_bytes": 512
+  },
+  "required_non_claims": [
+    "a selected block does not establish source truth, semantic sufficiency, requirement satisfaction, or lifecycle readiness",
+    "references and policy constraints are prerequisites, not automatically expanded content or implementation evidence",
+    "selected content and document validity are independent; omissions require explicit follow-up"
+  ],
+  "schema": "cairn.targeted-context-policy.v1"
+}

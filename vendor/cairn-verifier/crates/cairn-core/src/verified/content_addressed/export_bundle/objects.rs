@@ -1,16 +1,10 @@
-use serde_json::{Map, Value};
-
-use super::super::common::is_blake3_hex;
-use super::common::bundle_issue;
-use super::types::ExportBundleIssue;
-
 pub(super) fn export_bundle_object_issues(
-    object: &Map<String, Value>,
-) -> (Vec<String>, Vec<ExportBundleIssue>) {
-    let Some(objects) = object.get("objects").and_then(Value::as_array) else {
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> (Vec<String>, Vec<super::types::ExportBundleIssue>) {
+    let Some(objects) = object.get("objects").and_then(serde_json::Value::as_array) else {
         return (
             Vec::new(),
-            vec![bundle_issue(
+            vec![super::common::bundle_issue(
                 "export_bundle.invalid_objects",
                 "objects must be an array",
             )],
@@ -21,7 +15,7 @@ pub(super) fn export_bundle_object_issues(
     let mut previous_hash = None::<String>;
     for entry in objects {
         let Some(object_entry) = entry.as_object() else {
-            issues.push(bundle_issue(
+            issues.push(super::common::bundle_issue(
                 "export_bundle.invalid_object_entry",
                 "each object membership entry must be a JSON object",
             ));
@@ -29,10 +23,10 @@ pub(super) fn export_bundle_object_issues(
         };
         let object_hash = object_entry
             .get("object_hash")
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .unwrap_or_default();
-        if !is_blake3_hex(object_hash) {
-            issues.push(bundle_issue(
+        if !super::super::common::is_blake3_hex(object_hash) {
+            issues.push(super::common::bundle_issue(
                 "export_bundle.invalid_object_hash",
                 "objects.object_hash must be a BLAKE3 hex string",
             ));
@@ -41,7 +35,7 @@ pub(super) fn export_bundle_object_issues(
             .as_deref()
             .is_some_and(|previous| previous > object_hash)
         {
-            issues.push(bundle_issue(
+            issues.push(super::common::bundle_issue(
                 "export_bundle.unsorted_objects",
                 "objects must be sorted by object_hash",
             ));

@@ -1,20 +1,9 @@
-use std::collections::BTreeSet;
-
-use serde_json::json;
-
-use crate::verified::evidence::canonical_json_hash;
-
-use super::{
-    issue, issue_order, registry_non_claims, report_hash, GlobalRegistrySnapshot, RegistryIssue,
-    RegistryQueryReport,
-};
-
 // r[impl cairn.global_registry.query]
 // r[impl cairn.global_registry.query.failure]
 pub fn query_registry_exact_id(
-    snapshot: &GlobalRegistrySnapshot,
+    snapshot: &super::GlobalRegistrySnapshot,
     stable_id: &str,
-) -> RegistryQueryReport {
+) -> super::RegistryQueryReport {
     let mut selected_ids = snapshot
         .nodes
         .iter()
@@ -31,7 +20,7 @@ pub fn query_registry_exact_id(
     selected_ids.sort();
     selected_ids.dedup();
     let issues = if selected_ids.is_empty() {
-        vec![issue(
+        vec![super::issue(
             "registry.query_id_unknown",
             "query",
             stable_id,
@@ -48,9 +37,9 @@ pub fn query_registry_exact_id(
 
 // r[impl cairn.global_registry.query.tags]
 pub fn query_registry_tags(
-    snapshot: &GlobalRegistrySnapshot,
+    snapshot: &super::GlobalRegistrySnapshot,
     selectors: &[(String, String, String)],
-) -> RegistryQueryReport {
+) -> super::RegistryQueryReport {
     let mut normalized = selectors.to_vec();
     normalized.sort();
     normalized.dedup();
@@ -60,7 +49,7 @@ pub fn query_registry_tags(
             namespace.is_empty() || key.is_empty() || value.is_empty()
         })
     {
-        issues.push(issue(
+        issues.push(super::issue(
             "registry.query_selector_invalid",
             "query",
             "tags",
@@ -81,7 +70,7 @@ pub fn query_registry_tags(
                         tag.namespace == *namespace && tag.key == *key && tag.value == *value
                     })
                     .map(|tag| tag.subject_id.clone())
-                    .collect::<BTreeSet<_>>()
+                    .collect::<std::collections::BTreeSet<_>>()
             })
             .collect::<Vec<_>>();
         by_selector
@@ -109,21 +98,21 @@ pub fn query_registry_tags(
 }
 
 fn finalize_query(
-    snapshot: &GlobalRegistrySnapshot,
+    snapshot: &super::GlobalRegistrySnapshot,
     selector: String,
     mut selected_ids: Vec<String>,
-    mut issues: Vec<RegistryIssue>,
-) -> RegistryQueryReport {
+    mut issues: Vec<super::RegistryIssue>,
+) -> super::RegistryQueryReport {
     selected_ids.sort();
     selected_ids.dedup();
-    issues.sort_by(issue_order);
+    issues.sort_by(super::issue_order);
     let valid = issues.is_empty();
-    let result_hash = canonical_json_hash(&json!({
+    let result_hash = crate::verified::evidence::canonical_json_hash(&serde_json::json!({
         "snapshot_hash": snapshot.snapshot_hash,
         "selector": selector,
         "selected_ids": selected_ids,
     }));
-    let mut report = RegistryQueryReport {
+    let mut report = super::RegistryQueryReport {
         valid,
         verdict: if valid { "PASS" } else { "FAIL" }.to_string(),
         snapshot_hash: snapshot.snapshot_hash.clone(),
@@ -132,8 +121,8 @@ fn finalize_query(
         issues,
         result_hash,
         receipt_hash: String::new(),
-        non_claims: registry_non_claims(snapshot),
+        non_claims: super::registry_non_claims(snapshot),
     };
-    report.receipt_hash = report_hash(&report);
+    report.receipt_hash = super::report_hash(&report);
     report
 }

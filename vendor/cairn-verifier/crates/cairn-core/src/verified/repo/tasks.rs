@@ -1,7 +1,5 @@
-use super::TaskCounts;
-
-pub fn count_tasks(markdown: &str) -> TaskCounts {
-    let mut counts = TaskCounts {
+pub fn count_tasks(markdown: &str) -> super::TaskCounts {
+    let mut counts = super::TaskCounts {
         total: 0,
         done: 0,
         in_progress: 0,
@@ -35,7 +33,7 @@ fn task_state(trimmed: &str) -> Option<&'static str> {
     None
 }
 
-fn increment_state(counts: &mut TaskCounts, state: &str) {
+fn increment_state(counts: &mut super::TaskCounts, state: &str) {
     match state {
         "done" => counts.done += 1,
         "in_progress" => counts.in_progress += 1,

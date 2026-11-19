@@ -1,0 +1,1063 @@
+{
+  "authorized_reviewers": [
+    "parent-independent-review-2026-11-18"
+  ],
+  "contracts": [
+    {
+      "activation": {
+        "kind": "bool",
+        "value": true
+      },
+      "assumptions": [],
+      "domains": {
+        "bool": {
+          "values": [
+            "false",
+            "true"
+          ]
+        },
+        "component": {
+          "values": [
+            "repository",
+            "registry_id",
+            "registry_hash",
+            "selection",
+            "policy",
+            "subject",
+            "required_checks",
+            "commands",
+            "prerequisites"
+          ]
+        },
+        "identity": {
+          "values": [
+            "a",
+            "b",
+            "absent"
+          ]
+        }
+      },
+      "guarantee": {
+        "expressions": [
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "repository_contract_present"
+            },
+            "right": {
+              "kind": "literal",
+              "value": {
+                "domain": "bool",
+                "value": "true"
+              }
+            }
+          },
+          {
+            "domain": "component",
+            "expression": {
+              "kind": "equal",
+              "left": {
+                "arguments": [
+                  {
+                    "kind": "variable",
+                    "name": "component"
+                  }
+                ],
+                "kind": "observable",
+                "mapping": "repository_identity"
+              },
+              "right": {
+                "arguments": [
+                  {
+                    "kind": "variable",
+                    "name": "component"
+                  }
+                ],
+                "kind": "observable",
+                "mapping": "decision_identity"
+              }
+            },
+            "kind": "forall",
+            "variable": "component"
+          }
+        ],
+        "kind": "and"
+      },
+      "informal_remainder": "Repository ownership/authenticity, canonicalization implementation, cryptographic hash syntax/collision resistance, arbitrary registry size, command execution and full diagnostic classes remain outside this finite interpretation.",
+      "observables": {
+        "decision_identity": {
+          "arguments": [
+            "component"
+          ],
+          "phase": "state",
+          "projection": "same components in independently normalized repository decision inputs/report; registry/selection/policy/subject also compared to AgentExecutionResult fields; no result row may define repository_identity",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "repository_contract_present": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "AgentVerificationContract deserialization succeeds for repository-owned contract supplied independently of result rows; false for missing/unparseable contract",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "repository_identity": {
+          "arguments": [
+            "component"
+          ],
+          "phase": "state",
+          "projection": "component selects exact AgentVerificationContract.repository_id, registry_id, registry_hash, selection_hash, policy_hash, final_subject_hash, or canonical required_checks/check_id set, command argv/hash map, prerequisites edge set; injectively label exact values",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        }
+      },
+      "profile": "cairn.requirement-semantics.finite.v1",
+      "proposed_by": "cairn-typed-requirements-author",
+      "requirement": {
+        "requirement_body_blake3": "6a30659535a7f87cce3625cab7db6bdc8ede8be27f95eed08d5ad5860bfebb8b",
+        "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+        "row_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+        "source_span": {
+          "end_byte": 466,
+          "end_line": 11,
+          "start_byte": 184,
+          "start_line": 11
+        },
+        "specification_blake3": "18b48ac73b3632a800d40d818697dc05e282383dbf9f149aa6f77a3f396fe405",
+        "specification_path": ".cairn/specs/agent-completion/spec.md"
+      },
+      "supported_portion": "Finite exact equality of independently supplied repository verification contract identities, including required-set, command and prerequisite identities. Missing repository contract is distinguished from self-authored passing rows."
+    },
+    {
+      "activation": {
+        "kind": "bool",
+        "value": true
+      },
+      "assumptions": [],
+      "domains": {
+        "bool": {
+          "values": [
+            "false",
+            "true"
+          ]
+        },
+        "check": {
+          "values": [
+            "check-a",
+            "check-b",
+            "unknown"
+          ]
+        },
+        "row": {
+          "values": [
+            "row-a",
+            "row-b"
+          ]
+        },
+        "status": {
+          "values": [
+            "passed",
+            "failed",
+            "blocked",
+            "skipped",
+            "deferred",
+            "timed_out",
+            "cancelled",
+            "dry_run",
+            "cleanup_failed",
+            "infrastructure_error",
+            "not_selected",
+            "unknown"
+          ]
+        }
+      },
+      "guarantee": {
+        "expressions": [
+          {
+            "domain": "row",
+            "expression": {
+              "conclusion": {
+                "expressions": [
+                  {
+                    "kind": "equal",
+                    "left": {
+                      "arguments": [
+                        {
+                          "arguments": [
+                            {
+                              "kind": "variable",
+                              "name": "row"
+                            }
+                          ],
+                          "kind": "observable",
+                          "mapping": "row_check"
+                        }
+                      ],
+                      "kind": "observable",
+                      "mapping": "selected"
+                    },
+                    "right": {
+                      "kind": "literal",
+                      "value": {
+                        "domain": "bool",
+                        "value": "true"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "equal",
+                    "left": {
+                      "arguments": [
+                        {
+                          "kind": "variable",
+                          "name": "row"
+                        }
+                      ],
+                      "kind": "observable",
+                      "mapping": "row_status"
+                    },
+                    "right": {
+                      "kind": "literal",
+                      "value": {
+                        "domain": "status",
+                        "value": "passed"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "equal",
+                    "left": {
+                      "arguments": [
+                        {
+                          "kind": "variable",
+                          "name": "row"
+                        }
+                      ],
+                      "kind": "observable",
+                      "mapping": "eligible"
+                    },
+                    "right": {
+                      "kind": "literal",
+                      "value": {
+                        "domain": "bool",
+                        "value": "true"
+                      }
+                    }
+                  }
+                ],
+                "kind": "and"
+              },
+              "kind": "implies",
+              "premise": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "row"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "present"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              }
+            },
+            "kind": "forall",
+            "variable": "row"
+          },
+          {
+            "domain": "check",
+            "expression": {
+              "conclusion": {
+                "domain": "row",
+                "expression": {
+                  "expressions": [
+                    {
+                      "kind": "equal",
+                      "left": {
+                        "arguments": [
+                          {
+                            "kind": "variable",
+                            "name": "row"
+                          }
+                        ],
+                        "kind": "observable",
+                        "mapping": "present"
+                      },
+                      "right": {
+                        "kind": "literal",
+                        "value": {
+                          "domain": "bool",
+                          "value": "true"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "equal",
+                      "left": {
+                        "arguments": [
+                          {
+                            "kind": "variable",
+                            "name": "row"
+                          }
+                        ],
+                        "kind": "observable",
+                        "mapping": "row_check"
+                      },
+                      "right": {
+                        "kind": "variable",
+                        "name": "check"
+                      }
+                    },
+                    {
+                      "domain": "row",
+                      "expression": {
+                        "conclusion": {
+                          "kind": "equal",
+                          "left": {
+                            "kind": "variable",
+                            "name": "other"
+                          },
+                          "right": {
+                            "kind": "variable",
+                            "name": "row"
+                          }
+                        },
+                        "kind": "implies",
+                        "premise": {
+                          "expressions": [
+                            {
+                              "kind": "equal",
+                              "left": {
+                                "arguments": [
+                                  {
+                                    "kind": "variable",
+                                    "name": "other"
+                                  }
+                                ],
+                                "kind": "observable",
+                                "mapping": "present"
+                              },
+                              "right": {
+                                "kind": "literal",
+                                "value": {
+                                  "domain": "bool",
+                                  "value": "true"
+                                }
+                              }
+                            },
+                            {
+                              "kind": "equal",
+                              "left": {
+                                "arguments": [
+                                  {
+                                    "kind": "variable",
+                                    "name": "other"
+                                  }
+                                ],
+                                "kind": "observable",
+                                "mapping": "row_check"
+                              },
+                              "right": {
+                                "kind": "variable",
+                                "name": "check"
+                              }
+                            }
+                          ],
+                          "kind": "and"
+                        }
+                      },
+                      "kind": "forall",
+                      "variable": "other"
+                    }
+                  ],
+                  "kind": "and"
+                },
+                "kind": "exists",
+                "variable": "row"
+              },
+              "kind": "implies",
+              "premise": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "check"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "selected"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              }
+            },
+            "kind": "forall",
+            "variable": "check"
+          }
+        ],
+        "kind": "and"
+      },
+      "informal_remainder": "The eligible observation summarizes existing native validation rather than proving it: prerequisite graph traversal, argv/digest validation and external evidence truth remain informal. The model covers at most two result slots and two known checks, not arbitrary cardinalities.",
+      "observables": {
+        "eligible": {
+          "arguments": [
+            "row"
+          ],
+          "phase": "state",
+          "projection": "row satisfies command argv/hash, registry/selection/policy/subject equality, required evidence/artifact hash syntax and every prerequisite edge passing as checked by evaluate_authoritative_agent_completion; this is a supplied observation, not an uninterpreted predicate assumed true",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "present": {
+          "arguments": [
+            "row"
+          ],
+          "phase": "state",
+          "projection": "whether result slot exists in supplied Vec<AgentExecutionResult>; two slots permit duplicate IDs and missing rows without collapsing them",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "row_check": {
+          "arguments": [
+            "row"
+          ],
+          "phase": "state",
+          "projection": "AgentExecutionResult.check_id mapped injectively to selected IDs or unknown sentinel",
+          "result": "check",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "row_status": {
+          "arguments": [
+            "row"
+          ],
+          "phase": "state",
+          "projection": "AgentExecutionResult.status exact string; unsupported strings are rejected by adapter, never mapped to passed",
+          "result": "status",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "selected": {
+          "arguments": [
+            "check"
+          ],
+          "phase": "state",
+          "projection": "membership of check_id in AgentVerificationContract.required_checks; unknown sentinel is never selected",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        }
+      },
+      "profile": "cairn.requirement-semantics.finite.v1",
+      "proposed_by": "cairn-typed-requirements-author",
+      "requirement": {
+        "requirement_body_blake3": "7c55795bcf82118d164643e0ad3e57494d3eccc26cfd5300db11da82b44357d3",
+        "requirement_id": "cairn.supersede.agent_run_receipts.pass_only",
+        "row_blake3": "34abbfe64cae739b75554f48d89d0e0bc19ca8e55d54cf51a9363ffe84a6f58d",
+        "source_span": {
+          "end_byte": 2206,
+          "end_line": 38,
+          "start_byte": 1992,
+          "start_line": 38
+        },
+        "specification_blake3": "18b48ac73b3632a800d40d818697dc05e282383dbf9f149aa6f77a3f396fe405",
+        "specification_path": ".cairn/specs/agent-completion/spec.md"
+      },
+      "supported_portion": "Exactly one present eligible passed result per selected required check in the declared finite universe, with no unknown result rows. A duplicate passed row is not equivalent to one passed row."
+    },
+    {
+      "activation": {
+        "kind": "bool",
+        "value": true
+      },
+      "assumptions": [],
+      "domains": {
+        "bool": {
+          "values": [
+            "false",
+            "true"
+          ]
+        },
+        "identity": {
+          "values": [
+            "a",
+            "b",
+            "absent"
+          ]
+        },
+        "row": {
+          "values": [
+            "row-a",
+            "row-b"
+          ]
+        }
+      },
+      "guarantee": {
+        "expressions": [
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "contract_subject"
+            },
+            "right": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "final_subject"
+            }
+          },
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "receipt_subject"
+            },
+            "right": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "final_subject"
+            }
+          },
+          {
+            "domain": "row",
+            "expression": {
+              "conclusion": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "row"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "result_subject"
+                },
+                "right": {
+                  "arguments": [],
+                  "kind": "observable",
+                  "mapping": "final_subject"
+                }
+              },
+              "kind": "implies",
+              "premise": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "row"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "eligible"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              }
+            },
+            "kind": "forall",
+            "variable": "row"
+          }
+        ],
+        "kind": "and"
+      },
+      "informal_remainder": "Filesystem subject measurement, mutation ordering, command/evidence/artifact hash syntax, hash authenticity and arbitrary result universes are not established by token equality.",
+      "observables": {
+        "contract_subject": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "AgentVerificationContract.final_subject_hash",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "eligible": {
+          "arguments": [
+            "row"
+          ],
+          "phase": "state",
+          "projection": "membership of a supplied result row in completion-eligible required passed results; absent slots are false",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "final_subject": {
+          "arguments": [],
+          "phase": "after",
+          "projection": "evaluate_authoritative_agent_completion current_subject_hash argument after repository mutation",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "receipt_subject": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "AgentAuthoritativeCompletionReport.final_subject_hash included in canonical_report_hash",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "result_subject": {
+          "arguments": [
+            "row"
+          ],
+          "phase": "state",
+          "projection": "AgentExecutionResult.subject_hash exact identity; absent slots may use absent token",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        }
+      },
+      "profile": "cairn.requirement-semantics.finite.v1",
+      "proposed_by": "cairn-typed-requirements-author",
+      "requirement": {
+        "requirement_body_blake3": "be11d3a5ca69b23a147df33c11a591998537fc649cd8e8f9aed6801dbb07fe3f",
+        "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+        "row_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+        "source_span": {
+          "end_byte": 4280,
+          "end_line": 74,
+          "start_byte": 4080,
+          "start_line": 74
+        },
+        "specification_blake3": "18b48ac73b3632a800d40d818697dc05e282383dbf9f149aa6f77a3f396fe405",
+        "specification_path": ".cairn/specs/agent-completion/spec.md"
+      },
+      "supported_portion": "Equality of selected finite result, contract, aggregate receipt and final post-mutation subject identities. A changed final subject distinguishes stale from current evidence."
+    },
+    {
+      "activation": {
+        "kind": "equal",
+        "left": {
+          "arguments": [],
+          "kind": "observable",
+          "mapping": "completion_claimed"
+        },
+        "right": {
+          "kind": "literal",
+          "value": {
+            "domain": "bool",
+            "value": "true"
+          }
+        }
+      },
+      "assumptions": [],
+      "domains": {
+        "bool": {
+          "values": [
+            "false",
+            "true"
+          ]
+        },
+        "check": {
+          "values": [
+            "check-a",
+            "check-b",
+            "unknown"
+          ]
+        },
+        "identity": {
+          "values": [
+            "a",
+            "b",
+            "absent"
+          ]
+        }
+      },
+      "guarantee": {
+        "expressions": [
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "receipt_present"
+            },
+            "right": {
+              "kind": "literal",
+              "value": {
+                "domain": "bool",
+                "value": "true"
+              }
+            }
+          },
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "receipt_passing"
+            },
+            "right": {
+              "kind": "literal",
+              "value": {
+                "domain": "bool",
+                "value": "true"
+              }
+            }
+          },
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "receipt_subject"
+            },
+            "right": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "final_subject"
+            }
+          },
+          {
+            "domain": "check",
+            "expression": {
+              "conclusion": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "check"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "covered"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              },
+              "kind": "implies",
+              "premise": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "check"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "selected"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              }
+            },
+            "kind": "forall",
+            "variable": "check"
+          }
+        ],
+        "kind": "and"
+      },
+      "informal_remainder": "Receipt origin/authenticity, schema/receipt-hash validation implementation, wrapper honesty, policy correctness, arbitrary check sets and broader release authority remain outside the finite model.",
+      "observables": {
+        "completion_claimed": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "consumer requests authoritative completion or represents an agent task as complete; a caller-supplied assertion, not model text interpreted as authority",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "covered": {
+          "arguments": [
+            "check"
+          ],
+          "phase": "state",
+          "projection": "membership of check_id in AgentAuthoritativeCompletionReport.required_checks AND passed_checks, with no native coverage diagnostics; false if receipt absent",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "final_subject": {
+          "arguments": [],
+          "phase": "after",
+          "projection": "evaluate_authoritative_agent_completion current_subject_hash after final mutation",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "receipt_passing": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "AgentAuthoritativeCompletionReport.valid is true AND verdict is PASS AND classification is authoritative AND schema is current; adapter must not label legacy receipt passing",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "receipt_present": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "a supplied AgentAuthoritativeCompletionReport exists, independently of process exit, task counters, checkboxes or model text",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "receipt_subject": {
+          "arguments": [],
+          "phase": "state",
+          "projection": "AgentAuthoritativeCompletionReport.final_subject_hash, absent token when receipt absent",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        },
+        "selected": {
+          "arguments": [
+            "check"
+          ],
+          "phase": "state",
+          "projection": "membership of check_id in independently repository-selected AgentVerificationContract.required_checks",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/agent_receipt/authoritative.rs"
+        }
+      },
+      "profile": "cairn.requirement-semantics.finite.v1",
+      "proposed_by": "cairn-typed-requirements-author",
+      "requirement": {
+        "requirement_body_blake3": "2b32b4728e4d48cd067823340e77bb5d92a6d1106f44747c2c9066c21a8d4568",
+        "requirement_id": "cairn.supersede.agent_run_receipts.completion_authority",
+        "row_blake3": "5427af464b1ebc00db599a9ec90cdee48d0ce7b4a0b2652c6dc1d134bd89451b",
+        "source_span": {
+          "end_byte": 7737,
+          "end_line": 127,
+          "start_byte": 7484,
+          "start_line": 127
+        },
+        "specification_blake3": "18b48ac73b3632a800d40d818697dc05e282383dbf9f149aa6f77a3f396fe405",
+        "specification_path": ".cairn/specs/agent-completion/spec.md"
+      },
+      "supported_portion": "Authoritative completion assertion requires a present current passing native receipt for the final subject and all selected finite checks; successful prose/process observations cannot replace these fields."
+    },
+    {
+      "activation": {
+        "expression": {
+          "kind": "equal",
+          "left": {
+            "arguments": [],
+            "kind": "observable",
+            "mapping": "revision_before"
+          },
+          "right": {
+            "arguments": [],
+            "kind": "observable",
+            "mapping": "revision_after"
+          }
+        },
+        "kind": "not"
+      },
+      "assumptions": [],
+      "domains": {
+        "bool": {
+          "values": [
+            "false",
+            "true"
+          ]
+        },
+        "identity": {
+          "values": [
+            "a",
+            "b",
+            "absent"
+          ]
+        },
+        "lifecycle": {
+          "values": [
+            "open",
+            "discharged",
+            "rejected",
+            "invalidated"
+          ]
+        },
+        "operation": {
+          "values": [
+            "operation-a",
+            "operation-b"
+          ]
+        }
+      },
+      "guarantee": {
+        "expressions": [
+          {
+            "kind": "equal",
+            "left": {
+              "arguments": [],
+              "kind": "observable",
+              "mapping": "lifecycle_after"
+            },
+            "right": {
+              "kind": "literal",
+              "value": {
+                "domain": "lifecycle",
+                "value": "open"
+              }
+            }
+          },
+          {
+            "domain": "operation",
+            "expression": {
+              "conclusion": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "operation"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "operation_after"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              },
+              "kind": "implies",
+              "premise": {
+                "kind": "equal",
+                "left": {
+                  "arguments": [
+                    {
+                      "kind": "variable",
+                      "name": "operation"
+                    }
+                  ],
+                  "kind": "observable",
+                  "mapping": "operation_before"
+                },
+                "right": {
+                  "kind": "literal",
+                  "value": {
+                    "domain": "bool",
+                    "value": "true"
+                  }
+                }
+              }
+            },
+            "kind": "forall",
+            "variable": "operation"
+          }
+        ],
+        "kind": "and"
+      },
+      "informal_remainder": "Current WorkflowState does not carry individual claim-root fields on every evidence link, finding and decision. That stronger prose portion is not established here; per-fact root binding, retained full claim payloads, authorized complete-basis revision admission, concurrent heads, numeric increment/overflow and arbitrary history remain informal.",
+      "observables": {
+        "lifecycle_after": {
+          "arguments": [],
+          "phase": "after",
+          "projection": "WorkflowState.lifecycle.status after resolve_field",
+          "result": "lifecycle",
+          "source": "crates/cairn-core/src/verified/workflow_collaboration_impl.rs"
+        },
+        "operation_after": {
+          "arguments": [
+            "operation"
+          ],
+          "phase": "after",
+          "projection": "membership of the same operation ID in WorkflowState.operations after admitted claim field revision",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/workflow_collaboration_impl.rs"
+        },
+        "operation_before": {
+          "arguments": [
+            "operation"
+          ],
+          "phase": "before",
+          "projection": "membership of operation ID in WorkflowState.operations before admitted claim field revision",
+          "result": "bool",
+          "source": "crates/cairn-core/src/verified/workflow_collaboration_impl.rs"
+        },
+        "revision_after": {
+          "arguments": [],
+          "phase": "after",
+          "projection": "WorkflowState.claim_root.revision after admitted resolve_field; a different exact revision has a different token",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/workflow_collaboration_impl.rs"
+        },
+        "revision_before": {
+          "arguments": [],
+          "phase": "before",
+          "projection": "WorkflowState.claim_root.revision before resolve_field; injective token for the exact revision number, not arithmetic",
+          "result": "identity",
+          "source": "crates/cairn-core/src/verified/workflow_collaboration_impl.rs"
+        }
+      },
+      "profile": "cairn.requirement-semantics.finite.v1",
+      "proposed_by": "cairn-typed-requirements-author",
+      "requirement": {
+        "requirement_body_blake3": "97a773f0545b2e3aa12cd5b0cbdafe2698381256f3de1878a809332a381008b6",
+        "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+        "row_blake3": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666",
+        "source_span": {
+          "end_byte": 3646,
+          "end_line": 65,
+          "start_byte": 3392,
+          "start_line": 65
+        },
+        "specification_blake3": "56240c57533326ccee1e6fe41c57408db9d47f24226ec22f3643f365eeff517f",
+        "specification_path": ".cairn/specs/verification-obligation-radicle-cob/spec.md"
+      },
+      "supported_portion": "Single admitted claim revision changes the exact review epoch, resets lifecycle to open (so a prior discharge is not inherited), and preserves the selected finite operation history."
+    }
+  ],
+  "profile": {
+    "id": "cairn.requirement-semantics.finite.v1",
+    "interpretation": "finite-enumeration.equality.nominal-domains.total-observables.single-step.v1",
+    "max_depth": 64,
+    "max_domain_values": 256,
+    "max_nodes": 4096,
+    "max_steps": 1000000
+  },
+  "proposed_correspondence": [
+    {
+      "proposed_by": "cairn-typed-requirements-author",
+      "rationale": "Finite exact equality of independently supplied repository verification contract identities, including required-set, command and prerequisite identities. Missing repository contract is distinguished from self-authored passing rows. INFORMAL REMAINDER: Repository ownership/authenticity, canonicalization implementation, cryptographic hash syntax/collision resistance, arbitrary registry size, command execution and full diagnostic classes remain outside this finite interpretation.",
+      "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract"
+    },
+    {
+      "proposed_by": "cairn-typed-requirements-author",
+      "rationale": "Exactly one present eligible passed result per selected required check in the declared finite universe, with no unknown result rows. A duplicate passed row is not equivalent to one passed row. INFORMAL REMAINDER: The eligible observation summarizes existing native validation rather than proving it: prerequisite graph traversal, argv/digest validation and external evidence truth remain informal. The model covers at most two result slots and two known checks, not arbitrary cardinalities.",
+      "requirement_id": "cairn.supersede.agent_run_receipts.pass_only"
+    },
+    {
+      "proposed_by": "cairn-typed-requirements-author",
+      "rationale": "Equality of selected finite result, contract, aggregate receipt and final post-mutation subject identities. A changed final subject distinguishes stale from current evidence. INFORMAL REMAINDER: Filesystem subject measurement, mutation ordering, command/evidence/artifact hash syntax, hash authenticity and arbitrary result universes are not established by token equality.",
+      "requirement_id": "cairn.supersede.agent_run_receipts.freshness"
+    },
+    {
+      "proposed_by": "cairn-typed-requirements-author",
+      "rationale": "Authoritative completion assertion requires a present current passing native receipt for the final subject and all selected finite checks; successful prose/process observations cannot replace these fields. INFORMAL REMAINDER: Receipt origin/authenticity, schema/receipt-hash validation implementation, wrapper honesty, policy correctness, arbitrary check sets and broader release authority remain outside the finite model.",
+      "requirement_id": "cairn.supersede.agent_run_receipts.completion_authority"
+    },
+    {
+      "proposed_by": "cairn-typed-requirements-author",
+      "rationale": "Single admitted claim revision changes the exact review epoch, resets lifecycle to open (so a prior discharge is not inherited), and preserves the selected finite operation history. INFORMAL REMAINDER: Current WorkflowState does not carry individual claim-root fields on every evidence link, finding and decision. That stronger prose portion is not established here; per-fact root binding, retained full claim payloads, authorized complete-basis revision admission, concurrent heads, numeric increment/overflow and arbitrary history remain informal.",
+      "requirement_id": "cairn.verification_obligation_cob.claim_revision"
+    }
+  ],
+  "reviews": []
+}

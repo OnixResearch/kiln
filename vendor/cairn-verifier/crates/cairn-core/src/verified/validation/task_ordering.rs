@@ -1,15 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use crate::verified::{
-    dag::topological_order,
-    policy::{Policy, TaskMarker, TASK_IDENTITY_MARKER_ID, TASK_PREDECESSOR_MARKER_ID},
-};
-
-use super::{
-    spec::{fence_boundary, visible_text_without_comments},
-    substance::valid_lifecycle_id,
-};
-
 pub const TASK_ORDER_ISSUE_MARKER_POLICY: &str = "task_ordering.marker_policy";
 pub const TASK_ORDER_ISSUE_ID_MISSING: &str = "task_ordering.task_id.missing";
 pub const TASK_ORDER_ISSUE_ID_MALFORMED: &str = "task_ordering.task_id.malformed";
@@ -94,15 +82,22 @@ struct MarkerObservation {
     targets: Vec<String>,
 }
 
-pub fn build_task_ordering_graph(markdown: &str, policy: &Policy) -> TaskOrderingGraph {
+pub fn build_task_ordering_graph(
+    markdown: &str,
+    policy: &crate::verified::policy::Policy,
+) -> TaskOrderingGraph {
     // r[impl cairn.task_ordering.markers]
     // r[impl cairn.task_ordering.graph]
     // r[impl cairn.task_ordering.progress]
-    let Some(identity_marker) = configured_marker(policy, TASK_IDENTITY_MARKER_ID) else {
-        return marker_policy_failure(TASK_IDENTITY_MARKER_ID);
+    let Some(identity_marker) =
+        configured_marker(policy, crate::verified::policy::TASK_IDENTITY_MARKER_ID)
+    else {
+        return marker_policy_failure(crate::verified::policy::TASK_IDENTITY_MARKER_ID);
     };
-    let Some(predecessor_marker) = configured_marker(policy, TASK_PREDECESSOR_MARKER_ID) else {
-        return marker_policy_failure(TASK_PREDECESSOR_MARKER_ID);
+    let Some(predecessor_marker) =
+        configured_marker(policy, crate::verified::policy::TASK_PREDECESSOR_MARKER_ID)
+    else {
+        return marker_policy_failure(crate::verified::policy::TASK_PREDECESSOR_MARKER_ID);
     };
     if identity_marker.kind != TASK_IDENTITY_MARKER_KIND {
         return marker_kind_failure(identity_marker, TASK_IDENTITY_MARKER_KIND);
@@ -144,7 +139,7 @@ pub fn build_task_ordering_graph(markdown: &str, policy: &Policy) -> TaskOrderin
         .iter()
         .map(|edge| (edge.predecessor.clone(), edge.task.clone()))
         .collect::<Vec<_>>();
-    let topological = topological_order(&node_ids, &topological_edges);
+    let topological = crate::verified::dag::topological_order(&node_ids, &topological_edges);
     for task_id in &topological.blocked_nodes {
         issues.push(TaskOrderingIssue {
             code: TASK_ORDER_ISSUE_CYCLE.to_string(),
@@ -191,7 +186,10 @@ pub fn build_task_ordering_graph(markdown: &str, policy: &Policy) -> TaskOrderin
     }
 }
 
-fn configured_marker<'a>(policy: &'a Policy, marker_id: &str) -> Option<&'a TaskMarker> {
+fn configured_marker<'a>(
+    policy: &'a crate::verified::policy::Policy,
+    marker_id: &str,
+) -> Option<&'a crate::verified::policy::TaskMarker> {
     policy
         .task_marker_tokens
         .iter()
@@ -217,7 +215,10 @@ fn marker_policy_failure(marker_id: &str) -> TaskOrderingGraph {
     }
 }
 
-fn marker_kind_failure(marker: &TaskMarker, expected_kind: &str) -> TaskOrderingGraph {
+fn marker_kind_failure(
+    marker: &crate::verified::policy::TaskMarker,
+    expected_kind: &str,
+) -> TaskOrderingGraph {
     let issue = TaskOrderingIssue {
         code: TASK_ORDER_ISSUE_MARKER_POLICY.to_string(),
         line: None,
@@ -249,11 +250,11 @@ fn observe_tasks(
     let mut is_fenced = false;
     let mut is_in_comment = false;
     for (line_index, line) in markdown.lines().enumerate() {
-        if fence_boundary(line) && !is_in_comment {
+        if super::spec::fence_boundary(line) && !is_in_comment {
             is_fenced = !is_fenced;
             continue;
         }
-        let visible = visible_text_without_comments(line, &mut is_in_comment);
+        let visible = super::spec::visible_text_without_comments(line, &mut is_in_comment);
         if is_fenced {
             continue;
         }
@@ -309,7 +310,7 @@ fn observe_markers(
             break;
         };
         let target = after_prefix[..end].trim();
-        if !valid_lifecycle_id(target) {
+        if !super::substance::valid_lifecycle_id(target) {
             issues.push(malformed_marker_issue(
                 issue_code,
                 line_number,
@@ -339,8 +340,8 @@ fn malformed_marker_issue(code: &str, line: usize, message: String) -> TaskOrder
 fn identify_nodes(
     raw_tasks: &[RawTask],
     issues: &mut Vec<TaskOrderingIssue>,
-) -> BTreeMap<String, TaskOrderingNode> {
-    let mut nodes = BTreeMap::<String, TaskOrderingNode>::new();
+) -> std::collections::BTreeMap<String, TaskOrderingNode> {
+    let mut nodes = std::collections::BTreeMap::<String, TaskOrderingNode>::new();
     for task in raw_tasks {
         if task.identity.occurrences == 0 {
             issues.push(TaskOrderingIssue {
@@ -395,10 +396,13 @@ fn identify_nodes(
 
 fn admit_edges(
     raw_tasks: &[RawTask],
-    nodes: &mut BTreeMap<String, TaskOrderingNode>,
+    nodes: &mut std::collections::BTreeMap<String, TaskOrderingNode>,
     issues: &mut Vec<TaskOrderingIssue>,
 ) -> Vec<TaskOrderingEdge> {
-    let known_ids = nodes.keys().cloned().collect::<BTreeSet<_>>();
+    let known_ids = nodes
+        .keys()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
     let mut edges = Vec::new();
     for task in raw_tasks {
         if task.identity.occurrences != 1 {
@@ -410,7 +414,7 @@ fn admit_edges(
         if !known_ids.contains(task_id) {
             continue;
         }
-        let mut seen = BTreeSet::new();
+        let mut seen = std::collections::BTreeSet::new();
         for predecessor in &task.predecessors.targets {
             if !seen.insert(predecessor.clone()) {
                 issues.push(TaskOrderingIssue {
@@ -459,7 +463,7 @@ fn admit_edges(
     edges
 }
 
-fn sort_node_edges(nodes: &mut BTreeMap<String, TaskOrderingNode>) {
+fn sort_node_edges(nodes: &mut std::collections::BTreeMap<String, TaskOrderingNode>) {
     for node in nodes.values_mut() {
         node.predecessors.sort();
         node.predecessors.dedup();
@@ -469,13 +473,13 @@ fn sort_node_edges(nodes: &mut BTreeMap<String, TaskOrderingNode>) {
 }
 
 fn observe_progress(
-    nodes: &mut BTreeMap<String, TaskOrderingNode>,
+    nodes: &mut std::collections::BTreeMap<String, TaskOrderingNode>,
     issues: &mut Vec<TaskOrderingIssue>,
 ) {
     let states = nodes
         .iter()
         .map(|(task_id, node)| (task_id.clone(), node.state))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     for node in nodes.values_mut() {
         node.blocked_by = node
             .predecessors
@@ -521,7 +525,7 @@ fn marker_prefix(token: &str) -> &str {
     token.split('<').next().unwrap_or(token)
 }
 
-fn task_state(trimmed: &str) -> Option<TaskOrderingState> {
+pub(super) fn task_state(trimmed: &str) -> Option<TaskOrderingState> {
     if trimmed.starts_with("- [x]") || trimmed.starts_with("- [X]") {
         return Some(TaskOrderingState::Done);
     }
@@ -537,10 +541,9 @@ fn task_state(trimmed: &str) -> Option<TaskOrderingState> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::verified::policy::parse_policy_json;
 
-    fn policy() -> Policy {
-        parse_policy_json(include_str!(
+    fn policy() -> crate::verified::policy::Policy {
+        crate::verified::policy::parse_policy_json(include_str!(
             "../../../../../cairn-policy/generated/cairn-policy.json"
         ))
         .expect("generated policy")
@@ -621,7 +624,7 @@ mod tests {
             .issues
             .iter()
             .map(|issue| issue.code.as_str())
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
 
         assert!(!graph.valid);
         assert!(graph.order.is_empty());
@@ -653,7 +656,7 @@ mod tests {
             .issues
             .iter()
             .map(|issue| issue.code.as_str())
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
 
         assert!(!graph.valid);
         for expected in [

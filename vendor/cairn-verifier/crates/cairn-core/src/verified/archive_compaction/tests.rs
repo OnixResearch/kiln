@@ -1,12 +1,10 @@
-use crate::verified::evidence::blake3_hex;
-
 use super::*;
 
 const PROPOSAL_BYTES: &[u8] = b"## Why\n\nExact bytes.\n";
 const TASK_BYTES: &[u8] = b"## Tasks\n\n- [x] Done\n";
 
 fn hash(label: &str) -> String {
-    blake3_hex(label.as_bytes())
+    crate::verified::evidence::blake3_hex(label.as_bytes())
 }
 
 fn archive(id: &str) -> ArchiveInput {
@@ -41,7 +39,7 @@ fn objects_for(archive: &ArchiveInput) -> Vec<PackObjectInput> {
         .files
         .iter()
         .map(|file| PackObjectInput {
-            content_hash: blake3_hex(&file.bytes),
+            content_hash: crate::verified::evidence::blake3_hex(&file.bytes),
             bytes: file.bytes.clone(),
         })
         .collect()

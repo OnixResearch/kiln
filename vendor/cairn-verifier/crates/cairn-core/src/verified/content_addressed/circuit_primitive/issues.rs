@@ -1,14 +1,6 @@
 // r[impl electrical_circuit_primitive_receipts.validator.core]
 // r[verify electrical_circuit_primitive_receipts.circuit_primitive_core_split.behavior_preserved.repository_checks]
 
-use serde_json::{Map, Value};
-
-use super::super::common::{entropy_hash_material_messages, is_blake3_hex};
-use super::components::component_issues;
-use super::hash::circuit_primitive_hash_material;
-use super::topology::topology_issues;
-use super::CIRCUIT_PRIMITIVE_SCHEMA_V1;
-
 const REQUIRED_TOP_LEVEL_FIELDS: &[&str] = &[
     "schema",
     "graph_hash",
@@ -42,7 +34,7 @@ pub struct CircuitPrimitiveIssue {
 }
 
 pub(super) fn circuit_primitive_issues(
-    receipt: &Value,
+    receipt: &serde_json::Value,
     computed_graph_hash: &str,
 ) -> Vec<CircuitPrimitiveIssue> {
     let Some(object) = receipt.as_object() else {
@@ -56,17 +48,19 @@ pub(super) fn circuit_primitive_issues(
     issues.extend(required_top_level_issues(object));
     issues.extend(hash_issues(object, computed_graph_hash));
     issues.extend(required_nested_object_issues(object));
-    issues.extend(topology_issues(object));
-    issues.extend(component_issues(object));
+    issues.extend(super::topology::topology_issues(object));
+    issues.extend(super::components::component_issues(object));
     issues.extend(non_claim_issues(object));
     issues.extend(entropy_issues(
         "$",
-        &circuit_primitive_hash_material(receipt),
+        &super::hash::circuit_primitive_hash_material(receipt),
     ));
     issues
 }
 
-fn required_top_level_issues(object: &Map<String, Value>) -> Vec<CircuitPrimitiveIssue> {
+fn required_top_level_issues(
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> Vec<CircuitPrimitiveIssue> {
     let mut issues = Vec::with_capacity(REQUIRED_TOP_LEVEL_FIELDS.len() + 1);
     for field in REQUIRED_TOP_LEVEL_FIELDS {
         if !object.contains_key(*field) {
@@ -76,7 +70,9 @@ fn required_top_level_issues(object: &Map<String, Value>) -> Vec<CircuitPrimitiv
             ));
         }
     }
-    if object.get("schema").and_then(Value::as_str) != Some(CIRCUIT_PRIMITIVE_SCHEMA_V1) {
+    if object.get("schema").and_then(serde_json::Value::as_str)
+        != Some(super::CIRCUIT_PRIMITIVE_SCHEMA_V1)
+    {
         issues.push(issue(
             "circuit_primitive.unsupported_schema",
             "schema must be electrical.circuit-primitive-graph.v1",
@@ -86,15 +82,15 @@ fn required_top_level_issues(object: &Map<String, Value>) -> Vec<CircuitPrimitiv
 }
 
 fn hash_issues(
-    object: &Map<String, Value>,
+    object: &serde_json::Map<String, serde_json::Value>,
     computed_graph_hash: &str,
 ) -> Vec<CircuitPrimitiveIssue> {
     let mut issues = Vec::with_capacity(2);
     let stated_hash = object
         .get("graph_hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
-    if stated_hash != computed_graph_hash || !is_blake3_hex(stated_hash) {
+    if stated_hash != computed_graph_hash || !super::super::common::is_blake3_hex(stated_hash) {
         issues.push(issue(
             "circuit_primitive.hash_mismatch",
             "graph_hash must equal the BLAKE3 hash of canonical circuit primitive content with non-hash fields excluded",
@@ -102,8 +98,8 @@ fn hash_issues(
     }
     if !object
         .get("source_artifact_hash")
-        .and_then(Value::as_str)
-        .is_some_and(is_blake3_hex)
+        .and_then(serde_json::Value::as_str)
+        .is_some_and(super::super::common::is_blake3_hex)
     {
         issues.push(issue(
             "circuit_primitive.invalid_source_artifact_hash",
@@ -113,7 +109,9 @@ fn hash_issues(
     issues
 }
 
-fn required_nested_object_issues(object: &Map<String, Value>) -> Vec<CircuitPrimitiveIssue> {
+fn required_nested_object_issues(
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> Vec<CircuitPrimitiveIssue> {
     let mut issues =
         Vec::with_capacity(REQUIRED_NORMALIZATION_FIELDS.len() + REQUIRED_TOOL_FIELDS.len());
     issues.extend(required_object_issues(
@@ -129,8 +127,13 @@ fn required_nested_object_issues(object: &Map<String, Value>) -> Vec<CircuitPrim
     issues
 }
 
-fn non_claim_issues(object: &Map<String, Value>) -> Vec<CircuitPrimitiveIssue> {
-    let Some(non_claims) = object.get("non_claims").and_then(Value::as_array) else {
+fn non_claim_issues(
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> Vec<CircuitPrimitiveIssue> {
+    let Some(non_claims) = object
+        .get("non_claims")
+        .and_then(serde_json::Value::as_array)
+    else {
         return vec![issue(
             "circuit_primitive.non_claims_missing",
             "non_claims must list circuit evidence boundaries",
@@ -153,11 +156,11 @@ fn non_claim_issues(object: &Map<String, Value>) -> Vec<CircuitPrimitiveIssue> {
 }
 
 fn required_object_issues(
-    value: Option<&Value>,
+    value: Option<&serde_json::Value>,
     name: &str,
     required_fields: &[&str],
 ) -> Vec<CircuitPrimitiveIssue> {
-    let Some(object) = value.and_then(Value::as_object) else {
+    let Some(object) = value.and_then(serde_json::Value::as_object) else {
         return vec![issue(
             "circuit_primitive.required_object_missing",
             format!("{name} must be an object"),
@@ -175,8 +178,8 @@ fn required_object_issues(
         .collect()
 }
 
-fn entropy_issues(root_path: &str, root: &Value) -> Vec<CircuitPrimitiveIssue> {
-    entropy_hash_material_messages(root_path, root)
+fn entropy_issues(root_path: &str, root: &serde_json::Value) -> Vec<CircuitPrimitiveIssue> {
+    super::super::common::entropy_hash_material_messages(root_path, root)
         .into_iter()
         .map(|message| {
             issue(

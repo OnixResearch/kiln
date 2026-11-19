@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 pub const HASH_ALGORITHM_POLICY_SCHEMA_V1: &str = "cairn.hash-algorithm-policy.v1";
 pub const HASH_ALGORITHM_POLICY_BOUNDARY: &str = "hash policy validation records declared content-identity algorithm compatibility only; it does not prove artifact truth, producer correctness, digest collision resistance beyond the named algorithm, or semantic correctness";
 
@@ -108,7 +106,9 @@ pub fn validate_hash_algorithm_policy(
 }
 
 #[must_use]
-pub fn validate_hash_algorithm_policy_value(value: &Value) -> HashAlgorithmPolicyReport {
+pub fn validate_hash_algorithm_policy_value(
+    value: &serde_json::Value,
+) -> HashAlgorithmPolicyReport {
     match parse_hash_algorithm_policy_input(value) {
         Ok((policy, fields)) => validate_hash_algorithm_policy(&policy, &fields),
         Err(issue) => HashAlgorithmPolicyReport {
@@ -122,7 +122,9 @@ pub fn validate_hash_algorithm_policy_value(value: &Value) -> HashAlgorithmPolic
 }
 
 #[must_use]
-pub fn hash_algorithm_policy_issues_json(report: &HashAlgorithmPolicyReport) -> Vec<Value> {
+pub fn hash_algorithm_policy_issues_json(
+    report: &HashAlgorithmPolicyReport,
+) -> Vec<serde_json::Value> {
     report
         .issues
         .iter()
@@ -291,22 +293,24 @@ fn declared_exception<'a>(
 }
 
 fn parse_hash_algorithm_policy_input(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<(HashAlgorithmPolicy, Vec<HashFieldObservation>), HashAlgorithmPolicyIssue> {
     let policy = value
         .get(FIELD_POLICY)
         .ok_or_else(|| invalid_input(FIELD_POLICY, "policy object is required"))?;
     let fields = value
         .get(FIELD_FIELDS)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .ok_or_else(|| invalid_input(FIELD_FIELDS, "fields array is required"))?;
     Ok((parse_policy(policy)?, parse_fields(fields)?))
 }
 
-fn parse_policy(value: &Value) -> Result<HashAlgorithmPolicy, HashAlgorithmPolicyIssue> {
+fn parse_policy(
+    value: &serde_json::Value,
+) -> Result<HashAlgorithmPolicy, HashAlgorithmPolicyIssue> {
     let exceptions = value
         .get(FIELD_EXCEPTIONS)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .ok_or_else(|| invalid_input(FIELD_EXCEPTIONS, "exceptions array is required"))?
         .iter()
         .map(parse_exception)
@@ -318,7 +322,9 @@ fn parse_policy(value: &Value) -> Result<HashAlgorithmPolicy, HashAlgorithmPolic
     })
 }
 
-fn parse_exception(value: &Value) -> Result<HashAlgorithmException, HashAlgorithmPolicyIssue> {
+fn parse_exception(
+    value: &serde_json::Value,
+) -> Result<HashAlgorithmException, HashAlgorithmPolicyIssue> {
     Ok(HashAlgorithmException {
         algorithm: string_field(value, FIELD_ALGORITHM)?,
         owner: string_field(value, FIELD_OWNER)?,
@@ -330,7 +336,9 @@ fn parse_exception(value: &Value) -> Result<HashAlgorithmException, HashAlgorith
     })
 }
 
-fn parse_fields(values: &[Value]) -> Result<Vec<HashFieldObservation>, HashAlgorithmPolicyIssue> {
+fn parse_fields(
+    values: &[serde_json::Value],
+) -> Result<Vec<HashFieldObservation>, HashAlgorithmPolicyIssue> {
     values
         .iter()
         .map(|value| {
@@ -345,25 +353,31 @@ fn parse_fields(values: &[Value]) -> Result<Vec<HashFieldObservation>, HashAlgor
         .collect()
 }
 
-fn string_field(value: &Value, field: &'static str) -> Result<String, HashAlgorithmPolicyIssue> {
+fn string_field(
+    value: &serde_json::Value,
+    field: &'static str,
+) -> Result<String, HashAlgorithmPolicyIssue> {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(str::to_string)
         .ok_or_else(|| invalid_input(field, "string field is required"))
 }
 
-fn optional_string_field(value: &Value, field: &'static str) -> Option<String> {
-    value.get(field).and_then(Value::as_str).map(str::to_string)
+fn optional_string_field(value: &serde_json::Value, field: &'static str) -> Option<String> {
+    value
+        .get(field)
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
 }
 
 fn string_array(
-    value: &Value,
+    value: &serde_json::Value,
     field: &'static str,
 ) -> Result<Vec<String>, HashAlgorithmPolicyIssue> {
     value
         .get(field)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .ok_or_else(|| invalid_input(field, "string array field is required"))?
         .iter()
         .map(|item| {
@@ -374,10 +388,13 @@ fn string_array(
         .collect()
 }
 
-fn bool_field(value: &Value, field: &'static str) -> Result<bool, HashAlgorithmPolicyIssue> {
+fn bool_field(
+    value: &serde_json::Value,
+    field: &'static str,
+) -> Result<bool, HashAlgorithmPolicyIssue> {
     value
         .get(field)
-        .and_then(Value::as_bool)
+        .and_then(serde_json::Value::as_bool)
         .ok_or_else(|| invalid_input(field, "boolean field is required"))
 }
 
@@ -413,7 +430,6 @@ fn push_issue(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     const BLAKE3_DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const SHA256_DIGEST: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -476,7 +492,7 @@ mod tests {
         // r[verify cairn.hash_algorithm_policy.final_validation.fixtures]
         // r[verify cairn.hash_algorithm_policy.docs]
         // r[verify cairn.hash_algorithm_policy.docs.non_claims]
-        let value = json!({
+        let value = serde_json::json!({
             "policy": {
                 "default_algorithm": "BLAKE3",
                 "exceptions": [{

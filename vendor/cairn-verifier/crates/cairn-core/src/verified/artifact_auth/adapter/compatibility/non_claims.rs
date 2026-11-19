@@ -1,11 +1,3 @@
-use crate::{AuthenticatedEvidenceReport, AUTHENTICATED_EVIDENCE_BOUNDARY};
-
-use super::{
-    push_classification, CairnArtifactAuthCompatibilityClassification,
-    CairnArtifactAuthCompatibilityDimension, CairnArtifactAuthCompatibilityDisposition,
-    CairnArtifactAuthReport, CAIRN_ARTIFACT_AUTH_BOUNDARY,
-};
-
 const REQUIRED_NON_CLAIM_COUNT: usize = 11;
 const REQUIRED_NON_CLAIMS: [&str; REQUIRED_NON_CLAIM_COUNT] = [
     "authentication-does-not-prove-artifact-truth",
@@ -22,40 +14,40 @@ const REQUIRED_NON_CLAIMS: [&str; REQUIRED_NON_CLAIM_COUNT] = [
 ];
 
 pub(super) fn classify_non_claims(
-    legacy: &AuthenticatedEvidenceReport,
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    legacy: &crate::AuthenticatedEvidenceReport,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::NonClaim,
+        super::CairnArtifactAuthCompatibilityDimension::NonClaim,
         "artifact_auth.compatibility.non_claim.legacy_boundary",
         Some(&legacy.boundary),
         None,
-        if legacy.boundary == AUTHENTICATED_EVIDENCE_BOUNDARY {
-            CairnArtifactAuthCompatibilityDisposition::Equal
+        if legacy.boundary == crate::AUTHENTICATED_EVIDENCE_BOUNDARY {
+            super::CairnArtifactAuthCompatibilityDisposition::Equal
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::NonClaim,
+        super::CairnArtifactAuthCompatibilityDimension::NonClaim,
         "artifact_auth.compatibility.non_claim.adapter_boundary",
         None,
         Some(&standalone.boundary),
-        if standalone.boundary == CAIRN_ARTIFACT_AUTH_BOUNDARY {
-            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+        if standalone.boundary == super::CAIRN_ARTIFACT_AUTH_BOUNDARY {
+            super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
     classify_required_set(standalone, output);
 }
 
 fn classify_required_set(
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let mut actual = standalone.non_claims.clone();
     actual.sort();
@@ -64,16 +56,16 @@ fn classify_required_set(
         .map(ToString::to_string)
         .collect::<Vec<_>>();
     expected.sort();
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::NonClaim,
+        super::CairnArtifactAuthCompatibilityDimension::NonClaim,
         "artifact_auth.compatibility.non_claim.required_set",
         None,
         Some(&actual.join(",")),
         if actual == expected {
-            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+            super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
 }

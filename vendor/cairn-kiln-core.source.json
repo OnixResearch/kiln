@@ -1,0 +1,23 @@
+{
+  "source_repository": "https://github.com/OnixResearch/kiln.git",
+  "source_commit": "5d99f4e9bb954743443e340baece31256b4c53f1",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "65dd43376014f14aef54c8329861d2b5c16748d3805150a1e4b5c60d0c8b4881",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "Cargo.toml",
+    "README.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    "crates/kiln-core"
+  ],
+  "archive_blake3": "c99e9f1d5dfec309187fa7f807062fd5da6f014a65188ea51ccecb0f6f96097e",
+  "importer": "scripts/import-pinned-source.sh",
+  "package_licenses": {
+    "kiln-core": "MIT OR Apache-2.0"
+  },
+  "scope": "The historical kiln-core revision that the imported cairn-core declares as its exact Git dependency. It is consumed only as cairn-core's transitive producer dependency; Kiln's own onix-kiln-core remains the canonical core, and no Kiln crate imports this copy.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln.",
+  "manifest_normalization": "Absent workspace members are pruned from the retained root manifest so Cargo can read the partial import without resolving unselected upstream packages.",
+  "formatter_scope": "Tree-local rustfmt configuration sets disable_all_formatting so the host workspace formatter covers Kiln-owned sources without rewriting pinned upstream bytes."
+}

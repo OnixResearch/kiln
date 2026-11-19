@@ -3,8 +3,6 @@
 //! The shell supplies every path, boundary, locator, pointer, and spec observation.
 //! This module has no global-registry input and no transitive-reference input.
 
-use std::collections::BTreeSet;
-
 pub const ROOT_SELECTOR_CONFLICT: &str = "lifecycle_store.root.selector_conflict";
 pub const ROOT_STORE_MISSING: &str = "lifecycle_store.root.store_missing";
 pub const ROOT_STORE_AMBIGUOUS: &str = "lifecycle_store.root.store_ambiguous";
@@ -27,7 +25,7 @@ pub struct ExplicitRootSelector {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExplicitLifecycleStoreSelector {
+pub struct ExplicitSelector {
     pub store_id: String,
 }
 
@@ -41,7 +39,7 @@ pub enum VcsBoundaryFacts {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoreIdentityObservation {
+pub struct IdentityObservation {
     pub store_id: String,
     pub store_identity: String,
 }
@@ -50,7 +48,7 @@ pub struct StoreIdentityObservation {
 pub struct NativeRootCandidate {
     pub root: String,
     pub ancestor_distance: usize,
-    pub store: Option<StoreIdentityObservation>,
+    pub store: Option<IdentityObservation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,7 +61,7 @@ pub struct ProjectPointerObservation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LocatorStoreObservation {
+pub struct LocatorObservation {
     pub store_id: String,
     pub root: String,
     pub store_identity: String,
@@ -72,7 +70,7 @@ pub struct LocatorStoreObservation {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LocatorSnapshot {
-    pub stores: Vec<LocatorStoreObservation>,
+    pub stores: Vec<LocatorObservation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,7 +82,7 @@ pub struct FallbackFacts {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RootResolutionObservations {
     pub explicit_root: Option<ExplicitRootSelector>,
-    pub explicit_lifecycle_store: Option<ExplicitLifecycleStoreSelector>,
+    pub explicit_lifecycle_store: Option<ExplicitSelector>,
     pub vcs_boundary: VcsBoundaryFacts,
     pub native_roots: Vec<NativeRootCandidate>,
     pub project_pointers: Vec<ProjectPointerObservation>,
@@ -102,7 +100,7 @@ pub enum RootResolutionSource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResolvedLifecycleRoot {
+pub struct ResolvedRoot {
     pub root: String,
     pub source: RootResolutionSource,
     pub store_id: Option<String>,
@@ -118,7 +116,7 @@ pub enum DoctorFindingStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LifecycleStoreDoctorFinding {
+pub struct DoctorFinding {
     pub code: String,
     pub status: DoctorFindingStatus,
     pub subject: String,
@@ -135,14 +133,14 @@ pub enum RegistryLookupBoundary {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RootResolutionResult {
     pub valid: bool,
-    pub selected: Option<ResolvedLifecycleRoot>,
-    pub findings: Vec<LifecycleStoreDoctorFinding>,
+    pub selected: Option<ResolvedRoot>,
+    pub findings: Vec<DoctorFinding>,
     pub locator_consulted: bool,
     pub registry_lookup: RegistryLookupBoundary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DirectStoreReference {
+pub struct DirectReference {
     pub store_id: String,
     pub remote_hint: Option<String>,
 }
@@ -150,8 +148,8 @@ pub struct DirectStoreReference {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DirectReferenceNormalization {
     pub valid: bool,
-    pub references: Vec<DirectStoreReference>,
-    pub findings: Vec<LifecycleStoreDoctorFinding>,
+    pub references: Vec<DirectReference>,
+    pub findings: Vec<DoctorFinding>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -169,15 +167,15 @@ pub struct AcceptedSpecSnapshot {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContextObservations {
+pub struct Observations {
     pub resolution: RootResolutionResult,
-    pub direct_references: Vec<DirectStoreReference>,
+    pub direct_references: Vec<DirectReference>,
     pub locator: LocatorSnapshot,
     pub accepted_specs: Vec<AcceptedSpecSnapshot>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContextSpecResult {
+pub struct SpecResult {
     pub store_id: String,
     pub store_identity: String,
     pub spec_id: String,
@@ -197,33 +195,33 @@ pub enum ReferenceContentBoundary {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LifecycleAuthorityEffect {
+pub enum AuthorityEffect {
     None,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ContextBoundary {
+pub struct Boundary {
     pub traversal: ReferenceTraversalBoundary,
     pub content: ReferenceContentBoundary,
     pub registry_lookup: RegistryLookupBoundary,
-    pub authority_effect: LifecycleAuthorityEffect,
+    pub authority_effect: AuthorityEffect,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContextResult {
+pub struct BuildResult {
     pub valid: bool,
     pub healthy: bool,
-    pub selected_root: Option<ResolvedLifecycleRoot>,
-    pub direct_references: Vec<DirectStoreReference>,
-    pub specs: Vec<ContextSpecResult>,
-    pub doctor_findings: Vec<LifecycleStoreDoctorFinding>,
-    pub boundary: ContextBoundary,
+    pub selected_root: Option<ResolvedRoot>,
+    pub direct_references: Vec<DirectReference>,
+    pub specs: Vec<SpecResult>,
+    pub doctor_findings: Vec<DoctorFinding>,
+    pub boundary: Boundary,
 }
 
 // r[impl cairn.lifecycle_stores.root_resolution]
 // r[impl cairn.lifecycle_stores.functional_boundary]
 #[must_use]
-pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> RootResolutionResult {
+pub fn resolve_root(observations: &RootResolutionObservations) -> RootResolutionResult {
     if observations.explicit_root.is_some() && observations.explicit_lifecycle_store.is_some() {
         return root_resolution_result(
             None,
@@ -238,7 +236,7 @@ pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> Root
     }
 
     if let Some(selector) = &observations.explicit_root {
-        let selected = ResolvedLifecycleRoot {
+        let selected = ResolvedRoot {
             root: selector.root.clone(),
             source: RootResolutionSource::ExplicitRoot,
             store_id: None,
@@ -250,7 +248,7 @@ pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> Root
 
     if let Some(selector) = &observations.explicit_lifecycle_store {
         let mut findings = Vec::new();
-        let selected = resolve_locator_store(
+        let selected = resolve_locator(
             &selector.store_id,
             RootResolutionSource::ExplicitLifecycleStore,
             None,
@@ -261,7 +259,7 @@ pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> Root
     }
 
     if let Some(native_root) = nearest_native_root(observations) {
-        let selected = ResolvedLifecycleRoot {
+        let selected = ResolvedRoot {
             root: native_root.root.clone(),
             source: RootResolutionSource::NativeRoot,
             store_id: native_root
@@ -308,7 +306,7 @@ pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> Root
             );
         }
         let mut findings = Vec::new();
-        let selected = resolve_locator_store(
+        let selected = resolve_locator(
             &pointer.store_id,
             RootResolutionSource::ProjectPointer,
             Some(pointer.project_identity.clone()),
@@ -318,7 +316,7 @@ pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> Root
         return root_resolution_result(selected, findings, true);
     }
 
-    let selected = ResolvedLifecycleRoot {
+    let selected = ResolvedRoot {
         root: observations.fallback.classic_root.clone(),
         source: RootResolutionSource::ClassicFallback,
         store_id: None,
@@ -333,7 +331,7 @@ pub fn resolve_lifecycle_root(observations: &RootResolutionObservations) -> Root
 #[must_use]
 pub fn normalize_direct_references(
     subject_store_id: Option<&str>,
-    references: &[DirectStoreReference],
+    references: &[DirectReference],
 ) -> DirectReferenceNormalization {
     let mut sorted = references.to_vec();
     sorted.sort_by(|left, right| {
@@ -342,8 +340,8 @@ pub fn normalize_direct_references(
             .then(left.remote_hint.cmp(&right.remote_hint))
     });
 
-    let mut seen = BTreeSet::new();
-    let mut duplicate_ids = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut duplicate_ids = std::collections::BTreeSet::new();
     let mut normalized = Vec::new();
     let mut findings = Vec::new();
 
@@ -390,7 +388,7 @@ pub fn normalize_direct_references(
 // r[impl cairn.lifecycle_stores.references]
 // r[impl cairn.lifecycle_stores.functional_boundary]
 #[must_use]
-pub fn build_lifecycle_store_context(observations: &ContextObservations) -> ContextResult {
+pub fn build(observations: &Observations) -> BuildResult {
     let subject_store_id = observations
         .resolution
         .selected
@@ -421,19 +419,19 @@ pub fn build_lifecycle_store_context(observations: &ContextObservations) -> Cont
         && findings
             .iter()
             .all(|finding| finding.status == DoctorFindingStatus::Ok);
-    ContextResult {
+    BuildResult {
         valid,
         healthy,
         selected_root: observations.resolution.selected.clone(),
         direct_references: normalized.references,
         specs,
         doctor_findings: findings,
-        boundary: context_boundary(),
+        boundary: boundary(),
     }
 }
 
 #[must_use]
-pub fn store_qualified_spec_fetch_command(spec_id: &str, store_id: &str) -> String {
+pub fn qualified_fetch_command(spec_id: &str, store_id: &str) -> String {
     format!("cairn spec show {spec_id} --lifecycle-store {store_id}")
 }
 
@@ -500,13 +498,13 @@ fn project_pointer_is_admissible(
     }
 }
 
-fn resolve_locator_store(
+fn resolve_locator(
     store_id: &str,
     source: RootResolutionSource,
     project_identity: Option<String>,
     locator: &LocatorSnapshot,
-    findings: &mut Vec<LifecycleStoreDoctorFinding>,
-) -> Option<ResolvedLifecycleRoot> {
+    findings: &mut Vec<DoctorFinding>,
+) -> Option<ResolvedRoot> {
     let matches = locator
         .stores
         .iter()
@@ -545,7 +543,7 @@ fn resolve_locator_store(
         return None;
     }
 
-    Some(ResolvedLifecycleRoot {
+    Some(ResolvedRoot {
         root: store.root.clone(),
         source,
         store_id: Some(store.store_id.clone()),
@@ -555,8 +553,8 @@ fn resolve_locator_store(
 }
 
 fn root_resolution_result(
-    selected: Option<ResolvedLifecycleRoot>,
-    mut findings: Vec<LifecycleStoreDoctorFinding>,
+    selected: Option<ResolvedRoot>,
+    mut findings: Vec<DoctorFinding>,
     locator_consulted: bool,
 ) -> RootResolutionResult {
     sort_findings(&mut findings);
@@ -571,10 +569,10 @@ fn root_resolution_result(
 }
 
 fn index_direct_reference(
-    reference: &DirectStoreReference,
-    observations: &ContextObservations,
-    specs: &mut Vec<ContextSpecResult>,
-    findings: &mut Vec<LifecycleStoreDoctorFinding>,
+    reference: &DirectReference,
+    observations: &Observations,
+    specs: &mut Vec<SpecResult>,
+    findings: &mut Vec<DoctorFinding>,
 ) {
     let locator_matches = observations
         .locator
@@ -699,10 +697,10 @@ fn index_direct_reference(
     }
 
     for spec in accepted_specs {
-        specs.push(ContextSpecResult {
+        specs.push(SpecResult {
             store_id: reference.store_id.clone(),
             store_identity: snapshot.store_identity.clone(),
-            fetch_command: store_qualified_spec_fetch_command(&spec.spec_id, &reference.store_id),
+            fetch_command: qualified_fetch_command(&spec.spec_id, &reference.store_id),
             spec_id: spec.spec_id,
             title: spec.title,
             purpose_summary: spec.purpose_summary,
@@ -721,7 +719,7 @@ fn index_direct_reference(
 }
 
 fn accepted_spec_ids_have_duplicates(specs: &[AcceptedSpecMetadata]) -> bool {
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     for spec in specs {
         if !seen.insert(&spec.spec_id) {
             return true;
@@ -730,12 +728,12 @@ fn accepted_spec_ids_have_duplicates(specs: &[AcceptedSpecMetadata]) -> bool {
     false
 }
 
-fn context_boundary() -> ContextBoundary {
-    ContextBoundary {
+fn boundary() -> Boundary {
+    Boundary {
         traversal: ReferenceTraversalBoundary::DirectOnly,
         content: ReferenceContentBoundary::AcceptedSpecsOnly,
         registry_lookup: RegistryLookupBoundary::LocalLocatorOnly,
-        authority_effect: LifecycleAuthorityEffect::None,
+        authority_effect: AuthorityEffect::None,
     }
 }
 
@@ -744,8 +742,8 @@ fn doctor_finding(
     status: DoctorFindingStatus,
     subject: &str,
     message: &str,
-) -> LifecycleStoreDoctorFinding {
-    LifecycleStoreDoctorFinding {
+) -> DoctorFinding {
+    DoctorFinding {
         code: code.to_string(),
         status,
         subject: subject.to_string(),
@@ -755,13 +753,13 @@ fn doctor_finding(
     }
 }
 
-fn has_failed_finding(findings: &[LifecycleStoreDoctorFinding]) -> bool {
+fn has_failed_finding(findings: &[DoctorFinding]) -> bool {
     findings
         .iter()
         .any(|finding| finding.status == DoctorFindingStatus::Fail)
 }
 
-fn sort_findings(findings: &mut [LifecycleStoreDoctorFinding]) {
+fn sort_findings(findings: &mut [DoctorFinding]) {
     findings.sort_by(|left, right| {
         left.status
             .cmp(&right.status)
@@ -790,8 +788,8 @@ mod tests {
     const BOUNDARY_MAX_ANCESTORS: usize = 1;
     const EXPECTED_CONTEXT_SPEC_COUNT: usize = 2;
 
-    fn locator_store(store_id: &str, store_identity: &str) -> LocatorStoreObservation {
-        LocatorStoreObservation {
+    fn locator_entry(store_id: &str, store_identity: &str) -> LocatorObservation {
+        LocatorObservation {
             store_id: store_id.to_string(),
             root: format!("/stores/{store_id}"),
             store_identity: store_identity.to_string(),
@@ -832,7 +830,7 @@ mod tests {
             native_roots: Vec::new(),
             project_pointers: Vec::new(),
             locator: LocatorSnapshot {
-                stores: vec![locator_store(STORE_ID, STORE_IDENTITY)],
+                stores: vec![locator_entry(STORE_ID, STORE_IDENTITY)],
             },
             fallback: FallbackFacts {
                 current_directory: CURRENT_DIRECTORY.to_string(),
@@ -843,7 +841,7 @@ mod tests {
 
     fn resolved_subject() -> RootResolutionResult {
         root_resolution_result(
-            Some(ResolvedLifecycleRoot {
+            Some(ResolvedRoot {
                 root: "/stores/subject".to_string(),
                 source: RootResolutionSource::ExplicitLifecycleStore,
                 store_id: Some("subject".to_string()),
@@ -888,7 +886,7 @@ mod tests {
             .push(project_pointer(STORE_ID, 0, true));
         observations.locator.stores.clear();
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
 
         assert!(result.valid);
         assert!(!result.locator_consulted);
@@ -898,7 +896,7 @@ mod tests {
         );
         assert_eq!(
             result.selected,
-            Some(ResolvedLifecycleRoot {
+            Some(ResolvedRoot {
                 root: "/explicit".to_string(),
                 source: RootResolutionSource::ExplicitRoot,
                 store_id: None,
@@ -910,15 +908,15 @@ mod tests {
     }
 
     #[test]
-    fn explicit_lifecycle_store_resolves_only_from_local_locator() {
+    fn explicit_selector_resolves_only_from_local_locator() {
         // r[verify cairn.lifecycle_stores.root_resolution.explicit]
         let mut observations = base_resolution_observations();
-        observations.explicit_lifecycle_store = Some(ExplicitLifecycleStoreSelector {
+        observations.explicit_lifecycle_store = Some(ExplicitSelector {
             store_id: STORE_ID.to_string(),
         });
         observations.native_roots.push(native_root(NATIVE_ROOT, 0));
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
         let selected = result.selected.expect("explicit store resolves");
 
         assert!(result.valid);
@@ -933,14 +931,14 @@ mod tests {
     }
 
     #[test]
-    fn checked_project_pointer_resolves_registered_store() {
+    fn checked_project_pointer_resolves_registered_entry() {
         // r[verify cairn.lifecycle_stores.project_config.pointer]
         let mut observations = base_resolution_observations();
         observations
             .project_pointers
             .push(project_pointer(STORE_ID, 0, true));
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
         let selected = result.selected.expect("project pointer resolves");
 
         assert!(result.valid);
@@ -954,16 +952,16 @@ mod tests {
     }
 
     #[test]
-    fn missing_explicit_store_fails_without_implicit_discovery() {
+    fn missing_explicit_selector_fails_without_implicit_discovery() {
         // r[verify cairn.lifecycle_stores.root_resolution.explicit]
         let mut observations = base_resolution_observations();
-        observations.explicit_lifecycle_store = Some(ExplicitLifecycleStoreSelector {
+        observations.explicit_lifecycle_store = Some(ExplicitSelector {
             store_id: STORE_ID.to_string(),
         });
         observations.native_roots.push(native_root(NATIVE_ROOT, 0));
         observations.locator.stores.clear();
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
 
         assert!(!result.valid);
         assert!(result.locator_consulted);
@@ -979,11 +977,11 @@ mod tests {
         observations.explicit_root = Some(ExplicitRootSelector {
             root: "/explicit".to_string(),
         });
-        observations.explicit_lifecycle_store = Some(ExplicitLifecycleStoreSelector {
+        observations.explicit_lifecycle_store = Some(ExplicitSelector {
             store_id: STORE_ID.to_string(),
         });
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
 
         assert!(!result.valid);
         assert!(!result.locator_consulted);
@@ -1005,7 +1003,7 @@ mod tests {
             .push(project_pointer(STORE_ID, 0, true));
         observations.locator.stores.clear();
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
         let selected = result.selected.expect("native root resolves");
 
         assert!(result.valid);
@@ -1026,7 +1024,7 @@ mod tests {
             .project_pointers
             .push(project_pointer(STORE_ID, 0, true));
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
         let selected = result.selected.expect("classic fallback resolves");
 
         assert!(result.valid);
@@ -1044,7 +1042,7 @@ mod tests {
             .project_pointers
             .push(project_pointer(STORE_ID, 0, false));
 
-        let result = resolve_lifecycle_root(&observations);
+        let result = resolve_root(&observations);
 
         assert!(!result.valid);
         assert!(!result.locator_consulted);
@@ -1057,9 +1055,9 @@ mod tests {
     fn missing_reference_reports_manual_repair_without_mutation_authority() {
         // r[verify cairn.lifecycle_stores.context.missing]
         // r[verify cairn.lifecycle_stores.transport_boundary.context]
-        let observations = ContextObservations {
+        let observations = Observations {
             resolution: resolved_subject(),
-            direct_references: vec![DirectStoreReference {
+            direct_references: vec![DirectReference {
                 store_id: STORE_ID.to_string(),
                 remote_hint: Some(REMOTE_HINT.to_string()),
             }],
@@ -1067,7 +1065,7 @@ mod tests {
             accepted_specs: Vec::new(),
         };
 
-        let result = build_lifecycle_store_context(&observations);
+        let result = build(&observations);
         let finding = &result.doctor_findings[0];
 
         assert!(result.valid);
@@ -1080,33 +1078,30 @@ mod tests {
             Some("cairn store register <checkout-path> --id shared")
         );
         assert_eq!(finding.remote_hint.as_deref(), Some(REMOTE_HINT));
-        assert_eq!(
-            result.boundary.authority_effect,
-            LifecycleAuthorityEffect::None
-        );
+        assert_eq!(result.boundary.authority_effect, AuthorityEffect::None);
     }
 
     #[test]
     fn duplicate_and_self_references_reject_the_whole_index() {
         // r[verify cairn.lifecycle_stores.project_config.invalid]
-        let observations = ContextObservations {
+        let observations = Observations {
             resolution: resolved_subject(),
             direct_references: vec![
-                DirectStoreReference {
+                DirectReference {
                     store_id: STORE_ID.to_string(),
                     remote_hint: None,
                 },
-                DirectStoreReference {
+                DirectReference {
                     store_id: STORE_ID.to_string(),
                     remote_hint: Some(REMOTE_HINT.to_string()),
                 },
-                DirectStoreReference {
+                DirectReference {
                     store_id: "subject".to_string(),
                     remote_hint: None,
                 },
             ],
             locator: LocatorSnapshot {
-                stores: vec![locator_store(STORE_ID, STORE_IDENTITY)],
+                stores: vec![locator_entry(STORE_ID, STORE_IDENTITY)],
             },
             accepted_specs: vec![accepted_snapshot(
                 STORE_ID,
@@ -1115,12 +1110,12 @@ mod tests {
             )],
         };
 
-        let result = build_lifecycle_store_context(&observations);
+        let result = build(&observations);
         let codes = result
             .doctor_findings
             .iter()
             .map(|finding| finding.code.as_str())
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
 
         assert!(!result.valid);
         assert!(!result.healthy);
@@ -1131,25 +1126,25 @@ mod tests {
     }
 
     #[test]
-    fn context_is_sorted_and_uses_exact_store_qualified_fetch_commands() {
+    fn references_are_sorted_and_use_exact_fetch_commands() {
         // r[verify cairn.lifecycle_stores.references.index]
         // r[verify cairn.lifecycle_stores.context.healthy]
-        let observations = ContextObservations {
+        let observations = Observations {
             resolution: resolved_subject(),
             direct_references: vec![
-                DirectStoreReference {
+                DirectReference {
                     store_id: STORE_ID.to_string(),
                     remote_hint: None,
                 },
-                DirectStoreReference {
+                DirectReference {
                     store_id: OTHER_STORE_ID.to_string(),
                     remote_hint: None,
                 },
             ],
             locator: LocatorSnapshot {
                 stores: vec![
-                    locator_store(STORE_ID, STORE_IDENTITY),
-                    locator_store(OTHER_STORE_ID, OTHER_STORE_IDENTITY),
+                    locator_entry(STORE_ID, STORE_IDENTITY),
+                    locator_entry(OTHER_STORE_ID, OTHER_STORE_IDENTITY),
                 ],
             },
             accepted_specs: vec![
@@ -1162,7 +1157,7 @@ mod tests {
             ],
         };
 
-        let result = build_lifecycle_store_context(&observations);
+        let result = build(&observations);
 
         assert!(result.valid);
         assert!(result.healthy);
@@ -1184,19 +1179,19 @@ mod tests {
     }
 
     #[test]
-    fn context_uses_direct_accepted_specs_without_authority_promotion() {
+    fn direct_accepted_specs_do_not_promote_authority() {
         // r[verify cairn.lifecycle_stores.references.non_authority]
         // r[verify cairn.lifecycle_stores.boundary.bounded]
-        let observations = ContextObservations {
+        let observations = Observations {
             resolution: resolved_subject(),
-            direct_references: vec![DirectStoreReference {
+            direct_references: vec![DirectReference {
                 store_id: STORE_ID.to_string(),
                 remote_hint: None,
             }],
             locator: LocatorSnapshot {
                 stores: vec![
-                    locator_store(STORE_ID, STORE_IDENTITY),
-                    locator_store(TRANSITIVE_STORE_ID, "b3:transitive"),
+                    locator_entry(STORE_ID, STORE_IDENTITY),
+                    locator_entry(TRANSITIVE_STORE_ID, "b3:transitive"),
                 ],
             },
             accepted_specs: vec![
@@ -1209,7 +1204,7 @@ mod tests {
             ],
         };
 
-        let result = build_lifecycle_store_context(&observations);
+        let result = build(&observations);
 
         assert!(result.valid);
         assert!(result.healthy);
@@ -1228,9 +1223,6 @@ mod tests {
             result.boundary.registry_lookup,
             RegistryLookupBoundary::LocalLocatorOnly
         );
-        assert_eq!(
-            result.boundary.authority_effect,
-            LifecycleAuthorityEffect::None
-        );
+        assert_eq!(result.boundary.authority_effect, AuthorityEffect::None);
     }
 }

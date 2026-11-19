@@ -1,19 +1,16 @@
-use serde::Deserialize;
-use serde::Serialize;
-
 use super::types::{
     ActorId, ArchiveDigest, ArchiveId, ArtifactDigest, BinaryDigest, ChainDigest, ChangeId,
-    ContentRootDigest, EvidenceKind, GitOidSha1Digest, GraphDigest, ImportedDigest, InputDigest,
-    LedgerDigest, MantleDigest, OperationId, PackDigest, PlanDigest, PolicyDigest, PolicyKind,
-    ProjectionRole, ReceiptDigest, Sha256Digest, SidecarDigest, SourceDigest, StateDigest,
-    ValenceDigest, WorkspaceId, MIXED_BLAKE3_PROFILE,
+    ContentRootDigest, EvidenceKind, GraphDigest, InputDigest, LedgerDigest, MantleDigest,
+    OperationId, PackDigest, PlanDigest, PolicyDigest, PolicyKind, ProjectionRole, ReceiptDigest,
+    SidecarDigest, SourceDigest, StateDigest, ValenceDigest, WorkspaceId,
 };
-use super::IdentityIssue;
 
 const FIELD_VALUE: &str = "value";
 const FIELD_ROLE: &str = "role";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum IdentityRole {
     ChangeId,
@@ -46,7 +43,7 @@ pub enum IdentityRole {
 }
 
 /// Closed compatibility DTO for heterogeneous identity records.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct IdentityWire {
     pub role: IdentityRole,
@@ -81,8 +78,8 @@ pub enum AnyIdentity {
     ArchiveDigest(ArchiveDigest),
     PackDigest(PackDigest),
     LedgerDigest(LedgerDigest),
-    ImportedSha256(Sha256Digest),
-    ImportedGitOidSha1(GitOidSha1Digest),
+    ImportedSha256(super::types::Sha256Digest),
+    ImportedGitOidSha1(super::types::GitOidSha1Digest),
 }
 
 impl AnyIdentity {
@@ -119,30 +116,39 @@ impl AnyIdentity {
         }
     }
 
-    pub fn try_into_policy_digest(self) -> Result<PolicyDigest, IdentityIssue> {
+    pub fn try_into_policy_digest(self) -> Result<PolicyDigest, super::IdentityIssue> {
         match self {
             Self::PolicyDigest(value) => Ok(value),
-            _ => Err(IdentityIssue::new(FIELD_ROLE, "identity_role_mismatch")),
+            _ => Err(super::IdentityIssue::new(
+                FIELD_ROLE,
+                "identity_role_mismatch",
+            )),
         }
     }
 
-    pub fn try_into_receipt_digest(self) -> Result<ReceiptDigest, IdentityIssue> {
+    pub fn try_into_receipt_digest(self) -> Result<ReceiptDigest, super::IdentityIssue> {
         match self {
             Self::ReceiptDigest(value) => Ok(value),
-            _ => Err(IdentityIssue::new(FIELD_ROLE, "identity_role_mismatch")),
+            _ => Err(super::IdentityIssue::new(
+                FIELD_ROLE,
+                "identity_role_mismatch",
+            )),
         }
     }
 
-    pub fn try_into_operation_id(self) -> Result<OperationId, IdentityIssue> {
+    pub fn try_into_operation_id(self) -> Result<OperationId, super::IdentityIssue> {
         match self {
             Self::OperationId(value) => Ok(value),
-            _ => Err(IdentityIssue::new(FIELD_ROLE, "identity_role_mismatch")),
+            _ => Err(super::IdentityIssue::new(
+                FIELD_ROLE,
+                "identity_role_mismatch",
+            )),
         }
     }
 }
 
 impl TryFrom<IdentityWire> for AnyIdentity {
-    type Error = IdentityIssue;
+    type Error = super::IdentityIssue;
 
     fn try_from(wire: IdentityWire) -> Result<Self, Self::Error> {
         let value = wire.value;
@@ -183,10 +189,11 @@ impl TryFrom<IdentityWire> for AnyIdentity {
             IdentityRole::PackDigest => parse_digest(&value).map(Self::PackDigest),
             IdentityRole::LedgerDigest => parse_digest(&value).map(Self::LedgerDigest),
             IdentityRole::ImportedSha256 => {
-                ImportedDigest::parse(&value, FIELD_VALUE).map(Self::ImportedSha256)
+                super::types::ImportedDigest::parse(&value, FIELD_VALUE).map(Self::ImportedSha256)
             }
             IdentityRole::ImportedGitOidSha1 => {
-                ImportedDigest::parse(&value, FIELD_VALUE).map(Self::ImportedGitOidSha1)
+                super::types::ImportedDigest::parse(&value, FIELD_VALUE)
+                    .map(Self::ImportedGitOidSha1)
             }
         }
     }
@@ -194,6 +201,10 @@ impl TryFrom<IdentityWire> for AnyIdentity {
 
 fn parse_digest<Role: super::DigestRoleMarker>(
     value: &str,
-) -> Result<super::Blake3Digest<Role>, IdentityIssue> {
-    super::Blake3Digest::<Role>::parse_compatible(value, MIXED_BLAKE3_PROFILE, FIELD_VALUE)
+) -> Result<super::Blake3Digest<Role>, super::IdentityIssue> {
+    super::Blake3Digest::<Role>::parse_compatible(
+        value,
+        super::types::MIXED_BLAKE3_PROFILE,
+        FIELD_VALUE,
+    )
 }

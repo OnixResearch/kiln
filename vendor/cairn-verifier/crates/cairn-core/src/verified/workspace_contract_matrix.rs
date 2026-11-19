@@ -1,10 +1,4 @@
-use std::collections::BTreeSet;
-
 use iddqd::{id_upcast, IdOrdItem, IdOrdMap};
-use serde_json::Value;
-
-use crate::verified::evidence::canonical_json_hash;
-use crate::verified::stack_provenance::is_blake3_hex;
 
 pub const WORKSPACE_CONTRACT_MATRIX_SCHEMA_V1: &str = "cairn.workspace-contract-matrix.v1";
 pub const WORKSPACE_CONTRACT_MATRIX_RECEIPT_SCHEMA_V1: &str =
@@ -148,14 +142,16 @@ pub struct WorkspaceContractReadiness {
 }
 
 #[must_use]
-pub fn validate_workspace_contract_matrix_value(value: &Value) -> WorkspaceContractReport {
+pub fn validate_workspace_contract_matrix_value(
+    value: &serde_json::Value,
+) -> WorkspaceContractReport {
     match parse_workspace_contract_input(value) {
         Ok((matrix, observations, matrix_hash)) => {
             validate_workspace_contract_matrix(&matrix, &observations, matrix_hash)
         }
         Err(issue) => WorkspaceContractReport {
             valid: false,
-            matrix_hash: canonical_json_hash(value),
+            matrix_hash: crate::verified::evidence::canonical_json_hash(value),
             edge_count: EMPTY_COUNT,
             stale_edge_count: EMPTY_COUNT,
             checked_edges: Vec::new(),
@@ -197,7 +193,7 @@ pub fn validate_workspace_contract_matrix(
     // r[impl cairn.workspace_contract_matrix.iddqd_indexes.validation]
     let _declared = edges_by_id(&matrix.edges, &mut issues);
     let observed = observations_by_edge(observations, &mut issues);
-    let mut stale_edges = BTreeSet::new();
+    let mut stale_edges = std::collections::BTreeSet::new();
     for (index, edge) in matrix.edges.iter().enumerate() {
         validate_edge(index, edge, &observed, &mut stale_edges, &mut issues);
     }
@@ -224,7 +220,7 @@ pub fn validate_workspace_contract_matrix(
 }
 
 #[must_use]
-pub fn workspace_contract_issues_json(report: &WorkspaceContractReport) -> Vec<Value> {
+pub fn workspace_contract_issues_json(report: &WorkspaceContractReport) -> Vec<serde_json::Value> {
     report
         .issues
         .iter()
@@ -235,7 +231,7 @@ pub fn workspace_contract_issues_json(report: &WorkspaceContractReport) -> Vec<V
 #[must_use]
 pub fn workspace_contract_readiness_issues_json(
     readiness: &WorkspaceContractReadiness,
-) -> Vec<Value> {
+) -> Vec<serde_json::Value> {
     readiness
         .issues
         .iter()
@@ -246,7 +242,7 @@ pub fn workspace_contract_readiness_issues_json(
 #[must_use]
 pub fn evaluate_workspace_contract_matrix_readiness(
     policy: &WorkspaceContractReadinessPolicy,
-    receipt: Option<&Value>,
+    receipt: Option<&serde_json::Value>,
 ) -> WorkspaceContractReadiness {
     // r[impl cairn.workspace_contract_matrix.release_readiness]
     let mut issues = Vec::new();
@@ -278,12 +274,14 @@ pub fn evaluate_workspace_contract_matrix_readiness(
     };
     let receipt_hash = receipt
         .get("receipt_hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(ToOwned::to_owned);
-    let valid_receipt = receipt.get("valid").and_then(Value::as_bool) == Some(true)
-        && receipt.get("schema").and_then(Value::as_str)
+    let valid_receipt = receipt.get("valid").and_then(serde_json::Value::as_bool) == Some(true)
+        && receipt.get("schema").and_then(serde_json::Value::as_str)
             == Some(WORKSPACE_CONTRACT_MATRIX_RECEIPT_SCHEMA_V1)
-        && receipt_hash.as_deref().is_some_and(is_blake3_hex);
+        && receipt_hash
+            .as_deref()
+            .is_some_and(crate::verified::stack_provenance::is_blake3_hex);
     if !valid_receipt {
         push_issue(
             &mut issues,
@@ -295,7 +293,7 @@ pub fn evaluate_workspace_contract_matrix_readiness(
     }
     let boundary = receipt
         .get("boundary")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if !policy.required_boundary.is_empty() && !boundary.contains(&policy.required_boundary) {
         push_issue(
@@ -322,20 +320,20 @@ pub fn evaluate_workspace_contract_matrix_readiness(
 
 #[must_use]
 pub fn workspace_contract_readiness_policy_from_value(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> WorkspaceContractReadinessPolicy {
     let gate = value
         .get("workspace_contract_matrix_gate")
-        .unwrap_or(&Value::Null);
+        .unwrap_or(&serde_json::Value::Null);
     WorkspaceContractReadinessPolicy {
         mode: gate
             .get(FIELD_MODE)
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .unwrap_or(WORKSPACE_CONTRACT_MODE_DISABLED)
             .to_string(),
         required_boundary: gate
             .get(FIELD_REQUIRED_BOUNDARY)
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .unwrap_or(WORKSPACE_CONTRACT_MATRIX_BOUNDARY)
             .to_string(),
     }
@@ -375,7 +373,7 @@ fn validate_edge(
     index: usize,
     edge: &WorkspaceContractEdge,
     observed: &IdOrdMap<WorkspaceArtifactObservation>,
-    stale_edges: &mut BTreeSet<String>,
+    stale_edges: &mut std::collections::BTreeSet<String>,
     issues: &mut Vec<WorkspaceContractIssue>,
 ) {
     let path = format!("{FIELD_EDGES}[{index}]");
@@ -547,7 +545,7 @@ fn validate_identity(
     identity: &str,
     issues: &mut Vec<WorkspaceContractIssue>,
 ) {
-    if !is_blake3_hex(identity) {
+    if !crate::verified::stack_provenance::is_blake3_hex(identity) {
         push_issue(
             issues,
             ISSUE_INVALID_IDENTITY,
@@ -629,7 +627,7 @@ fn observations_by_edge(
 }
 
 fn parse_workspace_contract_input(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<
     (
         WorkspaceContractMatrix,
@@ -639,7 +637,7 @@ fn parse_workspace_contract_input(
     WorkspaceContractIssue,
 > {
     let matrix_value = object_field(value, FIELD_MATRIX)?;
-    let matrix_hash = canonical_json_hash(matrix_value);
+    let matrix_hash = crate::verified::evidence::canonical_json_hash(matrix_value);
     let matrix = WorkspaceContractMatrix {
         schema_version: string_field(matrix_value, FIELD_SCHEMA_VERSION)?,
         edges: parse_edges(array_field(matrix_value, FIELD_EDGES)?)?,
@@ -652,7 +650,9 @@ fn parse_workspace_contract_input(
     Ok((matrix, observations, matrix_hash))
 }
 
-fn parse_edges(values: &[Value]) -> Result<Vec<WorkspaceContractEdge>, WorkspaceContractIssue> {
+fn parse_edges(
+    values: &[serde_json::Value],
+) -> Result<Vec<WorkspaceContractEdge>, WorkspaceContractIssue> {
     values
         .iter()
         .map(|value| {
@@ -676,7 +676,7 @@ fn parse_edges(values: &[Value]) -> Result<Vec<WorkspaceContractEdge>, Workspace
 }
 
 fn parse_observations(
-    values: &[Value],
+    values: &[serde_json::Value],
 ) -> Result<Vec<WorkspaceArtifactObservation>, WorkspaceContractIssue> {
     values
         .iter()
@@ -690,7 +690,10 @@ fn parse_observations(
         .collect()
 }
 
-fn object_field<'a>(value: &'a Value, field: &str) -> Result<&'a Value, WorkspaceContractIssue> {
+fn object_field<'a>(
+    value: &'a serde_json::Value,
+    field: &str,
+) -> Result<&'a serde_json::Value, WorkspaceContractIssue> {
     value
         .get(field)
         .filter(|item| item.is_object())
@@ -702,10 +705,13 @@ fn object_field<'a>(value: &'a Value, field: &str) -> Result<&'a Value, Workspac
         })
 }
 
-fn array_field<'a>(value: &'a Value, field: &str) -> Result<&'a [Value], WorkspaceContractIssue> {
+fn array_field<'a>(
+    value: &'a serde_json::Value,
+    field: &str,
+) -> Result<&'a [serde_json::Value], WorkspaceContractIssue> {
     value
         .get(field)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .map(Vec::as_slice)
         .ok_or_else(|| {
             input_issue(
@@ -715,23 +721,26 @@ fn array_field<'a>(value: &'a Value, field: &str) -> Result<&'a [Value], Workspa
         })
 }
 
-fn string_field(value: &Value, field: &str) -> Result<String, WorkspaceContractIssue> {
+fn string_field(value: &serde_json::Value, field: &str) -> Result<String, WorkspaceContractIssue> {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(ToOwned::to_owned)
         .ok_or_else(|| input_issue(field, &format!("input field `{field}` must be a string")))
 }
 
-fn optional_string_field(value: &Value, field: &str) -> String {
+fn optional_string_field(value: &serde_json::Value, field: &str) -> String {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default()
         .to_string()
 }
 
-fn string_array_field(value: &Value, field: &str) -> Result<Vec<String>, WorkspaceContractIssue> {
+fn string_array_field(
+    value: &serde_json::Value,
+    field: &str,
+) -> Result<Vec<String>, WorkspaceContractIssue> {
     array_field(value, field)?
         .iter()
         .map(|item| {
@@ -754,7 +763,7 @@ fn input_issue(field_path: &str, message: &str) -> WorkspaceContractIssue {
     }
 }
 
-fn workspace_contract_issue_json(issue: &WorkspaceContractIssue) -> Value {
+fn workspace_contract_issue_json(issue: &WorkspaceContractIssue) -> serde_json::Value {
     serde_json::json!({
         "code": issue.code,
         "edge_id": issue.edge_id,
@@ -789,7 +798,6 @@ fn is_safe_relative_path(path: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
 
     use super::*;
 
@@ -974,7 +982,7 @@ mod tests {
             mode: WORKSPACE_CONTRACT_MODE_OPTIONAL.to_string(),
             required_boundary: "declared edge health only".to_string(),
         };
-        let receipt = json!({
+        let receipt = serde_json::json!({
             "schema": WORKSPACE_CONTRACT_MATRIX_RECEIPT_SCHEMA_V1,
             "valid": true,
             "receipt_hash": HASH_A,
@@ -1011,7 +1019,7 @@ mod tests {
     fn value_parser_covers_fixture_matrix_shape() {
         // r[verify cairn.workspace_contract_matrix.final_validation]
         // r[verify cairn.workspace_contract_matrix.final_validation.fixtures]
-        let value = json!({
+        let value = serde_json::json!({
             "matrix": {
                 "schema_version": WORKSPACE_CONTRACT_MATRIX_SCHEMA_V1,
                 "non_claims": REQUIRED_NON_CLAIMS,

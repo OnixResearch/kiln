@@ -1,13 +1,8 @@
-use serde_json::{json, Value};
-
-use super::constants::AGENT_RUN_RECEIPT_SCHEMA_VERSION;
-use super::hash::agent_run_receipt_hash;
-
-pub fn positive_agent_run_fixture() -> Value {
+pub fn positive_agent_run_fixture() -> serde_json::Value {
     // r[verify cairn.supersede.agent_run_receipts.replay]
     // r[verify cairn.supersede.agent_run_receipts.replay.positive]
-    let mut receipt = json!({
-        "schema_version": AGENT_RUN_RECEIPT_SCHEMA_VERSION,
+    let mut receipt = serde_json::json!({
+        "schema_version": super::constants::AGENT_RUN_RECEIPT_SCHEMA_VERSION,
         "task_id": "fixture-agent-run-success",
         "agent_identity": {"wrapper": "cairn-fixture", "model": "captured-model"},
         "input_hash": "1111111111111111111111111111111111111111111111111111111111111111",
@@ -28,9 +23,9 @@ pub fn positive_agent_run_fixture() -> Value {
         "verdict": "success",
         "receipt_hash": ""
     });
-    let hash = agent_run_receipt_hash(&receipt);
+    let hash = super::hash::agent_run_receipt_hash(&receipt);
     if let Some(object) = receipt.as_object_mut() {
-        object.insert("receipt_hash".to_string(), Value::String(hash));
+        object.insert("receipt_hash".to_string(), serde_json::Value::String(hash));
     }
     receipt
 }

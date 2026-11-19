@@ -1,7 +1,3 @@
-use serde_json::{json, Value};
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const PROBE_RECEIPT_SCHEMA_V1: &str = "cairn.probe-receipt.v1";
 pub const PROBE_DECLARATION_SCHEMA_V1: &str = "cairn.probe.v1";
 const BLAKE3_HEX_LENGTH: usize = 64;
@@ -13,19 +9,19 @@ pub struct ProbeIssue {
     pub field_path: String,
 }
 
-pub fn probe_declaration_hash(declaration: &Value) -> String {
-    canonical_json_hash(&probe_declaration_hash_material(declaration))
+pub fn probe_declaration_hash(declaration: &serde_json::Value) -> String {
+    crate::verified::evidence::canonical_json_hash(&probe_declaration_hash_material(declaration))
 }
 
-pub fn probe_receipt_hash(receipt: &Value) -> String {
+pub fn probe_receipt_hash(receipt: &serde_json::Value) -> String {
     let mut material = receipt.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove("receipt_hash");
     }
-    canonical_json_hash(&material)
+    crate::verified::evidence::canonical_json_hash(&material)
 }
 
-pub fn validate_probe_declaration(declaration: &Value) -> Vec<ProbeIssue> {
+pub fn validate_probe_declaration(declaration: &serde_json::Value) -> Vec<ProbeIssue> {
     let mut issues = Vec::new();
     require_text(
         declaration,
@@ -46,7 +42,10 @@ pub fn validate_probe_declaration(declaration: &Value) -> Vec<ProbeIssue> {
     issues
 }
 
-pub fn evaluate_probe_assertions(output: &Value, assertions: &[Value]) -> Vec<Value> {
+pub fn evaluate_probe_assertions(
+    output: &serde_json::Value,
+    assertions: &[serde_json::Value],
+) -> Vec<serde_json::Value> {
     assertions
         .iter()
         .map(|assertion| evaluate_probe_assertion(output, assertion))
@@ -54,8 +53,8 @@ pub fn evaluate_probe_assertions(output: &Value, assertions: &[Value]) -> Vec<Va
 }
 
 pub fn validate_probe_receipt(
-    declaration: &Value,
-    receipt: &Value,
+    declaration: &serde_json::Value,
+    receipt: &serde_json::Value,
     expected_declaration_hash: &str,
     expected_policy_hash: Option<&str>,
 ) -> Vec<ProbeIssue> {
@@ -99,25 +98,33 @@ pub fn validate_probe_receipt(
     issues
 }
 
-pub fn validate_probe_completion_status(receipt: &Value) -> Vec<ProbeIssue> {
+pub fn validate_probe_completion_status(receipt: &serde_json::Value) -> Vec<ProbeIssue> {
     // r[impl cairn.probe_execution_boundary.authoritative_status]
     let mut issues = Vec::new();
-    if receipt.get("status_class").and_then(Value::as_str) != Some("success") {
+    if receipt
+        .get("status_class")
+        .and_then(serde_json::Value::as_str)
+        != Some("success")
+    {
         issues.push(issue(
             "probe.status.not_passing",
             "saved probe status_class must be success",
             "status_class",
         ));
     }
-    if receipt.get("status_matches").and_then(Value::as_bool) != Some(true) {
+    if receipt
+        .get("status_matches")
+        .and_then(serde_json::Value::as_bool)
+        != Some(true)
+    {
         issues.push(issue(
             "probe.status.mismatch",
             "saved probe status must match the declared expected status",
             "status_matches",
         ));
     }
-    if receipt.get("valid").and_then(Value::as_bool) != Some(true)
-        || receipt.get("verdict").and_then(Value::as_str) != Some("PASS")
+    if receipt.get("valid").and_then(serde_json::Value::as_bool) != Some(true)
+        || receipt.get("verdict").and_then(serde_json::Value::as_str) != Some("PASS")
     {
         issues.push(issue(
             "probe.status.verdict_not_passing",
@@ -128,25 +135,25 @@ pub fn validate_probe_completion_status(receipt: &Value) -> Vec<ProbeIssue> {
     issues
 }
 
-pub fn probe_issue_json(issue: &ProbeIssue) -> Value {
-    json!({
+pub fn probe_issue_json(issue: &ProbeIssue) -> serde_json::Value {
+    serde_json::json!({
         "code": issue.code,
         "message": issue.message,
         "field_path": issue.field_path,
     })
 }
 
-pub fn all_probe_assertions_passed(results: &[Value]) -> bool {
+pub fn all_probe_assertions_passed(results: &[serde_json::Value]) -> bool {
     results
         .iter()
-        .all(|result| result.get("passed").and_then(Value::as_bool) == Some(true))
+        .all(|result| result.get("passed").and_then(serde_json::Value::as_bool) == Some(true))
 }
 
 pub fn is_blake3_hex(value: &str) -> bool {
     value.len() == BLAKE3_HEX_LENGTH && value.chars().all(|character| character.is_ascii_hexdigit())
 }
 
-fn probe_declaration_hash_material(declaration: &Value) -> Value {
+fn probe_declaration_hash_material(declaration: &serde_json::Value) -> serde_json::Value {
     let mut material = declaration.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove("receipt_path");
@@ -154,8 +161,8 @@ fn probe_declaration_hash_material(declaration: &Value) -> Value {
     material
 }
 
-fn validate_command(command: Option<&Value>, issues: &mut Vec<ProbeIssue>) {
-    let Some(command) = command.and_then(Value::as_object) else {
+fn validate_command(command: Option<&serde_json::Value>, issues: &mut Vec<ProbeIssue>) {
+    let Some(command) = command.and_then(serde_json::Value::as_object) else {
         issues.push(issue(
             "probe.command.missing",
             "command must be an object",
@@ -165,7 +172,7 @@ fn validate_command(command: Option<&Value>, issues: &mut Vec<ProbeIssue>) {
     };
     if command
         .get("identity")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .is_none_or(str::is_empty)
     {
         issues.push(issue(
@@ -174,7 +181,7 @@ fn validate_command(command: Option<&Value>, issues: &mut Vec<ProbeIssue>) {
             "command.identity",
         ));
     }
-    let Some(argv) = command.get("argv").and_then(Value::as_array) else {
+    let Some(argv) = command.get("argv").and_then(serde_json::Value::as_array) else {
         issues.push(issue(
             "probe.command.argv_missing",
             "command.argv must be a non-empty string array",
@@ -195,8 +202,8 @@ fn validate_command(command: Option<&Value>, issues: &mut Vec<ProbeIssue>) {
     }
 }
 
-fn validate_assertions(assertions: Option<&Value>, issues: &mut Vec<ProbeIssue>) {
-    let Some(assertions) = assertions.and_then(Value::as_array) else {
+fn validate_assertions(assertions: Option<&serde_json::Value>, issues: &mut Vec<ProbeIssue>) {
+    let Some(assertions) = assertions.and_then(serde_json::Value::as_array) else {
         issues.push(issue(
             "probe.assertions.missing",
             "assertions must be a non-empty array",
@@ -216,11 +223,11 @@ fn validate_assertions(assertions: Option<&Value>, issues: &mut Vec<ProbeIssue>)
     }
 }
 
-fn validate_assertion(assertion: &Value, index: usize, issues: &mut Vec<ProbeIssue>) {
+fn validate_assertion(assertion: &serde_json::Value, index: usize, issues: &mut Vec<ProbeIssue>) {
     let field_prefix = format!("assertions[{index}]");
     if assertion
         .get("id")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .is_none_or(str::is_empty)
     {
         issues.push(issue(
@@ -234,7 +241,7 @@ fn validate_assertion(assertion: &Value, index: usize, issues: &mut Vec<ProbeIss
     let has_file_hash = assertion.get("file_blake3_equals").is_some();
     let is_path_missing = assertion
         .get("path")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .is_none_or(str::is_empty);
     if (has_equals || has_contains) && is_path_missing {
         issues.push(issue(
@@ -246,7 +253,7 @@ fn validate_assertion(assertion: &Value, index: usize, issues: &mut Vec<ProbeIss
     if has_file_hash
         && assertion
             .get("file")
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .is_none_or(str::is_empty)
     {
         issues.push(issue(
@@ -268,18 +275,23 @@ fn validate_assertion(assertion: &Value, index: usize, issues: &mut Vec<ProbeIss
     }
 }
 
-fn evaluate_probe_assertion(output: &Value, assertion: &Value) -> Value {
+fn evaluate_probe_assertion(
+    output: &serde_json::Value,
+    assertion: &serde_json::Value,
+) -> serde_json::Value {
     let id = assertion
         .get("id")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or("unnamed")
         .to_string();
     let path = assertion
         .get("path")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let actual = value_at_path(output, &path).cloned().unwrap_or(Value::Null);
+    let actual = value_at_path(output, &path)
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
     let (passed, expected, operator) = if let Some(expected) = assertion.get("equals") {
         (actual == *expected, expected.clone(), "equals")
     } else if let Some(expected) = assertion.get("contains") {
@@ -289,9 +301,9 @@ fn evaluate_probe_assertion(output: &Value, assertion: &Value) -> Value {
             "contains",
         )
     } else {
-        (false, Value::Null, "missing")
+        (false, serde_json::Value::Null, "missing")
     };
-    json!({
+    serde_json::json!({
         "id": id,
         "path": path,
         "operator": operator,
@@ -301,7 +313,7 @@ fn evaluate_probe_assertion(output: &Value, assertion: &Value) -> Value {
     })
 }
 
-fn value_at_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
+fn value_at_path<'a>(value: &'a serde_json::Value, path: &str) -> Option<&'a serde_json::Value> {
     let mut current = value;
     for segment in path.split('.') {
         if segment.is_empty() {
@@ -312,10 +324,10 @@ fn value_at_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
     Some(current)
 }
 
-fn value_contains(actual: &Value, expected: &Value) -> bool {
+fn value_contains(actual: &serde_json::Value, expected: &serde_json::Value) -> bool {
     match actual {
-        Value::Array(items) => items.iter().any(|item| item == expected),
-        Value::String(text) => expected
+        serde_json::Value::Array(items) => items.iter().any(|item| item == expected),
+        serde_json::Value::String(text) => expected
             .as_str()
             .is_some_and(|needle| text.contains(needle)),
         _ => false,
@@ -323,8 +335,8 @@ fn value_contains(actual: &Value, expected: &Value) -> bool {
 }
 
 fn validate_receipt_requirements(
-    declaration: &Value,
-    receipt: &Value,
+    declaration: &serde_json::Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<ProbeIssue>,
 ) {
     let expected = string_array(declaration.get("requirements"));
@@ -338,8 +350,11 @@ fn validate_receipt_requirements(
     }
 }
 
-fn validate_assertion_results(receipt: &Value, issues: &mut Vec<ProbeIssue>) {
-    let Some(results) = receipt.get("assertions").and_then(Value::as_array) else {
+fn validate_assertion_results(receipt: &serde_json::Value, issues: &mut Vec<ProbeIssue>) {
+    let Some(results) = receipt
+        .get("assertions")
+        .and_then(serde_json::Value::as_array)
+    else {
         issues.push(issue(
             "probe.receipt.assertions_missing",
             "receipt assertions must be an array",
@@ -356,8 +371,11 @@ fn validate_assertion_results(receipt: &Value, issues: &mut Vec<ProbeIssue>) {
     }
 }
 
-fn validate_receipt_hash(receipt: &Value, issues: &mut Vec<ProbeIssue>) {
-    let Some(stated_hash) = receipt.get("receipt_hash").and_then(Value::as_str) else {
+fn validate_receipt_hash(receipt: &serde_json::Value, issues: &mut Vec<ProbeIssue>) {
+    let Some(stated_hash) = receipt
+        .get("receipt_hash")
+        .and_then(serde_json::Value::as_str)
+    else {
         issues.push(issue(
             "probe.receipt.hash_missing",
             "receipt_hash must be present",
@@ -375,8 +393,13 @@ fn validate_receipt_hash(receipt: &Value, issues: &mut Vec<ProbeIssue>) {
     }
 }
 
-fn require_text(object: &Value, field: &str, expected: Option<&str>, issues: &mut Vec<ProbeIssue>) {
-    let Some(actual) = object.get(field).and_then(Value::as_str) else {
+fn require_text(
+    object: &serde_json::Value,
+    field: &str,
+    expected: Option<&str>,
+    issues: &mut Vec<ProbeIssue>,
+) {
+    let Some(actual) = object.get(field).and_then(serde_json::Value::as_str) else {
         issues.push(issue(
             format!("probe.{field}.missing"),
             format!("{field} must be a non-empty string"),
@@ -402,7 +425,11 @@ fn require_text(object: &Value, field: &str, expected: Option<&str>, issues: &mu
     }
 }
 
-fn require_non_empty_string_array(object: &Value, field: &str, issues: &mut Vec<ProbeIssue>) {
+fn require_non_empty_string_array(
+    object: &serde_json::Value,
+    field: &str,
+    issues: &mut Vec<ProbeIssue>,
+) {
     let values = string_array(object.get(field));
     if values.is_empty() {
         issues.push(issue(
@@ -413,7 +440,11 @@ fn require_non_empty_string_array(object: &Value, field: &str, issues: &mut Vec<
     }
 }
 
-fn validate_optional_string_array(object: &Value, field: &str, issues: &mut Vec<ProbeIssue>) {
+fn validate_optional_string_array(
+    object: &serde_json::Value,
+    field: &str,
+    issues: &mut Vec<ProbeIssue>,
+) {
     let Some(value) = object.get(field) else {
         return;
     };
@@ -437,8 +468,12 @@ fn validate_optional_string_array(object: &Value, field: &str, issues: &mut Vec<
     }
 }
 
-fn require_coverage_class(value: Option<&Value>, field: &str, issues: &mut Vec<ProbeIssue>) {
-    let Some(class) = value.and_then(Value::as_str) else {
+fn require_coverage_class(
+    value: Option<&serde_json::Value>,
+    field: &str,
+    issues: &mut Vec<ProbeIssue>,
+) {
+    let Some(class) = value.and_then(serde_json::Value::as_str) else {
         issues.push(issue(
             "probe.coverage_class.missing",
             "coverage_class must be a supported string",
@@ -458,11 +493,11 @@ fn require_coverage_class(value: Option<&Value>, field: &str, issues: &mut Vec<P
     }
 }
 
-fn expected_text<'a>(value: &'a Value, field: &str) -> Option<&'a str> {
-    value.get(field).and_then(Value::as_str)
+fn expected_text<'a>(value: &'a serde_json::Value, field: &str) -> Option<&'a str> {
+    value.get(field).and_then(serde_json::Value::as_str)
 }
 
-fn expected_text_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
+fn expected_text_at<'a>(value: &'a serde_json::Value, path: &[&str]) -> Option<&'a str> {
     let mut current = value;
     for segment in path {
         current = current.get(*segment)?;
@@ -470,13 +505,13 @@ fn expected_text_at<'a>(value: &'a Value, path: &[&str]) -> Option<&'a str> {
     current.as_str()
 }
 
-fn string_array(value: Option<&Value>) -> Vec<String> {
+fn string_array(value: Option<&serde_json::Value>) -> Vec<String> {
     value
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .map(|items| {
             items
                 .iter()
-                .filter_map(Value::as_str)
+                .filter_map(serde_json::Value::as_str)
                 .map(ToOwned::to_owned)
                 .collect()
         })
@@ -499,8 +534,8 @@ fn issue(
 mod tests {
     use super::*;
 
-    fn declaration() -> Value {
-        json!({
+    fn declaration() -> serde_json::Value {
+        serde_json::json!({
             "schema": PROBE_DECLARATION_SCHEMA_V1,
             "id": "validate-basic",
             "requirements": ["cairn.example.behavior"],
@@ -528,7 +563,7 @@ mod tests {
     #[test]
     fn invalid_probe_assertions_fail_validation() {
         let mut value = declaration();
-        value["assertions"] = json!([{
+        value["assertions"] = serde_json::json!([{
             "id": "ambiguous",
             "path": "valid",
             "equals": true,
@@ -543,8 +578,8 @@ mod tests {
     #[test]
     fn assertions_support_positive_and_negative_results() {
         let assertions = declaration()["assertions"].as_array().unwrap().clone();
-        let passed = evaluate_probe_assertions(&json!({"valid": true}), &assertions);
-        let failed = evaluate_probe_assertions(&json!({"valid": false}), &assertions);
+        let passed = evaluate_probe_assertions(&serde_json::json!({"valid": true}), &assertions);
+        let failed = evaluate_probe_assertions(&serde_json::json!({"valid": false}), &assertions);
         assert!(all_probe_assertions_passed(&passed));
         assert!(!all_probe_assertions_passed(&failed));
     }
@@ -552,7 +587,7 @@ mod tests {
     #[test]
     fn authoritative_status_accepts_only_an_explicit_current_pass() {
         // r[verify cairn.probe_execution_boundary.authoritative_status]
-        let passing = json!({
+        let passing = serde_json::json!({
             "status_class": "success",
             "status_matches": true,
             "valid": true,
@@ -571,7 +606,7 @@ mod tests {
             "unsupported",
         ] {
             let mut non_passing = passing.clone();
-            non_passing["status_class"] = Value::String(status.to_string());
+            non_passing["status_class"] = serde_json::Value::String(status.to_string());
             assert!(!validate_probe_completion_status(&non_passing).is_empty());
         }
     }
@@ -579,9 +614,10 @@ mod tests {
     #[test]
     fn receipt_validation_rejects_tampering() {
         let declaration = declaration();
-        let policy_hash = canonical_json_hash(&json!({"policy": "test"}));
+        let policy_hash =
+            crate::verified::evidence::canonical_json_hash(&serde_json::json!({"policy": "test"}));
         let declaration_hash = probe_declaration_hash(&declaration);
-        let mut receipt = json!({
+        let mut receipt = serde_json::json!({
             "schema": PROBE_RECEIPT_SCHEMA_V1,
             "probe_id": "validate-basic",
             "requirements": ["cairn.example.behavior"],
@@ -593,7 +629,7 @@ mod tests {
             "policy_hash": policy_hash
         });
         let hash = probe_receipt_hash(&receipt);
-        receipt["receipt_hash"] = Value::String(hash);
+        receipt["receipt_hash"] = serde_json::Value::String(hash);
         assert!(validate_probe_receipt(
             &declaration,
             &receipt,
@@ -601,7 +637,7 @@ mod tests {
             Some(policy_hash.as_str())
         )
         .is_empty());
-        receipt["probe_id"] = Value::String("other".to_string());
+        receipt["probe_id"] = serde_json::Value::String("other".to_string());
         let issues = validate_probe_receipt(
             &declaration,
             &receipt,
@@ -619,9 +655,11 @@ mod tests {
     #[test]
     fn receipt_validation_rejects_stale_policy_probe_id_and_requirement_ids() {
         let declaration = declaration();
-        let policy_hash = canonical_json_hash(&json!({"policy": "test"}));
-        let stale_policy_hash = canonical_json_hash(&json!({"policy": "stale"}));
-        let mut receipt = json!({
+        let policy_hash =
+            crate::verified::evidence::canonical_json_hash(&serde_json::json!({"policy": "test"}));
+        let stale_policy_hash =
+            crate::verified::evidence::canonical_json_hash(&serde_json::json!({"policy": "stale"}));
+        let mut receipt = serde_json::json!({
             "schema": PROBE_RECEIPT_SCHEMA_V1,
             "probe_id": "undeclared-probe",
             "requirements": ["cairn.example.other"],
@@ -632,7 +670,7 @@ mod tests {
             "lifecycle_bundle_hash": probe_declaration_hash(&declaration),
             "policy_hash": stale_policy_hash
         });
-        receipt["receipt_hash"] = Value::String(probe_receipt_hash(&receipt));
+        receipt["receipt_hash"] = serde_json::Value::String(probe_receipt_hash(&receipt));
         let issues = validate_probe_receipt(
             &declaration,
             &receipt,

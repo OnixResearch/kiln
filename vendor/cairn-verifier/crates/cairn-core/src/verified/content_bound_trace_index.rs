@@ -1,18 +1,13 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
-use crate::verified::{
-    content_bound_requirement_registry::{
-        validate_content_bound_requirement_registry, ContentBoundRequirementRegistry,
-        ContentBoundRequirementRow,
-    },
-    evidence::{blake3_hex, canonical_json},
-    traceability::{traceability_id_is_valid, TraceabilityFile, TraceabilityProfile},
-};
-
 pub const CONTENT_BOUND_TRACE_INDEX_SCHEMA_V1: &str = "cairn.content-bound-trace-index.v1";
+pub const CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2: &str = "cairn.content-bound-trace-index.v2";
+pub const TRACEABILITY_ANCHOR_RUST_ITEM_V1: &str = "rust_item_v1";
+const STRUCTURAL_INDEX_DOMAIN: &str = "cairn.trace-index.structural-index.v2";
+const STRUCTURAL_BINDING_DOMAIN: &str = "cairn.trace-index.rust-item-binding.v1";
+const STRUCTURAL_NON_CLAIMS: &[&str] = &[
+    "not callee behavior",
+    "not reusable proof freshness",
+    "not executed tests",
+];
 pub const CONTENT_BOUND_TRACE_INDEX_BOUNDARY: &str = "content-bound trace index validation proves canonical identity, current-input freshness, and declared marker linkage only; it does not prove requirement satisfaction, implementation correctness, test adequacy, proof soundness, release eligibility, lifecycle readiness, or behavioral correctness";
 pub const TRACEABILITY_ASSURANCE_DECLARED: &str = "declared";
 pub const TRACEABILITY_ANCHOR_EXACT_MARKER_BYTES: &str = "exact_marker_bytes";
@@ -26,6 +21,8 @@ pub const CONTENT_BOUND_TRACE_INDEX_NON_CLAIMS: &[&str] = &[
 
 const BLAKE3_HEX_LENGTH: usize = 64;
 const MAX_SOURCE_PATH_BYTES: usize = 4_096;
+const MAX_STRUCTURAL_BINDINGS: usize = 65_536;
+const MAX_CONFIGURATION_VALUES: usize = 256;
 const LINE_NUMBER_ORIGIN: u64 = 1;
 const DOMAIN_SEPARATOR: u8 = 0;
 const SOURCE_FILE_DOMAIN: &str = "cairn.trace-index.source-file.v1";
@@ -61,14 +58,14 @@ const ISSUE_NON_CLAIM_MISSING: &str = "trace_index.non_claim_missing";
 const ISSUE_QUERY_UNKNOWN: &str = "trace_index.query_unknown_requirement";
 const ISSUE_SERIALIZATION: &str = "trace_index.serialization_failed";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentBoundTraceSourceIdentity {
     pub path: String,
     pub content_blake3: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentBoundTraceMarkerSpan {
     pub start_byte: u64,
@@ -77,7 +74,7 @@ pub struct ContentBoundTraceMarkerSpan {
     pub end_line: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentBoundTraceLink {
     pub requirement_id: String,
@@ -89,24 +86,75 @@ pub struct ContentBoundTraceLink {
     pub marker_blake3: String,
     pub link_blake3: String,
 }
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RustItemConfiguration {
+    pub source_path: String,
+    pub file_blake3: String,
+    pub schema_version: String,
+    pub target: String,
+    pub features: Vec<String>,
+    pub declared_features: Vec<String>,
+    pub cfg: Vec<String>,
+}
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RustItemFact {
+    pub source_path: String,
+    pub marker_start_byte: u64,
+    pub start_byte: u64,
+    pub end_byte: u64,
+    pub item_kind: String,
+    pub scoped_locator: String,
+    pub normalized_item_blake3: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RustItemBinding {
+    pub link_blake3: String,
+    pub requirement_id: String,
+    pub requirement_row_blake3: String,
+    pub source_path: String,
+    pub source_file_blake3: String,
+    pub marker_span: ContentBoundTraceMarkerSpan,
+    pub item: RustItemFact,
+    pub configuration: RustItemConfiguration,
+    pub binding_blake3: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StructuralTraceData {
+    pub adapter: String,
+    pub parser: String,
+    pub schema: String,
+    pub configuration: RustItemConfiguration,
+    pub bindings: Vec<RustItemBinding>,
+    pub history: Vec<RustItemBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentBoundTraceIndex {
     pub schema_version: String,
     pub boundary: String,
-    pub profile: TraceabilityProfile,
+    pub profile: crate::verified::traceability::TraceabilityProfile,
     pub profile_blake3: String,
     pub policy_blake3: String,
     pub requirement_registry_blake3: String,
-    pub requirements: Vec<ContentBoundRequirementRow>,
+    pub requirements:
+        Vec<crate::verified::content_bound_requirement_registry::ContentBoundRequirementRow>,
     pub sources: Vec<ContentBoundTraceSourceIdentity>,
     pub links: Vec<ContentBoundTraceLink>,
     pub non_claims: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub structural: Option<StructuralTraceData>,
     pub index_blake3: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContentBoundTraceIndexIssue {
     pub code: String,
@@ -133,7 +181,8 @@ pub struct ContentBoundTraceIndexVerification {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContentBoundTraceQuery {
-    pub requirement: ContentBoundRequirementRow,
+    pub requirement:
+        crate::verified::content_bound_requirement_registry::ContentBoundRequirementRow,
     pub links: Vec<ContentBoundTraceLink>,
 }
 
@@ -143,7 +192,7 @@ pub struct ContentBoundTraceQueryEvaluation {
     pub issues: Vec<ContentBoundTraceIndexIssue>,
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct LinkHashMaterial<'a> {
     requirement_id: &'a str,
     requirement_row_blake3: &'a str,
@@ -155,15 +204,16 @@ struct LinkHashMaterial<'a> {
     marker_blake3: &'a str,
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct IndexHashMaterial<'a> {
     schema_version: &'a str,
     boundary: &'a str,
-    profile: &'a TraceabilityProfile,
+    profile: &'a crate::verified::traceability::TraceabilityProfile,
     profile_blake3: &'a str,
     policy_blake3: &'a str,
     requirement_registry_blake3: &'a str,
-    requirements: &'a [ContentBoundRequirementRow],
+    requirements:
+        &'a [crate::verified::content_bound_requirement_registry::ContentBoundRequirementRow],
     sources: &'a [ContentBoundTraceSourceIdentity],
     links: &'a [ContentBoundTraceLink],
     non_claims: &'a [String],
@@ -179,15 +229,15 @@ struct LocatedMarker<'a> {
 
 #[must_use]
 pub fn evaluate_content_bound_trace_index(
-    registry: &ContentBoundRequirementRegistry,
-    profile: &TraceabilityProfile,
-    mut evidence_files: Vec<TraceabilityFile>,
+    registry: &crate::verified::content_bound_requirement_registry::ContentBoundRequirementRegistry,
+    profile: &crate::verified::traceability::TraceabilityProfile,
+    mut evidence_files: Vec<crate::verified::traceability::TraceabilityFile>,
 ) -> ContentBoundTraceIndexEvaluation {
     // r[impl cairn.trace_index.canonical_index]
     // r[impl cairn.trace_index.validation]
     let mut issues = Vec::new();
     validate_profile(profile, "profile", &mut issues);
-    for registry_issue in validate_content_bound_requirement_registry(registry) {
+    for registry_issue in crate::verified::content_bound_requirement_registry::validate_content_bound_requirement_registry(registry) {
         push_issue(
             &mut issues,
             ISSUE_REGISTRY_INVALID,
@@ -202,7 +252,7 @@ pub fn evaluate_content_bound_trace_index(
         .rows
         .iter()
         .map(|row| (row.requirement_id.as_str(), row))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     let mut sources = Vec::with_capacity(evidence_files.len());
     let mut links = Vec::new();
 
@@ -283,13 +333,315 @@ pub fn evaluate_content_bound_trace_index(
         sources,
         links,
         non_claims,
+        structural: None,
         index_blake3,
     };
-    debug_assert!(validate_content_bound_trace_index(&index).is_empty());
+    if profile.anchor_kind == TRACEABILITY_ANCHOR_EXACT_MARKER_BYTES {
+        debug_assert!(validate_content_bound_trace_index(&index).is_empty());
+    }
     ContentBoundTraceIndexEvaluation {
         index: Some(index),
         issues: Vec::new(),
     }
+}
+
+/// Consumes parser facts from bounded saved inputs. It never parses source or infers cfg.
+#[must_use]
+pub fn evaluate_structural_trace_index(
+    registry: &crate::verified::content_bound_requirement_registry::ContentBoundRequirementRegistry,
+    profile: &crate::verified::traceability::TraceabilityProfile,
+    evidence_files: Vec<crate::verified::traceability::TraceabilityFile>,
+    facts: Vec<RustItemFact>,
+    configuration: RustItemConfiguration,
+    previous: Option<&ContentBoundTraceIndex>,
+) -> ContentBoundTraceIndexEvaluation {
+    let source_lengths = evidence_files
+        .iter()
+        .map(|file| (file.path.clone(), file.text.len()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut evaluation = evaluate_content_bound_trace_index(registry, profile, evidence_files);
+    if profile.anchor_kind != TRACEABILITY_ANCHOR_RUST_ITEM_V1 {
+        evaluation.issues.push(issue(
+            ISSUE_PROFILE_UNSUPPORTED,
+            "profile.anchor_kind",
+            "structural evaluation requires rust_item_v1",
+        ));
+        evaluation.index = None;
+        return evaluation;
+    }
+    let Some(mut index) = evaluation.index.take() else {
+        return evaluation;
+    };
+    if facts.len() != index.links.len() {
+        evaluation.issues.push(issue(
+            "trace_index.item_fact_count",
+            "structural.facts",
+            "parser facts must correspond one-to-one with selected exact marker occurrences",
+        ));
+        return evaluation;
+    }
+    let mut issues = Vec::new();
+    let mut bindings = Vec::new();
+    for link in &index.links {
+        let mut matches = facts.iter().filter(|fact| {
+            fact.source_path == link.source_path
+                && fact.marker_start_byte == link.marker_span.start_byte
+        });
+        let Some(item) = matches.next() else {
+            push_issue(
+                &mut issues,
+                "trace_index.item_selection",
+                &format!("links.{}", link.link_blake3),
+                "marker has no supported Rust declaration",
+            );
+            continue;
+        };
+        if matches.next().is_some() {
+            push_issue(
+                &mut issues,
+                "trace_index.item_selection",
+                &format!("links.{}", link.link_blake3),
+                "marker resolves ambiguously to multiple Rust declarations",
+            );
+            continue;
+        }
+        let item = item.clone();
+        if !safe_structural_path(&item.source_path)
+            || item.start_byte >= item.end_byte
+            || source_lengths
+                .get(item.source_path.as_str())
+                .is_none_or(|size| item.end_byte > *size as u64)
+            || item.normalized_item_blake3.len() != BLAKE3_HEX_LENGTH
+            || item.scoped_locator.is_empty()
+        {
+            push_issue(
+                &mut issues,
+                "trace_index.item_invalid",
+                &format!("links.{}", link.link_blake3),
+                "parser fact has invalid source path, bounds, locator or identity",
+            );
+            continue;
+        }
+        let mut binding = RustItemBinding {
+            link_blake3: link.link_blake3.clone(),
+            requirement_id: link.requirement_id.clone(),
+            requirement_row_blake3: link.requirement_row_blake3.clone(),
+            source_path: link.source_path.clone(),
+            source_file_blake3: link.source_file_blake3.clone(),
+            marker_span: link.marker_span.clone(),
+            item,
+            configuration: configuration.clone(),
+            binding_blake3: String::new(),
+        };
+        binding.binding_blake3 = structural_binding_hash(&binding);
+        bindings.push(binding);
+    }
+    let mut history = Vec::new();
+    if let Some(previous) = previous {
+        if previous.schema_version != CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2
+            || !validate_content_bound_trace_index(previous).is_empty()
+        {
+            push_issue(
+                &mut issues,
+                "trace_index.history_invalid",
+                "previous",
+                "previous structural index must be a valid self-bound v2 artifact",
+            );
+        } else if let Some(prior) = &previous.structural {
+            history.extend(prior.history.iter().cloned());
+            history.extend(
+                prior
+                    .bindings
+                    .iter()
+                    .filter(|binding| {
+                        !bindings
+                            .iter()
+                            .any(|current| current.binding_blake3 == binding.binding_blake3)
+                    })
+                    .cloned(),
+            );
+        }
+    }
+    history.sort_by(|a, b| a.binding_blake3.cmp(&b.binding_blake3));
+    history.dedup_by(|a, b| a.binding_blake3 == b.binding_blake3);
+    if bindings.len() > MAX_STRUCTURAL_BINDINGS || history.len() > MAX_STRUCTURAL_BINDINGS {
+        push_issue(
+            &mut issues,
+            "trace_index.binding_budget_exceeded",
+            "structural",
+            "current or historical Rust binding budget exceeded",
+        );
+    }
+    if configuration.schema_version != "cairn.rust-item-configuration.v1"
+        || configuration.target.is_empty()
+        || !safe_structural_path(&configuration.source_path)
+        || configuration.file_blake3.len() != BLAKE3_HEX_LENGTH
+        || configuration
+            .features
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || configuration
+            .declared_features
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || configuration.features.iter().any(|feature| {
+            configuration
+                .declared_features
+                .binary_search(feature)
+                .is_err()
+        })
+        || configuration.cfg.windows(2).any(|pair| pair[0] >= pair[1])
+    {
+        push_issue(&mut issues, "trace_index.configuration_invalid", "configuration", "configuration requires v1 schema, explicit target and sorted unique feature/cfg values");
+    }
+    if !issues.is_empty() {
+        sort_issues(&mut issues);
+        return ContentBoundTraceIndexEvaluation {
+            index: None,
+            issues,
+        };
+    }
+    index.non_claims.extend(
+        STRUCTURAL_NON_CLAIMS
+            .iter()
+            .map(|claim| (*claim).to_string()),
+    );
+    index.schema_version = CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2.to_string();
+    index.structural = Some(StructuralTraceData {
+        adapter: "cairn.saved-rust-bytes.v1".into(),
+        parser: "syn-2.0.117".into(),
+        schema: "cairn.rust-item-binding.v1".into(),
+        configuration,
+        bindings,
+        history,
+    });
+    index.index_blake3 = structural_index_hash(&index);
+    let validation = validate_content_bound_trace_index(&index);
+    if !validation.is_empty() {
+        return ContentBoundTraceIndexEvaluation {
+            index: None,
+            issues: validation,
+        };
+    }
+    evaluation.index = Some(index);
+    evaluation
+}
+
+#[must_use]
+pub fn verify_structural_trace_index(
+    saved: &ContentBoundTraceIndex,
+    registry: &crate::verified::content_bound_requirement_registry::ContentBoundRequirementRegistry,
+    profile: &crate::verified::traceability::TraceabilityProfile,
+    evidence_files: Vec<crate::verified::traceability::TraceabilityFile>,
+    facts: Vec<RustItemFact>,
+    configuration: RustItemConfiguration,
+) -> ContentBoundTraceIndexVerification {
+    let mut issues = validate_content_bound_trace_index(saved);
+    let current = evaluate_structural_trace_index(
+        registry,
+        profile,
+        evidence_files,
+        facts,
+        configuration,
+        None,
+    );
+    issues.extend(current.issues);
+    if let Some(current) = current.index {
+        compare_current_index(saved, &current, &mut issues);
+        if saved.requirement_registry_blake3 != current.requirement_registry_blake3 {
+            push_issue(
+                &mut issues,
+                "trace_index.requirement_revision_stale",
+                "requirement_registry_blake3",
+                &format!(
+                    "expected {}; actual {}",
+                    saved.requirement_registry_blake3, current.requirement_registry_blake3
+                ),
+            );
+        }
+        if saved.structural.as_ref().map(|data| &data.configuration)
+            != current.structural.as_ref().map(|data| &data.configuration)
+        {
+            push_issue(
+                &mut issues,
+                "trace_index.configuration_stale",
+                "structural.configuration",
+                &format!(
+                    "expected {}; actual {}",
+                    saved
+                        .structural
+                        .as_ref()
+                        .map_or("absent", |data| data.configuration.file_blake3.as_str()),
+                    current
+                        .structural
+                        .as_ref()
+                        .map_or("absent", |data| data.configuration.file_blake3.as_str())
+                ),
+            );
+        }
+        let old = saved.structural.as_ref().map(|data| &data.bindings);
+        let new = current.structural.as_ref().map(|data| &data.bindings);
+        if old != new {
+            let expected = old.map_or_else(String::new, |bindings| {
+                bindings
+                    .iter()
+                    .map(|binding| binding.binding_blake3.as_str())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            });
+            let actual = new.map_or_else(String::new, |bindings| {
+                bindings
+                    .iter()
+                    .map(|binding| binding.binding_blake3.as_str())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            });
+            push_issue(
+                &mut issues,
+                "trace_index.binding_stale",
+                "structural.bindings",
+                &format!("saved bindings {expected}; current bindings {actual}"),
+            );
+        }
+    }
+    sort_issues(&mut issues);
+    ContentBoundTraceIndexVerification {
+        valid: issues.is_empty(),
+        index_blake3: saved.index_blake3.clone(),
+        requirement_count: saved.requirements.len(),
+        source_count: saved.sources.len(),
+        link_count: saved.links.len(),
+        issues,
+        boundary: CONTENT_BOUND_TRACE_INDEX_BOUNDARY.to_string(),
+    }
+}
+
+fn structural_binding_hash(binding: &RustItemBinding) -> String {
+    domain_hash_json(
+        STRUCTURAL_BINDING_DOMAIN,
+        &(
+            binding.link_blake3.as_str(),
+            binding.requirement_row_blake3.as_str(),
+            binding.source_path.as_str(),
+            binding.source_file_blake3.as_str(),
+            &binding.marker_span,
+            &binding.item,
+            "cairn.saved-rust-bytes.v1",
+            "syn-2.0.117",
+            "cairn.rust-item-binding.v1",
+            &binding.configuration,
+        ),
+    )
+    .unwrap_or_default()
+}
+
+fn structural_index_hash(index: &ContentBoundTraceIndex) -> String {
+    let mut value = serde_json::to_value(index).expect("trace index is serializable");
+    value
+        .as_object_mut()
+        .expect("trace index is an object")
+        .remove("index_blake3");
+    domain_hash_json(STRUCTURAL_INDEX_DOMAIN, &value).unwrap_or_default()
 }
 
 #[must_use]
@@ -298,7 +650,9 @@ pub fn validate_content_bound_trace_index(
 ) -> Vec<ContentBoundTraceIndexIssue> {
     // r[impl cairn.trace_index.freshness]
     let mut issues = Vec::new();
-    if index.schema_version != CONTENT_BOUND_TRACE_INDEX_SCHEMA_V1 {
+    if index.schema_version != CONTENT_BOUND_TRACE_INDEX_SCHEMA_V1
+        && index.schema_version != CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2
+    {
         push_issue(
             &mut issues,
             ISSUE_SCHEMA_UNSUPPORTED,
@@ -315,6 +669,19 @@ pub fn validate_content_bound_trace_index(
         );
     }
     validate_profile(&index.profile, "profile", &mut issues);
+    if (index.schema_version == CONTENT_BOUND_TRACE_INDEX_SCHEMA_V1) != index.structural.is_none()
+        || (index.schema_version == CONTENT_BOUND_TRACE_INDEX_SCHEMA_V1
+            && index.profile.anchor_kind != TRACEABILITY_ANCHOR_EXACT_MARKER_BYTES)
+        || (index.schema_version == CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2
+            && index.profile.anchor_kind != TRACEABILITY_ANCHOR_RUST_ITEM_V1)
+    {
+        push_issue(
+            &mut issues,
+            ISSUE_SCHEMA_UNSUPPORTED,
+            "structural",
+            "index schema, profile anchor and structural payload must agree",
+        );
+    }
     validate_hash(&index.profile_blake3, "profile_blake3", &mut issues);
     validate_hash(&index.policy_blake3, "policy_blake3", &mut issues);
     validate_hash(
@@ -326,6 +693,9 @@ pub fn validate_content_bound_trace_index(
     validate_requirement_rows(index, &mut issues);
     validate_sources(index, &mut issues);
     validate_links(index, &mut issues);
+    if let Some(structural) = &index.structural {
+        validate_structural(index, structural, &mut issues);
+    }
     validate_profile_hash(index, &mut issues);
     validate_index_hash(index, &mut issues);
     validate_order(index, &mut issues);
@@ -336,12 +706,18 @@ pub fn validate_content_bound_trace_index(
 #[must_use]
 pub fn verify_content_bound_trace_index(
     index: &ContentBoundTraceIndex,
-    registry: &ContentBoundRequirementRegistry,
-    profile: &TraceabilityProfile,
-    evidence_files: Vec<TraceabilityFile>,
+    registry: &crate::verified::content_bound_requirement_registry::ContentBoundRequirementRegistry,
+    profile: &crate::verified::traceability::TraceabilityProfile,
+    evidence_files: Vec<crate::verified::traceability::TraceabilityFile>,
 ) -> ContentBoundTraceIndexVerification {
     // r[impl cairn.trace_index.freshness]
     let mut issues = validate_content_bound_trace_index(index);
+    if index.schema_version == CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2
+        || profile.anchor_kind == TRACEABILITY_ANCHOR_RUST_ITEM_V1
+    {
+        push_issue(&mut issues, "trace_index.item_facts_required", "structural",
+            "structural freshness requires recomputed saved-byte parser facts and explicit configuration");
+    }
     let current = evaluate_content_bound_trace_index(registry, profile, evidence_files);
     issues.extend(current.issues);
     if let Some(current_index) = current.index {
@@ -400,7 +776,7 @@ pub fn query_content_bound_trace_index(
 }
 
 pub fn parse_content_bound_trace_index_value(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<ContentBoundTraceIndex, ContentBoundTraceIndexIssue> {
     serde_json::from_value(value.clone()).map_err(|error| {
         issue(
@@ -412,10 +788,13 @@ pub fn parse_content_bound_trace_index_value(
 }
 
 fn collect_file_links<'a>(
-    file: &TraceabilityFile,
+    file: &crate::verified::traceability::TraceabilityFile,
     source_file_blake3: &str,
-    profile: &TraceabilityProfile,
-    requirement_rows: &BTreeMap<&'a str, &'a ContentBoundRequirementRow>,
+    profile: &crate::verified::traceability::TraceabilityProfile,
+    requirement_rows: &std::collections::BTreeMap<
+        &'a str,
+        &'a crate::verified::content_bound_requirement_registry::ContentBoundRequirementRow,
+    >,
     links: &mut Vec<ContentBoundTraceLink>,
     issues: &mut Vec<ContentBoundTraceIndexIssue>,
 ) {
@@ -501,7 +880,7 @@ fn located_reference_markers<'a>(
                 .unwrap_or(raw_requirement_id);
             if allowed_roles.iter().any(|allowed| allowed == role)
                 && requirement_id != PLACEHOLDER_REQUIREMENT_ID
-                && traceability_id_is_valid(requirement_id)
+                && crate::verified::traceability::traceability_id_is_valid(requirement_id)
             {
                 markers.push(LocatedMarker {
                     role,
@@ -535,7 +914,7 @@ fn compare_links(
 }
 
 fn reject_duplicate_source_paths(
-    files: &[TraceabilityFile],
+    files: &[crate::verified::traceability::TraceabilityFile],
     issues: &mut Vec<ContentBoundTraceIndexIssue>,
 ) {
     for pair in files.windows(MARKER_BODY_PART_COUNT) {
@@ -554,7 +933,7 @@ fn reject_duplicate_links(
     links: &[ContentBoundTraceLink],
     issues: &mut Vec<ContentBoundTraceIndexIssue>,
 ) {
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     for link in links {
         if !seen.insert(link.link_blake3.as_str()) {
             push_issue(
@@ -568,12 +947,17 @@ fn reject_duplicate_links(
 }
 
 fn validate_profile(
-    profile: &TraceabilityProfile,
+    profile: &crate::verified::traceability::TraceabilityProfile,
     field_path: &str,
     issues: &mut Vec<ContentBoundTraceIndexIssue>,
 ) {
     if profile.assurance_level != TRACEABILITY_ASSURANCE_DECLARED
-        || profile.anchor_kind != TRACEABILITY_ANCHOR_EXACT_MARKER_BYTES
+        || !matches!(
+            profile.anchor_kind.as_str(),
+            TRACEABILITY_ANCHOR_EXACT_MARKER_BYTES | TRACEABILITY_ANCHOR_RUST_ITEM_V1
+        )
+        || (profile.anchor_kind == TRACEABILITY_ANCHOR_RUST_ITEM_V1)
+            != profile.rust_configuration_path.is_some()
         || profile.id.is_empty()
         || profile.marker_verbs.is_empty()
     {
@@ -581,7 +965,7 @@ fn validate_profile(
             issues,
             ISSUE_PROFILE_UNSUPPORTED,
             field_path,
-            "trace-index profile must use declared assurance and exact-marker byte anchors",
+            "trace-index profile must use declared assurance and a supported versioned anchor",
         );
     }
 }
@@ -590,7 +974,7 @@ fn validate_requirement_rows(
     index: &ContentBoundTraceIndex,
     issues: &mut Vec<ContentBoundTraceIndexIssue>,
 ) {
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     for (row_index, row) in index.requirements.iter().enumerate() {
         validate_hash(
             &row.row_blake3,
@@ -609,7 +993,7 @@ fn validate_requirement_rows(
 }
 
 fn validate_sources(index: &ContentBoundTraceIndex, issues: &mut Vec<ContentBoundTraceIndexIssue>) {
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     for (source_index, source) in index.sources.iter().enumerate() {
         if !safe_relative_path(&source.path) {
             push_issue(
@@ -640,13 +1024,13 @@ fn validate_links(index: &ContentBoundTraceIndex, issues: &mut Vec<ContentBoundT
         .requirements
         .iter()
         .map(|row| (row.requirement_id.as_str(), row))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     let sources = index
         .sources
         .iter()
         .map(|source| (source.path.as_str(), source))
-        .collect::<BTreeMap<_, _>>();
-    let mut seen = BTreeSet::new();
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut seen = std::collections::BTreeSet::new();
     for (link_index, link) in index.links.iter().enumerate() {
         let field_path = format!("links[{link_index}]");
         validate_hash(
@@ -771,21 +1155,241 @@ fn validate_profile_hash(
     }
 }
 
+fn validate_structural(
+    index: &ContentBoundTraceIndex,
+    data: &StructuralTraceData,
+    issues: &mut Vec<ContentBoundTraceIndexIssue>,
+) {
+    if data.adapter != "cairn.saved-rust-bytes.v1"
+        || data.parser != "syn-2.0.117"
+        || data.schema != "cairn.rust-item-binding.v1"
+        || data.configuration.schema_version != "cairn.rust-item-configuration.v1"
+        || !safe_structural_path(&data.configuration.source_path)
+        || data.configuration.file_blake3.len() != BLAKE3_HEX_LENGTH
+        || data.configuration.target.is_empty()
+    {
+        push_issue(
+            issues,
+            "trace_index.interpretation_unsupported",
+            "structural",
+            "unsupported adapter, parser, schema or configuration",
+        );
+    }
+    validate_hash(
+        &data.configuration.file_blake3,
+        "structural.configuration.file_blake3",
+        issues,
+    );
+    for claim in STRUCTURAL_NON_CLAIMS {
+        if !index.non_claims.iter().any(|present| present == claim) {
+            push_issue(
+                issues,
+                ISSUE_NON_CLAIM_MISSING,
+                "non_claims",
+                &format!("structural index must retain `{claim}`"),
+            );
+        }
+    }
+    for source in &index.sources {
+        if !safe_structural_path(&source.path) {
+            push_issue(
+                issues,
+                ISSUE_PATH_UNSAFE,
+                "sources",
+                "structural source path is not a safe logical path",
+            );
+        }
+    }
+    if data
+        .configuration
+        .features
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
+        || data
+            .configuration
+            .declared_features
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || data.configuration.features.iter().any(|feature| {
+            data.configuration
+                .declared_features
+                .binary_search(feature)
+                .is_err()
+        })
+        || data
+            .configuration
+            .cfg
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || index.profile.rust_configuration_path.as_deref()
+            != Some(data.configuration.source_path.as_str())
+    {
+        push_issue(
+            issues,
+            "trace_index.configuration_invalid",
+            "structural.configuration",
+            "configuration must be canonical and match the selected profile path",
+        );
+    }
+    if data.bindings.len() > MAX_STRUCTURAL_BINDINGS
+        || data.history.len() > MAX_STRUCTURAL_BINDINGS
+        || data.configuration.features.len() > MAX_CONFIGURATION_VALUES
+        || data.configuration.declared_features.len() > MAX_CONFIGURATION_VALUES
+        || data.configuration.cfg.len() > MAX_CONFIGURATION_VALUES
+    {
+        push_issue(
+            issues,
+            "trace_index.binding_budget_exceeded",
+            "structural",
+            "structural binding or configuration budget exceeded",
+        );
+    }
+    let links = index
+        .links
+        .iter()
+        .map(|link| (link.link_blake3.as_str(), link))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    if data.bindings.len() != index.links.len() {
+        push_issue(
+            issues,
+            "trace_index.binding_missing",
+            "structural.bindings",
+            "each current marker link requires one current Rust item binding",
+        );
+    }
+    if data
+        .bindings
+        .iter()
+        .map(|binding| binding.link_blake3.as_str())
+        .collect::<Vec<_>>()
+        != index
+            .links
+            .iter()
+            .map(|link| link.link_blake3.as_str())
+            .collect::<Vec<_>>()
+    {
+        push_issue(
+            issues,
+            ISSUE_ORDER_INVALID,
+            "structural.bindings",
+            "current item attachments must follow canonical marker-link order",
+        );
+    }
+    let mut selected = std::collections::BTreeSet::new();
+    for (position, binding) in data.bindings.iter().enumerate() {
+        let field = format!("structural.bindings[{position}]");
+        if !selected.insert(binding.link_blake3.as_str()) {
+            push_issue(
+                issues,
+                "trace_index.binding_duplicate",
+                &field,
+                "current marker link is bound more than once",
+            );
+        }
+        match links.get(binding.link_blake3.as_str()) {
+            Some(link) if binding.requirement_id == link.requirement_id
+                && binding.requirement_row_blake3 == link.requirement_row_blake3
+                && binding.source_path == link.source_path
+                && binding.source_file_blake3 == link.source_file_blake3
+                && binding.marker_span == link.marker_span
+                && binding.item.source_path == link.source_path
+                && binding.item.marker_start_byte == link.marker_span.start_byte => {},
+            _ => push_issue(issues, "trace_index.binding_link_invalid", &field, "current binding must match exactly one current marker occurrence and requirement revision"),
+        }
+        if binding.configuration != data.configuration
+            || !safe_structural_path(&binding.source_path)
+            || binding.item.start_byte < binding.marker_span.end_byte
+            || binding.item.start_byte >= binding.item.end_byte
+            || binding.item.scoped_locator.is_empty()
+            || !matches!(
+                binding.item.item_kind.as_str(),
+                "fn" | "struct"
+                    | "enum"
+                    | "union"
+                    | "mod"
+                    | "trait"
+                    | "impl"
+                    | "type"
+                    | "const"
+                    | "static"
+                    | "trait_fn"
+                    | "trait_const"
+                    | "trait_type"
+                    | "impl_fn"
+                    | "impl_const"
+                    | "impl_type"
+            )
+        {
+            push_issue(
+                issues,
+                "trace_index.binding_invalid",
+                &field,
+                "current interpretation configuration, source path, span or locator is invalid",
+            );
+        }
+        validate_hash(
+            &binding.item.normalized_item_blake3,
+            &format!("{field}.item.normalized_item_blake3"),
+            issues,
+        );
+        validate_hash(
+            &binding.binding_blake3,
+            &format!("{field}.binding_blake3"),
+            issues,
+        );
+        if structural_binding_hash(binding) != binding.binding_blake3 {
+            push_issue(
+                issues,
+                ISSUE_HASH_INVALID,
+                &field,
+                "binding does not match its versioned content identity",
+            );
+        }
+    }
+    let current_hashes = data
+        .bindings
+        .iter()
+        .map(|binding| binding.binding_blake3.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut previous_hash: Option<&str> = None;
+    for (position, binding) in data.history.iter().enumerate() {
+        let field = format!("structural.history[{position}]");
+        if previous_hash.is_some_and(|previous| previous >= binding.binding_blake3.as_str())
+            || current_hashes.contains(binding.binding_blake3.as_str())
+            || structural_binding_hash(binding) != binding.binding_blake3
+        {
+            push_issue(
+                issues,
+                "trace_index.history_invalid",
+                &field,
+                "history must be sorted, unique, distinct from current attachments and self-bound",
+            );
+        }
+        previous_hash = Some(&binding.binding_blake3);
+    }
+}
+
 fn validate_index_hash(
     index: &ContentBoundTraceIndex,
     issues: &mut Vec<ContentBoundTraceIndexIssue>,
 ) {
     validate_hash(&index.index_blake3, "index_blake3", issues);
-    if let Ok(expected) = index_hash(
-        &index.profile,
-        &index.profile_blake3,
-        &index.policy_blake3,
-        &index.requirement_registry_blake3,
-        &index.requirements,
-        &index.sources,
-        &index.links,
-        &index.non_claims,
-    ) {
+    let expected = if index.schema_version == CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2 {
+        Some(structural_index_hash(index))
+    } else {
+        index_hash(
+            &index.profile,
+            &index.profile_blake3,
+            &index.policy_blake3,
+            &index.requirement_registry_blake3,
+            &index.requirements,
+            &index.sources,
+            &index.links,
+            &index.non_claims,
+        )
+        .ok()
+    };
+    if let Some(expected) = expected {
         if expected != index.index_blake3 {
             push_issue(
                 issues,
@@ -864,11 +1468,11 @@ fn compare_sources(
     let saved_by_path = saved
         .iter()
         .map(|source| (source.path.as_str(), source))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     let current_by_path = current
         .iter()
         .map(|source| (source.path.as_str(), source))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     for (path, saved_source) in &saved_by_path {
         match current_by_path.get(path) {
             None => push_issue(
@@ -903,7 +1507,7 @@ fn compare_sources(
 }
 
 fn link_hash(
-    requirement_row: &ContentBoundRequirementRow,
+    requirement_row: &crate::verified::content_bound_requirement_registry::ContentBoundRequirementRow,
     role: &str,
     source_path: &str,
     source_file_blake3: &str,
@@ -927,11 +1531,11 @@ fn link_hash(
 
 #[allow(clippy::too_many_arguments)]
 fn index_hash(
-    profile: &TraceabilityProfile,
+    profile: &crate::verified::traceability::TraceabilityProfile,
     profile_blake3: &str,
     policy_blake3: &str,
     requirement_registry_blake3: &str,
-    requirements: &[ContentBoundRequirementRow],
+    requirements: &[crate::verified::content_bound_requirement_registry::ContentBoundRequirementRow],
     sources: &[ContentBoundTraceSourceIdentity],
     links: &[ContentBoundTraceLink],
     non_claims: &[String],
@@ -985,6 +1589,10 @@ fn safe_relative_path(path: &str) -> bool {
             .all(|component| !matches!(component, "" | "." | ".."))
 }
 
+fn safe_structural_path(path: &str) -> bool {
+    safe_relative_path(path) && !path.contains(':') && !path.contains('\0')
+}
+
 fn validate_hash(value: &str, field_path: &str, issues: &mut Vec<ContentBoundTraceIndexIssue>) {
     if value.len() != BLAKE3_HEX_LENGTH
         || !value
@@ -1006,10 +1614,10 @@ fn domain_hash_bytes(domain: &str, bytes: &[u8]) -> String {
     material.extend_from_slice(domain.as_bytes());
     material.push(DOMAIN_SEPARATOR);
     material.extend_from_slice(bytes);
-    blake3_hex(&material)
+    crate::verified::evidence::blake3_hex(&material)
 }
 
-fn domain_hash_json<T: Serialize>(
+fn domain_hash_json<T: serde::Serialize>(
     domain: &str,
     value: &T,
 ) -> Result<String, ContentBoundTraceIndexIssue> {
@@ -1020,7 +1628,10 @@ fn domain_hash_json<T: Serialize>(
             "canonical trace-index hash material could not be serialized",
         )
     })?;
-    Ok(domain_hash_bytes(domain, canonical_json(&value).as_bytes()))
+    Ok(domain_hash_bytes(
+        domain,
+        crate::verified::evidence::canonical_json(&value).as_bytes(),
+    ))
 }
 
 fn issue(code: &str, field_path: &str, message: &str) -> ContentBoundTraceIndexIssue {
@@ -1052,16 +1663,6 @@ fn sort_issues(issues: &mut Vec<ContentBoundTraceIndexIssue>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::verified::{
-        content_bound_requirement_registry::{
-            evaluate_content_bound_requirement_registry, ContentBoundRevision,
-            ContentBoundSpecificationInput, CONTENT_BOUND_REVISION_KIND_OPAQUE,
-        },
-        traceability::{
-            TraceabilitySource, TRACEABILITY_VERB_DEPENDS, TRACEABILITY_VERB_IMPL,
-            TRACEABILITY_VERB_RELATED, TRACEABILITY_VERB_VERIFY,
-        },
-    };
 
     use super::*;
 
@@ -1075,8 +1676,9 @@ mod tests {
     const SECOND_SOURCE_PATH: &str = "crates/demo/src/other.rs";
     const EXPECTED_LINK_COUNT: usize = 2;
 
-    fn specification() -> ContentBoundSpecificationInput {
-        ContentBoundSpecificationInput {
+    fn specification(
+    ) -> crate::verified::content_bound_requirement_registry::ContentBoundSpecificationInput {
+        crate::verified::content_bound_requirement_registry::ContentBoundSpecificationInput {
             path: SPEC_PATH.to_string(),
             markdown: format!(
                 "# Trace\n\n## Requirements\n\n### Requirement: Demo\nr[{REQUIREMENT_ID}] Cairn MUST bind the declared link.\n\n#### Scenario: Link\n- GIVEN a marker\n- WHEN indexed\n- THEN the link MUST be content-bound\n"
@@ -1084,13 +1686,15 @@ mod tests {
         }
     }
 
-    fn registry(policy: &[u8]) -> ContentBoundRequirementRegistry {
-        evaluate_content_bound_requirement_registry(
+    fn registry(
+        policy: &[u8],
+    ) -> crate::verified::content_bound_requirement_registry::ContentBoundRequirementRegistry {
+        crate::verified::content_bound_requirement_registry::evaluate_content_bound_requirement_registry(
             vec![specification()],
             policy,
             REPOSITORY_ID,
-            ContentBoundRevision {
-                kind: CONTENT_BOUND_REVISION_KIND_OPAQUE.to_string(),
+            crate::verified::content_bound_requirement_registry::ContentBoundRevision {
+                kind: crate::verified::content_bound_requirement_registry::CONTENT_BOUND_REVISION_KIND_OPAQUE.to_string(),
                 value: REVISION.to_string(),
             },
         )
@@ -1098,36 +1702,38 @@ mod tests {
         .expect("valid registry")
     }
 
-    fn profile() -> TraceabilityProfile {
-        TraceabilityProfile {
+    fn profile() -> crate::verified::traceability::TraceabilityProfile {
+        crate::verified::traceability::TraceabilityProfile {
             id: "test".to_string(),
-            requirement_sources: vec![TraceabilitySource {
+            requirement_sources: vec![crate::verified::traceability::TraceabilitySource {
                 root: ".cairn/specs".to_string(),
                 source_kind: "accepted_specs".to_string(),
                 extensions: vec!["md".to_string()],
             }],
-            evidence_sources: vec![TraceabilitySource {
+            evidence_sources: vec![crate::verified::traceability::TraceabilitySource {
                 root: "crates".to_string(),
                 source_kind: "rust_source".to_string(),
                 extensions: vec!["rs".to_string()],
             }],
             marker_verbs: vec![
-                TRACEABILITY_VERB_IMPL.to_string(),
-                TRACEABILITY_VERB_VERIFY.to_string(),
-                TRACEABILITY_VERB_DEPENDS.to_string(),
-                TRACEABILITY_VERB_RELATED.to_string(),
+                crate::verified::traceability::TRACEABILITY_VERB_IMPL.to_string(),
+                crate::verified::traceability::TRACEABILITY_VERB_VERIFY.to_string(),
+                crate::verified::traceability::TRACEABILITY_VERB_DEPENDS.to_string(),
+                crate::verified::traceability::TRACEABILITY_VERB_RELATED.to_string(),
             ],
             assurance_level: TRACEABILITY_ASSURANCE_DECLARED.to_string(),
             anchor_kind: TRACEABILITY_ANCHOR_EXACT_MARKER_BYTES.to_string(),
+            rust_configuration_path: None,
         }
     }
 
-    fn source(path: &str, prefix: &str) -> TraceabilityFile {
-        TraceabilityFile {
+    fn source(path: &str, prefix: &str) -> crate::verified::traceability::TraceabilityFile {
+        crate::verified::traceability::TraceabilityFile {
             path: path.to_string(),
             text: format!(
                 "{prefix}// r[{} {REQUIREMENT_ID}]\n// r[{} {REQUIREMENT_ID}]\n",
-                TRACEABILITY_VERB_IMPL, TRACEABILITY_VERB_VERIFY
+                crate::verified::traceability::TRACEABILITY_VERB_IMPL,
+                crate::verified::traceability::TRACEABILITY_VERB_VERIFY
             ),
         }
     }
@@ -1255,9 +1861,12 @@ mod tests {
             &profile(),
             vec![
                 source(SOURCE_PATH, ""),
-                TraceabilityFile {
+                crate::verified::traceability::TraceabilityFile {
                     path: SECOND_SOURCE_PATH.to_string(),
-                    text: format!("// r[{} {REQUIREMENT_ID}]\n", TRACEABILITY_VERB_IMPL),
+                    text: format!(
+                        "// r[{} {REQUIREMENT_ID}]\n",
+                        crate::verified::traceability::TRACEABILITY_VERB_IMPL
+                    ),
                 },
             ],
         );
@@ -1304,9 +1913,12 @@ mod tests {
         let unselected = evaluate_content_bound_trace_index(
             &registry,
             &profile(),
-            vec![TraceabilityFile {
+            vec![crate::verified::traceability::TraceabilityFile {
                 path: SOURCE_PATH.to_string(),
-                text: format!("// r[{} cairn.trace.missing]\n", TRACEABILITY_VERB_IMPL),
+                text: format!(
+                    "// r[{} cairn.trace.missing]\n",
+                    crate::verified::traceability::TRACEABILITY_VERB_IMPL
+                ),
             }],
         );
         let index = unselected.index.expect("index with no selected links");
@@ -1341,5 +1953,153 @@ mod tests {
             "unexpected": true,
         });
         assert!(parse_content_bound_trace_index_value(&value).is_err());
+    }
+    #[test]
+    fn structural_binding_is_versioned_and_preserves_history() {
+        let mut profile = profile();
+        profile.anchor_kind = TRACEABILITY_ANCHOR_RUST_ITEM_V1.into();
+        profile.rust_configuration_path = Some("rust-config.json".into());
+        let configuration = RustItemConfiguration {
+            source_path: "rust-config.json".into(),
+            file_blake3: "a".repeat(64),
+            schema_version: "cairn.rust-item-configuration.v1".into(),
+            target: "x86_64-unknown-linux-gnu".into(),
+            features: vec![],
+            declared_features: vec![],
+            cfg: vec![],
+        };
+        let text = format!("// r[impl {REQUIREMENT_ID}]\nfn x() {{}}\n");
+        let file = crate::verified::traceability::TraceabilityFile {
+            path: SOURCE_PATH.into(),
+            text: text.clone(),
+        };
+        let fact = RustItemFact {
+            source_path: SOURCE_PATH.into(),
+            marker_start_byte: 3,
+            start_byte: text.find("fn x").unwrap() as u64,
+            end_byte: text.len() as u64,
+            item_kind: "fn".into(),
+            scoped_locator: "crate/fn:x#0".into(),
+            normalized_item_blake3: "a".repeat(64),
+        };
+        let original = evaluate_structural_trace_index(
+            &registry(POLICY_BYTES),
+            &profile,
+            vec![file.clone()],
+            vec![fact.clone()],
+            configuration.clone(),
+            None,
+        )
+        .index
+        .unwrap();
+        assert_eq!(original.schema_version, CONTENT_BOUND_TRACE_INDEX_SCHEMA_V2);
+        assert!(validate_content_bound_trace_index(&original).is_empty());
+        assert!(
+            verify_structural_trace_index(
+                &original,
+                &registry(POLICY_BYTES),
+                &profile,
+                vec![file.clone()],
+                vec![fact.clone()],
+                configuration.clone()
+            )
+            .valid
+        );
+        let incomplete = verify_content_bound_trace_index(
+            &original,
+            &registry(POLICY_BYTES),
+            &profile,
+            vec![file.clone()],
+        );
+        assert!(!incomplete.valid);
+        assert!(issue_codes(&incomplete.issues).contains(&"trace_index.item_facts_required".into()));
+
+        let copied = crate::verified::traceability::TraceabilityFile {
+            path: SECOND_SOURCE_PATH.into(),
+            text: text.clone(),
+        };
+        let copied_fact = RustItemFact {
+            source_path: SECOND_SOURCE_PATH.into(),
+            ..fact.clone()
+        };
+        let copied_report = verify_structural_trace_index(
+            &original,
+            &registry(POLICY_BYTES),
+            &profile,
+            vec![file.clone(), copied],
+            vec![fact.clone(), copied_fact],
+            configuration.clone(),
+        );
+        assert!(!copied_report.valid);
+        assert!(
+            issue_codes(&copied_report.issues).contains(&"trace_index.source_unexpected".into())
+        );
+
+        let mut edited_spec = specification();
+        edited_spec.markdown = edited_spec
+            .markdown
+            .replace("declared link", "reviewed link");
+        let changed_registry = crate::verified::content_bound_requirement_registry::evaluate_content_bound_requirement_registry(
+            vec![edited_spec], POLICY_BYTES, REPOSITORY_ID,
+            crate::verified::content_bound_requirement_registry::ContentBoundRevision {
+                kind: crate::verified::content_bound_requirement_registry::CONTENT_BOUND_REVISION_KIND_OPAQUE.into(),
+                value: REVISION.into(),
+            },
+        ).registry.unwrap();
+        let requirement_stale = verify_structural_trace_index(
+            &original,
+            &changed_registry,
+            &profile,
+            vec![file],
+            vec![fact.clone()],
+            configuration.clone(),
+        );
+        assert!(issue_codes(&requirement_stale.issues)
+            .contains(&"trace_index.requirement_revision_stale".into()));
+        assert!(requirement_stale
+            .issues
+            .iter()
+            .any(|issue| issue.message.contains("expected ") && issue.message.contains("actual ")));
+
+        let formatted = format!("// r[impl {REQUIREMENT_ID}]\nfn x() {{ }}\n");
+        let changed_file = crate::verified::traceability::TraceabilityFile {
+            path: SOURCE_PATH.into(),
+            text: formatted.clone(),
+        };
+        let changed_fact = RustItemFact {
+            end_byte: formatted.len() as u64,
+            ..fact
+        };
+        let stale = verify_structural_trace_index(
+            &original,
+            &registry(POLICY_BYTES),
+            &profile,
+            vec![changed_file.clone()],
+            vec![changed_fact.clone()],
+            configuration.clone(),
+        );
+        assert!(!stale.valid);
+        assert!(issue_codes(&stale.issues).contains(&"trace_index.binding_stale".into()));
+        let next = evaluate_structural_trace_index(
+            &registry(POLICY_BYTES),
+            &profile,
+            vec![changed_file],
+            vec![changed_fact],
+            configuration,
+            Some(&original),
+        )
+        .index
+        .unwrap();
+        assert_eq!(
+            next.structural.as_ref().unwrap().history[0].binding_blake3,
+            original.structural.as_ref().unwrap().bindings[0].binding_blake3
+        );
+        assert!(validate_content_bound_trace_index(&next).is_empty());
+        let mut corrupted = next;
+        corrupted.structural.as_mut().unwrap().bindings[0]
+            .item
+            .normalized_item_blake3 = "b".repeat(64);
+        assert!(issue_codes(&validate_content_bound_trace_index(&corrupted))
+            .contains(&"trace_index.hash_invalid".into()));
     }
 }

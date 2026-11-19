@@ -1,10 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use thiserror::Error;
-
-use crate::verified::{evidence::canonical_json_hash, lifecycle::validate_change_name};
+use std::collections::BTreeSet;
 
 // r[impl cairn.radicle_change_cob.lossless_change_state]
 // r[impl cairn.radicle_change_cob.deterministic_reducer]
@@ -45,7 +39,7 @@ pub const BLAKE3_HEX_LENGTH: usize = 64;
 pub const GIT_SHA1_HEX_LENGTH: usize = 40;
 pub const GIT_SHA256_HEX_LENGTH: usize = 64;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct ChangeArtifactId(String);
 
@@ -119,7 +113,7 @@ impl ChangeArtifactId {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeCobInit {
     pub schema: String,
     pub change_id: String,
@@ -127,11 +121,11 @@ pub struct ChangeCobInit {
     pub base_git_oid: String,
     pub policy_hash: String,
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
-    pub delegates: BTreeSet<String>,
-    pub artifacts: BTreeMap<ChangeArtifactId, String>,
+    pub delegates: std::collections::BTreeSet<String>,
+    pub artifacts: std::collections::BTreeMap<ChangeArtifactId, String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeCobEvidence {
     pub blake3: String,
     pub schema: String,
@@ -140,10 +134,12 @@ pub struct ChangeCobEvidence {
     pub policy_hash: String,
     pub git_oid: Option<String>,
     pub uri: Option<String>,
-    pub non_claims: BTreeSet<String>,
+    pub non_claims: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ChangeLifecycleStatus {
     Open,
@@ -166,14 +162,14 @@ impl ChangeLifecycleStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeLifecycleRecord {
     pub status: ChangeLifecycleStatus,
     pub subject_root: String,
-    pub evidence: BTreeSet<String>,
+    pub evidence: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ChangeCobAction {
     Init {
@@ -182,7 +178,7 @@ pub enum ChangeCobAction {
     SetArtifact {
         artifact: ChangeArtifactId,
         content: Option<String>,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
     AttachEvidence {
         evidence: ChangeCobEvidence,
@@ -190,8 +186,8 @@ pub enum ChangeCobAction {
     SetLifecycle {
         status: ChangeLifecycleStatus,
         subject_root: String,
-        evidence: BTreeSet<String>,
-        basis: BTreeSet<String>,
+        evidence: std::collections::BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
 }
 
@@ -203,38 +199,38 @@ pub struct ChangeCobOperation {
     pub actions: Vec<ChangeCobAction>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeRevision<T> {
     pub actor: String,
-    pub basis: BTreeSet<String>,
+    pub basis: std::collections::BTreeSet<String>,
     pub value: T,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeRevisionSet<T> {
-    pub revisions: BTreeMap<String, ChangeRevision<T>>,
+    pub revisions: std::collections::BTreeMap<String, ChangeRevision<T>>,
 }
 
 impl<T> ChangeRevisionSet<T> {
     fn from_root(operation_id: &str, actor: &str, value: T) -> Self {
         Self {
-            revisions: BTreeMap::from([(
+            revisions: std::collections::BTreeMap::from([(
                 operation_id.to_string(),
                 ChangeRevision {
                     actor: actor.to_string(),
-                    basis: BTreeSet::new(),
+                    basis: std::collections::BTreeSet::new(),
                     value,
                 },
             )]),
         }
     }
 
-    pub fn head_ids(&self) -> BTreeSet<String> {
+    pub fn head_ids(&self) -> std::collections::BTreeSet<String> {
         let superseded = self
             .revisions
             .values()
             .flat_map(|revision| revision.basis.iter().cloned())
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
         self.revisions
             .keys()
             .filter(|revision_id| !superseded.contains(*revision_id))
@@ -255,7 +251,7 @@ impl<T> ChangeRevisionSet<T> {
         &mut self,
         operation_id: &str,
         actor: &str,
-        basis: &BTreeSet<String>,
+        basis: &std::collections::BTreeSet<String>,
         value: T,
         field: &str,
         revision_limit: usize,
@@ -288,7 +284,7 @@ impl<T> ChangeRevisionSet<T> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeCobState {
     pub schema: String,
     pub change_id: String,
@@ -297,11 +293,11 @@ pub struct ChangeCobState {
     pub policy_hash: String,
     pub creator: String,
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
-    pub delegates: BTreeSet<String>,
-    pub artifacts: BTreeMap<ChangeArtifactId, ChangeRevisionSet<Option<String>>>,
-    pub evidence: BTreeMap<String, ChangeCobEvidence>,
+    pub delegates: std::collections::BTreeSet<String>,
+    pub artifacts: std::collections::BTreeMap<ChangeArtifactId, ChangeRevisionSet<Option<String>>>,
+    pub evidence: std::collections::BTreeMap<String, ChangeCobEvidence>,
     pub lifecycle: ChangeRevisionSet<ChangeLifecycleRecord>,
-    pub operations: BTreeSet<String>,
+    pub operations: std::collections::BTreeSet<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -325,7 +321,7 @@ pub enum ChangeLifecycleView {
     },
 }
 
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
 pub enum ChangeCobError {
     #[error("root operation must contain exactly one init action")]
     InvalidRootShape,
@@ -407,7 +403,7 @@ pub fn initialize_change_cob(
                 ChangeRevisionSet::from_root(&operation.id, &operation.actor, Some(content)),
             )
         })
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
     let mut state = ChangeCobState {
         schema: init.schema,
         change_id: init.change_id,
@@ -417,11 +413,11 @@ pub fn initialize_change_cob(
         creator: operation.actor.clone(),
         delegates: init.delegates,
         artifacts,
-        evidence: BTreeMap::new(),
+        evidence: std::collections::BTreeMap::new(),
         lifecycle: ChangeRevisionSet {
-            revisions: BTreeMap::new(),
+            revisions: std::collections::BTreeMap::new(),
         },
-        operations: BTreeSet::from([operation.id.clone()]),
+        operations: std::collections::BTreeSet::from([operation.id.clone()]),
     };
     let content_root = change_cob_content_root(&state)?;
     state.lifecycle = ChangeRevisionSet::from_root(
@@ -430,7 +426,7 @@ pub fn initialize_change_cob(
         ChangeLifecycleRecord {
             status: ChangeLifecycleStatus::Open,
             subject_root: content_root,
-            evidence: BTreeSet::new(),
+            evidence: std::collections::BTreeSet::new(),
         },
     );
     Ok(state)
@@ -641,7 +637,7 @@ fn apply_artifact_action(
     is_delegate: bool,
     artifact: ChangeArtifactId,
     content: Option<String>,
-    basis: BTreeSet<String>,
+    basis: std::collections::BTreeSet<String>,
 ) -> Result<(), ChangeCobError> {
     authorize_creator_or_delegate(state, actor, is_delegate, "set_artifact")?;
     artifact.validate()?;
@@ -707,8 +703,8 @@ fn apply_lifecycle_action(
     is_delegate: bool,
     status: ChangeLifecycleStatus,
     subject_root: String,
-    evidence_hashes: BTreeSet<String>,
-    basis: BTreeSet<String>,
+    evidence_hashes: std::collections::BTreeSet<String>,
+    basis: std::collections::BTreeSet<String>,
 ) -> Result<(), ChangeCobError> {
     authorize_lifecycle(state, actor, is_delegate, status)?;
     validate_blake3("lifecycle.subject_root", &subject_root)?;
@@ -768,7 +764,7 @@ fn validate_operation_envelope(operation: &ChangeCobOperation) -> Result<(), Cha
 }
 
 fn validate_operation_action_set(actions: &[ChangeCobAction]) -> Result<(), ChangeCobError> {
-    let mut artifacts = BTreeSet::new();
+    let mut artifacts = std::collections::BTreeSet::new();
     let mut lifecycle_seen = false;
     for action in actions {
         match action {
@@ -802,9 +798,11 @@ pub fn validate_change_cob_init(init: &ChangeCobInit) -> Result<(), ChangeCobErr
         });
     }
     validate_text_limit("change_id", &init.change_id, MAX_CHANGE_ID_BYTES)?;
-    validate_change_name(&init.change_id).map_err(|reason| ChangeCobError::InvalidField {
-        field: "change_id".to_string(),
-        reason,
+    crate::verified::lifecycle::validate_change_name(&init.change_id).map_err(|reason| {
+        ChangeCobError::InvalidField {
+            field: "change_id".to_string(),
+            reason,
+        }
     })?;
     validate_text_limit("workspace_id", &init.repository_id, MAX_WORKSPACE_ID_BYTES)?;
     if init.schema == RADICLE_CHANGE_COB_SCHEMA_V1 {
@@ -840,7 +838,7 @@ pub fn validate_change_cob_state(state: &ChangeCobState) -> Result<(), ChangeCob
         base_git_oid: state.base_git_oid.clone(),
         policy_hash: state.policy_hash.clone(),
         delegates: state.delegates.clone(),
-        artifacts: BTreeMap::new(),
+        artifacts: std::collections::BTreeMap::new(),
     })?;
     validate_text_limit("creator", &state.creator, MAX_ACTOR_ID_BYTES)?;
     if state.delegates.contains(&state.creator) {
@@ -920,7 +918,7 @@ pub fn validate_change_cob_state(state: &ChangeCobState) -> Result<(), ChangeCob
 fn validate_revision_history<T, F>(
     field: &str,
     history: &ChangeRevisionSet<T>,
-    operations: &BTreeSet<String>,
+    operations: &std::collections::BTreeSet<String>,
     revision_limit: usize,
     mut validate_value: F,
 ) -> Result<(), ChangeCobError>
@@ -1048,8 +1046,8 @@ fn authorize_lifecycle(
 
 fn resolved_artifacts(
     state: &ChangeCobState,
-) -> Result<BTreeMap<ChangeArtifactId, Option<String>>, ChangeCobError> {
-    let mut resolved = BTreeMap::new();
+) -> Result<std::collections::BTreeMap<ChangeArtifactId, Option<String>>, ChangeCobError> {
+    let mut resolved = std::collections::BTreeMap::new();
     for (artifact, history) in &state.artifacts {
         let heads = history.heads();
         if heads.len() != 1 {
@@ -1150,14 +1148,14 @@ fn validate_lower_hex(
     })
 }
 
-fn hash_serializable<T: Serialize>(value: &T) -> Result<String, ChangeCobError> {
+fn hash_serializable<T: serde::Serialize>(value: &T) -> Result<String, ChangeCobError> {
     let json = serde_json::to_value(value).map_err(|error| ChangeCobError::Serialization {
         reason: error.to_string(),
     })?;
-    Ok(canonical_json_hash(&json))
+    Ok(crate::verified::evidence::canonical_json_hash(&json))
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct LegacyChangeContentIdentity<'a> {
     schema: &'a str,
     change_id: &'a str,
@@ -1165,10 +1163,10 @@ struct LegacyChangeContentIdentity<'a> {
     base_git_oid: &'a str,
     policy_hash: &'a str,
     creator: &'a str,
-    artifacts: BTreeMap<ChangeArtifactId, String>,
+    artifacts: std::collections::BTreeMap<ChangeArtifactId, String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ChangeBaseRevision {
     pub kind: String,
     pub value: String,
@@ -1224,7 +1222,7 @@ pub fn decode_base_revision(value: &str) -> Result<ChangeBaseRevision, ChangeCob
     ChangeBaseRevision::new(kind, revision_value)
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct ChangeContentIdentity<'a> {
     schema: &'a str,
     change_id: &'a str,
@@ -1233,11 +1231,11 @@ struct ChangeContentIdentity<'a> {
     policy_hash: &'a str,
     creator: &'a str,
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-    delegates: &'a BTreeSet<String>,
-    artifacts: BTreeMap<ChangeArtifactId, String>,
+    delegates: &'a std::collections::BTreeSet<String>,
+    artifacts: std::collections::BTreeMap<ChangeArtifactId, String>,
 }
 
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 struct ChangeStateIdentity<'a> {
     schema: &'a str,
     change_id: &'a str,
@@ -1246,14 +1244,16 @@ struct ChangeStateIdentity<'a> {
     policy_hash: &'a str,
     creator: &'a str,
     #[serde(skip_serializing_if = "BTreeSet::is_empty")]
-    delegates: &'a BTreeSet<String>,
-    artifacts: &'a BTreeMap<ChangeArtifactId, ChangeRevisionSet<Option<String>>>,
-    evidence: &'a BTreeMap<String, ChangeCobEvidence>,
+    delegates: &'a std::collections::BTreeSet<String>,
+    artifacts: &'a std::collections::BTreeMap<ChangeArtifactId, ChangeRevisionSet<Option<String>>>,
+    evidence: &'a std::collections::BTreeMap<String, ChangeCobEvidence>,
     lifecycle: &'a ChangeRevisionSet<ChangeLifecycleRecord>,
-    operations: &'a BTreeSet<String>,
+    operations: &'a std::collections::BTreeSet<String>,
 }
 
-pub fn change_cob_action_json(action: &ChangeCobAction) -> Result<Value, ChangeCobError> {
+pub fn change_cob_action_json(
+    action: &ChangeCobAction,
+) -> Result<serde_json::Value, ChangeCobError> {
     serde_json::to_value(action).map_err(|error| ChangeCobError::Serialization {
         reason: error.to_string(),
     })
@@ -1290,7 +1290,7 @@ mod tests {
     const EXPECTED_CONFLICT_HEAD_COUNT: usize = 2;
     const EXPECTED_CURRENT_EVIDENCE_COUNT: usize = 1;
 
-    fn hash_set(values: &[&str]) -> BTreeSet<String> {
+    fn hash_set(values: &[&str]) -> std::collections::BTreeSet<String> {
         values.iter().map(|value| (*value).to_string()).collect()
     }
 
@@ -1302,8 +1302,8 @@ mod tests {
                 repository_id: REPOSITORY_ID.to_string(),
                 base_git_oid: BASE_GIT_OID.to_string(),
                 policy_hash: POLICY_HASH.to_string(),
-                delegates: BTreeSet::new(),
-                artifacts: BTreeMap::from([
+                delegates: std::collections::BTreeSet::new(),
+                artifacts: std::collections::BTreeMap::from([
                     (ChangeArtifactId::proposal(), INITIAL_PROPOSAL.to_string()),
                     (ChangeArtifactId::design(), INITIAL_DESIGN.to_string()),
                     (ChangeArtifactId::tasks(), INITIAL_TASKS.to_string()),
@@ -1341,7 +1341,7 @@ mod tests {
         .unwrap()
     }
 
-    fn neutral_state(delegates: BTreeSet<String>) -> ChangeCobState {
+    fn neutral_state(delegates: std::collections::BTreeSet<String>) -> ChangeCobState {
         let mut action = init_action();
         let ChangeCobAction::Init { state: init } = &mut action else {
             unreachable!("test helper constructs an init action");
@@ -1373,8 +1373,8 @@ mod tests {
             policy_hash: POLICY_HASH.to_string(),
             git_oid: Some(BASE_GIT_OID.to_string()),
             uri: None,
-            non_claims: BTreeSet::from([
-                "does not prove source correctness or release readiness".to_string()
+            non_claims: std::collections::BTreeSet::from([
+                "does not prove source correctness or release readiness".to_string(),
             ]),
         }
     }
@@ -1660,7 +1660,7 @@ mod tests {
             vec![ChangeCobAction::SetLifecycle {
                 status: ChangeLifecycleStatus::Approved,
                 subject_root,
-                evidence: BTreeSet::new(),
+                evidence: std::collections::BTreeSet::new(),
                 basis: hash_set(&[ROOT_OPERATION]),
             }],
         );
@@ -1791,7 +1791,7 @@ mod tests {
     // r[verify cairn.radicle_cob_only.authority.allowed]
     #[test]
     fn neutral_schema_preserves_embedded_delegate_authority() {
-        let mut state = neutral_state(BTreeSet::from([DELEGATE.to_string()]));
+        let mut state = neutral_state(std::collections::BTreeSet::from([DELEGATE.to_string()]));
         assert!(state.delegates.contains(DELEGATE));
         apply_change_cob_operation(
             &mut state,
@@ -1818,44 +1818,46 @@ mod tests {
         let serialized = serde_json::to_value(&legacy).unwrap();
         assert!(serialized.get("delegates").is_none());
 
-        let without_delegate = neutral_state(BTreeSet::new());
+        let without_delegate = neutral_state(std::collections::BTreeSet::new());
         let base_revision = decode_base_revision(&without_delegate.base_git_oid).unwrap();
         let artifacts = resolved_artifacts(&without_delegate)
             .unwrap()
             .into_iter()
             .filter_map(|(artifact, content)| content.map(|content| (artifact, content)))
-            .collect::<BTreeMap<_, _>>();
-        let expected_content_root = canonical_json_hash(&serde_json::json!({
-            "schema": without_delegate.schema,
-            "change_id": without_delegate.change_id,
-            "workspace_id": without_delegate.repository_id,
-            "base_revision": base_revision,
-            "policy_hash": without_delegate.policy_hash,
-            "creator": without_delegate.creator,
-            "artifacts": artifacts,
-        }));
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let expected_content_root =
+            crate::verified::evidence::canonical_json_hash(&serde_json::json!({
+                "schema": without_delegate.schema,
+                "change_id": without_delegate.change_id,
+                "workspace_id": without_delegate.repository_id,
+                "base_revision": base_revision,
+                "policy_hash": without_delegate.policy_hash,
+                "creator": without_delegate.creator,
+                "artifacts": artifacts,
+            }));
         assert_eq!(
             change_cob_content_root(&without_delegate).unwrap(),
             expected_content_root
         );
-        let expected_state_hash = canonical_json_hash(&serde_json::json!({
-            "schema": without_delegate.schema,
-            "change_id": without_delegate.change_id,
-            "workspace_id": without_delegate.repository_id,
-            "base_revision": decode_base_revision(&without_delegate.base_git_oid).unwrap(),
-            "policy_hash": without_delegate.policy_hash,
-            "creator": without_delegate.creator,
-            "artifacts": without_delegate.artifacts,
-            "evidence": without_delegate.evidence,
-            "lifecycle": without_delegate.lifecycle,
-            "operations": without_delegate.operations,
-        }));
+        let expected_state_hash =
+            crate::verified::evidence::canonical_json_hash(&serde_json::json!({
+                "schema": without_delegate.schema,
+                "change_id": without_delegate.change_id,
+                "workspace_id": without_delegate.repository_id,
+                "base_revision": decode_base_revision(&without_delegate.base_git_oid).unwrap(),
+                "policy_hash": without_delegate.policy_hash,
+                "creator": without_delegate.creator,
+                "artifacts": without_delegate.artifacts,
+                "evidence": without_delegate.evidence,
+                "lifecycle": without_delegate.lifecycle,
+                "operations": without_delegate.operations,
+            }));
         assert_eq!(
             change_cob_state_hash(&without_delegate).unwrap(),
             expected_state_hash
         );
 
-        let with_delegate = neutral_state(BTreeSet::from([DELEGATE.to_string()]));
+        let with_delegate = neutral_state(std::collections::BTreeSet::from([DELEGATE.to_string()]));
         assert_ne!(
             change_cob_content_root(&without_delegate).unwrap(),
             change_cob_content_root(&with_delegate).unwrap()

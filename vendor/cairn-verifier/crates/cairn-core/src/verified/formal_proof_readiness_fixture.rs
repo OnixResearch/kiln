@@ -10,12 +10,7 @@
 //! r[verify cairn.release_evidence.formal_proof_readiness_fixture.docs]
 
 use serde_json::json;
-use serde_json::Value;
 
-use super::nominal_identity::{
-    ArtifactDigestRole, Blake3Digest, DigestRoleMarker, GraphDigestRole, InputDigestRole,
-    PolicyDigestRole, ReceiptDigestRole, SidecarDigestRole, ValenceDigestRole, RAW_BLAKE3_PROFILE,
-};
 const FORMAL_PROOF_READINESS_SCHEMA_V1: &str = "cairn.formal-proof-readiness-fixture.v1";
 const UPSTREAM_PROOF_STATUS_PASSED: &str = "passed";
 const EMPTY_FIELD: &str = "";
@@ -83,7 +78,7 @@ pub struct FormalProofReadinessReport {
 
 impl FormalProofReadinessReport {
     #[must_use]
-    pub fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> serde_json::Value {
         json!({
             "valid": self.valid,
             "issues": self.issues.iter().map(FormalProofReadinessIssue::to_json).collect::<Vec<_>>(),
@@ -108,7 +103,7 @@ impl FormalProofReadinessIssue {
     }
 
     #[must_use]
-    pub fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> serde_json::Value {
         json!({"code": self.code, "field": self.field})
     }
 }
@@ -127,32 +122,40 @@ pub fn validate_formal_proof_readiness_fixture(
         "formal_proof_readiness.schema_version_mismatch",
         "schema_version",
     );
-    validate_hash_pair::<ValenceDigestRole>(
+    validate_hash_pair::<super::nominal_identity::ValenceDigestRole>(
         &mut issues,
         "valence_input_hash",
         &fixture.valence_input_hash,
         &fixture.observed_valence_input_hash,
     );
-    validate_hash_pair::<GraphDigestRole>(
+    validate_hash_pair::<super::nominal_identity::GraphDigestRole>(
         &mut issues,
         "valence_graph_digest",
         &fixture.valence_graph_digest,
         &fixture.observed_valence_graph_digest,
     );
-    validate_hash_pair::<SidecarDigestRole>(
+    validate_hash_pair::<super::nominal_identity::SidecarDigestRole>(
         &mut issues,
         "sidecar_digest",
         &fixture.sidecar_digest,
         &fixture.observed_sidecar_digest,
     );
-    validate_required_hash::<ArtifactDigestRole>(
+    validate_required_hash::<super::nominal_identity::ArtifactDigestRole>(
         &mut issues,
         "upstream_octet_proof_identity",
         &fixture.upstream_octet_proof_identity,
     );
-    validate_required_hash::<PolicyDigestRole>(&mut issues, "policy_hash", &fixture.policy_hash);
-    validate_required_hash::<InputDigestRole>(&mut issues, "input_hash", &fixture.input_hash);
-    validate_required_hash::<ReceiptDigestRole>(
+    validate_required_hash::<super::nominal_identity::PolicyDigestRole>(
+        &mut issues,
+        "policy_hash",
+        &fixture.policy_hash,
+    );
+    validate_required_hash::<super::nominal_identity::InputDigestRole>(
+        &mut issues,
+        "input_hash",
+        &fixture.input_hash,
+    );
+    validate_required_hash::<super::nominal_identity::ReceiptDigestRole>(
         &mut issues,
         "readiness_receipt_hash",
         &fixture.readiness_receipt_hash,
@@ -192,7 +195,7 @@ fn push_if(
     }
 }
 
-fn validate_hash_pair<Role: DigestRoleMarker>(
+fn validate_hash_pair<Role: super::nominal_identity::DigestRoleMarker>(
     issues: &mut Vec<FormalProofReadinessIssue>,
     field: &'static str,
     expected: &str,
@@ -207,7 +210,7 @@ fn validate_hash_pair<Role: DigestRoleMarker>(
     push_if(issues, stale, "formal_proof_readiness.stale_input", field);
 }
 
-fn validate_required_hash<Role: DigestRoleMarker>(
+fn validate_required_hash<Role: super::nominal_identity::DigestRoleMarker>(
     issues: &mut Vec<FormalProofReadinessIssue>,
     field: &'static str,
     value: &str,
@@ -215,11 +218,11 @@ fn validate_required_hash<Role: DigestRoleMarker>(
     let _ = admit_digest::<Role>(issues, field, value);
 }
 
-fn admit_digest<Role: DigestRoleMarker>(
+fn admit_digest<Role: super::nominal_identity::DigestRoleMarker>(
     issues: &mut Vec<FormalProofReadinessIssue>,
     field: &'static str,
     value: &str,
-) -> Option<Blake3Digest<Role>> {
+) -> Option<super::nominal_identity::Blake3Digest<Role>> {
     if value == EMPTY_FIELD {
         issues.push(FormalProofReadinessIssue::new(
             "formal_proof_readiness.hash_missing",
@@ -227,7 +230,11 @@ fn admit_digest<Role: DigestRoleMarker>(
         ));
         return None;
     }
-    match Blake3Digest::<Role>::parse_compatible(value, RAW_BLAKE3_PROFILE, field) {
+    match super::nominal_identity::Blake3Digest::<Role>::parse_compatible(
+        value,
+        super::nominal_identity::RAW_BLAKE3_PROFILE,
+        field,
+    ) {
         Ok(digest) => Some(digest),
         Err(_) => {
             issues.push(FormalProofReadinessIssue::new(

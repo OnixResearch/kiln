@@ -1,0 +1,56 @@
+{
+  "action_order": [
+    "task",
+    "dependency_wait",
+    "artifact_repair",
+    "evidence_refresh",
+    "diagnostic_inspection",
+    "unresolved",
+    "sync_preview",
+    "archive_preview"
+  ],
+  "bounds": {
+    "max_actions": 128,
+    "max_actions_per_change": 8,
+    "max_changes": 256,
+    "max_evidence_files": 64,
+    "max_manifest_bytes": 65536,
+    "max_manifest_issues": 16,
+    "max_path_bytes": 4096,
+    "max_subject_hash_bytes": 128
+  },
+  "default_view": "legacy",
+  "instruction": {
+    "cli": [
+      "cairn",
+      "workflow",
+      "instructions"
+    ],
+    "expected_observation": "task completed, marked in tasks.md, and backed by recorded checks",
+    "task_artifact": "tasks",
+    "tool": "cairn_workflow_instructions"
+  },
+  "manifest_schema": "cairn.workflow-readiness-manifest.v1",
+  "non_claims": [
+    "readiness-backed drain guidance is advisory and executes no action",
+    "an unavailable observation is never promoted by guidance, transport success, or task checkboxes",
+    "the drain view does not discover evidence, measure subjects, fetch remote repositories, or authorize mutation"
+  ],
+  "preview_kinds": [
+    "sync_preview",
+    "archive_preview"
+  ],
+  "readiness_view": "readiness",
+  "schema": "cairn.workflow-readiness-policy.v1",
+  "task_prerequisite_stages": [
+    "artifact",
+    "proposal",
+    "design",
+    "tasks"
+  ],
+  "view_schema": "cairn.drain-readiness.v1",
+  "views": [
+    "legacy",
+    "readiness"
+  ]
+}

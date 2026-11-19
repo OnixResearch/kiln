@@ -13,12 +13,14 @@
     "NOTICE",
     "provenance",
     "docs/source-inventory.md",
-    "crates/artifact-auth-core"
+    "crates/artifact-auth-core",
+    "crates/artifact-auth-ed25519"
   ],
-  "archive_blake3": "40817d2709fd99888a8aae951fca1c233c4a105a2f292e82ee755a987e54f109",
+  "archive_blake3": "737362f0b98f8aa4fef2aa5727b2e747136648d24ccbe4f3f903e7679d50a77d",
   "importer": "scripts/import-pinned-source.sh",
   "package_licenses": {
-    "artifact-auth-core": "MIT OR Apache-2.0"
+    "artifact-auth-core": "MIT OR Apache-2.0",
+    "artifact-auth-ed25519": "MIT OR Apache-2.0"
   },
   "scope": "Selected upstream files; the retained root manifest has absent workspace members pruned, and a tree-local rustfmt configuration disables host formatting. Unselected producer applications are not dependencies.",
   "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A source checkout is needed only to reproduce the import, never to build Kiln.",

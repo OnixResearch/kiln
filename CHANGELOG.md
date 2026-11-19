@@ -402,6 +402,19 @@ entry describes the source tree prepared for the first tagged release.
   unknown candidate/policy/verification evidence cannot complete a campaign;
   pause/cancel closes new decisions and work, repository writers remain bounded,
   and independent eligible work can progress past a blocked member.
+- Typed Cairn `cairn.selected-work.v1` intake (Kiln #83) from `cairn-core`
+  `8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0`: producer admission
+  and mapping into provider-neutral core facts, immutable per-attempt snapshot
+  contracts with refresh/replan transitions, one obligation projection for worker
+  context, campaign inspection and the UI, obligation completion over canonical
+  checks and authoritative completion, a restricted display that cannot be
+  resubmitted, and Lattice `lattice.workflow-intent.v1` normalization with
+  compiled-plan admission and proposal refusal. Under `typed_snapshot_v1`,
+  pre-attempt member stages follow the admitted snapshot's native phase
+  readiness, stable blockers, units and dependencies; an unavailable or
+  incomplete snapshot never makes a member ready. The legacy reader stays
+  authoritative only under the explicit `legacy_readiness_compatibility`
+  intake. (fixture-tested; no live campaign)
 - Selected campaigns claim and reattach through the canonical scoped admission
   transaction, bind actual parent-account ancestry and exact retained decision
   projections, and require the named canonical checks. Native source observation

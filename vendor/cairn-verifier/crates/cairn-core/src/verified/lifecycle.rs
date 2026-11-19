@@ -1,5 +1,3 @@
-use serde_json::{json, Value};
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LifecycleArtifact {
     pub path: String,
@@ -135,13 +133,13 @@ pub fn build_cairn_migration_plan(inputs: Vec<MigrationInput>, execute: bool) ->
     build_migration_plan_from(LifecycleLayout::LegacyCairn, inputs, execute)
 }
 
-pub fn migration_plan_identity(plan: &MigrationPlan) -> Value {
+pub fn migration_plan_identity(plan: &MigrationPlan) -> serde_json::Value {
     // r[impl cairn.lifecycle_directory.legacy_migration.plan_binding]
-    json!({
+    serde_json::json!({
         "source_layout": layout_name(plan.source_layout),
         "destination_layout": layout_name(plan.destination_layout),
         "actions": plan.actions.iter().map(|action| {
-            json!({
+            serde_json::json!({
                 "source": action.source,
                 "source_hash": action.source_hash,
                 "destination": action.destination,

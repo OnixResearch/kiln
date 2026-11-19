@@ -4,24 +4,15 @@ use artifact_auth_core::{
     POLICY_SCHEMA_V1, STATEMENT_SCHEMA_V1,
 };
 
-use crate::{
-    AuthenticatedEvidenceInput, AuthenticatedEvidenceIssue, AuthenticatedEvidencePolicy,
-    AuthenticatedTrustedProducer, AUTHENTICATED_EVIDENCE_SCHEMA_V1,
-};
-
-use super::{
-    CairnArtifactAuthInput, CAIRN_ARTIFACT_AUTH_PARENT_PROFILE_V1, CAIRN_ARTIFACT_AUTH_PROFILE_V1,
-    CAIRN_ARTIFACT_AUTH_VERIFIER_CONTEXT_PROFILE_V1, CAIRN_LEGACY_KEY_GENERATION,
-    CAIRN_LEGACY_KEY_THRESHOLD, ED25519_PUBLIC_KEY_BYTES,
-};
+use crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1;
 
 const HEX_PAIR_BYTES: usize = 2;
 const NIBBLE_BITS: u8 = 4;
 const HEX_ALPHA_OFFSET: u8 = 10;
 
 type ResolvedSigner<'a> = (
-    &'a AuthenticatedTrustedProducer,
-    [u8; ED25519_PUBLIC_KEY_BYTES],
+    &'a crate::AuthenticatedTrustedProducer,
+    [u8; super::ED25519_PUBLIC_KEY_BYTES],
     String,
 );
 
@@ -32,11 +23,11 @@ type ResolvedSigner<'a> = (
 // r[impl cairn.artifact_auth.repository_extraction.consumer_authority]
 // r[impl cairn.artifact_auth.repository_extraction.consumer_authority.cairn]
 pub fn map_cairn_artifact_auth(
-    policy: &AuthenticatedEvidencePolicy,
-    input: &AuthenticatedEvidenceInput,
-) -> Result<CairnArtifactAuthInput, Vec<AuthenticatedEvidenceIssue>> {
+    policy: &crate::AuthenticatedEvidencePolicy,
+    input: &crate::AuthenticatedEvidenceInput,
+) -> Result<super::CairnArtifactAuthInput, Vec<crate::AuthenticatedEvidenceIssue>> {
     let verifier_context = artifact_reference(
-        CAIRN_ARTIFACT_AUTH_VERIFIER_CONTEXT_PROFILE_V1,
+        super::CAIRN_ARTIFACT_AUTH_VERIFIER_CONTEXT_PROFILE_V1,
         &input.valence_integrity_receipt_hash,
     );
     let mut mapping_issues = validate_source_contract(policy, input);
@@ -65,16 +56,16 @@ pub fn map_cairn_artifact_auth(
         key_id: trusted_signer.key_id.clone(),
         key_identity: standalone_key_identity,
     };
-    Ok(CairnArtifactAuthInput {
+    Ok(super::CairnArtifactAuthInput {
         policy: AuthenticationPolicy {
             schema: POLICY_SCHEMA_V1.to_string(),
-            profile_id: CAIRN_ARTIFACT_AUTH_PROFILE_V1.to_string(),
-            threshold: CAIRN_LEGACY_KEY_THRESHOLD,
+            profile_id: super::CAIRN_ARTIFACT_AUTH_PROFILE_V1.to_string(),
+            threshold: super::CAIRN_LEGACY_KEY_THRESHOLD,
             trusted_keys,
         },
         scope,
         statement,
-        generation: CAIRN_LEGACY_KEY_GENERATION,
+        generation: super::CAIRN_LEGACY_KEY_GENERATION,
         public_key_bytes,
         legacy_public_key_blake3,
         standalone_public_key_blake3,
@@ -82,23 +73,23 @@ pub fn map_cairn_artifact_auth(
 }
 
 fn validate_source_contract(
-    policy: &AuthenticatedEvidencePolicy,
-    input: &AuthenticatedEvidenceInput,
-) -> Vec<AuthenticatedEvidenceIssue> {
+    policy: &crate::AuthenticatedEvidencePolicy,
+    input: &crate::AuthenticatedEvidenceInput,
+) -> Vec<crate::AuthenticatedEvidenceIssue> {
     let mut issues = Vec::new();
-    if policy.schema_version != AUTHENTICATED_EVIDENCE_SCHEMA_V1 {
+    if policy.schema_version != crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1 {
         issues.push(adapter_issue(
             "artifact_auth.adapter.policy_schema_unsupported",
             "policy.schema_version",
-            AUTHENTICATED_EVIDENCE_SCHEMA_V1,
+            crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1,
             "unsupported Cairn policy schema",
         ));
     }
-    if input.schema_version != AUTHENTICATED_EVIDENCE_SCHEMA_V1 {
+    if input.schema_version != crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1 {
         issues.push(adapter_issue(
             "artifact_auth.adapter.input_schema_unsupported",
             "input.schema_version",
-            AUTHENTICATED_EVIDENCE_SCHEMA_V1,
+            crate::AUTHENTICATED_EVIDENCE_SCHEMA_V1,
             "unsupported Cairn input schema",
         ));
     }
@@ -114,9 +105,9 @@ fn validate_source_contract(
 }
 
 fn resolve_signer<'a>(
-    policy: &'a AuthenticatedEvidencePolicy,
-    input: &AuthenticatedEvidenceInput,
-    issues: &mut Vec<AuthenticatedEvidenceIssue>,
+    policy: &'a crate::AuthenticatedEvidencePolicy,
+    input: &crate::AuthenticatedEvidenceInput,
+    issues: &mut Vec<crate::AuthenticatedEvidenceIssue>,
 ) -> Option<ResolvedSigner<'a>> {
     let trusted_signer = policy.trusted_producers.iter().find(|producer| {
         producer.producer == input.signature.producer && producer.key_id == input.signature.key_id
@@ -152,13 +143,13 @@ fn resolve_signer<'a>(
 }
 
 fn map_scope(
-    input: &AuthenticatedEvidenceInput,
+    input: &crate::AuthenticatedEvidenceInput,
     verifier_context: ArtifactRef,
 ) -> AuthenticationScope {
     AuthenticationScope {
         domain: format!("{AUTHENTICATED_EVIDENCE_SCHEMA_V1}/{}", input.evidence_kind),
         purpose: input.signature.purpose.clone(),
-        profile_id: CAIRN_ARTIFACT_AUTH_PROFILE_V1.to_string(),
+        profile_id: super::CAIRN_ARTIFACT_AUTH_PROFILE_V1.to_string(),
         subject: artifact_reference(
             &input.receipt.profile,
             &input.receipt.recomputed_receipt_hash,
@@ -166,16 +157,16 @@ fn map_scope(
         parents: input
             .required_parent_hashes
             .iter()
-            .map(|digest| artifact_reference(CAIRN_ARTIFACT_AUTH_PARENT_PROFILE_V1, digest))
+            .map(|digest| artifact_reference(super::CAIRN_ARTIFACT_AUTH_PARENT_PROFILE_V1, digest))
             .collect(),
         verifier_context,
     }
 }
 
 fn map_trusted_keys(
-    policy: &AuthenticatedEvidencePolicy,
+    policy: &crate::AuthenticatedEvidencePolicy,
     currentness_ref: &ArtifactRef,
-    issues: &mut Vec<AuthenticatedEvidenceIssue>,
+    issues: &mut Vec<crate::AuthenticatedEvidenceIssue>,
 ) -> Vec<TrustedKeyObservation> {
     policy
         .trusted_producers
@@ -195,7 +186,7 @@ fn map_trusted_keys(
                 key_id: producer.key_id.clone(),
                 key_identity: raw_public_key_identity(&public_key_bytes),
                 allowed_purposes: producer.allowed_purposes.clone(),
-                generation: CAIRN_LEGACY_KEY_GENERATION,
+                generation: super::CAIRN_LEGACY_KEY_GENERATION,
                 currentness: if producer.revoked {
                     KeyCurrentness::Revoked
                 } else {
@@ -208,9 +199,9 @@ fn map_trusted_keys(
 }
 
 fn decode_public_key(
-    producer: &AuthenticatedTrustedProducer,
+    producer: &crate::AuthenticatedTrustedProducer,
     field: &str,
-) -> Result<[u8; ED25519_PUBLIC_KEY_BYTES], AuthenticatedEvidenceIssue> {
+) -> Result<[u8; super::ED25519_PUBLIC_KEY_BYTES], crate::AuthenticatedEvidenceIssue> {
     if producer.algorithm != ALGORITHM_ED25519 {
         return Err(adapter_issue(
             "artifact_auth.adapter.key_algorithm_unsupported",
@@ -229,14 +220,14 @@ fn decode_public_key(
     })
 }
 
-fn decode_fixed_hex(value: &str) -> Result<[u8; ED25519_PUBLIC_KEY_BYTES], ()> {
-    let expected_length = ED25519_PUBLIC_KEY_BYTES
+fn decode_fixed_hex(value: &str) -> Result<[u8; super::ED25519_PUBLIC_KEY_BYTES], ()> {
+    let expected_length = super::ED25519_PUBLIC_KEY_BYTES
         .checked_mul(HEX_PAIR_BYTES)
         .ok_or(())?;
     if value.len() != expected_length {
         return Err(());
     }
-    let mut bytes = [0_u8; ED25519_PUBLIC_KEY_BYTES];
+    let mut bytes = [0_u8; super::ED25519_PUBLIC_KEY_BYTES];
     for (index, pair) in value.as_bytes().chunks_exact(HEX_PAIR_BYTES).enumerate() {
         let high = decode_nibble(pair[0]).ok_or(())?;
         let low = decode_nibble(pair[1]).ok_or(())?;
@@ -273,8 +264,8 @@ fn adapter_issue(
     field_path: &str,
     expected: &str,
     actual: &str,
-) -> AuthenticatedEvidenceIssue {
-    AuthenticatedEvidenceIssue {
+) -> crate::AuthenticatedEvidenceIssue {
+    crate::AuthenticatedEvidenceIssue {
         code: code.to_string(),
         field_path: field_path.to_string(),
         expected: expected.to_string(),
@@ -282,7 +273,7 @@ fn adapter_issue(
     }
 }
 
-fn sort_adapter_issues(issues: &mut Vec<AuthenticatedEvidenceIssue>) {
+fn sort_adapter_issues(issues: &mut Vec<crate::AuthenticatedEvidenceIssue>) {
     issues.sort_by(|left, right| {
         left.code
             .cmp(&right.code)

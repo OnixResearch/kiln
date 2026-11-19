@@ -2,10 +2,6 @@ mod identity;
 mod issues;
 mod non_claims;
 
-use serde::{Deserialize, Serialize};
-
-use crate::{AuthenticatedEvidenceIssue, AuthenticatedEvidenceReport};
-
 use super::{CairnArtifactAuthReport, CAIRN_ARTIFACT_AUTH_BOUNDARY};
 
 pub const CAIRN_ARTIFACT_AUTH_COMPATIBILITY_SCHEMA_V1: &str =
@@ -14,7 +10,9 @@ pub const CAIRN_ARTIFACT_AUTH_COMPATIBILITY_BOUNDARY: &str = "Compatibility evid
 
 const BLAKE3_HEX_LENGTH: usize = 64;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum CairnArtifactAuthCompatibilityDimension {
     Preimage,
@@ -24,7 +22,9 @@ pub enum CairnArtifactAuthCompatibilityDimension {
     NonClaim,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum CairnArtifactAuthCompatibilityDisposition {
     Equal,
@@ -32,7 +32,7 @@ pub enum CairnArtifactAuthCompatibilityDisposition {
     Blocking,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CairnArtifactAuthCompatibilityClassification {
     pub dimension: CairnArtifactAuthCompatibilityDimension,
     pub code: String,
@@ -41,7 +41,7 @@ pub struct CairnArtifactAuthCompatibilityClassification {
     pub disposition: CairnArtifactAuthCompatibilityDisposition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CairnArtifactAuthCompatibilityReport {
     pub schema_version: String,
     pub case_explained: bool,
@@ -64,9 +64,9 @@ pub struct CairnArtifactAuthCompatibilityReport {
 pub fn compare_cairn_artifact_auth(
     legacy_preimage_blake3: &str,
     standalone_preimage_blake3: Option<&str>,
-    legacy: &AuthenticatedEvidenceReport,
-    standalone: Option<&CairnArtifactAuthReport>,
-    standalone_blockers: &[AuthenticatedEvidenceIssue],
+    legacy: &crate::AuthenticatedEvidenceReport,
+    standalone: Option<&super::CairnArtifactAuthReport>,
+    standalone_blockers: &[crate::AuthenticatedEvidenceIssue],
 ) -> CairnArtifactAuthCompatibilityReport {
     let mut classifications = Vec::new();
     identity::classify_preimages(
@@ -129,7 +129,7 @@ fn classify_unavailable_standalone(output: &mut Vec<CairnArtifactAuthCompatibili
 }
 
 fn classify_standalone_blockers(
-    blockers: &[AuthenticatedEvidenceIssue],
+    blockers: &[crate::AuthenticatedEvidenceIssue],
     output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
 ) {
     for blocker in blockers {

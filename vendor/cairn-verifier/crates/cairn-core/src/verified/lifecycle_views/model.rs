@@ -1,23 +1,8 @@
-use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
+use std::collections::btree_map::Entry;
 
-use crate::verified::{
-    change_dependencies::{ChangeDependencyGraph, ChangeDependencyNode},
-    repo::{ChangeStatus, TaskCounts},
-    traceability::{
-        TraceabilityCoverageReport, TRACEABILITY_VERB_DEPENDS, TRACEABILITY_VERB_IMPL,
-        TRACEABILITY_VERB_RELATED, TRACEABILITY_VERB_VERIFY,
-    },
-};
-
-use super::{
-    parse::{parse_specs, parse_tasks},
-    types::{
-        KanbanBoard, KanbanCard, KanbanColumn, KanbanColumnKind, LifecycleMindmapNode,
-        LifecycleViewChangeInput, LifecycleViewEdge, LifecycleViewEdgeKind, LifecycleViewInput,
-        LifecycleViewIssue, LifecycleViewModel, LifecycleViewNode, LifecycleViewNodeKind,
-        ParsedRequirement, ParsedScenario, ParsedSpec, LIFECYCLE_VIEW_BOUNDARY,
-        LIFECYCLE_VIEW_NON_CLAIMS, LIFECYCLE_VIEW_SCHEMA_V1,
-    },
+use crate::verified::traceability::{
+    TRACEABILITY_VERB_DEPENDS, TRACEABILITY_VERB_IMPL, TRACEABILITY_VERB_RELATED,
+    TRACEABILITY_VERB_VERIFY,
 };
 
 const REPOSITORY_NODE_ID: &str = "repository:root";
@@ -29,32 +14,34 @@ struct RequirementDeclaration {
     spec_id: String,
     spec_path: String,
     accepted: bool,
-    requirement: ParsedRequirement,
+    requirement: super::types::ParsedRequirement,
 }
 
 #[derive(Debug, Clone)]
 struct ScenarioDeclaration {
     spec_path: String,
     accepted: bool,
-    scenario: ParsedScenario,
+    scenario: super::types::ParsedScenario,
 }
 
 #[derive(Debug, Default)]
 struct ViewBuilder {
-    nodes: BTreeMap<String, LifecycleViewNode>,
-    edges: BTreeMap<EdgeKey, BTreeSet<String>>,
-    issues: Vec<LifecycleViewIssue>,
+    nodes: std::collections::BTreeMap<String, super::types::LifecycleViewNode>,
+    edges: std::collections::BTreeMap<EdgeKey, std::collections::BTreeSet<String>>,
+    issues: Vec<super::types::LifecycleViewIssue>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct EdgeKey {
     source: String,
     target: String,
-    kind: LifecycleViewEdgeKind,
+    kind: super::types::LifecycleViewEdgeKind,
     state: Option<String>,
 }
 
-pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewModel {
+pub fn build_lifecycle_view_model(
+    input: super::types::LifecycleViewInput,
+) -> super::types::LifecycleViewModel {
     // r[impl cairn.lifecycle_views.semantic_model]
     // r[impl cairn.lifecycle_views.semantic_model.shared]
     // r[impl cairn.lifecycle_views.kanban]
@@ -62,7 +49,7 @@ pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewMod
     // r[impl cairn.lifecycle_views.mindmap.hierarchy]
     // r[impl cairn.lifecycle_views.knowledge_graph]
     // r[impl cairn.lifecycle_views.knowledge_graph.links]
-    let LifecycleViewInput {
+    let super::types::LifecycleViewInput {
         repository,
         mut changes,
         specs,
@@ -72,9 +59,9 @@ pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewMod
     changes.sort_by(|left, right| left.status.name.cmp(&right.status.name));
 
     let mut builder = ViewBuilder::default();
-    builder.add_node(LifecycleViewNode {
+    builder.add_node(super::types::LifecycleViewNode {
         id: REPOSITORY_NODE_ID.to_string(),
-        kind: LifecycleViewNodeKind::Repository,
+        kind: super::types::LifecycleViewNodeKind::Repository,
         label: repository.clone(),
         reference: None,
         state: None,
@@ -83,7 +70,7 @@ pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewMod
     add_change_nodes(&changes, &mut builder);
     add_dependency_edges(&dependency_graph, &mut builder);
 
-    let (parsed_specs, parse_issues) = parse_specs(specs);
+    let (parsed_specs, parse_issues) = super::parse::parse_specs(specs);
     builder.issues.extend(parse_issues);
     add_spec_nodes(&parsed_specs, &mut builder);
     let mut reference_targets = add_requirement_nodes(&parsed_specs, &mut builder);
@@ -103,7 +90,7 @@ pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewMod
     let edges = builder
         .edges
         .into_iter()
-        .map(|(key, details)| LifecycleViewEdge {
+        .map(|(key, details)| super::types::LifecycleViewEdge {
             source: key.source,
             target: key.target,
             kind: key.kind,
@@ -113,8 +100,8 @@ pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewMod
         .collect::<Vec<_>>();
     let valid = builder.issues.is_empty();
 
-    LifecycleViewModel {
-        schema: LIFECYCLE_VIEW_SCHEMA_V1.to_string(),
+    super::types::LifecycleViewModel {
+        schema: super::types::LIFECYCLE_VIEW_SCHEMA_V1.to_string(),
         repository,
         valid,
         nodes,
@@ -122,20 +109,20 @@ pub fn build_lifecycle_view_model(input: LifecycleViewInput) -> LifecycleViewMod
         issues: builder.issues,
         kanban,
         mindmap,
-        boundary: LIFECYCLE_VIEW_BOUNDARY.to_string(),
-        non_claims: LIFECYCLE_VIEW_NON_CLAIMS
+        boundary: super::types::LIFECYCLE_VIEW_BOUNDARY.to_string(),
+        non_claims: super::types::LIFECYCLE_VIEW_NON_CLAIMS
             .iter()
             .map(|claim| (*claim).to_string())
             .collect(),
     }
 }
 
-fn add_change_nodes(changes: &[LifecycleViewChangeInput], builder: &mut ViewBuilder) {
+fn add_change_nodes(changes: &[super::types::LifecycleViewChangeInput], builder: &mut ViewBuilder) {
     for change in changes {
         let node_id = change_node_id(&change.status.name);
-        builder.add_node(LifecycleViewNode {
+        builder.add_node(super::types::LifecycleViewNode {
             id: node_id.clone(),
-            kind: LifecycleViewNodeKind::Change,
+            kind: super::types::LifecycleViewNodeKind::Change,
             label: change.status.name.clone(),
             reference: Some(change.status.name.clone()),
             state: change.status.metadata.status.clone(),
@@ -144,14 +131,17 @@ fn add_change_nodes(changes: &[LifecycleViewChangeInput], builder: &mut ViewBuil
         builder.add_edge(
             REPOSITORY_NODE_ID,
             &node_id,
-            LifecycleViewEdgeKind::Contains,
+            super::types::LifecycleViewEdgeKind::Contains,
             Some("active"),
             &[],
         );
     }
 }
 
-fn add_dependency_edges(graph: &ChangeDependencyGraph, builder: &mut ViewBuilder) {
+fn add_dependency_edges(
+    graph: &crate::verified::change_dependencies::ChangeDependencyGraph,
+    builder: &mut ViewBuilder,
+) {
     for edge in &graph.edges {
         let dependent_id = change_node_id(&edge.dependent);
         let dependency_id = change_node_id(&edge.dependency);
@@ -164,20 +154,20 @@ fn add_dependency_edges(graph: &ChangeDependencyGraph, builder: &mut ViewBuilder
         builder.add_edge(
             &dependent_id,
             &dependency_id,
-            LifecycleViewEdgeKind::DependsOn,
+            super::types::LifecycleViewEdgeKind::DependsOn,
             Some(state),
             &[],
         );
         builder.add_edge(
             &dependency_id,
             &dependent_id,
-            LifecycleViewEdgeKind::Blocks,
+            super::types::LifecycleViewEdgeKind::Blocks,
             Some(state),
             &[],
         );
     }
     for issue in &graph.issues {
-        builder.issues.push(LifecycleViewIssue {
+        builder.issues.push(super::types::LifecycleViewIssue {
             code: issue.code.clone(),
             message: issue.message.clone(),
             source: change_node_id(&issue.change),
@@ -192,9 +182,9 @@ fn ensure_dependency_node(name: &str, satisfied: bool, builder: &mut ViewBuilder
         return;
     }
     let state = if satisfied { "archived" } else { "unknown" };
-    builder.add_node(LifecycleViewNode {
+    builder.add_node(super::types::LifecycleViewNode {
         id: node_id.clone(),
-        kind: LifecycleViewNodeKind::Change,
+        kind: super::types::LifecycleViewNodeKind::Change,
         label: name.to_string(),
         reference: Some(name.to_string()),
         state: Some(state.to_string()),
@@ -203,17 +193,17 @@ fn ensure_dependency_node(name: &str, satisfied: bool, builder: &mut ViewBuilder
     builder.add_edge(
         REPOSITORY_NODE_ID,
         &node_id,
-        LifecycleViewEdgeKind::Contains,
+        super::types::LifecycleViewEdgeKind::Contains,
         Some(state),
         &[],
     );
 }
 
-fn add_spec_nodes(specs: &[ParsedSpec], builder: &mut ViewBuilder) {
+fn add_spec_nodes(specs: &[super::types::ParsedSpec], builder: &mut ViewBuilder) {
     for spec in specs {
-        builder.add_node(LifecycleViewNode {
+        builder.add_node(super::types::LifecycleViewNode {
             id: spec.id.clone(),
-            kind: LifecycleViewNodeKind::Spec,
+            kind: super::types::LifecycleViewNodeKind::Spec,
             label: spec.label.clone(),
             reference: Some(spec.id.trim_start_matches("spec:").to_string()),
             state: Some(if spec.owner_change.is_some() {
@@ -230,7 +220,7 @@ fn add_spec_nodes(specs: &[ParsedSpec], builder: &mut ViewBuilder) {
             .filter(|change_id| builder.nodes.contains_key(change_id))
             .unwrap_or_else(|| REPOSITORY_NODE_ID.to_string());
         if spec.owner_change.is_some() && parent == REPOSITORY_NODE_ID {
-            builder.issues.push(LifecycleViewIssue {
+            builder.issues.push(super::types::LifecycleViewIssue {
                 code: "lifecycle_view.spec.unknown_change".to_string(),
                 message: "delta spec owner change is not present in the active change set"
                     .to_string(),
@@ -241,7 +231,7 @@ fn add_spec_nodes(specs: &[ParsedSpec], builder: &mut ViewBuilder) {
         builder.add_edge(
             &parent,
             &spec.id,
-            LifecycleViewEdgeKind::Contains,
+            super::types::LifecycleViewEdgeKind::Contains,
             None,
             &[],
         );
@@ -249,10 +239,10 @@ fn add_spec_nodes(specs: &[ParsedSpec], builder: &mut ViewBuilder) {
 }
 
 fn add_requirement_nodes(
-    specs: &[ParsedSpec],
+    specs: &[super::types::ParsedSpec],
     builder: &mut ViewBuilder,
-) -> BTreeMap<String, String> {
-    let mut declarations = BTreeMap::<String, Vec<RequirementDeclaration>>::new();
+) -> std::collections::BTreeMap<String, String> {
+    let mut declarations = std::collections::BTreeMap::<String, Vec<RequirementDeclaration>>::new();
     for spec in specs {
         for requirement in &spec.requirements {
             declarations
@@ -267,7 +257,7 @@ fn add_requirement_nodes(
         }
     }
 
-    let mut reference_targets = BTreeMap::new();
+    let mut reference_targets = std::collections::BTreeMap::new();
     for (requirement_id, mut rows) in declarations {
         rows.sort_by(|left, right| {
             right
@@ -278,9 +268,9 @@ fn add_requirement_nodes(
         let Some(owner) = rows.first().cloned() else {
             continue;
         };
-        builder.add_node(LifecycleViewNode {
+        builder.add_node(super::types::LifecycleViewNode {
             id: requirement_id.clone(),
-            kind: LifecycleViewNodeKind::Requirement,
+            kind: super::types::LifecycleViewNodeKind::Requirement,
             label: owner.requirement.label.clone(),
             reference: owner.requirement.reference.clone(),
             state: Some(
@@ -296,7 +286,7 @@ fn add_requirement_nodes(
         builder.add_edge(
             &owner.spec_id,
             &requirement_id,
-            LifecycleViewEdgeKind::Contains,
+            super::types::LifecycleViewEdgeKind::Contains,
             None,
             &[],
         );
@@ -304,7 +294,7 @@ fn add_requirement_nodes(
             builder.add_edge(
                 &row.spec_id,
                 &requirement_id,
-                LifecycleViewEdgeKind::Changes,
+                super::types::LifecycleViewEdgeKind::Changes,
                 None,
                 &[],
             );
@@ -320,10 +310,10 @@ fn add_requirement_nodes(
 fn add_scenario_nodes(
     requirement_id: &str,
     requirement_rows: &[RequirementDeclaration],
-    reference_targets: &mut BTreeMap<String, String>,
+    reference_targets: &mut std::collections::BTreeMap<String, String>,
     builder: &mut ViewBuilder,
 ) {
-    let mut declarations = BTreeMap::<String, Vec<ScenarioDeclaration>>::new();
+    let mut declarations = std::collections::BTreeMap::<String, Vec<ScenarioDeclaration>>::new();
     for row in requirement_rows {
         for scenario in &row.requirement.scenarios {
             declarations
@@ -346,9 +336,9 @@ fn add_scenario_nodes(
         let Some(owner) = rows.first() else {
             continue;
         };
-        builder.add_node(LifecycleViewNode {
+        builder.add_node(super::types::LifecycleViewNode {
             id: scenario_id.clone(),
-            kind: LifecycleViewNodeKind::Scenario,
+            kind: super::types::LifecycleViewNodeKind::Scenario,
             label: owner.scenario.label.clone(),
             reference: owner.scenario.reference.clone(),
             state: Some(
@@ -364,7 +354,7 @@ fn add_scenario_nodes(
         builder.add_edge(
             requirement_id,
             &scenario_id,
-            LifecycleViewEdgeKind::Contains,
+            super::types::LifecycleViewEdgeKind::Contains,
             None,
             &[],
         );
@@ -377,7 +367,7 @@ fn add_scenario_nodes(
 fn register_reference(
     reference: &str,
     node_id: &str,
-    reference_targets: &mut BTreeMap<String, String>,
+    reference_targets: &mut std::collections::BTreeMap<String, String>,
 ) {
     if let Entry::Vacant(entry) = reference_targets.entry(reference.to_string()) {
         entry.insert(node_id.to_string());
@@ -385,8 +375,8 @@ fn register_reference(
 }
 
 fn add_traceability_requirement_targets(
-    report: &TraceabilityCoverageReport,
-    reference_targets: &mut BTreeMap<String, String>,
+    report: &crate::verified::traceability::TraceabilityCoverageReport,
+    reference_targets: &mut std::collections::BTreeMap<String, String>,
     builder: &mut ViewBuilder,
 ) {
     for (reference, occurrences) in &report.requirements {
@@ -397,9 +387,9 @@ fn add_traceability_requirement_targets(
         let path = occurrences
             .first()
             .map(|occurrence| occurrence.path.clone());
-        builder.add_node(LifecycleViewNode {
+        builder.add_node(super::types::LifecycleViewNode {
             id: node_id.clone(),
-            kind: LifecycleViewNodeKind::Requirement,
+            kind: super::types::LifecycleViewNodeKind::Requirement,
             label: reference.clone(),
             reference: Some(reference.clone()),
             state: Some("unparsed".to_string()),
@@ -410,8 +400,8 @@ fn add_traceability_requirement_targets(
 }
 
 fn add_task_nodes(
-    changes: &[LifecycleViewChangeInput],
-    reference_targets: &BTreeMap<String, String>,
+    changes: &[super::types::LifecycleViewChangeInput],
+    reference_targets: &std::collections::BTreeMap<String, String>,
     builder: &mut ViewBuilder,
 ) {
     for change in changes {
@@ -419,13 +409,14 @@ fn add_task_nodes(
             continue;
         };
         let task_path = format!("{}/tasks.md", change.status.path.trim_end_matches('/'));
-        let (tasks, task_issues) = parse_tasks(&change.status.name, &task_path, markdown);
+        let (tasks, task_issues) =
+            super::parse::parse_tasks(&change.status.name, &task_path, markdown);
         builder.issues.extend(task_issues);
         let change_id = change_node_id(&change.status.name);
         for task in tasks {
-            builder.add_node(LifecycleViewNode {
+            builder.add_node(super::types::LifecycleViewNode {
                 id: task.id.clone(),
-                kind: LifecycleViewNodeKind::Task,
+                kind: super::types::LifecycleViewNodeKind::Task,
                 label: task.label,
                 reference: None,
                 state: Some(task.state.as_str().to_string()),
@@ -434,7 +425,7 @@ fn add_task_nodes(
             builder.add_edge(
                 &change_id,
                 &task.id,
-                LifecycleViewEdgeKind::Contains,
+                super::types::LifecycleViewEdgeKind::Contains,
                 None,
                 &[],
             );
@@ -444,22 +435,28 @@ fn add_task_nodes(
                     .cloned()
                     .unwrap_or_else(|| add_missing_requirement(&reference, builder));
                 if !reference_targets.contains_key(&reference) {
-                    builder.issues.push(LifecycleViewIssue {
+                    builder.issues.push(super::types::LifecycleViewIssue {
                         code: "lifecycle_view.task.dangling_reference".to_string(),
                         message: format!("task references unknown lifecycle id {reference}"),
                         source: task.id.clone(),
                         target: Some(target.clone()),
                     });
                 }
-                builder.add_edge(&task.id, &target, LifecycleViewEdgeKind::Covers, None, &[]);
+                builder.add_edge(
+                    &task.id,
+                    &target,
+                    super::types::LifecycleViewEdgeKind::Covers,
+                    None,
+                    &[],
+                );
             }
         }
     }
 }
 
 fn add_traceability_edges(
-    report: &TraceabilityCoverageReport,
-    reference_targets: &BTreeMap<String, String>,
+    report: &crate::verified::traceability::TraceabilityCoverageReport,
+    reference_targets: &std::collections::BTreeMap<String, String>,
     builder: &mut ViewBuilder,
 ) {
     for (reference, occurrences) in &report.all_references {
@@ -469,9 +466,9 @@ fn add_traceability_edges(
             .unwrap_or_else(|| add_missing_requirement(reference, builder));
         for occurrence in occurrences {
             let artifact_id = source_artifact_node_id(&occurrence.path);
-            builder.add_node(LifecycleViewNode {
+            builder.add_node(super::types::LifecycleViewNode {
                 id: artifact_id.clone(),
-                kind: LifecycleViewNodeKind::SourceArtifact,
+                kind: super::types::LifecycleViewNodeKind::SourceArtifact,
                 label: occurrence.path.clone(),
                 reference: None,
                 state: None,
@@ -487,7 +484,7 @@ fn add_traceability_edges(
         }
     }
     for reference in &report.missing {
-        builder.issues.push(LifecycleViewIssue {
+        builder.issues.push(super::types::LifecycleViewIssue {
             code: "lifecycle_view.traceability.missing".to_string(),
             message: format!("lifecycle id {reference} has no implementation or verification link"),
             source: reference_targets
@@ -503,7 +500,7 @@ fn add_traceability_edges(
         .filter(|reference| !reference_targets.contains_key(*reference))
     {
         let target = add_missing_requirement(reference, builder);
-        builder.issues.push(LifecycleViewIssue {
+        builder.issues.push(super::types::LifecycleViewIssue {
             code: "lifecycle_view.traceability.dangling".to_string(),
             message: format!("traceability link references unknown lifecycle id {reference}"),
             source: target.clone(),
@@ -514,9 +511,9 @@ fn add_traceability_edges(
 
 fn add_missing_requirement(reference: &str, builder: &mut ViewBuilder) -> String {
     let node_id = format!("missing_requirement:{reference}");
-    builder.add_node(LifecycleViewNode {
+    builder.add_node(super::types::LifecycleViewNode {
         id: node_id.clone(),
-        kind: LifecycleViewNodeKind::MissingRequirement,
+        kind: super::types::LifecycleViewNodeKind::MissingRequirement,
         label: reference.to_string(),
         reference: Some(reference.to_string()),
         state: Some("missing".to_string()),
@@ -525,22 +522,25 @@ fn add_missing_requirement(reference: &str, builder: &mut ViewBuilder) -> String
     node_id
 }
 
-fn traceability_edge_kind(verb: &str) -> LifecycleViewEdgeKind {
+fn traceability_edge_kind(verb: &str) -> super::types::LifecycleViewEdgeKind {
     match verb {
-        TRACEABILITY_VERB_IMPL => LifecycleViewEdgeKind::Implements,
-        TRACEABILITY_VERB_VERIFY => LifecycleViewEdgeKind::Verifies,
-        TRACEABILITY_VERB_DEPENDS => LifecycleViewEdgeKind::TraceabilityDepends,
-        TRACEABILITY_VERB_RELATED => LifecycleViewEdgeKind::Related,
-        _ => LifecycleViewEdgeKind::Related,
+        TRACEABILITY_VERB_IMPL => super::types::LifecycleViewEdgeKind::Implements,
+        TRACEABILITY_VERB_VERIFY => super::types::LifecycleViewEdgeKind::Verifies,
+        TRACEABILITY_VERB_DEPENDS => super::types::LifecycleViewEdgeKind::TraceabilityDepends,
+        TRACEABILITY_VERB_RELATED => super::types::LifecycleViewEdgeKind::Related,
+        _ => super::types::LifecycleViewEdgeKind::Related,
     }
 }
 
 fn build_kanban_board(
-    changes: &[LifecycleViewChangeInput],
-    graph: &ChangeDependencyGraph,
-) -> KanbanBoard {
-    let mut lanes = BTreeMap::<KanbanColumnKind, Vec<KanbanCard>>::new();
-    for kind in KanbanColumnKind::ORDERED {
+    changes: &[super::types::LifecycleViewChangeInput],
+    graph: &crate::verified::change_dependencies::ChangeDependencyGraph,
+) -> super::types::KanbanBoard {
+    let mut lanes = std::collections::BTreeMap::<
+        super::types::KanbanColumnKind,
+        Vec<super::types::KanbanCard>,
+    >::new();
+    for kind in super::types::KanbanColumnKind::ORDERED {
         lanes.insert(kind, Vec::new());
     }
     for change in changes {
@@ -556,7 +556,7 @@ fn build_kanban_board(
         let mut blocked_by = node.map(|node| node.blocked_by.clone()).unwrap_or_default();
         blocked_by.sort();
         blocked_by.dedup();
-        let card = KanbanCard {
+        let card = super::types::KanbanCard {
             change: change.status.name.clone(),
             metadata_status: change.status.metadata.status.clone(),
             task_counts: change.status.task_counts,
@@ -568,23 +568,23 @@ fn build_kanban_board(
             cards.push(card);
         }
     }
-    KanbanBoard {
-        columns: KanbanColumnKind::ORDERED
+    super::types::KanbanBoard {
+        columns: super::types::KanbanColumnKind::ORDERED
             .iter()
             .map(|kind| {
                 let mut cards = lanes.remove(kind).unwrap_or_default();
                 cards.sort_by(|left, right| left.change.cmp(&right.change));
-                KanbanColumn { kind: *kind, cards }
+                super::types::KanbanColumn { kind: *kind, cards }
             })
             .collect(),
     }
 }
 
 fn classify_change(
-    change: &ChangeStatus,
-    node: Option<&ChangeDependencyNode>,
-    graph: &ChangeDependencyGraph,
-) -> (KanbanColumnKind, Vec<String>) {
+    change: &crate::verified::repo::ChangeStatus,
+    node: Option<&crate::verified::change_dependencies::ChangeDependencyNode>,
+    graph: &crate::verified::change_dependencies::ChangeDependencyGraph,
+) -> (super::types::KanbanColumnKind, Vec<String>) {
     let mut blockers = Vec::new();
     if change.metadata.status.as_deref() == Some("blocked") {
         blockers.push("metadata status is blocked".to_string());
@@ -605,12 +605,12 @@ fn classify_change(
     );
     blockers.extend(change.metadata_issues.iter().cloned());
     if !blockers.is_empty() {
-        return (KanbanColumnKind::Blocked, blockers);
+        return (super::types::KanbanColumnKind::Blocked, blockers);
     }
 
     if archive_ready(change, node) {
         return (
-            KanbanColumnKind::ReadyToArchive,
+            super::types::KanbanColumnKind::ReadyToArchive,
             vec![
                 "all marked tasks are complete".to_string(),
                 "required lifecycle artifacts are present".to_string(),
@@ -621,7 +621,7 @@ fn classify_change(
 
     if work_started(change.task_counts) || change.metadata.status.as_deref() == Some("current") {
         return (
-            KanbanColumnKind::InProgress,
+            super::types::KanbanColumnKind::InProgress,
             vec!["task work has started or metadata status is current".to_string()],
         );
     }
@@ -632,18 +632,21 @@ fn classify_change(
     ) || !change.has_tasks
     {
         return (
-            KanbanColumnKind::Planned,
+            super::types::KanbanColumnKind::Planned,
             vec!["work is planned, deferred, or not yet task-authored".to_string()],
         );
     }
 
     (
-        KanbanColumnKind::Ready,
+        super::types::KanbanColumnKind::Ready,
         vec!["declared dependencies are satisfied and task work has not started".to_string()],
     )
 }
 
-fn archive_ready(change: &ChangeStatus, node: Option<&ChangeDependencyNode>) -> bool {
+fn archive_ready(
+    change: &crate::verified::repo::ChangeStatus,
+    node: Option<&crate::verified::change_dependencies::ChangeDependencyNode>,
+) -> bool {
     change.has_proposal
         && change.has_design
         && change.has_tasks
@@ -652,24 +655,26 @@ fn archive_ready(change: &ChangeStatus, node: Option<&ChangeDependencyNode>) -> 
         && change.task_counts.is_some_and(tasks_complete)
 }
 
-fn tasks_complete(counts: TaskCounts) -> bool {
+fn tasks_complete(counts: crate::verified::repo::TaskCounts) -> bool {
     counts.total > 0 && counts.todo == 0 && counts.in_progress == 0 && counts.unmarked == 0
 }
 
-fn work_started(counts: Option<TaskCounts>) -> bool {
+fn work_started(counts: Option<crate::verified::repo::TaskCounts>) -> bool {
     counts.is_some_and(|counts| counts.done > 0 || counts.in_progress > 0)
 }
 
 fn build_mindmap(
-    nodes: &BTreeMap<String, LifecycleViewNode>,
-    edges: &BTreeMap<EdgeKey, BTreeSet<String>>,
-    issues: &mut Vec<LifecycleViewIssue>,
-) -> LifecycleMindmapNode {
-    let mut parents = BTreeMap::<String, BTreeSet<String>>::new();
-    let mut children = BTreeMap::<String, BTreeSet<String>>::new();
+    nodes: &std::collections::BTreeMap<String, super::types::LifecycleViewNode>,
+    edges: &std::collections::BTreeMap<EdgeKey, std::collections::BTreeSet<String>>,
+    issues: &mut Vec<super::types::LifecycleViewIssue>,
+) -> super::types::LifecycleMindmapNode {
+    let mut parents =
+        std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
+    let mut children =
+        std::collections::BTreeMap::<String, std::collections::BTreeSet<String>>::new();
     for key in edges
         .keys()
-        .filter(|key| key.kind == LifecycleViewEdgeKind::Contains)
+        .filter(|key| key.kind == super::types::LifecycleViewEdgeKind::Contains)
     {
         parents
             .entry(key.target.clone())
@@ -682,7 +687,7 @@ fn build_mindmap(
     }
     for (child, parent_ids) in &parents {
         if parent_ids.len() > 1 {
-            issues.push(LifecycleViewIssue {
+            issues.push(super::types::LifecycleViewIssue {
                 code: "lifecycle_view.mindmap.multiple_parents".to_string(),
                 message: format!("mindmap node has multiple containment parents: {parent_ids:?}"),
                 source: child.clone(),
@@ -690,7 +695,7 @@ fn build_mindmap(
             });
         }
     }
-    let mut ancestors = BTreeSet::new();
+    let mut ancestors = std::collections::BTreeSet::new();
     build_mindmap_node(
         REPOSITORY_NODE_ID,
         nodes,
@@ -699,9 +704,9 @@ fn build_mindmap(
         0,
         issues,
     )
-    .unwrap_or_else(|| LifecycleMindmapNode {
+    .unwrap_or_else(|| super::types::LifecycleMindmapNode {
         id: REPOSITORY_NODE_ID.to_string(),
-        kind: LifecycleViewNodeKind::Repository,
+        kind: super::types::LifecycleViewNodeKind::Repository,
         label: "repository".to_string(),
         children: Vec::new(),
     })
@@ -709,14 +714,14 @@ fn build_mindmap(
 
 fn build_mindmap_node(
     node_id: &str,
-    nodes: &BTreeMap<String, LifecycleViewNode>,
-    children: &BTreeMap<String, BTreeSet<String>>,
-    ancestors: &mut BTreeSet<String>,
+    nodes: &std::collections::BTreeMap<String, super::types::LifecycleViewNode>,
+    children: &std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
+    ancestors: &mut std::collections::BTreeSet<String>,
     depth: usize,
-    issues: &mut Vec<LifecycleViewIssue>,
-) -> Option<LifecycleMindmapNode> {
+    issues: &mut Vec<super::types::LifecycleViewIssue>,
+) -> Option<super::types::LifecycleMindmapNode> {
     if depth > MAX_MINDMAP_DEPTH {
-        issues.push(LifecycleViewIssue {
+        issues.push(super::types::LifecycleViewIssue {
             code: "lifecycle_view.mindmap.depth_exceeded".to_string(),
             message: format!("mindmap depth exceeds supported bound {MAX_MINDMAP_DEPTH}"),
             source: node_id.to_string(),
@@ -725,7 +730,7 @@ fn build_mindmap_node(
         return None;
     }
     if !ancestors.insert(node_id.to_string()) {
-        issues.push(LifecycleViewIssue {
+        issues.push(super::types::LifecycleViewIssue {
             code: "lifecycle_view.mindmap.cycle".to_string(),
             message: "containment cycle detected".to_string(),
             source: node_id.to_string(),
@@ -748,7 +753,7 @@ fn build_mindmap_node(
         }
     }
     ancestors.remove(node_id);
-    Some(LifecycleMindmapNode {
+    Some(super::types::LifecycleMindmapNode {
         id: node.id.clone(),
         kind: node.kind,
         label: node.label.clone(),
@@ -765,13 +770,13 @@ fn source_artifact_node_id(path: &str) -> String {
 }
 
 impl ViewBuilder {
-    fn add_node(&mut self, node: LifecycleViewNode) {
+    fn add_node(&mut self, node: super::types::LifecycleViewNode) {
         match self.nodes.entry(node.id.clone()) {
             Entry::Vacant(entry) => {
                 entry.insert(node);
             }
             Entry::Occupied(entry) if entry.get() == &node => {}
-            Entry::Occupied(entry) => self.issues.push(LifecycleViewIssue {
+            Entry::Occupied(entry) => self.issues.push(super::types::LifecycleViewIssue {
                 code: "lifecycle_view.node.conflict".to_string(),
                 message: format!(
                     "node {} has conflicting declarations ({:?} versus {:?})",
@@ -789,7 +794,7 @@ impl ViewBuilder {
         &mut self,
         source: &str,
         target: &str,
-        kind: LifecycleViewEdgeKind,
+        kind: super::types::LifecycleViewEdgeKind,
         state: Option<&str>,
         details: &[String],
     ) {

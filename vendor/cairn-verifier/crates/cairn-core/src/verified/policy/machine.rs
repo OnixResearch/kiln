@@ -1,20 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde_json::Value;
-
-use crate::verified::cli_machine::{
-    MachineContractBounds, MachineContractPolicy, MachineDiagnosticDefinition,
-    MachineDiagnosticSeverity, MachineExitClass, MachineExitClassPolicy, CLI_MACHINE_EXIT_CLASSES,
-    CLI_MACHINE_MAX_CAPTURE_BYTES_LIMIT, CLI_MACHINE_MAX_COMMAND_BYTES_LIMIT,
-    CLI_MACHINE_MAX_DIAGNOSTICS_LIMIT, CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
-    CLI_MACHINE_MAX_PROCESS_STATUS, CLI_MACHINE_REQUIRED_DIAGNOSTIC_CODES, CLI_MACHINE_SCHEMA_V1,
-};
-
-use super::{
-    fields::{string_array_field, string_field},
-    PolicyError,
-};
-
 const FIELD_MACHINE_POLICY: &str = "machine_contract_policy";
 const FIELD_SCHEMA_VERSION: &str = "machine_contract_policy.schema_version";
 const FIELD_EXIT_CLASSES: &str = "machine_contract_policy.exit_classes";
@@ -42,84 +25,86 @@ const FIELD_REQUIRED_NON_CLAIMS: &str = "machine_contract_policy.required_non_cl
 const EXPECTED_DIAGNOSTIC_FIELDS: &[&str] = &["code", "severity", "message", "target", "fix"];
 const SERIALIZATION_OVERHEAD_PER_ENTRY: usize = 128;
 
-pub(super) fn machine_contract_policy(value: &Value) -> Result<MachineContractPolicy, PolicyError> {
+pub(super) fn from_value(
+    value: &serde_json::Value,
+) -> Result<crate::verified::cli_machine::MachineContractPolicy, super::PolicyError> {
     // r[impl cairn.cli_machine_contract.policy]
     let policy = value
         .get(FIELD_MACHINE_POLICY)
-        .ok_or(PolicyError::MissingField(FIELD_MACHINE_POLICY))?;
-    let schema_version = string_field(policy, FIELD_SCHEMA_VERSION)?;
-    if schema_version != CLI_MACHINE_SCHEMA_V1 {
-        return Err(PolicyError::InvalidField(FIELD_SCHEMA_VERSION));
+        .ok_or(super::PolicyError::MissingField(FIELD_MACHINE_POLICY))?;
+    let schema_version = super::fields::string_field(policy, FIELD_SCHEMA_VERSION)?;
+    if schema_version != crate::verified::cli_machine::CLI_MACHINE_SCHEMA_V1 {
+        return Err(super::PolicyError::InvalidField(FIELD_SCHEMA_VERSION));
     }
     let bounds_value = policy
         .get("bounds")
-        .ok_or(PolicyError::MissingField(FIELD_BOUNDS))?;
-    let bounds = MachineContractBounds {
+        .ok_or(super::PolicyError::MissingField(FIELD_BOUNDS))?;
+    let bounds = crate::verified::cli_machine::MachineContractBounds {
         max_command_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_COMMAND_BYTES,
-            CLI_MACHINE_MAX_COMMAND_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_COMMAND_BYTES_LIMIT,
         )?,
         max_diagnostics: bounded_usize_field(
             bounds_value,
             FIELD_MAX_DIAGNOSTICS,
-            CLI_MACHINE_MAX_DIAGNOSTICS_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_DIAGNOSTICS_LIMIT,
         )?,
         max_code_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_CODE_BYTES,
-            CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
         )?,
         max_message_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_MESSAGE_BYTES,
-            CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
         )?,
         max_target_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_TARGET_BYTES,
-            CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
         )?,
         max_fix_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_FIX_BYTES,
-            CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_FIELD_BYTES_LIMIT,
         )?,
         max_stdout_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_STDOUT_BYTES,
-            CLI_MACHINE_MAX_CAPTURE_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_CAPTURE_BYTES_LIMIT,
         )?,
         max_stderr_bytes: bounded_usize_field(
             bounds_value,
             FIELD_MAX_STDERR_BYTES,
-            CLI_MACHINE_MAX_CAPTURE_BYTES_LIMIT,
+            crate::verified::cli_machine::CLI_MACHINE_MAX_CAPTURE_BYTES_LIMIT,
         )?,
     };
     let exit_classes = parse_exit_classes(policy)?;
-    let diagnostic_fields = string_array_field(policy, FIELD_DIAGNOSTIC_FIELDS)?;
+    let diagnostic_fields = super::fields::string_array_field(policy, FIELD_DIAGNOSTIC_FIELDS)?;
     if diagnostic_fields
         != EXPECTED_DIAGNOSTIC_FIELDS
             .iter()
             .map(|field| (*field).to_string())
             .collect::<Vec<_>>()
     {
-        return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_FIELDS));
+        return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_FIELDS));
     }
     let diagnostics = parse_diagnostics(policy, &bounds)?;
-    let diagnostic_order = string_array_field(policy, FIELD_DIAGNOSTIC_ORDER)?;
+    let diagnostic_order = super::fields::string_array_field(policy, FIELD_DIAGNOSTIC_ORDER)?;
     validate_diagnostic_order(&diagnostics, &diagnostic_order)?;
-    let required_non_claims = string_array_field(policy, FIELD_REQUIRED_NON_CLAIMS)?;
+    let required_non_claims = super::fields::string_array_field(policy, FIELD_REQUIRED_NON_CLAIMS)?;
     if required_non_claims.is_empty()
         || required_non_claims.len() > bounds.max_diagnostics
         || required_non_claims
             .iter()
             .any(|claim| !is_single_line_bounded(claim, bounds.max_message_bytes))
     {
-        return Err(PolicyError::InvalidField(FIELD_REQUIRED_NON_CLAIMS));
+        return Err(super::PolicyError::InvalidField(FIELD_REQUIRED_NON_CLAIMS));
     }
     validate_combined_bounds(&bounds)?;
-    Ok(MachineContractPolicy {
+    Ok(crate::verified::cli_machine::MachineContractPolicy {
         schema_version,
         exit_classes,
         diagnostic_fields,
@@ -130,93 +115,105 @@ pub(super) fn machine_contract_policy(value: &Value) -> Result<MachineContractPo
     })
 }
 
-fn parse_exit_classes(policy: &Value) -> Result<Vec<MachineExitClassPolicy>, PolicyError> {
+fn parse_exit_classes(
+    policy: &serde_json::Value,
+) -> Result<Vec<crate::verified::cli_machine::MachineExitClassPolicy>, super::PolicyError> {
     let values = policy
         .get("exit_classes")
-        .and_then(Value::as_array)
-        .ok_or(PolicyError::MissingField(FIELD_EXIT_CLASSES))?;
-    if values.len() != CLI_MACHINE_EXIT_CLASSES.len() {
-        return Err(PolicyError::InvalidField(FIELD_EXIT_CLASSES));
+        .and_then(serde_json::Value::as_array)
+        .ok_or(super::PolicyError::MissingField(FIELD_EXIT_CLASSES))?;
+    if values.len() != crate::verified::cli_machine::CLI_MACHINE_EXIT_CLASSES.len() {
+        return Err(super::PolicyError::InvalidField(FIELD_EXIT_CLASSES));
     }
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     let mut classes = Vec::with_capacity(values.len());
     for value in values {
-        let id_text = string_field(value, FIELD_EXIT_CLASS_ID)?;
-        let Some(id) = MachineExitClass::parse(&id_text) else {
-            return Err(PolicyError::InvalidField(FIELD_EXIT_CLASS_ID));
+        let id_text = super::fields::string_field(value, FIELD_EXIT_CLASS_ID)?;
+        let Some(id) = crate::verified::cli_machine::MachineExitClass::parse(&id_text) else {
+            return Err(super::PolicyError::InvalidField(FIELD_EXIT_CLASS_ID));
         };
         if !seen.insert(id) {
-            return Err(PolicyError::InvalidField(FIELD_EXIT_CLASSES));
+            return Err(super::PolicyError::InvalidField(FIELD_EXIT_CLASSES));
         }
         let status = value
             .get("process_status")
-            .and_then(Value::as_u64)
-            .ok_or(PolicyError::MissingField(FIELD_EXIT_CLASS_STATUS))?;
-        let process_status =
-            u8::try_from(status).map_err(|_| PolicyError::InvalidField(FIELD_EXIT_CLASS_STATUS))?;
-        if process_status > CLI_MACHINE_MAX_PROCESS_STATUS
-            || (id == MachineExitClass::Success && process_status != 0)
-            || (id != MachineExitClass::Success && process_status == 0)
+            .and_then(serde_json::Value::as_u64)
+            .ok_or(super::PolicyError::MissingField(FIELD_EXIT_CLASS_STATUS))?;
+        let process_status = u8::try_from(status)
+            .map_err(|_| super::PolicyError::InvalidField(FIELD_EXIT_CLASS_STATUS))?;
+        if process_status > crate::verified::cli_machine::CLI_MACHINE_MAX_PROCESS_STATUS
+            || (id == crate::verified::cli_machine::MachineExitClass::Success
+                && process_status != 0)
+            || (id != crate::verified::cli_machine::MachineExitClass::Success
+                && process_status == 0)
         {
-            return Err(PolicyError::InvalidField(FIELD_EXIT_CLASS_STATUS));
+            return Err(super::PolicyError::InvalidField(FIELD_EXIT_CLASS_STATUS));
         }
-        classes.push(MachineExitClassPolicy { id, process_status });
+        classes.push(crate::verified::cli_machine::MachineExitClassPolicy { id, process_status });
     }
-    if CLI_MACHINE_EXIT_CLASSES
+    if crate::verified::cli_machine::CLI_MACHINE_EXIT_CLASSES
         .iter()
         .any(|class| !seen.contains(class))
     {
-        return Err(PolicyError::InvalidField(FIELD_EXIT_CLASSES));
+        return Err(super::PolicyError::InvalidField(FIELD_EXIT_CLASSES));
     }
     Ok(classes)
 }
 
 fn parse_diagnostics(
-    policy: &Value,
-    bounds: &MachineContractBounds,
-) -> Result<Vec<MachineDiagnosticDefinition>, PolicyError> {
+    policy: &serde_json::Value,
+    bounds: &crate::verified::cli_machine::MachineContractBounds,
+) -> Result<Vec<crate::verified::cli_machine::MachineDiagnosticDefinition>, super::PolicyError> {
     let values = policy
         .get("diagnostics")
-        .and_then(Value::as_array)
-        .ok_or(PolicyError::MissingField(FIELD_DIAGNOSTICS))?;
+        .and_then(serde_json::Value::as_array)
+        .ok_or(super::PolicyError::MissingField(FIELD_DIAGNOSTICS))?;
     if values.is_empty() || values.len() > bounds.max_diagnostics {
-        return Err(PolicyError::InvalidField(FIELD_DIAGNOSTICS));
+        return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTICS));
     }
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     let mut definitions = Vec::with_capacity(values.len());
     for value in values {
-        let code = string_field(value, FIELD_DIAGNOSTIC_CODE)?;
+        let code = super::fields::string_field(value, FIELD_DIAGNOSTIC_CODE)?;
         if !is_diagnostic_code_safe(&code, bounds.max_code_bytes) || !seen.insert(code.clone()) {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_CODE));
+            return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_CODE));
         }
-        let exit_class_text = string_field(value, FIELD_DIAGNOSTIC_EXIT_CLASS)?;
-        let Some(exit_class) = MachineExitClass::parse(&exit_class_text) else {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_EXIT_CLASS));
+        let exit_class_text = super::fields::string_field(value, FIELD_DIAGNOSTIC_EXIT_CLASS)?;
+        let Some(exit_class) =
+            crate::verified::cli_machine::MachineExitClass::parse(&exit_class_text)
+        else {
+            return Err(super::PolicyError::InvalidField(
+                FIELD_DIAGNOSTIC_EXIT_CLASS,
+            ));
         };
-        if exit_class == MachineExitClass::Success {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_EXIT_CLASS));
+        if exit_class == crate::verified::cli_machine::MachineExitClass::Success {
+            return Err(super::PolicyError::InvalidField(
+                FIELD_DIAGNOSTIC_EXIT_CLASS,
+            ));
         }
-        let severity_text = string_field(value, FIELD_DIAGNOSTIC_SEVERITY)?;
-        let Some(severity) = MachineDiagnosticSeverity::parse(&severity_text) else {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_SEVERITY));
+        let severity_text = super::fields::string_field(value, FIELD_DIAGNOSTIC_SEVERITY)?;
+        let Some(severity) =
+            crate::verified::cli_machine::MachineDiagnosticSeverity::parse(&severity_text)
+        else {
+            return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_SEVERITY));
         };
-        let message = string_field(value, FIELD_DIAGNOSTIC_MESSAGE)?;
+        let message = super::fields::string_field(value, FIELD_DIAGNOSTIC_MESSAGE)?;
         if !is_single_line_bounded(&message, bounds.max_message_bytes) {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_MESSAGE));
+            return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_MESSAGE));
         }
-        let target = string_field(value, FIELD_DIAGNOSTIC_TARGET)?;
+        let target = super::fields::string_field(value, FIELD_DIAGNOSTIC_TARGET)?;
         if !is_diagnostic_target_safe(&target, bounds.max_target_bytes) {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_TARGET));
+            return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_TARGET));
         }
-        let fix_text = string_field(value, FIELD_DIAGNOSTIC_FIX)?;
+        let fix_text = super::fields::string_field(value, FIELD_DIAGNOSTIC_FIX)?;
         let fix = if fix_text.is_empty() {
             None
         } else if is_single_line_bounded(&fix_text, bounds.max_fix_bytes) {
             Some(fix_text)
         } else {
-            return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_FIX));
+            return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_FIX));
         };
-        definitions.push(MachineDiagnosticDefinition {
+        definitions.push(crate::verified::cli_machine::MachineDiagnosticDefinition {
             code,
             exit_class,
             severity,
@@ -225,37 +222,39 @@ fn parse_diagnostics(
             fix,
         });
     }
-    if CLI_MACHINE_REQUIRED_DIAGNOSTIC_CODES
+    if crate::verified::cli_machine::CLI_MACHINE_REQUIRED_DIAGNOSTIC_CODES
         .iter()
         .any(|required| !seen.contains(*required))
     {
-        return Err(PolicyError::InvalidField(FIELD_DIAGNOSTICS));
+        return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTICS));
     }
     Ok(definitions)
 }
 
 fn validate_diagnostic_order(
-    diagnostics: &[MachineDiagnosticDefinition],
+    diagnostics: &[crate::verified::cli_machine::MachineDiagnosticDefinition],
     diagnostic_order: &[String],
-) -> Result<(), PolicyError> {
+) -> Result<(), super::PolicyError> {
     if diagnostics.len() != diagnostic_order.len() {
-        return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_ORDER));
+        return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_ORDER));
     }
     let definitions = diagnostics
         .iter()
         .map(|definition| definition.code.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let order = diagnostic_order
         .iter()
         .map(String::as_str)
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     if order.len() != diagnostic_order.len() || definitions != order {
-        return Err(PolicyError::InvalidField(FIELD_DIAGNOSTIC_ORDER));
+        return Err(super::PolicyError::InvalidField(FIELD_DIAGNOSTIC_ORDER));
     }
     Ok(())
 }
 
-fn validate_combined_bounds(bounds: &MachineContractBounds) -> Result<(), PolicyError> {
+fn validate_combined_bounds(
+    bounds: &crate::verified::cli_machine::MachineContractBounds,
+) -> Result<(), super::PolicyError> {
     let diagnostic_bytes = bounds
         .max_code_bytes
         .checked_add(bounds.max_message_bytes)
@@ -263,34 +262,34 @@ fn validate_combined_bounds(bounds: &MachineContractBounds) -> Result<(), Policy
         .and_then(|total| total.checked_add(bounds.max_fix_bytes))
         .and_then(|total| total.checked_add(SERIALIZATION_OVERHEAD_PER_ENTRY))
         .and_then(|total| total.checked_mul(bounds.max_diagnostics))
-        .ok_or(PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES))?;
+        .ok_or(super::PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES))?;
     let non_claim_bytes = bounds
         .max_message_bytes
         .checked_add(SERIALIZATION_OVERHEAD_PER_ENTRY)
         .and_then(|total| total.checked_mul(bounds.max_diagnostics))
-        .ok_or(PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES))?;
+        .ok_or(super::PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES))?;
     let minimum_failure_envelope_bytes = diagnostic_bytes
         .checked_add(non_claim_bytes)
-        .ok_or(PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES))?;
+        .ok_or(super::PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES))?;
     if minimum_failure_envelope_bytes > bounds.max_stdout_bytes {
-        return Err(PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES));
+        return Err(super::PolicyError::InvalidField(FIELD_MAX_STDOUT_BYTES));
     }
     Ok(())
 }
 
 fn bounded_usize_field(
-    value: &Value,
+    value: &serde_json::Value,
     field: &'static str,
     maximum: usize,
-) -> Result<usize, PolicyError> {
+) -> Result<usize, super::PolicyError> {
     let lookup = field.rsplit('.').next().unwrap_or(field);
     let raw = value
         .get(lookup)
-        .and_then(Value::as_u64)
-        .ok_or(PolicyError::MissingField(field))?;
-    let converted = usize::try_from(raw).map_err(|_| PolicyError::InvalidField(field))?;
+        .and_then(serde_json::Value::as_u64)
+        .ok_or(super::PolicyError::MissingField(field))?;
+    let converted = usize::try_from(raw).map_err(|_| super::PolicyError::InvalidField(field))?;
     if converted == 0 || converted > maximum {
-        return Err(PolicyError::InvalidField(field));
+        return Err(super::PolicyError::InvalidField(field));
     }
     Ok(converted)
 }

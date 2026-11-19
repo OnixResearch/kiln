@@ -1,7 +1,3 @@
-use serde_json::Value;
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const AI_SPEC_DRAFT_SCHEMA_V1: &str = "cairn.ai_spec_draft_provenance.v1";
 
 const ARTIFACT_KIND_LIFECYCLE_SPEC: &str = "lifecycle_spec";
@@ -83,11 +79,11 @@ pub struct AiSpecDraftReport {
     pub receipt_hash: String,
 }
 
-pub fn ai_spec_draft_hash(value: &Value) -> String {
-    canonical_json_hash(&without_receipt_hash(value))
+pub fn ai_spec_draft_hash(value: &serde_json::Value) -> String {
+    crate::verified::evidence::canonical_json_hash(&without_receipt_hash(value))
 }
 
-pub fn validate_ai_spec_draft(value: &Value) -> AiSpecDraftReport {
+pub fn validate_ai_spec_draft(value: &serde_json::Value) -> AiSpecDraftReport {
     // r[impl cairn.ai_spec_drafts.provenance]
     // r[impl cairn.ai_spec_drafts.not_verification]
     // r[impl cairn.ai_spec_drafts.acceptance_paths]
@@ -112,7 +108,7 @@ pub fn validate_ai_spec_draft(value: &Value) -> AiSpecDraftReport {
     }
 }
 
-fn validate_required_fields(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_required_fields(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     match string_field(value, "schema_version") {
         Some(AI_SPEC_DRAFT_SCHEMA_V1) => {}
         Some(_) => push_issue(
@@ -140,7 +136,7 @@ fn validate_required_fields(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
     }
 }
 
-fn validate_known_fields(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_known_fields(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     validate_known_field(
         value,
         "artifact_kind",
@@ -227,7 +223,7 @@ fn validate_known_fields(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
     );
 }
 
-fn validate_secret_free_boundary(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_secret_free_boundary(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     for marker in UNSAFE_TEXT_MARKERS {
         if value.get(marker).is_some() {
             push_issue(
@@ -249,7 +245,7 @@ fn validate_secret_free_boundary(value: &Value, issues: &mut Vec<AiSpecDraftIssu
     }
 }
 
-fn validate_acceptance_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_acceptance_path(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     match string_field(value, "acceptance_path") {
         Some(ACCEPTANCE_PATH_MACHINE_CHECK) => validate_machine_check_path(value, issues),
         Some(ACCEPTANCE_PATH_HUMAN_REVIEW) => validate_human_review_path(value, issues),
@@ -264,7 +260,7 @@ fn validate_acceptance_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
     }
 }
 
-fn validate_machine_check_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_machine_check_path(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     if string_field(value, "validation_status") != Some(VALIDATION_STATUS_PASSED) {
         push_issue(
             issues,
@@ -283,7 +279,7 @@ fn validate_machine_check_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>
     }
 }
 
-fn validate_human_review_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_human_review_path(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     if string_field(value, "review_decision") != Some(REVIEW_DECISION_APPROVED) {
         push_issue(
             issues,
@@ -294,7 +290,7 @@ fn validate_human_review_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>)
     }
 }
 
-fn validate_docs_only_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_docs_only_path(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     if string_field(value, "docs_rationale").is_none() {
         push_issue(
             issues,
@@ -313,7 +309,7 @@ fn validate_docs_only_path(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
     }
 }
 
-fn validate_ai_only_boundary(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_ai_only_boundary(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     if string_field(value, "evidence_role") == Some(EVIDENCE_ROLE_PROPERTY)
         && string_field(value, "acceptance_path") == Some(ACCEPTANCE_PATH_AI_ONLY)
     {
@@ -326,7 +322,7 @@ fn validate_ai_only_boundary(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) 
     }
 }
 
-fn validate_rejected_reuse(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_rejected_reuse(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     let rejected_or_superseded = matches!(
         string_field(value, "draft_status"),
         Some(DRAFT_STATUS_REJECTED | DRAFT_STATUS_SUPERSEDED)
@@ -341,7 +337,7 @@ fn validate_rejected_reuse(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
     }
 }
 
-fn validate_optional_receipt_hash(value: &Value, issues: &mut Vec<AiSpecDraftIssue>) {
+fn validate_optional_receipt_hash(value: &serde_json::Value, issues: &mut Vec<AiSpecDraftIssue>) {
     if let Some(actual) = string_field(value, "receipt_hash") {
         let expected = ai_spec_draft_hash(value);
         if actual != expected {
@@ -355,7 +351,7 @@ fn validate_optional_receipt_hash(value: &Value, issues: &mut Vec<AiSpecDraftIss
     }
 }
 
-fn provenance_from_value(value: &Value) -> Option<AiSpecDraftProvenance> {
+fn provenance_from_value(value: &serde_json::Value) -> Option<AiSpecDraftProvenance> {
     Some(AiSpecDraftProvenance {
         artifact_kind: string_field(value, "artifact_kind")?.to_string(),
         assistant_class: string_field(value, "assistant_class")?.to_string(),
@@ -371,7 +367,7 @@ fn provenance_from_value(value: &Value) -> Option<AiSpecDraftProvenance> {
 }
 
 fn validate_known_field(
-    value: &Value,
+    value: &serde_json::Value,
     field: &'static str,
     allowed: &[&str],
     issues: &mut Vec<AiSpecDraftIssue>,
@@ -388,19 +384,19 @@ fn validate_known_field(
     }
 }
 
-fn string_field<'a>(value: &'a Value, field: &str) -> Option<&'a str> {
+fn string_field<'a>(value: &'a serde_json::Value, field: &str) -> Option<&'a str> {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(str::trim)
         .filter(|text| !text.is_empty())
 }
 
-fn bool_field(value: &Value, field: &str) -> Option<bool> {
-    value.get(field).and_then(Value::as_bool)
+fn bool_field(value: &serde_json::Value, field: &str) -> Option<bool> {
+    value.get(field).and_then(serde_json::Value::as_bool)
 }
 
-fn without_receipt_hash(value: &Value) -> Value {
+fn without_receipt_hash(value: &serde_json::Value) -> serde_json::Value {
     let mut canonical = value.clone();
     if let Some(object) = canonical.as_object_mut() {
         object.remove("receipt_hash");
@@ -418,14 +414,13 @@ fn push_issue(issues: &mut Vec<AiSpecDraftIssue>, code: &str, field_path: &str, 
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
 
     use super::*;
 
     const REQUIREMENT_ID: &str = "cairn.example.ai_draft";
 
-    fn machine_checked_draft() -> Value {
-        json!({
+    fn machine_checked_draft() -> serde_json::Value {
+        serde_json::json!({
             "schema_version": AI_SPEC_DRAFT_SCHEMA_V1,
             "artifact_kind": ARTIFACT_KIND_KANI_CONTRACT,
             "assistant_class": ASSISTANT_CLASS_AGENTIC,
@@ -441,8 +436,8 @@ mod tests {
         })
     }
 
-    fn reviewed_spec_draft() -> Value {
-        json!({
+    fn reviewed_spec_draft() -> serde_json::Value {
+        serde_json::json!({
             "schema_version": AI_SPEC_DRAFT_SCHEMA_V1,
             "artifact_kind": ARTIFACT_KIND_LIFECYCLE_SPEC,
             "assistant_class": ASSISTANT_CLASS_INTERACTIVE,
@@ -502,8 +497,8 @@ mod tests {
         // r[verify cairn.ai_spec_drafts.gate_diagnostics]
         // r[verify cairn.ai_spec_drafts.gate_diagnostics.named]
         let mut draft = machine_checked_draft();
-        draft["acceptance_path"] = json!(ACCEPTANCE_PATH_AI_ONLY);
-        draft["machine_receipt_status"] = Value::Null;
+        draft["acceptance_path"] = serde_json::json!(ACCEPTANCE_PATH_AI_ONLY);
+        draft["machine_receipt_status"] = serde_json::Value::Null;
         let report = validate_ai_spec_draft(&draft);
 
         assert!(!report.valid);
@@ -520,7 +515,7 @@ mod tests {
             .as_object_mut()
             .expect("draft object")
             .remove("target_requirement");
-        draft["validation_status"] = json!(VALIDATION_STATUS_FAILED);
+        draft["validation_status"] = serde_json::json!(VALIDATION_STATUS_FAILED);
         let report = validate_ai_spec_draft(&draft);
         let codes = issue_codes(&report);
 
@@ -534,8 +529,8 @@ mod tests {
         // r[verify cairn.ai_spec_drafts.negative_fixtures]
         // r[verify cairn.ai_spec_drafts.negative_fixtures.rejected]
         let mut draft = reviewed_spec_draft();
-        draft["draft_status"] = json!(DRAFT_STATUS_REJECTED);
-        draft["cited_as_accepted"] = json!(true);
+        draft["draft_status"] = serde_json::json!(DRAFT_STATUS_REJECTED);
+        draft["cited_as_accepted"] = serde_json::json!(true);
         let report = validate_ai_spec_draft(&draft);
 
         assert!(!report.valid);
@@ -548,10 +543,10 @@ mod tests {
         // r[verify cairn.ai_spec_drafts.operator_docs]
         // r[verify cairn.ai_spec_drafts.operator_docs.visible]
         let mut draft = reviewed_spec_draft();
-        draft["acceptance_path"] = json!(ACCEPTANCE_PATH_DOCS_ONLY);
-        draft["evidence_role"] = json!(EVIDENCE_ROLE_PROPERTY);
-        draft["docs_rationale"] = json!("reviewed docs only");
-        draft["raw_prompt"] = json!("raw prompt: secret fixture");
+        draft["acceptance_path"] = serde_json::json!(ACCEPTANCE_PATH_DOCS_ONLY);
+        draft["evidence_role"] = serde_json::json!(EVIDENCE_ROLE_PROPERTY);
+        draft["docs_rationale"] = serde_json::json!("reviewed docs only");
+        draft["raw_prompt"] = serde_json::json!("raw prompt: secret fixture");
         let report = validate_ai_spec_draft(&draft);
         let codes = issue_codes(&report);
 
@@ -564,7 +559,7 @@ mod tests {
     fn receipt_hash_mismatch_fails_deterministically() {
         let mut draft = reviewed_spec_draft();
         draft["receipt_hash"] =
-            json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            serde_json::json!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         let report = validate_ai_spec_draft(&draft);
 
         assert!(!report.valid);

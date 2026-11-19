@@ -1,16 +1,14 @@
-use serde_json::Value;
-
 use super::*;
 
 const EXPECTED_MAX_STORE_ID_BYTES: usize = 64;
-const EXPECTED_INITIAL_PROFILE_COUNT: usize = 3;
+const EXPECTED_INITIAL_PROFILE_COUNT: usize = 4;
 const INVALID_MACHINE_SUCCESS_STATUS: u64 = 1;
 
 #[test]
 fn rejects_cyclic_generated_workflow_policy_with_a_stable_code() {
     // r[verify cairn.artifact_workflow_contract.policy.invalid]
     // r[verify cairn.lifecycle_workflow_profiles.registry.invalid]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy value");
@@ -24,7 +22,7 @@ fn rejects_cyclic_generated_workflow_policy_with_a_stable_code() {
 #[test]
 fn rejects_agent_guidance_policy_authority_impersonation() {
     // r[verify cairn.agent_guidance_context.authority.reject]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy value");
@@ -58,7 +56,8 @@ fn rejects_generated_explore_mutation_and_missing_constraint() {
     // r[verify cairn.generated_agent_workflows.explore.invalid]
     let source = include_str!("../../../../../cairn-policy/generated/cairn-policy.json");
     for mutation in ["command", "constraint"] {
-        let mut value: Value = serde_json::from_str(source).expect("generated policy value");
+        let mut value: serde_json::Value =
+            serde_json::from_str(source).expect("generated policy value");
         let descriptors = value["generated_agent_workflow_policy"]["descriptors"]
             .as_array_mut()
             .expect("descriptor array");
@@ -83,7 +82,7 @@ fn rejects_generated_explore_mutation_and_missing_constraint() {
 #[test]
 fn rejects_unknown_default_workflow_profile() {
     // r[verify cairn.lifecycle_workflow_profiles.selection.invalid]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy value");
@@ -97,7 +96,7 @@ fn rejects_duplicate_workflow_profiles_and_ambient_sources() {
     // r[verify cairn.lifecycle_workflow_profiles.registry]
     // r[verify cairn.lifecycle_workflow_profiles.selection.invalid]
     // r[verify cairn.lifecycle_workflow_profiles.boundary.ambient]
-    let value: Value = serde_json::from_str(include_str!(
+    let value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy value");
@@ -124,6 +123,42 @@ fn rejects_duplicate_workflow_profiles_and_ambient_sources() {
 }
 
 #[test]
+fn rejects_missing_or_malformed_outcome_machine_profile() {
+    // r[verify cairn.outcome_machine_profile.selection]
+    // r[verify cairn.outcome_machine_profile.verification]
+    let source = include_str!("../../../../../cairn-policy/generated/cairn-policy.json");
+
+    let mut missing: serde_json::Value =
+        serde_json::from_str(source).expect("generated policy value");
+    missing["schemas"]
+        .as_array_mut()
+        .expect("schemas")
+        .retain(|schema| schema["id"] != "outcome-machine");
+    let missing_error =
+        validate_policy_json(missing).expect_err("missing outcome-machine profile fails");
+    assert!(missing_error.to_string().contains("outcome-machine"));
+
+    let mut malformed: serde_json::Value =
+        serde_json::from_str(source).expect("generated policy value");
+    let outcome_machine = malformed["schemas"]
+        .as_array_mut()
+        .expect("schemas")
+        .iter_mut()
+        .find(|schema| schema["id"] == "outcome-machine")
+        .expect("outcome-machine profile");
+    let review_artifact = outcome_machine["artifacts"]
+        .as_array_mut()
+        .expect("artifacts")
+        .iter_mut()
+        .find(|artifact| artifact["id"] == "outcome-machine")
+        .expect("outcome-machine artifact");
+    review_artifact["stage"] = serde_json::json!("tasks");
+    let malformed_error =
+        validate_policy_json(malformed).expect_err("malformed outcome-machine profile fails");
+    assert!(malformed_error.to_string().contains("design-stage"));
+}
+
+#[test]
 fn parses_generated_default_policy_text() {
     // r[verify cairn.artifact_workflow_contract.policy.valid]
     // r[verify developer_experience.core_policy_parser_boundary_split.behavior]
@@ -133,6 +168,7 @@ fn parses_generated_default_policy_text() {
     // r[verify cairn.lifecycle_workflow_profiles.initial_profiles]
     // r[verify cairn.lifecycle_workflow_profiles.initial_profiles.spec_driven]
     // r[verify cairn.lifecycle_workflow_profiles.selection.compatibility]
+    // r[verify cairn.outcome_machine_profile.selection]
     let text = include_str!("../../../../../cairn-policy/generated/cairn-policy.json");
     let policy = parse_policy_json(text).expect("generated policy parses");
     assert_eq!(policy.name, "cairn-default");
@@ -162,7 +198,12 @@ fn parses_generated_default_policy_text() {
     );
     assert_eq!(
         policy.workflow_profile_policy.allowed_profiles,
-        vec!["spec-driven", "assurance", "no-spec-delta"]
+        vec![
+            "spec-driven",
+            "assurance",
+            "no-spec-delta",
+            "outcome-machine"
+        ]
     );
     let (compatibility, _) = crate::verified::artifact_workflow::select_workflow_profile(
         &policy.workflow_profile_policy,
@@ -353,6 +394,18 @@ fn parses_generated_default_policy_text() {
         policy.generated_agent_workflow_policy.adapters.len(),
         crate::verified::generated_agent_workflow::INITIAL_ADAPTER_IDS.len()
     );
+    assert_eq!(
+        policy.generated_agent_workflow_policy.entry.id,
+        crate::verified::generated_agent_workflow::GENERATED_AGENT_WORKFLOW_ENTRY_ID
+    );
+    assert_eq!(
+        policy.generated_agent_workflow_policy.entry.layout,
+        crate::verified::generated_agent_workflow::GENERATED_AGENT_WORKFLOW_NATIVE_LAYOUT
+    );
+    assert!(!policy
+        .generated_agent_workflow_policy
+        .command_catalog
+        .is_empty());
     let metadata = policy
         .policy_schema_compatibility
         .expect("generated policy includes schema compatibility metadata");
@@ -379,7 +432,7 @@ fn rejects_invalid_machine_contract_policy() {
 
     let mut unknown_class = generated_policy_value();
     unknown_class["machine_contract_policy"]["exit_classes"][0]["id"] =
-        Value::String("unknown".to_string());
+        serde_json::Value::String("unknown".to_string());
     assert_invalid_field(unknown_class, "machine_contract_policy.exit_classes.id");
 
     let mut duplicate_code = generated_policy_value();
@@ -392,24 +445,25 @@ fn rejects_invalid_machine_contract_policy() {
 
     let mut unsafe_target = generated_policy_value();
     unsafe_target["machine_contract_policy"]["diagnostics"][0]["target"] =
-        Value::String("../secret".to_string());
+        serde_json::Value::String("../secret".to_string());
     assert_invalid_field(unsafe_target, "machine_contract_policy.diagnostics.target");
 
     let mut unsafe_code = generated_policy_value();
     unsafe_code["machine_contract_policy"]["diagnostics"][0]["code"] =
-        Value::String(".hidden".to_string());
+        serde_json::Value::String(".hidden".to_string());
     assert_invalid_field(unsafe_code, "machine_contract_policy.diagnostics.code");
 
     let mut multiline_non_claim = generated_policy_value();
     multiline_non_claim["machine_contract_policy"]["required_non_claims"][0] =
-        Value::String("first\rsecond".to_string());
+        serde_json::Value::String("first\rsecond".to_string());
     assert_invalid_field(
         multiline_non_claim,
         "machine_contract_policy.required_non_claims",
     );
 
     let mut invalid_bound = generated_policy_value();
-    invalid_bound["machine_contract_policy"]["bounds"]["max_stdout_bytes"] = Value::from(0);
+    invalid_bound["machine_contract_policy"]["bounds"]["max_stdout_bytes"] =
+        serde_json::Value::from(0);
     assert_invalid_field(
         invalid_bound,
         "machine_contract_policy.bounds.max_stdout_bytes",
@@ -417,7 +471,7 @@ fn rejects_invalid_machine_contract_policy() {
 
     let mut invalid_status = generated_policy_value();
     invalid_status["machine_contract_policy"]["exit_classes"][0]["process_status"] =
-        Value::from(INVALID_MACHINE_SUCCESS_STATUS);
+        serde_json::Value::from(INVALID_MACHINE_SUCCESS_STATUS);
     assert_invalid_field(
         invalid_status,
         "machine_contract_policy.exit_classes.process_status",
@@ -429,7 +483,7 @@ fn rejects_missing_or_drifting_nominal_identity_policy() {
     // r[verify cairn.nominal_evidence_identities.policy.deterministic]
     let source = include_str!("../../../../../cairn-policy/generated/cairn-policy.json");
 
-    let mut missing: Value = serde_json::from_str(source).expect("policy JSON");
+    let mut missing: serde_json::Value = serde_json::from_str(source).expect("policy JSON");
     missing
         .as_object_mut()
         .expect("policy object")
@@ -439,7 +493,7 @@ fn rejects_missing_or_drifting_nominal_identity_policy() {
         Err(PolicyError::MissingField("nominal_identity_policy"))
     ));
 
-    let mut drift: Value = serde_json::from_str(source).expect("policy JSON");
+    let mut drift: serde_json::Value = serde_json::from_str(source).expect("policy JSON");
     drift["nominal_identity_policy"]["octet"]["domains"][0]["symbols"] =
         serde_json::json!(["RawString"]);
     assert!(matches!(
@@ -451,7 +505,8 @@ fn rejects_missing_or_drifting_nominal_identity_policy() {
 #[test]
 fn rejects_malformed_lifecycle_store_bounds() {
     let mut zero_bound = generated_policy_value();
-    zero_bound["lifecycle_store_policy"]["bounds"]["max_store_id_bytes"] = Value::from(0);
+    zero_bound["lifecycle_store_policy"]["bounds"]["max_store_id_bytes"] =
+        serde_json::Value::from(0);
     assert_invalid_field(
         zero_bound,
         "lifecycle_store_policy.bounds.max_store_id_bytes",
@@ -459,7 +514,7 @@ fn rejects_malformed_lifecycle_store_bounds() {
 
     let mut wrong_type = generated_policy_value();
     wrong_type["lifecycle_store_policy"]["bounds"]["max_references"] =
-        Value::String("many".to_string());
+        serde_json::Value::String("many".to_string());
     assert_invalid_field(wrong_type, "lifecycle_store_policy.bounds.max_references");
 }
 
@@ -489,7 +544,7 @@ fn rejects_duplicate_lifecycle_store_ids_and_issue_codes() {
 fn rejects_unknown_lifecycle_store_opener_shapes() {
     let mut unknown_mode = generated_policy_value();
     unknown_mode["lifecycle_store_policy"]["opener_profiles"][0]["member_argument_mode"] =
-        Value::String("shell_template".to_string());
+        serde_json::Value::String("shell_template".to_string());
     assert_invalid_field(
         unknown_mode,
         "lifecycle_store_policy.opener_profiles.member_argument_mode",
@@ -497,7 +552,7 @@ fn rejects_unknown_lifecycle_store_opener_shapes() {
 
     let mut unknown_field = generated_policy_value();
     unknown_field["lifecycle_store_policy"]["opener_profiles"][0]["shell"] =
-        Value::String("code {members}".to_string());
+        serde_json::Value::String("code {members}".to_string());
     assert_invalid_field(
         unknown_field,
         "lifecycle_store_policy.opener_profiles.shape",
@@ -548,12 +603,13 @@ fn rejects_missing_lifecycle_store_required_fields() {
 #[test]
 fn rejects_lifecycle_store_schema_root_and_local_state_drift() {
     let mut schema = generated_policy_value();
-    schema["lifecycle_store_policy"]["schema"] = Value::String("unknown.v1".to_string());
+    schema["lifecycle_store_policy"]["schema"] =
+        serde_json::Value::String("unknown.v1".to_string());
     assert_invalid_field(schema, "lifecycle_store_policy.schema");
 
     let mut root_flag = generated_policy_value();
     root_flag["lifecycle_store_policy"]["root_resolution"]["root_flag"] =
-        Value::String("--workspace".to_string());
+        serde_json::Value::String("--workspace".to_string());
     assert_invalid_field(
         root_flag,
         "lifecycle_store_policy.root_resolution.root_flag",
@@ -576,7 +632,7 @@ fn rejects_lifecycle_store_schema_root_and_local_state_drift() {
     widened_commands["lifecycle_store_policy"]["root_resolution"]["eligible_commands"]
         .as_array_mut()
         .expect("eligible commands")
-        .push(Value::String("archive".to_string()));
+        .push(serde_json::Value::String("archive".to_string()));
     assert_invalid_field(
         widened_commands,
         "lifecycle_store_policy.root_resolution.eligible_commands",
@@ -584,7 +640,7 @@ fn rejects_lifecycle_store_schema_root_and_local_state_drift() {
 
     let mut locator_schema = generated_policy_value();
     locator_schema["lifecycle_store_policy"]["locator"]["schema"] =
-        Value::String("cairn.ambient-locator.v1".to_string());
+        serde_json::Value::String("cairn.ambient-locator.v1".to_string());
     assert_invalid_field(locator_schema, "lifecycle_store_policy.locator.schema");
 }
 
@@ -592,14 +648,14 @@ fn rejects_lifecycle_store_schema_root_and_local_state_drift() {
 fn rejects_lifecycle_store_issue_and_portable_field_drift() {
     let mut issue_code = generated_policy_value();
     issue_code["lifecycle_store_policy"]["issue_codes"][0] =
-        Value::String("ambient.overclaim".to_string());
+        serde_json::Value::String("ambient.overclaim".to_string());
     assert_invalid_field(issue_code, "lifecycle_store_policy.issue_codes");
 
     let mut portable_fields = generated_policy_value();
     portable_fields["lifecycle_store_policy"]["receipts"]["portable_fields"]
         .as_array_mut()
         .expect("portable fields")
-        .push(Value::String("root".to_string()));
+        .push(serde_json::Value::String("root".to_string()));
     assert_invalid_field(
         portable_fields,
         "lifecycle_store_policy.receipts.portable_fields",
@@ -611,8 +667,9 @@ fn rejects_invalid_artifact_substance_policy() {
     // r[verify cairn.lifecycle_validation.tests.negative]
     let source = include_str!("../../../../../cairn-policy/generated/cairn-policy.json");
 
-    let mut zero_threshold: Value = serde_json::from_str(source).expect("policy JSON");
-    zero_threshold["gate_policy"]["substance"]["minimum_substantive_tasks"] = Value::from(0);
+    let mut zero_threshold: serde_json::Value = serde_json::from_str(source).expect("policy JSON");
+    zero_threshold["gate_policy"]["substance"]["minimum_substantive_tasks"] =
+        serde_json::Value::from(0);
     assert!(matches!(
         validate_policy_json(zero_threshold),
         Err(PolicyError::InvalidField(
@@ -620,9 +677,9 @@ fn rejects_invalid_artifact_substance_policy() {
         ))
     ));
 
-    let mut missing_marker: Value = serde_json::from_str(source).expect("policy JSON");
+    let mut missing_marker: serde_json::Value = serde_json::from_str(source).expect("policy JSON");
     missing_marker["gate_policy"]["substance"]["dependency_marker_id"] =
-        Value::String("unknown-marker".to_string());
+        serde_json::Value::String("unknown-marker".to_string());
     assert!(matches!(
         validate_policy_json(missing_marker),
         Err(PolicyError::InvalidField(
@@ -630,7 +687,8 @@ fn rejects_invalid_artifact_substance_policy() {
         ))
     ));
 
-    let mut missing_task_marker: Value = serde_json::from_str(source).expect("policy JSON");
+    let mut missing_task_marker: serde_json::Value =
+        serde_json::from_str(source).expect("policy JSON");
     missing_task_marker["task_marker_policy"]["markers"]
         .as_array_mut()
         .expect("marker array")
@@ -640,9 +698,10 @@ fn rejects_invalid_artifact_substance_policy() {
         Err(PolicyError::InvalidField("task_marker_policy.markers"))
     ));
 
-    let mut unsupported_target: Value = serde_json::from_str(source).expect("policy JSON");
+    let mut unsupported_target: serde_json::Value =
+        serde_json::from_str(source).expect("policy JSON");
     unsupported_target["gate_policy"]["substance"]["dependency_target_class"] =
-        Value::String("ambient-path".to_string());
+        serde_json::Value::String("ambient-path".to_string());
     assert!(matches!(
         validate_policy_json(unsupported_target),
         Err(PolicyError::InvalidField(
@@ -676,7 +735,7 @@ fn policy_module_split_preserves_public_api_exports() {
 #[test]
 fn rejects_enabled_steel_policy_without_profiles() {
     // r[verify developer_experience.core_policy_parser_boundary_split.tests]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
@@ -696,12 +755,12 @@ fn rejects_enabled_steel_policy_without_profiles() {
 #[test]
 fn rejects_unknown_steel_profile_mode() {
     // r[verify developer_experience.core_policy_parser_boundary_split.tests]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
     value["steel_orchestration_policy"]["profiles"][0]["mode"] =
-        Value::String("ambient".to_string());
+        serde_json::Value::String("ambient".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -715,11 +774,11 @@ fn rejects_unknown_steel_profile_mode() {
 fn rejects_empty_traceability_profile_id() {
     // r[verify cairn.supersede.traceability_ownership.configured_profiles]
     // r[verify cairn.supersede.traceability_ownership.configured_profiles.malformed]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
-    value["traceability_policy"]["profiles"][0]["id"] = Value::String(String::new());
+    value["traceability_policy"]["profiles"][0]["id"] = serde_json::Value::String(String::new());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -731,7 +790,7 @@ fn rejects_empty_traceability_profile_id() {
 fn rejects_unsupported_traceability_marker_verb() {
     // r[verify cairn.supersede.traceability_ownership.configured_profiles]
     // r[verify cairn.supersede.traceability_ownership.configured_profiles.malformed]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
@@ -750,12 +809,12 @@ fn rejects_unsupported_traceability_marker_verb() {
 fn rejects_unsafe_traceability_source_path() {
     // r[verify cairn.supersede.traceability_ownership.configured_profiles]
     // r[verify cairn.supersede.traceability_ownership.configured_profiles.malformed]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
     value["traceability_policy"]["profiles"][0]["requirement_sources"][0]["root"] =
-        Value::String("../requirements".to_string());
+        serde_json::Value::String("../requirements".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -769,12 +828,12 @@ fn rejects_unsafe_traceability_source_path() {
 fn rejects_unsupported_traceability_source_kind() {
     // r[verify cairn.supersede.traceability_ownership.configured_profiles]
     // r[verify cairn.supersede.traceability_ownership.configured_profiles.malformed]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
     value["traceability_policy"]["profiles"][0]["evidence_sources"][0]["source_kind"] =
-        Value::String("ambient_source".to_string());
+        serde_json::Value::String("ambient_source".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -787,12 +846,12 @@ fn rejects_unsupported_traceability_source_kind() {
 #[test]
 fn rejects_unsupported_traceability_assurance_level() {
     // r[verify cairn.trace_index.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
     value["traceability_policy"]["profiles"][0]["assurance_level"] =
-        Value::String("structural".to_string());
+        serde_json::Value::String("structural".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -805,12 +864,12 @@ fn rejects_unsupported_traceability_assurance_level() {
 #[test]
 fn rejects_unsupported_traceability_anchor_kind() {
     // r[verify cairn.trace_index.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
     value["traceability_policy"]["profiles"][0]["anchor_kind"] =
-        Value::String("line_number".to_string());
+        serde_json::Value::String("line_number".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -823,11 +882,11 @@ fn rejects_unsupported_traceability_anchor_kind() {
 #[test]
 fn rejects_unknown_stack_provenance_mode() {
     // r[verify cairn.stack_provenance_gates.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
-    value["stack_provenance_gate"]["mode"] = Value::String("ambient".to_string());
+    value["stack_provenance_gate"]["mode"] = serde_json::Value::String("ambient".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -838,7 +897,7 @@ fn rejects_unknown_stack_provenance_mode() {
 #[test]
 fn rejects_stale_stack_provenance_policy_hash_shape() {
     // r[verify cairn.stack_provenance_gates.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
@@ -856,11 +915,11 @@ fn rejects_stale_stack_provenance_policy_hash_shape() {
 #[test]
 fn rejects_unknown_function_address_mode() {
     // r[verify cairn.function_address_gates.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
-    value["function_address_gate"]["mode"] = Value::String("ambient".to_string());
+    value["function_address_gate"]["mode"] = serde_json::Value::String("ambient".to_string());
 
     assert!(matches!(
         validate_policy_json(value),
@@ -871,7 +930,7 @@ fn rejects_unknown_function_address_mode() {
 #[test]
 fn rejects_stale_function_address_policy_hash_shape() {
     // r[verify cairn.function_address_gates.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
@@ -889,7 +948,7 @@ fn rejects_stale_function_address_policy_hash_shape() {
 #[test]
 fn rejects_empty_function_address_required_roles() {
     // r[verify cairn.function_address_gates.policy]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
@@ -908,7 +967,7 @@ fn rejects_unknown_runtime_capture_origin() {
     // r[verify cairn.runtime_evidence.policy_schema]
     // r[verify cairn.runtime_evidence.policy_schema.public]
     // r[verify cairn.runtime_evidence.policy_schema.unknown]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
@@ -926,11 +985,11 @@ fn rejects_unknown_runtime_capture_origin() {
 #[test]
 fn rejects_zero_runtime_summary_limit() {
     // r[verify cairn.runtime_evidence.policy_schema]
-    let mut value: Value = serde_json::from_str(include_str!(
+    let mut value: serde_json::Value = serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))
     .expect("generated policy json");
-    value["runtime_evidence_policy"]["max_summary_bytes"] = Value::from(0);
+    value["runtime_evidence_policy"]["max_summary_bytes"] = serde_json::Value::from(0);
 
     assert!(matches!(
         validate_policy_json(value),
@@ -1054,7 +1113,7 @@ fn rejects_unsupported_policy_schema_metadata() {
     // r[verify cairn.policy_schema_compatibility.fixtures.negative]
     let mut value = generated_policy_value();
     value[POLICY_SCHEMA_METADATA_FIELD]["schema_version"] =
-        Value::String("cairn.policy-schema.v999".to_string());
+        serde_json::Value::String("cairn.policy-schema.v999".to_string());
     let error = validate_policy_json(value.clone()).expect_err("unsupported schema fails");
     assert!(matches!(error, PolicyError::UnsupportedPolicySchema { .. }));
     let report = classify_policy_schema_compatibility(&value, Some(&error));
@@ -1067,7 +1126,7 @@ fn rejects_malformed_policy_schema_metadata() {
     // r[verify cairn.policy_schema_compatibility.validation.fixtures]
     let mut value = generated_policy_value();
     value[POLICY_SCHEMA_METADATA_FIELD]["field_set_digest"] =
-        Value::String("not-a-hash".to_string());
+        serde_json::Value::String("not-a-hash".to_string());
     let error = validate_policy_json(value.clone()).expect_err("malformed metadata fails");
     assert!(matches!(
         error,
@@ -1077,21 +1136,21 @@ fn rejects_malformed_policy_schema_metadata() {
     assert_eq!(report.status, "unsupported");
 }
 
-fn assert_invalid_field(value: Value, expected_field: &'static str) {
+fn assert_invalid_field(value: serde_json::Value, expected_field: &'static str) {
     match validate_policy_json(value) {
         Err(PolicyError::InvalidField(field)) => assert_eq!(field, expected_field),
         other => panic!("expected invalid field {expected_field}, got {other:?}"),
     }
 }
 
-fn assert_missing_field(value: Value, expected_field: &'static str) {
+fn assert_missing_field(value: serde_json::Value, expected_field: &'static str) {
     match validate_policy_json(value) {
         Err(PolicyError::MissingField(field)) => assert_eq!(field, expected_field),
         other => panic!("expected missing field {expected_field}, got {other:?}"),
     }
 }
 
-fn generated_policy_value() -> Value {
+fn generated_policy_value() -> serde_json::Value {
     serde_json::from_str(include_str!(
         "../../../../../cairn-policy/generated/cairn-policy.json"
     ))

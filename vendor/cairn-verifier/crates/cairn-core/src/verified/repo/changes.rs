@@ -1,15 +1,14 @@
-use super::metadata::parse_change_metadata;
-use super::tasks::count_tasks;
-use super::{ChangeDetail, ChangeList, ChangeSource, ChangeStatus};
-
-pub fn build_change_status(mut source: ChangeSource) -> ChangeStatus {
+pub fn build_change_status(mut source: super::ChangeSource) -> super::ChangeStatus {
     // r[impl cairn.supersede.change_metadata.schema]
     // r[impl cairn.supersede.change_metadata.validation]
     source.delta_specs.sort();
-    let task_counts = source.tasks_markdown.as_deref().map(count_tasks);
+    let task_counts = source
+        .tasks_markdown
+        .as_deref()
+        .map(super::tasks::count_tasks);
     let (metadata, metadata_issues) =
-        parse_change_metadata(&source.name, source.metadata_json.as_deref());
-    ChangeStatus {
+        super::metadata::parse_change_metadata(&source.name, source.metadata_json.as_deref());
+    super::ChangeStatus {
         name: source.name,
         path: source.path,
         has_proposal: source.has_proposal,
@@ -22,7 +21,7 @@ pub fn build_change_status(mut source: ChangeSource) -> ChangeStatus {
     }
 }
 
-pub fn build_change_list(mut changes: Vec<ChangeStatus>) -> ChangeList {
+pub fn build_change_list(mut changes: Vec<super::ChangeStatus>) -> super::ChangeList {
     // r[impl cairn.supersede.read_parity]
     // r[impl cairn.supersede.read_parity.change_list]
     // r[impl cairn.supersede.change_metadata.read_receipts]
@@ -30,15 +29,15 @@ pub fn build_change_list(mut changes: Vec<ChangeStatus>) -> ChangeList {
     // r[impl cairn.supersede.boundary]
     // r[impl cairn.supersede.boundary.read_models]
     changes.sort_by(|left, right| left.name.cmp(&right.name));
-    ChangeList { changes }
+    super::ChangeList { changes }
 }
 
 pub fn filter_changes_by_metadata(
-    changes: Vec<ChangeStatus>,
+    changes: Vec<super::ChangeStatus>,
     group: Option<&str>,
     target_after: Option<&str>,
     target_before: Option<&str>,
-) -> Vec<ChangeStatus> {
+) -> Vec<super::ChangeStatus> {
     // r[impl cairn.supersede.change_metadata.filters]
     changes
         .into_iter()
@@ -47,7 +46,7 @@ pub fn filter_changes_by_metadata(
 }
 
 fn matches_metadata_filter(
-    change: &ChangeStatus,
+    change: &super::ChangeStatus,
     group: Option<&str>,
     target_after: Option<&str>,
     target_before: Option<&str>,
@@ -76,7 +75,7 @@ fn matches_metadata_filter(
     true
 }
 
-pub fn build_change_detail(change: ChangeStatus) -> ChangeDetail {
+pub fn build_change_detail(change: super::ChangeStatus) -> super::ChangeDetail {
     // r[impl cairn.supersede.read_parity.change_show]
-    ChangeDetail { change }
+    super::ChangeDetail { change }
 }

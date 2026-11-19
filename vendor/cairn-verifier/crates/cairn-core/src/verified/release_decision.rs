@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use super::evidence::canonical_json_hash;
@@ -11,7 +10,7 @@ pub const RELEASE_PORTABLE_SCHEMA_V1: &str = "cairn.release-decision-portable.v1
 const BLAKE3_HEX_LENGTH: usize = 64;
 
 // r[impl cairn.release_decision_cob.profile]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReleaseCandidate {
     pub source_revision: String,
@@ -22,7 +21,7 @@ pub struct ReleaseCandidate {
 }
 
 // r[impl cairn.release_decision_cob.evidence]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReleaseEvidenceSummary {
     pub id: String,
@@ -37,7 +36,7 @@ pub struct ReleaseEvidenceSummary {
 }
 
 // r[impl cairn.release_decision_cob.blockers]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReleaseFinding {
     pub id: String,
@@ -50,7 +49,7 @@ pub struct ReleaseFinding {
 }
 
 // r[impl cairn.release_decision_cob.decision]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReleaseVote {
     pub id: String,
@@ -59,7 +58,7 @@ pub struct ReleaseVote {
     pub review_basis: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReleaseDecisionState {
     pub schema: String,
@@ -69,20 +68,20 @@ pub struct ReleaseDecisionState {
     pub candidate_root: String,
     pub policy_identity: String,
     pub candidate: ReleaseCandidate,
-    pub proposers: BTreeSet<String>,
-    pub reviewers: BTreeSet<String>,
-    pub approvers: BTreeSet<String>,
-    pub withdrawers: BTreeSet<String>,
-    pub invalidators: BTreeSet<String>,
-    pub evidence: BTreeMap<String, ReleaseEvidenceSummary>,
-    pub findings: BTreeMap<String, ReleaseFinding>,
-    pub votes: BTreeMap<String, ReleaseVote>,
+    pub proposers: std::collections::BTreeSet<String>,
+    pub reviewers: std::collections::BTreeSet<String>,
+    pub approvers: std::collections::BTreeSet<String>,
+    pub withdrawers: std::collections::BTreeSet<String>,
+    pub invalidators: std::collections::BTreeSet<String>,
+    pub evidence: std::collections::BTreeMap<String, ReleaseEvidenceSummary>,
+    pub findings: std::collections::BTreeMap<String, ReleaseFinding>,
+    pub votes: std::collections::BTreeMap<String, ReleaseVote>,
     pub lifecycle: String,
     pub review_basis: String,
-    pub operations: BTreeSet<String>,
+    pub operations: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReleaseDecisionInit {
     pub schema: String,
@@ -92,14 +91,14 @@ pub struct ReleaseDecisionInit {
     pub candidate_root: String,
     pub policy_identity: String,
     pub candidate: ReleaseCandidate,
-    pub proposers: BTreeSet<String>,
-    pub reviewers: BTreeSet<String>,
-    pub approvers: BTreeSet<String>,
-    pub withdrawers: BTreeSet<String>,
-    pub invalidators: BTreeSet<String>,
+    pub proposers: std::collections::BTreeSet<String>,
+    pub reviewers: std::collections::BTreeSet<String>,
+    pub approvers: std::collections::BTreeSet<String>,
+    pub withdrawers: std::collections::BTreeSet<String>,
+    pub invalidators: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ReleaseDecisionAction {
     Init {

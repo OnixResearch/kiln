@@ -1,11 +1,8 @@
 //! Pure admission, selection, and identity construction for local agent guidance.
-
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use super::evidence::{blake3_hex, canonical_json_hash};
+//!
+//! The root facade preserves the public names. Remote derives target those
+//! aliases so Serde retains wire names and both type and sequence-length errors.
+//! `rename` alone does not preserve errors; `expecting` loses sequence lengths.
 
 pub const AGENT_GUIDANCE_POLICY_SCHEMA_V1: &str = "cairn.agent-guidance-policy.v1";
 pub const AGENT_GUIDANCE_SOURCE_PROJECT: &str = "project";
@@ -43,9 +40,13 @@ const AUTHORITY_RANK_FACT: u8 = 1;
 const AUTHORITY_RANK_ADVISORY: u8 = 2;
 const POLICY_CONSTRAINT_PRIORITY: u32 = 0;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceBounds {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidanceBounds",
+    rename = "AgentGuidanceBounds",
+    deny_unknown_fields
+)]
+pub struct Bounds {
     pub max_context_refs: usize,
     pub max_artifact_guidance: usize,
     pub max_operation_guidance: usize,
@@ -58,35 +59,47 @@ pub struct AgentGuidanceBounds {
     pub max_issues: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidancePolicy {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidancePolicy",
+    rename = "AgentGuidancePolicy",
+    deny_unknown_fields
+)]
+pub struct Policy {
     pub schema: String,
     pub allowed_source_roots: Vec<String>,
     pub allowed_authority_classes: Vec<String>,
     pub known_profiles: Vec<String>,
     pub known_artifacts: Vec<String>,
     pub known_operations: Vec<String>,
-    pub bounds: AgentGuidanceBounds,
+    pub bounds: Bounds,
     pub receipt_fields: Vec<String>,
     pub portable_excluded_fields: Vec<String>,
     pub required_non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceDeclaration {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(
+    remote = "crate::AgentGuidanceDeclaration",
+    rename = "AgentGuidanceDeclaration",
+    deny_unknown_fields
+)]
+pub struct Declaration {
     #[serde(default)]
-    pub context_refs: Vec<AgentContextReference>,
+    pub context_refs: Vec<ContextReference>,
     #[serde(default)]
-    pub artifact_guidance: Vec<AgentArtifactGuidance>,
+    pub artifact_guidance: Vec<ArtifactAdvice>,
     #[serde(default)]
-    pub operation_guidance: Vec<AgentOperationGuidance>,
+    pub operation_guidance: Vec<OperationAdvice>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentContextReference {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentContextReference",
+    rename = "AgentContextReference",
+    deny_unknown_fields
+)]
+pub struct ContextReference {
     pub id: String,
     pub source_root: String,
     pub path: String,
@@ -101,9 +114,13 @@ pub struct AgentContextReference {
     pub operations: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentArtifactGuidance {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentArtifactGuidance",
+    rename = "AgentArtifactGuidance",
+    deny_unknown_fields
+)]
+pub struct ArtifactAdvice {
     pub id: String,
     pub text: String,
     pub priority: u32,
@@ -114,9 +131,13 @@ pub struct AgentArtifactGuidance {
     pub artifacts: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentOperationGuidance {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentOperationGuidance",
+    rename = "AgentOperationGuidance",
+    deny_unknown_fields
+)]
+pub struct OperationAdvice {
     pub id: String,
     pub text: String,
     pub priority: u32,
@@ -125,58 +146,78 @@ pub struct AgentOperationGuidance {
     pub operations: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceRequest {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(
+    remote = "crate::AgentGuidanceRequest",
+    rename = "AgentGuidanceRequest",
+    deny_unknown_fields
+)]
+pub struct Request {
     pub profile: Option<String>,
     pub artifact: Option<String>,
     pub operation: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AgentGuidanceObservationStatus {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidanceObservationStatus",
+    rename = "AgentGuidanceObservationStatus",
+    rename_all = "snake_case"
+)]
+pub enum ObservationStatus {
     Present,
     MissingOptional,
     MissingRequired,
     Invalid,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceSourceObservation {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidanceSourceObservation",
+    rename = "AgentGuidanceSourceObservation",
+    deny_unknown_fields
+)]
+pub struct SourceObservation {
     pub id: String,
-    pub status: AgentGuidanceObservationStatus,
+    pub status: ObservationStatus,
     pub text: Option<String>,
     pub byte_length: Option<usize>,
     pub content_blake3: Option<String>,
     pub diagnostic: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceIssue {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidanceIssue",
+    rename = "AgentGuidanceIssue",
+    deny_unknown_fields
+)]
+pub struct Issue {
     pub code: String,
     pub field_path: String,
     pub message: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AdmittedAgentGuidance {
-    pub declaration: AgentGuidanceDeclaration,
+pub struct Admitted {
+    pub declaration: Declaration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AgentGuidanceSelectionPlan {
-    pub request: AgentGuidanceRequest,
-    pub context_refs: Vec<AgentContextReference>,
-    pub artifact_guidance: Vec<AgentArtifactGuidance>,
-    pub operation_guidance: Vec<AgentOperationGuidance>,
+pub struct SelectionPlan {
+    pub request: Request,
+    pub context_refs: Vec<ContextReference>,
+    pub artifact_guidance: Vec<ArtifactAdvice>,
+    pub operation_guidance: Vec<OperationAdvice>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceEntry {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidanceEntry",
+    rename = "AgentGuidanceEntry",
+    deny_unknown_fields
+)]
+pub struct Entry {
     pub id: String,
     pub authority: String,
     pub priority: u32,
@@ -186,15 +227,19 @@ pub struct AgentGuidanceEntry {
     pub profiles: Vec<String>,
     pub artifacts: Vec<String>,
     pub operations: Vec<String>,
-    pub status: AgentGuidanceObservationStatus,
+    pub status: ObservationStatus,
     pub byte_length: Option<usize>,
     pub content_blake3: Option<String>,
     pub text: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableAgentGuidanceEntry {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::PortableAgentGuidanceEntry",
+    rename = "PortableAgentGuidanceEntry",
+    deny_unknown_fields
+)]
+pub struct PortableEntry {
     pub id: String,
     pub authority: String,
     pub priority: u32,
@@ -204,20 +249,24 @@ pub struct PortableAgentGuidanceEntry {
     pub profiles: Vec<String>,
     pub artifacts: Vec<String>,
     pub operations: Vec<String>,
-    pub status: AgentGuidanceObservationStatus,
+    pub status: ObservationStatus,
     pub byte_length: Option<usize>,
     pub content_blake3: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct AgentGuidanceResult {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::AgentGuidanceResult",
+    rename = "AgentGuidanceResult",
+    deny_unknown_fields
+)]
+pub struct Evaluation {
     pub valid: bool,
-    pub request: AgentGuidanceRequest,
-    pub bounds: AgentGuidanceBounds,
-    pub entries: Vec<AgentGuidanceEntry>,
-    pub portable_entries: Vec<PortableAgentGuidanceEntry>,
-    pub issues: Vec<AgentGuidanceIssue>,
+    pub request: Request,
+    pub bounds: Bounds,
+    pub entries: Vec<Entry>,
+    pub portable_entries: Vec<PortableEntry>,
+    pub issues: Vec<Issue>,
     pub local_result_hash: String,
     pub portable_identity: String,
     pub project_identity: Option<String>,
@@ -225,19 +274,57 @@ pub struct AgentGuidanceResult {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct PortableAgentGuidanceResult {
-    pub request: AgentGuidanceRequest,
-    pub bounds: AgentGuidanceBounds,
-    pub entries: Vec<PortableAgentGuidanceEntry>,
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(
+    remote = "crate::PortableAgentGuidanceResult",
+    rename = "PortableAgentGuidanceResult",
+    deny_unknown_fields
+)]
+pub struct PortableEvaluation {
+    pub request: Request,
+    pub bounds: Bounds,
+    pub entries: Vec<PortableEntry>,
     pub portable_identity: String,
     pub project_identity: Option<String>,
     pub policy_hash: String,
     pub non_claims: Vec<String>,
 }
 
-pub fn validate_agent_guidance_policy(policy: &AgentGuidancePolicy) -> Result<(), &'static str> {
+// Remote derives provide inherent methods. Delegate the ordinary traits to them
+// without duplicating fields, changing admission, or rewriting error strings.
+macro_rules! impl_wire_traits {
+    ($($name:ident),+ $(,)?) => {$(
+        impl serde::Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                Self::serialize(self, serializer)
+            }
+        }
+        impl<'de> serde::Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                Self::deserialize(deserializer)
+            }
+        }
+    )+};
+}
+
+impl_wire_traits!(
+    Bounds,
+    Policy,
+    Declaration,
+    ContextReference,
+    ArtifactAdvice,
+    OperationAdvice,
+    Request,
+    ObservationStatus,
+    SourceObservation,
+    Issue,
+    Entry,
+    PortableEntry,
+    Evaluation,
+    PortableEvaluation,
+);
+
+pub fn validate_policy(policy: &Policy) -> Result<(), &'static str> {
     if policy.schema != AGENT_GUIDANCE_POLICY_SCHEMA_V1 {
         return Err("agent_guidance_policy.schema");
     }
@@ -297,12 +384,12 @@ pub fn validate_agent_guidance_policy(policy: &AgentGuidancePolicy) -> Result<()
 
 // r[impl cairn.agent_guidance_context.admission]
 // r[impl cairn.agent_guidance_context.functional_boundary]
-pub fn admit_agent_guidance_declaration(
-    declaration: &AgentGuidanceDeclaration,
-    policy: &AgentGuidancePolicy,
-) -> Result<AdmittedAgentGuidance, Vec<AgentGuidanceIssue>> {
+pub fn admit_declaration(
+    declaration: &Declaration,
+    policy: &Policy,
+) -> Result<Admitted, Vec<Issue>> {
     let mut issues = Vec::new();
-    if let Err(field) = validate_agent_guidance_policy(policy) {
+    if let Err(field) = validate_policy(policy) {
         issues.push(issue(
             AGENT_GUIDANCE_ISSUE_DECLARATION,
             field,
@@ -333,7 +420,7 @@ pub fn admit_agent_guidance_declaration(
     }
 
     let mut normalized = declaration.clone();
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for (index, reference) in normalized.context_refs.iter_mut().enumerate() {
         let path = format!("context_refs[{index}]");
         validate_common_entry(
@@ -449,24 +536,20 @@ pub fn admit_agent_guidance_declaration(
         return Err(issues);
     }
     normalized.context_refs.sort_by(context_ref_order);
-    normalized
-        .artifact_guidance
-        .sort_by(artifact_guidance_order);
-    normalized
-        .operation_guidance
-        .sort_by(operation_guidance_order);
-    Ok(AdmittedAgentGuidance {
+    normalized.artifact_guidance.sort_by(artifact_order);
+    normalized.operation_guidance.sort_by(operation_order);
+    Ok(Admitted {
         declaration: normalized,
     })
 }
 
 // r[impl cairn.agent_guidance_context.selection]
 // r[impl cairn.agent_guidance_context.authority]
-pub fn select_agent_guidance(
-    admitted: &AdmittedAgentGuidance,
-    request: &AgentGuidanceRequest,
-    policy: &AgentGuidancePolicy,
-) -> Result<AgentGuidanceSelectionPlan, Vec<AgentGuidanceIssue>> {
+pub fn select(
+    admitted: &Admitted,
+    request: &Request,
+    policy: &Policy,
+) -> Result<SelectionPlan, Vec<Issue>> {
     let mut issues = validate_request(request, policy);
     issues.truncate(policy.bounds.max_issues);
     if !issues.is_empty() {
@@ -500,7 +583,7 @@ pub fn select_agent_guidance(
         .filter(|entry| selectors_match(&entry.operations, request.operation.as_deref()))
         .cloned()
         .collect();
-    Ok(AgentGuidanceSelectionPlan {
+    Ok(SelectionPlan {
         request: request.clone(),
         context_refs,
         artifact_guidance,
@@ -510,16 +593,16 @@ pub fn select_agent_guidance(
 
 // r[impl cairn.agent_guidance_context.receipts]
 // r[impl cairn.agent_guidance_context.functional_boundary.pure]
-pub fn build_agent_guidance_result(
-    plan: &AgentGuidanceSelectionPlan,
-    observations: &[AgentGuidanceSourceObservation],
+pub fn build_result(
+    plan: &SelectionPlan,
+    observations: &[SourceObservation],
     policy_constraints: &[String],
     project_identity: Option<String>,
     policy_hash: String,
-    policy: &AgentGuidancePolicy,
-) -> AgentGuidanceResult {
+    policy: &Policy,
+) -> Evaluation {
     let mut issues = Vec::new();
-    let mut observed = BTreeMap::new();
+    let mut observed = std::collections::BTreeMap::new();
     for observation in observations {
         if observed
             .insert(observation.id.as_str(), observation)
@@ -536,7 +619,7 @@ pub fn build_agent_guidance_result(
         .context_refs
         .iter()
         .map(|reference| reference.id.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     for observation in observations {
         if !selected_ids.contains(observation.id.as_str()) {
             issues.push(issue(
@@ -563,8 +646,8 @@ pub fn build_agent_guidance_result(
         validate_observation(reference, observation, &mut issues);
         entries.push(context_entry(reference, observation));
     }
-    entries.extend(plan.artifact_guidance.iter().map(artifact_guidance_entry));
-    entries.extend(plan.operation_guidance.iter().map(operation_guidance_entry));
+    entries.extend(plan.artifact_guidance.iter().map(artifact_entry));
+    entries.extend(plan.operation_guidance.iter().map(operation_entry));
     entries.sort_by(entry_order);
     issues.sort_by(|left, right| {
         left.field_path
@@ -576,7 +659,7 @@ pub fn build_agent_guidance_result(
     issues.truncate(policy.bounds.max_issues);
 
     let portable_entries = entries.iter().map(portable_entry).collect::<Vec<_>>();
-    let portable_identity = canonical_json_hash(&json!({
+    let portable_identity = super::evidence::canonical_json_hash(&serde_json::json!({
         "request": plan.request,
         "bounds": policy.bounds,
         "entries": portable_entries,
@@ -584,7 +667,7 @@ pub fn build_agent_guidance_result(
         "policy_hash": policy_hash,
         "non_claims": policy.required_non_claims,
     }));
-    let local_result_hash = canonical_json_hash(&json!({
+    let local_result_hash = super::evidence::canonical_json_hash(&serde_json::json!({
         "request": plan.request,
         "bounds": policy.bounds,
         "entries": entries,
@@ -593,7 +676,7 @@ pub fn build_agent_guidance_result(
         "policy_hash": policy_hash,
         "non_claims": policy.required_non_claims,
     }));
-    AgentGuidanceResult {
+    Evaluation {
         valid: issues.is_empty(),
         request: plan.request.clone(),
         bounds: policy.bounds.clone(),
@@ -608,8 +691,8 @@ pub fn build_agent_guidance_result(
     }
 }
 
-pub fn portable_agent_guidance_result(result: &AgentGuidanceResult) -> PortableAgentGuidanceResult {
-    PortableAgentGuidanceResult {
+pub fn portable_result(result: &Evaluation) -> PortableEvaluation {
+    PortableEvaluation {
         request: result.request.clone(),
         bounds: result.bounds.clone(),
         entries: result.portable_entries.clone(),
@@ -622,9 +705,7 @@ pub fn portable_agent_guidance_result(result: &AgentGuidanceResult) -> PortableA
 
 // r[impl cairn.agent_guidance_context.receipts]
 // r[impl cairn.agent_guidance_context.boundary]
-pub fn admit_portable_agent_guidance_result(
-    value: &Value,
-) -> Result<PortableAgentGuidanceResult, AgentGuidanceIssue> {
+pub fn admit_portable_result(value: &serde_json::Value) -> Result<PortableEvaluation, Issue> {
     if contains_forbidden_portable_field(value) {
         return Err(issue(
             AGENT_GUIDANCE_ISSUE_PORTABLE_RAW,
@@ -671,9 +752,9 @@ struct CommonEntryAdmission<'a> {
 
 fn validate_common_entry(
     entry: CommonEntryAdmission<'_>,
-    policy: &AgentGuidancePolicy,
-    ids: &mut BTreeSet<String>,
-    issues: &mut Vec<AgentGuidanceIssue>,
+    policy: &Policy,
+    ids: &mut std::collections::BTreeSet<String>,
+    issues: &mut Vec<Issue>,
 ) {
     if !valid_id(entry.id, policy.bounds.max_id_bytes) || !ids.insert(entry.id.to_string()) {
         issues.push(issue(
@@ -707,8 +788,8 @@ fn normalize_selectors(
     selectors: &mut Vec<String>,
     known: &[String],
     path: &str,
-    policy: &AgentGuidancePolicy,
-    issues: &mut Vec<AgentGuidanceIssue>,
+    policy: &Policy,
+    issues: &mut Vec<Issue>,
 ) {
     selectors.sort();
     selectors.dedup();
@@ -730,12 +811,7 @@ fn normalize_selectors(
     }
 }
 
-fn validate_inline_text(
-    text: &str,
-    path: &str,
-    policy: &AgentGuidancePolicy,
-    issues: &mut Vec<AgentGuidanceIssue>,
-) {
+fn validate_inline_text(text: &str, path: &str, policy: &Policy, issues: &mut Vec<Issue>) {
     if text.is_empty() || text.len() > policy.bounds.max_inline_text_bytes || text.contains('\0') {
         issues.push(issue(
             AGENT_GUIDANCE_ISSUE_DECLARATION,
@@ -745,10 +821,7 @@ fn validate_inline_text(
     }
 }
 
-fn validate_request(
-    request: &AgentGuidanceRequest,
-    policy: &AgentGuidancePolicy,
-) -> Vec<AgentGuidanceIssue> {
+fn validate_request(request: &Request, policy: &Policy) -> Vec<Issue> {
     let mut issues = Vec::new();
     validate_requested_selector(
         request.profile.as_deref(),
@@ -775,7 +848,7 @@ fn validate_requested_selector(
     selector: Option<&str>,
     known: &[String],
     path: &str,
-    issues: &mut Vec<AgentGuidanceIssue>,
+    issues: &mut Vec<Issue>,
 ) {
     if selector.is_some_and(|value| !known.iter().any(|candidate| candidate == value)) {
         issues.push(issue(
@@ -790,13 +863,13 @@ fn validate_requested_selector(
 }
 
 fn validate_observation(
-    reference: &AgentContextReference,
-    observation: &AgentGuidanceSourceObservation,
-    issues: &mut Vec<AgentGuidanceIssue>,
+    reference: &ContextReference,
+    observation: &SourceObservation,
+    issues: &mut Vec<Issue>,
 ) {
     let path = format!("observations.{}", reference.id);
     match observation.status {
-        AgentGuidanceObservationStatus::Present => {
+        ObservationStatus::Present => {
             let Some(text) = observation.text.as_deref() else {
                 issues.push(issue(
                     AGENT_GUIDANCE_ISSUE_OBSERVATION,
@@ -807,7 +880,7 @@ fn validate_observation(
             };
             if observation.byte_length != Some(text.len())
                 || observation.content_blake3.as_deref()
-                    != Some(blake3_hex(text.as_bytes()).as_str())
+                    != Some(super::evidence::blake3_hex(text.as_bytes()).as_str())
             {
                 issues.push(issue(
                     AGENT_GUIDANCE_ISSUE_OBSERVATION,
@@ -816,18 +889,18 @@ fn validate_observation(
                 ));
             }
         }
-        AgentGuidanceObservationStatus::MissingOptional if !reference.required => {}
-        AgentGuidanceObservationStatus::MissingRequired => issues.push(issue(
+        ObservationStatus::MissingOptional if !reference.required => {}
+        ObservationStatus::MissingRequired => issues.push(issue(
             AGENT_GUIDANCE_ISSUE_SOURCE_MISSING,
             path,
             "required context source is missing",
         )),
-        AgentGuidanceObservationStatus::MissingOptional => issues.push(issue(
+        ObservationStatus::MissingOptional => issues.push(issue(
             AGENT_GUIDANCE_ISSUE_SOURCE_MISSING,
             path,
             "required context source was reported as optional",
         )),
-        AgentGuidanceObservationStatus::Invalid => issues.push(issue(
+        ObservationStatus::Invalid => issues.push(issue(
             AGENT_GUIDANCE_ISSUE_SOURCE,
             path,
             observation
@@ -838,9 +911,12 @@ fn validate_observation(
     }
 }
 
-fn policy_constraint_entry(text: &String) -> AgentGuidanceEntry {
-    AgentGuidanceEntry {
-        id: format!("policy-constraint-{}", blake3_hex(text.as_bytes())),
+fn policy_constraint_entry(text: &String) -> Entry {
+    Entry {
+        id: format!(
+            "policy-constraint-{}",
+            super::evidence::blake3_hex(text.as_bytes())
+        ),
         authority: AGENT_GUIDANCE_AUTHORITY_POLICY.to_string(),
         priority: POLICY_CONSTRAINT_PRIORITY,
         source_root: None,
@@ -849,18 +925,15 @@ fn policy_constraint_entry(text: &String) -> AgentGuidanceEntry {
         profiles: Vec::new(),
         artifacts: Vec::new(),
         operations: Vec::new(),
-        status: AgentGuidanceObservationStatus::Present,
+        status: ObservationStatus::Present,
         byte_length: Some(text.len()),
-        content_blake3: Some(blake3_hex(text.as_bytes())),
+        content_blake3: Some(super::evidence::blake3_hex(text.as_bytes())),
         text: Some(text.clone()),
     }
 }
 
-fn context_entry(
-    reference: &AgentContextReference,
-    observation: &AgentGuidanceSourceObservation,
-) -> AgentGuidanceEntry {
-    AgentGuidanceEntry {
+fn context_entry(reference: &ContextReference, observation: &SourceObservation) -> Entry {
+    Entry {
         id: reference.id.clone(),
         authority: reference.authority.clone(),
         priority: reference.priority,
@@ -877,8 +950,8 @@ fn context_entry(
     }
 }
 
-fn artifact_guidance_entry(guidance: &AgentArtifactGuidance) -> AgentGuidanceEntry {
-    inline_guidance_entry(
+fn artifact_entry(guidance: &ArtifactAdvice) -> Entry {
+    inline_entry(
         &guidance.id,
         &guidance.text,
         guidance.priority,
@@ -888,8 +961,8 @@ fn artifact_guidance_entry(guidance: &AgentArtifactGuidance) -> AgentGuidanceEnt
     )
 }
 
-fn operation_guidance_entry(guidance: &AgentOperationGuidance) -> AgentGuidanceEntry {
-    inline_guidance_entry(
+fn operation_entry(guidance: &OperationAdvice) -> Entry {
+    inline_entry(
         &guidance.id,
         &guidance.text,
         guidance.priority,
@@ -899,15 +972,15 @@ fn operation_guidance_entry(guidance: &AgentOperationGuidance) -> AgentGuidanceE
     )
 }
 
-fn inline_guidance_entry(
+fn inline_entry(
     id: &str,
     text: &str,
     priority: u32,
     profiles: Vec<String>,
     artifacts: Vec<String>,
     operations: Vec<String>,
-) -> AgentGuidanceEntry {
-    AgentGuidanceEntry {
+) -> Entry {
+    Entry {
         id: id.to_string(),
         authority: AGENT_GUIDANCE_AUTHORITY_ADVISORY.to_string(),
         priority,
@@ -917,15 +990,15 @@ fn inline_guidance_entry(
         profiles,
         artifacts,
         operations,
-        status: AgentGuidanceObservationStatus::Present,
+        status: ObservationStatus::Present,
         byte_length: Some(text.len()),
-        content_blake3: Some(blake3_hex(text.as_bytes())),
+        content_blake3: Some(super::evidence::blake3_hex(text.as_bytes())),
         text: Some(text.to_string()),
     }
 }
 
-fn portable_entry(entry: &AgentGuidanceEntry) -> PortableAgentGuidanceEntry {
-    PortableAgentGuidanceEntry {
+fn portable_entry(entry: &Entry) -> PortableEntry {
+    PortableEntry {
         id: entry.id.clone(),
         authority: entry.authority.clone(),
         priority: entry.priority,
@@ -954,10 +1027,7 @@ fn valid_id(id: &str, max_bytes: usize) -> bool {
         })
 }
 
-fn context_ref_order(
-    left: &AgentContextReference,
-    right: &AgentContextReference,
-) -> std::cmp::Ordering {
+fn context_ref_order(left: &ContextReference, right: &ContextReference) -> std::cmp::Ordering {
     left.priority
         .cmp(&right.priority)
         .then(left.source_root.cmp(&right.source_root))
@@ -965,25 +1035,19 @@ fn context_ref_order(
         .then(left.id.cmp(&right.id))
 }
 
-fn artifact_guidance_order(
-    left: &AgentArtifactGuidance,
-    right: &AgentArtifactGuidance,
-) -> std::cmp::Ordering {
+fn artifact_order(left: &ArtifactAdvice, right: &ArtifactAdvice) -> std::cmp::Ordering {
     left.priority
         .cmp(&right.priority)
         .then(left.id.cmp(&right.id))
 }
 
-fn operation_guidance_order(
-    left: &AgentOperationGuidance,
-    right: &AgentOperationGuidance,
-) -> std::cmp::Ordering {
+fn operation_order(left: &OperationAdvice, right: &OperationAdvice) -> std::cmp::Ordering {
     left.priority
         .cmp(&right.priority)
         .then(left.id.cmp(&right.id))
 }
 
-fn entry_order(left: &AgentGuidanceEntry, right: &AgentGuidanceEntry) -> std::cmp::Ordering {
+fn entry_order(left: &Entry, right: &Entry) -> std::cmp::Ordering {
     authority_rank(&left.authority)
         .cmp(&authority_rank(&right.authority))
         .then(left.priority.cmp(&right.priority))
@@ -1001,13 +1065,13 @@ fn authority_rank(authority: &str) -> u8 {
     }
 }
 
-fn contains_forbidden_portable_field(value: &Value) -> bool {
+fn contains_forbidden_portable_field(value: &serde_json::Value) -> bool {
     match value {
-        Value::Object(object) => object.iter().any(|(key, child)| {
+        serde_json::Value::Object(object) => object.iter().any(|(key, child)| {
             matches!(key.as_str(), "text" | "absolute_path")
                 || contains_forbidden_portable_field(child)
         }),
-        Value::Array(values) => values.iter().any(contains_forbidden_portable_field),
+        serde_json::Value::Array(values) => values.iter().any(contains_forbidden_portable_field),
         _ => false,
     }
 }
@@ -1015,7 +1079,11 @@ fn contains_forbidden_portable_field(value: &Value) -> bool {
 fn unique_nonempty(values: &[String]) -> bool {
     !values.is_empty()
         && values.iter().all(|value| !value.is_empty())
-        && values.iter().collect::<BTreeSet<_>>().len() == values.len()
+        && values
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+            == values.len()
 }
 
 fn contains_required(values: &[String], required: &[&str]) -> bool {
@@ -1028,8 +1096,8 @@ fn issue(
     code: impl Into<String>,
     field_path: impl Into<String>,
     message: impl Into<String>,
-) -> AgentGuidanceIssue {
-    AgentGuidanceIssue {
+) -> Issue {
+    Issue {
         code: code.into(),
         field_path: field_path.into(),
         message: message.into(),
@@ -1053,8 +1121,8 @@ mod tests {
     const BLAKE3_HEX_LENGTH: usize = 64;
     const ADVICE_ENTRY_INDEX: usize = 2;
 
-    fn policy() -> AgentGuidancePolicy {
-        AgentGuidancePolicy {
+    fn policy() -> Policy {
+        Policy {
             schema: AGENT_GUIDANCE_POLICY_SCHEMA_V1.to_string(),
             allowed_source_roots: vec![
                 AGENT_GUIDANCE_SOURCE_PROJECT.to_string(),
@@ -1070,7 +1138,7 @@ mod tests {
                 AGENT_GUIDANCE_OPERATION_CONTEXT.to_string(),
                 AGENT_GUIDANCE_OPERATION_WORKFLOW_INSTRUCTIONS.to_string(),
             ],
-            bounds: AgentGuidanceBounds {
+            bounds: Bounds {
                 max_context_refs: MAX_CONTEXT_REFS,
                 max_artifact_guidance: MAX_GUIDANCE,
                 max_operation_guidance: MAX_GUIDANCE,
@@ -1091,9 +1159,9 @@ mod tests {
         }
     }
 
-    fn declaration() -> AgentGuidanceDeclaration {
-        AgentGuidanceDeclaration {
-            context_refs: vec![AgentContextReference {
+    fn declaration() -> Declaration {
+        Declaration {
+            context_refs: vec![ContextReference {
                 id: "project-facts".to_string(),
                 source_root: AGENT_GUIDANCE_SOURCE_PROJECT.to_string(),
                 path: "docs/facts.md".to_string(),
@@ -1104,7 +1172,7 @@ mod tests {
                 artifacts: vec!["proposal".to_string()],
                 operations: Vec::new(),
             }],
-            artifact_guidance: vec![AgentArtifactGuidance {
+            artifact_guidance: vec![ArtifactAdvice {
                 id: "proposal-style".to_string(),
                 text: "Keep the proposal bounded.".to_string(),
                 priority: ADVICE_PRIORITY,
@@ -1123,23 +1191,23 @@ mod tests {
         // r[verify cairn.agent_guidance_context.receipts.portable]
         // r[verify cairn.agent_guidance_context.functional_boundary.pure]
         let policy = policy();
-        let admitted = admit_agent_guidance_declaration(&declaration(), &policy).expect("admitted");
+        let admitted = admit_declaration(&declaration(), &policy).expect("admitted");
         assert_eq!(admitted.declaration.context_refs[0].profiles.len(), 1);
-        let request = AgentGuidanceRequest {
+        let request = Request {
             profile: Some("spec-driven".to_string()),
             artifact: Some("proposal".to_string()),
             operation: Some(AGENT_GUIDANCE_OPERATION_WORKFLOW_INSTRUCTIONS.to_string()),
         };
-        let plan = select_agent_guidance(&admitted, &request, &policy).expect("selected");
+        let plan = select(&admitted, &request, &policy).expect("selected");
         let text = "Declared project fact.";
-        let result = build_agent_guidance_result(
+        let result = build_result(
             &plan,
-            &[AgentGuidanceSourceObservation {
+            &[SourceObservation {
                 id: "project-facts".to_string(),
-                status: AgentGuidanceObservationStatus::Present,
+                status: ObservationStatus::Present,
                 text: Some(text.to_string()),
                 byte_length: Some(text.len()),
-                content_blake3: Some(blake3_hex(text.as_bytes())),
+                content_blake3: Some(super::super::evidence::blake3_hex(text.as_bytes())),
                 diagnostic: None,
             }],
             &["Policy constraint.".to_string()],
@@ -1170,11 +1238,11 @@ mod tests {
         input.context_refs[0].profiles = vec!["unknown".to_string()];
         input.context_refs[0].authority = AGENT_GUIDANCE_AUTHORITY_POLICY.to_string();
         input.artifact_guidance[0].id = input.context_refs[0].id.clone();
-        let issues = admit_agent_guidance_declaration(&input, &policy).expect_err("rejected");
+        let issues = admit_declaration(&input, &policy).expect_err("rejected");
         let codes = issues
             .iter()
             .map(|issue| issue.code.as_str())
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
         assert!(codes.contains(AGENT_GUIDANCE_ISSUE_PATH));
         assert!(codes.contains(AGENT_GUIDANCE_ISSUE_SELECTOR));
         assert!(codes.contains(AGENT_GUIDANCE_ISSUE_AUTHORITY));
@@ -1186,10 +1254,10 @@ mod tests {
         // r[verify cairn.agent_guidance_context.selection.unknown]
         // r[verify cairn.agent_guidance_context.sources.invalid]
         let policy = policy();
-        let admitted = admit_agent_guidance_declaration(&declaration(), &policy).expect("admitted");
-        let unknown = select_agent_guidance(
+        let admitted = admit_declaration(&declaration(), &policy).expect("admitted");
+        let unknown = select(
             &admitted,
-            &AgentGuidanceRequest {
+            &Request {
                 profile: Some("unknown".to_string()),
                 artifact: None,
                 operation: None,
@@ -1199,17 +1267,17 @@ mod tests {
         .expect_err("unknown selector");
         assert_eq!(unknown[0].code, AGENT_GUIDANCE_ISSUE_SELECTOR);
 
-        let request = AgentGuidanceRequest {
+        let request = Request {
             profile: Some("spec-driven".to_string()),
             artifact: Some("proposal".to_string()),
             operation: None,
         };
-        let plan = select_agent_guidance(&admitted, &request, &policy).expect("selected");
-        let result = build_agent_guidance_result(
+        let plan = select(&admitted, &request, &policy).expect("selected");
+        let result = build_result(
             &plan,
-            &[AgentGuidanceSourceObservation {
+            &[SourceObservation {
                 id: "project-facts".to_string(),
-                status: AgentGuidanceObservationStatus::Present,
+                status: ObservationStatus::Present,
                 text: Some("changed".to_string()),
                 byte_length: Some(1),
                 content_blake3: Some("0".repeat(BLAKE3_HEX_LENGTH)),
@@ -1230,11 +1298,10 @@ mod tests {
         let policy = policy();
         let mut declaration = declaration();
         declaration.context_refs[0].required = false;
-        let admitted =
-            admit_agent_guidance_declaration(&declaration, &policy).expect("admitted optional");
-        let plan = select_agent_guidance(
+        let admitted = admit_declaration(&declaration, &policy).expect("admitted optional");
+        let plan = select(
             &admitted,
-            &AgentGuidanceRequest {
+            &Request {
                 profile: Some("spec-driven".to_string()),
                 artifact: Some("proposal".to_string()),
                 operation: None,
@@ -1242,11 +1309,11 @@ mod tests {
             &policy,
         )
         .expect("selected optional");
-        let result = build_agent_guidance_result(
+        let result = build_result(
             &plan,
-            &[AgentGuidanceSourceObservation {
+            &[SourceObservation {
                 id: "project-facts".to_string(),
-                status: AgentGuidanceObservationStatus::MissingOptional,
+                status: ObservationStatus::MissingOptional,
                 text: None,
                 byte_length: None,
                 content_blake3: None,
@@ -1258,18 +1325,15 @@ mod tests {
             &policy,
         );
         assert!(result.valid);
-        assert_eq!(
-            result.entries[0].status,
-            AgentGuidanceObservationStatus::MissingOptional
-        );
+        assert_eq!(result.entries[0].status, ObservationStatus::MissingOptional);
     }
 
     #[test]
     fn portable_admission_rejects_raw_text_and_accepts_identity_only_values() {
         // r[verify cairn.agent_guidance_context.receipts.reject_raw]
         let policy = policy();
-        let portable = json!({
-            "request": AgentGuidanceRequest::default(),
+        let portable = serde_json::json!({
+            "request": Request::default(),
             "bounds": policy.bounds,
             "entries": [],
             "portable_identity": "portable-identity",
@@ -1277,10 +1341,10 @@ mod tests {
             "policy_hash": "policy-hash",
             "non_claims": policy.required_non_claims,
         });
-        assert!(admit_portable_agent_guidance_result(&portable).is_ok());
+        assert!(admit_portable_result(&portable).is_ok());
         let mut raw = portable;
-        raw["text"] = Value::String("secret-like text".to_string());
-        let issue = admit_portable_agent_guidance_result(&raw).expect_err("raw text rejected");
+        raw["text"] = serde_json::Value::String("secret-like text".to_string());
+        let issue = admit_portable_result(&raw).expect_err("raw text rejected");
         assert_eq!(issue.code, AGENT_GUIDANCE_ISSUE_PORTABLE_RAW);
     }
 }

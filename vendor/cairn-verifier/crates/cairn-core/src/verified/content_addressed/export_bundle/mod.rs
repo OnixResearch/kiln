@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 // r[impl cairn.nominal_evidence_identities.receipt_chains]
 
 mod caveats;
@@ -38,7 +36,7 @@ use schema::export_bundle_required_issues;
 // r[impl cli_maintainability.export_bundle_core_modules.focused_modules.visible_boundaries]
 // r[impl cli_maintainability.export_bundle_core_modules.focused_modules.narrow_bridges]
 // r[impl cli_maintainability.export_bundle_core_modules.behavior_preserved]
-pub fn validate_export_bundle_receipt(receipt: &Value) -> ExportBundleReport {
+pub fn validate_export_bundle_receipt(receipt: &serde_json::Value) -> ExportBundleReport {
     let computed_bundle_hash = export_bundle_hash(receipt);
     let issues = export_bundle_issues(receipt, &computed_bundle_hash);
     let is_valid = issues.is_empty();
@@ -50,7 +48,10 @@ pub fn validate_export_bundle_receipt(receipt: &Value) -> ExportBundleReport {
     }
 }
 
-fn export_bundle_issues(receipt: &Value, computed_bundle_hash: &str) -> Vec<ExportBundleIssue> {
+fn export_bundle_issues(
+    receipt: &serde_json::Value,
+    computed_bundle_hash: &str,
+) -> Vec<ExportBundleIssue> {
     let Some(object) = receipt.as_object() else {
         return vec![common::bundle_issue(
             "export_bundle.not_object",

@@ -1,0 +1,95 @@
+pub use crate::verified::artifact_auth::adapter::{
+    compare_cairn_artifact_auth, evaluate_cairn_artifact_auth, map_cairn_artifact_auth,
+    CairnArtifactAuthCompatibilityClassification, CairnArtifactAuthCompatibilityDimension,
+    CairnArtifactAuthCompatibilityDisposition, CairnArtifactAuthCompatibilityReport,
+    CairnArtifactAuthInput, CairnArtifactAuthReport, CAIRN_ARTIFACT_AUTH_BOUNDARY,
+    CAIRN_ARTIFACT_AUTH_COMPATIBILITY_BOUNDARY, CAIRN_ARTIFACT_AUTH_COMPATIBILITY_SCHEMA_V1,
+    CAIRN_ARTIFACT_AUTH_PARENT_PROFILE_V1, CAIRN_ARTIFACT_AUTH_PROFILE_V1,
+    CAIRN_ARTIFACT_AUTH_VERIFIER_CONTEXT_PROFILE_V1,
+};
+pub use crate::verified::authenticated_inputs::{
+    authenticated_evidence_policy_from_value, authenticated_signature_message,
+    evaluate_authenticated_evidence, evaluate_authenticated_release_gate,
+    AuthenticatedEvidenceInput, AuthenticatedEvidenceIssue, AuthenticatedEvidencePolicy,
+    AuthenticatedEvidenceReport, AuthenticatedPolicyExport, AuthenticatedReleaseGateInput,
+    AuthenticatedReleaseGateReport, AuthenticatedTrustedProducer, CanonicalReceiptObservation,
+    MeasuredEvidenceInput, PolicyExportObservation, SignatureVerificationObservation,
+    AUTHENTICATED_EVIDENCE_BOUNDARY, AUTHENTICATED_EVIDENCE_CANONICALIZATION_CORRECTED_V1,
+    AUTHENTICATED_EVIDENCE_KIND_FUNCTION_ADDRESS, AUTHENTICATED_EVIDENCE_KIND_STACK_PROVENANCE,
+    AUTHENTICATED_EVIDENCE_PROFILE_DIAGNOSTIC, AUTHENTICATED_EVIDENCE_PROFILE_ONIX_RELEASE,
+    AUTHENTICATED_EVIDENCE_SCHEMA_V1, AUTHENTICATED_EVIDENCE_SIGNATURE_ALGORITHM_ED25519,
+};
+pub use crate::verified::evidence_chain_readiness::{
+    evaluate_evidence_chain_readiness, evidence_chain_readiness_hash,
+    function_address_evidence_chain_profile, EvidenceChainMantleLink, EvidenceChainPolicy,
+    EvidenceChainPolicyIdentity, EvidenceChainProfile, EvidenceChainProjection,
+    EvidenceChainReadiness, EvidenceChainReadinessInput, EvidenceChainReadinessIssue,
+    EvidenceChainValenceLink, EVIDENCE_CHAIN_DISPOSITION_ABSENT,
+    EVIDENCE_CHAIN_DISPOSITION_INVALID, EVIDENCE_CHAIN_DISPOSITION_PRESENT,
+    EVIDENCE_CHAIN_FUNCTION_ADDRESS_CLAIM_SCOPE, EVIDENCE_CHAIN_FUNCTION_ADDRESS_KIND,
+    EVIDENCE_CHAIN_FUNCTION_ADDRESS_PROFILE_V1, EVIDENCE_CHAIN_MODE_OPTIONAL,
+    EVIDENCE_CHAIN_MODE_REQUIRED, EVIDENCE_CHAIN_READINESS_BOUNDARY,
+    EVIDENCE_CHAIN_REQUIRED_NON_CLAIM,
+};
+pub use crate::verified::function_address_gates::{
+    evaluate_function_address_evidence, function_address_digest_rules,
+    function_address_input_contracts, is_function_address_mode,
+    normalize_function_address_evidence_digests, FunctionAddressDigestNormalization,
+    FunctionAddressDigestRule, FunctionAddressEvidence, FunctionAddressInputContract,
+    FunctionAddressIssue, FunctionAddressPolicy, FunctionAddressReadiness,
+    FUNCTION_ADDRESS_BOUNDARY, FUNCTION_ADDRESS_CLAIM_SCOPE_LIFECYCLE,
+    FUNCTION_ADDRESS_DIGEST_ISSUE_CASE_UNSUPPORTED, FUNCTION_ADDRESS_DIGEST_ISSUE_MALFORMED,
+    FUNCTION_ADDRESS_DIGEST_ISSUE_PREFIX_UNSUPPORTED, FUNCTION_ADDRESS_DIGEST_SPELLING_B3_PREFIX,
+    FUNCTION_ADDRESS_DIGEST_SPELLING_BARE, FUNCTION_ADDRESS_GRAPH_SCHEMA_V1,
+    FUNCTION_ADDRESS_ISSUE_INPUT_DISPOSITION_UNSUPPORTED,
+    FUNCTION_ADDRESS_ISSUE_INPUT_SCHEMA_UNSUPPORTED, FUNCTION_ADDRESS_KAMACITE_SCHEMA_V1,
+    FUNCTION_ADDRESS_MANTLE_BINDING_SCHEMA_V1, FUNCTION_ADDRESS_MODE_DISABLED,
+    FUNCTION_ADDRESS_MODE_OPTIONAL, FUNCTION_ADDRESS_MODE_REQUIRED,
+    FUNCTION_ADDRESS_VALENCE_SCHEMA_V1,
+};
+pub use crate::verified::function_address_preserves_readiness::{
+    evaluate_function_address_preserves_readiness, function_address_preserves_policy,
+    FunctionAddressJsonProjection, FunctionAddressPreservesInput,
+    FUNCTION_ADDRESS_JSON_PROJECTION_AUTHORITY, FUNCTION_ADDRESS_JSON_PROJECTION_ROLE,
+    FUNCTION_ADDRESS_MANTLE_DISPOSITION_PRESENT, FUNCTION_ADDRESS_PRESERVES_BOUNDARY,
+    FUNCTION_ADDRESS_PRESERVES_ROLE, FUNCTION_ADDRESS_PRESERVES_SCHEMA_V1,
+    FUNCTION_ADDRESS_VALENCE_POLICY_KIND,
+};
+pub use crate::verified::function_address_stack_smoke::{
+    evaluate_function_address_stack_smoke, FunctionAddressStackSmokeInput,
+    FunctionAddressStackSmokeIssue, FunctionAddressStackSmokeReport,
+};
+pub use crate::verified::nominal_identity::{
+    nominal_identity_policy_diagnostics, nominal_octet_projection_hash,
+    nominal_runtime_projection_hash, ActorId, ActorIdRole, AnyIdentity, ArchiveDigest,
+    ArchiveDigestRole, ArchiveId, ArchiveIdRole, ArtifactDigest, ArtifactDigestRole, BinaryDigest,
+    BinaryDigestRole, Blake3Digest, Blake3DigestRef, ChainDigest, ChainDigestRole, ChangeId,
+    ChangeIdRole, ContentRootDigest, ContentRootDigestRole, DigestProfile, DigestRoleMarker,
+    DigestSpelling, DomainId, DomainIdRef, DomainRoleMarker, EvidenceKind, EvidenceKindRole,
+    GitOidSha1Digest, GitOidSha1DigestRole, GraphDigest, GraphDigestRole, IdentityIssue,
+    IdentityRole, IdentityWire, ImportedDigest, ImportedDigestAlgorithm, ImportedDigestRoleMarker,
+    InputDigest, InputDigestRole, LedgerDigest, LedgerDigestRole, MantleDigest, MantleDigestRole,
+    NominalIdentityDomainPolicy, NominalIdentityOctetDomain, NominalIdentityOctetProjection,
+    NominalIdentityPolicy, NominalIdentityRuntimeProjection, OperationId, OperationIdRole,
+    PackDigest, PackDigestRole, PlanDigest, PlanDigestRole, PolicyDigest, PolicyDigestRole,
+    PolicyKind, PolicyKindRole, ProjectionRole, ProjectionRoleMarker, ReceiptDigest,
+    ReceiptDigestRole, Sha256Digest, Sha256DigestRole, SidecarDigest, SidecarDigestRole,
+    SourceDigest, SourceDigestRole, StateDigest, StateDigestRole, ValenceDigest, ValenceDigestRole,
+    WorkspaceId, WorkspaceIdRole, MIXED_BLAKE3_PROFILE, NOMINAL_IDENTITY_OCTET_SCHEMA_V1,
+    NOMINAL_IDENTITY_RUNTIME_SCHEMA_V1, RAW_BLAKE3_PROFILE, STRICT_B3_PROFILE,
+};
+pub use crate::verified::stack_provenance::{
+    evaluate_stack_provenance, is_blake3_hex, is_stack_provenance_mode, StackProvenanceEvidence,
+    StackProvenanceIssue, StackProvenancePolicy, StackProvenanceReadiness,
+    STACK_PROVENANCE_BOUNDARY, STACK_PROVENANCE_CLAIM_SCOPE_LIFECYCLE,
+    STACK_PROVENANCE_MODE_DISABLED, STACK_PROVENANCE_MODE_OPTIONAL, STACK_PROVENANCE_MODE_REQUIRED,
+};
+pub use crate::verified::trellis_proof_readiness::{
+    evaluate_trellis_proof_readiness, trellis_proof_evidence_chain_profile,
+    trellis_proof_readiness_hash, TrellisProofInput, TrellisProofIssue, TrellisProofPolicy,
+    TrellisProofReadiness, TRELLIS_PROOF_CLAIM_SCOPE, TRELLIS_PROOF_EVIDENCE_KIND,
+    TRELLIS_PROOF_MODE_OPTIONAL, TRELLIS_PROOF_MODE_REQUIRED_FORMAL,
+    TRELLIS_PROOF_MODE_REQUIRED_RECORDED, TRELLIS_PROOF_PROFILE_V1,
+    TRELLIS_PROOF_REQUIRED_NON_CLAIM, TRELLIS_PROOF_ROLE_ACCEPTED_FORMAL,
+    TRELLIS_PROOF_ROLE_RECORDED,
+};

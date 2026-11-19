@@ -1,7 +1,3 @@
-use serde_json::{json, Value};
-
-use crate::canonical_json_hash;
-
 pub const RUNTIME_EVIDENCE_SCHEMA_V1: &str = "cairn.runtime_evidence.v1";
 pub const RUNTIME_EVIDENCE_BOUNDARY: &str = "runtime evidence proves presented-chain integrity and witnessed-prefix comparison only; it does not prove agent correctness, action policy enforcement, witness authority trust, or completeness without an independently controlled checkpoint";
 pub const RUNTIME_HASH_ALGORITHM_BLAKE3: &str = "BLAKE3";
@@ -48,8 +44,8 @@ pub struct RuntimeEvidenceIssue {
 
 impl RuntimeEvidenceIssue {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "code": self.code,
             "field_path": self.field_path,
             "expected": self.expected,
@@ -75,8 +71,8 @@ pub struct RuntimeEvidenceReport {
 
 impl RuntimeEvidenceReport {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "schema_version": RUNTIME_EVIDENCE_SCHEMA_V1,
             "valid": self.valid,
             "verdict": self.verdict,
@@ -106,8 +102,8 @@ pub struct CaptureOriginSummary {
 
 impl CaptureOriginSummary {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             CAPTURE_ORIGIN_BOUNDARY: self.boundary_captured,
             CAPTURE_ORIGIN_INGESTED: self.ingested_telemetry,
             CAPTURE_ORIGIN_WRAPPER_ASSERTED: self.wrapper_asserted,
@@ -126,28 +122,28 @@ impl CaptureOriginSummary {
 }
 
 #[must_use]
-pub fn runtime_record_hash(record: &Value) -> String {
+pub fn runtime_record_hash(record: &serde_json::Value) -> String {
     let mut material = record.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove(RECORD_HASH_FIELD);
     }
-    canonical_json_hash(&material)
+    crate::canonical_json_hash(&material)
 }
 
 #[must_use]
-pub fn witness_checkpoint_hash(checkpoint: &Value) -> String {
+pub fn witness_checkpoint_hash(checkpoint: &serde_json::Value) -> String {
     let mut material = checkpoint.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove(CHECKPOINT_HASH_FIELD);
     }
-    canonical_json_hash(&material)
+    crate::canonical_json_hash(&material)
 }
 
 #[must_use]
 pub fn verify_runtime_evidence(
     policy: &RuntimeEvidencePolicy,
-    records: &[Value],
-    checkpoints: &[Value],
+    records: &[serde_json::Value],
+    checkpoints: &[serde_json::Value],
 ) -> RuntimeEvidenceReport {
     // r[impl cairn.runtime_evidence.records]
     // r[impl cairn.runtime_evidence.subject_scope]
@@ -218,7 +214,7 @@ pub fn verify_runtime_evidence(
 
 fn validate_record(
     policy: &RuntimeEvidencePolicy,
-    record: &Value,
+    record: &serde_json::Value,
     index: usize,
     subject: &mut Option<String>,
     summary: &mut CaptureOriginSummary,
@@ -292,7 +288,10 @@ fn validate_record(
     validate_non_claims(record, &path("non_claims"), issues);
 
     let computed_hash = runtime_record_hash(record);
-    match record.get(RECORD_HASH_FIELD).and_then(Value::as_str) {
+    match record
+        .get(RECORD_HASH_FIELD)
+        .and_then(serde_json::Value::as_str)
+    {
         Some(hash) if hash == computed_hash => {}
         Some(_) => issues.push(runtime_issue(
             "runtime_evidence.record_hash_mismatch",
@@ -311,7 +310,7 @@ fn validate_record(
 
 fn validate_subject_scope(
     policy: &RuntimeEvidencePolicy,
-    records: &[Value],
+    records: &[serde_json::Value],
     issues: &mut Vec<RuntimeEvidenceIssue>,
 ) {
     if policy
@@ -323,7 +322,7 @@ fn validate_subject_scope(
     }
     let mut seen_subject: Option<&str> = None;
     for record in records {
-        let Some(subject) = record.get("subject").and_then(Value::as_str) else {
+        let Some(subject) = record.get("subject").and_then(serde_json::Value::as_str) else {
             continue;
         };
         match seen_subject {
@@ -344,7 +343,7 @@ fn validate_subject_scope(
 
 fn validate_identity(
     policy: &RuntimeEvidencePolicy,
-    identity: Option<&Value>,
+    identity: Option<&serde_json::Value>,
     path: &str,
     issues: &mut Vec<RuntimeEvidenceIssue>,
 ) {
@@ -359,7 +358,7 @@ fn validate_identity(
     };
     let algorithm = identity
         .get("hash_algorithm")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if !policy
         .allowed_hash_algorithms
@@ -379,7 +378,7 @@ fn validate_identity(
     }
     let hash = identity
         .get("hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if algorithm == RUNTIME_HASH_ALGORITHM_BLAKE3 && !is_blake3_hex(hash) {
         issues.push(runtime_issue(
@@ -393,7 +392,7 @@ fn validate_identity(
             },
         ));
     }
-    if let Some(summary) = identity.get("summary").and_then(Value::as_str) {
+    if let Some(summary) = identity.get("summary").and_then(serde_json::Value::as_str) {
         if summary.len() as u64 > policy.max_summary_bytes {
             issues.push(runtime_issue(
                 "runtime_evidence.summary_too_large",
@@ -418,7 +417,7 @@ fn validate_identity(
 }
 
 fn validate_integrity(
-    record: &Value,
+    record: &serde_json::Value,
     path: &str,
     previous_hash: &Option<String>,
     issues: &mut Vec<RuntimeEvidenceIssue>,
@@ -432,7 +431,9 @@ fn validate_integrity(
         ));
         return;
     };
-    let declared_previous = integrity.get("previous_hash").and_then(Value::as_str);
+    let declared_previous = integrity
+        .get("previous_hash")
+        .and_then(serde_json::Value::as_str);
     match previous_hash {
         Some(expected) if declared_previous == Some(expected.as_str()) => {}
         Some(_) => issues.push(runtime_issue(
@@ -451,8 +452,15 @@ fn validate_integrity(
     }
 }
 
-fn validate_non_claims(record: &Value, path: &str, issues: &mut Vec<RuntimeEvidenceIssue>) {
-    let Some(non_claims) = record.get("non_claims").and_then(Value::as_array) else {
+fn validate_non_claims(
+    record: &serde_json::Value,
+    path: &str,
+    issues: &mut Vec<RuntimeEvidenceIssue>,
+) {
+    let Some(non_claims) = record
+        .get("non_claims")
+        .and_then(serde_json::Value::as_array)
+    else {
         issues.push(runtime_issue(
             "runtime_evidence.non_claim_boundary_missing",
             path,
@@ -475,7 +483,7 @@ fn validate_non_claims(record: &Value, path: &str, issues: &mut Vec<RuntimeEvide
 }
 
 fn compare_checkpoints(
-    checkpoints: &[Value],
+    checkpoints: &[serde_json::Value],
     subject: Option<&str>,
     chain_root_hash: &Option<String>,
     computed_hashes: &[String],
@@ -487,7 +495,7 @@ fn compare_checkpoints(
     let computed_checkpoint_hash = witness_checkpoint_hash(checkpoint);
     if checkpoint
         .get(CHECKPOINT_HASH_FIELD)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         != Some(computed_checkpoint_hash.as_str())
     {
         issues.push(runtime_issue(
@@ -503,7 +511,7 @@ fn compare_checkpoints(
     }
     let checkpoint_subject = checkpoint
         .get("subject")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if subject != Some(checkpoint_subject) {
         issues.push(runtime_issue(
@@ -519,7 +527,7 @@ fn compare_checkpoints(
     }
     let record_count = checkpoint
         .get("record_count")
-        .and_then(Value::as_u64)
+        .and_then(serde_json::Value::as_u64)
         .unwrap_or_default();
     let checkpoint_record_count = match usize::try_from(record_count) {
         Ok(count) if count > 0 && count <= computed_hashes.len() => count,
@@ -536,7 +544,11 @@ fn compare_checkpoints(
             );
         }
     };
-    if checkpoint.get("chain_root_hash").and_then(Value::as_str) != chain_root_hash.as_deref() {
+    if checkpoint
+        .get("chain_root_hash")
+        .and_then(serde_json::Value::as_str)
+        != chain_root_hash.as_deref()
+    {
         issues.push(runtime_issue(
             "runtime_evidence.checkpoint_chain_root_mismatch",
             "checkpoint.chain_root_hash",
@@ -551,7 +563,11 @@ fn compare_checkpoints(
     let prefix_head = computed_hashes
         .get(checkpoint_record_count - 1)
         .map(String::as_str);
-    if checkpoint.get("head_hash").and_then(Value::as_str) != prefix_head {
+    if checkpoint
+        .get("head_hash")
+        .and_then(serde_json::Value::as_str)
+        != prefix_head
+    {
         issues.push(runtime_issue(
             "runtime_evidence.checkpoint_head_mismatch",
             "checkpoint.head_hash",
@@ -570,13 +586,13 @@ fn compare_checkpoints(
 }
 
 fn required_string(
-    value: &Value,
+    value: &serde_json::Value,
     path: &str,
     issues: &mut Vec<RuntimeEvidenceIssue>,
 ) -> Option<String> {
     match value
         .get(path.rsplit('.').next().unwrap_or(path))
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
     {
         Some(text) if !text.is_empty() => Some(text.to_string()),
         _ => {
@@ -645,21 +661,21 @@ mod tests {
         }
     }
 
-    fn valid_records() -> Vec<Value> {
+    fn valid_records() -> Vec<serde_json::Value> {
         serde_json::from_str(include_str!(
             "../../../../fixtures/runtime-evidence/positive/chain.json"
         ))
         .expect("valid runtime chain fixture parses")
     }
 
-    fn valid_checkpoint() -> Value {
+    fn valid_checkpoint() -> serde_json::Value {
         serde_json::from_str(include_str!(
             "../../../../fixtures/runtime-evidence/positive/checkpoint.json"
         ))
         .expect("valid checkpoint fixture parses")
     }
 
-    fn invalid_records(name: &str) -> Vec<Value> {
+    fn invalid_records(name: &str) -> Vec<serde_json::Value> {
         let text = match name {
             "mixed" => {
                 include_str!("../../../../fixtures/runtime-evidence/negative/mixed-subject.json")
@@ -747,7 +763,7 @@ mod tests {
     fn wrong_subject_checkpoint_fails() {
         // r[verify cairn.runtime_evidence.external_witness.subject_mismatch]
         let records = valid_records();
-        let checkpoint: Value = serde_json::from_str(include_str!(
+        let checkpoint: serde_json::Value = serde_json::from_str(include_str!(
             "../../../../fixtures/runtime-evidence/negative/wrong-subject-checkpoint.json"
         ))
         .expect("wrong-subject checkpoint parses");
@@ -760,7 +776,7 @@ mod tests {
     fn truncated_checkpoint_fails() {
         // r[verify cairn.runtime_evidence.completeness_verdicts.truncated]
         let records = valid_records();
-        let checkpoint: Value = serde_json::from_str(include_str!(
+        let checkpoint: serde_json::Value = serde_json::from_str(include_str!(
             "../../../../fixtures/runtime-evidence/negative/truncated-checkpoint.json"
         ))
         .expect("truncated checkpoint parses");
@@ -773,9 +789,9 @@ mod tests {
     fn oversized_checkpoint_count_fails_without_truncating() {
         let records = valid_records();
         let mut checkpoint = valid_checkpoint();
-        checkpoint["record_count"] = json!(u64::MAX);
+        checkpoint["record_count"] = serde_json::json!(u64::MAX);
         let checkpoint_hash = witness_checkpoint_hash(&checkpoint);
-        checkpoint[CHECKPOINT_HASH_FIELD] = json!(checkpoint_hash);
+        checkpoint[CHECKPOINT_HASH_FIELD] = serde_json::json!(checkpoint_hash);
         let report = verify_runtime_evidence(&policy(), &records, &[checkpoint]);
         assert!(!report.valid);
         assert_eq!(report.completeness_verdict, COMPLETENESS_TRUNCATED);
@@ -789,7 +805,7 @@ mod tests {
     fn altered_prefix_checkpoint_fails() {
         // r[verify cairn.runtime_evidence.completeness_verdicts.altered]
         let records = valid_records();
-        let checkpoint: Value = serde_json::from_str(include_str!(
+        let checkpoint: serde_json::Value = serde_json::from_str(include_str!(
             "../../../../fixtures/runtime-evidence/negative/altered-checkpoint.json"
         ))
         .expect("altered checkpoint parses");

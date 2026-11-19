@@ -1,0 +1,94 @@
+{
+  "change": "consume-selected-work-snapshots",
+  "date": "2026-11-19",
+  "base": "faa9c9a161454e2ca4126361660fb931f4d257e4",
+  "producer_cohort": {
+    "cairn_core": "8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0",
+    "cairn_core_archive_blake3": "867504a36da1ba047bdaef11f5b9dfb58b2abfb9d728a6d64b59be477aec56c0",
+    "cairn_gate_contract": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+    "cairn_kiln_core": "5d99f4e9bb954743443e340baece31256b4c53f1",
+    "artifact": "e41340bec587b6d049b5cc518ec7db925dde84be",
+    "lattice_compiler": "661499d282c2e79ebefbd0f9b35beb5f8d7795cd",
+    "lattice_compiler_identity": "b3:64f13f4cbd904356ade47d7d1c8b4daefe9ceb1217cdb37127f1cfe5aab44865"
+  },
+  "commands": [
+    {
+      "command": "scripts/import-pinned-source.sh cairn-verifier|artifact|cairn-kiln-core",
+      "exit": 0,
+      "result": "cairn-verifier re-imported at the published Cairn main 8f6cd0b3 after removing the pre-rebase snapshot; artifact and cairn-kiln-core verified existing"
+    },
+    {
+      "command": "KILN_UPDATE_SELECTED_WORK_FIXTURES=1 / KILN_UPDATE_LATTICE_INTENT_FIXTURES=1 cargo test --locked -p kiln-adapter-cairn selected_work / -p kiln-adapter-lattice workflow_intent",
+      "exit": 0,
+      "result": "no fixture bytes changed at 8f6cd0b3; verify.intent.json unchanged, so the Lattice request, plan and compare files stand"
+    },
+    {
+      "command": "cairn sync consume-selected-work-snapshots --execute",
+      "exit": 0,
+      "result": "sync_delta_spec into .cairn/specs/selected-work-consumer"
+    },
+    {
+      "command": "lattice workflow-intent compile fixtures/lattice/workflow-intent/verify.request.json",
+      "exit": 0,
+      "result": "plan b3:ef734317f2d8e2f5c799ec99f7b8cf794fdd04d07615de01d8e86afd56e98370, disposition planning_only_requires_separate_execution_admission"
+    },
+    {
+      "command": "lattice workflow-intent compare verify.request.json <one obligation dropped>",
+      "exit": 0,
+      "result": "owner_readmission_required"
+    },
+    {
+      "command": "lattice workflow-intent compile <coverage incomplete>",
+      "exit": 1,
+      "result": "IncompleteContext at coverage"
+    },
+    {
+      "command": "cairn gate proposal|design|tasks consume-selected-work-snapshots",
+      "exit": 0,
+      "verdict": "PASS for all three after adding kiln.selected_work.stages"
+    },
+    {
+      "command": "cargo test --locked -p onix-kiln-core|kiln-adapter-cairn|kiln-adapter-lattice|kiln-implementer|kiln-web-service (clean PATH)",
+      "exit": 0,
+      "counts": "450, 31, 28, 93, 502 passed; 0 failed"
+    },
+    {
+      "command": "cargo fmt -- --check (clean PATH)",
+      "exit": 0
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings (clean PATH)",
+      "exit": 0
+    },
+    {
+      "command": "cargo test --locked --workspace --no-fail-fast (clean PATH)",
+      "exit": 0,
+      "counts": "188 result lines, 2203 passed, 0 failed, 14 ignored"
+    },
+    {
+      "command": "scripts/check-nickel-fixtures.sh",
+      "exit": 0,
+      "counts": "95 positive, 625 negative"
+    },
+    {
+      "command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json",
+      "exit": 0,
+      "result": "valid, 0 issues"
+    },
+    {
+      "command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json",
+      "exit": 1,
+      "result": "only the three pre-existing dangling kiln.implementation.authority.coverage references; missing empty"
+    },
+    {
+      "command": "nix build --builders '' --option min-free 0 path:$PWD#checks.x86_64-linux.octet --no-link -L",
+      "exit": 0,
+      "result": "Findings 0, Warnings 0, Errors 0"
+    }
+  ],
+  "clean_path": "env -i with PATH=/run/current-system/sw/bin plus the mold wrapper required by the operator's global Cargo linker setting, inside nix develop",
+  "non_claims": [
+    "Selected-work fixtures are composed by the pinned producer library from synthetic inputs; no native cairn selected-work execution, live Kiln campaign or live Lattice execution qualified this change (Kiln #49).",
+    "The Lattice runtime_profile_identity in the compile request is a synthetic fixture value."
+  ]
+}

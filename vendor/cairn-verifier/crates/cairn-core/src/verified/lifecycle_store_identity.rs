@@ -5,13 +5,6 @@
 //! This module treats checkout paths as opaque local display facts. It performs
 //! no I/O and makes no claim about path existence, ownership, or safety.
 
-use std::collections::BTreeSet;
-
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-
-use super::evidence::{blake3_hex, canonical_json, canonical_json_hash};
-
 // r[impl cairn.lifecycle_stores.identity]
 // r[impl cairn.lifecycle_stores.locator]
 // r[impl cairn.lifecycle_stores.functional_boundary.pure]
@@ -84,68 +77,68 @@ pub const DIAGNOSTIC_PORTABLE_HASH_MISMATCH: &str = "lifecycle_store.locator.sta
 pub const DIAGNOSTIC_PLAN_STALE: &str = "lifecycle_store.locator.stale_plan";
 pub const DIAGNOSTIC_PLAN_NEXT_STATE_MISSING: &str = "lifecycle_store.locator.stale_plan";
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(transparent)]
-pub struct LifecycleStoreId(String);
+pub struct Id(String);
 
-impl LifecycleStoreId {
+impl Id {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(transparent)]
-pub struct LifecycleStoreRemoteHint(String);
+pub struct RemoteHint(String);
 
-impl LifecycleStoreRemoteHint {
+impl RemoteHint {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(transparent)]
-pub struct LifecycleStoreNonClaim(String);
+pub struct NonClaim(String);
 
-impl LifecycleStoreNonClaim {
+impl NonClaim {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(transparent)]
-pub struct LifecycleStoreBlake3Identity(String);
+pub struct Digest(String);
 
-impl LifecycleStoreBlake3Identity {
+impl Digest {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 
     fn from_computed(value: String) -> Self {
-        debug_assert!(is_blake3_identity(&value));
+        debug_assert!(is_digest(&value));
         Self(value)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(transparent)]
-pub struct LifecycleStoreCheckoutPath(String);
+pub struct CheckoutPath(String);
 
-impl LifecycleStoreCheckoutPath {
+impl CheckoutPath {
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LifecycleStoreIdentityProjection {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Projection {
     pub schema: String,
     pub store_id: String,
     pub remote_hint: Option<String>,
@@ -155,19 +148,19 @@ pub struct LifecycleStoreIdentityProjection {
     pub source_identity: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreIdentity {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Admitted {
     pub schema: String,
-    pub store_id: LifecycleStoreId,
-    pub remote_hint: Option<LifecycleStoreRemoteHint>,
-    pub non_claims: Vec<LifecycleStoreNonClaim>,
+    pub store_id: Id,
+    pub remote_hint: Option<RemoteHint>,
+    pub non_claims: Vec<NonClaim>,
     #[serde(rename = "source_blake3")]
-    pub source_identity: LifecycleStoreBlake3Identity,
-    pub store_identity: LifecycleStoreBlake3Identity,
+    pub source_identity: Digest,
+    pub store_identity: Digest,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct LifecycleStoreDiagnostic {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct Diagnostic {
     pub code: String,
     #[serde(rename = "field_path")]
     pub field: String,
@@ -175,62 +168,62 @@ pub struct LifecycleStoreDiagnostic {
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreIdentityAdmission {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct Admission {
     pub valid: bool,
-    pub identity: Option<LifecycleStoreIdentity>,
-    pub diagnostics: Vec<LifecycleStoreDiagnostic>,
+    pub identity: Option<Admitted>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LifecycleStoreLocatorMappingProjection {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct MappingProjection {
     pub store_id: String,
     pub checkout_path: String,
     pub store_identity: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LifecycleStoreLocatorProjection {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct LocatorProjection {
     pub schema: String,
     #[serde(default, rename = "entries")]
-    pub mappings: Vec<LifecycleStoreLocatorMappingProjection>,
+    pub mappings: Vec<MappingProjection>,
     #[serde(rename = "state_hash")]
     pub state_identity: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-pub struct LifecycleStoreLocatorMapping {
-    pub store_id: LifecycleStoreId,
-    pub checkout_path: LifecycleStoreCheckoutPath,
-    pub store_identity: LifecycleStoreBlake3Identity,
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
+pub struct Mapping {
+    pub store_id: Id,
+    pub checkout_path: CheckoutPath,
+    pub store_identity: Digest,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreLocatorState {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LocatorState {
     pub schema: String,
-    pub mappings: Vec<LifecycleStoreLocatorMapping>,
-    pub state_identity: LifecycleStoreBlake3Identity,
-    pub portable_state_identity: LifecycleStoreBlake3Identity,
+    pub mappings: Vec<Mapping>,
+    pub state_identity: Digest,
+    pub portable_state_identity: Digest,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreLocatorAdmission {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LocatorAdmission {
     pub valid: bool,
-    pub state: Option<LifecycleStoreLocatorState>,
-    pub diagnostics: Vec<LifecycleStoreDiagnostic>,
+    pub state: Option<LocatorState>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum LifecycleStoreLocatorOperation {
+pub enum LocatorOperation {
     Register,
     Unregister,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreLocatorLocalFacts {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LocatorLocalFacts {
     pub evidence_class: String,
-    pub operation: LifecycleStoreLocatorOperation,
+    pub operation: LocatorOperation,
     pub store_id: String,
     pub checkout_path: Option<String>,
     #[serde(rename = "expected_prior_state_hash")]
@@ -240,10 +233,10 @@ pub struct LifecycleStoreLocatorLocalFacts {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreLocatorPortableFacts {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LocatorPortableFacts {
     pub fact_class: String,
-    pub operation: LifecycleStoreLocatorOperation,
+    pub operation: LocatorOperation,
     pub store_id: String,
     pub store_identity: Option<String>,
     pub expected_prior_portable_state_identity: String,
@@ -252,40 +245,38 @@ pub struct LifecycleStoreLocatorPortableFacts {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreLocatorPlan {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LocatorPlan {
     pub schema: String,
     pub blocked: bool,
     pub changed: bool,
     #[serde(rename = "expected_prior_state_hash")]
     pub expected_prior_state_identity: String,
     pub expected_prior_portable_state_identity: String,
-    pub next_state: Option<LifecycleStoreLocatorState>,
-    pub local_facts: LifecycleStoreLocatorLocalFacts,
-    pub portable_facts: LifecycleStoreLocatorPortableFacts,
-    pub diagnostics: Vec<LifecycleStoreDiagnostic>,
+    pub next_state: Option<LocatorState>,
+    pub local_facts: LocatorLocalFacts,
+    pub portable_facts: LocatorPortableFacts,
+    pub diagnostics: Vec<Diagnostic>,
     pub portable_hash: String,
     pub plan_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct LifecycleStoreLocatorApplication {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct LocatorApplication {
     pub accepted: bool,
-    pub next_state: Option<LifecycleStoreLocatorState>,
-    pub diagnostics: Vec<LifecycleStoreDiagnostic>,
+    pub next_state: Option<LocatorState>,
+    pub diagnostics: Vec<Diagnostic>,
 }
 
 /// Admit a checked runtime projection without reading its Nickel source.
 #[must_use]
-pub fn admit_lifecycle_store_identity(
-    projection: &LifecycleStoreIdentityProjection,
-) -> LifecycleStoreIdentityAdmission {
+pub fn admit(projection: &Projection) -> Admission {
     let mut diagnostics = Vec::new();
-    validate_identity_schema(&projection.schema, &mut diagnostics);
-    let store_id = parse_store_id(&projection.store_id, "store_id", &mut diagnostics);
+    validate_schema(&projection.schema, &mut diagnostics);
+    let store_id = parse_id(&projection.store_id, "store_id", &mut diagnostics);
     let remote_hint = parse_remote_hint(&projection.remote_hint, &mut diagnostics);
     let non_claims = parse_non_claims(&projection.non_claims, &mut diagnostics);
-    let source_identity = parse_blake3_identity(
+    let source_identity = parse_digest(
         &projection.source_identity,
         "source_blake3",
         DIAGNOSTIC_SOURCE_IDENTITY_INVALID,
@@ -294,11 +285,11 @@ pub fn admit_lifecycle_store_identity(
     sort_diagnostics(&mut diagnostics);
 
     let identity = if diagnostics.is_empty() {
-        build_store_identity(store_id, remote_hint, non_claims, source_identity)
+        assemble(store_id, remote_hint, non_claims, source_identity)
     } else {
         None
     };
-    let admission = LifecycleStoreIdentityAdmission {
+    let admission = Admission {
         valid: identity.is_some(),
         identity,
         diagnostics,
@@ -309,8 +300,8 @@ pub fn admit_lifecycle_store_identity(
 
 /// Return canonical JSON bytes as text for the admitted store identity.
 #[must_use]
-pub fn lifecycle_store_identity_material(identity: &LifecycleStoreIdentity) -> String {
-    canonical_store_identity_material(
+pub fn material(identity: &Admitted) -> String {
+    canonical_material(
         &identity.schema,
         identity.store_id.as_str(),
         identity.remote_hint.as_ref().map(|value| value.as_str()),
@@ -325,29 +316,27 @@ pub fn lifecycle_store_identity_material(identity: &LifecycleStoreIdentity) -> S
 
 /// Hash canonical source material that the shell or export boundary supplies.
 #[must_use]
-pub fn lifecycle_store_source_identity(canonical_source_material: &[u8]) -> String {
-    blake3_hex(canonical_source_material)
+pub fn source_digest(canonical_source_material: &[u8]) -> String {
+    super::evidence::blake3_hex(canonical_source_material)
 }
 
 #[must_use]
-pub fn empty_lifecycle_store_locator() -> LifecycleStoreLocatorState {
+pub fn empty_locator() -> LocatorState {
     build_locator_state(Vec::new())
 }
 
 #[must_use]
-pub fn lifecycle_store_locator_projection(
-    state: &LifecycleStoreLocatorState,
-) -> LifecycleStoreLocatorProjection {
+pub fn locator_projection(state: &LocatorState) -> LocatorProjection {
     let mappings = state
         .mappings
         .iter()
-        .map(|mapping| LifecycleStoreLocatorMappingProjection {
+        .map(|mapping| MappingProjection {
             store_id: mapping.store_id.as_str().to_string(),
             checkout_path: mapping.checkout_path.as_str().to_string(),
             store_identity: mapping.store_identity.as_str().to_string(),
         })
         .collect();
-    LifecycleStoreLocatorProjection {
+    LocatorProjection {
         schema: state.schema.clone(),
         mappings,
         state_identity: state.state_identity.as_str().to_string(),
@@ -356,21 +345,19 @@ pub fn lifecycle_store_locator_projection(
 
 /// Admit persisted locator values after the shell loads bytes.
 #[must_use]
-pub fn admit_lifecycle_store_locator(
-    projection: &LifecycleStoreLocatorProjection,
-) -> LifecycleStoreLocatorAdmission {
+pub fn admit_locator(projection: &LocatorProjection) -> LocatorAdmission {
     let mut diagnostics = Vec::new();
     validate_locator_schema(&projection.schema, &mut diagnostics);
     validate_mapping_count(projection.mappings.len(), &mut diagnostics);
     let mappings = parse_locator_mappings(&projection.mappings, &mut diagnostics);
     validate_mapping_uniqueness(&mappings, &mut diagnostics);
-    let stated_identity = parse_blake3_identity(
+    let stated_identity = parse_digest(
         &projection.state_identity,
         "state_identity",
         DIAGNOSTIC_LOCATOR_STATE_IDENTITY_INVALID,
         &mut diagnostics,
     );
-    let expected_identity = local_locator_state_identity(&mappings);
+    let expected_identity = local_state_digest(&mappings);
     if stated_identity
         .as_ref()
         .is_some_and(|identity| identity.as_str() != expected_identity)
@@ -387,7 +374,7 @@ pub fn admit_lifecycle_store_locator(
     let state = diagnostics
         .is_empty()
         .then(|| build_locator_state(mappings));
-    let admission = LifecycleStoreLocatorAdmission {
+    let admission = LocatorAdmission {
         valid: state.is_some(),
         state,
         diagnostics,
@@ -398,16 +385,16 @@ pub fn admit_lifecycle_store_locator(
 
 /// Plan one registration over already admitted identity and shell-normalized path text.
 #[must_use]
-pub fn plan_lifecycle_store_registration(
-    current: &LifecycleStoreLocatorState,
-    identity: &LifecycleStoreIdentity,
+pub fn plan_registration(
+    current: &LocatorState,
+    identity: &Admitted,
     checkout_path: &str,
-) -> LifecycleStoreLocatorPlan {
+) -> LocatorPlan {
     let mut diagnostics = Vec::new();
     validate_admitted_locator_state(current, &mut diagnostics);
-    validate_admitted_store_identity(identity, &mut diagnostics);
+    validate_admitted(identity, &mut diagnostics);
     let checkout_path = parse_checkout_path(checkout_path, "checkout_path", &mut diagnostics);
-    let proposed_mapping = checkout_path.map(|checkout_path| LifecycleStoreLocatorMapping {
+    let proposed_mapping = checkout_path.map(|checkout_path| Mapping {
         store_id: identity.store_id.clone(),
         checkout_path,
         store_identity: identity.store_identity.clone(),
@@ -436,7 +423,7 @@ pub fn plan_lifecycle_store_registration(
     };
     build_locator_plan(
         current,
-        LifecycleStoreLocatorOperation::Register,
+        LocatorOperation::Register,
         identity.store_id.as_str(),
         proposed_mapping.as_ref(),
         next_state,
@@ -446,13 +433,10 @@ pub fn plan_lifecycle_store_registration(
 
 /// Plan one unregister operation without changing the supplied state.
 #[must_use]
-pub fn plan_lifecycle_store_unregistration(
-    current: &LifecycleStoreLocatorState,
-    store_id: &str,
-) -> LifecycleStoreLocatorPlan {
+pub fn plan_unregistration(current: &LocatorState, store_id: &str) -> LocatorPlan {
     let mut diagnostics = Vec::new();
     validate_admitted_locator_state(current, &mut diagnostics);
-    let store_id = parse_store_id(store_id, "store_id", &mut diagnostics);
+    let store_id = parse_id(store_id, "store_id", &mut diagnostics);
     let mapping = store_id.as_ref().and_then(|store_id| {
         current
             .mappings
@@ -465,7 +449,7 @@ pub fn plan_lifecycle_store_unregistration(
             &mut diagnostics,
             DIAGNOSTIC_STORE_UNKNOWN,
             "store_id",
-            store_id.as_ref().map_or("", LifecycleStoreId::as_str),
+            store_id.as_ref().map_or("", Id::as_str),
             "store ID does not resolve to a local locator mapping",
         );
     }
@@ -479,8 +463,8 @@ pub fn plan_lifecycle_store_unregistration(
     };
     build_locator_plan(
         current,
-        LifecycleStoreLocatorOperation::Unregister,
-        store_id.as_ref().map_or("", LifecycleStoreId::as_str),
+        LocatorOperation::Unregister,
+        store_id.as_ref().map_or("", Id::as_str),
         mapping.as_ref(),
         next_state,
         diagnostics,
@@ -492,10 +476,7 @@ pub fn plan_lifecycle_store_unregistration(
 /// The returned state is a value for the shell to serialize atomically. This
 /// function does not lock, write, rename, or otherwise mutate local state.
 #[must_use]
-pub fn apply_lifecycle_store_locator_plan(
-    current: &LifecycleStoreLocatorState,
-    plan: &LifecycleStoreLocatorPlan,
-) -> LifecycleStoreLocatorApplication {
+pub fn apply_locator_plan(current: &LocatorState, plan: &LocatorPlan) -> LocatorApplication {
     let mut diagnostics = plan.diagnostics.clone();
     diagnostics.extend(validate_plan_integrity(plan));
     validate_admitted_locator_state(current, &mut diagnostics);
@@ -537,7 +518,7 @@ pub fn apply_lifecycle_store_locator_plan(
     } else {
         None
     };
-    let application = LifecycleStoreLocatorApplication {
+    let application = LocatorApplication {
         accepted: next_state.is_some(),
         next_state,
         diagnostics,
@@ -547,21 +528,21 @@ pub fn apply_lifecycle_store_locator_plan(
 }
 
 #[must_use]
-pub fn lifecycle_store_locator_plan_hash(plan: &LifecycleStoreLocatorPlan) -> String {
+pub fn plan_hash(plan: &LocatorPlan) -> String {
     let mut value = serde_json::to_value(plan).expect("locator plan serialization is infallible");
     if let Some(object) = value.as_object_mut() {
         object.remove("plan_hash");
     }
-    canonical_json_hash(&value)
+    super::evidence::canonical_json_hash(&value)
 }
 
 #[must_use]
-pub fn lifecycle_store_locator_portable_hash(facts: &LifecycleStoreLocatorPortableFacts) -> String {
+pub fn portable_hash(facts: &LocatorPortableFacts) -> String {
     let value = serde_json::to_value(facts).expect("portable fact serialization is infallible");
-    canonical_json_hash(&value)
+    super::evidence::canonical_json_hash(&value)
 }
 
-fn validate_identity_schema(schema: &str, diagnostics: &mut Vec<LifecycleStoreDiagnostic>) {
+fn validate_schema(schema: &str, diagnostics: &mut Vec<Diagnostic>) {
     if schema != LIFECYCLE_STORE_IDENTITY_SCHEMA_V1 {
         push_diagnostic(
             diagnostics,
@@ -573,11 +554,8 @@ fn validate_identity_schema(schema: &str, diagnostics: &mut Vec<LifecycleStoreDi
     }
 }
 
-fn validate_admitted_store_identity(
-    identity: &LifecycleStoreIdentity,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) {
-    let projection = LifecycleStoreIdentityProjection {
+fn validate_admitted(identity: &Admitted, diagnostics: &mut Vec<Diagnostic>) {
+    let projection = Projection {
         schema: identity.schema.clone(),
         store_id: identity.store_id.as_str().to_string(),
         remote_hint: identity
@@ -591,7 +569,7 @@ fn validate_admitted_store_identity(
             .collect(),
         source_identity: identity.source_identity.as_str().to_string(),
     };
-    let admission = admit_lifecycle_store_identity(&projection);
+    let admission = admit(&projection);
     diagnostics.extend(admission.diagnostics);
     if admission.identity.as_ref() != Some(identity) {
         push_diagnostic(
@@ -604,11 +582,7 @@ fn validate_admitted_store_identity(
     }
 }
 
-fn parse_store_id(
-    value: &str,
-    field: &str,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) -> Option<LifecycleStoreId> {
+fn parse_id(value: &str, field: &str, diagnostics: &mut Vec<Diagnostic>) -> Option<Id> {
     let length_valid = !value.is_empty() && value.len() <= LIFECYCLE_STORE_ID_MAX_BYTES;
     let prefix_valid = value
         .as_bytes()
@@ -618,7 +592,7 @@ fn parse_store_id(
         byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
     });
     if length_valid && prefix_valid && alphabet_valid {
-        Some(LifecycleStoreId(value.to_string()))
+        Some(Id(value.to_string()))
     } else {
         push_diagnostic(
             diagnostics,
@@ -633,13 +607,13 @@ fn parse_store_id(
 
 fn parse_remote_hint(
     value: &Option<String>,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) -> Option<LifecycleStoreRemoteHint> {
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<RemoteHint> {
     let Some(value) = value else {
         return None;
     };
     if is_safe_remote_hint(value) {
-        Some(LifecycleStoreRemoteHint(value.clone()))
+        Some(RemoteHint(value.clone()))
     } else {
         push_diagnostic(
             diagnostics,
@@ -652,10 +626,7 @@ fn parse_remote_hint(
     }
 }
 
-fn parse_non_claims(
-    values: &[String],
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) -> Vec<LifecycleStoreNonClaim> {
+fn parse_non_claims(values: &[String], diagnostics: &mut Vec<Diagnostic>) -> Vec<NonClaim> {
     if values.len() > LIFECYCLE_STORE_NON_CLAIMS_MAX_COUNT {
         push_diagnostic(
             diagnostics,
@@ -666,7 +637,7 @@ fn parse_non_claims(
         );
     }
     let mut accepted = Vec::new();
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     for (index, value) in values.iter().enumerate() {
         let field = format!("non_claims[{index}]");
         if !is_safe_bounded_text(value, LIFECYCLE_STORE_NON_CLAIM_MAX_BYTES) {
@@ -689,7 +660,7 @@ fn parse_non_claims(
             );
             continue;
         }
-        accepted.push(LifecycleStoreNonClaim(value.clone()));
+        accepted.push(NonClaim(value.clone()));
     }
     accepted.sort();
     for required in LIFECYCLE_STORE_IDENTITY_NON_CLAIMS {
@@ -706,12 +677,12 @@ fn parse_non_claims(
     accepted
 }
 
-fn build_store_identity(
-    store_id: Option<LifecycleStoreId>,
-    remote_hint: Option<LifecycleStoreRemoteHint>,
-    non_claims: Vec<LifecycleStoreNonClaim>,
-    source_identity: Option<LifecycleStoreBlake3Identity>,
-) -> Option<LifecycleStoreIdentity> {
+fn assemble(
+    store_id: Option<Id>,
+    remote_hint: Option<RemoteHint>,
+    non_claims: Vec<NonClaim>,
+    source_identity: Option<Digest>,
+) -> Option<Admitted> {
     let (Some(store_id), Some(source_identity)) = (store_id, source_identity) else {
         return None;
     };
@@ -719,16 +690,15 @@ fn build_store_identity(
         .iter()
         .map(|value| value.as_str().to_string())
         .collect::<Vec<_>>();
-    let material = canonical_store_identity_material(
+    let material = canonical_material(
         LIFECYCLE_STORE_IDENTITY_SCHEMA_V1,
         store_id.as_str(),
-        remote_hint.as_ref().map(LifecycleStoreRemoteHint::as_str),
+        remote_hint.as_ref().map(RemoteHint::as_str),
         &non_claim_text,
         source_identity.as_str(),
     );
-    let store_identity =
-        LifecycleStoreBlake3Identity::from_computed(blake3_hex(material.as_bytes()));
-    Some(LifecycleStoreIdentity {
+    let store_identity = Digest::from_computed(super::evidence::blake3_hex(material.as_bytes()));
+    Some(Admitted {
         schema: LIFECYCLE_STORE_IDENTITY_SCHEMA_V1.to_string(),
         store_id,
         remote_hint,
@@ -738,14 +708,14 @@ fn build_store_identity(
     })
 }
 
-fn canonical_store_identity_material(
+fn canonical_material(
     schema: &str,
     store_id: &str,
     remote_hint: Option<&str>,
     non_claims: &[String],
     source_identity: &str,
 ) -> String {
-    canonical_json(&json!({
+    super::evidence::canonical_json(&serde_json::json!({
         "domain": STORE_IDENTITY_DOMAIN,
         "schema": schema,
         "store_id": store_id,
@@ -755,7 +725,7 @@ fn canonical_store_identity_material(
     }))
 }
 
-fn validate_locator_schema(schema: &str, diagnostics: &mut Vec<LifecycleStoreDiagnostic>) {
+fn validate_locator_schema(schema: &str, diagnostics: &mut Vec<Diagnostic>) {
     if schema != LIFECYCLE_STORE_LOCATOR_SCHEMA_V1 {
         push_diagnostic(
             diagnostics,
@@ -767,7 +737,7 @@ fn validate_locator_schema(schema: &str, diagnostics: &mut Vec<LifecycleStoreDia
     }
 }
 
-fn validate_mapping_count(count: usize, diagnostics: &mut Vec<LifecycleStoreDiagnostic>) {
+fn validate_mapping_count(count: usize, diagnostics: &mut Vec<Diagnostic>) {
     if count > LIFECYCLE_STORE_LOCATOR_MAX_MAPPINGS {
         push_diagnostic(
             diagnostics,
@@ -779,14 +749,11 @@ fn validate_mapping_count(count: usize, diagnostics: &mut Vec<LifecycleStoreDiag
     }
 }
 
-fn validate_admitted_locator_state(
-    state: &LifecycleStoreLocatorState,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) {
+fn validate_admitted_locator_state(state: &LocatorState, diagnostics: &mut Vec<Diagnostic>) {
     validate_locator_schema(&state.schema, diagnostics);
     validate_mapping_count(state.mappings.len(), diagnostics);
     validate_mapping_uniqueness(&state.mappings, diagnostics);
-    let expected_local = local_locator_state_identity(&state.mappings);
+    let expected_local = local_state_digest(&state.mappings);
     if state.state_identity.as_str() != expected_local {
         push_diagnostic(
             diagnostics,
@@ -796,7 +763,7 @@ fn validate_admitted_locator_state(
             "admitted locator state identity does not bind its current local mappings",
         );
     }
-    let expected_portable = portable_locator_state_identity(&state.mappings);
+    let expected_portable = portable_state_digest(&state.mappings);
     if state.portable_state_identity.as_str() != expected_portable {
         push_diagnostic(
             diagnostics,
@@ -809,12 +776,12 @@ fn validate_admitted_locator_state(
 }
 
 fn parse_locator_mappings(
-    values: &[LifecycleStoreLocatorMappingProjection],
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) -> Vec<LifecycleStoreLocatorMapping> {
+    values: &[MappingProjection],
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Vec<Mapping> {
     let mut mappings = Vec::new();
     for (index, value) in values.iter().enumerate() {
-        let store_id = parse_store_id(
+        let store_id = parse_id(
             &value.store_id,
             &format!("mappings[{index}].store_id"),
             diagnostics,
@@ -824,7 +791,7 @@ fn parse_locator_mappings(
             &format!("mappings[{index}].checkout_path"),
             diagnostics,
         );
-        let store_identity = parse_blake3_identity(
+        let store_identity = parse_digest(
             &value.store_identity,
             &format!("mappings[{index}].store_identity"),
             DIAGNOSTIC_STORE_IDENTITY_INVALID,
@@ -833,7 +800,7 @@ fn parse_locator_mappings(
         if let (Some(store_id), Some(checkout_path), Some(store_identity)) =
             (store_id, checkout_path, store_identity)
         {
-            mappings.push(LifecycleStoreLocatorMapping {
+            mappings.push(Mapping {
                 store_id,
                 checkout_path,
                 store_identity,
@@ -847,10 +814,10 @@ fn parse_locator_mappings(
 fn parse_checkout_path(
     value: &str,
     field: &str,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) -> Option<LifecycleStoreCheckoutPath> {
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<CheckoutPath> {
     if is_safe_bounded_text(value, LIFECYCLE_STORE_CHECKOUT_PATH_MAX_BYTES) {
-        Some(LifecycleStoreCheckoutPath(value.to_string()))
+        Some(CheckoutPath(value.to_string()))
     } else {
         push_diagnostic(
             diagnostics,
@@ -863,14 +830,14 @@ fn parse_checkout_path(
     }
 }
 
-fn parse_blake3_identity(
+fn parse_digest(
     value: &str,
     field: &str,
     code: &str,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) -> Option<LifecycleStoreBlake3Identity> {
-    if is_blake3_identity(value) {
-        Some(LifecycleStoreBlake3Identity(value.to_string()))
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Option<Digest> {
+    if is_digest(value) {
+        Some(Digest(value.to_string()))
     } else {
         push_diagnostic(
             diagnostics,
@@ -883,12 +850,9 @@ fn parse_blake3_identity(
     }
 }
 
-fn validate_mapping_uniqueness(
-    mappings: &[LifecycleStoreLocatorMapping],
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
-) {
-    let mut ids = BTreeSet::new();
-    let mut paths = BTreeSet::new();
+fn validate_mapping_uniqueness(mappings: &[Mapping], diagnostics: &mut Vec<Diagnostic>) {
+    let mut ids = std::collections::BTreeSet::new();
+    let mut paths = std::collections::BTreeSet::new();
     for mapping in mappings {
         if !ids.insert(mapping.store_id.as_str()) {
             push_diagnostic(
@@ -912,9 +876,9 @@ fn validate_mapping_uniqueness(
 }
 
 fn inspect_registration_conflicts(
-    current: &LifecycleStoreLocatorState,
-    proposed: &LifecycleStoreLocatorMapping,
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
+    current: &LocatorState,
+    proposed: &Mapping,
+    diagnostics: &mut Vec<Diagnostic>,
 ) -> bool {
     let mut exact_mapping_exists = false;
     for existing in &current.mappings {
@@ -957,10 +921,10 @@ fn inspect_registration_conflicts(
 }
 
 fn next_registration_state(
-    current: &LifecycleStoreLocatorState,
-    proposed: Option<&LifecycleStoreLocatorMapping>,
+    current: &LocatorState,
+    proposed: Option<&Mapping>,
     exact_mapping_exists: bool,
-) -> Option<LifecycleStoreLocatorState> {
+) -> Option<LocatorState> {
     let proposed = proposed?;
     if exact_mapping_exists {
         return Some(current.clone());
@@ -973,10 +937,7 @@ fn next_registration_state(
     Some(build_locator_state(mappings))
 }
 
-fn next_unregistration_state(
-    current: &LifecycleStoreLocatorState,
-    removed: &LifecycleStoreLocatorMapping,
-) -> LifecycleStoreLocatorState {
+fn next_unregistration_state(current: &LocatorState, removed: &Mapping) -> LocatorState {
     let mappings = current
         .mappings
         .iter()
@@ -986,74 +947,70 @@ fn next_unregistration_state(
     build_locator_state(mappings)
 }
 
-fn build_locator_state(
-    mut mappings: Vec<LifecycleStoreLocatorMapping>,
-) -> LifecycleStoreLocatorState {
+fn build_locator_state(mut mappings: Vec<Mapping>) -> LocatorState {
     mappings.sort();
     debug_assert!(mappings.len() <= LIFECYCLE_STORE_LOCATOR_MAX_MAPPINGS);
     debug_assert!(mapping_ids_are_unique(&mappings));
     debug_assert!(mapping_paths_are_unique(&mappings));
-    let state_identity = local_locator_state_identity(&mappings);
-    let portable_state_identity = portable_locator_state_identity(&mappings);
-    LifecycleStoreLocatorState {
+    let state_identity = local_state_digest(&mappings);
+    let portable_state_identity = portable_state_digest(&mappings);
+    LocatorState {
         schema: LIFECYCLE_STORE_LOCATOR_SCHEMA_V1.to_string(),
         mappings,
-        state_identity: LifecycleStoreBlake3Identity::from_computed(state_identity),
-        portable_state_identity: LifecycleStoreBlake3Identity::from_computed(
-            portable_state_identity,
-        ),
+        state_identity: Digest::from_computed(state_identity),
+        portable_state_identity: Digest::from_computed(portable_state_identity),
     }
 }
 
-fn local_locator_state_identity(mappings: &[LifecycleStoreLocatorMapping]) -> String {
-    canonical_json_hash(&json!({
+fn local_state_digest(mappings: &[Mapping]) -> String {
+    super::evidence::canonical_json_hash(&serde_json::json!({
         "domain": LOCATOR_LOCAL_STATE_DOMAIN,
         "schema": LIFECYCLE_STORE_LOCATOR_SCHEMA_V1,
         "mappings": mappings,
     }))
 }
 
-fn portable_locator_state_identity(mappings: &[LifecycleStoreLocatorMapping]) -> String {
+fn portable_state_digest(mappings: &[Mapping]) -> String {
     let portable = mappings
         .iter()
         .map(|mapping| {
-            json!({
+            serde_json::json!({
                 "store_id": mapping.store_id.as_str(),
                 "store_identity": mapping.store_identity.as_str(),
             })
         })
         .collect::<Vec<_>>();
-    canonical_json_hash(&json!({
+    super::evidence::canonical_json_hash(&serde_json::json!({
         "domain": LOCATOR_PORTABLE_STATE_DOMAIN,
         "schema": LIFECYCLE_STORE_LOCATOR_SCHEMA_V1,
         "mappings": portable,
     }))
 }
 
-fn mapping_ids_are_unique(mappings: &[LifecycleStoreLocatorMapping]) -> bool {
+fn mapping_ids_are_unique(mappings: &[Mapping]) -> bool {
     let ids = mappings
         .iter()
         .map(|mapping| mapping.store_id.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     ids.len() == mappings.len()
 }
 
-fn mapping_paths_are_unique(mappings: &[LifecycleStoreLocatorMapping]) -> bool {
+fn mapping_paths_are_unique(mappings: &[Mapping]) -> bool {
     let paths = mappings
         .iter()
         .map(|mapping| mapping.checkout_path.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     paths.len() == mappings.len()
 }
 
 fn build_locator_plan(
-    current: &LifecycleStoreLocatorState,
-    operation: LifecycleStoreLocatorOperation,
+    current: &LocatorState,
+    operation: LocatorOperation,
     store_id: &str,
-    mapping: Option<&LifecycleStoreLocatorMapping>,
-    next_state: Option<LifecycleStoreLocatorState>,
-    diagnostics: Vec<LifecycleStoreDiagnostic>,
-) -> LifecycleStoreLocatorPlan {
+    mapping: Option<&Mapping>,
+    next_state: Option<LocatorState>,
+    diagnostics: Vec<Diagnostic>,
+) -> LocatorPlan {
     let changed = next_state
         .as_ref()
         .is_some_and(|state| state.state_identity != current.state_identity);
@@ -1063,16 +1020,16 @@ fn build_locator_plan(
     let next_portable_state_identity = next_state
         .as_ref()
         .map(|state| state.portable_state_identity.as_str().to_string());
-    let local_facts = LifecycleStoreLocatorLocalFacts {
+    let local_facts = LocatorLocalFacts {
         evidence_class: LIFECYCLE_STORE_LOCAL_EVIDENCE_CLASS.to_string(),
         operation,
         store_id: store_id.to_string(),
         checkout_path: mapping.map(|mapping| mapping.checkout_path.as_str().to_string()),
         expected_prior_state_identity: current.state_identity.as_str().to_string(),
         next_state_identity,
-        non_claims: lifecycle_store_required_non_claims(),
+        non_claims: required_non_claims(),
     };
-    let portable_facts = LifecycleStoreLocatorPortableFacts {
+    let portable_facts = LocatorPortableFacts {
         fact_class: LIFECYCLE_STORE_PORTABLE_FACT_CLASS.to_string(),
         operation,
         store_id: store_id.to_string(),
@@ -1083,10 +1040,10 @@ fn build_locator_plan(
             .to_string(),
         next_portable_state_identity,
         changed,
-        non_claims: lifecycle_store_required_non_claims(),
+        non_claims: required_non_claims(),
     };
-    let portable_hash = lifecycle_store_locator_portable_hash(&portable_facts);
-    let mut plan = LifecycleStoreLocatorPlan {
+    let portable_hash = portable_hash(&portable_facts);
+    let mut plan = LocatorPlan {
         schema: LIFECYCLE_STORE_LOCATOR_PLAN_SCHEMA_V1.to_string(),
         blocked: !diagnostics.is_empty(),
         changed,
@@ -1102,15 +1059,15 @@ fn build_locator_plan(
         portable_hash,
         plan_hash: String::new(),
     };
-    plan.plan_hash = lifecycle_store_locator_plan_hash(&plan);
+    plan.plan_hash = plan_hash(&plan);
     debug_assert_eq!(plan.blocked, !plan.diagnostics.is_empty());
     debug_assert_eq!(plan.changed, plan.portable_facts.changed);
     plan
 }
 
-fn validate_plan_integrity(plan: &LifecycleStoreLocatorPlan) -> Vec<LifecycleStoreDiagnostic> {
+fn validate_plan_integrity(plan: &LocatorPlan) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
-    let expected_portable_hash = lifecycle_store_locator_portable_hash(&plan.portable_facts);
+    let expected_portable_hash = portable_hash(&plan.portable_facts);
     if expected_portable_hash != plan.portable_hash {
         push_diagnostic(
             &mut diagnostics,
@@ -1120,7 +1077,7 @@ fn validate_plan_integrity(plan: &LifecycleStoreLocatorPlan) -> Vec<LifecycleSto
             "portable hash does not bind canonical portable receipt facts",
         );
     }
-    let expected_plan_hash = lifecycle_store_locator_plan_hash(plan);
+    let expected_plan_hash = plan_hash(plan);
     if expected_plan_hash != plan.plan_hash {
         push_diagnostic(
             &mut diagnostics,
@@ -1133,7 +1090,7 @@ fn validate_plan_integrity(plan: &LifecycleStoreLocatorPlan) -> Vec<LifecycleSto
     diagnostics
 }
 
-fn lifecycle_store_required_non_claims() -> Vec<String> {
+fn required_non_claims() -> Vec<String> {
     LIFECYCLE_STORE_REQUIRED_NON_CLAIMS
         .iter()
         .map(|value| (*value).to_string())
@@ -1160,7 +1117,7 @@ fn is_safe_bounded_text(value: &str, maximum_bytes: usize) -> bool {
         && !value.chars().any(char::is_control)
 }
 
-fn is_blake3_identity(value: &str) -> bool {
+fn is_digest(value: &str) -> bool {
     value.len() == BLAKE3_IDENTITY_HEX_LENGTH
         && value
             .bytes()
@@ -1168,13 +1125,13 @@ fn is_blake3_identity(value: &str) -> bool {
 }
 
 fn push_diagnostic(
-    diagnostics: &mut Vec<LifecycleStoreDiagnostic>,
+    diagnostics: &mut Vec<Diagnostic>,
     code: &str,
     field: &str,
     subject: &str,
     message: &str,
 ) {
-    diagnostics.push(LifecycleStoreDiagnostic {
+    diagnostics.push(Diagnostic {
         code: code.to_string(),
         field: field.to_string(),
         subject: subject.to_string(),
@@ -1182,7 +1139,7 @@ fn push_diagnostic(
     });
 }
 
-fn sort_diagnostics(diagnostics: &mut Vec<LifecycleStoreDiagnostic>) {
+fn sort_diagnostics(diagnostics: &mut Vec<Diagnostic>) {
     diagnostics.sort();
     diagnostics.dedup();
     if diagnostics.len() > LIFECYCLE_STORE_DIAGNOSTIC_MAX_COUNT {
@@ -1209,8 +1166,8 @@ mod tests {
     const PATH_ALPHA_OTHER: &str = "/srv/lifecycle/alpha";
     const PATH_BETA: &str = "/home/operator/beta";
 
-    fn projection(store_id: &str) -> LifecycleStoreIdentityProjection {
-        LifecycleStoreIdentityProjection {
+    fn projection(store_id: &str) -> Projection {
+        Projection {
             schema: LIFECYCLE_STORE_IDENTITY_SCHEMA_V1.to_string(),
             store_id: store_id.to_string(),
             remote_hint: Some(format!("https://example.invalid/{store_id}.git")),
@@ -1222,20 +1179,19 @@ mod tests {
         }
     }
 
-    fn identity(store_id: &str) -> LifecycleStoreIdentity {
-        let admission = admit_lifecycle_store_identity(&projection(store_id));
+    fn admitted(store_id: &str) -> Admitted {
+        let admission = admit(&projection(store_id));
         assert!(admission.valid, "{:?}", admission.diagnostics);
         admission.identity.expect("valid identity")
     }
 
-    fn apply(plan: &LifecycleStoreLocatorPlan) -> LifecycleStoreLocatorState {
-        let application =
-            apply_lifecycle_store_locator_plan(&empty_lifecycle_store_locator(), plan);
+    fn apply(plan: &LocatorPlan) -> LocatorState {
+        let application = apply_locator_plan(&empty_locator(), plan);
         assert!(application.accepted, "{:?}", application.diagnostics);
         application.next_state.expect("accepted next state")
     }
 
-    fn codes(diagnostics: &[LifecycleStoreDiagnostic]) -> Vec<&str> {
+    fn codes(diagnostics: &[Diagnostic]) -> Vec<&str> {
         diagnostics
             .iter()
             .map(|diagnostic| diagnostic.code.as_str())
@@ -1244,20 +1200,17 @@ mod tests {
 
     #[test]
     // r[verify cairn.lifecycle_stores.identity.valid]
-    fn valid_identity_admission_is_typed_canonical_and_deterministic() {
-        let first = admit_lifecycle_store_identity(&projection(STORE_ALPHA));
-        let second = admit_lifecycle_store_identity(&projection(STORE_ALPHA));
+    fn valid_admission_is_typed_canonical_and_deterministic() {
+        let first = admit(&projection(STORE_ALPHA));
+        let second = admit(&projection(STORE_ALPHA));
         assert!(first.valid, "{:?}", first.diagnostics);
         assert_eq!(first, second);
         let first = first.identity.expect("first identity");
         let second = second.identity.expect("second identity");
-        assert_eq!(
-            lifecycle_store_identity_material(&first),
-            lifecycle_store_identity_material(&second)
-        );
+        assert_eq!(material(&first), material(&second));
         assert_eq!(first.store_identity, second.store_identity);
         assert_eq!(first.store_id.as_str(), STORE_ALPHA);
-        assert!(is_blake3_identity(first.store_identity.as_str()));
+        assert!(is_digest(first.store_identity.as_str()));
         let serialized =
             serde_json::to_value(projection(STORE_ALPHA)).expect("identity projection serializes");
         assert_eq!(serialized["source_blake3"], SOURCE_HASH_A);
@@ -1266,16 +1219,16 @@ mod tests {
 
     #[test]
     // r[verify cairn.lifecycle_stores.identity.invalid]
-    fn unsafe_identity_data_fails_with_sorted_diagnostics() {
-        let candidate = LifecycleStoreIdentityProjection {
+    fn unsafe_data_fails_with_sorted_diagnostics() {
+        let candidate = Projection {
             schema: "unsupported".to_string(),
             store_id: "../Bad\n".to_string(),
             remote_hint: Some("https://example.invalid/repo\ncommand".to_string()),
             non_claims: vec!["promotes trust\n".to_string()],
             source_identity: SOURCE_HASH_A.to_ascii_uppercase(),
         };
-        let report = admit_lifecycle_store_identity(&candidate);
-        let repeated = admit_lifecycle_store_identity(&candidate);
+        let report = admit(&candidate);
+        let repeated = admit(&candidate);
         assert!(!report.valid);
         assert!(report.identity.is_none());
         assert_eq!(report, repeated);
@@ -1285,10 +1238,13 @@ mod tests {
         assert_eq!(report.diagnostics, sorted);
         let emitted_codes = codes(&report.diagnostics)
             .into_iter()
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
         assert_eq!(
             emitted_codes,
-            BTreeSet::from([DIAGNOSTIC_SCHEMA_UNSUPPORTED, DIAGNOSTIC_REMOTE_HINT_UNSAFE,])
+            std::collections::BTreeSet::from([
+                DIAGNOSTIC_SCHEMA_UNSUPPORTED,
+                DIAGNOSTIC_REMOTE_HINT_UNSAFE,
+            ])
         );
         assert!(report
             .diagnostics
@@ -1304,9 +1260,8 @@ mod tests {
     // r[verify cairn.lifecycle_stores.locator.register]
     // r[verify cairn.lifecycle_stores.receipts.local_only]
     fn valid_registration_and_unregistration_return_new_values() {
-        let empty = empty_lifecycle_store_locator();
-        let register =
-            plan_lifecycle_store_registration(&empty, &identity(STORE_ALPHA), PATH_ALPHA);
+        let empty = empty_locator();
+        let register = plan_registration(&empty, &admitted(STORE_ALPHA), PATH_ALPHA);
         assert!(!register.blocked, "{:?}", register.diagnostics);
         assert!(register.changed);
         assert_eq!(
@@ -1316,8 +1271,8 @@ mod tests {
         let registered = apply(&register);
         assert_eq!(registered.mappings.len(), 1);
         assert_eq!(registered.mappings[0].store_id.as_str(), STORE_ALPHA);
-        let locator_projection = lifecycle_store_locator_projection(&registered);
-        let read_back = admit_lifecycle_store_locator(&locator_projection);
+        let locator_projection = locator_projection(&registered);
+        let read_back = admit_locator(&locator_projection);
         assert!(read_back.valid, "{:?}", read_back.diagnostics);
         assert_eq!(read_back.state.as_ref(), Some(&registered));
         let serialized =
@@ -1326,9 +1281,9 @@ mod tests {
         assert!(serialized.get("state_hash").is_some());
         assert!(serialized.get("mappings").is_none());
 
-        let unregister = plan_lifecycle_store_unregistration(&registered, STORE_ALPHA);
+        let unregister = plan_unregistration(&registered, STORE_ALPHA);
         assert!(!unregister.blocked, "{:?}", unregister.diagnostics);
-        let application = apply_lifecycle_store_locator_plan(&registered, &unregister);
+        let application = apply_locator_plan(&registered, &unregister);
         assert!(application.accepted, "{:?}", application.diagnostics);
         assert!(application
             .next_state
@@ -1339,15 +1294,10 @@ mod tests {
 
     #[test]
     // r[verify cairn.lifecycle_stores.locator.conflict]
-    fn duplicate_store_ids_fail_without_a_next_state() {
-        let first = plan_lifecycle_store_registration(
-            &empty_lifecycle_store_locator(),
-            &identity(STORE_ALPHA),
-            PATH_ALPHA,
-        );
+    fn duplicate_ids_fail_without_a_next_state() {
+        let first = plan_registration(&empty_locator(), &admitted(STORE_ALPHA), PATH_ALPHA);
         let current = apply(&first);
-        let conflict =
-            plan_lifecycle_store_registration(&current, &identity(STORE_ALPHA), PATH_ALPHA_OTHER);
+        let conflict = plan_registration(&current, &admitted(STORE_ALPHA), PATH_ALPHA_OTHER);
         assert!(conflict.blocked);
         assert!(conflict.next_state.is_none());
         assert_eq!(codes(&conflict.diagnostics), vec![DIAGNOSTIC_DUPLICATE_ID]);
@@ -1356,14 +1306,9 @@ mod tests {
     #[test]
     // r[verify cairn.lifecycle_stores.locator.conflict]
     fn duplicate_checkout_paths_fail_without_a_next_state() {
-        let first = plan_lifecycle_store_registration(
-            &empty_lifecycle_store_locator(),
-            &identity(STORE_ALPHA),
-            PATH_ALPHA,
-        );
+        let first = plan_registration(&empty_locator(), &admitted(STORE_ALPHA), PATH_ALPHA);
         let current = apply(&first);
-        let conflict =
-            plan_lifecycle_store_registration(&current, &identity(STORE_BETA), PATH_ALPHA);
+        let conflict = plan_registration(&current, &admitted(STORE_BETA), PATH_ALPHA);
         assert!(conflict.blocked);
         assert!(conflict.next_state.is_none());
         assert_eq!(
@@ -1374,17 +1319,13 @@ mod tests {
 
     #[test]
     // r[verify cairn.lifecycle_stores.locator.conflict]
-    fn changed_store_identity_fails_closed() {
-        let original_identity = identity(STORE_ALPHA);
-        let first = plan_lifecycle_store_registration(
-            &empty_lifecycle_store_locator(),
-            &original_identity,
-            PATH_ALPHA,
-        );
+    fn changed_digest_fails_closed() {
+        let original_identity = admitted(STORE_ALPHA);
+        let first = plan_registration(&empty_locator(), &original_identity, PATH_ALPHA);
         let current = apply(&first);
         let mut changed_projection = projection(STORE_ALPHA);
         changed_projection.remote_hint = Some("https://mirror.invalid/alpha.git".to_string());
-        let changed_admission = admit_lifecycle_store_identity(&changed_projection);
+        let changed_admission = admit(&changed_projection);
         assert!(
             changed_admission.valid,
             "{:?}",
@@ -1396,7 +1337,7 @@ mod tests {
             changed_identity.store_identity
         );
 
-        let conflict = plan_lifecycle_store_registration(&current, &changed_identity, PATH_ALPHA);
+        let conflict = plan_registration(&current, &changed_identity, PATH_ALPHA);
         assert!(conflict.blocked);
         assert!(conflict.next_state.is_none());
         assert_eq!(
@@ -1409,14 +1350,12 @@ mod tests {
     // r[verify cairn.lifecycle_stores.locator.conflict]
     // r[verify cairn.lifecycle_stores.functional_boundary.shell]
     fn stale_plan_is_rejected_without_returning_replacement_state() {
-        let empty = empty_lifecycle_store_locator();
-        let stale_plan =
-            plan_lifecycle_store_registration(&empty, &identity(STORE_ALPHA), PATH_ALPHA);
-        let intervening_plan =
-            plan_lifecycle_store_registration(&empty, &identity(STORE_BETA), PATH_BETA);
+        let empty = empty_locator();
+        let stale_plan = plan_registration(&empty, &admitted(STORE_ALPHA), PATH_ALPHA);
+        let intervening_plan = plan_registration(&empty, &admitted(STORE_BETA), PATH_BETA);
         let current = apply(&intervening_plan);
 
-        let application = apply_lifecycle_store_locator_plan(&current, &stale_plan);
+        let application = apply_locator_plan(&current, &stale_plan);
         assert!(!application.accepted);
         assert!(application.next_state.is_none());
         assert_eq!(codes(&application.diagnostics), vec![DIAGNOSTIC_PLAN_STALE]);
@@ -1426,21 +1365,20 @@ mod tests {
     #[test]
     // r[verify cairn.lifecycle_stores.locator.conflict]
     fn tampered_admitted_values_fail_before_a_transition_is_returned() {
-        let empty = empty_lifecycle_store_locator();
-        let mut tampered_identity = identity(STORE_ALPHA);
-        tampered_identity.store_identity = identity(STORE_BETA).store_identity;
-        let blocked = plan_lifecycle_store_registration(&empty, &tampered_identity, PATH_ALPHA);
+        let empty = empty_locator();
+        let mut tampered_identity = admitted(STORE_ALPHA);
+        tampered_identity.store_identity = admitted(STORE_BETA).store_identity;
+        let blocked = plan_registration(&empty, &tampered_identity, PATH_ALPHA);
         assert!(blocked.blocked);
         assert!(blocked.next_state.is_none());
         assert!(codes(&blocked.diagnostics).contains(&DIAGNOSTIC_STORE_IDENTITY_INVALID));
 
-        let register =
-            plan_lifecycle_store_registration(&empty, &identity(STORE_ALPHA), PATH_ALPHA);
+        let register = plan_registration(&empty, &admitted(STORE_ALPHA), PATH_ALPHA);
         let current = apply(&register);
-        let unregister = plan_lifecycle_store_unregistration(&current, STORE_ALPHA);
+        let unregister = plan_unregistration(&current, STORE_ALPHA);
         let mut tampered_current = current;
         tampered_current.mappings.clear();
-        let application = apply_lifecycle_store_locator_plan(&tampered_current, &unregister);
+        let application = apply_locator_plan(&tampered_current, &unregister);
         assert!(!application.accepted);
         assert!(application.next_state.is_none());
         assert!(codes(&application.diagnostics).contains(&DIAGNOSTIC_LOCATOR_STATE_IDENTITY_STALE));
@@ -1449,10 +1387,10 @@ mod tests {
     #[test]
     // r[verify cairn.lifecycle_stores.receipts.portable]
     fn local_paths_change_full_plan_hash_but_not_portable_hash() {
-        let empty = empty_lifecycle_store_locator();
-        let store = identity(STORE_ALPHA);
-        let home_plan = plan_lifecycle_store_registration(&empty, &store, PATH_ALPHA);
-        let server_plan = plan_lifecycle_store_registration(&empty, &store, PATH_ALPHA_OTHER);
+        let empty = empty_locator();
+        let store = admitted(STORE_ALPHA);
+        let home_plan = plan_registration(&empty, &store, PATH_ALPHA);
+        let server_plan = plan_registration(&empty, &store, PATH_ALPHA_OTHER);
         assert_ne!(home_plan.local_facts, server_plan.local_facts);
         assert_ne!(home_plan.plan_hash, server_plan.plan_hash);
         assert_eq!(home_plan.portable_facts, server_plan.portable_facts);
@@ -1461,23 +1399,23 @@ mod tests {
 
     #[test]
     // r[verify cairn.lifecycle_stores.locator.conflict]
-    fn locator_projection_rejects_duplicate_ids_paths_and_stale_identity() {
-        let first = identity(STORE_ALPHA);
-        let second = identity(STORE_BETA);
-        let projection = LifecycleStoreLocatorProjection {
+    fn locator_projection_rejects_duplicate_ids_paths_and_stale_digest() {
+        let first = admitted(STORE_ALPHA);
+        let second = admitted(STORE_BETA);
+        let projection = LocatorProjection {
             schema: LIFECYCLE_STORE_LOCATOR_SCHEMA_V1.to_string(),
             mappings: vec![
-                LifecycleStoreLocatorMappingProjection {
+                MappingProjection {
                     store_id: first.store_id.as_str().to_string(),
                     checkout_path: PATH_ALPHA.to_string(),
                     store_identity: first.store_identity.as_str().to_string(),
                 },
-                LifecycleStoreLocatorMappingProjection {
+                MappingProjection {
                     store_id: first.store_id.as_str().to_string(),
                     checkout_path: PATH_BETA.to_string(),
                     store_identity: first.store_identity.as_str().to_string(),
                 },
-                LifecycleStoreLocatorMappingProjection {
+                MappingProjection {
                     store_id: second.store_id.as_str().to_string(),
                     checkout_path: PATH_ALPHA.to_string(),
                     store_identity: second.store_identity.as_str().to_string(),
@@ -1485,14 +1423,14 @@ mod tests {
             ],
             state_identity: SOURCE_HASH_A.to_string(),
         };
-        let report = admit_lifecycle_store_locator(&projection);
+        let report = admit_locator(&projection);
         assert!(!report.valid);
         assert!(report.state.is_none());
         assert_eq!(
             codes(&report.diagnostics)
                 .into_iter()
-                .collect::<BTreeSet<_>>(),
-            BTreeSet::from([
+                .collect::<std::collections::BTreeSet<_>>(),
+            std::collections::BTreeSet::from([
                 DIAGNOSTIC_DUPLICATE_ID,
                 DIAGNOSTIC_DUPLICATE_PATH,
                 DIAGNOSTIC_LOCATOR_STATE_IDENTITY_STALE,

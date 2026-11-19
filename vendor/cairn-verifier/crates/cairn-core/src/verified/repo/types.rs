@@ -1,5 +1,3 @@
-use crate::verified::cross_repo_dependencies::CrossRepoDependency;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepoStatus {
     pub root: String,
@@ -62,7 +60,7 @@ pub struct ChangeMetadata {
     pub target_date: Option<String>,
     pub status: Option<String>,
     pub depends_on: Vec<String>,
-    pub cross_repo_dependencies: Vec<CrossRepoDependency>,
+    pub cross_repo_dependencies: Vec<crate::verified::cross_repo_dependencies::CrossRepoDependency>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

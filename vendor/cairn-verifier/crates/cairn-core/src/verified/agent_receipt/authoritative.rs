@@ -1,10 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use crate::verified::evidence::canonical_json_hash;
-
 const AUTHORITATIVE_SCHEMA: &str = "cairn.agent-completion.v2";
 const PASSING_STATUS: &str = "passed";
 const MAX_DIAGNOSTIC_SUMMARY_BYTES: usize = 512;
@@ -30,7 +23,7 @@ const SUPPORTED_NON_PASSING_STATUSES: [&str; 11] = [
     "unknown",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentVerificationContract {
     pub schema: String,
     pub repository_id: String,
@@ -42,7 +35,7 @@ pub struct AgentVerificationContract {
     pub required_checks: Vec<AgentRequiredCheck>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentRequiredCheck {
     pub check_id: String,
     pub command: Vec<String>,
@@ -51,7 +44,7 @@ pub struct AgentRequiredCheck {
     pub prerequisites: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentExecutionResult {
     pub check_id: String,
     pub status: String,
@@ -69,13 +62,13 @@ pub struct AgentExecutionResult {
     pub diagnostic: Option<AgentDiagnosticEvidence>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentArtifactReference {
     pub path: String,
     pub hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentDiagnosticEvidence {
     pub remediation_label: String,
     pub summary: String,
@@ -85,14 +78,14 @@ pub struct AgentDiagnosticEvidence {
     pub source: Option<AgentSourceSpan>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AgentSourceSpan {
     pub path: String,
     pub line: u64,
     pub column: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct AgentCompletionDiagnostic {
     pub diagnostic_id: String,
     pub code: String,
@@ -115,13 +108,13 @@ pub struct AgentCompletionDiagnostic {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct AgentNonPassingCheck {
     pub check_id: String,
     pub status: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct AgentAuthoritativeCompletionReport {
     pub schema: String,
     pub classification: String,
@@ -164,12 +157,12 @@ struct DiagnosticContext<'a> {
 // r[impl cairn.supersede.agent_run_receipts.authoritative_verification]
 // r[impl cairn.supersede.agent_run_receipts.schema_migration.goldens]
 pub fn evaluate_authoritative_agent_completion(
-    contract_value: &Value,
-    results_value: &Value,
+    contract_value: &serde_json::Value,
+    results_value: &serde_json::Value,
     current_subject_hash: &str,
     current_policy_hash: &str,
 ) -> AgentAuthoritativeCompletionReport {
-    let input_hash = canonical_json_hash(&json!({
+    let input_hash = crate::verified::evidence::canonical_json_hash(&serde_json::json!({
         "contract": contract_value,
         "results": results_value,
         "current_subject_hash": current_subject_hash,
@@ -229,7 +222,7 @@ pub fn evaluate_authoritative_agent_completion(
 }
 
 pub fn authoritative_command_hash(command: &[String]) -> String {
-    canonical_json_hash(&json!(command))
+    crate::verified::evidence::canonical_json_hash(&serde_json::json!(command))
 }
 
 pub fn authoritative_selection_hash(required_checks: &[AgentRequiredCheck]) -> String {
@@ -239,18 +232,18 @@ pub fn authoritative_selection_hash(required_checks: &[AgentRequiredCheck]) -> S
             let mut prerequisites = check.prerequisites.clone();
             prerequisites.sort();
             prerequisites.dedup();
-            json!({
+            serde_json::json!({
                 "check_id": check.check_id,
                 "command_hash": check.command_hash,
                 "prerequisites": prerequisites,
             })
         })
         .collect::<Vec<_>>();
-    rows.sort_by_key(canonical_json_hash);
-    canonical_json_hash(&json!(rows))
+    rows.sort_by_key(crate::verified::evidence::canonical_json_hash);
+    crate::verified::evidence::canonical_json_hash(&serde_json::json!(rows))
 }
 
-fn parse_results(value: &Value) -> Result<Vec<AgentExecutionResult>, String> {
+fn parse_results(value: &serde_json::Value) -> Result<Vec<AgentExecutionResult>, String> {
     let rows = value.get("results").unwrap_or(value).clone();
     serde_json::from_value(rows).map_err(|error| error.to_string())
 }
@@ -274,8 +267,9 @@ fn evaluate_normalized(
         .required_checks
         .iter()
         .map(|check| (check.check_id.as_str(), check))
-        .collect::<BTreeMap<_, _>>();
-    let mut results_by_id: BTreeMap<&str, Vec<&AgentExecutionResult>> = BTreeMap::new();
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut results_by_id: std::collections::BTreeMap<&str, Vec<&AgentExecutionResult>> =
+        std::collections::BTreeMap::new();
     for result in results {
         results_by_id
             .entry(result.check_id.as_str())
@@ -290,8 +284,8 @@ fn evaluate_normalized(
         }
     }
 
-    let mut base_passing = BTreeSet::new();
-    let mut statuses = BTreeMap::new();
+    let mut base_passing = std::collections::BTreeSet::new();
+    let mut statuses = std::collections::BTreeMap::new();
     for check in &contract.required_checks {
         let rows = results_by_id
             .get(check.check_id.as_str())
@@ -464,7 +458,7 @@ fn validate_contract(
         ));
     }
 
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for check in &contract.required_checks {
         if check.check_id.is_empty() || !ids.insert(check.check_id.as_str()) {
             diagnostics.push(diagnostic(
@@ -500,7 +494,7 @@ fn validate_contract(
         .required_checks
         .iter()
         .map(|check| check.check_id.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     for check in &contract.required_checks {
         for prerequisite in &check.prerequisites {
             if prerequisite == &check.check_id || !all_ids.contains(prerequisite.as_str()) {
@@ -724,7 +718,7 @@ fn diagnostic(
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    let id_material = json!({
+    let id_material = serde_json::json!({
         "code": code,
         "check_id": context.check_id,
         "status": context.status,
@@ -732,7 +726,7 @@ fn diagnostic(
         "actual": context.actual,
     });
     AgentCompletionDiagnostic {
-        diagnostic_id: canonical_json_hash(&id_material),
+        diagnostic_id: crate::verified::evidence::canonical_json_hash(&id_material),
         code: code.to_string(),
         check_id: context.check_id.map(ToOwned::to_owned),
         result_status: context.status.map(ToOwned::to_owned),
@@ -878,8 +872,9 @@ fn prerequisite_graph_has_cycle(checks: &[AgentRequiredCheck]) -> bool {
     let mut indegree = checks
         .iter()
         .map(|check| (check.check_id.as_str(), 0_usize))
-        .collect::<BTreeMap<_, _>>();
-    let mut dependents: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut dependents: std::collections::BTreeMap<&str, Vec<&str>> =
+        std::collections::BTreeMap::new();
     for check in checks {
         for prerequisite in &check.prerequisites {
             if let Some(value) = indegree.get_mut(check.check_id.as_str()) {
@@ -895,7 +890,7 @@ fn prerequisite_graph_has_cycle(checks: &[AgentRequiredCheck]) -> bool {
         .iter()
         .filter(|(_, count)| **count == 0)
         .map(|(id, _)| *id)
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let mut visited = 0_usize;
     while let Some(next) = ready.pop_first() {
         visited += 1;
@@ -966,7 +961,7 @@ fn canonical_report_hash(report: &AgentAuthoritativeCompletionReport) -> String 
     if let Some(object) = value.as_object_mut() {
         object.remove("receipt_hash");
     }
-    canonical_json_hash(&value)
+    crate::verified::evidence::canonical_json_hash(&value)
 }
 
 #[cfg(test)]
@@ -977,7 +972,7 @@ mod tests {
     const HASH_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
     const HASH_C: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
-    fn fixture() -> (Value, Value) {
+    fn fixture() -> (serde_json::Value, serde_json::Value) {
         let first_command = vec!["cargo".to_string(), "test".to_string()];
         let second_command = vec!["cargo".to_string(), "clippy".to_string()];
         let mut required_checks = vec![
@@ -1054,7 +1049,7 @@ mod tests {
     // r[verify cairn.supersede.agent_run_receipts.authoritative_verification.negative]
     // r[verify cairn.supersede.agent_run_receipts.pass_only.non_pass]
     fn every_policy_fixture_non_passing_status_fails_closed() {
-        let matrix: Value = serde_json::from_str(include_str!(
+        let matrix: serde_json::Value = serde_json::from_str(include_str!(
             "../../../../../fixtures/agent-completion/negative-matrix.json"
         ))
         .unwrap();
@@ -1067,7 +1062,7 @@ mod tests {
         assert_eq!(statuses, SUPPORTED_NON_PASSING_STATUSES);
         for status in statuses {
             let (contract, mut results) = fixture();
-            results[0]["status"] = Value::String(status.to_string());
+            results[0]["status"] = serde_json::Value::String(status.to_string());
             let report =
                 evaluate_authoritative_agent_completion(&contract, &results, HASH_C, HASH_B);
             assert!(!report.valid, "status {status} unexpectedly passed");
@@ -1086,7 +1081,7 @@ mod tests {
         let duplicate = results[1].clone();
         results.as_array_mut().unwrap().push(duplicate);
         let mut unknown = results[1].clone();
-        unknown["check_id"] = Value::String("unknown".to_string());
+        unknown["check_id"] = serde_json::Value::String("unknown".to_string());
         results.as_array_mut().unwrap().push(unknown);
         let test_row = results
             .as_array_mut()
@@ -1094,14 +1089,14 @@ mod tests {
             .iter_mut()
             .find(|row| row["check_id"] == "tests")
             .unwrap();
-        test_row["status"] = Value::String("failed".to_string());
+        test_row["status"] = serde_json::Value::String("failed".to_string());
         let report = evaluate_authoritative_agent_completion(&contract, &results, HASH_C, HASH_B);
         assert!(!report.valid);
         let codes = report
             .diagnostics
             .iter()
             .map(|row| row.code.as_str())
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
         assert!(codes.contains("verification_result.duplicate"));
         assert!(codes.contains("verification_result.unknown_check"));
         assert!(codes.contains("verification_result.prerequisite_not_passing"));
@@ -1113,9 +1108,9 @@ mod tests {
     // r[verify cairn.supersede.agent_run_receipts.freshness.hashes]
     fn stale_and_malformed_identity_evidence_fails_closed() {
         let (mut contract, mut results) = fixture();
-        contract["selection_hash"] = Value::String(HASH_C.to_string());
-        results[0]["subject_hash"] = Value::String(HASH_A.to_string());
-        results[1]["evidence_hash"] = Value::String("bad".to_string());
+        contract["selection_hash"] = serde_json::Value::String(HASH_C.to_string());
+        results[0]["subject_hash"] = serde_json::Value::String(HASH_A.to_string());
+        results[1]["evidence_hash"] = serde_json::Value::String("bad".to_string());
         let report = evaluate_authoritative_agent_completion(&contract, &results, HASH_C, HASH_B);
         assert!(!report.valid);
         assert!(report
@@ -1136,9 +1131,10 @@ mod tests {
     // r[verify cairn.supersede.agent_run_receipts.actionable_diagnostics.safe]
     fn unsafe_diagnostic_is_rejected_without_raw_projection() {
         let (contract, mut results) = fixture();
-        results[0]["diagnostic"]["working_root"] = Value::String("/home/private".to_string());
+        results[0]["diagnostic"]["working_root"] =
+            serde_json::Value::String("/home/private".to_string());
         results[0]["diagnostic"]["summary"] =
-            Value::String("x".repeat(MAX_DIAGNOSTIC_SUMMARY_BYTES + 1));
+            serde_json::Value::String("x".repeat(MAX_DIAGNOSTIC_SUMMARY_BYTES + 1));
         let report = evaluate_authoritative_agent_completion(&contract, &results, HASH_C, HASH_B);
         assert!(!report.valid);
         let diagnostic = report

@@ -1,14 +1,3 @@
-use std::collections::BTreeMap;
-
-use super::{
-    evidence::blake3_hex,
-    radicle_change::{
-        change_cob_content_root, change_cob_lifecycle_view, change_cob_state_hash,
-        current_change_cob_evidence, materialize_change_cob, ChangeCobError, ChangeCobState,
-        ChangeLifecycleView,
-    },
-};
-
 const BLOCKER_CONTENT_CONFLICT: &str =
     "typed change content is conflicted and cannot be materialized";
 const BLOCKER_LIFECYCLE_CONFLICT: &str =
@@ -23,7 +12,7 @@ const BLOCKER_INVALID_ABSENT_SNAPSHOT: &str =
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChangeCobLocalSnapshot {
     pub exists: bool,
-    pub files: BTreeMap<String, String>,
+    pub files: std::collections::BTreeMap<String, String>,
     pub issues: Vec<String>,
 }
 
@@ -31,7 +20,7 @@ impl ChangeCobLocalSnapshot {
     pub fn absent() -> Self {
         Self {
             exists: false,
-            files: BTreeMap::new(),
+            files: std::collections::BTreeMap::new(),
             issues: Vec::new(),
         }
     }
@@ -71,7 +60,7 @@ pub struct ChangeCobCheckoutPlan {
     pub state_hash: String,
     pub content_root: Option<String>,
     pub content_conflicts: Vec<String>,
-    pub lifecycle: ChangeLifecycleView,
+    pub lifecycle: super::radicle_change::ChangeLifecycleView,
     pub evidence_count: usize,
     pub current_evidence_count: usize,
     pub files: Vec<ChangeCheckoutFile>,
@@ -94,28 +83,31 @@ impl ChangeCobCheckoutPlan {
 }
 
 pub fn plan_change_cob_checkout(
-    state: &ChangeCobState,
+    state: &super::radicle_change::ChangeCobState,
     mut local: ChangeCobLocalSnapshot,
-) -> Result<ChangeCobCheckoutPlan, ChangeCobError> {
+) -> Result<ChangeCobCheckoutPlan, super::radicle_change::ChangeCobError> {
     local.issues.sort();
     local.issues.dedup();
-    let state_hash = change_cob_state_hash(state)?;
-    let lifecycle = change_cob_lifecycle_view(state)?;
+    let state_hash = super::radicle_change::change_cob_state_hash(state)?;
+    let lifecycle = super::radicle_change::change_cob_lifecycle_view(state)?;
     let evidence_count = state.evidence.len();
     let mut blockers = local.issues.clone();
-    if matches!(&lifecycle, ChangeLifecycleView::Conflicted { .. }) {
+    if matches!(
+        &lifecycle,
+        super::radicle_change::ChangeLifecycleView::Conflicted { .. }
+    ) {
         blockers.push(BLOCKER_LIFECYCLE_CONFLICT.to_string());
     }
 
     let (content_root, content_conflicts, current_evidence_count, materialized) =
-        match materialize_change_cob(state) {
+        match super::radicle_change::materialize_change_cob(state) {
             Ok(materialized) => (
-                Some(change_cob_content_root(state)?),
+                Some(super::radicle_change::change_cob_content_root(state)?),
                 Vec::new(),
-                current_change_cob_evidence(state)?.len(),
+                super::radicle_change::current_change_cob_evidence(state)?.len(),
                 materialized,
             ),
-            Err(ChangeCobError::ArtifactConflict { mut artifacts }) => {
+            Err(super::radicle_change::ChangeCobError::ArtifactConflict { mut artifacts }) => {
                 artifacts.sort();
                 artifacts.dedup();
                 blockers.push(BLOCKER_CONTENT_CONFLICT.to_string());
@@ -127,7 +119,7 @@ pub fn plan_change_cob_checkout(
     let files = materialized
         .into_iter()
         .map(|file| ChangeCheckoutFile {
-            blake3: blake3_hex(file.content.as_bytes()),
+            blake3: super::evidence::blake3_hex(file.content.as_bytes()),
             byte_length: file.content.len(),
             path: file.path,
             content: file.content,
@@ -136,7 +128,7 @@ pub fn plan_change_cob_checkout(
     let expected = files
         .iter()
         .map(|file| (file.path.clone(), file.content.clone()))
-        .collect::<BTreeMap<_, _>>();
+        .collect::<std::collections::BTreeMap<_, _>>();
 
     let destination = if !local.exists {
         if local.files.is_empty() && local.issues.is_empty() {
@@ -173,13 +165,8 @@ pub fn plan_change_cob_checkout(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
 
     use super::*;
-    use crate::{
-        apply_change_cob_operation, initialize_change_cob, ChangeArtifactId, ChangeCobAction,
-        ChangeCobInit, ChangeCobOperation, ChangeLifecycleStatus, RADICLE_CHANGE_COB_SCHEMA_V1,
-    };
 
     const CHANGE_ID: &str = "radicle-status-checkout-cli";
     const REPOSITORY_ID: &str = "rad:z3example";
@@ -196,21 +183,21 @@ mod tests {
     const CONFLICTING_PROPOSAL: &str = "# Proposal\n\nConcurrent.\n";
     const EXPECTED_FILE_COUNT: usize = 1;
 
-    fn state() -> ChangeCobState {
-        initialize_change_cob(ChangeCobOperation {
+    fn state() -> super::super::radicle_change::ChangeCobState {
+        crate::initialize_change_cob(crate::ChangeCobOperation {
             id: ROOT_OPERATION.to_string(),
             actor: CREATOR.to_string(),
             is_delegate: true,
-            actions: vec![ChangeCobAction::Init {
-                state: ChangeCobInit {
-                    schema: RADICLE_CHANGE_COB_SCHEMA_V1.to_string(),
+            actions: vec![crate::ChangeCobAction::Init {
+                state: crate::ChangeCobInit {
+                    schema: crate::RADICLE_CHANGE_COB_SCHEMA_V1.to_string(),
                     change_id: CHANGE_ID.to_string(),
                     repository_id: REPOSITORY_ID.to_string(),
                     base_git_oid: BASE_GIT_OID.to_string(),
                     policy_hash: POLICY_HASH.to_string(),
-                    delegates: BTreeSet::new(),
-                    artifacts: BTreeMap::from([(
-                        ChangeArtifactId::proposal(),
+                    delegates: std::collections::BTreeSet::new(),
+                    artifacts: std::collections::BTreeMap::from([(
+                        crate::ChangeArtifactId::proposal(),
                         PROPOSAL.to_string(),
                     )]),
                 },
@@ -219,15 +206,15 @@ mod tests {
         .expect("valid test state")
     }
 
-    fn set_proposal(operation_id: &str, content: &str) -> ChangeCobOperation {
-        ChangeCobOperation {
+    fn set_proposal(operation_id: &str, content: &str) -> crate::ChangeCobOperation {
+        crate::ChangeCobOperation {
             id: operation_id.to_string(),
             actor: CREATOR.to_string(),
             is_delegate: false,
-            actions: vec![ChangeCobAction::SetArtifact {
-                artifact: ChangeArtifactId::proposal(),
+            actions: vec![crate::ChangeCobAction::SetArtifact {
+                artifact: crate::ChangeArtifactId::proposal(),
                 content: Some(content.to_string()),
-                basis: BTreeSet::from([ROOT_OPERATION.to_string()]),
+                basis: std::collections::BTreeSet::from([ROOT_OPERATION.to_string()]),
             }],
         }
     }
@@ -245,14 +232,20 @@ mod tests {
         assert_eq!(absent.files[0].content, PROPOSAL);
         assert_eq!(
             absent.content_root,
-            Some(change_cob_content_root(&state).expect("content root"))
+            Some(
+                super::super::radicle_change::change_cob_content_root(&state)
+                    .expect("content root")
+            )
         );
 
         let exact = plan_change_cob_checkout(
             &state,
             ChangeCobLocalSnapshot {
                 exists: true,
-                files: BTreeMap::from([("proposal.md".to_string(), PROPOSAL.to_string())]),
+                files: std::collections::BTreeMap::from([(
+                    "proposal.md".to_string(),
+                    PROPOSAL.to_string(),
+                )]),
                 issues: Vec::new(),
             },
         )
@@ -267,7 +260,10 @@ mod tests {
     fn divergent_and_unsupported_local_content_is_blocked() {
         let local = ChangeCobLocalSnapshot {
             exists: true,
-            files: BTreeMap::from([("proposal.md".to_string(), UPDATED_PROPOSAL.to_string())]),
+            files: std::collections::BTreeMap::from([(
+                "proposal.md".to_string(),
+                UPDATED_PROPOSAL.to_string(),
+            )]),
             issues: vec!["unsupported local entry: notes.txt".to_string()],
         };
         let plan = plan_change_cob_checkout(&state(), local).expect("divergent plan");
@@ -286,22 +282,29 @@ mod tests {
     #[test]
     fn lifecycle_conflict_is_visible_and_blocks_checkout() {
         let mut conflicted = state();
-        let content_root = change_cob_content_root(&conflicted).expect("content root");
+        let content_root = super::super::radicle_change::change_cob_content_root(&conflicted)
+            .expect("content root");
         for (operation_id, status) in [
-            (LIFECYCLE_OPERATION, ChangeLifecycleStatus::ReviewRequested),
-            (LIFECYCLE_CONFLICT_OPERATION, ChangeLifecycleStatus::Open),
+            (
+                LIFECYCLE_OPERATION,
+                crate::ChangeLifecycleStatus::ReviewRequested,
+            ),
+            (
+                LIFECYCLE_CONFLICT_OPERATION,
+                crate::ChangeLifecycleStatus::Open,
+            ),
         ] {
-            apply_change_cob_operation(
+            crate::apply_change_cob_operation(
                 &mut conflicted,
-                ChangeCobOperation {
+                crate::ChangeCobOperation {
                     id: operation_id.to_string(),
                     actor: CREATOR.to_string(),
                     is_delegate: false,
-                    actions: vec![ChangeCobAction::SetLifecycle {
+                    actions: vec![crate::ChangeCobAction::SetLifecycle {
                         status,
                         subject_root: content_root.clone(),
-                        evidence: BTreeSet::new(),
-                        basis: BTreeSet::from([ROOT_OPERATION.to_string()]),
+                        evidence: std::collections::BTreeSet::new(),
+                        basis: std::collections::BTreeSet::from([ROOT_OPERATION.to_string()]),
                     }],
                 },
             )
@@ -312,7 +315,7 @@ mod tests {
             .expect("lifecycle conflict status plan");
         assert!(matches!(
             plan.lifecycle,
-            ChangeLifecycleView::Conflicted { .. }
+            super::super::radicle_change::ChangeLifecycleView::Conflicted { .. }
         ));
         assert!(!plan.files.is_empty());
         assert!(!plan.checkout_ready());
@@ -325,12 +328,12 @@ mod tests {
     #[test]
     fn content_conflict_is_visible_without_partial_materialization() {
         let mut conflicted = state();
-        apply_change_cob_operation(
+        crate::apply_change_cob_operation(
             &mut conflicted,
             set_proposal(UPDATE_OPERATION, UPDATED_PROPOSAL),
         )
         .expect("first update");
-        apply_change_cob_operation(
+        crate::apply_change_cob_operation(
             &mut conflicted,
             set_proposal(CONFLICT_OPERATION, CONFLICTING_PROPOSAL),
         )
@@ -344,7 +347,7 @@ mod tests {
         assert!(!plan.checkout_ready());
         assert!(matches!(
             plan.lifecycle,
-            ChangeLifecycleView::ContentConflicted { .. }
+            super::super::radicle_change::ChangeLifecycleView::ContentConflicted { .. }
         ));
     }
 }

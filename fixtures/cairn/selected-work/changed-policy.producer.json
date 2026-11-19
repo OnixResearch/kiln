@@ -1,0 +1,1123 @@
+{
+  "schema": "cairn.selected-work.v1",
+  "producer": "cairn",
+  "selection": {
+    "change": "sample",
+    "task": null
+  },
+  "cohort": {
+    "source": "109c8ec45a98a7a1df5848c73c7d198edf15ce45ee8ff1699442bef7bfe60326",
+    "intent": "38f4fb1e80a3a8c8ba2c4e716037047ebae78a0d7223603026e8586e0a6e23c1",
+    "context": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
+    "verification_subject": "fd5865417004c951791b27615a50cc213280edc7c14a17f75743ffccbcab6c71",
+    "dependencies": "25a78c4686effdbd529ba8f6ef8beda5ddadfa313cba1f0dc63733fb55546d6c",
+    "obligations": "ebc4fbda209d8ebeab668a270072c31e1849fdf0c4d1658a20fc86eadb5ad58e",
+    "selection": "9f0d616d6a8c508b2c70d13059026486d708d61777eccc071196e4792d7b9943",
+    "observation": "8f60b4e2482189f43d1b8f7a0a7b352a2232e13d4da1ca43c01f9c9f19ef2837"
+  },
+  "source": {
+    "revision": {
+      "kind": "projection",
+      "identity": "a07980a17237e9f0c0d26d3625905bf9430cfd685f2643e009c1cc7436ffe124"
+    },
+    "artifacts": [
+      {
+        "root": "lifecycle",
+        "path": ".cairn/changes/sample/tasks.md",
+        "bytes": 21,
+        "blake3": "0000000000000000000000000000000000000000000000000000000000000002",
+        "status": "present"
+      }
+    ]
+  },
+  "policy_hash": "0000000000000000000000000000000000000000000000000000000000000004",
+  "profile": "spec-driven",
+  "profile_hash": "0000000000000000000000000000000000000000000000000000000000000004",
+  "dependencies": [
+    {
+      "task": "t1",
+      "prerequisite": "t0",
+      "state": "unavailable",
+      "identity": "0000000000000000000000000000000000000000000000000000000000000014"
+    }
+  ],
+  "completion": {
+    "state": "blocked",
+    "contract_hash": "0000000000000000000000000000000000000000000000000000000000000015",
+    "results_hash": null,
+    "subject_hash": "0000000000000000000000000000000000000000000000000000000000000016"
+  },
+  "context": {
+    "selection_hash": "0000000000000000000000000000000000000000000000000000000000000005",
+    "portable_hash": "0000000000000000000000000000000000000000000000000000000000000007",
+    "entries": []
+  },
+  "readiness": {
+    "native_receipt_hash": "000000000000000000000000000000000000000000000000000000000000000d",
+    "native_scope": {
+      "change": "sample",
+      "policy_hash": "0000000000000000000000000000000000000000000000000000000000000004",
+      "source_hash": "0000000000000000000000000000000000000000000000000000000000000008",
+      "evidence_hash": "0000000000000000000000000000000000000000000000000000000000000009"
+    },
+    "native_input_hash": "000000000000000000000000000000000000000000000000000000000000000c",
+    "native_policy_hash": "000000000000000000000000000000000000000000000000000000000000000b",
+    "valid": true,
+    "classification": "blocked",
+    "stages": [
+      {
+        "stage": "artifact",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "proposal",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "design",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "tasks",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "completion",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "sync",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      },
+      {
+        "stage": "archive",
+        "state": "blocked",
+        "decision_hash": "000000000000000000000000000000000000000000000000000000000000000a"
+      }
+    ],
+    "blockers": [
+      {
+        "id": "completion.missing-results",
+        "stage": "completion",
+        "code": "missing_results",
+        "target": "sample"
+      }
+    ],
+    "actions": []
+  },
+  "units": [
+    {
+      "task": "t1",
+      "state": "complete",
+      "references": [
+        {
+          "kind": "requirement",
+          "id": "kiln.sample",
+          "scope": {
+            "kind": "change"
+          }
+        },
+        {
+          "kind": "acceptance",
+          "id": "kiln.sample",
+          "scope": {
+            "kind": "task",
+            "task": "t1"
+          }
+        }
+      ],
+      "verification_contracts": []
+    }
+  ],
+  "remaining": [
+    {
+      "kind": "completion",
+      "state": "blocked",
+      "subject": null
+    },
+    {
+      "kind": "sync",
+      "state": "blocked",
+      "subject": null
+    },
+    {
+      "kind": "archive",
+      "state": "blocked",
+      "subject": null
+    }
+  ],
+  "enumeration": {
+    "complete": true,
+    "observed": 1,
+    "total": 1,
+    "budget_bytes": 67108864,
+    "consumed_bytes": 21
+  },
+  "semantic_extensions": {
+    "dependency_meanings": "unsupported",
+    "obligation_explanations": "supported"
+  },
+  "obligations": {
+    "state": "exported",
+    "export": {
+      "binding": {
+        "workflow_id": "verify",
+        "workflow_version": 1,
+        "definition_id": "verify",
+        "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
+        "workflow_policy_blake3": "0000000000000000000000000000000000000000000000000000000000000004",
+        "catalog_identity": "90663227cd9dc08a0b5976554a4323fe348cfc485942986a84b2ba355a31a382",
+        "binding_blake3": "823d563872eb9b7eafa858b37b706bb5d4f4017858496706c115e7a7066c2de5"
+      },
+      "predicate": {
+        "schema": "cairn.workflow-obligation-predicate.v1",
+        "workflow_id": "verify",
+        "workflow_version": 1,
+        "definition_id": "verify",
+        "binding": {
+          "workflow_id": "verify",
+          "workflow_version": 1,
+          "definition_id": "verify",
+          "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
+          "workflow_policy_blake3": "0000000000000000000000000000000000000000000000000000000000000004",
+          "catalog_identity": "90663227cd9dc08a0b5976554a4323fe348cfc485942986a84b2ba355a31a382",
+          "binding_blake3": "823d563872eb9b7eafa858b37b706bb5d4f4017858496706c115e7a7066c2de5"
+        },
+        "interpretation": "finite all_of/any_of/conditional applicability over exact native evidence revisions, with declared finite trace ordering and native policy-exception applicability",
+        "subject_blake3": "fd5865417004c951791b27615a50cc213280edc7c14a17f75743ffccbcab6c71",
+        "context_blake3": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
+        "selected_alternatives": {
+          "verify.traceability": "receipt-chain"
+        },
+        "expression": {
+          "kind": "all_of",
+          "id": "verify.completion",
+          "obligations": [
+            {
+              "kind": "evidence",
+              "id": "verify.evidence.contract",
+              "predicate": "agent-receipt.verification-contract"
+            },
+            {
+              "kind": "evidence",
+              "id": "verify.evidence.pass-only",
+              "predicate": "agent-receipt.pass-only"
+            },
+            {
+              "kind": "evidence",
+              "id": "verify.evidence.freshness",
+              "predicate": "agent-receipt.freshness"
+            },
+            {
+              "kind": "evidence",
+              "id": "verify.evidence.authority",
+              "predicate": "agent-receipt.completion-authority"
+            },
+            {
+              "kind": "any_of",
+              "id": "verify.traceability",
+              "alternatives": [
+                {
+                  "id": "receipt-chain",
+                  "obligations": [
+                    {
+                      "kind": "evidence",
+                      "id": "verify.traceability.contract",
+                      "predicate": "agent-receipt.verification-contract"
+                    },
+                    {
+                      "kind": "evidence",
+                      "id": "verify.traceability.freshness",
+                      "predicate": "agent-receipt.freshness"
+                    }
+                  ]
+                },
+                {
+                  "id": "claim-revision",
+                  "obligations": [
+                    {
+                      "kind": "evidence",
+                      "id": "verify.traceability.claim",
+                      "predicate": "verification-obligation.claim-revision"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "applicable",
+              "id": "verify.conditional.claim",
+              "condition": "verification-scope.applicable",
+              "then": {
+                "kind": "evidence",
+                "id": "verify.conditional.claim.revision",
+                "predicate": "verification-obligation.claim-revision"
+              }
+            }
+          ]
+        },
+        "evidence_requirements": [
+          {
+            "node": "verification-scope.applicable",
+            "predicate": "verification-scope.applicable",
+            "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af"
+          },
+          {
+            "node": "verify.conditional.claim.revision",
+            "predicate": "verification-obligation.claim-revision",
+            "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+            "owner": "cairn_core::verified::workflow_collaboration",
+            "accepted_revision_blake3": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666"
+          },
+          {
+            "node": "verify.evidence.authority",
+            "predicate": "agent-receipt.completion-authority",
+            "requirement_id": "cairn.supersede.agent_run_receipts.completion_authority",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "5427af464b1ebc00db599a9ec90cdee48d0ce7b4a0b2652c6dc1d134bd89451b"
+          },
+          {
+            "node": "verify.evidence.contract",
+            "predicate": "agent-receipt.verification-contract",
+            "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af"
+          },
+          {
+            "node": "verify.evidence.freshness",
+            "predicate": "agent-receipt.freshness",
+            "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e"
+          },
+          {
+            "node": "verify.evidence.pass-only",
+            "predicate": "agent-receipt.pass-only",
+            "requirement_id": "cairn.supersede.agent_run_receipts.pass_only",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "34abbfe64cae739b75554f48d89d0e0bc19ca8e55d54cf51a9363ffe84a6f58d"
+          },
+          {
+            "node": "verify.traceability.claim",
+            "predicate": "verification-obligation.claim-revision",
+            "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+            "owner": "cairn_core::verified::workflow_collaboration",
+            "accepted_revision_blake3": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666"
+          },
+          {
+            "node": "verify.traceability.contract",
+            "predicate": "agent-receipt.verification-contract",
+            "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af"
+          },
+          {
+            "node": "verify.traceability.freshness",
+            "predicate": "agent-receipt.freshness",
+            "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+            "owner": "cairn_core::verified::agent_receipt::authoritative",
+            "accepted_revision_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e"
+          }
+        ],
+        "allowed_command_classes": [
+          "gate",
+          "readiness",
+          "receipt-inspect",
+          "traceability",
+          "workflow-inspect"
+        ],
+        "authority": "native requirement owners retain authority: cairn_core::verified::agent_receipt::authoritative, cairn_core::verified::workflow_collaboration",
+        "predicate_blake3": "d30e182282d1fb75ebb18ce6767cc45bb47ea645a0f68e83ea9309b8ecaa9271",
+        "boundary": "Guidance and completion share one admitted finite definition. This module does not execute actions, observe clocks, monitor work, grant approval, or replace native evidence owners, policy-exception applicability, readiness, or the Pass | Block gate. Activity counts, checked task boxes and an agent success statement are not evidence. A finite trace ordering result is not evidence of unbounded safety or liveness."
+      },
+      "guidance": {
+        "workflow_id": "verify",
+        "workflow_version": 1,
+        "definition_id": "verify",
+        "binding_blake3": "823d563872eb9b7eafa858b37b706bb5d4f4017858496706c115e7a7066c2de5",
+        "requirements_blake3": "b66d38a2b584188f7920e7b1076784d1fb501e3bc7c4a566eca07e923c72bea4",
+        "allowed_command_classes": [
+          "gate",
+          "readiness",
+          "receipt-inspect",
+          "traceability",
+          "workflow-inspect"
+        ],
+        "authority": "gate, readiness, receipt-inspect, traceability, workflow-inspect",
+        "selected_alternatives": {
+          "verify.traceability": "receipt-chain"
+        },
+        "sections": [
+          {
+            "id": "completion",
+            "heading": "Completion obligations",
+            "items": [
+              "verification-scope.applicable: cairn.supersede.agent_run_receipts.verification_contract (verification-scope.applicable) at revision cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af; owner cairn_core::verified::agent_receipt::authoritative",
+              "verify.conditional.claim.revision: cairn.verification_obligation_cob.claim_revision (verification-obligation.claim-revision) at revision 1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666; owner cairn_core::verified::workflow_collaboration",
+              "verify.evidence.authority: cairn.supersede.agent_run_receipts.completion_authority (agent-receipt.completion-authority) at revision 5427af464b1ebc00db599a9ec90cdee48d0ce7b4a0b2652c6dc1d134bd89451b; owner cairn_core::verified::agent_receipt::authoritative",
+              "verify.evidence.contract: cairn.supersede.agent_run_receipts.verification_contract (agent-receipt.verification-contract) at revision cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af; owner cairn_core::verified::agent_receipt::authoritative",
+              "verify.evidence.freshness: cairn.supersede.agent_run_receipts.freshness (agent-receipt.freshness) at revision 653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e; owner cairn_core::verified::agent_receipt::authoritative",
+              "verify.evidence.pass-only: cairn.supersede.agent_run_receipts.pass_only (agent-receipt.pass-only) at revision 34abbfe64cae739b75554f48d89d0e0bc19ca8e55d54cf51a9363ffe84a6f58d; owner cairn_core::verified::agent_receipt::authoritative",
+              "verify.traceability.claim: cairn.verification_obligation_cob.claim_revision (verification-obligation.claim-revision) at revision 1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666; owner cairn_core::verified::workflow_collaboration",
+              "verify.traceability.contract: cairn.supersede.agent_run_receipts.verification_contract (agent-receipt.verification-contract) at revision cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af; owner cairn_core::verified::agent_receipt::authoritative",
+              "verify.traceability.freshness: cairn.supersede.agent_run_receipts.freshness (agent-receipt.freshness) at revision 653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e; owner cairn_core::verified::agent_receipt::authoritative"
+            ]
+          },
+          {
+            "id": "alternatives",
+            "heading": "Alternative strategies",
+            "items": [
+              "verify.traceability: choose exactly one of receipt-chain, claim-revision"
+            ]
+          },
+          {
+            "id": "selected_alternatives",
+            "heading": "Selected alternative",
+            "items": [
+              "verify.traceability: receipt-chain"
+            ]
+          },
+          {
+            "id": "action_preconditions",
+            "heading": "Action preconditions",
+            "items": [
+              "verify.precondition.status: workflow-inspect requires agent-receipt.verification-contract; The native workflow status and policy retain authority for the selected change.",
+              "verify.precondition.gate: gate requires agent-receipt.verification-contract, agent-receipt.pass-only; The native Pass | Block gate retains authority; this precondition never replaces it."
+            ]
+          },
+          {
+            "id": "expected_observations",
+            "heading": "Expected observations",
+            "items": [
+              "verify.observation.receipt: receipt-inspect yields agent-receipt.freshness for inspect current receipt freshness for the selected candidate",
+              "verify.observation.claim: traceability yields verification-obligation.claim-revision for read the current verification obligation claim revision"
+            ]
+          },
+          {
+            "id": "progress_facts",
+            "heading": "Progress facts",
+            "items": [
+              "verify.progress.inspected: The agent inspected the selected change receipts and traceability output.; progress facts never discharge completion obligations",
+              "verify.progress.reported: The agent reported checked evidence and exact blockers.; progress facts never discharge completion obligations"
+            ]
+          },
+          {
+            "id": "authority",
+            "heading": "Authority",
+            "items": [
+              "Allowed command classes: gate, readiness, receipt-inspect, traceability, workflow-inspect. Interpretation: finite all_of/any_of/conditional applicability over exact native evidence revisions, with declared finite trace ordering and native policy-exception applicability."
+            ]
+          },
+          {
+            "id": "non_claims",
+            "heading": "Non-claims",
+            "items": [
+              "guidance and the completion predicate describe one admitted finite definition",
+              "presentation adapters change layout and prose only, never evidence requirements, command classes or authority",
+              "activity counts, checked task boxes and agent success statements are not native evidence",
+              "a finite trace ordering result implies no unbounded safety or liveness",
+              "an accepted policy exception never proves the original unsatisfied condition",
+              "no result here authorizes execution, approval, readiness or a gate verdict"
+            ]
+          }
+        ]
+      },
+      "nodes": [
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.completion",
+          "kind": "all_of",
+          "parent": null,
+          "alternative": null,
+          "children": [
+            "verify.evidence.contract",
+            "verify.evidence.pass-only",
+            "verify.evidence.freshness",
+            "verify.evidence.authority",
+            "verify.traceability",
+            "verify.conditional.claim"
+          ],
+          "alternatives": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "642c7c431c6d985a1f5c92c4130a643c3bf534aa6176fde7b838bc7bb9ea19fa",
+          "guidance_blake3": "83d58ea214609e252386b71712a20d58b85cd6a64d40422664f9bf24d90477d0",
+          "condition_blake3": "74beacf5eded549e496a473f6471292eb03f62cacde9811af7f4ea8ec630964b"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.evidence.contract",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "alternatives": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.verification-contract",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+              "reference_blake3": "0fd4a3f8dd1a51bb76c442773856cae837fc218074efdf312a361dea4c62e72f"
+            }
+          ],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "00db49cdd385173527b6cb4842b22da3a0d6944d37e30f5ab67b6be81896ac75",
+          "guidance_blake3": "9138d311b4ee0dd4d8cff7e173ca1bc8f8f7f32f1cd4cca513fd10ed2a946c49",
+          "condition_blake3": "973bdab87d89c4aa2427b1515a1cb3d7f86afec697dec20d860afbbd83c6e7b2"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.evidence.pass-only",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "alternatives": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.pass-only",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.pass_only",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "34abbfe64cae739b75554f48d89d0e0bc19ca8e55d54cf51a9363ffe84a6f58d",
+              "reference_blake3": "4563ac87a421f1b6e0babae8cfe0b81f5225fd358f4dc512fe4eff41501503bd"
+            }
+          ],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "56178629bd12eee48e2af348f79a809657f7e2e44947599ee08c922514393c50",
+          "guidance_blake3": "8baf760be6bbe3bea1d18a7f0a91b47a2ec93beb90e2409997bc9d613c57fe22",
+          "condition_blake3": "ed72d51b96c75aad5ba75fb2ab4a95035d4c1e3025afb6ab5dd671d2e540749f"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.evidence.freshness",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "alternatives": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.freshness",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+              "reference_blake3": "65dc0ed719eec9172cd343f16b5a60c289fb0de13367b651dc53a43b3cb53972"
+            }
+          ],
+          "expected_observations": [
+            "verify.observation.receipt"
+          ],
+          "command_classes": [
+            "receipt-inspect"
+          ],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "6abd2466b8c69602e70facdf1ea44ce8392947dbca019ab2496c25e30e447ae4",
+          "guidance_blake3": "bcb9f3c87f7a7280c80303026dd132b4900b42e9f76210f5da7e60cf35dd5739",
+          "condition_blake3": "807d6b1bbba1888b9f9a0120f1e5395491f671c3242ec8b4bc27e7df170776b4"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.evidence.authority",
+          "kind": "evidence",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [],
+          "alternatives": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.completion-authority",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.completion_authority",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "5427af464b1ebc00db599a9ec90cdee48d0ce7b4a0b2652c6dc1d134bd89451b",
+              "reference_blake3": "49f4149735ad199632956cab441373705df7b4e0ed0383fbd509cf7ea39a8fa7"
+            }
+          ],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "73171ce0a2f4a478aa8bf70ec1df58e1cbfc5c47094c72058aee3087fd9e373d",
+          "guidance_blake3": "aa76c01cff079bfb94f92217247b87cc3acfd6f0ac1e9f6d658a77127ccbdae1",
+          "condition_blake3": "b3e9d7435707b5872c7979a91fb804cc243b1da9247b90f0617bed8f0832b02f"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.traceability",
+          "kind": "any_of",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [
+            "verify.traceability.contract",
+            "verify.traceability.freshness",
+            "verify.traceability.claim"
+          ],
+          "alternatives": [
+            "receipt-chain",
+            "claim-revision"
+          ],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "9dc756bca0c05fbe2741a7fa3dacb503f262366ef0ab107e5b456f63d549a510",
+          "guidance_blake3": "8049ffa416f03ade4fef76836ee81897ac21b87108c29d30863c543589d38e81",
+          "condition_blake3": "fe1eb6b11d89dacf41a644f654de3c8d4e5f85c3f19bbc342cab98ce36fb3f86"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.traceability.contract",
+          "kind": "evidence",
+          "parent": "verify.traceability",
+          "alternative": "receipt-chain",
+          "children": [],
+          "alternatives": [],
+          "selection": "selected_alternative",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.verification-contract",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+              "reference_blake3": "0fd4a3f8dd1a51bb76c442773856cae837fc218074efdf312a361dea4c62e72f"
+            }
+          ],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "fc14538d5560b012a1b5e83b3aa46995691eb0b8e8cc7adcf4a5e83cc365a5d7",
+          "guidance_blake3": "ea3798ae136564df351bfaac68a265cdc00b2a7c1ec2725a1e93cf8b843b6807",
+          "condition_blake3": "74ee8978db7b4483a25835cabac7ec0d836ff42007ea8562243f2f0cd94099b1"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.traceability.freshness",
+          "kind": "evidence",
+          "parent": "verify.traceability",
+          "alternative": "receipt-chain",
+          "children": [],
+          "alternatives": [],
+          "selection": "selected_alternative",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "agent-receipt.freshness",
+              "kind": "evidence",
+              "requirement_id": "cairn.supersede.agent_run_receipts.freshness",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+              "reference_blake3": "65dc0ed719eec9172cd343f16b5a60c289fb0de13367b651dc53a43b3cb53972"
+            }
+          ],
+          "expected_observations": [
+            "verify.observation.receipt"
+          ],
+          "command_classes": [
+            "receipt-inspect"
+          ],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "4374ac9fcce0230452c13b13f4d27eba8b1d998c3b923398782813d771a8412a",
+          "guidance_blake3": "e905f071214c44f6a4fa3a6f81d7b9d299a0d1197818a97d765782ae9629b629",
+          "condition_blake3": "3970a396086af45c0a906290d18019cdee3f6f5a539436fa7cd2f6afb2e49b7b"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.traceability.claim",
+          "kind": "evidence",
+          "parent": "verify.traceability",
+          "alternative": "claim-revision",
+          "children": [],
+          "alternatives": [],
+          "selection": "unselected_alternative",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "verification-obligation.claim-revision",
+              "kind": "evidence",
+              "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+              "owner": "cairn_core::verified::workflow_collaboration",
+              "accepted_revision_blake3": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666",
+              "reference_blake3": "5fb5ba9d27bb4642debff45e51a8bc4787ef9c4ff78f1b885aab2399647e4b6b"
+            }
+          ],
+          "expected_observations": [
+            "verify.observation.claim"
+          ],
+          "command_classes": [
+            "traceability"
+          ],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "f12d420bf6975abff2e44e1271b07652cf24eefd6a8798531fce8d6a4ae1b180",
+          "guidance_blake3": "df5777a5706df4784dbdbc0905444d5be1a732447e53bd709accad7de01de1ca",
+          "condition_blake3": "688408c2098ee33dc321922c71ae1c5751af44d78b02c4f4b3cdaf43ce55140a"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.conditional.claim",
+          "kind": "applicable",
+          "parent": "verify.completion",
+          "alternative": null,
+          "children": [
+            "verify.conditional.claim.revision"
+          ],
+          "alternatives": [],
+          "selection": "required",
+          "conditions": [],
+          "evidence": [
+            {
+              "predicate": "verification-scope.applicable",
+              "kind": "applicability",
+              "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract",
+              "owner": "cairn_core::verified::agent_receipt::authoritative",
+              "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+              "reference_blake3": "06855d32b0a5ef9108ca395da6775cceaf7ec0ae0124b39d0bdd2f31cf0c605f"
+            }
+          ],
+          "expected_observations": [],
+          "command_classes": [],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "2cd792b9b430dbf822ce6c332dc199616354ae3afa5d38784bdf6877d8f85721",
+          "guidance_blake3": "2db2420887cf79852c282ccb54db0c9c8e7ece11b8b4744d1cef9f8d2987c1cc",
+          "condition_blake3": "0ee8cc5cb52e5eed9ed6057572c360355114cadc54934a366377eb0e66f1e5ba"
+        },
+        {
+          "schema": "cairn.workflow-obligation-node.v1",
+          "id": "verify.conditional.claim.revision",
+          "kind": "evidence",
+          "parent": "verify.conditional.claim",
+          "alternative": null,
+          "children": [],
+          "alternatives": [],
+          "selection": "conditional",
+          "conditions": [
+            "verify.conditional.claim"
+          ],
+          "evidence": [
+            {
+              "predicate": "verification-obligation.claim-revision",
+              "kind": "evidence",
+              "requirement_id": "cairn.verification_obligation_cob.claim_revision",
+              "owner": "cairn_core::verified::workflow_collaboration",
+              "accepted_revision_blake3": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666",
+              "reference_blake3": "5fb5ba9d27bb4642debff45e51a8bc4787ef9c4ff78f1b885aab2399647e4b6b"
+            }
+          ],
+          "expected_observations": [
+            "verify.observation.claim"
+          ],
+          "command_classes": [
+            "traceability"
+          ],
+          "temporal_check": null,
+          "exception": null,
+          "obligation_blake3": "7b1959ce4c505c88b0636873746281ddb879846e82b73cfb3a0688bdc9428747",
+          "guidance_blake3": "9f979cd115433402dd6498c3982864fdc1b9ddce5444275dee103a04d7901fa2",
+          "condition_blake3": "18b34fe1d9fbe24506d18f0fb0df6590ecf46db4276f9f157f44e61da4b00867"
+        }
+      ],
+      "action_preconditions": [
+        {
+          "id": "verify.precondition.status",
+          "action": "workflow-inspect",
+          "required_predicates": [
+            "agent-receipt.verification-contract"
+          ],
+          "authority": "The native workflow status and policy retain authority for the selected change."
+        },
+        {
+          "id": "verify.precondition.gate",
+          "action": "gate",
+          "required_predicates": [
+            "agent-receipt.verification-contract",
+            "agent-receipt.pass-only"
+          ],
+          "authority": "The native Pass | Block gate retains authority; this precondition never replaces it."
+        }
+      ],
+      "expected_observations": [
+        {
+          "id": "verify.observation.receipt",
+          "command_class": "receipt-inspect",
+          "predicate": "agent-receipt.freshness",
+          "description": "inspect current receipt freshness for the selected candidate"
+        },
+        {
+          "id": "verify.observation.claim",
+          "command_class": "traceability",
+          "predicate": "verification-obligation.claim-revision",
+          "description": "read the current verification obligation claim revision"
+        }
+      ],
+      "observations_supplied": true,
+      "evaluation": {
+        "schema": "cairn.workflow-obligation-report.v1",
+        "workflow_id": "verify",
+        "workflow_version": 1,
+        "definition_id": "verify",
+        "binding": {
+          "workflow_id": "verify",
+          "workflow_version": 1,
+          "definition_id": "verify",
+          "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
+          "workflow_policy_blake3": "0000000000000000000000000000000000000000000000000000000000000004",
+          "catalog_identity": "90663227cd9dc08a0b5976554a4323fe348cfc485942986a84b2ba355a31a382",
+          "binding_blake3": "823d563872eb9b7eafa858b37b706bb5d4f4017858496706c115e7a7066c2de5"
+        },
+        "subject_blake3": "fd5865417004c951791b27615a50cc213280edc7c14a17f75743ffccbcab6c71",
+        "context_blake3": "0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
+        "outcome": "unknown",
+        "proved": false,
+        "successful_delivery": false,
+        "selected_alternatives": {
+          "verify.traceability": "receipt-chain"
+        },
+        "completion": [
+          {
+            "id": "verify.completion",
+            "kind": "all_of",
+            "state": "unknown",
+            "detail": "verify.evidence.contract: unknown; verify.evidence.pass-only: unknown; verify.evidence.freshness: unknown; verify.evidence.authority: unknown; verify.traceability: unknown; verify.conditional.claim: unknown",
+            "evidence": [
+              "verify.evidence.contract: no observation supplied",
+              "verify.evidence.pass-only: no observation supplied",
+              "verify.evidence.freshness: no observation supplied",
+              "verify.evidence.authority: no observation supplied",
+              "verify.traceability.contract: no observation supplied",
+              "verify.traceability.freshness: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": [
+              "verify.evidence.contract",
+              "verify.evidence.pass-only",
+              "verify.evidence.freshness",
+              "verify.evidence.authority",
+              "verify.traceability",
+              "verify.conditional.claim"
+            ]
+          },
+          {
+            "id": "verify.evidence.contract",
+            "kind": "evidence",
+            "state": "unknown",
+            "detail": "no observation supplied for cairn.supersede.agent_run_receipts.verification_contract",
+            "evidence": [
+              "verify.evidence.contract: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": []
+          },
+          {
+            "id": "verify.evidence.pass-only",
+            "kind": "evidence",
+            "state": "unknown",
+            "detail": "no observation supplied for cairn.supersede.agent_run_receipts.pass_only",
+            "evidence": [
+              "verify.evidence.pass-only: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": []
+          },
+          {
+            "id": "verify.evidence.freshness",
+            "kind": "evidence",
+            "state": "unknown",
+            "detail": "no observation supplied for cairn.supersede.agent_run_receipts.freshness",
+            "evidence": [
+              "verify.evidence.freshness: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": []
+          },
+          {
+            "id": "verify.evidence.authority",
+            "kind": "evidence",
+            "state": "unknown",
+            "detail": "no observation supplied for cairn.supersede.agent_run_receipts.completion_authority",
+            "evidence": [
+              "verify.evidence.authority: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": []
+          },
+          {
+            "id": "verify.traceability",
+            "kind": "any_of",
+            "state": "unknown",
+            "detail": "selected receipt-chain; verify.traceability.contract: unknown; verify.traceability.freshness: unknown",
+            "evidence": [
+              "verify.traceability.contract: no observation supplied",
+              "verify.traceability.freshness: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": [
+              "verify.traceability.contract",
+              "verify.traceability.freshness"
+            ]
+          },
+          {
+            "id": "verify.traceability.contract",
+            "kind": "evidence",
+            "state": "unknown",
+            "detail": "no observation supplied for cairn.supersede.agent_run_receipts.verification_contract",
+            "evidence": [
+              "verify.traceability.contract: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": []
+          },
+          {
+            "id": "verify.traceability.freshness",
+            "kind": "evidence",
+            "state": "unknown",
+            "detail": "no observation supplied for cairn.supersede.agent_run_receipts.freshness",
+            "evidence": [
+              "verify.traceability.freshness: no observation supplied"
+            ],
+            "original": null,
+            "exception": null,
+            "children": []
+          },
+          {
+            "id": "verify.conditional.claim",
+            "kind": "applicable",
+            "state": "unknown",
+            "detail": "conditional obligation verify.conditional.claim has no admitted applicability observation for verification-scope.applicable: no observation supplied for cairn.supersede.agent_run_receipts.verification_contract",
+            "evidence": [],
+            "original": null,
+            "exception": null,
+            "children": []
+          }
+        ],
+        "action_preconditions": [
+          {
+            "id": "verify.precondition.status",
+            "action": "workflow-inspect",
+            "state": "unknown",
+            "detail": "agent-receipt.verification-contract: unknown (no observation supplied for cairn.supersede.agent_run_receipts.verification_contract)",
+            "authority": "The native workflow status and policy retain authority for the selected change."
+          },
+          {
+            "id": "verify.precondition.gate",
+            "action": "gate",
+            "state": "unknown",
+            "detail": "agent-receipt.verification-contract: unknown (no observation supplied for cairn.supersede.agent_run_receipts.verification_contract); agent-receipt.pass-only: unknown (no observation supplied for cairn.supersede.agent_run_receipts.pass_only)",
+            "authority": "The native Pass | Block gate retains authority; this precondition never replaces it."
+          }
+        ],
+        "expected_observations": [
+          {
+            "id": "verify.observation.receipt",
+            "command_class": "receipt-inspect",
+            "predicate": "agent-receipt.freshness",
+            "state": "missing",
+            "observation": null
+          },
+          {
+            "id": "verify.observation.claim",
+            "command_class": "traceability",
+            "predicate": "verification-obligation.claim-revision",
+            "state": "missing",
+            "observation": null
+          }
+        ],
+        "progress": [
+          {
+            "id": "verify.progress.inspected",
+            "observed": false,
+            "source": "",
+            "effect": "none_on_completion"
+          },
+          {
+            "id": "verify.progress.reported",
+            "observed": false,
+            "source": "",
+            "effect": "none_on_completion"
+          }
+        ],
+        "exceptions": [],
+        "temporal": null,
+        "satisfied": [],
+        "remaining": [
+          {
+            "id": "verify.completion",
+            "kind": "all_of",
+            "state": "unknown",
+            "reason": "verify.evidence.contract: unknown; verify.evidence.pass-only: unknown; verify.evidence.freshness: unknown; verify.evidence.authority: unknown; verify.traceability: unknown; verify.conditional.claim: unknown",
+            "evidence": [
+              "verify.evidence.contract: no observation supplied",
+              "verify.evidence.pass-only: no observation supplied",
+              "verify.evidence.freshness: no observation supplied",
+              "verify.evidence.authority: no observation supplied",
+              "verify.traceability.contract: no observation supplied",
+              "verify.traceability.freshness: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.evidence.contract",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.verification_contract",
+            "evidence": [
+              "verify.evidence.contract: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.evidence.pass-only",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.pass_only",
+            "evidence": [
+              "verify.evidence.pass-only: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.evidence.freshness",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.freshness",
+            "evidence": [
+              "verify.evidence.freshness: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.evidence.authority",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.completion_authority",
+            "evidence": [
+              "verify.evidence.authority: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.traceability",
+            "kind": "any_of",
+            "state": "unknown",
+            "reason": "selected receipt-chain; verify.traceability.contract: unknown; verify.traceability.freshness: unknown",
+            "evidence": [
+              "verify.traceability.contract: no observation supplied",
+              "verify.traceability.freshness: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.traceability.contract",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.verification_contract",
+            "evidence": [
+              "verify.traceability.contract: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.traceability.freshness",
+            "kind": "evidence",
+            "state": "unknown",
+            "reason": "no observation supplied for cairn.supersede.agent_run_receipts.freshness",
+            "evidence": [
+              "verify.traceability.freshness: no observation supplied"
+            ]
+          },
+          {
+            "id": "verify.conditional.claim",
+            "kind": "applicable",
+            "state": "unknown",
+            "reason": "conditional obligation verify.conditional.claim has no admitted applicability observation for verification-scope.applicable: no observation supplied for cairn.supersede.agent_run_receipts.verification_contract",
+            "evidence": []
+          },
+          {
+            "id": "verify.precondition.status",
+            "kind": "action_precondition",
+            "state": "unknown",
+            "reason": "agent-receipt.verification-contract: unknown (no observation supplied for cairn.supersede.agent_run_receipts.verification_contract)",
+            "evidence": [
+              "agent-receipt.verification-contract"
+            ]
+          },
+          {
+            "id": "verify.precondition.gate",
+            "kind": "action_precondition",
+            "state": "unknown",
+            "reason": "agent-receipt.verification-contract: unknown (no observation supplied for cairn.supersede.agent_run_receipts.verification_contract); agent-receipt.pass-only: unknown (no observation supplied for cairn.supersede.agent_run_receipts.pass_only)",
+            "evidence": [
+              "agent-receipt.verification-contract",
+              "agent-receipt.pass-only"
+            ]
+          }
+        ],
+        "ignored_claims": [],
+        "reevaluation_triggers": [
+          "alternative selection change",
+          "context revision change",
+          "evidence revision or observation replacement",
+          "subject revision change",
+          "workflow policy or catalog change"
+        ],
+        "trust_dependencies": [
+          "native observation provenance and execution honesty",
+          "policy exception authority and approval custody",
+          "supplied clock epoch meaning"
+        ],
+        "predicate_blake3": "d30e182282d1fb75ebb18ce6767cc45bb47ea645a0f68e83ea9309b8ecaa9271",
+        "input_blake3": "8314fc323f1f8c599b8f9ce69924ac1de8c70c156c721c909bf4629498ace041",
+        "report_blake3": "a774ecdedae2bb8ee2e0d4365e312b32daaa4b0d5c94c922feb7c6353c99bc7b",
+        "non_claims": [
+          "guidance and the completion predicate describe one admitted finite definition",
+          "presentation adapters change layout and prose only, never evidence requirements, command classes or authority",
+          "activity counts, checked task boxes and agent success statements are not native evidence",
+          "a finite trace ordering result implies no unbounded safety or liveness",
+          "an accepted policy exception never proves the original unsatisfied condition",
+          "no result here authorizes execution, approval, readiness or a gate verdict"
+        ],
+        "boundary": "Guidance and completion share one admitted finite definition. This module does not execute actions, observe clocks, monitor work, grant approval, or replace native evidence owners, policy-exception applicability, readiness, or the Pass | Block gate. Activity counts, checked task boxes and an agent success statement are not evidence. A finite trace ordering result is not evidence of unbounded safety or liveness."
+      }
+    }
+  },
+  "local": null
+}

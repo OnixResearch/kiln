@@ -7,9 +7,12 @@ use std::{
 use git2::CredentialType;
 
 use kiln_core::{
-    implementation::campaign::{
-        CampaignOperation, EnumerationState, Freshness, MemberObservation, MemberSelector,
-        MemberStage, RecoveryDisposition, selector_key,
+    implementation::{
+        campaign::{
+            CampaignOperation, EnumerationState, Freshness, MemberObservation, MemberSelector,
+            MemberStage, RecoveryDisposition, selector_key,
+        },
+        selected_work::{IntakeProfile, SelectedWorkObservation, SurfaceObservation},
     },
     types::{ContentId, ExternalRef},
 };
@@ -24,6 +27,14 @@ pub(super) struct NativeCairnProfile {
     pub cairn: kiln_adapter_cairn::campaign::CairnCampaignProfile,
     pub implementation_policy: kiln_adapter_cairn::implementation::CairnImplementationPolicy,
     pub source: ExternalRef,
+    /// Explicit intake profile; absent keeps the legacy readiness/intake
+    /// compatibility reader.
+    #[serde(default)]
+    pub intake: IntakeProfile,
+    /// Admitted obligation definition read with typed snapshots, such as
+    /// `verify`.
+    #[serde(default)]
+    pub obligation_definition: Option<String>,
 }
 
 impl NativeCairnProfile {
@@ -149,6 +160,7 @@ pub(super) fn refresh(
     {
         cairn_profile.policy_path = exact_source.join(relative_policy);
     }
+    let selected_work_profile = cairn_profile.clone();
     let admission_sequence = next_work_revision(&canonical_work)?;
     let mut reader = kiln_adapter_cairn::campaign::CairnCampaignReader::new(
         cairn_profile,
@@ -539,21 +551,160 @@ pub(super) fn refresh(
         if let Some(adopted) = &adopted {
             adopted.bind(&mut observation, &binding.required_checks);
         }
+        // Under the typed intake the member's stage follows its own admitted
+        // snapshot; the legacy projections above stay authoritative only under
+        // the explicit compatibility profile.
+        let typed = if profile.native_cairn.intake == IntakeProfile::TypedSnapshotV1 {
+            let typed = read_selected_work(
+                profile,
+                &selected_work_profile,
+                change,
+                &tasks,
+                observation.integration_target_identity.clone(),
+            )?;
+            observation.apply_intake_readiness(profile.native_cairn.intake, &typed);
+            Some(typed)
+        } else {
+            None
+        };
         // Adoption is not source progress from this campaign's own integration.
-        if let Some(effect) = source_advance_effect.as_ref().filter(|_| {
+        let state = if let Some(effect) = source_advance_effect.as_ref().filter(|_| {
             adopted.is_none()
                 && old_work != observation.work_identity
                 && observation.work_identity.is_some()
         }) {
-            store.observe_successor(campaign_id, next_version, observation, effect)?;
+            store.observe_successor(campaign_id, next_version, observation, effect)?
         } else {
-            store.observe(campaign_id, next_version, observation)?;
-        }
+            store.observe(campaign_id, next_version, observation)?
+        };
         next_version = store
             .version(campaign_id)?
             .ok_or("campaign disappeared after native observation")?;
+        if let Some(typed) = typed {
+            next_version =
+                retain_selected_work(store, campaign_id, next_version, &state, &member_key, typed)?;
+        }
     }
     Ok(next_version)
+}
+
+/// Read one member's typed snapshot from the exact observed source; a failed
+/// or refused read is an unavailable observation, never an empty one.
+// r[impl kiln.selected_work.attempts.scenario.unavailable]
+fn read_selected_work(
+    profile: &ImplementationCampaignDriveProfile,
+    cairn: &kiln_adapter_cairn::campaign::CairnCampaignProfile,
+    change: &str,
+    tasks: &[String],
+    target: Option<ContentId>,
+) -> Result<SelectedWorkObservation, String> {
+    let request = kiln_adapter_cairn::selected_work::SelectedWorkRequest {
+        change: change.to_owned(),
+        task: match tasks {
+            [task] => Some(task.clone()),
+            _ => None,
+        },
+        obligation_definition: profile.native_cairn.obligation_definition.clone(),
+        obligation_observations: None,
+        expected: None,
+    };
+    let mut reader = kiln_adapter_cairn::selected_work::CairnSelectedWorkReader::new(
+        cairn.clone(),
+        kiln_adapter_cairn::BoundedCairnRuntime,
+    )?;
+    Ok(match reader.read(&request) {
+        Ok(snapshot) => SelectedWorkObservation::Admitted {
+            snapshot: Box::new(snapshot),
+            target,
+        },
+        Err(refusal) => SelectedWorkObservation::Unavailable {
+            reason: "Cairn selected-work read was refused or unavailable".into(),
+            refusal: Some(refusal.to_string()),
+        },
+    })
+}
+
+/// Retain the member's typed read. A member with a current attempt binds that
+/// attempt to the latest admitted snapshot once; later observations become
+/// refresh/replan transitions, never rewrites.
+fn retain_selected_work(
+    store: &mut kiln_implementer::campaign::CampaignStore,
+    campaign_id: &str,
+    version: u64,
+    state: &kiln_core::implementation::campaign::CampaignState,
+    member: &str,
+    observation: SelectedWorkObservation,
+) -> Result<u64, String> {
+    let observed = state.observations.get(member);
+    let state = store.observe_selected_work(
+        campaign_id,
+        version,
+        member,
+        IntakeProfile::TypedSnapshotV1,
+        observation,
+    )?;
+    let mut version = store
+        .version(campaign_id)?
+        .ok_or("campaign disappeared after selected-work observation")?;
+    let history = state.selected_work.get(member);
+    let attempt = observed.and_then(|item| item.attempt_identity.clone());
+    let work = observed.and_then(|item| item.work_identity.clone());
+    if let (Some(history), Some(attempt), Some(work)) = (history, attempt, work)
+        && history.contract_for(&attempt).is_none()
+        && let SelectedWorkObservation::Admitted { snapshot, target } = &history.latest
+    {
+        let contract = kiln_core::implementation::selected_work::bind_attempt(
+            attempt,
+            work,
+            target.clone(),
+            (**snapshot).clone(),
+        )
+        .map_err(show)?;
+        store.bind_selected_work_attempt(campaign_id, version, member, contract)?;
+        version = store
+            .version(campaign_id)?
+            .ok_or("campaign disappeared after selected-work binding")?;
+    }
+    Ok(version)
+}
+
+/// The selected-work surface the worker receives: the same value campaign
+/// inspection and the UI projection carry for this member.
+pub(super) fn worker_selected_work(
+    profile: &ImplementationCampaignDriveProfile,
+    member: &str,
+) -> Result<Option<kiln_core::implementation::selected_work::SelectedWorkSurface>, String> {
+    if profile.native_cairn.intake != IntakeProfile::TypedSnapshotV1 {
+        return Ok(None);
+    }
+    let observation =
+        kiln_implementer::campaign::CampaignObservation::open(&profile.campaign_database)?;
+    let (state, _) = observation
+        .inspect(&profile.campaign_id)?
+        .ok_or("campaign not found")?;
+    worker_surface(&state, member).map(Some)
+}
+
+/// Worker guidance needs an admitted snapshot: an unavailable or unobserved
+/// member gets no obligation guidance rather than an empty list.
+// r[impl kiln.selected_work.completion.scenario.surfaces]
+fn worker_surface(
+    state: &kiln_core::implementation::campaign::CampaignState,
+    member: &str,
+) -> Result<kiln_core::implementation::selected_work::SelectedWorkSurface, String> {
+    let surface = state
+        .selected_work
+        .get(member)
+        .ok_or("typed intake member has no selected-work observation")?
+        .surface()
+        .map_err(show)?;
+    if surface.observation != SurfaceObservation::Admitted || surface.guidance.is_none() {
+        return Err(
+            "typed selected-work is unavailable; the attempt cannot receive obligation guidance"
+                .into(),
+        );
+    }
+    Ok(surface)
 }
 
 pub(super) fn bind_stage_request(
@@ -753,6 +904,7 @@ pub(super) fn bind_stage_request(
         "implementation_ready": {"change": change_projection, "selected_units": selected_units},
         "workflow_status": snapshot.workflow_status, "readiness": snapshot.readiness,
         "instructions": instructions, "acceptance": work.acceptance,
+        "selected_work": worker_selected_work(profile, &effect.member)?,
         "non_claims": ["native Cairn instructions are guidance, not artifact truth or approval", "readiness is not a grant of compute or model resources"],
     });
     let suffix = serde_json::to_string(&context).map_err(text)?;
@@ -1548,3 +1700,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "observation_selected_work_tests.rs"]
+mod selected_work_tests;

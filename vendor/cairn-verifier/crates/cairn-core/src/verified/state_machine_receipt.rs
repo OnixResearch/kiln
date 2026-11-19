@@ -1,10 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
-use super::evidence::canonical_json_hash;
-
 pub const STATE_MACHINE_RECEIPT_SCHEMA_V1: &str = "cairn.state-machine-receipt.v1";
 pub const STATE_MACHINE_RECEIPT_BOUNDARY: &str = "accepted state-machine receipts are bounded witnesses for named lifecycle transition properties only; they do not prove Cairn implementation correctness, do not prove repository correctness, do not prove source-code correctness, do not prove exhaustive lifecycle safety, do not prove release eligibility, do not prove verifier soundness, and do not prove downstream behavioral correctness";
 pub const STATE_MACHINE_VERIFICATION_ROLE_BOUNDED_WITNESS: &str = "bounded-witness";
@@ -29,33 +22,33 @@ const FORBIDDEN_CLAIMS: &[&str] = &[
     "proves verifier soundness",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineArtifact {
     pub path: String,
     pub declared_blake3: String,
     pub observed_blake3: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineChecker {
     pub id: String,
     pub version: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineNamedHash {
     pub name: String,
     pub blake3: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineDiagnostic {
     pub id: String,
     pub severity: String,
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineReceipt {
     pub schema_version: String,
     pub model: StateMachineArtifact,
@@ -73,14 +66,14 @@ pub struct StateMachineReceipt {
     pub receipt_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineReceiptIssue {
     pub code: String,
     pub field_path: String,
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StateMachineReceiptReport {
     pub valid: bool,
     pub receipt_hash: String,
@@ -90,16 +83,18 @@ pub struct StateMachineReceiptReport {
 }
 
 #[must_use]
-pub fn state_machine_receipt_hash(value: &Value) -> String {
+pub fn state_machine_receipt_hash(value: &serde_json::Value) -> String {
     let mut material = value.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove("receipt_hash");
     }
-    canonical_json_hash(&material)
+    super::evidence::canonical_json_hash(&material)
 }
 
 #[must_use]
-pub fn validate_state_machine_receipt_value(value: &Value) -> StateMachineReceiptReport {
+pub fn validate_state_machine_receipt_value(
+    value: &serde_json::Value,
+) -> StateMachineReceiptReport {
     let computed_hash = state_machine_receipt_hash(value);
     let Ok(receipt) = serde_json::from_value::<StateMachineReceipt>(value.clone()) else {
         return StateMachineReceiptReport {
@@ -118,7 +113,7 @@ pub fn validate_state_machine_receipt_value(value: &Value) -> StateMachineReceip
 }
 
 #[must_use]
-pub fn positive_state_machine_receipt_fixture() -> Value {
+pub fn positive_state_machine_receipt_fixture() -> serde_json::Value {
     let mut value = serde_json::json!({
         "schema_version": STATE_MACHINE_RECEIPT_SCHEMA_V1,
         "model": {
@@ -143,7 +138,7 @@ pub fn positive_state_machine_receipt_fixture() -> Value {
         "non_claims": [STATE_MACHINE_RECEIPT_BOUNDARY],
         "receipt_hash": ""
     });
-    value["receipt_hash"] = Value::String(state_machine_receipt_hash(&value));
+    value["receipt_hash"] = serde_json::Value::String(state_machine_receipt_hash(&value));
     value
 }
 
@@ -289,7 +284,7 @@ fn validate_vocabulary(
             "vocabulary values must be non-empty",
         );
     }
-    let unique = values.iter().collect::<BTreeSet<_>>();
+    let unique = values.iter().collect::<std::collections::BTreeSet<_>>();
     if unique.len() != values.len() {
         push_issue(
             issues,
@@ -359,7 +354,7 @@ fn validate_input_hashes(
             "input hash count exceeds its reviewed bound",
         );
     }
-    let mut names = BTreeSet::new();
+    let mut names = std::collections::BTreeSet::new();
     for (index, hash) in hashes.iter().enumerate() {
         let field_path = format!("input_hashes[{index}]");
         validate_required_text(&hash.name, &format!("{field_path}.name"), issues);
@@ -502,9 +497,9 @@ mod tests {
     fn bounded_simulation_receipt_validates() {
         // r[verify cairn.lifecycle_orchestration.state_machine_receipts.fixtures.positive]
         let mut value = positive_state_machine_receipt_fixture();
-        value["checker"]["id"] = Value::String("cairn-bounded-simulation".to_string());
-        value["checker"]["version"] = Value::String("v1".to_string());
-        value["receipt_hash"] = Value::String(state_machine_receipt_hash(&value));
+        value["checker"]["id"] = serde_json::Value::String("cairn-bounded-simulation".to_string());
+        value["checker"]["version"] = serde_json::Value::String("v1".to_string());
+        value["receipt_hash"] = serde_json::Value::String(state_machine_receipt_hash(&value));
         let report = validate_state_machine_receipt_value(&value);
         assert!(report.valid, "{:?}", report.issues);
     }
@@ -531,17 +526,25 @@ mod tests {
             let mut value = positive_state_machine_receipt_fixture();
             match case {
                 "stale-model" => {
-                    value["model"]["observed_blake3"] = Value::String(fixture_hash('c'))
+                    value["model"]["observed_blake3"] = serde_json::Value::String(fixture_hash('c'))
                 }
-                "unknown-checker" => value["checker"]["id"] = Value::String("unknown".to_string()),
-                "missing-property" => value["property_labels"] = Value::Array(Vec::new()),
-                "unchecked" => value["result_status"] = Value::String("unchecked".to_string()),
-                "promoted-role" => value["verification_role"] = Value::String("proof".to_string()),
-                "missing-diagnostic" => value["diagnostics"] = Value::Array(Vec::new()),
-                "missing-non-claim" => value["non_claims"] = Value::Array(Vec::new()),
+                "unknown-checker" => {
+                    value["checker"]["id"] = serde_json::Value::String("unknown".to_string())
+                }
+                "missing-property" => {
+                    value["property_labels"] = serde_json::Value::Array(Vec::new())
+                }
+                "unchecked" => {
+                    value["result_status"] = serde_json::Value::String("unchecked".to_string())
+                }
+                "promoted-role" => {
+                    value["verification_role"] = serde_json::Value::String("proof".to_string())
+                }
+                "missing-diagnostic" => value["diagnostics"] = serde_json::Value::Array(Vec::new()),
+                "missing-non-claim" => value["non_claims"] = serde_json::Value::Array(Vec::new()),
                 _ => unreachable!(),
             }
-            value["receipt_hash"] = Value::String(state_machine_receipt_hash(&value));
+            value["receipt_hash"] = serde_json::Value::String(state_machine_receipt_hash(&value));
             let report = validate_state_machine_receipt_value(&value);
             assert!(!report.valid, "case {case}");
             assert!(
@@ -555,7 +558,7 @@ mod tests {
     #[test]
     fn receipt_hash_detects_tampering() {
         let mut value = positive_state_machine_receipt_fixture();
-        value["transition_profile"] = Value::String("changed".to_string());
+        value["transition_profile"] = serde_json::Value::String("changed".to_string());
         let report = validate_state_machine_receipt_value(&value);
         assert!(!report.valid);
         assert!(codes(&report).contains(&"state_machine_receipt.hash_mismatch"));

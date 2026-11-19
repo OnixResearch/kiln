@@ -1,17 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-
-use super::{
-    evidence::canonical_json_hash,
-    evidence_chain_readiness::{
-        evaluate_evidence_chain_readiness, EvidenceChainPolicy, EvidenceChainProfile,
-        EvidenceChainReadiness, EvidenceChainReadinessInput, EVIDENCE_CHAIN_MODE_OPTIONAL,
-        EVIDENCE_CHAIN_MODE_REQUIRED,
-    },
-};
-
 pub const TRELLIS_PROOF_EVIDENCE_KIND: &str = "trellis-proof";
 pub const TRELLIS_PROOF_PROFILE_V1: &str = "cairn.evidence-chain.trellis-proof.v1";
 pub const TRELLIS_PROOF_CLAIM_SCOPE: &str = "trellis_proof.v1.lifecycle_policy_conformance";
@@ -25,25 +11,25 @@ pub const TRELLIS_PROOF_ROLE_ACCEPTED_FORMAL: &str = "accepted-formal-proof";
 const MAX_SCOPE_IDS: usize = 256;
 const MAX_ASSUMPTIONS: usize = 128;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrellisProofPolicy {
     pub mode: String,
-    pub evidence_chain_policy: EvidenceChainPolicy,
+    pub evidence_chain_policy: super::evidence_chain_readiness::EvidenceChainPolicy,
     pub required_requirement_ids: Vec<String>,
     pub required_property_ids: Vec<String>,
     pub allowed_assumptions: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrellisProofInput {
-    pub evidence_chain: EvidenceChainReadinessInput,
+    pub evidence_chain: super::evidence_chain_readiness::EvidenceChainReadinessInput,
     pub proof_role: String,
     pub requirement_ids: Vec<String>,
     pub property_ids: Vec<String>,
     pub assumptions: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrellisProofIssue {
     pub code: String,
     pub field_path: String,
@@ -51,7 +37,7 @@ pub struct TrellisProofIssue {
     pub actual: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TrellisProofReadiness {
     pub mode: String,
     pub required: bool,
@@ -59,16 +45,17 @@ pub struct TrellisProofReadiness {
     pub skipped: bool,
     pub disposition: String,
     pub proof_role: Option<String>,
-    pub evidence_chain: EvidenceChainReadiness,
+    pub evidence_chain: super::evidence_chain_readiness::EvidenceChainReadiness,
     pub readiness_hash: Option<String>,
     pub issues: Vec<TrellisProofIssue>,
     pub boundary: String,
 }
 
 #[must_use]
-pub fn trellis_proof_evidence_chain_profile() -> EvidenceChainProfile {
+pub fn trellis_proof_evidence_chain_profile(
+) -> super::evidence_chain_readiness::EvidenceChainProfile {
     // r[impl cairn.stack_provenance_gates.trellis_proof_readiness.profile]
-    EvidenceChainProfile {
+    super::evidence_chain_readiness::EvidenceChainProfile {
         evidence_kind: TRELLIS_PROOF_EVIDENCE_KIND.to_string(),
         profile_version: TRELLIS_PROOF_PROFILE_V1.to_string(),
         allowed_claim_scopes: vec![TRELLIS_PROOF_CLAIM_SCOPE.to_string()],
@@ -87,8 +74,10 @@ pub fn evaluate_trellis_proof_readiness(
     let mut chain_policy = policy.evidence_chain_policy.clone();
     chain_policy.mode = generic_mode(&policy.mode).to_string();
     ensure_trellis_profile(&mut chain_policy.profiles);
-    let chain =
-        evaluate_evidence_chain_readiness(&chain_policy, input.map(|value| &value.evidence_chain));
+    let chain = super::evidence_chain_readiness::evaluate_evidence_chain_readiness(
+        &chain_policy,
+        input.map(|value| &value.evidence_chain),
+    );
     let mut issues = validate_policy(policy);
     if let Some(input) = input {
         validate_input(policy, input, &mut issues);
@@ -139,7 +128,7 @@ pub fn trellis_proof_readiness_hash(
     properties.sort();
     let mut assumptions = input.assumptions.clone();
     assumptions.sort();
-    canonical_json_hash(&json!({
+    super::evidence::canonical_json_hash(&serde_json::json!({
         "mode": policy.mode,
         "gate_policy_identity": policy.evidence_chain_policy.gate_policy_identity,
         "evidence_chain": input.evidence_chain,
@@ -152,13 +141,15 @@ pub fn trellis_proof_readiness_hash(
 
 fn generic_mode(mode: &str) -> &'static str {
     if mode == TRELLIS_PROOF_MODE_OPTIONAL {
-        EVIDENCE_CHAIN_MODE_OPTIONAL
+        super::evidence_chain_readiness::EVIDENCE_CHAIN_MODE_OPTIONAL
     } else {
-        EVIDENCE_CHAIN_MODE_REQUIRED
+        super::evidence_chain_readiness::EVIDENCE_CHAIN_MODE_REQUIRED
     }
 }
 
-fn ensure_trellis_profile(profiles: &mut Vec<EvidenceChainProfile>) {
+fn ensure_trellis_profile(
+    profiles: &mut Vec<super::evidence_chain_readiness::EvidenceChainProfile>,
+) {
     let registered = profiles.iter().any(|profile| {
         profile.evidence_kind == TRELLIS_PROOF_EVIDENCE_KIND
             && profile.profile_version == TRELLIS_PROOF_PROFILE_V1
@@ -347,7 +338,7 @@ fn validate_unique_values(
             "empty",
         ));
     }
-    let unique = values.iter().collect::<BTreeSet<_>>();
+    let unique = values.iter().collect::<std::collections::BTreeSet<_>>();
     if unique.len() != values.len() {
         issues.push(issue(
             "trellis_proof.value_duplicate",
@@ -380,10 +371,6 @@ fn issue(code: &str, field_path: &str, expected: &str, actual: &str) -> TrellisP
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::verified::evidence_chain_readiness::{
-        EvidenceChainMantleLink, EvidenceChainPolicyIdentity, EvidenceChainProjection,
-        EvidenceChainValenceLink,
-    };
 
     const HASH_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const HASH_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -395,14 +382,16 @@ mod tests {
     fn policy(mode: &str) -> TrellisProofPolicy {
         TrellisProofPolicy {
             mode: mode.to_string(),
-            evidence_chain_policy: EvidenceChainPolicy {
+            evidence_chain_policy: super::super::evidence_chain_readiness::EvidenceChainPolicy {
                 mode: generic_mode(mode).to_string(),
                 gate_policy_identity: HASH_F.to_string(),
                 profiles: vec![trellis_proof_evidence_chain_profile()],
-                required_policy_hashes: vec![EvidenceChainPolicyIdentity {
-                    policy_kind: "trellis-proof-policy".to_string(),
-                    digest_blake3: HASH_E.to_string(),
-                }],
+                required_policy_hashes: vec![
+                    crate::verified::evidence_chain_readiness::EvidenceChainPolicyIdentity {
+                        policy_kind: "trellis-proof-policy".to_string(),
+                        digest_blake3: HASH_E.to_string(),
+                    },
+                ],
             },
             required_requirement_ids: vec!["trellis.graph.topological-order".to_string()],
             required_property_ids: vec!["acyclic-order-is-total".to_string()],
@@ -412,32 +401,38 @@ mod tests {
 
     fn input(role: &str) -> TrellisProofInput {
         TrellisProofInput {
-            evidence_chain: EvidenceChainReadinessInput {
+            evidence_chain: super::super::evidence_chain_readiness::EvidenceChainReadinessInput {
                 evidence_kind: TRELLIS_PROOF_EVIDENCE_KIND.to_string(),
                 profile_version: TRELLIS_PROOF_PROFILE_V1.to_string(),
                 canonical_envelope_hash: HASH_A.to_string(),
-                valence_validation: EvidenceChainValenceLink {
-                    artifact_hash: HASH_B.to_string(),
-                    canonical_envelope_hash: HASH_A.to_string(),
-                },
-                mantle_binding: EvidenceChainMantleLink {
-                    artifact_hash: HASH_C.to_string(),
-                    valence_validation_hash: HASH_B.to_string(),
-                    source_artifact_hash: HASH_D.to_string(),
-                    release_binary_hash: HASH_E.to_string(),
-                },
+                valence_validation:
+                    crate::verified::evidence_chain_readiness::EvidenceChainValenceLink {
+                        artifact_hash: HASH_B.to_string(),
+                        canonical_envelope_hash: HASH_A.to_string(),
+                    },
+                mantle_binding:
+                    crate::verified::evidence_chain_readiness::EvidenceChainMantleLink {
+                        artifact_hash: HASH_C.to_string(),
+                        valence_validation_hash: HASH_B.to_string(),
+                        source_artifact_hash: HASH_D.to_string(),
+                        release_binary_hash: HASH_E.to_string(),
+                    },
                 source_artifact_hash: HASH_D.to_string(),
                 release_binary_hash: HASH_E.to_string(),
-                policy_hashes: vec![EvidenceChainPolicyIdentity {
-                    policy_kind: "trellis-proof-policy".to_string(),
-                    digest_blake3: HASH_E.to_string(),
-                }],
+                policy_hashes: vec![
+                    crate::verified::evidence_chain_readiness::EvidenceChainPolicyIdentity {
+                        policy_kind: "trellis-proof-policy".to_string(),
+                        digest_blake3: HASH_E.to_string(),
+                    },
+                ],
                 claim_scope: TRELLIS_PROOF_CLAIM_SCOPE.to_string(),
-                projections: vec![EvidenceChainProjection {
-                    role: "proof-graph".to_string(),
-                    artifact_hash: HASH_F.to_string(),
-                    canonical_envelope_hash: HASH_A.to_string(),
-                }],
+                projections: vec![
+                    crate::verified::evidence_chain_readiness::EvidenceChainProjection {
+                        role: "proof-graph".to_string(),
+                        artifact_hash: HASH_F.to_string(),
+                        canonical_envelope_hash: HASH_A.to_string(),
+                    },
+                ],
                 non_claims: vec![TRELLIS_PROOF_REQUIRED_NON_CLAIM.to_string()],
             },
             proof_role: role.to_string(),

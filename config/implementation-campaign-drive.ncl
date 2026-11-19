@@ -175,6 +175,11 @@ in
             priority | Integer 0 255,
           },
         source | ExternalRef,
+        # Explicit intake. Absent keeps the legacy readiness/intake reader
+        # (`legacy_readiness_compatibility`); `typed_snapshot_v1` also reads
+        # and retains `cairn.selected-work.v1` per member and attempt.
+        intake | Choice ["typed_snapshot_v1", "legacy_readiness_compatibility"] | optional,
+        obligation_definition | Text | optional,
       },
     delivery | Delivery | DeliverySelection,
     claim_lease_ms | Positive,
