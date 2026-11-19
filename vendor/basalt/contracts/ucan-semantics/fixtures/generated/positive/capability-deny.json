@@ -1,0 +1,36 @@
+{
+  "basalt_policy_blake3": "fd17db568eb24222d4ca65fe45f02edb21ef910fad214a392441d62c07ef4b14",
+  "contract_id": "document-write",
+  "decisions": {
+    "caveat_evaluation": "satisfied",
+    "delegation": "accepted",
+    "proof_traversal": "accepted",
+    "replay": "admitted"
+  },
+  "direct_capabilities": [
+    {
+      "ability": "document/write",
+      "resource": "did:key:z6Mkresource/docs/other"
+    }
+  ],
+  "effective_delegated_capabilities": [],
+  "expected": {
+    "allowed": false,
+    "reason_class": "ucan-capability-denied"
+  },
+  "fixture_id": "deny-missing-capability",
+  "non_claims": [
+    "revocation-backend-freshness",
+    "key-resolution-truth",
+    "ucan-cryptographic-correctness",
+    "consumer-replay-store-durability",
+    "application-authorization-completeness"
+  ],
+  "protocol_profile": "onix-compact-ed25519-v1",
+  "request_ability": "document/write",
+  "request_resource": "did:key:z6Mkresource/docs/report",
+  "runtime_ucan_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+  "schema": "basalt.ucan-semantics-fixture.v2",
+  "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427",
+  "support_catalog_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861"
+}

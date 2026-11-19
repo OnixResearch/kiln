@@ -260,7 +260,7 @@ fn numeric_equality_treats_1_and_1dot0_as_equal() {
 #[test]
 fn direct_chain_is_admitted() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/crud")),
@@ -271,7 +271,7 @@ fn direct_chain_is_admitted() {
     let facts = invocation("did:key:z6Mkinvoker", command("/crud/create"), &[0x11]);
     let mut budget = work_budget();
     let authority = compose_chain(&facts, &[delegation], 1_500, 60, &mut budget).expect("direct chain admits");
-    assert_eq!(authority.root_issuer, "did:key:z6Mkroot");
+    assert_eq!(authority.root_issuer, "did:key:z6Mksubject");
     assert_eq!(authority.effective_command, command("/crud/create"));
     assert_eq!(authority.proof_cids.len(), 1);
 }
@@ -279,7 +279,7 @@ fn direct_chain_is_admitted() {
 #[test]
 fn delegated_two_hop_chain_is_admitted() {
     let root = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkmid",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -295,8 +295,10 @@ fn delegated_two_hop_chain_is_admitted() {
 }
 
 #[test]
-fn alternate_valid_path_is_admitted_without_reordering() {
-    let delegation = dlg(
+fn root_issuer_other_than_subject_is_rejected() {
+    // Any principal can sign a root that names someone else's Subject; the
+    // chain only proves authority when the Subject itself issued the root.
+    let forged = dlg(
         "did:key:z6Mkother",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
@@ -307,8 +309,20 @@ fn alternate_valid_path_is_admitted_without_reordering() {
     );
     let facts = invocation("did:key:z6Mkinvoker", command("/crud/create"), &[0x11]);
     let mut budget = work_budget();
-    let authority = compose_chain(&facts, &[delegation], 1_500, 60, &mut budget).expect("alternate path admits");
-    assert_eq!(authority.root_issuer, "did:key:z6Mkother");
+    assert_eq!(compose_chain(&facts, &[forged], 1_500, 60, &mut budget), Err(ChainError::RootSubstitution));
+
+    // Self-addressed forgery (issuer == audience == invoker) is rejected the same way.
+    let self_forged = dlg(
+        "did:key:z6Mkinvoker",
+        "did:key:z6Mkinvoker",
+        Some("did:key:z6Mksubject"),
+        Some(command("/")),
+        None,
+        false,
+        0x11,
+    );
+    let mut budget = work_budget();
+    assert_eq!(compose_chain(&facts, &[self_forged], 1_500, 60, &mut budget), Err(ChainError::RootSubstitution));
 }
 
 #[test]
@@ -322,7 +336,7 @@ fn empty_chain_is_rejected() {
 fn duplicate_and_reordered_proofs_fail_closed() {
     // Duplicate proof CIDs are rejected.
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -349,7 +363,7 @@ fn duplicate_and_reordered_proofs_fail_closed() {
         0x11,
     );
     let out_of_order_second = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkmis",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -366,7 +380,7 @@ fn duplicate_and_reordered_proofs_fail_closed() {
 
 #[test]
 fn root_without_subject_is_rejected() {
-    let delegation = dlg("did:key:z6Mkroot", "did:key:z6Mkinvoker", None, Some(command("/")), None, false, 0x11);
+    let delegation = dlg("did:key:z6Mksubject", "did:key:z6Mkinvoker", None, Some(command("/")), None, false, 0x11);
     let facts = invocation("did:key:z6Mkinvoker", command("/crud/create"), &[0x11]);
     let mut budget = work_budget();
     assert_eq!(compose_chain(&facts, &[delegation], 1_500, 60, &mut budget), Err(ChainError::RootWithoutSubject));
@@ -375,7 +389,7 @@ fn root_without_subject_is_rejected() {
 #[test]
 fn subject_mismatch_is_rejected() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mkother"),
         Some(command("/")),
@@ -394,7 +408,7 @@ fn subject_mismatch_is_rejected() {
 #[test]
 fn non_invoker_final_audience_is_rejected() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6MkWrong",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -410,7 +424,7 @@ fn non_invoker_final_audience_is_rejected() {
 #[test]
 fn executor_mismatch_denies() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -427,7 +441,7 @@ fn executor_mismatch_denies() {
 #[test]
 fn lexical_prefix_command_denies() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/crypto")),
@@ -446,7 +460,7 @@ fn lexical_prefix_command_denies() {
 #[test]
 fn time_invalid_chain_denies() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -467,7 +481,7 @@ fn invalid_or_overflowing_clock_observations_deny() {
     const NEGATIVE_CLOCK_SKEW: i64 = -1;
     const POSITIVE_CLOCK_SKEW: i64 = 60;
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -494,7 +508,7 @@ fn policy_denied_chain_fails_closed() {
     let value = serde_json::json!([[["==", ".b", 2]]]);
     let parsed = policy(value);
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -513,7 +527,7 @@ fn policy_denied_chain_fails_closed() {
 #[test]
 fn revoked_delegation_denies() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),
@@ -529,7 +543,7 @@ fn revoked_delegation_denies() {
 #[test]
 fn chain_work_limit_is_enforced() {
     let delegation = dlg(
-        "did:key:z6Mkroot",
+        "did:key:z6Mksubject",
         "did:key:z6Mkinvoker",
         Some("did:key:z6Mksubject"),
         Some(command("/")),

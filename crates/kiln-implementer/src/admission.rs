@@ -3,6 +3,7 @@
 //! No second database, claim or physical resource ledger is created.
 use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, diagnostic, load, save, text};
 use kiln_core::fair_admission::*;
+use kiln_core::implementation::authority::{AuthorityProfile, ProtectedAuthority};
 use kiln_core::implementation::{AttemptLedger, Eligibility, ImplementationAttempt, WorkLedger};
 use kiln_core::types::{ContentId, Diagnostic, ProviderProfileId};
 use rusqlite::TransactionBehavior;
@@ -233,6 +234,8 @@ impl Implementer {
         let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
         let (mut attempts, attempt_version) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
         let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
+        let authority_slot = &mut self.authority;
+        let authority_profile = &self.authority_profile;
         let result = (|| -> Result<AdmissionResult, Diagnostic> {
             Ok(match command {
                 AdmissionCommand::Configure { policy } => AdmissionResult::Policy {
@@ -352,6 +355,15 @@ impl Implementer {
                     } else {
                         None
                     };
+                    let lease = lease_ms.to_string();
+                    authorize_claim(
+                        &work,
+                        authority_slot,
+                        authority_profile,
+                        attempt.as_ref(),
+                        &[&lease],
+                        now_ms,
+                    )?;
                     AdmissionResult::Claimed {
                         attempt: attempt.map(Box::new),
                     }
@@ -388,6 +400,16 @@ impl Implementer {
                                 refusal("existing campaign claim/fence is no longer current")
                             })?
                             .clone();
+                        let lease = lease_ms.to_string();
+                        let parent = parent_budget_identity.as_str();
+                        authorize_claim(
+                            &work,
+                            authority_slot,
+                            authority_profile,
+                            Some(&attempt),
+                            &[&lease, parent],
+                            now_ms,
+                        )?;
                         return Ok(AdmissionResult::Claimed {
                             attempt: Some(Box::new(attempt)),
                         });
@@ -421,6 +443,16 @@ impl Implementer {
                                 attempt: attempt.identity.clone(),
                                 fence: attempt.fence,
                             },
+                        )?;
+                        let lease = lease_ms.to_string();
+                        let parent = parent_budget_identity.as_str();
+                        authorize_claim(
+                            &work,
+                            authority_slot,
+                            authority_profile,
+                            Some(&attempt),
+                            &[&lease, parent],
+                            now_ms,
                         )?;
                         AdmissionResult::Claimed {
                             attempt: Some(Box::new(attempt)),
@@ -482,6 +514,41 @@ impl Implementer {
                     {
                         return Err(refusal("request generation differs from ranked offer"));
                     }
+                    let reservation_attempt = attempts
+                        .get(&reservation.claim.attempt)
+                        .ok_or_else(|| refusal("reservation attempt missing"))?;
+                    let reservation_work = work
+                        .current()
+                        .find(|candidate| {
+                            candidate
+                                .identity()
+                                .is_ok_and(|identity| identity == reservation.work_version)
+                        })
+                        .ok_or_else(|| refusal("reservation work missing"))?;
+                    let request = super::authority_bridge::request_for(
+                        kiln_core::implementation::authority::ProtectedOperation::Dispatch,
+                        reservation_work,
+                        reservation_attempt,
+                        &[reservation.operation.as_str()],
+                        None,
+                    )
+                    .map_err(|message| refusal(&message))?;
+                    let session = super::authority_bridge::admit_with(
+                        authority_slot,
+                        authority_profile,
+                        &request,
+                        kiln_core::implementation::authority::AttemptCurrentness::Current,
+                        now_ms,
+                    )
+                    .map_err(|message| refusal(&message))?;
+                    super::authority_bridge::revalidate_with(
+                        authority_slot,
+                        session,
+                        &request,
+                        kiln_core::implementation::authority::AttemptCurrentness::Current,
+                        now_ms,
+                    )
+                    .map_err(|message| refusal(&message))?;
                     ledger.request(reservation, now_ms)?;
                     AdmissionResult::Updated
                 }
@@ -538,6 +605,21 @@ impl Implementer {
         fresh: &[EligibilityInput],
         now_ms: u64,
     ) -> Result<(), String> {
+        let (work_facts, attempt_facts) = self.authority_facts(attempt, fence)?;
+        let plan = attempt_facts
+            .dispatch
+            .as_ref()
+            .map(|dispatch| dispatch.plan.as_str())
+            .unwrap_or_default();
+        let request = super::authority_bridge::request_for(
+            kiln_core::implementation::authority::ProtectedOperation::Dispatch,
+            &work_facts,
+            &attempt_facts,
+            &[plan],
+            None,
+        )?;
+        let currentness = self.attempt_currentness(attempt, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         let enrollment = &self.enrollment;
         let tx = self
             .connection
@@ -1009,6 +1091,43 @@ fn eligible_inputs(
         })
         .collect()
 }
+fn authorize_claim(
+    work: &WorkLedger,
+    authority: &mut Option<Box<dyn ProtectedAuthority>>,
+    profile: &AuthorityProfile,
+    attempt: Option<&ImplementationAttempt>,
+    payload: &[&str],
+    now_ms: u64,
+) -> Result<(), Diagnostic> {
+    let Some(attempt) = attempt else {
+        return Ok(());
+    };
+    let request = super::authority_bridge::request_from_ledger(
+        work,
+        attempt,
+        kiln_core::implementation::authority::ProtectedOperation::ClaimAcquire,
+        payload,
+        None,
+    )
+    .map_err(|message| refusal(&message))?;
+    let session = super::authority_bridge::admit_with(
+        authority,
+        profile,
+        &request,
+        kiln_core::implementation::authority::AttemptCurrentness::Current,
+        now_ms,
+    )
+    .map_err(|message| refusal(&message))?;
+    super::authority_bridge::revalidate_with(
+        authority,
+        session,
+        &request,
+        kiln_core::implementation::authority::AttemptCurrentness::Current,
+        now_ms,
+    )
+    .map_err(|message| refusal(&message))
+}
+
 fn refusal(message: &str) -> Diagnostic {
     Diagnostic::new("admission_denied", "admission", message)
 }

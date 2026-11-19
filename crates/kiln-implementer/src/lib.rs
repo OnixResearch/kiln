@@ -10,6 +10,7 @@
 //! Engine admission and separately journaled provider effects retain authority.
 
 pub mod admission;
+mod authority_bridge;
 pub mod campaign;
 pub mod campaign_consumer;
 pub mod campaign_operator;
@@ -26,6 +27,10 @@ pub use queue::{DeliveryQueue, QueuedDelivery};
 use std::path::Path;
 use std::time::Duration;
 
+use kiln_core::implementation::authority::{
+    AuthorityDecision, AuthorityProfile, AuthorityRequest, AuthoritySessionId, ProtectedAuthority,
+    ProtectedOperation,
+};
 use kiln_core::implementation::{
     AdmissionDecision, AttemptLedger, AttemptMetrics, AttemptUsage, CandidateHandoff,
     CandidateVerification, DispatchReservation, Enrollment, ImplementationAttempt,
@@ -59,6 +64,10 @@ pub struct Implementer {
     enrollment: Enrollment,
     mirror: Option<Box<dyn MirrorObserver>>,
     overlap: Option<OverlapCheck>,
+    authority: Option<Box<dyn ProtectedAuthority>>,
+    authority_profile: AuthorityProfile,
+    authority_last: Option<(AuthoritySessionId, AuthorityRequest)>,
+    clock_ms: Option<u64>,
 }
 
 impl std::fmt::Debug for Implementer {
@@ -110,7 +119,92 @@ impl Implementer {
             enrollment,
             mirror: None,
             overlap: None,
+            authority: None,
+            authority_profile: AuthorityProfile::Missing,
+            authority_last: None,
+            clock_ms: None,
         })
+    }
+
+    /// Select the explicit authority profile used by every protected operation.
+    ///
+    /// Selecting [`AuthorityProfile::LocalOperator`] is an explicit local-operator
+    /// choice; the local guard refuses it when no compatible profile is configured.
+    pub fn set_authority(
+        &mut self,
+        authority: Box<dyn ProtectedAuthority>,
+        profile: AuthorityProfile,
+    ) {
+        self.authority = Some(authority);
+        self.authority_profile = profile;
+        self.authority_last = None;
+    }
+
+    /// Select the explicit local-operator compatibility profile on this instance.
+    ///
+    /// # Errors
+    /// Returns a message for an invalid operator identity.
+    pub fn select_local_operator(&mut self, operator: impl Into<String>) -> Result<(), String> {
+        let operator = operator.into();
+        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
+            operator.clone(),
+            false,
+        )
+        .map_err(diagnostic)?;
+        self.set_authority(
+            Box::new(authority),
+            AuthorityProfile::LocalOperator { operator },
+        );
+        Ok(())
+    }
+
+    /// Open with the explicitly selected local-operator compatibility profile.
+    ///
+    /// This constructor exists for local operator shells and tests. It never
+    /// authorizes projection-enabled routes and is not a fallback for a missing
+    /// verified credential.
+    ///
+    /// # Errors
+    /// Returns a message when the ledger cannot open or the operator is invalid.
+    pub fn open_with_local_operator(
+        path: &Path,
+        enrollment: Enrollment,
+        operator: impl Into<String>,
+    ) -> Result<Self, String> {
+        let operator = operator.into();
+        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
+            operator.clone(),
+            false,
+        )
+        .map_err(diagnostic)?;
+        let mut implementer = Self::open(path, enrollment)?;
+        implementer.set_authority(
+            Box::new(authority),
+            AuthorityProfile::LocalOperator { operator },
+        );
+        Ok(implementer)
+    }
+
+    /// Fix the shell clock for deterministic replay and fixtures.
+    ///
+    /// Production callers leave this unset and use the wall clock. A fixed
+    /// clock never creates authority; it only makes currentness observations
+    /// reproducible for a given ledger.
+    pub fn set_clock_ms(&mut self, now_ms: u64) {
+        self.clock_ms = Some(now_ms);
+    }
+
+    /// Shell time for effect boundaries without an explicit host time.
+    pub(crate) fn now_ms(&self) -> u64 {
+        self.clock_ms.unwrap_or_else(current_unix_ms)
+    }
+
+    /// Bounded redacted decisions retained by the configured adapter.
+    #[must_use]
+    pub fn authority_decisions(&self) -> &[AuthorityDecision] {
+        self.authority
+            .as_ref()
+            .map_or(&[], |authority| authority.decisions())
     }
 
     /// Admit one source observation through the pure work ledger.
@@ -485,6 +579,17 @@ impl Implementer {
         now_ms: u64,
         lease_ms: u64,
     ) -> Result<u64, String> {
+        let (work, attempt) = self.authority_facts(identity, fence)?;
+        let lease = lease_ms.to_string();
+        let request = authority_bridge::request_for(
+            ProtectedOperation::ClaimRenew,
+            &work,
+            &attempt,
+            &[&lease],
+            None,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| attempts.renew(identity, fence, now_ms, lease_ms))
     }
 
@@ -637,20 +742,54 @@ impl Implementer {
         now_ms: u64,
         handoff: &CandidateHandoff,
     ) -> Result<ContentId, String> {
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let handoff_identity =
+            kiln_core::implementation::admit_candidate_handoff(work, &attempt_facts, handoff)
+                .map_err(diagnostic)?;
+        let request = authority_bridge::request_for(
+            ProtectedOperation::CandidateSubmit,
+            &work_facts,
+            &attempt_facts,
+            &[handoff_identity.as_str()],
+            Some(&handoff.candidate),
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| {
             attempts.admit_candidate_handoff(work, identity, fence, now_ms, handoff)
         })
     }
 
+    // The preparation boundary intentionally names every exact input; bundling
+    // them into a DTO would only move the same fields behind one name.
+    #[allow(clippy::too_many_arguments)]
     pub fn prepare_publication(
         &mut self,
         work: &ImplementationWork,
         identity: &ContentId,
         fence: u64,
+        now_ms: u64,
         handoff: &CandidateHandoff,
         verification: &CandidateVerification,
         plan: &PublicationPlan,
     ) -> Result<ContentId, String> {
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let request = authority_bridge::request_for(
+            ProtectedOperation::PublicationPublish,
+            &work_facts,
+            &attempt_facts,
+            &[
+                plan.handoff.as_str(),
+                plan.verification.as_str(),
+                plan.base_branch.as_str(),
+                plan.branch.as_str(),
+                plan.title.as_str(),
+                plan.body.as_str(),
+            ],
+            Some(&plan.candidate),
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| {
             attempts.prepare_publication(work, identity, fence, handoff, verification, plan)
         })
@@ -668,8 +807,26 @@ impl Implementer {
         work: &ImplementationWork,
         identity: &ContentId,
         fence: u64,
+        now_ms: u64,
         receipt: &IntegrationReceipt,
     ) -> Result<ContentId, String> {
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let request = authority_bridge::request_for(
+            ProtectedOperation::IntegrationLand,
+            &work_facts,
+            &attempt_facts,
+            &[
+                receipt.handoff.as_str(),
+                receipt.verification.as_str(),
+                receipt.pull_request.provider_namespace.as_str(),
+                receipt.pull_request.native_id.as_str(),
+                receipt.merge_commit.native_id.as_str(),
+                receipt.base_ref.as_str(),
+            ],
+            Some(&receipt.candidate),
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| attempts.record_integration(work, identity, fence, receipt))
     }
 
@@ -685,9 +842,30 @@ impl Implementer {
         work: &ImplementationWork,
         identity: &ContentId,
         fence: u64,
+        now_ms: u64,
         plan: &SourceStatusPlan,
         receipt: &SourceStatusReceipt,
     ) -> Result<ContentId, String> {
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let candidate = attempt_facts
+            .publication
+            .as_ref()
+            .map(|publication| &publication.plan.candidate)
+            .or(attempt_facts.candidate.as_ref());
+        let observed = receipt.observed_revision.to_string();
+        let request = authority_bridge::request_for(
+            ProtectedOperation::PublicationPublish,
+            &work_facts,
+            &attempt_facts,
+            &[
+                plan.source.native_id.as_str(),
+                receipt.state.as_str(),
+                &observed,
+            ],
+            candidate,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| {
             attempts.record_source_status(work, identity, fence, plan, receipt)
         })
@@ -704,8 +882,28 @@ impl Implementer {
         &mut self,
         identity: &ContentId,
         fence: u64,
+        now_ms: u64,
         remote_head: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
+        let (work, attempt) = self.authority_facts(identity, fence)?;
+        let candidate = attempt
+            .publication
+            .as_ref()
+            .map(|publication| &publication.plan.candidate)
+            .or(attempt.candidate.as_ref());
+        let request = authority_bridge::request_for(
+            ProtectedOperation::PublicationPublish,
+            &work,
+            &attempt,
+            &[
+                remote_head.provider_namespace.as_str(),
+                remote_head.native_kind.as_str(),
+                remote_head.native_id.as_str(),
+            ],
+            candidate,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| {
             attempts.record_branch_published(identity, fence, remote_head)
         })
@@ -715,9 +913,29 @@ impl Implementer {
         &mut self,
         identity: &ContentId,
         fence: u64,
+        now_ms: u64,
         pull_request: &kiln_core::types::ExternalRef,
         head: &kiln_core::types::ExternalRef,
     ) -> Result<(), String> {
+        let (work, attempt) = self.authority_facts(identity, fence)?;
+        let candidate = attempt
+            .publication
+            .as_ref()
+            .map(|publication| &publication.plan.candidate)
+            .or(attempt.candidate.as_ref());
+        let request = authority_bridge::request_for(
+            ProtectedOperation::PublicationPublish,
+            &work,
+            &attempt,
+            &[
+                pull_request.provider_namespace.as_str(),
+                pull_request.native_id.as_str(),
+                head.native_id.as_str(),
+            ],
+            candidate,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         self.with_ledgers(|_, attempts| {
             attempts.record_pull_request_published(identity, fence, pull_request, head)
         })
@@ -732,6 +950,23 @@ impl Implementer {
         handoff: &CandidateHandoff,
         verification: &CandidateVerification,
     ) -> Result<ContentId, String> {
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let verification_identity = kiln_core::implementation::admit_candidate_verification(
+            work,
+            &attempt_facts,
+            handoff,
+            verification,
+        )
+        .map_err(diagnostic)?;
+        let request = authority_bridge::request_for(
+            ProtectedOperation::VerificationAdmit,
+            &work_facts,
+            &attempt_facts,
+            &[verification_identity.as_str()],
+            Some(&handoff.candidate),
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         let result = self.with_ledgers(|_, attempts| {
             attempts.record_verification(work, identity, fence, now_ms, handoff, verification)
         });
@@ -814,6 +1049,16 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
+        let (work, attempt) = self.authority_facts(identity, fence)?;
+        let request = authority_bridge::request_for(
+            ProtectedOperation::AttemptCancel,
+            &work,
+            &attempt,
+            &[cause],
+            None,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         let result = self.cancel_with_admission(identity, fence, now_ms, cause);
         if result.is_ok() {
             self.mirror_reconcile(now_ms);
@@ -947,4 +1192,14 @@ fn text(error: impl std::fmt::Display) -> String {
 
 fn diagnostic(error: kiln_core::types::Diagnostic) -> String {
     format!("{}: {}", error.code, error.message)
+}
+
+/// Shell-owned wall clock in Unix milliseconds for effect boundaries that do
+/// not carry an explicit host time.
+pub fn current_unix_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .and_then(|duration| u64::try_from(duration.as_millis()).ok())
+        .unwrap_or(0)
 }

@@ -69,6 +69,7 @@ pub fn config(root: &Path, tailscale: &Path) -> Value {
         "capture": null,
         "policy": {},
         "dispatch": { "enabled": false, "kinds": [] },
+        "authority_operator": COORDINATOR,
     })
 }
 

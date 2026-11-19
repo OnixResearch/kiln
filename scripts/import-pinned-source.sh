@@ -4,7 +4,7 @@ set -euo pipefail
 # A checkout is only an import input. Read the pinned Git object, never its
 # mutable working tree. Runtime Cargo/Nix acquisition uses the committed bytes.
 if (( $# != 2 )); then
-  printf 'usage: %s <lattice|cairn|cairn-verifier|valence|artifact|bounded-exec|mantle|ucan|subwayrat> <source-checkout>\n' "$0" >&2
+  printf 'usage: %s <lattice|cairn|cairn-verifier|valence|artifact|bounded-exec|mantle|ucan|basalt|subwayrat> <source-checkout>\n' "$0" >&2
   exit 2
 fi
 name=$1
@@ -32,8 +32,11 @@ case "$name" in
     source_commit=d75158b00b080535f2ffea12430665ca3d57ea82
     archive_blake3=56120c08a7d04520b2af8926bec445bc23e69d69ac5e4a53131777d8d72e5083 ;;
   ucan)
-    source_commit=d46816f19606b518307ba21ab33e8b93b6ebf646
-    archive_blake3=e795d4c2d0155ebfac4c305b765c6e6b73d9401cd3fc897c9cd0a7190e8367f5 ;;
+    source_commit=417f74662b9de2de3bdabe93ad5db996e1bd2861
+    archive_blake3=3a35ee1e0c6db623109e096e563c7ba9c02bb4d406bf72cae6010bdb7fe54fbc ;;
+  basalt)
+    source_commit=264d248912e58760b5ae1eced51b7c7d50eb5a96
+    archive_blake3=2d8e91ab7681f2b354fd99308e7c810f2dfba628afb32deb2228f5953795027d ;;
   subwayrat)
     source_commit=2e52b3150819a2365aaefd3dcf8bbd2a2fa2e901
     archive_blake3=2e6588dd7b182c5a689c5e7be42f67fb09a5aa806449709f05066f6004e5f8d7 ;;
@@ -94,6 +97,27 @@ if not any(config.parent == root for config in configs):
     configs.append(root / "rustfmt.toml")
 for config in configs:
     config.write_text(policy + "\n")
+PY
+# Apply only the literal manifest rewrites recorded in the source record. Each
+# rewrite names the exact field bytes, the expected occurrence count and the
+# reason; drift refuses instead of inferring a replacement.
+python3 - "$temporary/source" "$source_record" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+record = json.loads(pathlib.Path(sys.argv[2]).read_text())
+for rewrite in record.get("manifest_rewrites", []):
+    target = root / rewrite["path"]
+    text = target.read_text()
+    expected = rewrite["occurrences"]
+    observed = text.count(rewrite["from"])
+    if observed != expected:
+        raise SystemExit(
+            f'{rewrite["path"]}: expected {expected} occurrence(s) of {rewrite["from"]!r}, found {observed}'
+        )
+    target.write_text(text.replace(rewrite["from"], rewrite["to"]))
 PY
 if [[ -e "$destination" || -L "$destination" ]]; then
   # Compare bytes, symlink targets and executable bits. Never replace drift.

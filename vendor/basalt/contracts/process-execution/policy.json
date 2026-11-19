@@ -1,0 +1,27 @@
+{
+  "backends": {
+    "nickel": {
+      "description": "Nickel-authored static policy contracts.",
+      "id": "nickel",
+      "supports_higher_order": false
+    },
+    "steel": {
+      "description": "Steel Scheme dynamic predicate contracts.",
+      "id": "steel",
+      "supports_higher_order": true
+    }
+  },
+  "contracts": {
+    "process-execute": {
+      "abilities": [
+        "process/execute"
+      ],
+      "description": "Execute one independently admitted complete process context.",
+      "id": "process-execute",
+      "resource_prefixes": [
+        "onix://process-execution/"
+      ]
+    }
+  },
+  "schema_version": "ucan-nickel-contracts.policy.v1"
+}

@@ -36,6 +36,8 @@
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+        compatibilityToolchain = pkgs.rust-bin.stable."1.95.0".default;
+        compatibilityCrane = (crane.mkLib pkgs).overrideToolchain compatibilityToolchain;
 
         # Keep Cargo sources plus the Aeneas checker's compile-time evidence fixtures.
         proofSource = ./proofs;
@@ -101,6 +103,31 @@
         checks = {
           inherit ucan;
 
+          minimal-profile = compatibilityCrane.buildPackage (commonArgs // {
+            cargoArtifacts = null;
+            doCheck = false;
+            installPhase = ''
+              mkdir -p "$out"
+              cp profile.txt "$out/dependencies.txt"
+            '';
+            cargoExtraArgs = "--locked -p ucan --no-default-features --lib";
+            postBuild = ''
+              rustc --version
+              rustc --edition=2024 --test tools/check-minimal-profile.rs -o profile-tests
+              ./profile-tests
+              rustc --edition=2024 tools/check-minimal-profile.rs -o profile-check
+              cargo tree --locked -p ucan --no-default-features --edges normal --prefix none --format '{lib}' > profile.txt
+              ./profile-check < profile.txt
+            '';
+          });
+
+          minimal-tests = craneLib.cargoNextest (commonArgs // {
+            inherit cargoArtifacts;
+            partitions = 1;
+            partitionType = "count";
+            cargoExtraArgs = "--locked -p ucan --no-default-features --lib";
+          });
+
           # Run tests with nextest
           nextest = craneLib.cargoNextest (
             commonArgs
@@ -119,6 +146,24 @@
               inherit cargoArtifacts;
               cargoExtraArgs = "--locked --no-deps -p ucan -p ucan-core -p ucan-nostr --features ucan-core/peer-auth";
               cargoClippyExtraArgs = "--all-targets -- -D warnings -A clippy::cargo-common-metadata";
+            }
+          );
+
+          # Verify both shared cores remain pinned to one exact admitted Radicle object.
+          durable-authority-source = craneLib.cargoTest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoTestExtraArgs = "-p ucan --test durable_authority_source";
+            }
+          );
+
+          # Bind reviewed exact requirements, the lock, and implementation-identity inputs together.
+          blake3-identity-posture = craneLib.cargoTest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoTestExtraArgs = "-p ucan --test dependency_posture";
             }
           );
 
@@ -161,7 +206,7 @@
                 version=$(${checkedNickel} --version 2>&1 | head -1)
                 echo "resolved nickel: $version"
                 case "$version" in
-                  *1.17*) exit 0 ;;
+                  *1.17*) : ;;
                   *)
                     echo "older, floating, ambient, or mixed evaluator resolved: $version" >&2
                     exit 1
@@ -198,7 +243,10 @@
           dependency-posture =
             pkgs.runCommand "ucan-dependency-posture"
               {
-                nativeBuildInputs = [ rustToolchain pkgs.cargo-deny ];
+                nativeBuildInputs = [
+                  rustToolchain
+                  pkgs.cargo-deny
+                ];
               }
               ''
                 cd ${./.}
@@ -212,6 +260,7 @@
 
         devShells.default = craneLib.devShell {
           inherit buildInputs;
+          UV_CONSTRAINT = "${./tests/hegel-constraints.txt}";
 
           packages = with pkgs; [
             cargo-fuzz

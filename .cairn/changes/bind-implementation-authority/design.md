@@ -59,38 +59,30 @@ capability. There is no missing-authority or alternate-provider fallback.
 
 ### Cohort and import
 
-Kiln's vendored UCAN `d46816f` is an ancestor of Basalt's `c483c7b`, but the two
-snapshots are not interchangeable under Kiln's current toolchain. Attempting the
-upgrade showed that `c483c7b` adds a durable-authority module whose
-`replay-ledger-core` and `revocation-view-core` dependencies at `a0de7930`
-require rustc 1.96, while Kiln pins Rust 1.88.0. Cargo cannot resolve two
-same-name, same-version path packages, so a second vendored UCAN copy is not an
-option either.
+Basalt's reviewed snapshot is UCAN
+`417f74662b9de2de3bdabe93ad5db996e1bd2861`; the earlier `c483c7b` drain tip is
+its ancestor. Kiln imports that exact revision byte-for-byte and keeps one
+snapshot for observation authentication and implementation authority.
 
-A second measurement widened the upstream path. Basalt's consumer graph also
-requires `bounded-http` (workspace pin 1.96, but both crates build on 1.88),
-`detect-coding-agent` 0.1.1 (declares 1.91, builds on 1.88) through
-`secretspec 0.17.0` with default features off (which also builds on 1.88), and
-Basalt's own optional durable cores still point at the 1.96 revision. Cargo
-checks the declarations of the whole resolved graph, so a 1.88 consumer needs
-every one of those declarations fixed, not just the two cores.
+The earlier blocked-prerequisite measurement assumed Basalt's default features.
+The adapter depends on `basalt` with `default-features = false`, so
+`oidc-exchange`, `durable-authority`, `bounded-http`, `replay-ledger-core` and
+`revocation-view-core` never enter Kiln's resolved graph. The remaining
+declaration blockers are handled at the consumer: `detect-coding-agent` 0.1.1 is
+vendored from its exact registry archive with one recorded `rust-version`
+declaration change (1.91.0 to 1.88.0), and Kiln's existing `uuid` 1.26.1 lock
+entry satisfies SecretSpec's `uuid = "1"` requirement. No third-party source
+code changes; the package metadata change is recorded in
+`vendor/detect-coding-agent.source.json`.
 
-One cohort therefore requires one of:
+Basalt is imported through the repo-owned pinned-source importer, which applies
+three recorded path rewrites from Basalt's nested UCAN copy to Kiln's single
+`vendor/ucan` snapshot and refuses drift on re-run. The nested snapshot,
+release tooling, tests and examples are omitted. Basalt stays
+AGPL-3.0-or-later; `LICENSES.md` records the linked cohort.
 
-1. Align MSRVs upstream across durable-authority-state, bounded-http, the
-   third-party `detect-coding-agent` pin, UCAN and Basalt, then import Basalt
-   with a repo-owned script that omits `vendor/` and rewrites its UCAN path
-   dependencies to Kiln's single `vendor/ucan*` copy.
-2. Upgrade Kiln's Rust pin to 1.96 and import the extra pinned sources, avoiding
-   the five-component declaration alignment.
-3. Consume Basalt from a source-distinct (git) dependency and keep two cohorts,
-   accepting the Nix prefetch and dual-verification-profile cost.
-
-The operator selected option 1. Until that upstream alignment lands, this change
-stops after the coverage contract; the authority port and enforcement tasks stay
-open.
-
-Basalt stays AGPL-3.0-or-later; `LICENSES.md` will record the linked cohort.
+Rejected alternatives remain: upgrading Kiln's Rust pin, keeping two source
+cohorts, or silently enabling Basalt defaults. None is selected.
 
 ### Non-claims
 

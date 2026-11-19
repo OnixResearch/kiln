@@ -10,7 +10,7 @@ use kiln_implementer::verification::{VerificationProfile, VerifierAuthority};
 use kiln_web_service::{engine::Engine, profile::ServiceProfile};
 
 const MAXIMUM_INPUT_BYTES: u64 = 16 * 1024 * 1024;
-const USAGE: &str = "usage: kiln-web-service verify-implementation --profile CI_SERVICE_PROFILE --database DATABASE --enrollment ENROLLMENT --attempt ID --fence N --verification-profile PROFILE --authority AUTHORITY";
+const USAGE: &str = "usage: kiln-web-service verify-implementation --profile CI_SERVICE_PROFILE --database DATABASE --enrollment ENROLLMENT --attempt ID --fence N --verification-profile PROFILE --authority AUTHORITY [--local-operator OPERATOR]";
 
 #[derive(Default)]
 struct Fields {
@@ -21,6 +21,7 @@ struct Fields {
     fence: Option<String>,
     verification: Option<String>,
     authority: Option<String>,
+    local_operator: Option<String>,
 }
 
 struct Inputs {
@@ -31,6 +32,7 @@ struct Inputs {
     fence: u64,
     verification: PathBuf,
     authority: PathBuf,
+    local_operator: Option<String>,
 }
 
 fn required(value: &mut Option<String>, flag: &str) -> Result<String, String> {
@@ -50,6 +52,7 @@ fn parse(mut arguments: impl Iterator<Item = String>) -> Result<Inputs, String> 
             "--fence" => &mut fields.fence,
             "--verification-profile" => &mut fields.verification,
             "--authority" => &mut fields.authority,
+            "--local-operator" => &mut fields.local_operator,
             _ => return Err(format!("unsupported verification option: {flag}")),
         };
         if slot.is_some() {
@@ -77,6 +80,7 @@ fn parse(mut arguments: impl Iterator<Item = String>) -> Result<Inputs, String> 
         fence,
         verification: required(&mut fields.verification, "--verification-profile")?.into(),
         authority: required(&mut fields.authority, "--authority")?.into(),
+        local_operator: fields.local_operator,
     })
 }
 
@@ -106,6 +110,9 @@ fn execute(inputs: Inputs) -> Result<CandidateVerification, String> {
     let verification: VerificationProfile = read_json(&inputs.verification)?;
     let authority: VerifierAuthority = read_json(&inputs.authority)?;
     let mut ledger = Implementer::open(&inputs.database, enrollment)?;
+    if let Some(operator) = &inputs.local_operator {
+        ledger.select_local_operator(operator.clone())?;
+    }
     let mut engine = Engine::open(service)?;
     engine.verify_implementation_candidate(
         &mut ledger,

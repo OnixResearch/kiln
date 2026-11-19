@@ -1,0 +1,31 @@
+{
+  "schema": "basalt.nostr-identity-policy.v1",
+  "policy_revision": "reviewed-2026-08-08",
+  "subjects": [
+    {
+      "subject_id": "subject:one",
+      "display_label": "One",
+      "authenticators": [{
+        "binding_id": "binding:one",
+        "public_key": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+        "state": "active"
+      }]
+    },
+    {
+      "subject_id": "subject:two",
+      "display_label": "Two",
+      "authenticators": [{
+        "binding_id": "binding:two",
+        "public_key": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+        "state": "active"
+      }]
+    }
+  ],
+  "non_claims": [
+    "Nostr key control does not prove a human identity or product ownership",
+    "subject authentication does not grant a resource or ability",
+    "Nostr relays, NIP-05, npub text, and profile metadata are not authority",
+    "clocks, replay storage, policy publication, authorization, and release remain caller-owned",
+    "BLAKE3 receipt identity does not authenticate the producer or establish trust"
+  ]
+}

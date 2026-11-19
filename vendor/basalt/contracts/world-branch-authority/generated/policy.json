@@ -1,0 +1,93 @@
+{
+  "default_mode": "non-branchable",
+  "generation": 1,
+  "non_claims": [
+    "a policy decision does not mint or move a capability",
+    "a policy receipt is not current authority",
+    "token parsing signature verification revocation and replay remain consumer-owned",
+    "derivation transfer adapter activation and effect enforcement remain Molten-owned",
+    "linear policy does not prove source deactivation or destination activation",
+    "simulation-only policy does not prove simulator parity or prevent host escape",
+    "promotion-gated policy does not authorize effect dispatch",
+    "branch-authority evidence does not prove release eligibility"
+  ],
+  "profile_id": "basalt-world-branch-authority-v1",
+  "rules": [
+    {
+      "capability_class": "public-artifact",
+      "mode": "copyable",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": true,
+      "required_limits": [],
+      "rule_id": "public-artifact-copy"
+    },
+    {
+      "capability_class": "scoped-service",
+      "mode": "attenuated",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": true,
+      "required_limits": [
+        "narrower-resource-or-ability"
+      ],
+      "rule_id": "scoped-service-attenuation"
+    },
+    {
+      "capability_class": "exclusive-lease",
+      "mode": "linear",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": true,
+      "required_limits": [
+        "generation-fenced-transfer",
+        "source-deactivation"
+      ],
+      "rule_id": "exclusive-lease-transfer"
+    },
+    {
+      "capability_class": "external-effect",
+      "mode": "simulation-only",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": false,
+      "required_limits": [
+        "exact-simulation-adapter"
+      ],
+      "rule_id": "external-effect-simulation"
+    },
+    {
+      "capability_class": "deferred-effect",
+      "mode": "promotion-gated",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": true,
+      "required_limits": [
+        "promotion-recheck",
+        "release-reservation"
+      ],
+      "rule_id": "deferred-effect-promotion"
+    },
+    {
+      "capability_class": "host-secret",
+      "mode": "replace-before-activation",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": false,
+      "required_limits": [
+        "fresh-destination-grant"
+      ],
+      "rule_id": "host-secret-replacement"
+    },
+    {
+      "capability_class": "bearer-credential",
+      "mode": "non-branchable",
+      "priority": 100,
+      "require_current": true,
+      "require_ucan": false,
+      "required_limits": [],
+      "rule_id": "bearer-credential-denial"
+    }
+  ],
+  "schema": "basalt.world-branch-authority-policy.v1"
+}

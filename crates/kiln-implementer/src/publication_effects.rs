@@ -128,6 +128,9 @@ impl Implementer {
         if reservation.observed.is_some() {
             return Ok(reservation);
         }
+        let now_ms = self.now_ms();
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.revalidate_last_authority(currentness, now_ms)?;
         // An error intentionally leaves the committed pending reservation.
         match transport(dispatch, &reservation.publication)? {
             Some(observed) => self.acknowledge_publication_effect(work, &reservation, observed),
@@ -142,6 +145,23 @@ impl Implementer {
         fence: u64,
         kind: PublicationEffectKind,
     ) -> Result<(PublicationEffectReservation, EffectDispatch), String> {
+        let now_ms = self.now_ms();
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let kind_label = format!("{kind:?}");
+        let candidate = attempt_facts
+            .publication
+            .as_ref()
+            .map(|publication| &publication.plan.candidate);
+        let request = super::authority_bridge::request_for(
+            kiln_core::implementation::authority::ProtectedOperation::PublicationPublish,
+            &work_facts,
+            &attempt_facts,
+            &[&kind_label],
+            candidate,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        let session = self.admit_authority(&request, currentness, now_ms)?;
+        self.revalidate_authority(session, &request, currentness, now_ms)?;
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -256,6 +276,20 @@ impl Implementer {
         reservation: &PublicationEffectReservation,
         observed: PublicationEffectResult,
     ) -> Result<PublicationEffectReservation, String> {
+        let now_ms = self.now_ms();
+        let (work_facts, attempt_facts) =
+            self.authority_facts(&reservation.attempt, reservation.fence)?;
+        let kind_label = format!("{:?}", reservation.kind);
+        let request = super::authority_bridge::request_for(
+            kiln_core::implementation::authority::ProtectedOperation::PublicationPublish,
+            &work_facts,
+            &attempt_facts,
+            &[&kind_label],
+            Some(&reservation.candidate),
+        )?;
+        let currentness = self.attempt_currentness(&reservation.attempt, reservation.fence, now_ms);
+        let session = self.admit_authority(&request, currentness, now_ms)?;
+        self.revalidate_authority(session, &request, currentness, now_ms)?;
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -343,6 +377,15 @@ impl Implementer {
         retained.observed = Some(observed);
         save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
         save(&transaction, &key, version, &retained)?;
+        if let Some((session, request)) = self.authority_last.clone() {
+            super::authority_bridge::revalidate_with(
+                &mut self.authority,
+                session,
+                &request,
+                currentness,
+                now_ms,
+            )?;
+        }
         transaction.commit().map_err(text)?;
         Ok(retained)
     }

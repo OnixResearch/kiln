@@ -119,8 +119,25 @@ struct ImplementationCampaignDriveProfile {
     /// Optional renews/iroh swarm claim mirror; absent or disabled is inert.
     #[serde(default)]
     pub swarm: Option<kiln_adapter_swarm::SwarmConfig>,
+    /// Explicit local-operator profile selection for protected campaign effects.
+    #[serde(default)]
+    pub local_operator: Option<String>,
 }
 impl ImplementationCampaignDriveProfile {
+    /// Select the explicitly configured local-operator profile, if any.
+    ///
+    /// # Errors
+    /// Returns a message when the operator identity is invalid.
+    pub(super) fn configure_authority(
+        &self,
+        implementer: &mut kiln_implementer::Implementer,
+    ) -> Result<(), String> {
+        if let Some(operator) = &self.local_operator {
+            implementer.select_local_operator(operator.clone())?;
+        }
+        Ok(())
+    }
+
     pub fn validate(&self) -> Result<(), String> {
         if self.schema != PROFILE_SCHEMA
             || self.campaign_id.trim().is_empty()
@@ -411,6 +428,7 @@ impl CampaignDriveShell for NativeCampaignConsumer {
         let enrollment = read_json(&profile.worker.enrollment)?;
         let mut owner =
             kiln_implementer::Implementer::open(&profile.implementation_database, enrollment)?;
+        profile.configure_authority(&mut owner)?;
         let now_ms = wall_clock_ms()?;
         attach_swarm_mirror(profile, &mut owner, now_ms)?;
         let work = owner

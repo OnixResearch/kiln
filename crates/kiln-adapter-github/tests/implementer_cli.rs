@@ -109,6 +109,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("drain")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--queue")
@@ -147,6 +149,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     );
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("status")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -161,6 +165,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("run")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--queue")
@@ -193,6 +199,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("claim")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -224,6 +232,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let renewed = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("renew")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -307,6 +317,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("reserve-plan")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -324,6 +336,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("reserve")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -347,6 +361,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("start")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -368,6 +384,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     );
     let reconcile = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("reconcile")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -438,6 +456,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     );
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("handoff")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -467,6 +487,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("cancel")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -487,6 +509,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let stale = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("cancel")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -506,6 +530,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     );
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("metrics")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -569,6 +595,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("metrics-report")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -614,6 +642,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
     );
     let invalid = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("metrics-report")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -628,6 +658,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .arg("status")
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(&database)
         .arg("--enrollment")
@@ -648,6 +680,8 @@ fn drain_binary_admits_queued_issue_and_reports_status() {
 fn run_implementer(arguments: &[&str], database: &Path, enrollment: &Path) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
         .args(arguments)
+        .arg("--local-operator")
+        .arg("test-operator")
         .arg("--database")
         .arg(database)
         .arg("--enrollment")

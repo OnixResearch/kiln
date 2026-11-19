@@ -9,6 +9,12 @@
 The boundary is FCIS-first: the shell gathers bytes and environment state, then hands plain strings and values into `ucan-core`. When a primitive needs verified semantics, the shell bridges validated core values into `verified-logic` instead of reimplementing the logic locally.
 
 The shell crate now carries `serde`, `serde_json`, `base64`, `blake3`, and `snafu` as the correctness-focused foundation for compact-token parsing, strict claim decoding, proof references, and typed error reporting. Property-based integration coverage uses Hegel via the `hegeltest` crate.
+The development shell applies `tests/hegel-constraints.txt` to fresh UV bootstrap.
+Hegel 0.2.3 is tested here with Hypothesis 6.148.5; 6.167.1 causes a server error.
+For an existing incompatible test environment, run
+`uv pip install --python .hegel/venv/bin/python -c tests/hegel-constraints.txt hegel-core==0.2.3`
+inside the development shell. This changes only test infrastructure, not UCAN
+verification or runtime dependencies.
 
 ## End-to-end issue/parse/verify
 
@@ -98,6 +104,11 @@ installing default caveat policies or changing opaque shell caveat behavior.
 
 Use `sign_holder_invocation` and `verify_holder_signed_invocation` when a live sender must prove possession of the verified audience key. The borrowed verifier binds the complete bounded token BLAKE3 reference, verified audience DID, resource, ability, fixed operation-profile identity, exact request-binding digest, and fixed nonce in the `ucan/holder-invocation/v1` canonical format. It confirms that the resolved public key encodes the verified audience DID. It then verifies the audience signature before non-consuming profile and caveat observations. It calls `HolderInvocationReplayAdmission` once as the final state-consuming commit point and returns a private-construction, non-serde, non-clone `HolderInvocationAuthorized` value.
 
+For an ongoing operation, `recheck_holder_authorization` borrows the original live
+holder authorization and rechecks the same token, proofs, revocation, profile,
+and caveats without a replay port. Its borrowed observation is not another
+invocation or continuous authority. See [the recheck boundary](docs/holder-authorization-recheck.md).
+
 `OperationBinding` lets Basalt map its closed action enum to a stable `OperationProfileId` and exact `RequestBindingDigest`. UCAN does not interpret downstream action or request semantics. Profile and caveat checks must not spend quota or mutate admission state. Consumers must apply consumptive rate limits and execution effects in a separate downstream atomic boundary after UCAN success.
 
 ```bash
@@ -110,7 +121,17 @@ Proof material is explicit. A child token carries BLAKE3 proof references in `pr
 
 `CompactToken` owns bearer text in fixed zeroizing storage. It has borrowed `as_str` access, but no `Clone`, `Display`, `FromStr`, or serde implementation. Use `verify_compact_token_str` for borrowed input. The limit check runs before parsing or BLAKE3 identity.
 
-`KeyResolver`, `ProofStore`, `RevocationChecker`, `ReplayAdmission`, `OperationProfileAdmission`, and `HolderInvocationReplayAdmission` are std-shell injection points only. The crate does not provide built-in HTTP, IPFS, database, filesystem, profile registry, replay persistence, or ambient global lookup. `KeyResolutionContext` implements `KeyResolver`, `ProofCollection` implements `ProofStore`, and `RevocationList` implements `RevocationChecker`. `AllowAllReplayAdmission` preserves audience-only compatibility, but it is not holder proof. Holder-signed verification requires an explicit profile observer and replay commit boundary. These hooks remain consumer-agnostic: Aspen, Basalt, or another caller owns resource/action mapping, request canonicalization, identity trust, envelopes, backend freshness, retry, persistence, and outage policy. `VerificationLimits` bounds token and proof verification. `HolderInvocationLimits` adds reviewed field maxima, a 16,384-byte total canonical limit, and fallible exact allocation. See `docs/verified-boundaries.md` for the audit record. Resource containment is byte-prefix matching. The exact rule, the shared-prefix overmatch example, and the delimited resource-construction guidance are in [`docs/authorization-reference.md`](docs/authorization-reference.md).
+`KeyResolver`, `ProofStore`, `RevocationChecker`, `ReplayAdmission`, `OperationProfileAdmission`, and `HolderInvocationReplayAdmission` are std-shell injection points only. The crate does not provide built-in HTTP, IPFS, database, filesystem, profile registry, replay persistence, or ambient global lookup. `KeyResolutionContext` implements `KeyResolver`, `ProofCollection` implements `ProofStore`, and `RevocationList` implements `RevocationChecker`. `AllowAllReplayAdmission` preserves audience-only compatibility, but it is not holder proof. Holder-signed verification requires an explicit profile observer and replay commit boundary. These hooks remain consumer-agnostic: Aspen, Basalt, or another caller owns resource/action mapping, request canonicalization, identity trust, envelopes, backend freshness, retry, persistence, and outage policy. `VerificationLimits` bounds token and proof verification. `HolderInvocationLimits` adds reviewed field maxima, a 16,384-byte total canonical limit, and fallible exact allocation. See `docs/verified-boundaries.md` for the audit record.
+
+The default-on `durable-authority` feature exposes the concrete durable-state
+adapters. Select `default-features = false` to omit that module, its root re-exports,
+and its two normal dependency edges. Token and holder verification still require
+explicit replay/revocation services; opting out never installs a permissive fallback.
+The minimal normal library has a pinned Rust 1.95 check. Full default and dev-test
+profiles retain the current owner toolchain and dependency requirements. This is
+feature selection, not a storage, freshness, or authority guarantee.
+
+`DurableHolderReplayAdmission` and `DurableRevocationChecker` are shell composition adapters over the separately published Durable Authority State cores. They use exact Radicle source object `a0de79303f3f45c18a34fff535b690a85cb3cf59`. They keep storage ports, time, tenant, generation, authenticity, recovery, and outage policy caller-owned. See [`docs/durable-authority-state.md`](docs/durable-authority-state.md). Resource containment is byte-prefix matching. The exact rule, the shared-prefix overmatch example, and the delimited resource-construction guidance are in [`docs/authorization-reference.md`](docs/authorization-reference.md).
 
 ```bash
 cargo run --example proof_chain
@@ -225,6 +246,7 @@ The snapshot records a committed Trellis source revision and preserves its licen
 
 ## References
 
+- [Transactional Reconciliation Core at `eb2bd3441753af97bfcb247cef7cc22d72675b62`](https://seed.radicle.garden/z4Tky6zvC8w4Y6c4YBzNxVbq5n752.git) — exact publication, quarantine, and read-back pilot for durable authority state. UCAN retains replay, revocation, authorization, persistence adapters, and protected-effect authority.
 - [Nostr NIPs at `656cecc7c0a815b6a2b218d3b5d6f078b3f4dbab`](https://github.com/nostr-protocol/nips/tree/656cecc7c0a815b6a2b218d3b5d6f078b3f4dbab) — NIP-01, NIP-42, and NIP-98 interoperability reference. UCAN retains token algorithms, DIDs, and authority boundaries.
 - [BIP-340 and vectors at `c38071c8c45a1fc50cecaac0d82d99e3bbd56911`](https://github.com/bitcoin/bips/tree/c38071c8c45a1fc50cecaac0d82d99e3bbd56911/bip-0340) — x-only secp256k1 signature and test-vector reference.
 - [AeneasVerif/aeneas](https://github.com/AeneasVerif/aeneas) — exact-source Aeneas/Lean proof-pilot reference for selected safe deterministic `ucan-core` functions; any receipt remains property- and source-scoped and does not transfer parser, cryptographic, authorization, interoperability, or whole-system claims.

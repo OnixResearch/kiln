@@ -34,10 +34,10 @@ The focused HMAC test uses RFC 4231 test case 1 for HMAC-SHA-256.
 
 | Package | Version | Registry checksum | License |
 |---|---:|---|---|
-| `blake3` | `1.8.4` | `4d2d5991425dfd0785aed03aedcf0b321d61975c9b5b3689c774a2610ae0b51e` | `CC0-1.0 OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception` |
+| `blake3` | `1.8.5` | `0aa83c34e62843d924f905e0f5c866eb1dd6545fc4d719e803d9ba6030371fce` | `CC0-1.0 OR Apache-2.0 OR Apache-2.0 WITH LLVM-exception` |
 | `hmac` | `0.12.1` | `6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e` | `MIT OR Apache-2.0` |
 | `sha2` | `0.10.9` | `a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283` | `MIT OR Apache-2.0` |
-| `zeroize` | `1.8.2` | `b97154e67e32c85465826e8bcc1c59429aaaf107c1e4a9e53c8d8ccd5eff88d0` | `MIT OR Apache-2.0` |
+| `zeroize` | `1.9.0` | `e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e` | `MIT OR Apache-2.0` |
 
 The feature disables default dependency features. The core stays compatible with `no_std` and `wasm32-unknown-unknown`.
 

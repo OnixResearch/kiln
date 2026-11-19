@@ -496,8 +496,9 @@ mod tests {
             repositories: BTreeSet::from([REPOSITORY.to_string()]),
             actors: BTreeSet::from(["operator".to_string()]),
         };
-        let mut implementer = crate::Implementer::open(&path, enrollment)
-            .unwrap_or_else(|error| unreachable!("{error}"));
+        let mut implementer =
+            crate::Implementer::open_with_local_operator(&path, enrollment, "test-operator")
+                .unwrap_or_else(|error| unreachable!("{error}"));
         implementer
             .admit(&cairn_work(), None)
             .unwrap_or_else(|error| unreachable!("{error}"));
@@ -558,12 +559,13 @@ mod tests {
     fn bounds_report_truncation_and_crossed_rows_are_malformed() {
         let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
         let path = root.path().join("implementation.sqlite");
-        crate::Implementer::open(
+        crate::Implementer::open_with_local_operator(
             &path,
             Enrollment {
                 repositories: BTreeSet::from([REPOSITORY.to_string()]),
                 actors: BTreeSet::from(["operator".to_string()]),
             },
+            "test-operator",
         )
         .unwrap_or_else(|error| unreachable!("{error}"));
         let mut campaigns = crate::campaign::CampaignStore::open(&path)

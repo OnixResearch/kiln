@@ -850,6 +850,7 @@ pub fn compose_chain(
     }
     check_dup_cycle(delegations)?;
     check_order(delegations, invocation)?;
+    check_root_authority(root, &chain_subject)?;
     check_subjects(delegations, &chain_subject)?;
     check_time(invocation, delegations, now_seconds, clock_skew)?;
     check_commands(delegations, &invocation.command)?;
@@ -892,6 +893,15 @@ fn check_order(delegations: &[DelegationFacts], invocation: &InvocationFacts) ->
     let final_index = delegations.len() - 1;
     if delegations[final_index].audience != invocation.issuer {
         return Err(ChainError::NotInvoker);
+    }
+    Ok(())
+}
+
+/// The root Delegation is the Subject's own grant: its issuer MUST be the
+/// Subject. Any other issuer only claims authority it cannot prove.
+fn check_root_authority(root: &DelegationFacts, chain_subject: &str) -> Result<(), ChainError> {
+    if root.issuer != chain_subject {
+        return Err(ChainError::RootSubstitution);
     }
     Ok(())
 }

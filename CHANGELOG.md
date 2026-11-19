@@ -18,6 +18,17 @@ entry describes the source tree prepared for the first tagged release.
 
 **Core**
 
+- Closed implementation-authority coverage: every protected claim, renewal,
+  dispatch, candidate submission, verification admission, cancellation,
+  publication, integration and lifecycle path binds one reviewed Basalt
+  operation, enforcement boundary, effect class and candidate rule. Verified
+  holder invocations or an explicit local-operator profile are required before
+  any mutation, provider call or credential resolution; every effect revalidates
+  without consuming replay twice, and bounded redacted decisions retain no
+  capability material. Basalt is imported at `264d248` with recorded UCAN path
+  rewrites, UCAN is one snapshot at `417f746`, and a metadata-only
+  `detect-coding-agent` 0.1.1 declaration patch preserves the Rust 1.88 pin.
+  (#69; adapter, implementer, policy and denial fixtures)
 - Pure `no_std + alloc` `kiln-core` implements both transitions:
   `state + command -> events + requested effects` and
   `state + event -> new state`, with no filesystem, process, network, clock or
@@ -580,6 +591,11 @@ entry describes the source tree prepared for the first tagged release.
   package rename. Earlier revisions keep the name `kiln-core`.
 - Retained evidence names `x86_64-linux`. The flake also declares
   `aarch64-linux`; its outputs evaluate but were not built or run.
+- Protected implementation operations deny until a verified UCAN adapter or an
+  explicit local-operator profile is selected. `prepare_publication` and
+  `record_integration` take the host time used for currentness. A caller
+  boolean, role label, provider capability, serialized receipt or retained
+  session is not authority.
 
 ### Non-claims
 

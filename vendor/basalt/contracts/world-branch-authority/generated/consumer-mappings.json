@@ -1,0 +1,60 @@
+{
+  "molten": {
+    "enforcement_owner": "molten",
+    "mappings": [
+      {
+        "claim": "fixture-only",
+        "mode": "copyable",
+        "source_class": "public-artifact"
+      },
+      {
+        "claim": "fixture-only",
+        "mode": "attenuated",
+        "source_class": "scoped-service"
+      },
+      {
+        "claim": "fixture-only",
+        "mode": "linear",
+        "source_class": "exclusive-lease"
+      },
+      {
+        "claim": "fixture-only",
+        "mode": "simulation-only",
+        "source_class": "external-effect"
+      },
+      {
+        "claim": "fixture-only",
+        "mode": "promotion-gated",
+        "source_class": "deferred-effect"
+      },
+      {
+        "claim": "fixture-only",
+        "mode": "replace-before-activation",
+        "source_class": "host-secret"
+      },
+      {
+        "claim": "fixture-only",
+        "mode": "non-branchable",
+        "source_class": "bearer-credential"
+      }
+    ],
+    "policy_owner": "basalt",
+    "retained_owners": [
+      "token-parsing",
+      "currentness",
+      "derivation",
+      "linear-transfer",
+      "adapter-selection",
+      "activation",
+      "promotion",
+      "effect-enforcement"
+    ],
+    "revision": "edc508229fb39d918473509c8f9e3c639c5d7275"
+  },
+  "non_claims": [
+    "the mapping fixture creates no runtime dependency",
+    "the mapping fixture does not prove native enforcement",
+    "the mapping fixture contains no bearer capability material"
+  ],
+  "schema": "basalt.world-branch-authority-consumer-mappings.v1"
+}

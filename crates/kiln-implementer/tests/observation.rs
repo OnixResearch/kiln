@@ -96,12 +96,13 @@ fn needs(work: &ImplementationWork, policy: &ContentId) -> WorkNeeds {
     }
 }
 fn store(path: &std::path::Path) -> Result<Implementer, String> {
-    Implementer::open(
+    Implementer::open_with_local_operator(
         path,
         Enrollment {
             repositories: BTreeSet::from(["onix/kiln".into()]),
             actors: BTreeSet::from(["operator".into()]),
         },
+        "test-operator",
     )
 }
 #[test]

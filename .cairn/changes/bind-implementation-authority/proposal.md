@@ -18,9 +18,9 @@ durable grant lineage, attenuation, revocation and recovery.
 - Add a closed protected-operation coverage map in `kiln-core` naming, for every
   protected path in the selected implementation profile, its Basalt operation,
   enforcement owner, effect class and candidate binding.
-- Adopt one UCAN cohort: upgrade `vendor/ucan` from `d46816f` to Basalt's pinned
-  `c483c7b` (the Kiln snapshot is its ancestor) so observation and authority use
-  one crate.
+- Adopt one UCAN cohort: upgrade `vendor/ucan` from `d46816f` to Basalt's
+  vendored `417f746` (the `c483c7b` drain tip is an ancestor) so observation and
+  authority use one crate.
 - Import Basalt through a repo-owned script into `vendor/basalt` with its nested
   UCAN copy omitted and the UCAN path dependencies rewritten to Kiln's single
   vendored snapshot; record the source revision and transform.

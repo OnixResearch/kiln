@@ -1,5 +1,10 @@
 use std::fmt;
 
+mod recheck;
+pub use recheck::HolderAuthorizationObservation;
+pub use recheck::HolderRecheckError;
+pub use recheck::HolderRecheckPolicies;
+pub use recheck::recheck_holder_authorization;
 use ucan_core::holder_invocation::HOLDER_INVOCATION_DIGEST_BYTES;
 use ucan_core::holder_invocation::HOLDER_INVOCATION_NONCE_BYTES;
 use ucan_core::holder_invocation::HolderInvocationCanonicalError;
@@ -569,6 +574,7 @@ pub struct HolderInvocationAuthorized {
     ability: String,
     matched_capability: CapabilityDocument,
     effective_time_bounds: TokenTimeBounds,
+    verified_at: VerificationTime,
     token_reference: HolderInvocationTokenReference,
     operation: OperationBinding,
     nonce: HolderInvocationNonce,
@@ -585,6 +591,7 @@ impl fmt::Debug for HolderInvocationAuthorized {
             .field("ability", &self.ability)
             .field("matched_capability", &self.matched_capability)
             .field("effective_time_bounds", &self.effective_time_bounds)
+            .field("verified_at", &self.verified_at)
             .field("token_reference", &self.token_reference)
             .field("operation", &self.operation)
             .field("nonce", &self.nonce)
@@ -812,6 +819,7 @@ pub fn verify_holder_signed_invocation(
         ability: request.ability.to_owned(),
         matched_capability,
         effective_time_bounds: verified.effective_delegation().time_bounds(),
+        verified_at: token_context.time,
         token_reference,
         operation: request.operation,
         nonce: request.nonce,
@@ -946,6 +954,8 @@ const fn copy_fixed_digest(
 
 #[cfg(test)]
 mod tests {
+    mod recheck;
+
     use std::cell::Cell;
     use std::cell::RefCell;
     use std::collections::HashSet;

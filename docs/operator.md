@@ -1,5 +1,12 @@
 # Kiln operator guide
 
+Implementation work claims, renewals, dispatch, submission, verification
+admission, cancellation, publication, integration and lifecycle completion
+require a selected authority profile. See [select implementation
+authority](implementation-runbook.md#select-implementation-authority-first) and
+[implementation authority](implementation-work.md#implementation-authority).
+An unconfigured protected operation denies before any effect.
+
 ## Local reference run
 
 1. Enter the development shell:

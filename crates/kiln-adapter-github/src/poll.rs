@@ -450,7 +450,8 @@ mod tests {
             actors: BTreeSet::from(["operator".to_string()]),
         };
         let mut implementer =
-            Implementer::open(&database, enrollment.clone()).unwrap_or_else(|_| unreachable!());
+            Implementer::open_with_local_operator(&database, enrollment.clone(), "test-operator")
+                .unwrap_or_else(|_| unreachable!());
         let mut transport = Repeat {
             page: IssuePollPage {
                 records: vec![record(7, 100, "open")],
@@ -497,7 +498,8 @@ mod tests {
             actors: BTreeSet::from(["operator".to_string()]),
         };
         let mut implementer =
-            Implementer::open(&database, enrollment.clone()).unwrap_or_else(|_| unreachable!());
+            Implementer::open_with_local_operator(&database, enrollment.clone(), "test-operator")
+                .unwrap_or_else(|_| unreachable!());
         let mut transport = Repeat {
             page: IssuePollPage {
                 records: vec![record(8, 100, "closed")],

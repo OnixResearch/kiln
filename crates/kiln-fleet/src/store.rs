@@ -22,6 +22,8 @@ pub const MAX_ENROLLMENT_BYTES: u64 = 256 * 1_024;
 pub struct Store {
     pub database: PathBuf,
     pub enrollment: Enrollment,
+    /// Explicit local-operator profile selected for protected effects.
+    pub authority_operator: Option<String>,
 }
 
 impl Store {
@@ -29,13 +31,18 @@ impl Store {
     ///
     /// # Errors
     /// Returns a diagnostic for an unreadable or malformed enrollment.
-    pub fn load(database: &Path, enrollment: &Path) -> Result<Self, String> {
+    pub fn load(
+        database: &Path,
+        enrollment: &Path,
+        authority_operator: Option<String>,
+    ) -> Result<Self, String> {
         let bytes = read_bounded(enrollment, MAX_ENROLLMENT_BYTES)?;
         let enrollment: Enrollment = serde_json::from_slice(&bytes)
             .map_err(|error| format!("enrollment is malformed: {error}"))?;
         Ok(Self {
             database: database.to_path_buf(),
             enrollment,
+            authority_operator,
         })
     }
 
@@ -44,7 +51,11 @@ impl Store {
     /// # Errors
     /// Returns the store diagnostic.
     pub fn open(&self) -> Result<Implementer, String> {
-        Implementer::open(&self.database, self.enrollment.clone())
+        let mut implementer = Implementer::open(&self.database, self.enrollment.clone())?;
+        if let Some(operator) = &self.authority_operator {
+            implementer.select_local_operator(operator.clone())?;
+        }
+        Ok(implementer)
     }
 }
 

@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "kind": "provider",
+    "message": "selected provider failed or was unavailable"
+  }
+}

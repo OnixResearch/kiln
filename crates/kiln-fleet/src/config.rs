@@ -74,6 +74,9 @@ pub struct FleetConfig {
     #[serde(default)]
     pub policy: PolicyConfig,
     pub dispatch: DispatchConfig,
+    /// Explicit local-operator profile for protected implementation effects.
+    #[serde(default)]
+    pub authority_operator: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

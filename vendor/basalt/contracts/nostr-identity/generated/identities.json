@@ -1,0 +1,12 @@
+{
+  "authentication_receipt_schema": "basalt.nostr-authentication-receipt.v1",
+  "composition_receipt_schema": "basalt.nostr-composition-receipt.v1",
+  "credential_contract": "ucan-nostr::VerifiedNostrCredential@c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
+  "policy_blake3": "9f5df806b5fac55a35a63f58c86e4218de1414141c20c999cbd140ea3c0556a2",
+  "policy_schema": "basalt.nostr-identity-policy.v1",
+  "producer_implementation_blake3": "6e0dcbc7d357973695a9476594ff24f7d898e6eed837eb169ebdec0212f39a25",
+  "producer_schema_blake3": "45824d99ae765e885f085ef2c8c8294343415af8e5489c35509c3e255476e258",
+  "schema": "basalt.nostr-identity-producer-identities.v1",
+  "ucan_nostr_credential_revision": "c9d43a7c11dd2fab4d5cb3d100012fa9a2e5b026",
+  "ucan_source_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861"
+}

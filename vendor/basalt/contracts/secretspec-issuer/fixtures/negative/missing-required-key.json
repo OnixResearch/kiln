@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "response": {
+    "schema_version": 2,
+    "provider": "env://",
+    "profile": "production",
+    "scope": "basalt-oidc-exchange",
+    "secrets": {},
+    "missing_required": ["oidc-signing-key"],
+    "missing_optional": []
+  }
+}

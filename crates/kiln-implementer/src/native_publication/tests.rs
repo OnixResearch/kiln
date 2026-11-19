@@ -386,8 +386,10 @@ impl NativeFixture {
             .tree_id();
         let tree = external("tree", &tree_oid.to_string());
         let work = native_work(base.clone());
-        let mut engine = Implementer::open(path, native_enrollment())
-            .unwrap_or_else(|error| unreachable!("fixture open failed: {error}"));
+        let mut engine =
+            Implementer::open_with_local_operator(path, native_enrollment(), "test-operator")
+                .unwrap_or_else(|error| unreachable!("fixture open failed: {error}"));
+        engine.set_clock_ms(1);
         engine
             .admit(&work, None)
             .unwrap_or_else(|error| unreachable!("work admission failed: {error}"));
@@ -567,8 +569,11 @@ impl NativeFixture {
     }
 
     fn reopen(&self) -> Implementer {
-        Implementer::open(&self.path, native_enrollment())
-            .unwrap_or_else(|error| unreachable!("fixture reopen failed: {error}"))
+        let mut implementer =
+            Implementer::open_with_local_operator(&self.path, native_enrollment(), "test-operator")
+                .unwrap_or_else(|error| unreachable!("fixture reopen failed: {error}"));
+        implementer.set_clock_ms(1);
+        implementer
     }
 }
 

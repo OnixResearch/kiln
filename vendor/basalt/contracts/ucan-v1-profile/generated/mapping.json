@@ -1,0 +1,63 @@
+{
+  "entries": [
+    {
+      "action": "document-read",
+      "command": "/document/read",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "document-write",
+      "command": "/document/write",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "onixos-target-candidate-activation",
+      "command": "/onixos/target/candidate-activation",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "onixos-target-generation-persistence",
+      "command": "/onixos/target/generation-persistence",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "onixos-target-rollback",
+      "command": "/onixos/target/rollback",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "onixos-state-sync-publish",
+      "command": "/onixos/state-sync/publish",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "onixos-state-sync-delete",
+      "command": "/onixos/state-sync/delete",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    },
+    {
+      "action": "onixos-state-sync-admin",
+      "command": "/onixos/state-sync/admin",
+      "resource_binding": "external-owner",
+      "subject_class": "exact"
+    }
+  ],
+  "non_claims": [
+    "mapping does not prove key trust",
+    "external resource ownership remains caller evidence",
+    "mapping does not prove revocation freshness or replay durability",
+    "mapping does not prove transport or effect correctness",
+    "mapping does not prove release eligibility or whole-system safety"
+  ],
+  "protocol_profile": "ucan-wg-1.0.0",
+  "runtime_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+  "schema": "basalt.ucan-v1-command-mapping.v1",
+  "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427"
+}

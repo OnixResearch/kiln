@@ -1,0 +1,4 @@
+{
+  "fail_closed": true,
+  "schema": "basalt.nickel-toolchain.fixture.v1"
+}

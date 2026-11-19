@@ -40,7 +40,7 @@ const MESSAGE_IDENTITY_DOMAIN: &[u8] = b"ucan-peer-auth.message-identity.v1";
 const AUTHENTICATOR_REFERENCE_DOMAIN: &[u8] = b"ucan-peer-auth.authenticator-reference.v1";
 const IMPLEMENTATION_IDENTITY_DOMAIN: &[u8] = b"ucan-peer-auth.implementation-identity.v1";
 const IMPLEMENTATION_REVISION: &[u8] =
-    b"ucan-core@0.1.0|peer-auth-v1|blake3@1.8.4|hmac@0.12.1|sha2@0.10.9|zeroize@1.8.2";
+    b"ucan-core@0.1.0|peer-auth-v1|blake3@1.8.5|hmac@0.12.1|sha2@0.10.9|zeroize@1.9.0";
 const HEX_CHARS_PER_BYTE: usize = 2;
 const NIBBLE_BITS: u32 = 4;
 const LOW_NIBBLE_MASK: u8 = 0x0f;

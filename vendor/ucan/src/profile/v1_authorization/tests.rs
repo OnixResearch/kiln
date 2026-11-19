@@ -138,7 +138,8 @@ fn expect_denied(outcome: AuthOutcome<'_>) -> (Option<String>, AuthorizationRece
 fn direct_delegation_invocation_is_admitted() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut keys = BTreeMap::new();
     keys.insert(did_of(&root), root.verifying_key().to_bytes());
     keys.insert(did_of(&invoker), invoker.verifying_key().to_bytes());
@@ -170,7 +171,8 @@ fn delegated_two_hop_invocation_is_admitted() {
     let root = signing_key(1);
     let mid = signing_key(3);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -222,7 +224,8 @@ fn invalid_invocation_signature_fails_before_proof_loading_or_replay() {
 fn preflight_denial_calls_replay_zero_times() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -256,7 +259,8 @@ fn preflight_denial_calls_replay_zero_times() {
 fn executor_mismatch_denies_before_replay() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -352,7 +356,8 @@ fn substituted_proof_is_rejected_with_binding_error() {
     let root = signing_key(1);
     let other = signing_key(2);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -386,7 +391,8 @@ fn substituted_proof_is_rejected_with_binding_error() {
 fn revoked_delegation_denies_before_replay() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -410,7 +416,8 @@ fn revoked_delegation_denies_before_replay() {
 fn policy_denies_before_replay() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let policy = serde_json::json!([[["==", ".b", 2]]]);
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
@@ -442,7 +449,8 @@ fn policy_denies_before_replay() {
 fn replay_denial_produces_denied_outcome_with_one_call() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -470,7 +478,8 @@ fn receipts_are_deterministic_redacted_and_not_live() {
     const BLAKE3_DIGEST_BYTES: usize = 32;
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let mut store = MemoryStore {
         envelopes: BTreeMap::new(),
     };
@@ -528,7 +537,8 @@ fn receipts_are_deterministic_redacted_and_not_live() {
 fn oversized_proof_fails_before_replay() {
     let root = signing_key(1);
     let invoker = signing_key(7);
-    let subject_did = "did:key:z6Mksubject";
+    let subject_owned = did_of(&root);
+    let subject_did = subject_owned.as_str();
     let (root_cid, root_env) =
         delegation_envelope(&root, &did_of(&invoker), Some(subject_did), Some("/crud"), None, Some(1_000), Some(2_000));
     let mut store = MemoryStore {
@@ -547,5 +557,37 @@ fn oversized_proof_fails_before_replay() {
         authorize_invocation(&inv_env, &KeyMap(keys), &store, &NoRevocations, &replay, &did_of(&invoker), 1_500, 60)
             .expect_err("oversized proof must fail");
     assert_eq!(error, AuthError::OversizedProof);
+    assert_eq!(replay.calls.get(), 0);
+}
+
+#[test]
+fn root_delegation_not_issued_by_subject_is_denied_before_replay() {
+    // A key that resolves and signs correctly still cannot originate authority
+    // for a Subject it does not control.
+    let attacker = signing_key(42);
+    let victim_subject = did_of(&signing_key(43));
+    let mut keys = BTreeMap::new();
+    keys.insert(did_of(&attacker), attacker.verifying_key().to_bytes());
+    let mut store = MemoryStore {
+        envelopes: BTreeMap::new(),
+    };
+    let (root_cid, root_env) = delegation_envelope(
+        &attacker,
+        &did_of(&attacker),
+        Some(&victim_subject),
+        Some("/"),
+        None,
+        Some(1_000),
+        Some(2_000),
+    );
+    install(&mut store, root_cid.clone(), root_env);
+    let (_, inv_env) = invocation_envelope(&attacker, &did_of(&attacker), &victim_subject, "/crud/delete", &[root_cid]);
+    let replay = CountingReplay::allow();
+    let outcome =
+        authorize_invocation(&inv_env, &KeyMap(keys), &store, &NoRevocations, &replay, &did_of(&attacker), 1_500, 60)
+            .expect("preflight must not hard-fail");
+    let (reason, receipt) = expect_denied(outcome);
+    assert!(reason.is_some_and(|text| text.contains("root subject substitution")));
+    assert!(!receipt.allowed);
     assert_eq!(replay.calls.get(), 0);
 }

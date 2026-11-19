@@ -1,0 +1,118 @@
+[package]
+name = "basalt"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Hardened UCAN contract boundaries for Nickel and Steel policy backends."
+readme = "README.md"
+repository = "https://github.com/OnixResearch/basalt"
+homepage = "https://github.com/OnixResearch/basalt#readme"
+documentation = "https://github.com/OnixResearch/basalt#readme"
+keywords = ["ucan", "nickel", "policy", "capabilities", "authorization"]
+categories = ["authentication", "config"]
+include = [
+    "src/**",
+    "tests/**",
+    "contracts/policy.ncl",
+    "contracts/policy-prelude.ncl",
+    "contracts/generated/policy.json",
+    "contracts/policy-authoring/**",
+    "contracts/process-execution/**",
+    "contracts/nickel-toolchain/**",
+    "contracts/peer-auth/**",
+    "contracts/runtime-effect/**",
+    "contracts/world-branch-authority/**",
+    "contracts/authority-core/contracts.ncl",
+    "contracts/authority-core/fixtures/**",
+    "contracts/ucan-profiles/**",
+    "contracts/ucan-v1-profile/**",
+    "contracts/ucan-semantics/contracts.ncl",
+    "contracts/ucan-semantics/fixtures/**",
+    "contracts/license-consumption/contracts.ncl",
+    "contracts/license-consumption/fixtures/**",
+    "contracts/nostr-identity/**",
+    "contracts/oidc-exchange/**",
+    "contracts/policy-identity/fixtures/**",
+    "contracts/secretspec-issuer/fixtures/**",
+    "docs/authority-core.md",
+    "docs/ast-grep-policy-audits.md",
+    "docs/cap-std-cli-policy-boundary.md",
+    "docs/durable-authority-state.md",
+    "docs/kiln-authority-adapter.md",
+    "docs/license-consumption.md",
+    "docs/nickel-toolchain.md",
+    "docs/nostr-identity-bindings.md",
+    "docs/oidc-dependency-review.md",
+    "docs/oidc-exchange.md",
+    "docs/peer-auth-policy.md",
+    "docs/policy-authoring.md",
+    "docs/runtime-effect-permissions.md",
+    "docs/world-branch-authority.md",
+    "docs/ucan-enforcement.md",
+    "docs/ucan-protocol-profiles.md",
+    "docs/ucan-semantics-contract.md",
+    "docs/ucan-v1-profile.md",
+    "docs/policy-identity.md",
+    "docs/secretspec-issuer.md",
+    "docs/vendored-ucan.md",
+    "examples/nostr_identities.rs",
+    "tools/release-verify.rs",
+    "tools/release_verify/**",
+    "tools/ast-grep/**",
+    "tools/sync-vendored-ucan.rs",
+    "tools/sync_vendored_ucan/**",
+    "vendor/ucan/**",
+    "vendor/ucan-revision.txt",
+    "vendor/ucan.snapshot",
+    "README.md",
+    "Cargo.toml",
+    "Cargo.lock",
+]
+
+[features]
+default = ["oidc-exchange", "durable-authority"]
+oidc-exchange = ["dep:bounded-http"]
+durable-authority = ["dep:replay-ledger-core", "dep:revocation-view-core", "ucan/durable-authority"]
+cli = ["dep:clap", "dep:cap-std"]
+
+[[bin]]
+name = "basalt"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[dependencies]
+base64 = "=0.22.1"
+blake3 = "1.8"
+bounded-http = { git = "https://seed.radicle.garden/z4ARxEt93T6gJTrTZpUyKHMAemPiv.git", rev = "5abc2b93e0f288aba251a0750ce2d716eb9757fc", optional = true }
+cap-std = { version = "4.0.2", optional = true }
+clap = { version = "4.5", features = ["derive"], optional = true }
+iddqd = "0.4.5"
+ring = "=0.17.14"
+replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59", optional = true }
+revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59", optional = true }
+secretspec = { version = "=0.17.0", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+snafu = "0.8"
+ucan = { version = "0.1.0", path = "../ucan", default-features = false }
+ucan-core = { version = "0.1.0", path = "../ucan/crates/ucan-core", default-features = false, features = ["peer-auth"] }
+ucan-nostr = { version = "0.1.0", path = "../ucan/crates/ucan-nostr" }
+
+[dev-dependencies]
+ed25519-dalek = "=2.2.0"
+jsonwebtoken = { version = "=11.0.0", default-features = false, features = ["rust_crypto"] }
+k256 = { version = "=0.13.4", default-features = false, features = ["alloc", "arithmetic", "schnorr"] }
+rand_chacha = "=0.3.1"
+rand_core = "=0.6.4"
+rsa = "=0.9.10"
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+multiple_crate_versions = "allow"

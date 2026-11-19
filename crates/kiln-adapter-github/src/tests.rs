@@ -1002,8 +1002,12 @@ fn queued_issue_deliveries_drain_into_admitted_work_once() {
         repositories: ["octocat/hello-world".to_string()].into_iter().collect(),
         actors: ["operator".to_string()].into_iter().collect(),
     };
-    let mut implementer = Implementer::open(&root.path().join("work.sqlite"), enrollment)
-        .unwrap_or_else(|_| unreachable!());
+    let mut implementer = Implementer::open_with_local_operator(
+        &root.path().join("work.sqlite"),
+        enrollment,
+        "test-operator",
+    )
+    .unwrap_or_else(|_| unreachable!());
     let policy = ImplementationIssuePolicy {
         repository: config.event_policy.clone(),
         project: "kiln".to_string(),

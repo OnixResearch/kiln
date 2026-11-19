@@ -128,6 +128,8 @@ in
         }
       },
     verifier_authority | Absolute,
+    # Explicit local-operator profile for protected campaign effects.
+    local_operator | String | optional,
     decision_contexts | { _ : Absolute } | default = {},
     bound_input_directory | Absolute,
     worker

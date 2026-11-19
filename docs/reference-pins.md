@@ -47,7 +47,9 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
 | Bounded Exec | `29dac88ecded94457572db3fdfaaaab95fa91525` | AGPL-3.0-or-later shell and core | [`vendor/bounded-exec.source.json`](../vendor/bounded-exec.source.json) |
 | Mantle | `d75158b00b080535f2ffea12430665ca3d57ea82` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
-| UCAN | `d46816f19606b518307ba21ab33e8b93b6ebf646` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
+| UCAN | `417f74662b9de2de3bdabe93ad5db996e1bd2861` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
+| Basalt | `264d248912e58760b5ae1eced51b7c7d50eb5a96` | AGPL-3.0-or-later Kiln authority adapter, packaged policy and contracts; nested UCAN paths rewritten to the single Kiln snapshot | [`vendor/basalt.source.json`](../vendor/basalt.source.json) |
+| `detect-coding-agent` | registry `0.1.1` (`sha256:be8df8d4e032e29ed623c6d5815d8ac7b8b82106f2f04a4e174f93fc807145a3`) | `EUPL-1.2 OR MIT OR Apache-2.0` source with one recorded `rust-version` declaration change from 1.91.0 to 1.88.0 | [`vendor/detect-coding-agent.source.json`](../vendor/detect-coding-agent.source.json) |
 
 The external Lattice CI handler is separately pinned to
 `85a38b6a4bceeae4bb2057cf157e21752100f1b5` for `shell_success` and observed
@@ -107,6 +109,7 @@ scripts/import-pinned-source.sh artifact "$ARTIFACT_SOURCE"
 scripts/import-pinned-source.sh bounded-exec "$BOUNDED_EXEC_SOURCE"
 scripts/import-pinned-source.sh mantle "$MANTLE_SOURCE"
 scripts/import-pinned-source.sh ucan "$UCAN_SOURCE"
+scripts/import-pinned-source.sh basalt "$BASALT_SOURCE"
 scripts/import-pinned-source.sh subwayrat "$SUBWAYRAT_SOURCE"
 ```
 
@@ -118,7 +121,10 @@ bits and refuses replacement on drift. It does not inspect the checkout's HEAD
 or working tree. It also prunes workspace members whose imported paths are
 absent and writes a tree-local `rustfmt.toml` with
 `disable_all_formatting = true`, so Cargo and the host formatter can traverse a
-partial import without rewriting pinned bytes. Git, Bash, jq, BLAKE3's
+partial import without rewriting pinned bytes. A source record may also list
+literal `manifest_rewrites`; the importer requires the recorded occurrence count
+and refuses drift rather than inferring a replacement. Basalt's three UCAN path
+rewrites are recorded there. Git, Bash, jq, BLAKE3's
 `b3sum`, GNU tar, GNU coreutils, and Python 3 are import-time tools only.
 The root-workspace source records additionally retain the BLAKE3 identity of the original full
 `git archive --format=tar COMMIT` as `full_archive_blake3`. That is provenance

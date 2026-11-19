@@ -1,0 +1,61 @@
+{
+  "animus": {
+    "mappings": [
+      {
+        "claim": "fixture-only",
+        "operation": "read",
+        "scope": "filesystem",
+        "source": "document-read",
+        "subject": "cap://workspace/input"
+      },
+      {
+        "claim": "fixture-only",
+        "operation": "write",
+        "scope": "filesystem",
+        "source": "document-output",
+        "subject": "cap://workspace/output/report"
+      },
+      {
+        "claim": "fixture-only",
+        "operation": "spawn",
+        "scope": "process",
+        "source": "extractor",
+        "subject": "blake3:1111111111111111111111111111111111111111111111111111111111111111"
+      }
+    ],
+    "revision": "4f08f89d652a6e6c83b2a41fd9d3c7651daf5d68",
+    "source_paths": [
+      "crates/animus-std/src/document.rs",
+      "crates/animus-runtime/src/toolexecutionstages/core.rs"
+    ]
+  },
+  "molten": {
+    "mappings": [
+      {
+        "claim": "fixture-only",
+        "operation": "connect",
+        "scope": "network",
+        "source": "transport-send",
+        "subject": "net://api.example.invalid:443"
+      },
+      {
+        "claim": "fixture-only",
+        "operation": "invoke",
+        "scope": "binding",
+        "source": "fabric-port",
+        "subject": "binding://molten.fabric/status"
+      }
+    ],
+    "revision": "4734913c1c230a35fc121b948cdf54ac0619dd2a",
+    "source_paths": [
+      "crates/molten-core/src/planning.rs",
+      "crates/molten-core/src/system_extension/tests.rs"
+    ]
+  },
+  "non_claims": [
+    "fixtures do not create consumer runtime dependencies",
+    "fixtures do not prove consumer mapping completeness",
+    "fixtures do not prove native enforcement or effect execution"
+  ],
+  "schema": "basalt.runtime-effect-consumer-mappings.v1"
+}

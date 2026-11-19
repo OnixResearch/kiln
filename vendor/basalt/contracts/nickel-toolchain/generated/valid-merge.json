@@ -1,0 +1,5 @@
+{
+  "authority_owner": "basalt-rust",
+  "evaluator": "nickel-lang-cli-1.17.0",
+  "runtime_evaluation": false
+}

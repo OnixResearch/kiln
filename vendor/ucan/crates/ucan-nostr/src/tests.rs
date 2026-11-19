@@ -35,7 +35,7 @@ fn tag(name: &str, value: &str) -> Vec<String> {
 fn signed_event(kind: u32, tags: Vec<Vec<String>>) -> NostrEvent {
     let secret = decode_lower_hex::<PUBLIC_KEY_BYTES>(TEST_SECRET_KEY).expect("test secret must decode");
     let signing_key = SigningKey::from_bytes(&secret).expect("test secret must be valid");
-    let public_key = encode_lower_hex(signing_key.verifying_key().to_bytes().as_slice());
+    let public_key = encode_lower_hex(&signing_key.verifying_key().to_bytes());
     let mut event = NostrEvent {
         id: String::new(),
         pubkey: public_key,

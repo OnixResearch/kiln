@@ -73,7 +73,7 @@ fn work(issue: &str, paths: &[&str]) -> Result<ImplementationWork, String> {
 }
 
 fn open(path: &Path) -> Result<Implementer, String> {
-    Implementer::open(path, enrollment())
+    Implementer::open_with_local_operator(path, enrollment(), "test-operator")
 }
 
 /// A store with one admitted work item claimed at `now_ms`.

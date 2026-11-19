@@ -31,7 +31,8 @@ fn enrollment() -> Enrollment {
     }
 }
 fn open(path: &Path) -> Implementer {
-    Implementer::open(path, enrollment()).unwrap_or_else(|_| unreachable!())
+    Implementer::open_with_local_operator(path, enrollment(), "test-operator")
+        .unwrap_or_else(|_| unreachable!())
 }
 fn work(n: &str) -> ImplementationWork {
     ImplementationWork {
@@ -184,6 +185,37 @@ fn claim(i: &mut Implementer, w: &ImplementationWork) -> ImplementationAttempt {
         other => unreachable!("{other:?}"),
     }
 }
+#[test]
+fn local_operator_claim_retains_bounded_redacted_decision() {
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let w = work("decision");
+    let mut i = setup(&dir.path().join("ledger.db"), &[("a", w.clone())]);
+    let _attempt = claim(&mut i, &w);
+    let decisions = i.authority_decisions();
+    assert_eq!(decisions.len(), 2);
+    let decision = decisions
+        .first()
+        .unwrap_or_else(|| unreachable!("claim decision missing"));
+    assert!(decision.allowed);
+    assert_eq!(
+        decision.operation,
+        kiln_core::implementation::authority::ProtectedOperation::ClaimAcquire
+    );
+    assert_eq!(
+        decision.provenance,
+        kiln_core::implementation::authority::AuthorityProvenance::LocalOperator
+    );
+    assert_eq!(
+        decision.reason,
+        kiln_core::implementation::authority::AuthorityDenialReason::Allowed
+    );
+    assert_eq!(decision.principal, "test-operator");
+    assert!(decision.session.is_some());
+    let encoded = serde_json::to_string(decision).unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(!encoded.contains("compact_token"));
+    assert!(!encoded.contains("holder_signature"));
+}
+
 fn reservation(
     w: &ImplementationWork,
     attempt: &ImplementationAttempt,
@@ -473,7 +505,8 @@ fn fresh_generation_authority_and_missing_required_grants_block_stale_dispatch()
     drop(i);
     let mut revoked = enrollment();
     revoked.actors.clear();
-    let mut i = Implementer::open(&path, revoked).unwrap_or_else(|_| unreachable!());
+    let mut i = Implementer::open_with_local_operator(&path, revoked, "test-operator")
+        .unwrap_or_else(|_| unreachable!());
     assert!(
         i.admission_before_transport(&attempt.identity, attempt.fence, &[offer(&w)], 102)
             .is_err()
@@ -651,11 +684,13 @@ fn owner_port_reconnect_reconciles_one_operation_instead_of_duplicate_reservatio
     );
 }
 #[test]
-fn default_unconfigured_transport_path_is_unchanged() {
+fn unconfigured_transport_path_denies_before_the_old_early_return() {
     let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let mut i = open(&dir.path().join("ledger.db"));
-    i.admission_before_transport(&id("not-an-admission-attempt"), 1, &[], 100)
-        .unwrap_or_else(|_| unreachable!());
+    assert!(
+        i.admission_before_transport(&id("not-an-admission-attempt"), 1, &[], 100)
+            .is_err()
+    );
     assert!(
         i.admission_snapshot()
             .unwrap_or_else(|_| unreachable!())

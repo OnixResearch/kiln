@@ -14,6 +14,19 @@ Capability admission occurs before dispatch. The selected provider cannot change
 
 A transport failure after acceptance produces `Unknown`. Reconciliation or operator policy must resolve this state.
 
+## Implementation authority
+
+Implementation claims, renewal, dispatch, submission, verification admission,
+cancellation, publication, integration and lifecycle completion require one
+exact current authority decision. A verified UCAN holder invocation binds the
+signed resource; the explicit local-operator profile records its provenance and
+is not a role-only fallback. Adapters retain only bounded redacted decisions.
+
+Authorization proves permission for one exact request. It does not prove effect
+completion, independent acceptance, confinement, resource release, release
+eligibility or provider behavior. A token, receipt, decision or retained session
+is not transferable authority.
+
 ## Authentication hardening
 
 The deployed Celld Worker, not its in-memory Rust model, owns the five-minute

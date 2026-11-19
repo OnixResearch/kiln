@@ -78,6 +78,9 @@ pub(super) struct NativeGitDeliveryProfile {
     pub authoritative_report_directory: PathBuf,
     pub lifecycle_action: kiln_implementer::publication_effects::CairnLifecycleAction,
     pub lifecycle_receipt_template: String,
+    /// Explicit local-operator profile selection; absent authority denies.
+    #[serde(default)]
+    pub local_operator: Option<String>,
 }
 
 pub(super) fn validate(profile: &super::ImplementationCampaignDriveProfile) -> Result<(), String> {
@@ -673,7 +676,16 @@ fn ensure_publication_plan(
             read_bounded_json(&config.enrollment)?;
         let mut owner =
             kiln_implementer::Implementer::open(&profile.implementation_database, enrollment)?;
-        owner.prepare_publication(work, attempt_id, fence, handoff, verification, &plan)?;
+        profile.configure_authority(&mut owner)?;
+        owner.prepare_publication(
+            work,
+            attempt_id,
+            fence,
+            kiln_implementer::current_unix_ms(),
+            handoff,
+            verification,
+            &plan,
+        )?;
         let reread = CanonicalCampaignLedgers::read(&profile.implementation_database)?;
         let retained = reread
             .attempts
@@ -916,6 +928,7 @@ fn ensure_native_request(
         fence,
         plan,
         remote: config.remote.clone(),
+        local_operator: config.local_operator.clone(),
     };
     let path = bound_path(profile, &attempt.identity, "native-qualification");
     let bytes = serde_json::to_vec(&request).map_err(super::text)?;
@@ -961,6 +974,7 @@ fn ensure_native_lifecycle_request(
         receipt_path,
         action: config.lifecycle_action,
         remote: config.remote.clone(),
+        local_operator: config.local_operator.clone(),
     };
     let path = bound_path(profile, &attempt.identity, "native-lifecycle");
     let bytes = serde_json::to_vec(&request).map_err(super::text)?;

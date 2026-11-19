@@ -13,6 +13,7 @@ members = [
   "crates/kiln-microvm",
   "crates/kiln-adapter-http-observe",
   "crates/kiln-adapter-iroh-observe",
+  "crates/kiln-adapter-basalt",
   "crates/kiln-standalone",
   "crates/kiln-radicle-source-contract",
   "crates/kiln-adapter-radicle",
@@ -66,6 +67,8 @@ exclude = [
   "web/dashboard-index",
   "vendor/subwayrat",
   "vendor/heartwood-canonical",
+  "vendor/basalt",
+  "vendor/detect-coding-agent",
 ]
 resolver = "3"
 
@@ -141,7 +144,9 @@ kiln-dashboard = { path = "crates/kiln-dashboard" }
 kiln-highlight = { path = "crates/kiln-highlight" }
 kiln-adapter-http-observe = { path = "crates/kiln-adapter-http-observe" }
 kiln-adapter-iroh-observe = { path = "crates/kiln-adapter-iroh-observe" }
-ucan = { path = "vendor/ucan" }
+kiln-adapter-basalt = { path = "crates/kiln-adapter-basalt" }
+ucan = { path = "vendor/ucan", default-features = false }
+basalt = { path = "vendor/basalt", default-features = false }
 kiln-standalone = { path = "crates/kiln-standalone" }
 heartwood-canonical = { path = "vendor/heartwood-canonical" }
 kiln-radicle-source-contract = { path = "crates/kiln-radicle-source-contract" }
@@ -184,6 +189,11 @@ panic = "deny"
 todo = "deny"
 unimplemented = "deny"
 unwrap_used = "deny"
+
+[patch.crates-io]
+# Registry 0.1.1 declares Rust 1.91; the exact source builds on Kiln's 1.88 pin.
+# The only difference is the recorded rust-version in its source record.
+detect-coding-agent = { path = "vendor/detect-coding-agent" }
 
 [patch."ssh://git@github.com/OnixResearch/onix-artifact.git"]
 artifact-auth-core = { path = "vendor/artifact/crates/artifact-auth-core" }

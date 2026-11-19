@@ -35,6 +35,10 @@ path = "tools/check-production-readiness/main.rs"
 name = "check-aeneas-time-bounds-proof"
 path = "tools/check-aeneas-time-bounds-proof/main.rs"
 
+[features]
+default = ["durable-authority"]
+durable-authority = ["dep:replay-ledger-core", "dep:revocation-view-core"]
+
 [dependencies]
 base64 = "0.22"
 blake3 = "1.5"
@@ -43,12 +47,15 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "=1.0.149"
 sha2 = "=0.10.9"
 snafu = "0.8"
+replay-ledger-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59", optional = true }
+revocation-view-core = { git = "https://seed.radicle.garden/z3kGDT73ja8rewvGLwJFLF5MTx1ih.git", rev = "a0de79303f3f45c18a34fff535b690a85cb3cf59", optional = true }
 ucan-core = { path = "crates/ucan-core", default-features = false, features = ["verification-cache"] }
-zeroize = "=1.8.2"
+zeroize = "=1.9.0"
 verified-logic = { path = "vendor/verified-logic" }
 
 [dev-dependencies]
 hegeltest = "0.2"
+transactional-reconciliation-core = { git = "https://seed.radicle.garden/z4Tky6zvC8w4Y6c4YBzNxVbq5n752.git", rev = "eb2bd3441753af97bfcb247cef7cc22d72675b62" }
 pretty_assertions = "1.0"
 proptest = "1.0"
 tempfile = "3"

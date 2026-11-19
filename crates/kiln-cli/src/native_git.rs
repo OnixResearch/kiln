@@ -48,6 +48,9 @@ pub fn record_lifecycle(
         return Err("lifecycle actor is not in trusted enrollment".into());
     }
     let mut engine = Implementer::open(&request.database, enrollment.clone())?;
+    if let Some(operator) = &request.local_operator {
+        engine.select_local_operator(operator.clone())?;
+    }
     let ledger = engine.work()?;
     let work = ledger
         .current()
@@ -239,6 +242,9 @@ pub fn run(
         return Err("qualification actor/repository is not in trusted enrollment".into());
     }
     let mut engine = Implementer::open(&request.database, enrollment)?;
+    if let Some(operator) = &request.local_operator {
+        engine.select_local_operator(operator.clone())?;
+    }
     let ledger = engine.work()?;
     let work = ledger
         .current()

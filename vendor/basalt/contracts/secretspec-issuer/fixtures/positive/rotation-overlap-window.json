@@ -1,0 +1,5 @@
+{
+  "active_verification_digest": "blake3:active-verification-key",
+  "overlap_digests": ["blake3:previous-verification-key-a", "blake3:previous-verification-key-b"],
+  "signing_key_id": "oidc-signing-key-2"
+}

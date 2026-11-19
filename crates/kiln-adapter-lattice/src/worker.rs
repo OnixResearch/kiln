@@ -241,6 +241,9 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         );
     }
     let mut implementer = Implementer::open(&required(flags, "--database")?, enrollment)?;
+    if let Some(operator) = flags.get("--local-operator") {
+        implementer.select_local_operator(operator.clone())?;
+    }
     let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
     let ledger = implementer.work()?;
     let work = ledger

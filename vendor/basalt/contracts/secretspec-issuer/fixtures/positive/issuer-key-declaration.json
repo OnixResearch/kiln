@@ -1,0 +1,17 @@
+{
+  "schema": "basalt.oidc-exchange.issuer-key-declaration.v1",
+  "secretspec_version": "0.17.0",
+  "secretspec_commit": "a8794e46ec9664a0e1a3869cc3105d0853937e48",
+  "scope": "basalt-oidc-exchange",
+  "profile": "production",
+  "key_id": "oidc-signing-key",
+  "provider": "env://",
+  "non_claims": [
+    "oidc-token-truth",
+    "ucan-issuance",
+    "provider-secret-authority",
+    "key-distribution-freshness",
+    "revocation-freshness",
+    "whole-system-safety"
+  ]
+}

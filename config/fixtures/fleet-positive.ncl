@@ -4,6 +4,7 @@
   listen = ["127.0.0.1:8095", "100.110.43.11:8095"],
   peers = { "aspen3-1.bison-tailor.ts.net." = "aspen3" },
   operators = ["britton-desktop"],
+  authority_operator = "britton-desktop",
   tailscale = "/run/current-system/sw/bin/tailscale",
   implementer = {
     database = "/var/lib/kiln-fleet/implementer.sqlite",
@@ -35,6 +36,8 @@
       "{verification_profile}",
       "--authority",
       "{authority}",
+      "--local-operator",
+      "britton-desktop",
     ],
   },
   dispatch = { enabled = true, kinds = ['omp, 'claude] },

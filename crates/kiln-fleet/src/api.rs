@@ -103,7 +103,11 @@ impl Service {
     /// # Errors
     /// Returns the enrollment or swarm diagnostic.
     pub fn new(config: FleetConfig) -> Result<Self, String> {
-        let store = Store::load(&config.implementer.database, &config.implementer.enrollment)?;
+        let store = Store::load(
+            &config.implementer.database,
+            &config.implementer.enrollment,
+            config.authority_operator.clone(),
+        )?;
         let swarm = match config.active_swarm() {
             Some(swarm) => Some(Arc::new(SwarmLink::new(swarm)?)),
             None => None,

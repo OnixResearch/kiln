@@ -1,0 +1,307 @@
+{
+  "backends": {
+    "nickel": {
+      "description": "Nickel-authored static policy contracts.",
+      "id": "nickel",
+      "supports_higher_order": false
+    },
+    "steel": {
+      "description": "Steel Scheme dynamic predicate contracts.",
+      "id": "steel",
+      "supports_higher_order": true
+    }
+  },
+  "contracts": {
+    "document-read": {
+      "abilities": [
+        "document/read"
+      ],
+      "description": "Read bounded document resources.",
+      "id": "document-read",
+      "resource_prefixes": [
+        "did:key:z6Mkresource/docs/"
+      ]
+    },
+    "document-write": {
+      "abilities": [
+        "document/write"
+      ],
+      "description": "Write bounded document resources.",
+      "id": "document-write",
+      "resource_prefixes": [
+        "did:key:z6Mkresource/docs/"
+      ]
+    },
+    "kiln-attempt-cancel": {
+      "abilities": [
+        "kiln/attempt/cancel"
+      ],
+      "description": "Cancel one owned fenced Kiln attempt.",
+      "id": "kiln-attempt-cancel",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-candidate-submit": {
+      "abilities": [
+        "kiln/candidate/submit"
+      ],
+      "description": "Submit one sealed candidate for an exact Kiln attempt.",
+      "id": "kiln-candidate-submit",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-claim-acquire": {
+      "abilities": [
+        "kiln/claim/acquire"
+      ],
+      "description": "Acquire one fenced Kiln implementation claim.",
+      "id": "kiln-claim-acquire",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-claim-renew": {
+      "abilities": [
+        "kiln/claim/renew"
+      ],
+      "description": "Renew one fenced Kiln implementation claim.",
+      "id": "kiln-claim-renew",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-dispatch": {
+      "abilities": [
+        "kiln/dispatch"
+      ],
+      "description": "Dispatch one bound Kiln implementation attempt.",
+      "id": "kiln-dispatch",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-integration-land": {
+      "abilities": [
+        "kiln/integration/land"
+      ],
+      "description": "Integrate one exact Kiln candidate through the selected route.",
+      "id": "kiln-integration-land",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-lifecycle-complete": {
+      "abilities": [
+        "kiln/lifecycle/complete"
+      ],
+      "description": "Complete native lifecycle for one integrated Kiln change.",
+      "id": "kiln-lifecycle-complete",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-publication-publish": {
+      "abilities": [
+        "kiln/publication/publish"
+      ],
+      "description": "Publish one separately verified Kiln candidate.",
+      "id": "kiln-publication-publish",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "kiln-verification-admit": {
+      "abilities": [
+        "kiln/verification/admit"
+      ],
+      "description": "Admit verification evidence for one exact Kiln candidate.",
+      "id": "kiln-verification-admit",
+      "resource_prefixes": [
+        "kiln://implementation/v1/"
+      ]
+    },
+    "mantle-admin": {
+      "abilities": [
+        "mantle/admin"
+      ],
+      "description": "Perform one bound Mantle administrative operation.",
+      "id": "mantle-admin",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-build-submit": {
+      "abilities": [
+        "mantle/build/submit"
+      ],
+      "description": "Submit one bound Mantle build.",
+      "id": "mantle-build-submit",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-event-read": {
+      "abilities": [
+        "mantle/event/read"
+      ],
+      "description": "Read one bound Mantle event page.",
+      "id": "mantle-event-read",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-input-upload": {
+      "abilities": [
+        "mantle/input/upload"
+      ],
+      "description": "Upload one admitted Mantle input.",
+      "id": "mantle-input-upload",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-log-read": {
+      "abilities": [
+        "mantle/log/read"
+      ],
+      "description": "Read one bound Mantle log window.",
+      "id": "mantle-log-read",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-owned-attempt-cancel": {
+      "abilities": [
+        "mantle/attempt/cancel-owned"
+      ],
+      "description": "Cancel one owned fenced Mantle attempt.",
+      "id": "mantle-owned-attempt-cancel",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-project-declare": {
+      "abilities": [
+        "mantle/project/declare"
+      ],
+      "description": "Admit one owner-bound original declaration and rewritten Mantle project goal.",
+      "id": "mantle-project-declare",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-publish": {
+      "abilities": [
+        "mantle/publish"
+      ],
+      "description": "Publish one separately admitted Mantle result.",
+      "id": "mantle-publish",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-result-read": {
+      "abilities": [
+        "mantle/result/read"
+      ],
+      "description": "Read one bound Mantle signed result.",
+      "id": "mantle-result-read",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-status-read": {
+      "abilities": [
+        "mantle/status/read"
+      ],
+      "description": "Read one bound Mantle attempt status.",
+      "id": "mantle-status-read",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-store-read": {
+      "abilities": [
+        "mantle/store/read"
+      ],
+      "description": "Read one bound Mantle store resource.",
+      "id": "mantle-store-read",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "mantle-usage-read": {
+      "abilities": [
+        "mantle/usage/read"
+      ],
+      "description": "Read bounded Mantle account usage.",
+      "id": "mantle-usage-read",
+      "resource_prefixes": [
+        "mantle://gateway/v1/"
+      ]
+    },
+    "onixos-state-sync-admin": {
+      "abilities": [
+        "state_sync.admin"
+      ],
+      "description": "Administer one OnixOS state-sync update.",
+      "id": "onixos-state-sync-admin",
+      "resource_prefixes": [
+        "onix://state-sync/"
+      ]
+    },
+    "onixos-state-sync-delete": {
+      "abilities": [
+        "state_sync.delete"
+      ],
+      "description": "Delete one OnixOS state-sync update.",
+      "id": "onixos-state-sync-delete",
+      "resource_prefixes": [
+        "onix://state-sync/"
+      ]
+    },
+    "onixos-state-sync-publish": {
+      "abilities": [
+        "state_sync.publish"
+      ],
+      "description": "Publish one OnixOS state-sync update.",
+      "id": "onixos-state-sync-publish",
+      "resource_prefixes": [
+        "onix://state-sync/"
+      ]
+    },
+    "onixos-target-candidate-activation": {
+      "abilities": [
+        "onix/target-candidate-activation"
+      ],
+      "description": "Activate one OnixOS candidate target.",
+      "id": "onixos-target-candidate-activation",
+      "resource_prefixes": [
+        "did:key:z6Mkonix/onixos/"
+      ]
+    },
+    "onixos-target-generation-persistence": {
+      "abilities": [
+        "onix/target-generation-persistence"
+      ],
+      "description": "Persist one OnixOS generation.",
+      "id": "onixos-target-generation-persistence",
+      "resource_prefixes": [
+        "did:key:z6Mkonix/onixos/"
+      ]
+    },
+    "onixos-target-rollback": {
+      "abilities": [
+        "onix/target-rollback"
+      ],
+      "description": "Roll back one OnixOS target.",
+      "id": "onixos-target-rollback",
+      "resource_prefixes": [
+        "did:key:z6Mkonix/onixos/"
+      ]
+    }
+  },
+  "schema_version": "ucan-nickel-contracts.policy.v1"
+}

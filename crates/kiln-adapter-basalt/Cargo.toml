@@ -1,0 +1,21 @@
+[package]
+name = "kiln-adapter-basalt"
+description = "Basalt-backed implementation authority adapter for Kiln protected operations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+kiln-core = { workspace = true }
+basalt = { workspace = true }
+blake3 = { workspace = true }
+ucan = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

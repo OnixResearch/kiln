@@ -4,6 +4,37 @@ Kiln owns work, current claims/fences, cross-attempt budget, independent accepta
 
 This is an implementation procedure, not a live qualification receipt. No real bug/feature, OMP/model call, GitHub publication, landing or lifecycle mutation is claimed here. The executable campaign and evidence requirements are in [implementation qualification](implementation-qualification.md).
 
+## Select implementation authority first
+
+Claims, renewal, dispatch, candidate submission, verification admission,
+cancellation, publication, integration and lifecycle completion deny until a
+profile is selected. The request, profile, revalidation and decision rules are in
+[implementation authority](implementation-work.md#implementation-authority).
+
+For an explicit local operator, pass the identity to the shell that owns the
+protected command:
+
+```text
+kiln-implementer <command> --database DB --enrollment ENROLLMENT \
+  --local-operator OPERATOR ...
+kiln-lattice-dispatch --local-operator OPERATOR ...
+kiln-web-service verify-implementation --local-operator OPERATOR ...
+```
+
+Native Git lifecycle/qualification requests and campaign profiles select the
+same explicit profile with a `"local_operator": "OPERATOR"` field. A campaign
+verifier role's argument list must also include `--local-operator OPERATOR`
+when the local profile is selected. A verified
+UCAN profile is constructed by the composing shell with the packaged policy,
+exact artifact reference, deployment generation/audience, trusted roots and
+caller-owned verification services; it is not inferred from a role, provider
+capability or environment variable.
+
+The adapter records bounded redacted decisions and revalidates immediately
+before every protected commit or transport. Missing authority, cancelled or
+superseded attempts, lease expiry and unavailable currentness deny before the
+effect. Reconciliation and cleanup still require their own authorization.
+
 ## Intake, policy and immutable preparation
 
 Admit authenticated GitHub issue deliveries using `kiln-implementer drain`/`run` or `poll`/`poll-run`, or use `kiln-cairn-intake` for an actual complete implementation-readiness snapshot. Policies supply obligations, effects, source aliases, exact Git base, attempt budget and terminal policy; issue prose does not grant effects. Duplicate/stale intake remains idempotent. New source versions atomically apply supersession; `admit_with_supersession` exposes explicit abort/finish policy without rewriting the frozen contract.

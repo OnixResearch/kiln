@@ -490,12 +490,12 @@ fn execution_lookup_rejects_ambiguous_stale_and_wrong_source_authority() {
 #[test]
 fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout() {
     for (first, second, budget, http_ms, succeeds, requests) in [
-        (0, 0, 1000, 2000, true, 2),
-        (500, 0, 100, 2000, false, 1),
-        (0, 500, 100, 2000, false, 2),
-        (80, 500, 150, 2000, false, 2),
-        (500, 0, 2000, 100, false, 1),
-        (0, 0, 0, 2000, false, 0),
+        (0, 0, 5000, 10000, true, 2),
+        (2500, 0, 500, 10000, false, 1),
+        (0, 2500, 1000, 10000, false, 2),
+        (400, 2500, 1500, 10000, false, 2),
+        (2500, 0, 10000, 500, false, 1),
+        (0, 0, 0, 10000, false, 0),
     ] {
         let (_root, mut profile, source, run) = fixture();
         let context = crate::worker::SourceContext {
@@ -504,7 +504,7 @@ fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout(
             revision: source.exact_revision.native_id.as_str().into(),
         };
         let bound = execution_fixture(&source, &run);
-        let (origin, stop, server) = receiver(vec![
+        let (origin, stop, server, recorded) = recording_receiver(vec![
             (Duration::from_millis(first), json!({"runs":[run]})),
             (
                 Duration::from_millis(second),
@@ -522,6 +522,15 @@ fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout(
             Duration::from_millis(budget),
         );
         let elapsed = started.elapsed();
+        // The client can return before the fixture thread has accepted a
+        // request that is already queued (the second request may be cancelled
+        // by the deadline while its connection waits in the backlog). Wait for
+        // the expected request count under a liveness bound before stopping.
+        let observed = || recorded.lock().map_or(0, |requests| requests.len());
+        let wait_until = Instant::now() + Duration::from_secs(5);
+        while observed() < requests && Instant::now() < wait_until {
+            std::thread::yield_now();
+        }
         stop.store(true, Ordering::SeqCst);
         assert_eq!(checked(server.join()), requests);
         assert_eq!(result.is_ok(), succeeds);
@@ -529,9 +538,10 @@ fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout(
             assert!(checked(result).is_some());
         } else {
             // The server delays run on the test host; this is a liveness bound
-            // for the frozen deadline path, not a latency benchmark.
+            // for the frozen deadline path, not a latency benchmark. Use a
+            // generous margin so concurrent workspace builds cannot fail it.
             assert!(
-                elapsed < Duration::from_secs(2),
+                elapsed < Duration::from_secs(10),
                 "lookup did not honor the deadline: {elapsed:?}"
             );
         }

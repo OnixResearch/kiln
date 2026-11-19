@@ -1,0 +1,29 @@
+{
+  "non_claims": [
+    "Nostr key control does not prove a human identity or product ownership",
+    "subject authentication does not grant a resource or ability",
+    "Nostr relays, NIP-05, npub text, and profile metadata are not authority",
+    "clocks, replay storage, policy publication, authorization, and release remain caller-owned",
+    "BLAKE3 receipt identity does not authenticate the producer or establish trust"
+  ],
+  "policy_revision": "reviewed-2026-08-08",
+  "schema": "basalt.nostr-identity-policy.v1",
+  "subjects": [
+    {
+      "authenticators": [
+        {
+          "binding_id": "binding:operator-retired",
+          "public_key": "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+          "state": "retired"
+        },
+        {
+          "binding_id": "binding:operator-current",
+          "public_key": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+          "state": "active"
+        }
+      ],
+      "display_label": "Operator",
+      "subject_id": "subject:operator"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "default_decision": "deny",
+  "generation": 1,
+  "non_claims": [
+    "a permission allow does not execute an effect",
+    "a permission receipt is not live authority",
+    "native parsing and normalization remain consumer-owned",
+    "filesystem policy does not replace Cap Root or capability-relative I/O",
+    "network, process, environment, and binding implementations remain consumer-owned",
+    "human approval cannot override a denial or missing authority",
+    "consumer currentness and release decisions remain consumer-owned",
+    "the agentOS reference is a bounded comparison, not parity or sandbox evidence"
+  ],
+  "profile_id": "basalt-runtime-effects-v1",
+  "reference": {
+    "claim": "bounded-comparison-only",
+    "default_deny_blob": "0fd804e703fe38d50efd353514ebea16f36452ac",
+    "evaluation_blob": "1ab663a8a2f8bab31218f39c49193bd63d31f82e",
+    "license": "Apache-2.0",
+    "license_blob": "f23ef9d48af638ddf215b378916767349a9591a8",
+    "repository": "https://github.com/rivet-dev/agentos",
+    "revision": "44a6c8022f26ef0edd56e3d224f8296ee6387232",
+    "vm_config_blob": "e38172cfa97b21922fafcb822d254929bf1c191f"
+  },
+  "require_contract": true,
+  "require_verified_ucan": true,
+  "rules": [
+    {
+      "decision": "allow",
+      "match_mode": "exact",
+      "operation": "read",
+      "priority": 100,
+      "rule_id": "filesystem-read-input",
+      "scope": "filesystem",
+      "subject_pattern": "cap://workspace/input"
+    },
+    {
+      "decision": "allow",
+      "match_mode": "prefix",
+      "operation": "write",
+      "priority": 100,
+      "rule_id": "filesystem-write-output",
+      "scope": "filesystem",
+      "subject_pattern": "cap://workspace/output/"
+    },
+    {
+      "decision": "allow",
+      "match_mode": "exact",
+      "operation": "connect",
+      "priority": 100,
+      "rule_id": "network-connect-api",
+      "scope": "network",
+      "subject_pattern": "net://api.example.invalid:443"
+    },
+    {
+      "decision": "allow",
+      "match_mode": "exact",
+      "operation": "spawn",
+      "priority": 100,
+      "rule_id": "process-spawn-reviewed",
+      "scope": "process",
+      "subject_pattern": "blake3:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "decision": "allow",
+      "match_mode": "exact",
+      "operation": "read",
+      "priority": 100,
+      "rule_id": "environment-read-public",
+      "scope": "environment",
+      "subject_pattern": "env://PUBLIC_SETTING"
+    },
+    {
+      "decision": "allow",
+      "match_mode": "prefix",
+      "operation": "invoke",
+      "priority": 100,
+      "rule_id": "binding-invoke-molten",
+      "scope": "binding",
+      "subject_pattern": "binding://molten.fabric/"
+    }
+  ],
+  "schema": "basalt.runtime-effect-policy.v1"
+}

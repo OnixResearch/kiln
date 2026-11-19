@@ -1,0 +1,24 @@
+{
+  "authorization_archive": {
+    "evidence_blake3": "1aed251777a88ff08b1ca9124b5d5feedd1df395fd1d86c73e67cdf9423e13d2",
+    "spec_blake3": "706dd6ba6fb05e6def6c46f0c51a8b7937a92dc8baffa4a834c524ad414fb45d",
+    "verdict": "PASS"
+  },
+  "conformance_tested": true,
+  "licenses": [
+    "AGPL-3.0-or-later",
+    "MPL-2.0",
+    "MIT OR Apache-2.0"
+  ],
+  "profile_supported": true,
+  "protocol_profile": "ucan-wg-1.0.0",
+  "runtime_revision": "417f74662b9de2de3bdabe93ad5db996e1bd2861",
+  "schema": "basalt.ucan-v1-source-evidence.v1",
+  "source_manifest_blake3": "7e9a33d3d0ca5ee2a9e85402d9a5be4ebd5da73bd6e3ea7488f7f611a5b4f9e4",
+  "support_catalog_blake3": "fe77fd63076eaef555b74e702e4c14e483bdba70151ccc955c75b17d97412427",
+  "wire_archive": {
+    "evidence_blake3": "bdca91b7f15351a1f5b56ce9eb524c467663f8985fd3e05440158609538b7a13",
+    "spec_blake3": "3276ec9cfbfc504ea9be8278bc97869e448548eda410b411b24019c161d2bef3",
+    "verdict": "PASS"
+  }
+}

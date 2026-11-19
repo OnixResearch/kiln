@@ -9,9 +9,17 @@
 //! dispatch and submission authority never stand in for verification, publication,
 //! integration or lifecycle authority.
 
+// The denial is the bounded redacted audit record itself; boxing it would add an
+// allocation only on the denial path and break the single record-and-return shape.
+#![allow(clippy::result_large_err)]
+
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use crate::types::{CoreResult, Diagnostic};
+use crate::types::{ContentId, CoreResult, Diagnostic};
 
 pub const IMPLEMENTATION_AUTHORITY_SCHEMA: &str = "kiln.implementation-authority-coverage.v1";
 pub const MAX_OWNER_PATH_BYTES: usize = 256;
@@ -346,6 +354,729 @@ const fn authority_effect(operation: ProtectedOperation) -> AuthorityEffect {
     }
 }
 
+/// Digest width used by authority request and decision identities.
+pub const AUTHORITY_DIGEST_BYTES: usize = 32;
+/// Maximum bytes in one caller-supplied authority binding field.
+pub const MAX_AUTHORITY_FIELD_BYTES: usize = 512;
+/// Maximum bytes in a redacted policy or upstream decision reference.
+pub const MAX_AUTHORITY_REFERENCE_BYTES: usize = 128;
+/// Maximum retained redacted decisions.
+pub const MAX_AUTHORITY_DECISIONS: usize = 256;
+/// Maximum compact-token bytes accepted by the credential profile.
+pub const MAX_AUTHORITY_TOKEN_BYTES: usize = 16_384;
+/// Holder-invocation nonce width.
+pub const AUTHORITY_NONCE_BYTES: usize = 32;
+/// Ed25519 holder-signature width.
+pub const AUTHORITY_SIGNATURE_BYTES: usize = 64;
+/// Redacted decision schema version.
+pub const IMPLEMENTATION_AUTHORITY_DECISION_SCHEMA: &str =
+    "kiln.implementation-authority-decision.v1";
+
+// r[impl kiln.implementation.authority.binding]
+/// One exact protected-operation request built from trusted owner facts.
+///
+/// The deployment audience, authority generation and expected holder are
+/// supplied by the verified adapter, never by this caller-supplied structure.
+/// Every field here is length-framed into the signed resource.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuthorityRequest {
+    /// Protected operation.
+    pub operation: ProtectedOperation,
+    /// Project identity.
+    pub project: String,
+    /// Work identity.
+    pub work: String,
+    /// Work version.
+    pub work_version: u64,
+    /// Attempt identity, or the work identity before an attempt exists.
+    pub attempt: String,
+    /// Attempt fence; zero only before an attempt exists.
+    pub fence: u64,
+    /// Digest of the exact payload the effect intends to execute.
+    pub request_digest: [u8; AUTHORITY_DIGEST_BYTES],
+    /// Canonical target.
+    pub target: String,
+    /// Exact candidate digest, or zero when the operation binds none.
+    pub candidate: [u8; AUTHORITY_DIGEST_BYTES],
+}
+
+impl AuthorityRequest {
+    /// Validate field bounds and the operation's candidate rule.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a missing or oversized field, non-ASCII or
+    /// control bytes, an invalid work version, or a candidate that is present
+    /// when the operation binds none or absent when it binds one.
+    pub fn validate(&self) -> CoreResult<()> {
+        for (field, value) in [
+            ("project", self.project.as_str()),
+            ("work", self.work.as_str()),
+            ("attempt", self.attempt.as_str()),
+            ("target", self.target.as_str()),
+        ] {
+            if !valid_authority_text(value) {
+                return Err(Diagnostic::new(
+                    "authority_request_field",
+                    field,
+                    "authority binding field must be bounded non-empty trimmed ASCII",
+                ));
+            }
+        }
+        if self.work_version == 0 {
+            return Err(Diagnostic::new(
+                "authority_request_version",
+                "work_version",
+                "authority request requires a non-zero work version",
+            ));
+        }
+        if self.operation.requires_candidate() != (self.candidate != [0; AUTHORITY_DIGEST_BYTES]) {
+            return Err(Diagnostic::new(
+                "authority_request_candidate",
+                "candidate",
+                "candidate presence must match the reviewed operation rule",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Canonical BLAKE3 identity of this request.
+    ///
+    /// # Errors
+    /// Returns the validation diagnostic before hashing.
+    pub fn identity(&self) -> CoreResult<ContentId> {
+        self.validate()?;
+        ContentId::from_blake3_hex(self.digest_hex())
+    }
+
+    /// Canonical BLAKE3 hex digest. Invalid requests still produce a stable
+    /// redacted reference for denial decisions.
+    #[must_use]
+    pub fn digest_hex(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"kiln.implementation-authority-request.v1");
+        hash_authority_text(&mut hasher, self.operation.basalt_operation());
+        hash_authority_text(&mut hasher, &self.project);
+        hash_authority_text(&mut hasher, &self.work);
+        hasher.update(&self.work_version.to_be_bytes());
+        hash_authority_text(&mut hasher, &self.attempt);
+        hasher.update(&self.fence.to_be_bytes());
+        hasher.update(&self.request_digest);
+        hash_authority_text(&mut hasher, &self.target);
+        hasher.update(&self.candidate);
+        hasher.finalize().to_hex().to_string()
+    }
+}
+
+/// One caller-presented authority profile, selected explicitly at composition.
+pub enum AuthorityProfile {
+    /// No credential was selected. Every protected operation denies.
+    Missing,
+    /// A signed UCAN holder invocation with its exact nonce and signature.
+    VerifiedUcan(AuthorityCredential),
+    /// An explicitly selected local-operator compatibility profile.
+    LocalOperator {
+        /// Operator identity retained in the decision provenance.
+        operator: String,
+    },
+}
+
+impl core::fmt::Debug for AuthorityProfile {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Missing => formatter.write_str("AuthorityProfile::Missing"),
+            Self::VerifiedUcan(credential) => formatter
+                .debug_struct("AuthorityProfile::VerifiedUcan")
+                .field("subject", &credential.subject)
+                .field("token_bytes", &credential.compact_token.len())
+                .finish_non_exhaustive(),
+            Self::LocalOperator { operator } => formatter
+                .debug_struct("AuthorityProfile::LocalOperator")
+                .field("operator", operator)
+                .finish(),
+        }
+    }
+}
+
+/// Credential-bearing holder invocation. It has no serialization or clone surface.
+pub struct AuthorityCredential {
+    subject: String,
+    compact_token: String,
+    nonce: [u8; AUTHORITY_NONCE_BYTES],
+    holder_signature: [u8; AUTHORITY_SIGNATURE_BYTES],
+}
+
+impl core::fmt::Debug for AuthorityCredential {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("AuthorityCredential")
+            .field("subject", &self.subject)
+            .field("token_bytes", &self.compact_token.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl AuthorityCredential {
+    /// Retain one exact holder invocation.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a missing or oversized subject or token, or for
+    /// non-ASCII token bytes.
+    pub fn new(
+        subject: impl Into<String>,
+        compact_token: impl Into<String>,
+        nonce: [u8; AUTHORITY_NONCE_BYTES],
+        holder_signature: [u8; AUTHORITY_SIGNATURE_BYTES],
+    ) -> CoreResult<Self> {
+        let subject = subject.into();
+        let compact_token = compact_token.into();
+        if !valid_authority_text(&subject) {
+            return Err(Diagnostic::new(
+                "authority_credential_subject",
+                "subject",
+                "holder subject must be bounded non-empty trimmed ASCII",
+            ));
+        }
+        if compact_token.is_empty()
+            || compact_token.len() > MAX_AUTHORITY_TOKEN_BYTES
+            || !compact_token.is_ascii()
+            || compact_token.bytes().any(|byte| byte.is_ascii_control())
+        {
+            return Err(Diagnostic::new(
+                "authority_credential_token",
+                "compact_token",
+                "compact token must be bounded printable ASCII",
+            ));
+        }
+        Ok(Self {
+            subject,
+            compact_token,
+            nonce,
+            holder_signature,
+        })
+    }
+
+    /// Exact asserted holder subject. The adapter checks it against the token.
+    #[must_use]
+    pub fn subject(&self) -> &str {
+        &self.subject
+    }
+
+    /// Compact token bytes.
+    #[must_use]
+    pub fn compact_token(&self) -> &str {
+        &self.compact_token
+    }
+
+    /// Exact holder-invocation nonce.
+    #[must_use]
+    pub const fn nonce(&self) -> &[u8; AUTHORITY_NONCE_BYTES] {
+        &self.nonce
+    }
+
+    /// Exact holder signature.
+    #[must_use]
+    pub const fn holder_signature(&self) -> &[u8; AUTHORITY_SIGNATURE_BYTES] {
+        &self.holder_signature
+    }
+}
+
+/// Currentness of the attempt named by an authority request.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AttemptCurrentness {
+    /// The attempt exists and is current, or the operation precedes an attempt.
+    Current,
+    /// The attempt was cancelled.
+    Cancelled,
+    /// The attempt was superseded.
+    Superseded,
+    /// A later fence replaced the attempt.
+    FenceReplaced,
+    /// The attempt lease expired.
+    LeaseExpired,
+    /// Currentness could not be read. New effects fail closed.
+    Unavailable,
+}
+
+impl AttemptCurrentness {
+    /// Stable redacted label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Current => "current",
+            Self::Cancelled => "cancelled",
+            Self::Superseded => "superseded",
+            Self::FenceReplaced => "fence-replaced",
+            Self::LeaseExpired => "lease-expired",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+/// Provenance of an allowed or denied decision.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AuthorityProvenance {
+    /// No authority profile produced the decision.
+    None,
+    /// Verified UCAN holder invocation.
+    VerifiedUcan,
+    /// Explicitly selected local-operator compatibility profile.
+    LocalOperator,
+}
+
+impl AuthorityProvenance {
+    /// Stable redacted label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::VerifiedUcan => "verified-ucan",
+            Self::LocalOperator => "local-operator",
+        }
+    }
+}
+
+/// Closed decision reason. `Allowed` is the only admitting reason.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AuthorityDenialReason {
+    /// The exact request passed every check.
+    Allowed,
+    /// No authority profile was selected.
+    MissingEvidence,
+    /// A caller supplied a role label or other non-credential.
+    RoleOnly,
+    /// The local-operator profile was used but not selected.
+    LocalOperatorNotSelected,
+    /// The local-operator identity differs from the selected operator.
+    PrincipalMismatch,
+    /// Projection-enabled routes refuse the local-operator profile.
+    ProjectionRequiresOperator,
+    /// The verified adapter has no configured verifier services.
+    VerifierUnavailable,
+    /// The credential was malformed, unsigned or otherwise denied upstream.
+    CredentialDenied,
+    /// A bound field differs from the admitted session.
+    BindingMismatch,
+    /// Currentness is cancelled, superseded, replaced, expired or unavailable.
+    AttemptNotCurrent,
+    /// The session is absent or already closed.
+    SessionNotFound,
+    /// Revalidation failed.
+    RevalidationDenied,
+    /// Request fields are invalid.
+    RequestInvalid,
+    /// A bounded decision log or session cache limit was exceeded.
+    LimitExceeded,
+}
+
+impl AuthorityDenialReason {
+    /// Stable redacted label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Allowed => "allowed",
+            Self::MissingEvidence => "missing-evidence",
+            Self::RoleOnly => "role-only",
+            Self::LocalOperatorNotSelected => "local-operator-not-selected",
+            Self::PrincipalMismatch => "principal-mismatch",
+            Self::ProjectionRequiresOperator => "projection-requires-operator",
+            Self::VerifierUnavailable => "verifier-unavailable",
+            Self::CredentialDenied => "credential-denied",
+            Self::BindingMismatch => "binding-mismatch",
+            Self::AttemptNotCurrent => "attempt-not-current",
+            Self::SessionNotFound => "session-not-found",
+            Self::RevalidationDenied => "revalidation-denied",
+            Self::RequestInvalid => "request-invalid",
+            Self::LimitExceeded => "limit-exceeded",
+        }
+    }
+}
+
+/// Opaque admitted-session handle retained by the adapter.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct AuthoritySessionId(pub u64);
+
+// r[impl kiln.implementation.authority.enforcement.scenario.replay]
+/// Bounded, redacted authority decision. It contains no capability material.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuthorityDecision {
+    /// Decision schema.
+    pub schema: String,
+    /// Whether the exact request was admitted.
+    pub allowed: bool,
+    /// Protected operation.
+    pub operation: ProtectedOperation,
+    /// Enforcement boundary.
+    pub boundary: EnforcementBoundary,
+    /// Effect class.
+    pub effect: AuthorityEffect,
+    /// Decision provenance.
+    pub provenance: AuthorityProvenance,
+    /// Redacted principal or local operator.
+    pub principal: String,
+    /// Deployment audience.
+    pub audience: String,
+    /// Authority generation.
+    pub generation: u64,
+    /// Reviewed policy artifact reference.
+    pub policy_ref: String,
+    /// Upstream redacted receipt reference.
+    pub upstream_decision: String,
+    /// BLAKE3 identity of the exact request.
+    pub request_identity: String,
+    /// Admitted-session handle, present only when allowed.
+    pub session: Option<AuthoritySessionId>,
+    /// Closed reason.
+    pub reason: AuthorityDenialReason,
+}
+
+impl AuthorityDecision {
+    /// Build an allowed decision for one exact request and live session.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn allowed(
+        request: &AuthorityRequest,
+        session: AuthoritySessionId,
+        provenance: AuthorityProvenance,
+        principal: String,
+        audience: String,
+        generation: u64,
+        policy_ref: String,
+        upstream_decision: String,
+    ) -> Self {
+        let entry = coverage(request.operation);
+        Self {
+            schema: IMPLEMENTATION_AUTHORITY_DECISION_SCHEMA.into(),
+            allowed: true,
+            operation: request.operation,
+            boundary: entry.owner,
+            effect: entry.effect,
+            provenance,
+            principal,
+            audience,
+            generation,
+            policy_ref,
+            upstream_decision,
+            request_identity: request.digest_hex(),
+            session: Some(session),
+            reason: AuthorityDenialReason::Allowed,
+        }
+    }
+
+    /// Build a denied decision for one request without any credential material.
+    #[must_use]
+    pub fn deny(request: &AuthorityRequest, reason: AuthorityDenialReason) -> Self {
+        let entry = coverage(request.operation);
+        Self {
+            schema: IMPLEMENTATION_AUTHORITY_DECISION_SCHEMA.into(),
+            allowed: false,
+            operation: request.operation,
+            boundary: entry.owner,
+            effect: entry.effect,
+            provenance: AuthorityProvenance::None,
+            principal: String::new(),
+            audience: String::new(),
+            generation: 0,
+            policy_ref: String::new(),
+            upstream_decision: String::new(),
+            request_identity: request.digest_hex(),
+            session: None,
+            reason,
+        }
+    }
+
+    /// Canonical BLAKE3 identity of the decision.
+    #[must_use]
+    pub fn digest_hex(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(self.schema.as_bytes());
+        hasher.update(&[u8::from(self.allowed)]);
+        hash_authority_text(&mut hasher, self.operation.basalt_operation());
+        hash_authority_text(&mut hasher, self.boundary.as_str());
+        hash_authority_text(&mut hasher, self.effect.as_str());
+        hash_authority_text(&mut hasher, self.provenance.as_str());
+        hash_authority_text(&mut hasher, &self.principal);
+        hash_authority_text(&mut hasher, &self.audience);
+        hasher.update(&self.generation.to_be_bytes());
+        hash_authority_text(&mut hasher, &self.policy_ref);
+        hash_authority_text(&mut hasher, &self.upstream_decision);
+        hash_authority_text(&mut hasher, &self.request_identity);
+        hash_authority_text(&mut hasher, self.reason.as_str());
+        hasher.finalize().to_hex().to_string()
+    }
+}
+
+// r[impl kiln.implementation.authority.enforcement]
+/// Provider-neutral protected-authority port.
+///
+/// The adapter owns live sessions; the shell owns current work, attempt and
+/// fence facts. Neither a request, a decision nor a receipt can be replayed as
+/// authority.
+pub trait ProtectedAuthority {
+    /// Verify one exact request and retain a live session when allowed.
+    ///
+    /// # Errors
+    /// Returns the redacted denial decision before any effect.
+    fn admit(
+        &mut self,
+        request: &AuthorityRequest,
+        profile: &AuthorityProfile,
+        currentness: AttemptCurrentness,
+        now_unix_s: u64,
+    ) -> core::result::Result<AuthorityDecision, AuthorityDecision>;
+
+    /// Recheck one live session without consuming replay again.
+    ///
+    /// # Errors
+    /// Returns the redacted denial decision before the next effect.
+    fn revalidate(
+        &mut self,
+        session: AuthoritySessionId,
+        request: &AuthorityRequest,
+        currentness: AttemptCurrentness,
+        now_unix_s: u64,
+    ) -> core::result::Result<(), AuthorityDecision>;
+
+    /// Discard one live session.
+    fn close(&mut self, session: AuthoritySessionId);
+
+    /// Bounded redacted decision log.
+    fn decisions(&self) -> &[AuthorityDecision];
+}
+
+/// Maximum live sessions retained by one adapter.
+pub const MAX_AUTHORITY_SESSIONS: usize = 64;
+
+struct LocalOperatorSession {
+    request: AuthorityRequest,
+    principal: String,
+}
+
+/// Explicit local-operator compatibility guard.
+///
+/// This guard admits only the selected local-operator principal. It denies
+/// projection-enabled routes, verified credentials and every missing profile.
+pub struct LocalOperatorAuthority {
+    operator: String,
+    projection_enabled: bool,
+    sessions: BTreeMap<u64, LocalOperatorSession>,
+    next_session: u64,
+    decisions: Vec<AuthorityDecision>,
+}
+
+impl core::fmt::Debug for LocalOperatorAuthority {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("LocalOperatorAuthority")
+            .field("operator", &self.operator)
+            .field("projection_enabled", &self.projection_enabled)
+            .field("sessions", &self.sessions.len())
+            .field("decisions", &self.decisions.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl LocalOperatorAuthority {
+    /// Select the local-operator compatibility profile explicitly.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for an invalid operator identity.
+    pub fn new(operator: impl Into<String>, projection_enabled: bool) -> CoreResult<Self> {
+        let operator = operator.into();
+        if !valid_authority_text(&operator) {
+            return Err(Diagnostic::new(
+                "authority_local_operator",
+                "operator",
+                "local operator must be bounded non-empty trimmed ASCII",
+            ));
+        }
+        Ok(Self {
+            operator,
+            projection_enabled,
+            sessions: BTreeMap::new(),
+            next_session: 1,
+            decisions: Vec::new(),
+        })
+    }
+
+    fn policy_reference(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"kiln.local-operator-policy.v1");
+        hasher.update(self.operator.as_bytes());
+        hasher.update(&[u8::from(self.projection_enabled)]);
+        format!("local-operator:{}", hasher.finalize().to_hex())
+    }
+
+    fn upstream_reference(&self, request: &AuthorityRequest) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"kiln.local-operator-decision.v1");
+        hasher.update(self.operator.as_bytes());
+        hasher.update(request.digest_hex().as_bytes());
+        hasher.finalize().to_hex().to_string()
+    }
+
+    fn record(&mut self, decision: AuthorityDecision) -> AuthorityDecision {
+        if self.decisions.len() >= MAX_AUTHORITY_DECISIONS {
+            self.decisions.remove(0);
+        }
+        self.decisions.push(decision.clone());
+        decision
+    }
+
+    fn allowed(&self, request: &AuthorityRequest, session: u64) -> AuthorityDecision {
+        AuthorityDecision::allowed(
+            request,
+            AuthoritySessionId(session),
+            AuthorityProvenance::LocalOperator,
+            self.operator.clone(),
+            "local-operator".into(),
+            0,
+            self.policy_reference(),
+            self.upstream_reference(request),
+        )
+    }
+
+    fn find_session(&self, request: &AuthorityRequest) -> Option<u64> {
+        let digest = request.digest_hex();
+        self.sessions
+            .iter()
+            .find(|(_, live)| live.request.digest_hex() == digest)
+            .map(|(id, _)| *id)
+    }
+}
+
+// r[impl kiln.implementation.authority.compatibility]
+impl ProtectedAuthority for LocalOperatorAuthority {
+    fn admit(
+        &mut self,
+        request: &AuthorityRequest,
+        profile: &AuthorityProfile,
+        currentness: AttemptCurrentness,
+        _now_unix_s: u64,
+    ) -> core::result::Result<AuthorityDecision, AuthorityDecision> {
+        if request.validate().is_err() {
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::RequestInvalid,
+            )));
+        }
+        if currentness != AttemptCurrentness::Current {
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::AttemptNotCurrent,
+            )));
+        }
+        let AuthorityProfile::LocalOperator { operator } = profile else {
+            let reason = match profile {
+                AuthorityProfile::Missing => AuthorityDenialReason::MissingEvidence,
+                AuthorityProfile::VerifiedUcan(_) | AuthorityProfile::LocalOperator { .. } => {
+                    AuthorityDenialReason::VerifierUnavailable
+                }
+            };
+            return Err(self.record(AuthorityDecision::deny(request, reason)));
+        };
+        if self.projection_enabled {
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::ProjectionRequiresOperator,
+            )));
+        }
+        if operator != &self.operator {
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::PrincipalMismatch,
+            )));
+        }
+        if let Some(existing) = self.find_session(request) {
+            return match self.revalidate(
+                AuthoritySessionId(existing),
+                request,
+                currentness,
+                _now_unix_s,
+            ) {
+                Ok(()) => Ok(self.allowed(request, existing)),
+                Err(decision) => Err(decision),
+            };
+        }
+        if self.sessions.len() >= MAX_AUTHORITY_SESSIONS
+            && let Some(oldest) = self.sessions.keys().next().copied()
+        {
+            self.sessions.remove(&oldest);
+        }
+        let id = self.next_session;
+        self.next_session = self.next_session.saturating_add(1);
+        let decision = self.allowed(request, id);
+        self.sessions.insert(
+            id,
+            LocalOperatorSession {
+                request: request.clone(),
+                principal: self.operator.clone(),
+            },
+        );
+        Ok(self.record(decision))
+    }
+
+    fn revalidate(
+        &mut self,
+        session: AuthoritySessionId,
+        request: &AuthorityRequest,
+        currentness: AttemptCurrentness,
+        _now_unix_s: u64,
+    ) -> core::result::Result<(), AuthorityDecision> {
+        if currentness != AttemptCurrentness::Current {
+            self.sessions.remove(&session.0);
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::AttemptNotCurrent,
+            )));
+        }
+        let Some(live) = self.sessions.get(&session.0) else {
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::SessionNotFound,
+            )));
+        };
+        if live.request.digest_hex() != request.digest_hex()
+            || live.request.operation != request.operation
+            || live.principal != self.operator
+        {
+            self.sessions.remove(&session.0);
+            return Err(self.record(AuthorityDecision::deny(
+                request,
+                AuthorityDenialReason::BindingMismatch,
+            )));
+        }
+        let decision = self.allowed(request, session.0);
+        self.record(decision);
+        Ok(())
+    }
+
+    fn close(&mut self, session: AuthoritySessionId) {
+        self.sessions.remove(&session.0);
+    }
+
+    fn decisions(&self) -> &[AuthorityDecision] {
+        &self.decisions
+    }
+}
+
+fn valid_authority_text(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= MAX_AUTHORITY_FIELD_BYTES
+        && value.is_ascii()
+        && value.trim() == value
+        && !value.bytes().any(|byte| byte.is_ascii_control())
+}
+
+fn hash_authority_text(hasher: &mut blake3::Hasher, value: &str) {
+    hasher.update(&(value.len() as u64).to_be_bytes());
+    hasher.update(value.as_bytes());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -419,6 +1150,240 @@ mod tests {
         assert_eq!(
             validate_coverage(&[]).err().map(|error| error.code),
             Some("authority_coverage_incomplete".into())
+        );
+    }
+
+    fn authority_request(operation: ProtectedOperation) -> AuthorityRequest {
+        AuthorityRequest {
+            operation,
+            project: "OnixResearch/kiln".into(),
+            work: "kiln.implementation.work".into(),
+            work_version: 3,
+            attempt: "attempt-a".into(),
+            fence: 5,
+            request_digest: [41; AUTHORITY_DIGEST_BYTES],
+            target: "candidate/approved".into(),
+            candidate: if operation.requires_candidate() {
+                [43; AUTHORITY_DIGEST_BYTES]
+            } else {
+                [0; AUTHORITY_DIGEST_BYTES]
+            },
+        }
+    }
+
+    #[test]
+    fn authority_request_is_bounded_and_candidate_exact() {
+        for operation in ProtectedOperation::ALL {
+            let request = authority_request(operation);
+            request
+                .validate()
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            assert!(request.identity().is_ok());
+        }
+        let mut missing_candidate = authority_request(ProtectedOperation::CandidateSubmit);
+        missing_candidate.candidate = [0; AUTHORITY_DIGEST_BYTES];
+        assert_eq!(
+            missing_candidate.validate().err().map(|error| error.code),
+            Some("authority_request_candidate".into())
+        );
+        let mut extra_candidate = authority_request(ProtectedOperation::Dispatch);
+        extra_candidate.candidate = [1; AUTHORITY_DIGEST_BYTES];
+        assert_eq!(
+            extra_candidate.validate().err().map(|error| error.code),
+            Some("authority_request_candidate".into())
+        );
+        let mut empty = authority_request(ProtectedOperation::Dispatch);
+        empty.target.clear();
+        assert_eq!(
+            empty.validate().err().map(|error| error.code),
+            Some("authority_request_field".into())
+        );
+        let mut version = authority_request(ProtectedOperation::Dispatch);
+        version.work_version = 0;
+        assert_eq!(
+            version.validate().err().map(|error| error.code),
+            Some("authority_request_version".into())
+        );
+    }
+
+    #[test]
+    fn authority_request_identity_changes_with_every_bound_field() {
+        let original = authority_request(ProtectedOperation::CandidateSubmit);
+        let baseline = original.digest_hex();
+        let mut alterations = alloc::vec::Vec::new();
+        let mut altered = original.clone();
+        altered.project.push('x');
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.work.push('x');
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.work_version += 1;
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.attempt.push('x');
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.fence += 1;
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.request_digest[0] ^= 1;
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.target.push('x');
+        alterations.push(altered);
+        let mut altered = original.clone();
+        altered.candidate[0] ^= 1;
+        alterations.push(altered);
+        for altered in alterations {
+            assert_ne!(altered.digest_hex(), baseline);
+        }
+    }
+
+    #[test]
+    fn denial_decision_is_bounded_and_credential_free() {
+        let request = authority_request(ProtectedOperation::PublicationPublish);
+        let decision = AuthorityDecision::deny(&request, AuthorityDenialReason::CredentialDenied);
+        assert!(!decision.allowed);
+        assert_eq!(decision.operation, ProtectedOperation::PublicationPublish);
+        assert_eq!(decision.boundary, EnforcementBoundary::Publication);
+        assert_eq!(decision.effect, AuthorityEffect::Publication);
+        assert_eq!(decision.provenance, AuthorityProvenance::None);
+        assert!(decision.session.is_none());
+        assert_eq!(decision.request_identity, request.digest_hex());
+        assert_eq!(decision.digest_hex().len(), 64);
+        let encoded =
+            serde_json::to_string(&decision).unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(!encoded.contains("compact_token"));
+        assert!(!encoded.contains("holder_signature"));
+    }
+
+    #[test]
+    fn credential_profile_redacts_and_validates() {
+        let credential = AuthorityCredential::new(
+            "did:key:zHolder",
+            "compact.token.value",
+            [7; AUTHORITY_NONCE_BYTES],
+            [9; AUTHORITY_SIGNATURE_BYTES],
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let profile = AuthorityProfile::VerifiedUcan(credential);
+        let debug = alloc::format!("{profile:?}");
+        assert!(debug.contains("did:key:zHolder"));
+        assert!(!debug.contains("compact.token.value"));
+        assert!(AuthorityCredential::new("", "token", [0; 32], [0; 64]).is_err());
+        assert!(AuthorityCredential::new("did:key:z", "", [0; 32], [0; 64]).is_err());
+    }
+
+    #[test]
+    fn local_operator_profile_admits_and_records_provenance() {
+        let mut guard = LocalOperatorAuthority::new("operator-a", false)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let request = authority_request(ProtectedOperation::ClaimAcquire);
+        let profile = AuthorityProfile::LocalOperator {
+            operator: "operator-a".into(),
+        };
+        let decision = guard
+            .admit(&request, &profile, AttemptCurrentness::Current, 1)
+            .unwrap_or_else(|denial| unreachable!("{denial:?}"));
+        assert!(decision.allowed);
+        assert_eq!(decision.provenance, AuthorityProvenance::LocalOperator);
+        assert_eq!(decision.principal, "operator-a");
+        let session = decision
+            .session
+            .unwrap_or_else(|| unreachable!("allowed decision requires a session"));
+        guard
+            .revalidate(session, &request, AttemptCurrentness::Current, 1)
+            .unwrap_or_else(|denial| unreachable!("{denial:?}"));
+        assert_eq!(guard.decisions().len(), 2);
+        assert!(
+            guard
+                .decisions()
+                .iter()
+                .all(|decision| decision.reason == AuthorityDenialReason::Allowed)
+        );
+        let mut substituted = request.clone();
+        substituted.target.push('x');
+        assert_eq!(
+            guard
+                .revalidate(session, &substituted, AttemptCurrentness::Current, 1)
+                .err()
+                .map(|denial| denial.reason),
+            Some(AuthorityDenialReason::BindingMismatch)
+        );
+    }
+
+    #[test]
+    fn local_operator_profile_denies_roles_projection_and_missing_authority() {
+        let request = authority_request(ProtectedOperation::Dispatch);
+        let operator = AuthorityProfile::LocalOperator {
+            operator: "operator-a".into(),
+        };
+        let mut guard = LocalOperatorAuthority::new("operator-a", true)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(
+            guard
+                .admit(&request, &operator, AttemptCurrentness::Current, 1)
+                .err()
+                .map(|denial| denial.reason),
+            Some(AuthorityDenialReason::ProjectionRequiresOperator)
+        );
+        let mut guard = LocalOperatorAuthority::new("operator-a", false)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(
+            guard
+                .admit(
+                    &request,
+                    &AuthorityProfile::Missing,
+                    AttemptCurrentness::Current,
+                    1
+                )
+                .err()
+                .map(|denial| denial.reason),
+            Some(AuthorityDenialReason::MissingEvidence)
+        );
+        let other = AuthorityProfile::LocalOperator {
+            operator: "operator-b".into(),
+        };
+        assert_eq!(
+            guard
+                .admit(&request, &other, AttemptCurrentness::Current, 1)
+                .err()
+                .map(|denial| denial.reason),
+            Some(AuthorityDenialReason::PrincipalMismatch)
+        );
+        assert_eq!(
+            guard
+                .admit(&request, &operator, AttemptCurrentness::Cancelled, 1)
+                .err()
+                .map(|denial| denial.reason),
+            Some(AuthorityDenialReason::AttemptNotCurrent)
+        );
+    }
+
+    #[test]
+    fn local_operator_profile_refuses_verified_credentials() {
+        let mut guard = LocalOperatorAuthority::new("operator-a", false)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let credential = AuthorityCredential::new(
+            "did:key:zHolder",
+            "compact.token.value",
+            [7; AUTHORITY_NONCE_BYTES],
+            [9; AUTHORITY_SIGNATURE_BYTES],
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let request = authority_request(ProtectedOperation::VerificationAdmit);
+        assert_eq!(
+            guard
+                .admit(
+                    &request,
+                    &AuthorityProfile::VerifiedUcan(credential),
+                    AttemptCurrentness::Current,
+                    1
+                )
+                .err()
+                .map(|denial| denial.reason),
+            Some(AuthorityDenialReason::VerifierUnavailable)
         );
     }
 }

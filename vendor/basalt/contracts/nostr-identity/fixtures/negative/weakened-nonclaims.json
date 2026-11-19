@@ -1,0 +1,16 @@
+{
+  "schema": "basalt.nostr-identity-policy.v1",
+  "policy_revision": "reviewed-2026-08-08",
+  "subjects": [{
+    "subject_id": "subject:operator",
+    "display_label": "Operator",
+    "authenticators": [{
+      "binding_id": "binding:operator-current",
+      "public_key": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "state": "active"
+    }]
+  }],
+  "non_claims": [
+    "subject authentication does not grant a resource or ability"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "expected": {
+    "accepted": false,
+    "diagnostic": "non-claims-weakened"
+  },
+  "fixture_id": "weakened-non-claims",
+  "input": {
+    "artifact_identity": "basalt",
+    "consumer_repo": "github.com/onixresearch/aspen",
+    "license_expression": "AGPL-3.0-or-later",
+    "license_metadata_revision": "2026-07-31-license-metadata-v1",
+    "non_claims": [
+      "legal-advice",
+      "license-exception",
+      "compatibility-promise"
+    ],
+    "receipt_id": "moltens-aspen-adoption-001",
+    "review_action": "acknowledged",
+    "schema": "basalt.license-consumption-receipt.v1"
+  },
+  "schema": "basalt.license-consumption-fixture.v1"
+}

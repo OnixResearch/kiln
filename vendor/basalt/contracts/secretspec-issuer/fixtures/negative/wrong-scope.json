@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "response": {
+    "schema_version": 2,
+    "provider": "env://",
+    "profile": "production",
+    "scope": "other-scope",
+    "secrets": {
+      "oidc-signing-key": {
+        "value": "k",
+        "as_path": false,
+        "source": "provider"
+      }
+    },
+    "missing_required": [],
+    "missing_optional": []
+  }
+}

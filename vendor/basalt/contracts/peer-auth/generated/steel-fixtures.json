@@ -1,0 +1,74 @@
+{
+  "cases": [
+    {
+      "authority_present": true,
+      "boundary": "none",
+      "expected": "allow",
+      "freshness": "within-clock-bound",
+      "id": "admitted",
+      "issue": "none",
+      "protocol_version": 1,
+      "replay": "fresh"
+    },
+    {
+      "authority_present": true,
+      "boundary": "none",
+      "expected": "deny",
+      "freshness": "within-clock-bound",
+      "id": "wrong-version",
+      "issue": "peer-policy-version-mismatch",
+      "protocol_version": 2,
+      "replay": "fresh"
+    },
+    {
+      "authority_present": true,
+      "boundary": "none",
+      "expected": "deny",
+      "freshness": "stale",
+      "id": "stale",
+      "issue": "peer-policy-freshness-denied",
+      "protocol_version": 1,
+      "replay": "fresh"
+    },
+    {
+      "authority_present": true,
+      "boundary": "none",
+      "expected": "deny",
+      "freshness": "within-clock-bound",
+      "id": "replayed",
+      "issue": "peer-policy-replay-denied",
+      "protocol_version": 1,
+      "replay": "replayed"
+    },
+    {
+      "authority_present": false,
+      "boundary": "none",
+      "expected": "deny",
+      "freshness": "within-clock-bound",
+      "id": "missing-authority",
+      "issue": "peer-policy-authority-missing",
+      "protocol_version": 1,
+      "replay": "fresh"
+    },
+    {
+      "authority_present": true,
+      "boundary": "promotes-end-user-authority",
+      "expected": "deny",
+      "freshness": "within-clock-bound",
+      "id": "end-user-promotion",
+      "issue": "peer-policy-boundary-promotion",
+      "protocol_version": 1,
+      "replay": "fresh"
+    }
+  ],
+  "non_claims": [
+    "transport remains consumer-owned",
+    "TLS and key custody remain consumer-owned",
+    "clock and replay storage remain consumer-owned",
+    "peer authentication does not authenticate an end user",
+    "peer authentication does not grant general authorization",
+    "the Celld reference is a bounded comparison, not parity or equivalence"
+  ],
+  "policy_id": "peer-control-v1",
+  "schema": "basalt.peer-auth-steel-fixtures.v1"
+}

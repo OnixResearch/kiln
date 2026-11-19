@@ -66,7 +66,8 @@ fn provider() -> ProviderProfileId {
 }
 
 fn open(path: &Path) -> Implementer {
-    Implementer::open(path, enrollment()).unwrap_or_else(|error| unreachable!("{error}"))
+    Implementer::open_with_local_operator(path, enrollment(), "test-operator")
+        .unwrap_or_else(|error| unreachable!("{error}"))
 }
 
 // r[verify kiln.implementation.durable_store.scenario.restart]
@@ -805,13 +806,14 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
             &work,
             &attempt.identity,
             attempt.fence,
+            5,
             &handoff,
             &verification,
             &publication,
         )
         .unwrap_or_else(|_| unreachable!());
     implementer
-        .record_branch_published(&attempt.identity, attempt.fence, &handoff.candidate)
+        .record_branch_published(&attempt.identity, attempt.fence, 5, &handoff.candidate)
         .unwrap_or_else(|_| unreachable!());
     let pull_request = ExternalRef::new("github", "pull_request", "onix/kiln#9")
         .unwrap_or_else(|_| unreachable!());
@@ -819,6 +821,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         .record_pull_request_published(
             &attempt.identity,
             attempt.fence,
+            5,
             &pull_request,
             &handoff.candidate,
         )
@@ -845,11 +848,11 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
         },
     };
     let integration_identity = implementer
-        .record_integration(&work, &attempt.identity, attempt.fence, &integration)
+        .record_integration(&work, &attempt.identity, attempt.fence, 6, &integration)
         .unwrap_or_else(|_| unreachable!());
     assert_eq!(
         implementer
-            .record_integration(&work, &attempt.identity, attempt.fence, &integration)
+            .record_integration(&work, &attempt.identity, attempt.fence, 6, &integration)
             .unwrap_or_else(|_| unreachable!()),
         integration_identity
     );
@@ -885,6 +888,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
             &work,
             &attempt.identity,
             attempt.fence,
+            6,
             &source_plan,
             &source_receipt,
         )
@@ -895,6 +899,7 @@ fn verified_candidate_reaches_integrated_and_source_reconciled() {
                 &work,
                 &attempt.identity,
                 attempt.fence,
+                6,
                 &source_plan,
                 &source_receipt,
             )

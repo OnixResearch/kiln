@@ -1,0 +1,48 @@
+{
+  "source_repository": "https://github.com/OnixResearch/basalt",
+  "source_commit": "264d248912e58760b5ae1eced51b7c7d50eb5a96",
+  "full_archive_format": "git archive --format=tar <source_commit>",
+  "full_archive_blake3": "75994500e4c22b26d21cae703ef0f81306f04d9e60e591d8e5eb2cc238a5b7f6",
+  "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
+  "archive_paths": [
+    "Cargo.toml",
+    "Cargo.lock",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md",
+    "contracts",
+    "docs",
+    "src"
+  ],
+  "archive_blake3": "2d8e91ab7681f2b354fd99308e7c810f2dfba628afb32deb2228f5953795027d",
+  "importer": "scripts/import-pinned-source.sh",
+  "manifest_rewrites": [
+    {
+      "path": "Cargo.toml",
+      "from": "path = \"vendor/ucan\"",
+      "to": "path = \"../ucan\"",
+      "occurrences": 1,
+      "reason": "Basalt's nested UCAN snapshot is omitted; the root shell resolves to Kiln's single vendored cohort."
+    },
+    {
+      "path": "Cargo.toml",
+      "from": "path = \"vendor/ucan/crates/ucan-core\"",
+      "to": "path = \"../ucan/crates/ucan-core\"",
+      "occurrences": 1,
+      "reason": "ucan-core resolves to Kiln's single vendored cohort."
+    },
+    {
+      "path": "Cargo.toml",
+      "from": "path = \"vendor/ucan/crates/ucan-nostr\"",
+      "to": "path = \"../ucan/crates/ucan-nostr\"",
+      "occurrences": 1,
+      "reason": "ucan-nostr resolves to Kiln's single vendored cohort."
+    }
+  ],
+  "package_licenses": {
+    "basalt": "AGPL-3.0-or-later"
+  },
+  "consumer_profile": "kiln-adapter-basalt depends on basalt with default-features = false. The oidc-exchange and durable-authority features (and their git-sourced optional dependencies) are disabled, so the read-only authority adapter never acquires them.",
+  "scope": "Basalt's reviewed crate source, packaged policy contracts, license text and the Kiln authority adapter documentation. The nested UCAN snapshot, release tooling, tests and examples are omitted; the three UCAN path dependencies are rewritten to the single Kiln snapshot.",
+  "nonclaims": "This local immutable import is not remote publication, source authority, source trust, or release eligibility. A Basalt checkout is needed only to reproduce the import, never to build Kiln."
+}

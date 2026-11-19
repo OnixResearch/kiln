@@ -195,6 +195,8 @@ in
     )
     | default
     = [],
+  # Explicit local-operator profile for protected implementation effects.
+  authority_operator | String | MachineLabel | optional,
   tailscale | String | AbsolutePath,
   implementer | { database | String | AbsolutePath, enrollment | String | AbsolutePath },
   # kiln.fleet-inventory.v1 JSON (config/fleet-inventory.ncl).

@@ -1,0 +1,52 @@
+{
+  "expected": {
+    "allowed": false,
+    "diagnostic": "missing-policy-ref"
+  },
+  "fixture_id": "deny-missing-policy-ref",
+  "input": {
+    "caveat": "satisfied",
+    "claims": [
+      "exact-request"
+    ],
+    "non_claims": [
+      "transport-authority",
+      "storage-authority",
+      "persistence-authority",
+      "replay-store-truth",
+      "key-resolution-trust",
+      "downstream-business-authority",
+      "release-eligibility",
+      "whole-system-safety"
+    ],
+    "policy_refs": [],
+    "replay": "admitted",
+    "request": {
+      "ability": "document/write",
+      "contract_id": "document-write",
+      "request_ref": "blake3:1111111111111111111111111111111111111111111111111111111111111111",
+      "resource": "did:key:z6Mkresource/docs/report"
+    },
+    "schema": "basalt.ucan-authority-input.v1",
+    "verification_receipts": [
+      {
+        "disposition": "current",
+        "receipt_ref": "blake3:3333333333333333333333333333333333333333333333333333333333333333",
+        "request_ref": "blake3:1111111111111111111111111111111111111111111111111111111111111111",
+        "verified_grant_refs": [
+          "blake3:2222222222222222222222222222222222222222222222222222222222222222"
+        ]
+      }
+    ],
+    "verified_grants": [
+      {
+        "ability": "document/write",
+        "grant_ref": "blake3:2222222222222222222222222222222222222222222222222222222222222222",
+        "kind": "direct",
+        "resource": "did:key:z6Mkresource/docs/report",
+        "verification_receipt_ref": "blake3:3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "schema": "basalt.ucan-authority-fixture.v1"
+}

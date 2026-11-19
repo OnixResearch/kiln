@@ -1,4 +1,5 @@
 {
+  "authority_operator": "britton-desktop",
   "capture": {
     "export_root": "/var/lib/kiln-fleet/exports",
     "git": "/run/current-system/sw/bin/git",
@@ -20,7 +21,9 @@
       "--profile",
       "{verification_profile}",
       "--authority",
-      "{authority}"
+      "{authority}",
+      "--local-operator",
+      "britton-desktop"
     ]
   },
   "decision_group": "bots.general",

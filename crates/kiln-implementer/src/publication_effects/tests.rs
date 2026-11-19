@@ -16,7 +16,11 @@ fn enrollment() -> Enrollment {
     }
 }
 fn open(path: &Path) -> Implementer {
-    Implementer::open(path, enrollment()).unwrap_or_else(|error| unreachable!("{error}"))
+    let mut implementer =
+        Implementer::open_with_local_operator(path, enrollment(), "test-operator")
+            .unwrap_or_else(|error| unreachable!("{error}"));
+    implementer.set_clock_ms(1);
+    implementer
 }
 
 // Synthetic retained core facts, not an execution/provider qualification.

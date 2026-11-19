@@ -26,7 +26,7 @@ pub const MAX_CONTEXT_FIELD_BYTES: usize = 4_096;
 const REQUEST_REFERENCE_DOMAIN: &str = "ucan-nostr.request-reference.v1";
 const PROFILE_IDENTITY_DOMAIN: &str = "ucan-nostr.profile-identity.v1";
 const IMPLEMENTATION_IDENTITY_DOMAIN: &str = "ucan-nostr.implementation-identity.v1";
-const IMPLEMENTATION_REVISION: &str = "ucan-nostr@0.1.0|k256@0.13.4|sha2@0.10.9|blake3@1.8.4|serde_json@1.0.149";
+const IMPLEMENTATION_REVISION: &str = "ucan-nostr@0.1.0|k256@0.13.4|sha2@0.10.9|blake3@1.8.5|serde_json@1.0.149";
 
 const NON_CLAIMS: &[&str] = &[
     "verified Nostr key control does not identify a person or product subject",

@@ -20,8 +20,9 @@ compact wildcard ability rules.
 4. Recompute each Delegation CID and compare it with the requested CID.
 5. Resolve each Delegation issuer key and verify its signature.
 6. Observe revocation for each proof CID.
-7. Check principal alignment, subject continuity, executor identity, time,
-   command attenuation, policy, proof identity, and work limits.
+7. Check principal alignment, root authority (the root Delegation issuer must
+   be the subject), subject continuity, executor identity, time, command
+   attenuation, policy, proof identity, and work limits.
 8. Call the caller-owned replay port once.
 9. Construct `LiveAuthorization` without another fallible operation.
 

@@ -1,0 +1,4 @@
+# hegel-core 0.2.3 uses ConjectureRunner.interesting_examples.
+# This is its declared minimum Hypothesis version, verified by the property suite.
+# 6.167.1 removes that private API and leaves the Hegel runner waiting.
+hypothesis==6.148.5

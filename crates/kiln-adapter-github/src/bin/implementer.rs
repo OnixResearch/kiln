@@ -773,6 +773,7 @@ fn prepare_publication(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         &work,
         &plan.attempt,
         plan.fence,
+        wall_clock_ms(),
         &handoff,
         &verification,
         &plan,
@@ -813,13 +814,6 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
         Ok(None) => 30_000,
         Err(error) => return fail(&error),
-    };
-    let token = match std::fs::read(&secret_file) {
-        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
-            Ok(token) => token,
-            Err(_) => return fail("secret file is not a valid GitHub token"),
-        },
-        Err(_) => return fail("secret file is unreadable"),
     };
     let mut implementer = match open_implementer(flags) {
         Ok(implementer) => implementer,
@@ -887,10 +881,16 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     use kiln_implementer::publication_effects::{
         EffectDispatch, PublicationEffectKind, PublicationEffectResult,
     };
-    let client =
-        match kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms) {
-            Ok(client) => client,
-            Err(_) => return fail("publication transport configuration is invalid"),
+    // Resolve the credential only inside the transport closure, after the
+    // authority adapter has admitted and revalidated the exact effect.
+    let publication_client =
+        || -> Result<kiln_adapter_github::publication::GithubPublicationClient, String> {
+            let bytes =
+                std::fs::read(&secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+            let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+                .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
+            kiln_adapter_github::publication::GithubPublicationClient::new(token, timeout_ms)
+                .map_err(|_| "publication transport configuration is invalid".to_string())
         };
     let branch = implementer.consume_publication_effect(
         &work,
@@ -898,6 +898,7 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         plan.fence,
         PublicationEffectKind::Branch,
         |dispatch, _| {
+            let client = publication_client()?;
             let head = client
                 .publish_candidate_branch(&plan, &source, dispatch == EffectDispatch::FirstDispatch)
                 .map_err(|error| format!("{error:?}"))?;
@@ -915,6 +916,7 @@ fn publish(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         plan.fence,
         PublicationEffectKind::PullRequest,
         |dispatch, _| {
+            let client = publication_client()?;
             let Some(_) = client
                 .publish_candidate_branch(&plan, &source, false)
                 .map_err(|error| format!("{error:?}"))?
@@ -972,13 +974,6 @@ fn recover_integration(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(Some(value)) => u64::try_from(value).unwrap_or(u64::MAX),
         Ok(None) => 30_000,
         Err(error) => return fail(&error),
-    };
-    let token = match std::fs::read(&secret_file) {
-        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
-            Ok(token) => token,
-            Err(_) => return fail("secret file is not a valid GitHub token"),
-        },
-        Err(_) => return fail("secret file is unreadable"),
     };
     let mut implementer = match open_implementer(flags) {
         Ok(implementer) => implementer,
@@ -1038,9 +1033,15 @@ fn recover_integration(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     else {
         return fail("publication work identity is not current");
     };
-    let client = match kiln_adapter_github::landing::GithubLandingClient::new(token, timeout_ms) {
-        Ok(client) => client,
-        Err(_) => return fail("landing transport configuration is invalid"),
+    // Resolve the credential only inside the transport closure, after the
+    // authority adapter has admitted and revalidated the exact integration.
+    let landing_client = || -> Result<kiln_adapter_github::landing::GithubLandingClient, String> {
+        let bytes =
+            std::fs::read(&secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+        let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+            .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
+        kiln_adapter_github::landing::GithubLandingClient::new(token, timeout_ms)
+            .map_err(|_| "landing transport configuration is invalid".to_string())
     };
     use kiln_implementer::publication_effects::{PublicationEffectKind, PublicationEffectResult};
     match implementer.consume_publication_effect(
@@ -1049,6 +1050,7 @@ fn recover_integration(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         plan.fence,
         PublicationEffectKind::Integration,
         |_, _| {
+            let client = landing_client()?;
             let Some(landed) = client
                 .recover_landed(&landing)
                 .map_err(|error| format!("{error:?}"))?
@@ -1108,13 +1110,6 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(None) => 30_000,
         Err(error) => return fail(&error),
     };
-    let token = match std::fs::read(&secret_file) {
-        Ok(bytes) => match kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes) {
-            Ok(token) => token,
-            Err(_) => return fail("secret file is not a valid GitHub token"),
-        },
-        Err(_) => return fail("secret file is unreadable"),
-    };
     let mut implementer = match open_implementer(flags) {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
@@ -1161,12 +1156,17 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     if kiln_core::implementation::admit_source_status_plan(&work, &attempt, &plan).is_err() {
         return fail("source-status plan is not admissible for the current publication state");
     }
-    let client = match kiln_adapter_github::source_status::GithubSourceStatusClient::new(
-        token, timeout_ms,
-    ) {
-        Ok(client) => client,
-        Err(_) => return fail("source-status transport configuration is invalid"),
-    };
+    // Resolve the credential only inside the transport closure, after the
+    // authority adapter has admitted and revalidated the exact effect.
+    let source_client =
+        || -> Result<kiln_adapter_github::source_status::GithubSourceStatusClient, String> {
+            let bytes =
+                std::fs::read(&secret_file).map_err(|_| "secret file is unreadable".to_string())?;
+            let token = kiln_adapter_github::secret::ResolvedSecret::from_bytes(bytes)
+                .map_err(|_| "secret file is not a valid GitHub token".to_string())?;
+            kiln_adapter_github::source_status::GithubSourceStatusClient::new(token, timeout_ms)
+                .map_err(|_| "source-status transport configuration is invalid".to_string())
+        };
     use kiln_implementer::publication_effects::{PublicationEffectKind, PublicationEffectResult};
     match implementer.consume_publication_effect(
         &work,
@@ -1174,6 +1174,7 @@ fn close_source(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         plan.fence,
         PublicationEffectKind::SourceStatus(plan.clone()),
         |_, _| {
+            let client = source_client()?;
             let observed = client
                 .observe_exact(&plan)
                 .map_err(|error| format!("{error:?}"))?;
@@ -1523,7 +1524,22 @@ fn open_implementer(flags: &BTreeMap<String, String>) -> Result<Implementer, Str
     let database = required_path(flags, "--database")?;
     let enrollment_file = required_path(flags, "--enrollment")?;
     let enrollment: Enrollment = read_json(&enrollment_file)?;
-    Implementer::open(&database, enrollment).map_err(|error| error.to_string())
+    let mut implementer =
+        Implementer::open(&database, enrollment).map_err(|error| error.to_string())?;
+    if let Some(operator) = flags.get("--local-operator") {
+        let authority = kiln_core::implementation::authority::LocalOperatorAuthority::new(
+            operator.clone(),
+            false,
+        )
+        .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        implementer.set_authority(
+            Box::new(authority),
+            kiln_core::implementation::authority::AuthorityProfile::LocalOperator {
+                operator: operator.clone(),
+            },
+        );
+    }
+    Ok(implementer)
 }
 
 fn drain(flags: &BTreeMap<String, String>) -> Result<(), ()> {

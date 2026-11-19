@@ -1,0 +1,50 @@
+# Basalt ast-grep policy-boundary audit rule pack
+
+schema: basalt.ast-grep-policy-audit-rulepack.v1
+tool: ast-grep
+tool_version: 0.45.0
+repository_scope: src
+default_posture: advisory
+
+# Each rule references an id used by SCRYPT? no. Each rule carries a declared
+# posture (advisory|blocking) and, before a rule may be blocking, it must name
+# one positive and one negative fixture under `fixtures/`.
+rules:
+  - id: no-direct-enforcement-bypass
+    description: Flag call sites that reach enforcement internals without the public helper.
+    language: rust
+    posture: advisory
+    severity: medium
+    positive_fixture: fixtures/positive/direct-enforcement-helper.rs
+    negative_fixture: fixtures/negative/direct-enforcement-bypass.rs
+    my_pattern: "call_site_placeholder"
+    non_claims:
+      - does-not-prove-ucan-authority
+      - does-not-prove-policy-correctness
+      - candidate-boundary-evidence-only
+
+  - id: no-ambient-authority-in-policy-core
+    description: Flag ambient authority use in policy cores.
+    language: rust
+    posture: advisory
+    severity: high
+    positive_fixture: fixtures/positive/pure-policy-core.rs
+    negative_fixture: fixtures/negative/ambient-authority-core.rs
+    my_pattern: "fn ambient_core_placeholder"
+    non_claims:
+      - does-not-prove-caveat-satisfaction
+      - does-not-prove-steel-safety
+      - candidate-boundary-evidence-only
+
+  - id: cli-effects-stay-in-cli-shell
+    description: Flag CLI-only filesystem effects leaking into the library core.
+    language: rust
+    posture: advisory
+    severity: medium
+    positive_fixture: fixtures/positive/cli-shell-only.rs
+    negative_fixture: fixtures/negative/cli-effect-in-core.rs
+    my_pattern: "fn cli_effect_placeholder"
+    non_claims:
+      - does-not-prove-release-readiness
+      - does-not-prove-whole-system-safety
+      - candidate-boundary-evidence-only

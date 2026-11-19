@@ -29,6 +29,9 @@ pub struct NativeGitQualificationRequest<R> {
     pub fence: u64,
     pub plan: NativeGitPlan,
     pub remote: R,
+    /// Explicit local-operator profile selection; absent authority denies.
+    #[serde(default)]
+    pub local_operator: Option<String>,
 }
 
 pub const NATIVE_GIT_LIFECYCLE_REQUEST_SCHEMA: &str = "kiln.native-git-lifecycle-request.v1";
@@ -46,6 +49,9 @@ pub struct NativeGitLifecycleRequest<R> {
     pub receipt_path: String,
     pub action: crate::publication_effects::CairnLifecycleAction,
     pub remote: R,
+    /// Explicit local-operator profile selection; absent authority denies.
+    #[serde(default)]
+    pub local_operator: Option<String>,
 }
 
 use crate::{ATTEMPT_KIND, Implementer, WORK_KIND, load, save, text};
@@ -226,7 +232,8 @@ impl Implementer {
 
     /// Reserve one native effect before transmission. Existing pending work is
     /// reconciliation-only and cannot be dispatched a second time.
-    pub fn consume_native_git_effect(
+    #[cfg(test)]
+    pub(crate) fn consume_native_git_effect(
         &mut self,
         selection: NativeGitEffectSelection<'_>,
         review: &NativeGitReviewAuthority,
@@ -294,6 +301,30 @@ impl Implementer {
             plan_identity,
             kind,
         } = selection;
+        let now_ms = self.now_ms();
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let operation = match kind {
+            NativeGitEffectKind::TargetIntegration => {
+                kiln_core::implementation::authority::ProtectedOperation::IntegrationLand
+            }
+            NativeGitEffectKind::BranchPublication => {
+                kiln_core::implementation::authority::ProtectedOperation::PublicationPublish
+            }
+        };
+        let native_plan = self.native_git_plan(identity)?;
+        let candidate = native_plan
+            .as_ref()
+            .map(|(plan, _)| &plan.candidate)
+            .or(attempt_facts.candidate.as_ref());
+        let request = super::authority_bridge::request_for(
+            operation,
+            &work_facts,
+            &attempt_facts,
+            &[plan_identity.as_str()],
+            candidate,
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        self.authorize_and_revalidate(&request, currentness, now_ms)?;
         let current = observe_authority()?;
         let (reservation, dispatch) =
             self.reserve_native_git_effect(work, identity, fence, plan_identity, kind, &current)?;
@@ -324,6 +355,9 @@ impl Implementer {
         if dispatch == NativeGitDispatch::ReconcileOnly && reservation.receipt.is_some() {
             return Ok(reservation);
         }
+        let effect_time_ms = self.now_ms();
+        let effect_currentness = self.attempt_currentness(identity, fence, effect_time_ms);
+        self.revalidate_last_authority(effect_currentness, effect_time_ms)?;
         match transport(dispatch, &reservation.plan)? {
             Some(observed) => {
                 let current = observe_authority()?;
@@ -523,6 +557,23 @@ impl Implementer {
         observation: &crate::publication_effects::CairnLifecycleObservation,
         review: &NativeGitReviewAuthority,
     ) -> Result<NativeCairnLifecycleReceipt, String> {
+        let now_ms = self.now_ms();
+        let (work_facts, attempt_facts) = self.authority_facts(identity, fence)?;
+        let request = super::authority_bridge::request_for(
+            kiln_core::implementation::authority::ProtectedOperation::LifecycleComplete,
+            &work_facts,
+            &attempt_facts,
+            &[
+                observation.binding.authoritative_completion.as_str(),
+                observation.binding.handoff.as_str(),
+                observation.binding.verification.as_str(),
+                observation.observed_tree.native_id.as_str(),
+            ],
+            Some(&observation.binding.candidate),
+        )?;
+        let currentness = self.attempt_currentness(identity, fence, now_ms);
+        let session = self.admit_authority(&request, currentness, now_ms)?;
+        self.revalidate_authority(session, &request, currentness, now_ms)?;
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -617,6 +668,15 @@ impl Implementer {
             }
         } else {
             save(&transaction, &key, version, &Some(receipt.clone()))?;
+        }
+        if let Some((session, request)) = self.authority_last.clone() {
+            super::authority_bridge::revalidate_with(
+                &mut self.authority,
+                session,
+                &request,
+                currentness,
+                now_ms,
+            )?;
         }
         transaction.commit().map_err(text)?;
         Ok(receipt)

@@ -25,6 +25,83 @@ Identities are canonical BLAKE3 over a length-prefixed field encoding. The
 canonical alias key excludes content, so versions of one source unit share a
 key and are ordered by an adapter-supplied monotonic `revision`.
 
+## Implementation authority
+
+Every protected implementation path requires current authority for one exact
+request. The closed coverage map in
+`kiln_core::implementation::authority` binds each operation to one Basalt
+operation, enforcement boundary, effect class and candidate rule:
+
+| Operation | Boundary | Effect | Candidate |
+| --- | --- | --- | --- |
+| `ClaimAcquire` | admission | mutation | no |
+| `ClaimRenew` | admission | mutation | no |
+| `Dispatch` | admission | mutation | no |
+| `CandidateSubmit` | campaign | mutation | yes |
+| `VerificationAdmit` | verification | mutation | yes |
+| `AttemptCancel` | campaign | mutation | no |
+| `PublicationPublish` | publication | publication | yes |
+| `IntegrationLand` | publication | integration | yes |
+| `LifecycleComplete` | lifecycle | lifecycle | yes |
+
+An operation or protected path without an entry denies. No operation implies
+another: a claim, renewal or dispatch grant cannot admit submission, acceptance,
+publication, integration or lifecycle completion.
+
+`AuthorityRequest` binds the project, work identity and version, attempt and
+fence, the canonical payload digest, the target and the exact candidate
+(charter `kiln.implementation.authority.binding`). The adapter adds the trusted
+holder subject, deployment audience and authority generation from its operator
+configuration, so a caller cannot substitute current deployment state.
+
+### Profiles
+
+The adapter is explicit. No protected operation admits without a selected
+profile.
+
+- **Verified UCAN.** The composing shell constructs
+  `kiln_adapter_basalt::BasaltAuthority::verified` with the parsed packaged
+  policy, its BLAKE3 artifact reference, the deployment generation and audience,
+  operator-admitted trusted roots, and caller-owned key resolver, proof store,
+  revocation checker, caveat policies, replay admission and limits. Basalt
+  verifies the signed holder invocation and policy binding; Kiln owns current
+  work, attempt and fence state.
+- **Local operator.** The compatibility profile is selected explicitly with
+  `--local-operator <identity>` (GitHub implementer, Lattice dispatch/worker and
+  verification CLI), a `local_operator` profile field (native Git request,
+  campaign drive profile or native delivery profile), or
+  `Implementer::open_with_local_operator`/`select_local_operator`. The decision
+  records the operator provenance. It refuses projection-enabled routes and is
+  never a fallback for a missing verified credential.
+
+`Implementer::set_authority` installs a port implementation and profile on any
+other shell. A missing or mismatched profile denies before the mutation,
+provider call or credential resolution.
+
+### Revalidation and decisions
+
+Admission consumes the holder invocation once and retains one live session.
+Every protected effect revalidates signatures, proofs, time, revocations, policy
+and deployment generation immediately before its durable commit or transport
+without consuming replay again. Cancellation, supersession, lease expiry and
+fence replacement block later effects even when another valid proof is
+presented; unavailable currentness fails closed for new effects.
+
+The adapter retains at most 256 redacted decisions. `Implementer::authority_decisions()`
+returns the bounded log; a decision contains the principal, project/work/attempt
+and fence, operation, boundary, effect, provenance, generation, policy and
+upstream receipt references, request identity and denial reason. It contains no
+capability material, keys, token bytes or holder signature. A request, decision,
+receipt or retained session is not transferable authority and cannot authorize a
+different effect.
+
+### Non-claims
+
+Authority proves permission for one exact request, not effect completion,
+independent acceptance, confinement, resource release or release eligibility. A
+successful authorization never creates a passing verification check, discharges
+a Cairn obligation or proves provider behavior.
+
 ## Admission behavior
 
 - A duplicate observation returns the retained identity; a lower revision is

@@ -1,5 +1,7 @@
 use core::fmt;
 
+pub mod recheck;
+
 pub const HOLDER_INVOCATION_DOMAIN: &[u8] = b"ucan/holder-invocation/v1";
 pub const HOLDER_INVOCATION_DIGEST_BYTES: usize = 32;
 pub const HOLDER_INVOCATION_NONCE_BYTES: usize = 32;
