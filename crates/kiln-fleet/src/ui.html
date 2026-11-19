@@ -194,7 +194,6 @@ async function get(path) {
 }
 
 async function poll() {
-  if (document.hidden) return;
   try {
     const [health, claims, work, attempts, decisions] = await Promise.all([
       get("/v1/health"), get("/v1/claims"), get("/v1/work"), get("/v1/attempts"), get("/v1/decisions")
