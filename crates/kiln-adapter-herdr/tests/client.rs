@@ -128,7 +128,7 @@ fn machine(label: &str, saved: Option<&str>, agents: Vec<AgentSlots>) -> HerdrMa
     HerdrMachine {
         label: label.to_owned(),
         herdr_machine: saved.map(str::to_owned),
-        ssh_target: format!("brittonr@{label}"),
+        ssh_target: Some(format!("brittonr@{label}")),
         worktree_root: "/srv/kiln/worktrees/".to_owned(),
         repositories: BTreeMap::from([(
             "OnixResearch/kiln".to_owned(),

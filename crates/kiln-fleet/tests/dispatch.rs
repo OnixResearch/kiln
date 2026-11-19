@@ -7,6 +7,7 @@ mod common;
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, LazyLock};
@@ -72,6 +73,16 @@ esac
 "#;
 
 static FAKE_HERDR: LazyLock<PathBuf> = LazyLock::new(|| executable("herdr", HERDR));
+
+/// The real tar under the service's umask, 077: extraction must still
+/// produce the exact 0644 and 0755 modes materialization admits.
+static RESTRICTIVE_TAR: LazyLock<PathBuf> = LazyLock::new(|| {
+    let tar = program("tar").unwrap_or_else(|_| unreachable!());
+    executable(
+        "tar",
+        &format!("#!/bin/sh\numask 077\nexec '{}' \"$@\"\n", tar.display()),
+    )
+});
 
 fn program(name: &str) -> TestResult<PathBuf> {
     let path = std::env::var_os("PATH").ok_or("PATH is unset")?;
@@ -142,6 +153,8 @@ fn fleet(real: bool) -> TestResult<Fleet> {
     fs::create_dir_all(checkout.join("src"))?;
     fs::write(checkout.join("src/value"), "broken\n")?;
     fs::write(checkout.join("requirements"), "frozen\n")?;
+    fs::write(checkout.join("check"), "#!/bin/sh\n")?;
+    fs::set_permissions(checkout.join("check"), fs::Permissions::from_mode(0o755))?;
     git(&checkout, &["add", "."])?;
     git(&checkout, &["commit", "-q", "-m", "baseline"])?;
     let base = git(&checkout, &["rev-parse", "HEAD"])?;
@@ -202,7 +215,6 @@ fn fleet(real: bool) -> TestResult<Fleet> {
         "start_timeout_ms": 1_000,
         "machines": [{
             "label": COORDINATOR,
-            "ssh_target": "kiln@britton-desktop",
             "worktree_root": root.join("worktrees"),
             "repositories": { REPOSITORY: checkout },
             "agents": [{ "kind": "omp", "slots": 1 }],
@@ -217,7 +229,7 @@ fn fleet(real: bool) -> TestResult<Fleet> {
         "capture".into(),
         json!({
             "git": program("git")?,
-            "tar": program("tar")?,
+            "tar": *RESTRICTIVE_TAR,
             "export_root": root.join("exports"),
             "verification_profiles": root.join("profiles"),
             "repositories": { REPOSITORY: { "authority": root.join("authority.json") } },
@@ -400,6 +412,11 @@ fn interactive_work_is_dispatched_handed_off_and_exported() -> TestResult {
         "frozen\n"
     );
     assert!(!export.join("tree/.git").exists());
+    let mode = |path: &str| -> TestResult<u32> {
+        Ok(fs::metadata(export.join(path))?.permissions().mode() & 0o7777)
+    };
+    assert_eq!(mode("tree/src/value")?, 0o644);
+    assert_eq!(mode("tree/check")?, 0o755);
     let receipt: HerdrCandidateReceipt =
         serde_json::from_slice(&fs::read(export.join("receipt.json"))?)?;
     let mut store = fleet.service.store.open()?;

@@ -85,8 +85,11 @@ pub struct HerdrMachine {
     /// Saved herdr machine label, or `None` for the local headless session.
     #[serde(default)]
     pub herdr_machine: Option<String>,
-    /// SSH target for git transport, e.g. `brittonr@aspen3`.
-    pub ssh_target: String,
+    /// SSH target Kiln fetches attempt commits through, e.g.
+    /// `brittonr@aspen3`. Only the coordinator may leave it unset; Kiln then
+    /// reads that machine's worktrees directly.
+    #[serde(default)]
+    pub ssh_target: Option<String>,
     /// Absolute directory that holds attempt worktrees on this machine.
     pub worktree_root: String,
     /// `owner/name` to an absolute checkout path on this machine.
@@ -284,7 +287,11 @@ fn validate_machine(machine: &HerdrMachine) -> Result<(), String> {
     {
         return Err(format!("machine {label}: herdr_machine is invalid"));
     }
-    if !token(&machine.ssh_target, MAX_SSH_TARGET_BYTES) || machine.ssh_target.starts_with('-') {
+    if machine
+        .ssh_target
+        .as_deref()
+        .is_some_and(|target| !token(target, MAX_SSH_TARGET_BYTES) || target.starts_with('-'))
+    {
         return Err(format!("machine {label}: ssh_target is invalid"));
     }
     if !absolute_path(&machine.worktree_root) {
@@ -418,7 +425,7 @@ mod tests {
             machines: vec![HerdrMachine {
                 label: "aspen1".to_owned(),
                 herdr_machine: None,
-                ssh_target: "brittonr@aspen1".to_owned(),
+                ssh_target: Some("brittonr@aspen1".to_owned()),
                 worktree_root: "/home/kiln/worktrees".to_owned(),
                 repositories: BTreeMap::from([(
                     "OnixResearch/kiln".to_owned(),
@@ -448,6 +455,14 @@ mod tests {
         );
         assert_eq!(machine.slots(AgentKind::Omp), 2);
         assert_eq!(machine.slots(AgentKind::Codex), 0);
+        let mut local = inventory();
+        local
+            .machines
+            .iter_mut()
+            .for_each(|machine| machine.ssh_target = None);
+        local
+            .validate()
+            .unwrap_or_else(|error| unreachable!("{error}"));
     }
 
     #[test]
@@ -506,6 +521,16 @@ mod tests {
                         .agents
                         .iter_mut()
                         .for_each(|agent| agent.args = vec!["a\nb".to_owned()]);
+                });
+            },
+            |inventory| {
+                inventory.machines.iter_mut().for_each(|machine| {
+                    machine.ssh_target = Some("-oProxyCommand=sh".to_owned());
+                });
+            },
+            |inventory| {
+                inventory.machines.iter_mut().for_each(|machine| {
+                    machine.ssh_target = Some("brittonr@aspen1 sh".to_owned());
                 });
             },
         ];

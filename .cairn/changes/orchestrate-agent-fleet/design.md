@@ -158,7 +158,7 @@ All of them are positive and negative tested, including persistence across reope
 
 - **Config.** `HerdrInventory` is a JSON export of typed Nickel `config/fleet-inventory.ncl`, schema `kiln.fleet-inventory.v1`: `executable`, `session` (headless session name, default `kiln`) and `machines`. Each machine has:
   - `label`, and `herdr_machine` (a saved-machine label, or null for the local server);
-  - `ssh_target` for git transport, and `worktree_root`;
+  - `ssh_target`, through which Kiln fetches attempt commits (only the coordinator may omit it; Kiln then reads its worktrees directly), and `worktree_root`;
   - `repositories`, mapping `owner/name` to an absolute checkout path;
   - `agents: [{ kind, slots, args }]`.
 

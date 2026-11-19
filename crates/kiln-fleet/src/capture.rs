@@ -40,6 +40,10 @@ pub const TREE_DIRECTORY: &str = "tree";
 pub const RECEIPT_FILE: &str = "receipt.json";
 pub const HANDOFF_FILE: &str = "handoff.json";
 
+/// `git archive` writes entries with this umask, so files carry exactly 0644
+/// or 0755, the only modes materialization admits.
+pub const ARCHIVE_UMASK: &str = "tar.umask=0022";
+
 /// Fixed environment added to every git child: never prompt, and run ssh
 /// in batch mode so a missing key fails instead of waiting.
 pub const GIT_FIXED_ENVIRONMENT: [(&str, &str); 2] = [
@@ -212,7 +216,12 @@ impl Capturer {
         std::fs::create_dir_all(directory.join(TREE_DIRECTORY))
             .map_err(|error| format!("cannot create {}: {error}", directory.display()))?;
         let archive = directory.join(ARCHIVE_FILE);
+        // Materialization admits only exact 0644 and 0755 files, so the
+        // archive carries those modes and extraction keeps them whatever the
+        // service's umask.
         self.git(&root, ARCHIVE_TIMEOUT_MS)
+            .arg("-c")
+            .arg(ARCHIVE_UMASK)
             .arg("archive")
             .arg("--format=tar")
             .arg(format!("--output={}", archive.display()))
@@ -239,6 +248,7 @@ impl Capturer {
         }
         tar.arg("-x")
             .arg("--no-same-owner")
+            .arg("-p")
             .arg("-f")
             .arg(&archive)
             .arg("-C")

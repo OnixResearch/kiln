@@ -104,6 +104,16 @@ impl Dispatcher {
                     unknown.label
                 ));
             }
+            if let Some(unreachable) = inventory
+                .machines
+                .iter()
+                .find(|machine| machine.ssh_target.is_none() && machine.label != config.machine)
+            {
+                return Err(format!(
+                    "inventory machine {} has no ssh_target, so Kiln could not fetch its handoffs",
+                    unreachable.label
+                ));
+            }
             let environment: Vec<(OsString, OsString)> = inventory
                 .environment
                 .entries()
@@ -1101,11 +1111,7 @@ impl Dispatcher {
             .inventory()
             .machine(&session.machine)
             .ok_or("session machine left the inventory")?;
-        let location = if session.machine == self.service.config.machine {
-            workspace.path.clone()
-        } else {
-            format!("{}:{}", machine.ssh_target, workspace.path)
-        };
+        let location = fetch_location(machine, &self.service.config.machine, &workspace.path)?;
         let source = HandoffSource {
             location,
             branch: workspace.branch.clone(),
@@ -1393,6 +1399,20 @@ fn short_identity(identity: &ContentId) -> String {
         .collect()
 }
 
+/// Where Kiln fetches a session's commit: through the machine's ssh target,
+/// which keeps Kiln's account out of the agents' homes, or, only on the
+/// coordinator without one, from the worktree path directly.
+fn fetch_location(machine: &HerdrMachine, coordinator: &str, path: &str) -> Result<String, String> {
+    match &machine.ssh_target {
+        Some(target) => Ok(format!("{target}:{path}")),
+        None if machine.label == coordinator => Ok(path.to_owned()),
+        None => Err(format!(
+            "machine {} has no ssh_target to fetch handoffs from",
+            machine.label
+        )),
+    }
+}
+
 fn bounded_reason(reason: &str) -> String {
     let cleaned: String = reason
         .chars()
@@ -1423,7 +1443,7 @@ mod tests {
         HerdrMachine {
             label: label.into(),
             herdr_machine: None,
-            ssh_target: format!("kiln@{label}"),
+            ssh_target: Some(format!("kiln@{label}")),
             worktree_root: "/srv/worktrees".into(),
             repositories: if repository {
                 BTreeMap::from([("OnixResearch/kiln".into(), "/srv/kiln".into())])
@@ -1455,6 +1475,29 @@ mod tests {
             max_output_bytes: 4_096,
             machines: vec![machine("aspen1", false, 4), machine("aspen3", true, 2)],
         }
+    }
+
+    #[test]
+    // r[verify kiln.fleet.capture]
+    fn handoffs_are_fetched_through_the_ssh_target_even_on_the_coordinator() {
+        let path = "/srv/worktrees/aaaaaaaaaaaa";
+        let mut local = machine("britton-desktop", true, 1);
+        assert_eq!(
+            fetch_location(&local, "britton-desktop", path),
+            Ok(format!("kiln@britton-desktop:{path}"))
+        );
+        assert_eq!(
+            fetch_location(&machine("aspen3", true, 1), "britton-desktop", path),
+            Ok(format!("kiln@aspen3:{path}"))
+        );
+        local.ssh_target = None;
+        assert_eq!(
+            fetch_location(&local, "britton-desktop", path),
+            Ok(path.to_owned())
+        );
+        let mut remote = machine("aspen3", true, 1);
+        remote.ssh_target = None;
+        assert!(fetch_location(&remote, "britton-desktop", path).is_err());
     }
 
     #[test]

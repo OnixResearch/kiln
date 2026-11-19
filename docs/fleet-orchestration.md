@@ -103,6 +103,8 @@ The MCP server speaks newline-delimited JSON-RPC 2.0 on stdio (protocol `2025-06
 
 `config/fleet.ncl` types `kiln.fleet.v1`, and `config/fleet-inventory.ncl` types the herdr inventory `kiln.fleet-inventory.v1`. The service refuses a swarm `from` address equal to any configured machine's `<machine>@swarm.local`, so Kiln never posts as an agent's machine.
 
+Kiln fetches every handed-off commit through the machine's `ssh_target`, the coordinator's too, so Kiln's account never needs to read an agent's home. Only the coordinator may omit `ssh_target`; Kiln then fetches its worktrees as a local path, and the service refuses an inventory where any other machine omits it.
+
 ## Non-claims
 
 The fleet records claim bookkeeping, placement requests and the agent states herdr reports. It proves no agent's honesty, no workspace isolation and no completion. An interactive workspace has ambient network and credentials, and its plan says so. A captured candidate counts only after Kiln's independent verification.

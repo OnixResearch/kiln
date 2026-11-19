@@ -65,7 +65,9 @@ let Machine = {
   label | String | MachineLabel,
   # Saved herdr machine label; null uses the local headless session.
   herdr_machine | NullableNonEmptyString | default = null,
-  ssh_target | String | NonEmptyString,
+  # Where Kiln fetches attempt commits over ssh. Only the coordinator may
+  # leave it null; Kiln then reads that machine's worktrees directly.
+  ssh_target | NullableNonEmptyString | default = null,
   worktree_root | String | AbsolutePath,
   repositories | Repositories | default = {},
   agents | Array AgentSlots | default = [],
