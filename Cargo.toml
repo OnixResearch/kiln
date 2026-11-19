@@ -16,6 +16,7 @@ members = [
   "crates/kiln-standalone",
   "crates/kiln-radicle-source-contract",
   "crates/kiln-adapter-radicle",
+  "crates/kiln-adapter-swarm",
   "crates/kiln-adapter-cob",
   "crates/kiln-adapter-jj",
   "crates/kiln-adapter-git",

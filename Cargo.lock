@@ -3050,6 +3050,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-swarm"
+version = "0.1.0"
+dependencies = [
+ "bounded-exec",
+ "onix-kiln-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "kiln-adapter-tangled"
 version = "0.1.0"
 dependencies = [

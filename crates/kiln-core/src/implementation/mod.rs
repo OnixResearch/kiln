@@ -23,6 +23,7 @@ pub mod plan_review;
 pub mod proof_evidence;
 pub mod publication;
 pub mod stack;
+pub mod swarm;
 pub mod verification;
 
 pub use attempt::*;

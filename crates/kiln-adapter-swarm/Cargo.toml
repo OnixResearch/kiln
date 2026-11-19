@@ -1,0 +1,23 @@
+[package]
+name = "kiln-adapter-swarm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "kiln-swarm"
+path = "src/main.rs"
+
+[dependencies]
+bounded-exec.workspace = true
+kiln-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
