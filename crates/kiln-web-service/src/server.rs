@@ -807,6 +807,9 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
             if principal.role == crate::engine::Role::Worker {
                 return denied(&request, context, Some(&principal), 403, "fleet_read_only");
             }
+            if path == "/api/fleet/events" {
+                return fleet_events(&request, context);
+            }
             return fleet_response(&request, context, &principal);
         }
         if crate::cairn_workspace::http::ROUTES.contains(&path) {
@@ -1032,9 +1035,59 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
     }
 }
 
+fn event_after(target: &str) -> Result<Option<String>, ()> {
+    let Some((_, query)) = target.split_once('?') else {
+        return Ok(None);
+    };
+    let mut after = None;
+    for pair in query.split('&').filter(|pair| !pair.is_empty()) {
+        let (name, value) = pair.split_once('=').ok_or(())?;
+        if name != "after"
+            || after.is_some()
+            || value.len() != 64
+            || !value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(());
+        }
+        after = Some(value.to_owned());
+    }
+    Ok(after)
+}
+
 // r[impl kiln.web.network.boundaries] The console projects only the reviewed
 // fleet coordinator routes over its loopback listener. It never stores fleet
 // authority, and every mutation still passes the fleet service's own checks.
+fn fleet_events(request: &Request, context: &Context<'_>) -> ApiResponse {
+    if request.method != "GET" {
+        return error_response(405, "method_denied");
+    }
+    let Some(client) = context.fleet else {
+        return error_response(503, "fleet_unavailable");
+    };
+    let Ok(after) = event_after(&request.target) else {
+        return error_response(400, "fleet_after_invalid");
+    };
+    let body = match client.events(after) {
+        Ok(crate::fleet::EventFrame::Snapshot { data }) => {
+            let Ok(data) = String::from_utf8(data) else {
+                return error_response(503, "fleet_unavailable");
+            };
+            format!("event: snapshot\ndata: {data}\n\n").into_bytes()
+        }
+        Ok(crate::fleet::EventFrame::Heartbeat) => b": heartbeat\n\n".to_vec(),
+        Err(()) => return error_response(503, "fleet_unavailable"),
+    };
+    ApiResponse {
+        status: 200,
+        content_type: "text/event-stream",
+        body,
+        download_name: None,
+        headers: vec![("Cache-Control", "no-store".to_owned())],
+    }
+}
+
 fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principal) -> ApiResponse {
     if request.method == "POST" && principal.role != crate::engine::Role::Operator {
         return denied(request, context, Some(principal), 403, "fleet_operator");
@@ -1531,6 +1584,28 @@ mod tests {
 
     fn parse(bytes: &[u8]) -> Result<Request, u16> {
         read_request(&mut std::io::Cursor::new(bytes), 1024, 16)
+    }
+
+    #[test]
+    fn fleet_event_cursor_is_one_exact_identity() {
+        let identity = "a".repeat(64);
+        assert_eq!(event_after("/api/fleet/events"), Ok(None));
+        assert_eq!(
+            event_after(&format!("/api/fleet/events?after={identity}")),
+            Ok(Some(identity.clone()))
+        );
+        for target in [
+            "/api/fleet/events?after=0".to_string(),
+            format!("/api/fleet/events?after={identity}&after={identity}"),
+            format!("/api/fleet/events?after={identity}&other=2"),
+            "/api/fleet/events?after".to_string(),
+            "/api/fleet/events?after=".to_string(),
+            "/api/fleet/events?before=1".to_string(),
+            format!("/api/fleet/events?after={}", "A".repeat(64)),
+            format!("/api/fleet/events?after={}", "a".repeat(63)),
+        ] {
+            assert_eq!(event_after(&target), Err(()), "{target}");
+        }
     }
 
     // r[verify kiln.web.authentication.scenario.denied]

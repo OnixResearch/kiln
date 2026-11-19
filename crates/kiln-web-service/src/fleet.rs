@@ -7,9 +7,10 @@
 
 use std::io::Read;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 
 /// Largest mutation body forwarded to the fleet coordinator.
 pub const MAX_FLEET_REQUEST_BYTES: usize = 65_536;
@@ -72,6 +73,16 @@ pub(crate) struct Reply {
     pub(crate) body: Vec<u8>,
 }
 
+pub(crate) enum EventFrame {
+    Snapshot { data: Vec<u8> },
+    Heartbeat,
+}
+
+/// Long-poll wait stays below the console's 15 s connection deadline.
+const EVENT_WAIT_MS: u64 = 8_000;
+const EVENT_POLL_MS: u64 = 400;
+const SNAPSHOT_ATTEMPTS: usize = 2;
+
 impl Client {
     pub(crate) fn new(profile: &FleetProfile) -> Result<Self, String> {
         profile.admit()?;
@@ -114,6 +125,79 @@ impl Client {
             status,
             body: bytes,
         })
+    }
+
+    fn json(&self, path: &str) -> Result<Value, ()> {
+        let reply = self.call("GET", path, None)?;
+        if !(200..300).contains(&reply.status) {
+            return Err(());
+        }
+        serde_json::from_slice(&reply.body).map_err(|_| ())
+    }
+
+    fn version(&self) -> Result<String, ()> {
+        let value = self
+            .json("/v1/version")?
+            .get("version")
+            .and_then(Value::as_str)
+            .ok_or(())?
+            .to_owned();
+        if value.len() == 64
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            Ok(value)
+        } else {
+            Err(())
+        }
+    }
+
+    /// Wait for a change after `after`, then return one complete snapshot.
+    /// A change already visible to the caller skips the wait. The final
+    /// version is re-read after the snapshot; a concurrent write is retried
+    /// rather than binding data to the wrong version.
+    pub(crate) fn events(&self, after: Option<String>) -> Result<EventFrame, ()> {
+        self.events_with_wait(after, EVENT_WAIT_MS)
+    }
+
+    fn events_with_wait(&self, after: Option<String>, wait_ms: u64) -> Result<EventFrame, ()> {
+        if let Some(after) = after {
+            let deadline = Instant::now()
+                .checked_add(Duration::from_millis(wait_ms))
+                .ok_or(())?;
+            loop {
+                if self.version()? != after {
+                    break;
+                }
+                if Instant::now() >= deadline {
+                    return Ok(EventFrame::Heartbeat);
+                }
+                std::thread::sleep(Duration::from_millis(EVENT_POLL_MS.min(wait_ms)));
+            }
+        }
+        for _ in 0..SNAPSHOT_ATTEMPTS {
+            let before = self.version()?;
+            let health = self.json("/v1/health")?;
+            let claims = self.json("/v1/claims")?;
+            let work = self.json("/v1/work")?;
+            let attempts = self.json("/v1/attempts")?;
+            let decisions = self.json("/v1/decisions")?;
+            let version = self.version()?;
+            if version == before {
+                let data = serde_json::to_vec(&json!({
+                    "version": version,
+                    "health": health,
+                    "claims": claims,
+                    "work": work,
+                    "attempts": attempts,
+                    "decisions": decisions,
+                }))
+                .map_err(|_| ())?;
+                return Ok(EventFrame::Snapshot { data });
+            }
+        }
+        Err(())
     }
 }
 
@@ -277,6 +361,78 @@ mod tests {
             timeout_ms: 1_000,
             max_response_bytes: 65_536,
         }
+    }
+
+    fn event_server(expected: usize) -> (std::net::SocketAddr, std::thread::JoinHandle<()>) {
+        let listener =
+            TcpListener::bind("127.0.0.1:0").unwrap_or_else(|_| unreachable!("listener"));
+        let address = listener
+            .local_addr()
+            .unwrap_or_else(|_| unreachable!("address"));
+        let server = std::thread::spawn(move || {
+            for _ in 0..expected {
+                let (stream, _) = listener.accept().unwrap_or_else(|_| unreachable!("accept"));
+                let mut reader =
+                    BufReader::new(stream.try_clone().unwrap_or_else(|_| unreachable!("clone")));
+                let mut request = String::new();
+                reader
+                    .read_line(&mut request)
+                    .unwrap_or_else(|_| unreachable!("request"));
+                loop {
+                    let mut line = String::new();
+                    reader
+                        .read_line(&mut line)
+                        .unwrap_or_else(|_| unreachable!("header"));
+                    if line == "\r\n" || line.is_empty() {
+                        break;
+                    }
+                }
+                let path = request.split_whitespace().nth(1).unwrap_or("/");
+                let body = match path {
+                    "/v1/version" => {
+                        r#"{"version":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}"#
+                    }
+                    "/v1/health" => r#"{"machine":"m","version":"0","api":"v1"}"#,
+                    "/v1/claims" => r#"{"claims":[]}"#,
+                    "/v1/work" => r#"{"ready_unclaimed":0,"ranked":[],"blocked":[]}"#,
+                    "/v1/attempts" => r#"{"attempts":[]}"#,
+                    "/v1/decisions" => r#"{"decisions":[]}"#,
+                    _ => r#"{}"#,
+                };
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                stream
+                    .try_clone()
+                    .unwrap_or_else(|_| unreachable!("response"))
+                    .write_all(response.as_bytes())
+                    .unwrap_or_else(|_| unreachable!("write"));
+            }
+        });
+        (address, server)
+    }
+
+    #[test]
+    fn events_wait_for_a_change_then_return_one_consistent_snapshot() {
+        let (address, server) = event_server(1);
+        let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
+        assert!(matches!(
+            client.events_with_wait(Some("a".repeat(64)), 0),
+            Ok(EventFrame::Heartbeat)
+        ));
+        server.join().unwrap_or_else(|_| unreachable!("server"));
+
+        let (address, server) = event_server(7);
+        let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
+        let Ok(EventFrame::Snapshot { data }) = client.events_with_wait(None, 0) else {
+            unreachable!("snapshot")
+        };
+        let value: Value = serde_json::from_slice(&data).unwrap_or_else(|_| unreachable!("json"));
+        assert_eq!(value.pointer("/version"), Some(&json!("a".repeat(64))));
+        assert_eq!(value.pointer("/claims/claims"), Some(&json!([])));
+        assert_eq!(value.pointer("/work/ready_unclaimed"), Some(&json!(0)));
+        server.join().unwrap_or_else(|_| unreachable!("server"));
     }
 
     #[test]

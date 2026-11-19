@@ -25,12 +25,21 @@ commands, unchanged.
 ## Console page
 
 The Kiln web console serves `?page=fleet` beside Workers and Cairn changes. The
-page reads live claims, ranked and blocked work, attempts and decisions from the
-fleet coordinator's loopback listener, and offers the same explicit commands as
-the fleet CLI: acquire, renew, release, answer and cancel. The console forwards
-only the reviewed routes with bounded request and response bytes; the fleet
-service remains the authority for every command. Mutations require an operator
-principal, and Worker principals cannot read the page's API.
+page reads one snapshot through `/api/fleet/events`: a long-poll that waits for
+the fleet, work or attempt state identity to change, then returns an SSE frame
+with claims, ranked and blocked work, attempts and decisions. Heartbeats keep
+the connection alive. The page also offers the same explicit commands as the
+fleet CLI: acquire, renew, release, answer and cancel. The console forwards only
+the reviewed routes with bounded request and response bytes; the fleet service
+remains the authority for every command. Mutations require an operator principal,
+and Worker principals cannot read the page's API.
+
+The selected Cairn change also carries a read-only inline fleet panel: fleet
+attempts join by exact work identity, and host-wide claims are shown when no
+repository-scoped join exists. Its commands stay on the Fleet page.
+
+The console is responsive down to phone width and is reachable through the
+existing tailnet proxy; the fleet tables stack by field at narrow widths.
 
 Enable the projection with the runtime-only `--fleet <profile>` argument (the
 profile is outside the canonical service profile, so enabling observation does
@@ -103,12 +112,14 @@ kiln-fleet claim --scope '<target> <path>' --tool T --session S --purpose TEXT [
 kiln-fleet renew --claim ID --fence N [--lease-minutes N]
 kiln-fleet release --claim ID --fence N [--note TEXT]
 kiln-fleet claims | work | attempts | decisions
+kiln-fleet status [--format json|waybar|tmux] [--server URL]
+kiln-fleet watch [--interval SECONDS] [--iterations N] [--server URL]
 kiln-fleet handoff --attempt ID --fence N --commit SHA
 kiln-fleet answer --decision ID --text TEXT
 kiln-fleet cancel --attempt ID --reason TEXT
 ```
 
-Client commands default `--server` from `KILN_FLEET_SERVER`. They exit 0 with JSON on stdout, 1 for a refusal with JSON on stderr, and 2 for usage errors. `check-config` validates the document only, not the paths it names.
+Client commands default `--server` from `KILN_FLEET_SERVER`. They exit 0 with JSON on stdout, 1 for a refusal with JSON on stderr, and 2 for usage errors. `check-config` validates the document only, not the paths it names. `status` prints counts as JSON by default, or one Waybar/tmux line. `watch` renders a bounded ANSI dashboard from repeated live reads and stops after `--iterations` if given; actions remain ordinary `kiln-fleet` commands.
 
 The API serves one request per connection. Each connection and the dispatch thread open their own connection to the implementation store, whose methods are single SQLite transactions, and no store connection is held while a child process runs.
 
@@ -116,7 +127,9 @@ The API takes JSON bodies of at most 64 KiB. Every peer must be a configured mac
 
 | Route | Result |
 | --- | --- |
-| `GET /v1/health` | machine and version |
+| `GET /v1/health` | machine and release version |
+| `GET /v1/version` | BLAKE3 identity of the fleet, work and attempt row versions |
+| `GET /v1/metrics` | Prometheus text gauges for claims, ready/blocked work, attempts and decisions |
 | `GET /v1/claims` | open claims |
 | `POST /v1/claims` | 201 claim, 409 conflict, 400 invalid |
 | `POST /v1/claims/{id}/renew`, `/release` | 200, or 409 for a stale fence |
@@ -124,7 +137,9 @@ The API takes JSON bodies of at most 64 KiB. Every peer must be a configured mac
 | `POST /v1/attempts/{id}/handoff` | 202; only from the session's machine |
 | `POST /v1/attempts/{id}/cancel`, `/v1/decisions/{id}/answer` | operators only |
 
-The MCP server speaks newline-delimited JSON-RPC 2.0 on stdio (protocol `2025-06-18`) and offers the tools `kiln_claims`, `kiln_claim`, `kiln_renew`, `kiln_release`, `kiln_work`, `kiln_attempts`, `kiln_handoff` and `kiln_decisions`. It names the calling tool from `--tool` or from `clientInfo.name`. Every tool result is marked as untrusted data written by other agents.
+The MCP server speaks newline-delimited JSON-RPC 2.0 on stdio (protocol `2025-06-18`) and offers the tools `kiln_claims`, `kiln_claim`, `kiln_renew`, `kiln_release`, `kiln_work`, `kiln_attempts`, `kiln_handoff` and `kiln_decisions`. It names the calling tool from `--tool` or from `clientInfo.name`. Every tool result is marked as untrusted data written by other agents. It also exposes read-only resources `kiln-fleet://claims`, `kiln-fleet://work`, `kiln-fleet://attempts` and `kiln-fleet://decisions`; each resource text carries the same untrusted-data boundary.
+
+`/v1/metrics` is scrapeable on the coordinator's loopback listener. Suggested alerts: a decision open longer than 15 minutes, a claim expiring within 15 minutes, or no ready work while attempts are zero.
 
 ## Configuration
 

@@ -27,6 +27,8 @@ pub const USAGE: &str = "usage:
   kiln-fleet renew --claim ID --fence N [--lease-minutes N]
   kiln-fleet release --claim ID --fence N [--note TEXT]
   kiln-fleet claims | work | attempts | decisions
+  kiln-fleet status [--format json|waybar|tmux] [--server URL]
+  kiln-fleet watch [--interval SECONDS] [--iterations N] [--server URL]
   kiln-fleet handoff --attempt ID --fence N --commit SHA
   kiln-fleet answer --decision ID --text TEXT
   kiln-fleet cancel --attempt ID --reason TEXT
@@ -82,6 +84,9 @@ pub fn main_with(arguments: &[String]) -> i32 {
         "claims" | "work" | "attempts" | "decisions" => {
             flags(rest, &[], &["--server"]).and_then(|flags| call(&flags, "GET", format!("/v1/{command}"), None))
         }
+        "status" => flags(rest, &[], &["--format", "--server"]).and_then(|flags| status(&flags)),
+        "watch" => flags(rest, &[], &["--interval", "--iterations", "--server"])
+            .and_then(|flags| watch(&flags)),
         "handoff" => flags(rest, &["--attempt", "--fence", "--commit"], &["--server"]).and_then(|flags| {
             let body = json!({ "fence": number(&flags, "--fence")?, "commit": required(&flags, "--commit")? });
             let path = format!("/v1/attempts/{}/handoff", identity(&flags, "--attempt")?);
@@ -193,6 +198,195 @@ fn call(flags: &Flags, method: &str, path: String, body: Option<Value>) -> Resul
         Ok((status, value)) => refused(&json!({ "status": status, "response": value })),
         Err(error) => refused(&json!({ "error": error })),
     })
+}
+
+fn endpoint(client: &ApiClient, path: &str) -> Result<Value, String> {
+    match client.request("GET", path, None) {
+        Ok((status, value)) if (200..300).contains(&status) => Ok(value),
+        Ok((status, value)) => Err(format!("{path} returned {status}: {value}")),
+        Err(error) => Err(error),
+    }
+}
+
+fn overview(client: &ApiClient) -> Result<Value, String> {
+    Ok(json!({
+        "health": endpoint(client, "/v1/health")?,
+        "claims": endpoint(client, "/v1/claims")?,
+        "work": endpoint(client, "/v1/work")?,
+        "attempts": endpoint(client, "/v1/attempts")?,
+        "decisions": endpoint(client, "/v1/decisions")?,
+    }))
+}
+
+fn array_len(value: &Value, pointer: &str) -> usize {
+    value
+        .pointer(pointer)
+        .and_then(Value::as_array)
+        .map_or(0, Vec::len)
+}
+
+fn open_decisions(value: &Value) -> usize {
+    value
+        .pointer("/decisions")
+        .and_then(Value::as_array)
+        .map_or(0, |rows| {
+            rows.iter()
+                .filter(|row| {
+                    row.get("answer").is_none_or(Value::is_null)
+                        && row.get("closed_ms").is_none_or(Value::is_null)
+                })
+                .count()
+        })
+}
+
+fn counts(snapshot: &Value) -> (usize, usize, usize, usize) {
+    (
+        array_len(snapshot, "/claims/claims"),
+        snapshot
+            .pointer("/work/ready_unclaimed")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as usize,
+        array_len(snapshot, "/attempts/attempts"),
+        open_decisions(snapshot),
+    )
+}
+
+fn status(flags: &Flags) -> Result<i32, Usage> {
+    let client = server(flags)?;
+    let format = flags.get("--format").map_or("json", String::as_str);
+    if !matches!(format, "json" | "waybar" | "tmux") {
+        return Err(Usage("--format must be json, waybar or tmux".into()));
+    }
+    let snapshot = overview(&client).map_err(Usage)?;
+    let (claims, ready, attempts, decisions) = counts(&snapshot);
+    let machine = snapshot
+        .pointer("/health/machine")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    match format {
+        "waybar" => println!(
+            "{}",
+            json!({
+                "text": format!("Fleet C{claims} R{ready} A{attempts} D{decisions}"),
+                "alt": "fleet",
+                "class": if decisions > 0 { "fleet-attention" } else { "fleet" },
+                "tooltip": format!("{machine}: {claims} claims, {ready} ready work, {attempts} attempts, {decisions} open decisions"),
+            })
+        ),
+        "tmux" => println!("Fleet C:{claims} R:{ready} A:{attempts} D:{decisions}"),
+        _ => println!(
+            "{}",
+            json!({
+                "machine": machine,
+                "claims": claims,
+                "ready_work": ready,
+                "attempts": attempts,
+                "open_decisions": decisions,
+            })
+        ),
+    }
+    Ok(EXIT_OK)
+}
+
+fn scope_label(scope: &Value) -> String {
+    let target = scope
+        .pointer("/target/repository")
+        .or_else(|| scope.pointer("/target/machine"))
+        .or_else(|| scope.get("target"))
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    let path = scope
+        .pointer("/path/path")
+        .or_else(|| scope.get("path"))
+        .and_then(Value::as_str)
+        .unwrap_or("whole");
+    if path == "whole" {
+        target.to_owned()
+    } else {
+        format!("{target} {path}")
+    }
+}
+
+fn dashboard(snapshot: &Value) -> String {
+    let (claims, ready, attempts, decisions) = counts(snapshot);
+    let machine = snapshot
+        .pointer("/health/machine")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let mut text = format!(
+        "Fleet {machine}\nclaims {claims}  ready {ready}  attempts {attempts}  open decisions {decisions}\n\nClaims\n"
+    );
+    if let Some(rows) = snapshot.pointer("/claims/claims").and_then(Value::as_array) {
+        for row in rows {
+            let identity = row.get("identity").and_then(Value::as_str).unwrap_or("");
+            let holder = row
+                .pointer("/holder/tool")
+                .and_then(Value::as_str)
+                .unwrap_or("?");
+            let purpose = row.get("purpose").and_then(Value::as_str).unwrap_or("");
+            text.push_str(&format!(
+                "  {}  {:<40} {}  {}\n",
+                identity.chars().take(12).collect::<String>(),
+                scope_label(row.get("scope").unwrap_or(&Value::Null)),
+                holder,
+                purpose.chars().take(60).collect::<String>(),
+            ));
+        }
+    }
+    text.push_str("\nAttempts\n");
+    if let Some(rows) = snapshot
+        .pointer("/attempts/attempts")
+        .and_then(Value::as_array)
+    {
+        for row in rows {
+            let identity = row.get("attempt").and_then(Value::as_str).unwrap_or("");
+            let state = row.get("state").cloned().unwrap_or(Value::Null);
+            let repository = row.get("repository").and_then(Value::as_str).unwrap_or("");
+            text.push_str(&format!(
+                "  {}  {:<24} {}\n",
+                identity.chars().take(12).collect::<String>(),
+                state.to_string().chars().take(24).collect::<String>(),
+                repository,
+            ));
+        }
+    }
+    text
+}
+
+fn watch(flags: &Flags) -> Result<i32, Usage> {
+    let client = server(flags)?;
+    let interval = flags
+        .get("--interval")
+        .map_or(Ok(5_u64), |value| value.parse::<u64>())
+        .map_err(|_| Usage("--interval must be a positive integer".into()))?;
+    if interval == 0 || interval > 3_600 {
+        return Err(Usage(
+            "--interval must be between 1 and 3600 seconds".into(),
+        ));
+    }
+    let iterations = flags
+        .get("--iterations")
+        .map_or(Ok(0_u64), |value| value.parse::<u64>())
+        .map_err(|_| Usage("--iterations must be a non-negative integer".into()))?;
+    let mut seen = 0_u64;
+    loop {
+        let body = match overview(&client) {
+            Ok(snapshot) => dashboard(&snapshot),
+            Err(error) => format!("Fleet unavailable: {error}\n"),
+        };
+        print!(
+            "\x1b[2J\x1b[H{body}\nUpdated {}s",
+            crate::log::now_ms() / 1_000
+        );
+        std::io::stdout()
+            .flush()
+            .map_err(|_| Usage("cannot write the watch display".into()))?;
+        seen += 1;
+        if iterations != 0 && seen >= iterations {
+            return Ok(EXIT_OK);
+        }
+        std::thread::sleep(std::time::Duration::from_secs(interval));
+    }
 }
 
 fn mcp(flags: &Flags) -> Result<i32, Usage> {

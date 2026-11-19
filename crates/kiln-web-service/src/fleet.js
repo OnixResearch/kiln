@@ -4,7 +4,8 @@
 // attempt. The fleet service remains the authority for every command.
 (() => {
   "use strict";
-  const POLL_MS = 2000;
+  const STREAM_RECONNECT_MS = 100;
+  const STREAM_BACKOFF_MAX_MS = 30_000;
   const IDENTITY = /^[0-9a-f]{64}$/;
   const TOOL = "kiln-web";
   const SESSION_KEY = "kiln-fleet-session";
@@ -257,9 +258,9 @@
     state.mutating = true;
     button.disabled = true;
     try {
-      await state.context.api(path, { method: "POST", body, controller: state.controller });
+      await state.context.api(path, { method: "POST", body });
       if (form) form.reset();
-      await refresh(state);
+      restart(state);
     } catch (error) {
       if (error?.name !== "AbortError") {
         state.banner.textContent = error?.message || "The fleet coordinator rejected the command.";
@@ -271,62 +272,110 @@
     }
   }
 
-  async function refresh(state) {
-    if (state.inFlight || !state.context.isCurrent()) return;
-    state.inFlight = true;
-    try {
-      const [health, claims, work, attempts, decisions] = await Promise.all([
-        state.context.api("/api/fleet/health", { controller: state.controller, quiet: true }),
-        state.context.api("/api/fleet/claims", { controller: state.controller, quiet: true }),
-        state.context.api("/api/fleet/work", { controller: state.controller, quiet: true }),
-        state.context.api("/api/fleet/attempts", { controller: state.controller, quiet: true }),
-        state.context.api("/api/fleet/decisions", { controller: state.controller, quiet: true }),
-      ]);
-      validateHealth(health);
-      validateClaims(claims);
-      validateWork(work);
-      validateAttempts(attempts);
-      validateDecisions(decisions);
-      const sig = JSON.stringify([claims, work, attempts, decisions]);
-      if (sig !== state.signature) {
-        state.signature = sig;
-        renderClaims(state, claims.claims);
-        renderWork(state, work);
-        renderAttempts(state, attempts.attempts);
-        renderDecisions(state, decisions.decisions);
+  function eventFrames(source) {
+    const frames = [];
+    for (const block of source.replace(/\r\n/g, "\n").split("\n\n")) {
+      if (!block.trim()) continue;
+      let event = "message";
+      let comment = false;
+      const data = [];
+      for (const line of block.split("\n")) {
+        if (line.startsWith(":")) comment = true;
+        else if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data.push(line.slice(5).replace(/^ /, ""));
       }
-      state.machine.textContent = `${health.machine} · fleet ${health.version}`;
-      state.updated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      if (data.length) frames.push({ event, data: data.join("\n") });
+      else if (comment) frames.push({ event: "heartbeat", data: "" });
+    }
+    return frames;
+  }
+
+  function applySnapshot(state, snapshot) {
+    if (!record(snapshot) || !Number.isSafeInteger(snapshot.version) || snapshot.version < 0) throw new Error("Fleet event response is invalid.");
+    validateHealth(snapshot.health);
+    validateClaims(snapshot.claims);
+    validateWork(snapshot.work);
+    validateAttempts(snapshot.attempts);
+    validateDecisions(snapshot.decisions);
+    const sig = JSON.stringify([snapshot.claims, snapshot.work, snapshot.attempts, snapshot.decisions]);
+    if (sig !== state.signature) {
+      state.signature = sig;
+      renderClaims(state, snapshot.claims.claims);
+      renderWork(state, snapshot.work);
+      renderAttempts(state, snapshot.attempts.attempts);
+      renderDecisions(state, snapshot.decisions.decisions);
+    }
+    state.machine.textContent = `${snapshot.health.machine} · fleet ${snapshot.health.version}`;
+    state.updated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    state.banner.classList.remove("show");
+    state.banner.textContent = "";
+    state.failures = 0;
+  }
+
+  async function stream(state) {
+    if (state.inFlight || !state.context.isCurrent()) return;
+    const epoch = state.epoch;
+    state.inFlight = true;
+    const controller = new AbortController();
+    state.controller = controller;
+    try {
+      const query = state.version ? `?after=${encodeURIComponent(state.version)}` : "";
+      const source = await state.context.api(`/api/fleet/events${query}`, { kind: "sse", quiet: true, controller });
+      if (epoch !== state.epoch || !state.context.isCurrent()) return;
+      let recognized = false;
+      for (const frame of eventFrames(source)) {
+        if (frame.event === "snapshot") {
+          const snapshot = JSON.parse(frame.data);
+          applySnapshot(state, snapshot);
+          state.version = String(snapshot.version);
+          recognized = true;
+        } else if (frame.event === "heartbeat") {
+          state.updated.textContent = "Live · waiting for changes";
+          recognized = true;
+        }
+      }
+      if (!recognized) throw new Error("The fleet event endpoint returned no snapshot or heartbeat.");
+      state.failures = 0;
       state.banner.classList.remove("show");
       state.banner.textContent = "";
+      if (epoch === state.epoch && state.context.isCurrent()) {
+        clearTimeout(state.timer);
+        state.timer = setTimeout(() => { void stream(state); }, STREAM_RECONNECT_MS);
+      }
     } catch (error) {
-      if (error?.name === "AbortError") return;
+      if (error?.name === "AbortError" || epoch !== state.epoch) return;
+      state.failures += 1;
       state.banner.textContent = `Fleet unavailable: ${error?.message || "the coordinator did not answer."}`;
       state.banner.classList.add("show");
       state.updated.textContent = "Stale";
+      if (state.context.isCurrent()) {
+        clearTimeout(state.timer);
+        const delay = Math.min(STREAM_BACKOFF_MAX_MS, 1_000 * 2 ** (state.failures - 1));
+        state.timer = setTimeout(() => { void stream(state); }, delay);
+      }
     } finally {
-      state.inFlight = false;
+      if (epoch === state.epoch) state.inFlight = false;
     }
   }
 
-  function schedule(state) {
+  function restart(state) {
+    state.epoch += 1;
+    state.controller?.abort();
+    state.inFlight = false;
     clearTimeout(state.timer);
-    state.timer = setTimeout(() => {
-      if (active !== state || !state.context.isCurrent()) return;
-      if (document.visibilityState === "visible") void refresh(state);
-      schedule(state);
-    }, POLL_MS);
+    void stream(state);
   }
 
   function onVisible() {
-    if (active && document.visibilityState === "visible" && active.context.isCurrent()) void refresh(active);
+    if (active && document.visibilityState === "visible" && active.context.isCurrent()) restart(active);
   }
 
   let active = null;
   function load(root, context) {
     clear();
     const state = {
-      root, context, controller: new AbortController(), timer: 0, inFlight: false, mutating: false, signature: "",
+      root, context, controller: null, timer: 0, inFlight: false, mutating: false, signature: "",
+      version: "", epoch: 0, failures: 0,
     };
     const page = element("div", undefined, "fleet-page");
     const head = element("section", undefined, "panel fleet-summary");
@@ -384,14 +433,13 @@
     renderAcquire(state);
     active = state;
     document.addEventListener("visibilitychange", onVisible);
-    void refresh(state);
-    schedule(state);
+    void stream(state);
   }
 
   function clear() {
     if (active) {
       clearTimeout(active.timer);
-      active.controller.abort();
+      active.controller?.abort();
       active = null;
     }
     document.removeEventListener("visibilitychange", onVisible);

@@ -147,6 +147,33 @@ fn client_commands_report_http_outcomes() -> TestResult {
         .pointer("/claim/identity")
         .and_then(Value::as_str)
         .ok_or("identity")?;
+    let status = kiln_fleet(&["status", "--server", &server])?;
+    assert_eq!(status.status.code(), Some(0));
+    assert_eq!(json(&status.stdout)?.get("claims"), Some(&Value::from(1)));
+    let waybar = kiln_fleet(&["status", "--format", "waybar", "--server", &server])?;
+    assert_eq!(waybar.status.code(), Some(0));
+    assert!(
+        json(&waybar.stdout)?
+            .get("text")
+            .and_then(Value::as_str)
+            .is_some_and(|text| text.contains("C1"))
+    );
+    let tmux = kiln_fleet(&["status", "--format", "tmux", "--server", &server])?;
+    assert_eq!(tmux.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&tmux.stdout).contains("Fleet C:1"));
+    let watch = kiln_fleet(&[
+        "watch",
+        "--iterations",
+        "1",
+        "--interval",
+        "1",
+        "--server",
+        &server,
+    ])?;
+    assert_eq!(watch.status.code(), Some(0));
+    let display = String::from_utf8_lossy(&watch.stdout);
+    assert!(display.contains("Fleet britton-desktop"));
+    assert!(display.contains("Claims"));
     let released = kiln_fleet(&[
         "release", "--claim", identity, "--fence", "1", "--note", "done", "--server", &server,
     ])?;

@@ -44,3 +44,11 @@
   .fleet-acquire { grid-template-columns: minmax(0, 1fr); }
   .fleet-status { justify-items: start; text-align: left; }
 }
+@media (max-width: 30rem) {
+  .fleet-summary-head { flex-direction: column; align-items: stretch; }
+  .fleet-status { justify-items: start; text-align: left; }
+  .fleet-actions { flex-direction: column; align-items: stretch; }
+  .fleet-actions button { width: 100%; }
+  .fleet-answer { flex-direction: column; align-items: stretch; }
+  .fleet-answer input { max-width: none; }
+}

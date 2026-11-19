@@ -203,3 +203,22 @@ button.cairn-subject { min-height: 0; padding: 0; color: var(--foreground); text
   .cairn-lanebar-seg, .cairn-chip[data-lane]::before { forced-color-adjust: none; outline: 1px solid CanvasText; }
   .cairn-unit-row[data-open="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
+
+/* Inline fleet context in a selected change: read-only, joined by exact work identity where possible. */
+.cairn-fleet { display: grid; gap: var(--space-3); }
+.cairn-fleet > * + * { margin-top: 0; }
+.cairn-fleet > h3 { margin: 0; font-size: var(--text-lg); }
+.cairn-fleet-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border: 1px solid var(--frame); background: var(--secondary); }
+.cairn-fleet-counts > div { padding: var(--space-2) var(--space-3); border-right: 1px solid var(--border); }
+.cairn-fleet-counts > div:last-child { border-right: 0; }
+.cairn-fleet-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.cairn-fleet-list li { display: grid; grid-template-columns: minmax(7rem, auto) minmax(0, 1fr); gap: var(--space-1) var(--space-3); padding: var(--space-2); border: 1px solid var(--border); }
+.cairn-fleet-list li > * { min-width: 0; overflow-wrap: anywhere; }
+.cairn-fleet-link { justify-self: start; }
+.cairn-fleet-note { margin: 0; }
+@media (max-width: 40rem) {
+  .cairn-fleet-counts { grid-template-columns: minmax(0, 1fr); }
+  .cairn-fleet-counts > div { border-right: 0; border-bottom: 1px solid var(--border); }
+  .cairn-fleet-counts > div:last-child { border-bottom: 0; }
+  .cairn-fleet-list li { grid-template-columns: minmax(0, 1fr); }
+}

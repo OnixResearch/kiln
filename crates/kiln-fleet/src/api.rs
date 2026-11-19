@@ -150,6 +150,7 @@ impl Service {
                 200,
                 json!({ "machine": self.config.machine, "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION, "peer": machine }),
             )),
+            ("GET", ["version"]) => self.state_version(machine, now_ms),
             ("GET", ["claims"]) => self.list_claims(now_ms),
             ("POST", ["claims"]) => self.acquire(machine, &request.body, now_ms),
             ("POST", ["claims", id, "renew"]) => self.renew(machine, id, &request.body, now_ms),
@@ -161,12 +162,13 @@ impl Service {
             }
             ("POST", ["attempts", id, "cancel"]) => self.cancel(machine, id, &request.body, now_ms),
             ("GET", ["decisions"]) => self.decisions(),
+            ("GET", ["metrics"]) => self.metrics(now_ms),
             ("POST", ["decisions", id, "answer"]) => {
                 self.answer(machine, id, &request.body, now_ms)
             }
             (
                 _,
-                ["health" | "claims" | "work" | "attempts" | "decisions"]
+                ["health" | "version" | "claims" | "work" | "attempts" | "decisions" | "metrics"]
                 | ["claims", _, "renew" | "release"]
                 | ["attempts", _, "handoff" | "cancel"]
                 | ["decisions", _, "answer"],
@@ -211,6 +213,22 @@ impl Service {
                     ),
                 )
             })
+    }
+
+    fn state_version(&self, machine: &str, now_ms: u64) -> Handled {
+        let version = self
+            .open()?
+            .fleet_observation_version()
+            .map_err(|error| store_error(&error))?;
+        Ok(Response::new(
+            200,
+            json!({
+                "machine": self.config.machine,
+                "peer": machine,
+                "version": version,
+                "observed_ms": now_ms,
+            }),
+        ))
     }
 
     fn list_claims(&self, now_ms: u64) -> Handled {
@@ -538,6 +556,80 @@ impl Service {
             200,
             json!({ "attempt": attempt, "fence": current.fence, "cancelled": true, "sessions": sessions }),
         ))
+    }
+
+    fn metrics(&self, now_ms: u64) -> Handled {
+        let mut implementer = self.open()?;
+        let state = implementer
+            .fleet_state()
+            .map_err(|error| store_error(&error))?;
+        let version = implementer
+            .fleet_version()
+            .map_err(|error| store_error(&error))?;
+        let ledger = implementer.work().map_err(|error| store_error(&error))?;
+        let ready = implementer
+            .fleet_ready_work(now_ms)
+            .map_err(|error| store_error(&error))?;
+        let attempts = implementer
+            .fleet_attempt_views(now_ms)
+            .map_err(|error| store_error(&error))?
+            .len();
+        let claims = state.claims.live(now_ms).count();
+        let horizon = now_ms.saturating_add(15 * MS_PER_MINUTE);
+        let expiring = state
+            .claims
+            .live(now_ms)
+            .filter(|claim| claim.expires_ms <= horizon)
+            .count();
+        let blocked = ledger
+            .current()
+            .filter_map(|work| {
+                let key = work.canonical_key().ok()?;
+                matches!(ledger.eligibility_of(&key)?, Eligibility::Blocked { .. }).then_some(())
+            })
+            .count();
+        let decisions = state.decisions.decisions.values().count();
+        let open_decisions = state
+            .decisions
+            .decisions
+            .values()
+            .filter(|decision| decision.is_open())
+            .count();
+        let mut text = String::new();
+        use std::fmt::Write as _;
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_state_version Monotonic persisted fleet state version.\n# TYPE kiln_fleet_state_version gauge\nkiln_fleet_state_version {version}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_claims Live claims.\n# TYPE kiln_fleet_claims gauge\nkiln_fleet_claims {claims}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_claims_expiring_15m Live claims expiring within 15 minutes.\n# TYPE kiln_fleet_claims_expiring_15m gauge\nkiln_fleet_claims_expiring_15m {expiring}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_ready_work Canonical work currently eligible for a new attempt.\n# TYPE kiln_fleet_ready_work gauge\nkiln_fleet_ready_work {ready}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_blocked_work Canonical work with a recorded eligibility reason.\n# TYPE kiln_fleet_blocked_work gauge\nkiln_fleet_blocked_work {blocked}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_attempts Current attempt views.\n# TYPE kiln_fleet_attempts gauge\nkiln_fleet_attempts {attempts}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_decisions Decisions retained by the coordinator.\n# TYPE kiln_fleet_decisions gauge\nkiln_fleet_decisions {decisions}"
+        );
+        let _ = writeln!(
+            text,
+            "# HELP kiln_fleet_decisions_open Decisions neither answered nor closed.\n# TYPE kiln_fleet_decisions_open gauge\nkiln_fleet_decisions_open {open_decisions}"
+        );
+        Ok(Response::text(200, text))
     }
 
     fn decisions(&self) -> Handled {

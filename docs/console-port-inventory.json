@@ -776,7 +776,9 @@
         "/api/implementation/cairn",
         "/api/implementation/cairn/detail",
         "/api/implementation/campaigns/inbox",
-        "/api/implementation/campaigns/commands"
+        "/api/implementation/campaigns/commands",
+        "/api/fleet/claims",
+        "/api/fleet/attempts"
       ],
       "url_state": [
         "cairn_repository",
@@ -816,9 +818,8 @@
         "fleet.css"
       ],
       "api": [
-        "/api/fleet/health",
+        "/api/fleet/events",
         "/api/fleet/claims",
-        "/api/fleet/work",
         "/api/fleet/attempts",
         "/api/fleet/decisions"
       ],

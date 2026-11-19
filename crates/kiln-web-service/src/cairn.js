@@ -206,6 +206,7 @@
   }
   const count = (value) => (Number.isSafeInteger(value) && value >= 0 ? value : null);
   const strings = (value) => (Array.isArray(value) ? value.filter((item) => typeof item === "string") : []);
+  const str = (value) => (typeof value === "string" ? value : "");
   const list = (value) => (Array.isArray(value) ? value : []);
   function compareText(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
   // Unit counts per known lane; an absent or malformed count is unknown, not zero.
@@ -1327,6 +1328,61 @@
   }
   // r[impl kiln.cairn.workspace.scenario.detail] A change reads as next steps, units, dependencies and campaigns before its
   // identities; All changes, previous and next keep the register's filters, and Browse changes keeps the register itself.
+  // Read-only fleet context inside the selected change. Attempts join by exact work identity; claims are host-wide
+  // because a claim scope names a repository path, not a Cairn native unit. Commands stay on the Fleet page.
+  function fleetSection(detail) {
+    const panel = element("section", undefined, "panel cairn-fleet");
+    panel.append(element("h3", "Fleet coordination"), element("p", "Read-only claims and attempts from this host's fleet coordinator. Attempts join this change by exact work identity; claims are host-wide. Use the Fleet page to change them.", "small"));
+    const fleet = model.fleet;
+    if (!fleet || fleet.error) {
+      panel.append(element("p", fleet?.error ? `Fleet coordination unavailable: ${explain(fleet.error)}` : "Fleet coordination was not read.", "small cairn-fleet-note"));
+      return panel;
+    }
+    const work = new Set();
+    for (const unit of detail.units || []) for (const attempt of unit.attempts || []) if (attempt.work_identity) work.add(attempt.work_identity);
+    const claims = fleet.claims?.claims || [];
+    const attempts = (fleet.attempts?.attempts || []).filter((attempt) => work.has(attempt.work));
+    const counts = element("dl", undefined, "cairn-fleet-counts");
+    counts.append(readout("Host claims", String(claims.length)), readout("Attempts on this change", String(attempts.length)));
+    panel.append(counts);
+    if (claims.length) {
+      panel.append(element("h4", "Host claims", "cairn-subhead"));
+      const listNode = element("ul", undefined, "cairn-fleet-list");
+      for (const claim of claims.slice(0, 8)) {
+        const item = element("li");
+        const identity = str(claim.identity);
+        item.append(element("code", identity.slice(0, 12)), element("span", fleetScope(claim.scope), "small"), element("span", `${str(claim.holder?.tool) || "?"} on ${str(claim.holder?.host) || "?"}`, "small"), element("span", str(claim.purpose), "small"));
+        listNode.append(item);
+      }
+      panel.append(listNode);
+      if (claims.length > 8) panel.append(element("p", `Showing 8 of ${claims.length} host claims. Open Fleet for the rest.`, "small"));
+    }
+    if (attempts.length) {
+      panel.append(element("h4", "Fleet attempts on this change", "cairn-subhead"));
+      const listNode = element("ul", undefined, "cairn-fleet-list");
+      for (const attempt of attempts) {
+        const item = element("li");
+        const session = attempt.session || {};
+        item.append(element("code", str(attempt.attempt).slice(0, 12)), element("span", `${str(attempt.state)} · ${str(attempt.phase)}`, "small"), element("span", `${str(session.machine) || "machine not recorded"} ${str(session.agent_name) || ""}`, "small"));
+        listNode.append(item);
+      }
+      panel.append(listNode);
+    } else if (!claims.length) {
+      panel.append(element("p", "No live fleet claim or attempt is recorded for this host.", "small cairn-fleet-note"));
+    }
+    const linkNode = element("a", "Open Fleet", "button cairn-fleet-link");
+    linkNode.href = routeHref({ page: "fleet" });
+    panel.append(linkNode);
+    return panel;
+  }
+
+  function fleetScope(scope) {
+    if (!scope || typeof scope !== "object") return "Scope not recorded";
+    const target = typeof scope.target === "string" ? scope.target : scope.target?.repository || scope.target?.machine || "";
+    const path = typeof scope.path === "string" ? scope.path : scope.path?.path || "";
+    return `${target || "scope not recorded"}${path && path !== "whole" ? ` ${path}` : ""}`;
+  }
+
   function changePage(route, rows) {
     const page = element("div", undefined, "cairn-page");
     page.append(changeNav(route, rows));
@@ -1345,7 +1401,7 @@
     } else {
       const value = detail.value;
       const current = generation;
-      sheet.append(changeHeader(value), nextSteps(value, current), unitsSection(value, route), graphSection(value), campaignsSection(value), aboutSection(value));
+      sheet.append(changeHeader(value), fleetSection(value), nextSteps(value, current), unitsSection(value, route), graphSection(value), campaignsSection(value), aboutSection(value));
       page.append(sheet);
     }
     if (rows.length || model.index.error) page.append(disclosure(rows.length ? `Browse ${plural(rows.length, "change")}` : "Browse changes", "browse", registerPanel(route, rows, model.index, true)));
@@ -1426,9 +1482,29 @@
     if (detail?.value) {
       try { detailResult = { value: admitDetail(detail.value, route) }; } catch (error) { detailResult = { error }; }
     }
-    model = { index: indexResult, rows, detail: detailResult };
+    model = { index: indexResult, rows, detail: detailResult, fleet: undefined };
     render(container, normalizeRoute(context?.route));
+    if (route.change) void loadFleet(route, current, live);
     notice = "";
+  }
+
+  // Fleet reads never block the Cairn workspace. They update only the inline panel once both reads settle.
+  async function loadFleet(route, current, live) {
+    const read = (path) => Promise.resolve()
+      .then(() => context.api(path))
+      .then((value) => ({ value }), (error) => ({ error }));
+    const [claims, attempts] = await Promise.all([
+      read("/api/fleet/claims"),
+      read("/api/fleet/attempts"),
+    ]);
+    if (current !== generation || !live()) return;
+    model.fleet = claims.error || attempts.error
+      ? { error: claims.error || attempts.error }
+      : { claims: claims.value, attempts: attempts.value };
+    const node = mounted?.querySelector?.(".cairn-fleet");
+    if (node && typeof node.replaceWith === "function" && model.detail?.value) {
+      node.replaceWith(fleetSection(model.detail.value));
+    }
   }
   function clear() {
     generation += 1;

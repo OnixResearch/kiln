@@ -33,6 +33,8 @@ pub struct Response {
     pub body: Value,
     /// `Some` serves an HTML document instead of JSON.
     pub html: Option<String>,
+    /// `Some` serves plain text, including Prometheus exposition format.
+    pub text: Option<String>,
 }
 
 impl Response {
@@ -42,6 +44,7 @@ impl Response {
             status,
             body,
             html: None,
+            text: None,
         }
     }
 
@@ -52,6 +55,18 @@ impl Response {
             status,
             body: Value::Null,
             html: Some(document),
+            text: None,
+        }
+    }
+
+    /// One plain-text response, such as Prometheus metrics.
+    #[must_use]
+    pub const fn text(status: u16, body: String) -> Self {
+        Self {
+            status,
+            body: Value::Null,
+            html: None,
+            text: Some(body),
         }
     }
 
@@ -62,6 +77,7 @@ impl Response {
             status,
             body: serde_json::json!({ "error": message.into(), "code": code }),
             html: None,
+            text: None,
         }
     }
 }
@@ -219,13 +235,18 @@ pub fn read_request(reader: &mut impl Read) -> Result<Request, HttpError> {
 /// # Errors
 /// Returns the socket error.
 pub fn write_response(writer: &mut impl Write, response: &Response) -> std::io::Result<()> {
-    let (content_type, body, policy) = match &response.html {
-        Some(document) => (
+    let (content_type, body, policy) = match (&response.html, &response.text) {
+        (Some(document), _) => (
             "text/html; charset=utf-8",
             document.as_bytes().to_vec(),
             "Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'self'\r\n",
         ),
-        None => (
+        (None, Some(text)) => (
+            "text/plain; version=0.0.4; charset=utf-8",
+            text.as_bytes().to_vec(),
+            "",
+        ),
+        (None, None) => (
             "application/json",
             serde_json::to_vec(&response.body).unwrap_or_else(|_| b"{}".to_vec()),
             "",

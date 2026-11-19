@@ -112,7 +112,10 @@ impl McpServer {
                     &id,
                     json!({
                         "protocolVersion": PROTOCOL_VERSION,
-                        "capabilities": { "tools": { "listChanged": false } },
+                        "capabilities": {
+                            "tools": { "listChanged": false },
+                            "resources": { "listChanged": false }
+                        },
                         "serverInfo": { "name": SERVER_NAME, "version": env!("CARGO_PKG_VERSION") },
                         "instructions": format!("Kiln fleet claims, work, attempts, handoffs and decisions. {UNTRUSTED}"),
                     }),
@@ -124,8 +127,32 @@ impl McpServer {
                 Ok(result) => result_reply(&id, result),
                 Err(message) => error_reply(&id, INVALID_PARAMS, &message),
             },
+            "resources/list" => result_reply(&id, json!({ "resources": resources() })),
+            "resources/read" => match self.resource(&params) {
+                Ok(result) => result_reply(&id, result),
+                Err(message) => error_reply(&id, INVALID_PARAMS, &message),
+            },
             _ => error_reply(&id, METHOD_NOT_FOUND, "method not found"),
         })
+    }
+
+    fn resource(&self, params: &Value) -> Result<Value, String> {
+        let uri = params
+            .get("uri")
+            .and_then(Value::as_str)
+            .ok_or("resources/read needs a uri")?;
+        let path = resource_entry(uri).ok_or_else(|| format!("unknown resource {uri}"))?;
+        let (status, value) = self.client.request("GET", path, None)?;
+        if !(200..300).contains(&status) {
+            return Err(format!("fleet API returned {status}"));
+        }
+        Ok(json!({
+            "contents": [{
+                "uri": uri,
+                "mimeType": "application/json",
+                "text": value.to_string(),
+            }]
+        }))
     }
 
     fn call(&self, params: &Value) -> Result<Value, String> {
@@ -266,6 +293,52 @@ pub fn tool_for_client(name: &str) -> String {
     } else {
         trimmed.to_owned()
     }
+}
+
+fn resource_entry(uri: &str) -> Option<&'static str> {
+    match uri {
+        "kiln-fleet://claims" => Some("/v1/claims"),
+        "kiln-fleet://work" => Some("/v1/work"),
+        "kiln-fleet://attempts" => Some("/v1/attempts"),
+        "kiln-fleet://decisions" => Some("/v1/decisions"),
+        _ => None,
+    }
+}
+
+fn resources() -> Value {
+    [
+        (
+            "kiln-fleet://claims",
+            "Open fleet claims",
+            "Live claims with holders, scopes, fences and lease expiry.",
+        ),
+        (
+            "kiln-fleet://work",
+            "Fleet work",
+            "Ranked ready work and canonical work blocked with reasons.",
+        ),
+        (
+            "kiln-fleet://attempts",
+            "Fleet attempts",
+            "Attempts with phase, session and lease observations.",
+        ),
+        (
+            "kiln-fleet://decisions",
+            "Fleet decisions",
+            "Questions raised by fleet work and their recorded answers.",
+        ),
+    ]
+    .into_iter()
+    .map(|(uri, name, description)| {
+        json!({
+            "uri": uri,
+            "name": name,
+            "description": format!("{description} {UNTRUSTED}"),
+            "mimeType": "application/json",
+        })
+    })
+    .collect::<Vec<_>>()
+    .into()
 }
 
 fn tools() -> Value {

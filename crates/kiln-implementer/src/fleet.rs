@@ -74,6 +74,38 @@ impl Implementer {
         self.with_fleet(Access::Read, |fleet| Ok(fleet.clone()))
     }
 
+    /// Monotonic version of the persisted fleet state row. Readers use it to
+    /// observe changes without copying the whole registry.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic, or `fleet_state_schema` for a row written
+    /// under another schema.
+    pub fn fleet_version(&mut self) -> Result<u64, String> {
+        let transaction = begin(&mut self.connection, Access::Read)?;
+        let (_, version) = load_fleet(&transaction)?;
+        transaction.commit().map_err(text)?;
+        Ok(version)
+    }
+
+    /// BLAKE3 identity of the fleet, work and attempt row versions. A change in
+    /// any projection the console reads changes this value, even when the
+    /// fleet claim registry itself is untouched.
+    ///
+    /// # Errors
+    /// Returns the store diagnostic.
+    pub fn fleet_observation_version(&mut self) -> Result<String, String> {
+        let transaction = begin(&mut self.connection, Access::Read)?;
+        let (_, fleet) = load_fleet(&transaction)?;
+        let (_, work) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (_, attempts) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        transaction.commit().map_err(text)?;
+        Ok(
+            blake3::hash(format!("{fleet}:{work}:{attempts}").as_bytes())
+                .to_hex()
+                .to_string(),
+        )
+    }
+
     /// The repository and permitted paths of every current, unexpired attempt
     /// in a claimed, executing, candidate-produced or verifying phase.
     ///

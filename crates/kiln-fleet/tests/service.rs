@@ -130,6 +130,24 @@ fn peers_are_loopback_or_configured_tailnet_nodes() -> TestResult {
     assert_eq!(health.status, 200);
     assert_eq!(text(&health.body, "/peer"), PEER);
     assert_eq!(text(&health.body, "/machine"), COORDINATOR);
+    let version = fixture.call(COORDINATOR, "GET", "/v1/version", None);
+    assert_eq!(version.status, 200);
+    assert!(
+        text(&version.body, "/version")
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit())
+    );
+    assert_eq!(text(&version.body, "/version").len(), 64);
+    let metrics = fixture.call(COORDINATOR, "GET", "/v1/metrics", None);
+    assert_eq!(metrics.status, 200);
+    let text = metrics.text.as_deref().unwrap_or_default();
+    assert!(text.contains("kiln_fleet_claims 0"));
+    assert!(text.contains("kiln_fleet_decisions_open 0"));
+    let mut bytes = Vec::new();
+    kiln_fleet::http::write_response(&mut bytes, &metrics)?;
+    assert!(String::from_utf8_lossy(&bytes).starts_with(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain; version=0.0.4; charset=utf-8\r\n"
+    ));
     Ok(())
 }
 
@@ -461,6 +479,35 @@ fn mcp_tools_call_the_api() -> TestResult {
             .iter()
             .all(|tool| text(tool, "/description").contains("untrusted data"))
     );
+    let resources = mcp_call(&mut server, 9, "resources/list", json!({}))?;
+    let resources = resources
+        .pointer("/result/resources")
+        .and_then(Value::as_array)
+        .ok_or("no resources")?;
+    let uris: Vec<&str> = resources.iter().map(|entry| text(entry, "/uri")).collect();
+    assert_eq!(
+        uris,
+        [
+            "kiln-fleet://claims",
+            "kiln-fleet://work",
+            "kiln-fleet://attempts",
+            "kiln-fleet://decisions"
+        ]
+    );
+    let claims_resource = mcp_call(
+        &mut server,
+        10,
+        "resources/read",
+        json!({ "uri": "kiln-fleet://claims" }),
+    )?;
+    assert!(text(&claims_resource, "/result/contents/0/text").contains("claims"));
+    let unknown_resource = mcp_call(
+        &mut server,
+        11,
+        "resources/read",
+        json!({ "uri": "kiln-fleet://nope" }),
+    )?;
+    assert!(unknown_resource.get("error").is_some());
 
     let claimed = mcp_call(
         &mut server,
