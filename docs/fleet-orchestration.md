@@ -25,10 +25,10 @@ commands, unchanged.
 ## Console page
 
 The Kiln web console serves `?page=fleet` beside Workers and Cairn changes. The
-page reads one snapshot through `/api/fleet/events`: a long-poll that waits for
-the fleet, work or attempt state identity to change, then returns an SSE frame
-with claims, ranked and blocked work, attempts and decisions. Heartbeats keep
-the connection alive. The page also offers the same explicit commands as the
+page opens one persistent SSE stream at `/api/fleet/events`; the console writes
+an initial snapshot and then a new frame whenever the aggregate fleet/work/attempt
+identity changes, with heartbeats while idle. The stream closes after 45 minutes
+and the page reconnects. The page also offers the same explicit commands as the
 fleet CLI: acquire, renew, release, answer and cancel. The console forwards only
 the reviewed routes with bounded request and response bytes; the fleet service
 remains the authority for every command. Mutations require an operator principal,
@@ -119,7 +119,7 @@ kiln-fleet answer --decision ID --text TEXT
 kiln-fleet cancel --attempt ID --reason TEXT
 ```
 
-Client commands default `--server` from `KILN_FLEET_SERVER`. They exit 0 with JSON on stdout, 1 for a refusal with JSON on stderr, and 2 for usage errors. `check-config` validates the document only, not the paths it names. `status` prints counts as JSON by default, or one Waybar/tmux line. `watch` renders a bounded ANSI dashboard from repeated live reads and stops after `--iterations` if given; actions remain ordinary `kiln-fleet` commands.
+Client commands default `--server` from `KILN_FLEET_SERVER`. They exit 0 with JSON on stdout, 1 for a refusal with JSON on stderr, and 2 for usage errors. `check-config` validates the document only, not the paths it names. `status` prints counts as JSON by default, or one Waybar/tmux line. `watch` renders a bounded ANSI dashboard from repeated live reads and stops after `--iterations` if given. While watching, line commands `renew ID FENCE [MINUTES]`, `release ID FENCE [NOTE]`, `answer ID TEXT`, `cancel ID REASON` and `quit` call the same API; the next render shows the result.
 
 The API serves one request per connection. Each connection and the dispatch thread open their own connection to the implementation store, whose methods are single SQLite transactions, and no store connection is held while a child process runs.
 

@@ -1501,10 +1501,7 @@
     model.fleet = claims.error || attempts.error
       ? { error: claims.error || attempts.error }
       : { claims: claims.value, attempts: attempts.value };
-    const node = mounted?.querySelector?.(".cairn-fleet");
-    if (node && typeof node.replaceWith === "function" && model.detail?.value) {
-      node.replaceWith(fleetSection(model.detail.value));
-    }
+    if (mounted && model.detail?.value) render(mounted, normalizeRoute(context?.route));
   }
   function clear() {
     generation += 1;

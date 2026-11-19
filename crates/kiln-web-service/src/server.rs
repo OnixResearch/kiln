@@ -279,6 +279,7 @@ pub fn run_with_options(path: &Path, options: &Options) -> Result<(), String> {
         implementation_work: options.implementation_work.as_deref(),
         campaign_controls: campaign_controls.as_ref(),
         fleet: fleet.as_ref(),
+        stop: &stop,
     };
     // r[impl kiln.web.deploy.runtime] Readiness follows TLS, listener and canonical state initialization.
     notify::ready()?;
@@ -508,6 +509,7 @@ struct Context<'a> {
     implementation_work: Option<&'a Path>,
     campaign_controls: Option<&'a crate::campaign_controls::Controls>,
     fleet: Option<&'a crate::fleet::Client>,
+    stop: &'a AtomicBool,
 }
 
 fn tls_config(profile: &ServiceProfile) -> Result<Arc<ServerConfig>, String> {
@@ -557,14 +559,29 @@ fn connection(
     let stream = DeadlineStream { stream, deadline };
     let connection = ServerConnection::new(tls).map_err(std::io::Error::other)?;
     let mut stream = StreamOwned::new(connection, stream);
-    let response = match read_request(
+    let request = match read_request(
         &mut BufReader::new(&mut stream),
         context.profile.bounds.max_header_bytes,
         context.profile.bounds.max_request_bytes,
     ) {
-        Ok(request) => route(request, context),
-        Err(status) => error_response(status, "request_rejected"),
+        Ok(request) => request,
+        Err(status) => {
+            return write_response(&mut stream, error_response(status, "request_rejected"));
+        }
     };
+    if request.method == "GET"
+        && request
+            .target
+            .split_once('?')
+            .map_or(request.target.as_str(), |(path, _)| path)
+            == "/api/fleet/events"
+    {
+        stream.get_mut().deadline = Instant::now()
+            .checked_add(Duration::from_secs(45 * 60))
+            .ok_or_else(|| std::io::Error::other("stream deadline invalid"))?;
+        return fleet_stream(&mut stream, &request, context);
+    }
+    let response = route(request, context);
     write_response(&mut stream, response)
 }
 
@@ -714,31 +731,54 @@ fn read_request<R: BufRead>(
 }
 
 // r[impl kiln.web.authentication]
-fn route(request: Request, context: &Context<'_>) -> ApiResponse {
+fn authenticate_http(
+    request: &Request,
+    context: &Context<'_>,
+) -> Result<Option<Principal>, ApiResponse> {
     let principal = context.credentials.authenticate_request(
-        header(&request, "authorization"),
-        header(&request, "x-kiln-proxy-key"),
-        header(&request, "x-kiln-principal"),
+        header(request, "authorization"),
+        header(request, "x-kiln-proxy-key"),
+        header(request, "x-kiln-principal"),
     );
     let host = context
         .profile
         .origin
         .strip_prefix("https://")
         .unwrap_or("");
-    if header(&request, "host") != Some(host)
-        || header(&request, "origin").is_some_and(|origin| origin != context.profile.origin)
+    if header(request, "host") != Some(host)
+        || header(request, "origin").is_some_and(|origin| origin != context.profile.origin)
     {
-        return denied(&request, context, principal.as_ref(), 403, "origin_denied");
+        return Err(denied(
+            request,
+            context,
+            principal.as_ref(),
+            403,
+            "origin_denied",
+        ));
     }
-    if forbidden_identity(&request) {
-        return denied(&request, context, None, 403, "identity_header_denied");
+    if forbidden_identity(request) {
+        return Err(denied(
+            request,
+            context,
+            None,
+            403,
+            "identity_header_denied",
+        ));
     }
     if principal.is_none()
-        && (header(&request, "x-kiln-proxy-key").is_some()
-            || header(&request, "x-kiln-principal").is_some())
+        && (header(request, "x-kiln-proxy-key").is_some()
+            || header(request, "x-kiln-principal").is_some())
     {
-        return denied(&request, context, None, 401, "proxy_identity_denied");
+        return Err(denied(request, context, None, 401, "proxy_identity_denied"));
     }
+    Ok(principal)
+}
+
+fn route(request: Request, context: &Context<'_>) -> ApiResponse {
+    let principal = match authenticate_http(&request, context) {
+        Ok(principal) => principal,
+        Err(response) => return response,
+    };
     if request.method == "GET"
         && (request.target.starts_with("/feeds.xml")
             || request.target.starts_with("/feeds.rss")
@@ -806,9 +846,6 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
         if path == "/api/fleet" || path.starts_with("/api/fleet/") {
             if principal.role == crate::engine::Role::Worker {
                 return denied(&request, context, Some(&principal), 403, "fleet_read_only");
-            }
-            if path == "/api/fleet/events" {
-                return fleet_events(&request, context);
             }
             return fleet_response(&request, context, &principal);
         }
@@ -1059,33 +1096,59 @@ fn event_after(target: &str) -> Result<Option<String>, ()> {
 // r[impl kiln.web.network.boundaries] The console projects only the reviewed
 // fleet coordinator routes over its loopback listener. It never stores fleet
 // authority, and every mutation still passes the fleet service's own checks.
-fn fleet_events(request: &Request, context: &Context<'_>) -> ApiResponse {
-    if request.method != "GET" {
-        return error_response(405, "method_denied");
+fn fleet_stream<W: Write>(
+    writer: &mut W,
+    request: &Request,
+    context: &Context<'_>,
+) -> std::io::Result<()> {
+    let principal = match authenticate_http(request, context) {
+        Ok(Some(principal)) => principal,
+        Ok(None) => return write_response(writer, error_response(401, "unauthorized")),
+        Err(response) => return write_response(writer, response),
+    };
+    if principal.role == crate::engine::Role::Worker {
+        return write_response(
+            writer,
+            denied(request, context, Some(&principal), 403, "fleet_read_only"),
+        );
+    }
+    if let Err((status, code)) = api_admission(request, &context.profile.origin, Some(&principal)) {
+        return write_response(
+            writer,
+            denied(request, context, Some(&principal), status, code),
+        );
     }
     let Some(client) = context.fleet else {
-        return error_response(503, "fleet_unavailable");
+        return write_response(writer, error_response(503, "fleet_unavailable"));
     };
-    let Ok(after) = event_after(&request.target) else {
-        return error_response(400, "fleet_after_invalid");
+    let Ok(mut after) = event_after(&request.target) else {
+        return write_response(writer, error_response(400, "fleet_after_invalid"));
     };
-    let body = match client.events(after) {
-        Ok(crate::fleet::EventFrame::Snapshot { data }) => {
-            let Ok(data) = String::from_utf8(data) else {
-                return error_response(503, "fleet_unavailable");
-            };
-            format!("event: snapshot\ndata: {data}\n\n").into_bytes()
+    write!(
+        writer,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: close\r\n{SECURITY_HEADERS}\r\n"
+    )?;
+    writer.flush()?;
+    let deadline = Instant::now()
+        .checked_add(Duration::from_secs(45 * 60))
+        .ok_or_else(|| std::io::Error::other("stream deadline invalid"))?;
+    while Instant::now() < deadline && !context.stop.load(Ordering::Acquire) {
+        let (wrote, failed) = match client.events(after.clone()) {
+            Ok(crate::fleet::EventFrame::Snapshot { version, data }) => {
+                let Ok(data) = String::from_utf8(data) else {
+                    break;
+                };
+                after = Some(version);
+                (write!(writer, "event: snapshot\ndata: {data}\n\n"), false)
+            }
+            Ok(crate::fleet::EventFrame::Heartbeat) => (write!(writer, ": heartbeat\n\n"), false),
+            Err(()) => (write!(writer, ": unavailable\n\n"), true),
+        };
+        if wrote.is_err() || writer.flush().is_err() || failed {
+            break;
         }
-        Ok(crate::fleet::EventFrame::Heartbeat) => b": heartbeat\n\n".to_vec(),
-        Err(()) => return error_response(503, "fleet_unavailable"),
-    };
-    ApiResponse {
-        status: 200,
-        content_type: "text/event-stream",
-        body,
-        download_name: None,
-        headers: vec![("Cache-Control", "no-store".to_owned())],
     }
+    Ok(())
 }
 
 fn fleet_response(request: &Request, context: &Context<'_>, principal: &Principal) -> ApiResponse {

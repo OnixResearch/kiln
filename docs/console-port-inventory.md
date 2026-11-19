@@ -42,12 +42,13 @@ search, lane, blocker and open-decision filters, and List/Board view. The
 inventory is a description of the served console, not a new command surface:
 the canonical campaign owner still admits every decision command separately.
 
-For **Fleet** (2.8), `/api/fleet/events` long-polls one snapshot of the fleet
-coordinator's loopback API and returns SSE frames when its aggregate state
-identity changes. The same `/api/fleet/*` paths carry the operator's acquire,
-renew, release, answer and cancel commands. The page keeps no URL state and
-reconnects after each frame; visibility changes restart it immediately. The
-fleet service remains the authority for every command.
+For **Fleet** (2.8), `/api/fleet/events` is one persistent SSE response over
+the fleet coordinator's loopback API, emitting snapshots when its aggregate
+state identity changes and heartbeats while idle. The same `/api/fleet/*` paths
+carry the operator's acquire, renew, release, answer and cancel commands. The
+page keeps no URL state; the stream closes after 45 minutes and reconnects, and
+visibility changes restart it immediately. The fleet service remains the
+authority for every command.
 
 ## Cohorts
 

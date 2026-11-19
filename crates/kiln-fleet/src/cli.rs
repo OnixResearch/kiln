@@ -2,7 +2,7 @@
 //! HTTP errors with JSON on stderr; 2 for usage errors.
 
 use std::collections::BTreeMap;
-use std::io::Write;
+use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -359,6 +359,95 @@ fn dashboard(snapshot: &Value) -> String {
     text
 }
 
+fn watch_command(client: &ApiClient, line: &str) -> String {
+    let mut parts = line.splitn(4, ' ');
+    let Some(command) = parts.next() else {
+        return "No command.".into();
+    };
+    let identity = parts.next().unwrap_or_default();
+    let valid_identity = |value: &str| {
+        value.len() == 64
+            && value
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    };
+    let request = match command {
+        "help" => {
+            return "renew ID FENCE [MINUTES] | release ID FENCE [NOTE] | answer ID TEXT | cancel ID REASON | quit"
+                .into()
+        }
+        "renew" => {
+            let Some(fence) = parts.next().and_then(|value| value.parse::<u64>().ok()) else {
+                return "renew needs ID FENCE [MINUTES]".into();
+            };
+            if !valid_identity(identity) {
+                return "renew needs a 64-character lowercase hex claim id".into();
+            }
+            let mut body = json!({ "fence": fence });
+            if let Some(minutes) = parts.next().and_then(|value| value.parse::<u64>().ok()) {
+                if let Some(object) = body.as_object_mut() {
+                    object.insert("lease_minutes".into(), json!(minutes));
+                }
+            }
+            (
+                "POST",
+                format!("/v1/claims/{identity}/renew"),
+                Some(body),
+            )
+        }
+        "release" => {
+            let Some(fence) = parts.next().and_then(|value| value.parse::<u64>().ok()) else {
+                return "release needs ID FENCE [NOTE]".into();
+            };
+            if !valid_identity(identity) {
+                return "release needs a 64-character lowercase hex claim id".into();
+            }
+            let mut body = json!({ "fence": fence });
+            if let Some(note) = parts.next().filter(|note| !note.trim().is_empty()) {
+                if let Some(object) = body.as_object_mut() {
+                    object.insert("note".into(), json!(note));
+                }
+            }
+            (
+                "POST",
+                format!("/v1/claims/{identity}/release"),
+                Some(body),
+            )
+        }
+        "answer" => {
+            let Some(text) = parts.next().filter(|text| !text.trim().is_empty()) else {
+                return "answer needs ID TEXT".into();
+            };
+            if !valid_identity(identity) {
+                return "answer needs a 64-character lowercase hex decision id".into();
+            }
+            (
+                "POST",
+                format!("/v1/decisions/{identity}/answer"),
+                Some(json!({ "text": text })),
+            )
+        }
+        "cancel" => {
+            let Some(reason) = parts.next().filter(|reason| !reason.trim().is_empty()) else {
+                return "cancel needs ID REASON".into();
+            };
+            if !valid_identity(identity) {
+                return "cancel needs a 64-character lowercase hex attempt id".into();
+            }
+            (
+                "POST",
+                format!("/v1/attempts/{identity}/cancel"),
+                Some(json!({ "reason": reason })),
+            )
+        }
+        other => return format!("Unknown command {other}. Type help."),
+    };
+    match client.request(request.0, &request.1, request.2.as_ref()) {
+        Ok((status, value)) => format!("{status} {value}"),
+        Err(error) => error,
+    }
+}
+
 fn watch(flags: &Flags) -> Result<i32, Usage> {
     let client = server(flags)?;
     let interval = flags
@@ -374,14 +463,29 @@ fn watch(flags: &Flags) -> Result<i32, Usage> {
         .get("--iterations")
         .map_or(Ok(0_u64), |value| value.parse::<u64>())
         .map_err(|_| Usage("--iterations must be a non-negative integer".into()))?;
+    let (sender, receiver) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        let stdin = std::io::stdin();
+        for line in stdin.lock().lines() {
+            match line {
+                Ok(line) => {
+                    if sender.send(line).is_err() {
+                        break;
+                    }
+                }
+                Err(_) => break,
+            }
+        }
+    });
     let mut seen = 0_u64;
+    let mut notice = String::new();
     loop {
         let body = match overview(&client) {
             Ok(snapshot) => dashboard(&snapshot),
             Err(error) => format!("Fleet unavailable: {error}\n"),
         };
         print!(
-            "\x1b[2J\x1b[H{body}\nUpdated {}s",
+            "\x1b[2J\x1b[H{body}\n{notice}\nUpdated {}s\nCommands: renew ID FENCE [MINUTES] | release ID FENCE [NOTE] | answer ID TEXT | cancel ID REASON | quit",
             crate::log::now_ms() / 1_000
         );
         std::io::stdout()
@@ -391,7 +495,31 @@ fn watch(flags: &Flags) -> Result<i32, Usage> {
         if iterations != 0 && seen >= iterations {
             return Ok(EXIT_OK);
         }
-        std::thread::sleep(std::time::Duration::from_secs(interval));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(interval);
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                break;
+            }
+            match receiver.recv_timeout(remaining) {
+                Ok(line) => {
+                    let line = line.trim();
+                    if line.eq_ignore_ascii_case("quit") || line.eq_ignore_ascii_case("q") {
+                        return Ok(EXIT_OK);
+                    }
+                    if line.is_empty() {
+                        continue;
+                    }
+                    notice = watch_command(&client, line);
+                    break;
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => break,
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                    std::thread::sleep(remaining);
+                    break;
+                }
+            }
+        }
     }
 }
 

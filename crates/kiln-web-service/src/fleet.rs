@@ -74,7 +74,7 @@ pub(crate) struct Reply {
 }
 
 pub(crate) enum EventFrame {
-    Snapshot { data: Vec<u8> },
+    Snapshot { version: String, data: Vec<u8> },
     Heartbeat,
 }
 
@@ -194,7 +194,7 @@ impl Client {
             "decisions": decisions,
         }))
         .map_err(|_| ())?;
-        Ok(EventFrame::Snapshot { data })
+        Ok(EventFrame::Snapshot { version, data })
     }
 }
 
@@ -422,9 +422,10 @@ mod tests {
 
         let (address, server) = event_server(6);
         let client = Client::new(&profile(address)).unwrap_or_else(|_| unreachable!("client"));
-        let Ok(EventFrame::Snapshot { data }) = client.events_with_wait(None, 0) else {
+        let Ok(EventFrame::Snapshot { version, data }) = client.events_with_wait(None, 0) else {
             unreachable!("snapshot")
         };
+        assert_eq!(version, "a".repeat(64));
         let value: Value = serde_json::from_slice(&data).unwrap_or_else(|_| unreachable!("json"));
         assert_eq!(value.pointer("/version"), Some(&json!("a".repeat(64))));
         assert_eq!(value.pointer("/claims/claims"), Some(&json!([])));

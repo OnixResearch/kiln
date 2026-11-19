@@ -179,6 +179,31 @@
 
   // r[impl kiln.dashboard.complete.access]
   // `quiet` marks a background observation poll (the live snapshot poll, log following): it shows no request feedback.
+  // A persistent event stream keeps the response body open; the fleet page reads frames incrementally.
+  async function apiStream(target, { controller = new AbortController() } = {}) {
+    if (!state.session) throw new DOMException("Signed out", "AbortError");
+    const headers = { Accept: "text/event-stream" };
+    if (state.token) headers.Authorization = `Bearer ${state.token}`;
+    const response = await fetch(target, {
+      headers, credentials: "omit", cache: "no-store", redirect: "error",
+      signal: controller.signal, referrerPolicy: "no-referrer",
+    });
+    if (response.status === 401) {
+      await response.body?.cancel();
+      logout(state.session === "network" ? "Network access was rejected. Reopen the page to recheck access." : "Authentication expired or the operator token was rejected. Sign in again.");
+      throw new DOMException("Signed out", "AbortError");
+    }
+    if (!response.ok) {
+      let diagnostic;
+      try { diagnostic = JSON.parse(await boundedText(response, MAX_JSON_BYTES)); } catch { diagnostic = null; }
+      const error = new Error(diagnostic && typeof diagnostic.message === "string" ? `${text(diagnostic.code)}: ${diagnostic.message}` : `Service request rejected (HTTP ${response.status}).`);
+      error.status = response.status;
+      throw error;
+    }
+    if (!response.body) throw new Error("The service returned no event stream.");
+    return response.body;
+  }
+
   async function api(target, { method = "GET", body, kind = "json", controller = new AbortController(), bootstrap = false, quiet = kind === "sse" } = {}) {
     if (!state.session && !bootstrap) throw new DOMException("Signed out", "AbortError");
     const epoch = state.epoch;
@@ -1951,7 +1976,7 @@
     // page aborts its refresh cycle.
     if (route.page === "fleet") {
       if (!window.KilnFleet) { $("fleet-content").replaceChildren(element("p", "Fleet coordination is loading.", "small")); return; }
-      await window.KilnFleet.load($("fleet-content"), { api, navigate, route, isCurrent: () => state.route === route && !!state.session });
+      await window.KilnFleet.load($("fleet-content"), { api, stream: apiStream, navigate, route, isCurrent: () => state.route === route && !!state.session });
     }
     if (route.page === "runs") await loadRunView();
   }

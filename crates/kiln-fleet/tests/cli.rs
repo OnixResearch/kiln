@@ -4,8 +4,9 @@
 
 mod common;
 
+use std::io::Write as _;
 use std::path::Path;
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 use std::sync::Arc;
 
 use common::{TestResult, config, write_enrollment};
@@ -174,6 +175,20 @@ fn client_commands_report_http_outcomes() -> TestResult {
     let display = String::from_utf8_lossy(&watch.stdout);
     assert!(display.contains("Fleet britton-desktop"));
     assert!(display.contains("Claims"));
+    let mut interactive = Command::new(env!("CARGO_BIN_EXE_kiln-fleet"))
+        .args(["watch", "--interval", "1", "--server", &server])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    interactive
+        .stdin
+        .as_mut()
+        .ok_or("stdin")?
+        .write_all(b"help\nquit\n")?;
+    let interactive = interactive.wait_with_output()?;
+    assert_eq!(interactive.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&interactive.stdout).contains("renew"));
     let released = kiln_fleet(&[
         "release", "--claim", identity, "--fence", "1", "--note", "done", "--server", &server,
     ])?;

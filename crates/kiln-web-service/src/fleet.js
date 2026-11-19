@@ -318,6 +318,20 @@
     state.failures = 0;
   }
 
+  function applyFrame(state, frame) {
+    if (frame.event === "snapshot") {
+      const snapshot = JSON.parse(frame.data);
+      applySnapshot(state, snapshot);
+      state.version = String(snapshot.version);
+      return true;
+    }
+    if (frame.event === "heartbeat") {
+      state.updated.textContent = "Live · waiting for changes";
+      return true;
+    }
+    return false;
+  }
+
   async function stream(state) {
     if (state.inFlight || !state.context.isCurrent()) return;
     const epoch = state.epoch;
@@ -326,19 +340,43 @@
     state.controller = controller;
     try {
       const query = state.version ? `?after=${encodeURIComponent(state.version)}` : "";
-      const source = await state.context.api(`/api/fleet/events${query}`, { kind: "sse", quiet: true, controller });
-      if (epoch !== state.epoch || !state.context.isCurrent()) return;
+      const target = `/api/fleet/events${query}`;
       let recognized = false;
-      for (const frame of eventFrames(source)) {
-        if (frame.event === "snapshot") {
-          const snapshot = JSON.parse(frame.data);
-          applySnapshot(state, snapshot);
-          state.version = String(snapshot.version);
-          recognized = true;
-        } else if (frame.event === "heartbeat") {
-          state.updated.textContent = "Live · waiting for changes";
-          recognized = true;
+      if (state.context.stream) {
+        const body = await state.context.stream(target, { controller });
+        const reader = body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let watchdog = 0;
+        const arm = () => {
+          clearTimeout(watchdog);
+          watchdog = setTimeout(() => controller.abort(new DOMException("Stream idle", "TimeoutError")), 30_000);
+        };
+        arm();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            arm();
+            buffer += decoder.decode(value, { stream: true });
+            let split;
+            while ((split = buffer.indexOf("\n\n")) >= 0) {
+              const block = buffer.slice(0, split);
+              buffer = buffer.slice(split + 2);
+              for (const frame of eventFrames(block)) recognized = applyFrame(state, frame) || recognized;
+            }
+            if (epoch !== state.epoch || !state.context.isCurrent()) {
+              await reader.cancel();
+              return;
+            }
+          }
+        } finally {
+          clearTimeout(watchdog);
+          reader.releaseLock();
         }
+      } else {
+        const source = await state.context.api(target, { kind: "sse", quiet: true, controller });
+        for (const frame of eventFrames(source)) recognized = applyFrame(state, frame) || recognized;
       }
       if (!recognized) throw new Error("The fleet event endpoint returned no snapshot or heartbeat.");
       state.failures = 0;
