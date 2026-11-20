@@ -1,36 +1,54 @@
-//! Lattice `lattice.worker-inventory.v1` documents (the output of
-//! `lattice implementation-attempt inspect`) mapped into inventory v2 agent
-//! definitions and worker instances.
+//! Lattice `lattice.worker-inventory.v2` documents (the output of
+//! `lattice implementation-attempt inspect`, `docs/worker-inventory.md` in
+//! Lattice) mapped into inventory v2 agent definitions and worker instances.
 //!
 //! The DTOs mirror Lattice's wire record field for field and deny unknown
-//! fields; Kiln owns them so no Lattice code enters Kiln. A profile is a
-//! definition, never a worker. Lattice never reports idle, running, healthy or
-//! available, so no lifecycle maps to those states, and every v2 fact Lattice
-//! does not publish is listed as unknown.
+//! fields; Kiln owns them so no Lattice code enters Kiln. v2 is the only
+//! accepted version: a v1 document is refused as unsupported. A profile is a
+//! definition keyed by its definition identity, never a worker. Lattice's
+//! single-shot liveness is never idle or live, so no lifecycle maps to idle,
+//! healthy or executing. Declared capability is known, unavailable capability
+//! is a known negative, and every v2 fact Lattice does not publish is listed
+//! as unknown. Wait reasons keep their exact code, subject and owner.
 // r[impl kiln.inventory.producers]
 // r[impl kiln.inventory.producers.scenario.lattice]
+// r[impl kiln.inventory.producers.scenario.capability]
+// r[impl kiln.inventory.producers.scenario.refused]
 use std::collections::BTreeMap;
+use std::collections::btree_map::Entry;
 
 use kiln_core::inventory::{
     AgentDefinition, FactMeta, FactRef, InventoryFragment, InventoryJoins, InventoryKind,
     MAX_INVENTORY_ITEMS, Permission, RevisionState, SourceObservation, WorkerInstance,
-    WorkerLifecycle,
+    WorkerLifecycle, public_token,
 };
 use serde::Deserialize;
 use serde_json::Value;
 
-pub const WORKER_INVENTORY_SCHEMA: &str = "lattice.worker-inventory.v1";
-pub const PROFILE_FACTS_SCHEMA: &str = "lattice.worker-profile-facts.v1";
-pub const INSTANCE_SCHEMA: &str = "lattice.worker-instance-observation.v1";
+#[path = "worker_inventory_wait.rs"]
+mod wait;
+
+use wait::{Code, Field, ReasonDto, Section};
+
+pub const WORKER_INVENTORY_SCHEMA: &str = "lattice.worker-inventory.v2";
+pub const PROFILE_FACTS_SCHEMA: &str = "lattice.worker-profile-facts.v2";
+pub const INSTANCE_SCHEMA: &str = "lattice.worker-instance-observation.v2";
 pub const INSTANCE_STATE_SOURCE: &str = "lattice.implementation-attempt-state.v1";
 /// Lattice bounds one inspected artifact to 256 KiB (`MAX_SMALL_ARTIFACT_BYTES`).
 pub const MAX_WORKER_INVENTORY_BYTES: usize = 262_144;
 /// Execution reference of a host-local worker: there is no compute fact to join.
 pub const HOST_LOCAL_EXECUTION: &str = "host-local";
+/// Lattice's definition identity: `blake3:` and a lowercase hex digest.
+const DEFINITION_IDENTITY_PREFIX: &str = "blake3:";
+const DEFINITION_DIGEST_HEX: usize = 64;
+/// Lattice bounds a declared name set (`MAX_CAPABILITY_NAMES`).
+const MAX_CAPABILITY_NAMES: usize = 32;
+/// Lattice bounds one definition, task family or tool name (`MAX_NAME_BYTES`).
+const MAX_NAME_BYTES: usize = 64;
 
-/// Profile facts Lattice never publishes; a definition always lists them as unknown.
-const UNPUBLISHED_PROFILE_FACTS: [&str; 4] =
-    ["task_families", "tools", "revisions", "qualifications"];
+/// Profile facts Lattice does not publish; a definition always lists them as unknown.
+/// Revisions wait on Lattice #25; per-task-family qualifications on Animus #18.
+const UNPUBLISHED_PROFILE_FACTS: [&str; 2] = ["revisions", "qualifications"];
 /// Instance facts Lattice reports as owned unknowns.
 const UNPUBLISHED_INSTANCE_FACTS: [&str; 2] = ["host_reachability", "allocation_liveness"];
 
@@ -68,11 +86,37 @@ enum ProfileOwner {
     ImplementationAttempt,
 }
 
+/// Decoded for exact shape: inventory v2 has no definition name or basis field.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum DefinitionBasis {
+    Declared,
+    OwnerDefault,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DefinitionDto {
+    identity: String,
+    name: String,
+    #[allow(dead_code)]
+    basis: DefinitionBasis,
+}
+
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 enum RoutesDto {
     NoModel {},
     Routes { routes: Vec<RouteDto> },
+}
+
+impl RoutesDto {
+    fn names(&self) -> Vec<&str> {
+        match self {
+            Self::NoModel {} => Vec::new(),
+            Self::Routes { routes } => routes.iter().map(|r| r.name.as_str()).collect(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
@@ -116,6 +160,32 @@ enum SnapshotReadingDto {
     PortIssue {},
 }
 
+/// One of Lattice's owned unknowns: published as unknown, with the owner
+/// that can resolve it.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OwnedUnknownDto {
+    support: Support,
+    owner: String,
+}
+
+impl OwnedUnknownDto {
+    fn is(&self, owner: &str) -> bool {
+        self.support == Support::Unknown && self.owner == owner
+    }
+}
+
+/// The five Lattice #25 revision slots, all unpublished.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RevisionSlotsDto {
+    desired: OwnedUnknownDto,
+    prepared: OwnedUnknownDto,
+    qualified: OwnedUnknownDto,
+    selected_for_new_sessions: OwnedUnknownDto,
+    pinned: OwnedUnknownDto,
+}
+
 /// `owner` and `serving_readiness` are decoded for exact shape only: the
 /// serving owner's readiness is a serving fact, read from the serving producer.
 #[derive(Debug, Deserialize)]
@@ -124,6 +194,7 @@ enum SnapshotReadingDto {
 struct ProfileDto {
     schema: String,
     owner: ProfileOwner,
+    definition: DefinitionDto,
     revision: String,
     qualification_ref: Option<String>,
     adapter: FactDto<String>,
@@ -144,6 +215,10 @@ struct ProfileDto {
     model_routes: FactDto<RoutesDto>,
     compute: FactDto<Value>,
     serving_readiness: ReadinessDto,
+    task_families: FactDto<Vec<String>>,
+    tools: FactDto<Vec<String>>,
+    revisions: RevisionSlotsDto,
+    wait_reasons: Vec<ReasonDto>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -211,12 +286,41 @@ enum CancellationDto {
     ObservedTerminated,
 }
 
+/// Lattice owns only single-shot attempt workers; none is reused or idles.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum RuntimeDto {
+    SingleShot,
+}
+
+/// `idle` and `live` are not in Lattice's vocabulary and refuse as malformed.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum LivenessStateDto {
+    NotStarted,
+    Exited,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum UnknownCauseDto {
+    Unobserved,
+    Stale,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct OwnedUnknownDto {
-    support: Support,
+struct LivenessDto {
+    // Decoded for exact shape: the only runtime is single-shot.
     #[allow(dead_code)]
-    owner: String,
+    runtime: RuntimeDto,
+    state: LivenessStateDto,
+    unknown_cause: Option<UnknownCauseDto>,
+    /// Retained write-once artifacts plus the terminal result; never decreases
+    /// for one attempt, so it orders observations of one incarnation.
+    retained_generation: u64,
+    observed_at_epoch_ms: i64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -225,6 +329,7 @@ struct OwnedUnknownDto {
 struct InstanceDto {
     schema: String,
     source: String,
+    definition_identity: String,
     profile_revision: String,
     work_id: String,
     attempt_id: String,
@@ -235,9 +340,11 @@ struct InstanceDto {
     model_routes: RoutesDto,
     lifecycle: LifecycleDto,
     cancellation: CancellationDto,
+    liveness: LivenessDto,
     host_reachability: OwnedUnknownDto,
     model_readiness: ReadinessDto,
     allocation_liveness: OwnedUnknownDto,
+    wait_reasons: Vec<ReasonDto>,
     observed_at_epoch_ms: i64,
     state_digest: String,
 }
@@ -245,6 +352,8 @@ struct InstanceDto {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct InventoryDto {
+    /// Checked by [`SchemaProbe`] before this strict decode.
+    #[allow(dead_code)]
     schema: String,
     profile: ProfileDto,
     instance: Option<InstanceDto>,
@@ -253,29 +362,208 @@ struct InventoryDto {
     model_requests: Value,
 }
 
+/// Only the schema labels, read before the strict decode so an earlier or
+/// later version is refused as unsupported rather than as malformed.
+#[derive(Deserialize)]
+struct SchemaProbe {
+    schema: String,
+    profile: SectionProbe,
+    instance: Option<SectionProbe>,
+}
+
+#[derive(Deserialize)]
+struct SectionProbe {
+    schema: String,
+}
+
+/// 1 to 64 bytes of `[a-z0-9]` followed by `[a-z0-9._:-]`, and a Kiln public token.
+fn is_name(value: &str) -> bool {
+    let mut bytes = value.bytes();
+    let lead = bytes
+        .next()
+        .is_some_and(|b| b.is_ascii_lowercase() || b.is_ascii_digit());
+    lead && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"._:-".contains(&b))
+        && value.len() <= MAX_NAME_BYTES
+        && public_token(value)
+}
+
+fn is_definition_identity(value: &str) -> bool {
+    value
+        .strip_prefix(DEFINITION_IDENTITY_PREFIX)
+        .is_some_and(|digest| {
+            digest.len() == DEFINITION_DIGEST_HEX
+                && digest
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        })
+}
+
+/// A declared or qualified set holds 1 to 32 sorted, distinct names.
+fn validate_capability(fact: &FactDto<Vec<String>>) -> Result<(), &'static str> {
+    if let Some(names) = fact.published()? {
+        let sorted = names.windows(2).all(|pair| match pair {
+            [first, second] => first < second,
+            _ => false,
+        });
+        if names.is_empty()
+            || names.len() > MAX_CAPABILITY_NAMES
+            || !sorted
+            || !names.iter().all(|name| is_name(name))
+        {
+            return Err("lattice_capability_invalid");
+        }
+    }
+    Ok(())
+}
+
+fn validate_profile(profile: &ProfileDto) -> Result<(), &'static str> {
+    if !is_definition_identity(&profile.definition.identity) {
+        return Err("lattice_definition_identity_invalid");
+    }
+    if !is_name(&profile.definition.name) {
+        return Err("lattice_definition_name_invalid");
+    }
+    let slots = &profile.revisions;
+    if ![
+        &slots.desired,
+        &slots.prepared,
+        &slots.qualified,
+        &slots.selected_for_new_sessions,
+        &slots.pinned,
+    ]
+    .iter()
+    .all(|slot| slot.is(wait::REVISION_OWNER))
+    {
+        return Err("lattice_revision_unsupported");
+    }
+    for fact in [
+        &profile.adapter,
+        &profile.outputs,
+        &profile.protocol_revision,
+        &profile.executable_identity,
+        &profile.inputs,
+        &profile.sessions,
+        &profile.checkpoint,
+        &profile.workspace,
+        &profile.network,
+        &profile.isolation,
+    ] {
+        fact.published()?;
+    }
+    for fact in [
+        &profile.deadline_secs,
+        &profile.max_output_bytes,
+        &profile.cpu_millis,
+        &profile.memory_bytes,
+        &profile.storage_bytes,
+    ] {
+        fact.published()?;
+    }
+    profile.compute.published()?;
+    validate_capability(&profile.task_families)?;
+    validate_capability(&profile.tools)?;
+    let routes = profile
+        .model_routes
+        .published()?
+        .map(RoutesDto::names)
+        .unwrap_or_default();
+    wait::validate(&profile.wait_reasons, Section::Profile, &routes)?;
+    // Lattice reports an undeclared set, and only that, as `capability_undeclared`.
+    for (fact, field) in [
+        (&profile.task_families, Field::TaskFamilies),
+        (&profile.tools, Field::Tools),
+    ] {
+        let reported = profile
+            .wait_reasons
+            .iter()
+            .any(|r| r.names(Code::CapabilityUndeclared, field));
+        if reported != (fact.support == Support::Unknown) {
+            return Err("lattice_wait_reason_inconsistent");
+        }
+    }
+    Ok(())
+}
+
+/// Liveness must be the single-shot state Lattice derives from the lifecycle.
+fn lifecycle(instance: &InstanceDto) -> Result<WorkerLifecycle, &'static str> {
+    let (expected, mapped) = match instance.lifecycle {
+        // A binding is admitted for exactly one attempt; nothing ran yet.
+        LifecycleDto::AdmittedNotDispatched => {
+            (LivenessStateDto::NotStarted, WorkerLifecycle::Reserved)
+        }
+        LifecycleDto::BindingRejectedBeforeDispatch => {
+            (LivenessStateDto::NotStarted, WorkerLifecycle::Stopped)
+        }
+        LifecycleDto::TerminalObserved { .. } => {
+            (LivenessStateDto::Exited, WorkerLifecycle::Stopped)
+        }
+        // Dispatch is recorded; whether the worker still runs is unobserved.
+        LifecycleDto::DispatchRecordedOutcomeUnknown => {
+            (LivenessStateDto::Unknown, WorkerLifecycle::Unknown)
+        }
+    };
+    let liveness = &instance.liveness;
+    let cause_consistent =
+        (liveness.state == LivenessStateDto::Unknown) == liveness.unknown_cause.is_some();
+    if liveness.state != expected || !cause_consistent {
+        return Err("lattice_liveness_inconsistent");
+    }
+    Ok(mapped)
+}
+
+fn validate_instance(instance: &InstanceDto, profile: &ProfileDto) -> Result<(), &'static str> {
+    if instance.schema != INSTANCE_SCHEMA || instance.source != INSTANCE_STATE_SOURCE {
+        return Err("lattice_inventory_unsupported_schema");
+    }
+    if instance.profile_revision != profile.revision {
+        return Err("lattice_instance_profile_mismatch");
+    }
+    // Lattice states that every instance carries its profile's definition identity.
+    if instance.definition_identity != profile.definition.identity {
+        return Err("lattice_instance_definition_mismatch");
+    }
+    if !instance.host_reachability.is(wait::LIVE_HOST_OWNER)
+        || !instance.allocation_liveness.is(wait::LIVE_HOST_OWNER)
+    {
+        return Err("lattice_liveness_unsupported");
+    }
+    lifecycle(instance)?;
+    let reasons = &instance.wait_reasons;
+    wait::validate(reasons, Section::Instance, &instance.model_routes.names())?;
+    let settled = matches!(
+        instance.lifecycle,
+        LifecycleDto::TerminalObserved { .. } | LifecycleDto::BindingRejectedBeforeDispatch
+    );
+    let cause = instance.liveness.unknown_cause;
+    let reports = |code| reasons.iter().any(|r| r.names(code, Field::Liveness));
+    if (settled && !reasons.is_empty())
+        || reports(Code::LivenessUnobserved) != (cause == Some(UnknownCauseDto::Unobserved))
+        || reports(Code::LivenessStale) != (cause == Some(UnknownCauseDto::Stale))
+    {
+        return Err("lattice_wait_reason_inconsistent");
+    }
+    Ok(())
+}
+
 fn decode(document: &[u8]) -> Result<InventoryDto, &'static str> {
     if document.len() > MAX_WORKER_INVENTORY_BYTES {
         return Err("lattice_inventory_byte_bound");
     }
-    let inventory: InventoryDto =
+    let probe: SchemaProbe =
         serde_json::from_slice(document).map_err(|_| "lattice_inventory_malformed")?;
-    if inventory.schema != WORKER_INVENTORY_SCHEMA
-        || inventory.profile.schema != PROFILE_FACTS_SCHEMA
+    if probe.schema != WORKER_INVENTORY_SCHEMA
+        || probe.profile.schema != PROFILE_FACTS_SCHEMA
+        || probe
+            .instance
+            .is_some_and(|instance| instance.schema != INSTANCE_SCHEMA)
     {
         return Err("lattice_inventory_unsupported_schema");
     }
+    let inventory: InventoryDto =
+        serde_json::from_slice(document).map_err(|_| "lattice_inventory_malformed")?;
+    validate_profile(&inventory.profile)?;
     if let Some(instance) = &inventory.instance {
-        if instance.schema != INSTANCE_SCHEMA || instance.source != INSTANCE_STATE_SOURCE {
-            return Err("lattice_inventory_unsupported_schema");
-        }
-        if instance.profile_revision != inventory.profile.revision {
-            return Err("lattice_instance_profile_mismatch");
-        }
-        if instance.host_reachability.support != Support::Unknown
-            || instance.allocation_liveness.support != Support::Unknown
-        {
-            return Err("lattice_liveness_unsupported");
-        }
+        validate_instance(instance, &inventory.profile)?;
     }
     Ok(inventory)
 }
@@ -306,33 +594,29 @@ fn published_list(
     })
 }
 
+/// Declared or qualified names are known; `unavailable` is a known negative
+/// (empty and not unknown); `unknown` is listed as unknown, never as empty.
+fn capability(
+    fact: &FactDto<Vec<String>>,
+    name: &str,
+    unknown: &mut Vec<String>,
+) -> Result<Vec<String>, &'static str> {
+    Ok(match fact.published()? {
+        Some(names) => names.clone(),
+        None => {
+            if fact.support == Support::Unknown {
+                unknown.push(name.to_owned());
+            }
+            Vec::new()
+        }
+    })
+}
+
 fn definition(
     profile: &ProfileDto,
     source: &SourceObservation,
 ) -> Result<AgentDefinition, &'static str> {
-    for fact in [
-        &profile.protocol_revision,
-        &profile.executable_identity,
-        &profile.inputs,
-        &profile.sessions,
-        &profile.checkpoint,
-        &profile.workspace,
-        &profile.network,
-        &profile.isolation,
-    ] {
-        fact.published()?;
-    }
-    for fact in [
-        &profile.deadline_secs,
-        &profile.max_output_bytes,
-        &profile.cpu_millis,
-        &profile.memory_bytes,
-        &profile.storage_bytes,
-    ] {
-        fact.published()?;
-    }
-    profile.compute.published()?;
-    let mut meta = meta(source, &profile.revision, source.observed_at_ms);
+    let mut meta = meta(source, &profile.definition.identity, source.observed_at_ms);
     let unknown = &mut meta.unknown_fields;
     unknown.extend(
         UNPUBLISHED_PROFILE_FACTS
@@ -341,6 +625,8 @@ fn definition(
     );
     let output_contracts = published_list(&profile.outputs, "output_contracts", unknown)?;
     let harnesses = published_list(&profile.adapter, "harnesses", unknown)?;
+    let task_families = capability(&profile.task_families, "task_families", unknown)?;
+    let tools = capability(&profile.tools, "tools", unknown)?;
     // A route identity names a broker route, not a permitted model; only a
     // no-model profile states its permitted models exactly (none).
     let permitted_models = match profile.model_routes.published()? {
@@ -357,13 +643,15 @@ fn definition(
     Ok(AgentDefinition {
         meta,
         profile_revision: profile.revision.clone(),
-        task_families: Vec::new(),
+        task_families,
         output_contracts,
         harnesses,
-        tools: Vec::new(),
+        tools,
         permitted_models,
         // Lattice publishes no admission authority for a profile.
         authority: Permission::Unknown,
+        // The #25 slots are unpublished owned unknowns: never empty, never the
+        // current revision. Their owner is the `revision_selection_unpublished` reason.
         revisions: RevisionState {
             desired: None,
             prepared: None,
@@ -374,19 +662,15 @@ fn definition(
             evidence: qualified.into_iter().cloned().collect(),
         },
         qualifications: Vec::new(),
+        // A profile's serving reasons describe one inspection of the serving
+        // owner, not the definition; serving facts come from the serving producer.
+        wait_reasons: profile
+            .wait_reasons
+            .iter()
+            .filter(|reason| reason.code.is_definition_scoped())
+            .map(wait::map)
+            .collect(),
     })
-}
-
-fn lifecycle(value: &LifecycleDto) -> WorkerLifecycle {
-    match value {
-        // A binding is admitted for exactly one attempt; nothing ran yet.
-        LifecycleDto::AdmittedNotDispatched => WorkerLifecycle::Reserved,
-        LifecycleDto::BindingRejectedBeforeDispatch | LifecycleDto::TerminalObserved { .. } => {
-            WorkerLifecycle::Stopped
-        }
-        // Dispatch is recorded; whether the worker still runs is unobserved.
-        LifecycleDto::DispatchRecordedOutcomeUnknown => WorkerLifecycle::Unknown,
-    }
 }
 
 fn worker(
@@ -396,9 +680,12 @@ fn worker(
 ) -> Result<WorkerInstance, &'static str> {
     let observed_at_ms = u64::try_from(instance.observed_at_epoch_ms)
         .map_err(|_| "lattice_instance_time_invalid")?;
-    if observed_at_ms > source.observed_at_ms {
+    let liveness_at_ms = u64::try_from(instance.liveness.observed_at_epoch_ms)
+        .map_err(|_| "lattice_instance_time_invalid")?;
+    if observed_at_ms > source.observed_at_ms || liveness_at_ms > source.observed_at_ms {
         return Err("lattice_instance_after_collection");
     }
+    let lifecycle = lifecycle(instance)?;
     let mut meta = meta(source, &instance.incarnation, observed_at_ms);
     let unknown = &mut meta.unknown_fields;
     unknown.extend(
@@ -406,6 +693,10 @@ fn worker(
             .iter()
             .map(|name| (*name).to_owned()),
     );
+    // Unobserved or stale liveness is neither failure nor idle.
+    if instance.liveness.state == LivenessStateDto::Unknown {
+        unknown.push("liveness".to_owned());
+    }
     let execution = match &instance.compute {
         ComputeDto::ProviderAllocation(allocation) => FactRef {
             source: joins.compute.clone(),
@@ -448,7 +739,7 @@ fn worker(
         session: None,
         definition: FactRef {
             source: joins.agents.clone(),
-            id: instance.profile_revision.clone(),
+            id: instance.definition_identity.clone(),
         },
         pinned_revision: instance.profile_revision.clone(),
         attempt: Some(instance.attempt_id.clone()),
@@ -459,14 +750,17 @@ fn worker(
         // Workspace paths are restricted and never projected.
         workspace: None,
         model_services,
-        lifecycle: lifecycle(&instance.lifecycle),
+        lifecycle,
+        wait_reasons: instance.wait_reasons.iter().map(wait::map).collect(),
     })
 }
 
 /// Map one source's Lattice inventory documents. A `kind: agents` source yields
-/// one definition per distinct profile revision; a `kind: workers` source
-/// yields one worker per retained instance. Repeated identical facts collapse;
-/// conflicting facts for one identity refuse.
+/// one definition per definition identity; a `kind: workers` source yields one
+/// worker per retained incarnation. Repeated identical facts collapse. One
+/// definition at two revisions refuses, because the revision selected for new
+/// sessions is unpublished (Lattice #25). Observations of one incarnation are
+/// ordered by retained generation; equal generations must agree.
 pub fn map_worker_inventory(
     kind: InventoryKind,
     source: &SourceObservation,
@@ -478,27 +772,44 @@ pub fn map_worker_inventory(
         return Err("lattice_inventory_document_bound");
     }
     let mut fragment = InventoryFragment::new(kind, source.clone());
-    let mut definitions = BTreeMap::new();
-    let mut workers = BTreeMap::new();
+    let mut definitions: BTreeMap<String, AgentDefinition> = BTreeMap::new();
+    let mut workers: BTreeMap<String, (u64, WorkerInstance)> = BTreeMap::new();
     for document in documents {
         let inventory = decode(document)?;
         match kind {
             InventoryKind::Agents => {
                 let value = definition(&inventory.profile, source)?;
-                if let Some(existing) =
-                    definitions.insert(value.profile_revision.clone(), value.clone())
-                    && existing != value
-                {
-                    return Err("lattice_profile_conflict");
+                match definitions.entry(value.meta.reference.id.clone()) {
+                    Entry::Vacant(slot) => {
+                        slot.insert(value);
+                    }
+                    Entry::Occupied(slot) => {
+                        let existing = slot.get();
+                        if existing.profile_revision != value.profile_revision {
+                            return Err("lattice_definition_revision_ambiguous");
+                        }
+                        if *existing != value {
+                            return Err("lattice_profile_conflict");
+                        }
+                    }
                 }
             }
             InventoryKind::Workers => {
                 if let Some(instance) = &inventory.instance {
+                    let generation = instance.liveness.retained_generation;
                     let value = worker(instance, source, joins)?;
-                    if let Some(existing) = workers.insert(value.incarnation.clone(), value.clone())
-                        && existing != value
-                    {
-                        return Err("lattice_instance_conflict");
+                    match workers.entry(value.incarnation.clone()) {
+                        Entry::Vacant(slot) => {
+                            slot.insert((generation, value));
+                        }
+                        Entry::Occupied(mut slot) => {
+                            let (existing_generation, existing) = slot.get();
+                            if generation > *existing_generation {
+                                slot.insert((generation, value));
+                            } else if generation == *existing_generation && *existing != value {
+                                return Err("lattice_instance_conflict");
+                            }
+                        }
                     }
                 }
             }
@@ -508,7 +819,7 @@ pub fn map_worker_inventory(
         }
     }
     fragment.agents = definitions.into_values().collect();
-    fragment.workers = workers.into_values().collect();
+    fragment.workers = workers.into_values().map(|(_, worker)| worker).collect();
     Ok(fragment)
 }
 

@@ -70,8 +70,13 @@
   function blockers(values) {
     const node = element("ul", undefined, "inventory-blockers");
     if (!values.length) node.append(element("li", "No blockers in these supplied observations. This is not a reservation or dispatch authorization."));
-    for (const value of values) node.append(element("li", `${text(value.code)} · ${text(value.constraint)} · ${value.subject ? refText(value.subject) : "snapshot / policy"}`));
+    for (const value of values) node.append(element("li", `${text(value.code)} · ${text(value.constraint)} · ${value.subject ? refText(value.subject) : "snapshot / policy"}${value.owner ? ` · owner ${text(value.owner)}` : ""}`));
     return node;
+  }
+  // Producer wait reasons are exact codes with an owner; never free text, a reservation or dispatch.
+  function waits(values) {
+    if (!Array.isArray(values) || !values.length) return "None supplied (not readiness evidence)";
+    return values.map((v) => `${text(v?.code)} · ${v?.subject?.kind === "route" ? `route:${text(v.subject.name)}` : `fact:${text(v?.subject?.field)}`} · owner ${text(v?.owner)}`).join("; ");
   }
   const CAMPAIGN_SCHEMA = "kiln.selected-campaign-projection.v1";
   function validateCampaign(value) {
@@ -398,10 +403,10 @@
     page.append(section("Agents — immutable definitions, not running instances", "inventory-agents", snapshot.agents.map((agent) => row(projection, agent, agent.profile_revision, [
       ["Task families (declared)", list(agent.task_families)], ["Output contracts", list(agent.output_contracts)], ["Harnesses", list(agent.harnesses)], ["Tools", list(agent.tools)], ["Permitted models", list(agent.permitted_models)], ["Authority", agent.authority],
       ["Desired revision", agent.revisions.desired], ["Prepared revision", agent.revisions.prepared], ["Qualified revision", agent.revisions.qualified], ["Selected for new sessions", agent.revisions.selected_for_new_sessions], ["Preparation failure", agent.revisions.preparation_failure], ["Revision generation", number(agent.revisions.generation)],
-      ["Observed instances of this definition", String(snapshot.workers.filter((w) => refText(w.definition) === refText(agent.meta.reference)).length) + " supplied; not a fleet total"],
+      ["Observed instances of this definition", String(snapshot.workers.filter((w) => refText(w.definition) === refText(agent.meta.reference)).length) + " supplied; not a fleet total"], ["Producer wait reasons (code · subject · owner)", waits(agent.wait_reasons)],
     ], details("Qualification: exact subject / corpus / protocol, accepted denominators, cost, unknown use and limitations (not availability)", agent.qualifications)))));
     page.append(section("Workers — actual instances and pinned bindings", "inventory-workers", snapshot.workers.map((worker) => row(projection, worker, `${worker.meta.reference.id} · ${worker.lifecycle}`, [
-      ["Incarnation", worker.incarnation], ["Stable session", worker.session], ["Definition", refText(worker.definition)], ["Actually pinned revision", worker.pinned_revision], ["Observed lifecycle", worker.lifecycle], ["Attempt", worker.attempt], ["Fence", number(worker.fence)], ["Execution binding", refText(worker.execution)], ["Execution grant", refText(worker.execution_grant)], ["Workspace alias", worker.workspace], ["Independent model-service bindings", list(worker.model_services)],
+      ["Incarnation", worker.incarnation], ["Stable session", worker.session], ["Definition", refText(worker.definition)], ["Actually pinned revision", worker.pinned_revision], ["Observed lifecycle", worker.lifecycle], ["Attempt", worker.attempt], ["Fence", number(worker.fence)], ["Execution binding", refText(worker.execution)], ["Execution grant", refText(worker.execution_grant)], ["Workspace alias", worker.workspace], ["Independent model-service bindings", list(worker.model_services)], ["Producer wait reasons (code · subject · owner)", waits(worker.wait_reasons)],
     ]))));
     const computeRows = snapshot.compute.map((device) => row(projection, device, `${device.kind} · ${device.host}`, [
       ["Host", device.host], ["Device", device.device], ["Provider pool", device.pool], ["Health / draining", device.health], ["Sandbox capabilities", list(device.sandbox)], ["Backend capabilities", list(device.backends)], ["Shared accounting pool identities", list(device.accounting_pools)], ["Shared serving allocations (charged once to the deployment)", list(device.shared_serving)], ["Compatibility / qualification", list(device.qualification)],

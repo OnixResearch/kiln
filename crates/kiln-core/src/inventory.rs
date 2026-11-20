@@ -13,6 +13,8 @@ pub const MAX_PUBLIC_TEXT: usize = 256;
 pub const MAX_REQUIREMENTS: usize = 64;
 /// JSON consumers must retain exact generation/fence/capacity values, not rounded floats.
 pub const MAX_EXACT_NUMBER: u64 = 9_007_199_254_740_991;
+/// Producer wait reasons one definition or worker fact may carry.
+pub const MAX_WAIT_REASONS: usize = 32;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -117,6 +119,38 @@ pub struct Qualification {
     pub authority: Permission,
 }
 
+/// What a producer wait reason is about: a field of the fact that carries it,
+/// or one of that fact's model routes by the name the producer published.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum WaitSubject {
+    Fact { field: String },
+    Route { name: String },
+}
+
+impl WaitSubject {
+    /// The explanation constraint naming this subject: `fact:<field>` or `route:<name>`.
+    #[must_use]
+    pub fn constraint(&self) -> String {
+        match self {
+            Self::Fact { field } => alloc::format!("fact:{field}"),
+            Self::Route { name } => alloc::format!("route:{name}"),
+        }
+    }
+}
+
+/// A producer's exact reason a fact is not ready: a code from the producer's
+/// closed vocabulary, its subject, and the owner that can resolve it (`name`
+/// or `name#issue`). It carries no free text and is never a reservation,
+/// claim or dispatch decision.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WaitReason {
+    pub code: String,
+    pub subject: WaitSubject,
+    pub owner: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentDefinition {
@@ -130,6 +164,10 @@ pub struct AgentDefinition {
     pub authority: Permission,
     pub revisions: RevisionState,
     pub qualifications: Vec<Qualification>,
+    /// Producer reasons this definition is not ready. Omitted when empty, so
+    /// earlier snapshots keep their identity.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub wait_reasons: Vec<WaitReason>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -161,6 +199,10 @@ pub struct WorkerInstance {
     pub workspace: Option<String>,
     pub model_services: Vec<FactRef>,
     pub lifecycle: WorkerLifecycle,
+    /// Producer reasons this worker is not ready. Omitted when empty, so
+    /// earlier snapshots keep their identity.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub wait_reasons: Vec<WaitReason>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -464,6 +506,9 @@ pub struct Blocker {
     pub code: String,
     pub subject: Option<FactRef>,
     pub constraint: String,
+    /// Who can resolve a producer wait reason. Omitted for Kiln's own blockers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -553,6 +598,45 @@ fn references(values: &[FactRef]) -> Result<(), &'static str> {
         reference(value)?;
         if !seen.insert(value) {
             return Err("inventory_duplicate_reference");
+        }
+    }
+    Ok(())
+}
+/// Decimal digits of the largest issue number an owner may name.
+const MAX_OWNER_ISSUE_DIGITS: usize = 20;
+/// An owner is a public name, optionally followed by `#` and an issue number.
+fn owner(value: &str) -> Result<(), &'static str> {
+    let (name, issue) = match value.split_once('#') {
+        Some((name, issue)) => (name, Some(issue)),
+        None => (value, None),
+    };
+    let issue_valid = issue.is_none_or(|issue| {
+        !issue.is_empty()
+            && issue.len() <= MAX_OWNER_ISSUE_DIGITS
+            && issue.bytes().all(|b| b.is_ascii_digit())
+    });
+    if public_token(name) && issue_valid {
+        Ok(())
+    } else {
+        Err("inventory_public_identifier_invalid")
+    }
+}
+fn wait_reasons(values: &[WaitReason]) -> Result<(), &'static str> {
+    if values.len() > MAX_WAIT_REASONS {
+        return Err("inventory_field_bound");
+    }
+    let mut seen = BTreeSet::new();
+    for value in values {
+        token(&value.code)?;
+        match &value.subject {
+            WaitSubject::Fact { field } => token(field)?,
+            WaitSubject::Route { name } => token(name)?,
+        }
+        // The explanation names the subject by this constraint.
+        token(&value.subject.constraint())?;
+        owner(&value.owner)?;
+        if !seen.insert(value) {
+            return Err("inventory_wait_reason_duplicate");
         }
     }
     Ok(())
@@ -729,6 +813,7 @@ pub fn admit_snapshot(
         tokens(&agent.harnesses)?;
         tokens(&agent.tools)?;
         tokens(&agent.permitted_models)?;
+        wait_reasons(&agent.wait_reasons)?;
         let revision = &agent.revisions;
         for value in [
             &revision.desired,
@@ -787,6 +872,7 @@ pub fn admit_snapshot(
         }
         optional(&worker.workspace)?;
         references(&worker.model_services)?;
+        wait_reasons(&worker.wait_reasons)?;
         if worker.attempt.is_some() != worker.fence.is_some() {
             return Err("inventory_attempt_fence_incomplete");
         }
@@ -956,7 +1042,17 @@ fn blocker(code: &str, subject: Option<&FactRef>, constraint: &str) -> Blocker {
         code: code.into(),
         subject: subject.cloned(),
         constraint: constraint.into(),
+        owner: None,
     }
+}
+/// One blocker per producer wait reason, with its exact code and owner.
+fn wait_blockers(reasons: &[WaitReason], subject: &FactRef, result: &mut Vec<Blocker>) {
+    result.extend(reasons.iter().map(|reason| Blocker {
+        code: reason.code.clone(),
+        subject: Some(subject.clone()),
+        constraint: reason.subject.constraint(),
+        owner: Some(reason.owner.clone()),
+    }));
 }
 fn fact_state(
     meta: &FactMeta,
@@ -1000,6 +1096,22 @@ fn require(
 ) {
     if !values.iter().any(|v| v == wanted) {
         result.push(blocker(code, Some(subject), wanted));
+    }
+}
+/// A capability Kiln holds unknown is never reported as unsupported.
+fn require_capability(
+    agent: &AgentDefinition,
+    field: &str,
+    values: &[String],
+    wanted: &str,
+    codes: (&str, &str),
+    result: &mut Vec<Blocker>,
+) {
+    let (unsupported, unknown) = codes;
+    if agent.meta.unknown_fields.iter().any(|f| f == field) {
+        result.push(blocker(unknown, Some(&agent.meta.reference), wanted));
+    } else {
+        require(values, wanted, unsupported, &agent.meta.reference, result);
     }
 }
 fn check_pools(
@@ -1181,11 +1293,12 @@ fn explain_admitted_readiness(
                     &needs.profile_revision,
                 ));
             }
-            require(
+            require_capability(
+                agent,
+                "task_families",
                 &agent.task_families,
                 &needs.task_family,
-                "unsupported_task_family",
-                &agent.meta.reference,
+                ("unsupported_task_family", "agent_task_family_unknown"),
                 &mut result.blockers,
             );
             require(
@@ -1203,11 +1316,12 @@ fn explain_admitted_readiness(
                 &mut result.blockers,
             );
             for tool in &needs.tools {
-                require(
+                require_capability(
+                    agent,
+                    "tools",
                     &agent.tools,
                     tool,
-                    "unsupported_agent_tool",
-                    &agent.meta.reference,
+                    ("unsupported_agent_tool", "agent_tool_unknown"),
                     &mut result.blockers,
                 );
             }
@@ -1236,6 +1350,11 @@ fn explain_admitted_readiness(
                     &needs.task_family,
                 ));
             }
+            wait_blockers(
+                &agent.wait_reasons,
+                &agent.meta.reference,
+                &mut result.blockers,
+            );
         }
     }
     let mut policies = snapshot
@@ -1355,6 +1474,7 @@ fn explain_admitted_readiness(
                     "observed_idle",
                 ));
             }
+            wait_blockers(&worker.wait_reasons, &worker.meta.reference, &mut reasons);
             if let Some(agent) = snapshot
                 .agents
                 .iter()

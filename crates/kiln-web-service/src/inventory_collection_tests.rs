@@ -1,13 +1,16 @@
-//! Kiln #60 acceptance over producer-shaped fixtures: Lattice `inspect`
-//! output captured at Lattice main 1bdacb35, compute allocation observations
-//! from Lattice's fixtures, and Animus #17 serving snapshots. Each test names
-//! the criterion it covers. Everything here is deterministic fixture evidence;
-//! no live provider, fleet or capacity is claimed.
+//! Kiln #60 acceptance over producer-shaped fixtures: Lattice
+//! `lattice.worker-inventory.v2` `inspect` output captured at Lattice
+//! 9a74e7ef, compute allocation observations from Lattice's fixtures, and
+//! Animus #17 serving snapshots. Each test names the criterion it covers.
+//! Everything here is deterministic fixture evidence; no live provider, fleet
+//! or capacity is claimed.
 // r[verify kiln.inventory.collection]
 // r[verify kiln.inventory.collection.scenario.parity]
 // r[verify kiln.inventory.collection.scenario.hostname]
 // r[verify kiln.inventory.collection.scenario.refused]
 // r[verify kiln.inventory.producers]
+// r[verify kiln.inventory.producers.scenario.capability]
+// r[verify kiln.inventory.producers.scenario.wait]
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -27,8 +30,14 @@ use crate::inventory::{InventoryInput, read_inventory, render_html, run_cli_args
 type TestResult<T = ()> = Result<T, String>;
 
 /// A clock five seconds after the fixtures' collection time.
-const NOW_MS: u64 = 1_795_200_625_000;
+const NOW_MS: u64 = 1_795_208_985_000;
 const PROFILE: &str = "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72";
+/// The definition identity of every undeclared OMP attempt-worker capture.
+const DEFINITION: &str = "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6";
+const DECLARED_DEFINITION: &str =
+    "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1";
+const DECLARED_PROFILE: &str = "88cbb6128daf0fc09cb3b01ceeaa35109493d28c934ec5adc2e392557578a2f7";
+const DECLARED_CAPTURE: &str = "lattice/agent-a-1-declared-capability-dispatched.json";
 const PILOT: &str = "pilot.collection.json";
 const SHARED_POOL: &str = "shared-pool.collection.json";
 const CONFIGURED_ONLY: &str = "configured-only.collection.json";
@@ -173,7 +182,21 @@ fn registered_definition_without_instances_is_not_an_idle_worker() -> TestResult
         );
     }
     let pilot = project(&collect(PILOT)?, None)?;
-    assert_eq!(pilot.snapshot.agents.len(), 2);
+    let definitions: Vec<_> = pilot
+        .snapshot
+        .agents
+        .iter()
+        .map(|a| a.meta.reference.id.as_str())
+        .collect();
+    assert_eq!(definitions, vec![DECLARED_DEFINITION, DEFINITION]);
+    assert!(
+        pilot
+            .snapshot
+            .workers
+            .iter()
+            .all(|w| w.definition.id != DECLARED_DEFINITION),
+        "a declared definition without a retained attempt has no worker"
+    );
     assert_eq!(pilot.snapshot.workers.len(), 3);
     let idle = pilot
         .snapshot
@@ -202,7 +225,8 @@ fn shared_deployment_bindings_are_visible_and_counted_once() -> TestResult {
             .iter()
             .find(|w| w.execution == reference("aspen-compute", id))
             .ok_or("missing worker")?;
-        assert_eq!(worker.definition, reference("lattice-agents", PROFILE));
+        assert_eq!(worker.definition, reference("lattice-agents", DEFINITION));
+        assert_eq!(worker.pinned_revision, PROFILE);
         let execution = snapshot
             .compute
             .iter()
@@ -758,18 +782,42 @@ fn unsafe_or_unsupported_manifests_refuse_before_projection() -> TestResult {
         });
         assert_eq!(result.err().as_deref(), Some(expected), "{path}");
     }
-    let wrong_contract = collect_with(PILOT, |set| {
-        for c in set
-            .collections
-            .iter_mut()
-            .filter(|c| c.source == "aspen-compute")
-        {
-            c.contract = "lattice.worker-inventory.v1".into();
-        }
-    });
+    for (source, contract) in [
+        ("aspen-compute", "lattice.worker-inventory.v2"),
+        ("lattice-agents", "lattice.worker-inventory.v1"),
+        ("lattice-workers", "lattice.worker-inventory.v1"),
+    ] {
+        let wrong_contract = collect_with(PILOT, |set| {
+            for c in set.collections.iter_mut().filter(|c| c.source == source) {
+                c.contract = contract.into();
+            }
+        });
+        assert_eq!(
+            wrong_contract.err().as_deref(),
+            Some("inventory_collection_contract_unsupported"),
+            "{source} {contract}"
+        );
+    }
+    let v1 = tempfile::tempdir().map_err(|e| e.to_string())?;
+    copy_tree(&fixtures(), v1.path())?;
+    let downgraded = edit_file(
+        &v1.path().join("lattice/profile-without-instance.json"),
+        &[
+            ("/schema", "lattice.worker-inventory.v1".into()),
+            ("/profile/schema", "lattice.worker-profile-facts.v1".into()),
+        ],
+    )?;
+    std::fs::write(
+        v1.path().join("lattice/profile-without-instance.json"),
+        downgraded,
+    )
+    .map_err(|e| e.to_string())?;
     assert_eq!(
-        wrong_contract.err().as_deref(),
-        Some("inventory_collection_contract_unsupported")
+        collect_snapshot(&v1.path().join(CONFIGURED_ONLY))
+            .err()
+            .as_deref(),
+        Some("lattice_inventory_unsupported_schema"),
+        "a v1 Lattice document is refused, never read as v2"
     );
     let unavailable_with_documents = collect_with(PILOT, |set| {
         for c in set
@@ -851,5 +899,261 @@ fn unsafe_or_unsupported_manifests_refuse_before_projection() -> TestResult {
             .as_deref(),
         Some("inventory_principal_denied")
     );
+    Ok(())
+}
+
+fn with_declared_worker(set: &mut CollectionSet) {
+    for c in set
+        .collections
+        .iter_mut()
+        .filter(|c| c.source == "lattice-workers")
+    {
+        c.documents.push(DECLARED_CAPTURE.into());
+    }
+}
+
+/// Exact work the declared-capability capture declares support for.
+fn declared_needs() -> TestResult<WorkNeeds> {
+    let mut needs = needs()?;
+    needs.definition = reference("lattice-agents", DECLARED_DEFINITION);
+    needs.profile_revision = DECLARED_PROFILE.into();
+    needs.task_family = "rust-implementation".into();
+    needs.tools = vec!["edit".into()];
+    Ok(needs)
+}
+
+type OwnedBlocker<'a> = (&'a str, &'a str, &'a str);
+
+fn owned(blockers: &[kiln_core::inventory::Blocker]) -> BTreeSet<OwnedBlocker<'_>> {
+    blockers
+        .iter()
+        .filter_map(|b| {
+            b.owner
+                .as_deref()
+                .map(|owner| (b.code.as_str(), b.constraint.as_str(), owner))
+        })
+        .collect()
+}
+
+/// #60 with Lattice v2: declared task families and tools are known
+/// capability. A definition that declares what exact work needs is no longer
+/// blocked on capability; it stays blocked by exact producer reasons with
+/// their owners and by facts no producer publishes yet.
+#[test]
+fn declared_capability_satisfies_exact_work_and_leaves_owned_producer_reasons() -> TestResult {
+    let snapshot = collect_with(PILOT, with_declared_worker)?;
+    let explanation = explain(&snapshot, &declared_needs()?)?;
+    let codes: BTreeSet<_> = explanation
+        .blockers
+        .iter()
+        .map(|b| b.code.as_str())
+        .collect();
+    for absent in [
+        "unsupported_task_family",
+        "agent_task_family_unknown",
+        "unsupported_agent_tool",
+        "agent_tool_unknown",
+        "capability_undeclared",
+        "agent_definition_unknown",
+        "agent_revision_mismatch",
+        "no_observed_worker",
+    ] {
+        assert!(!codes.contains(absent), "{absent}");
+    }
+    assert_eq!(
+        owned(&explanation.blockers),
+        BTreeSet::from([
+            (
+                "qualification_unbound",
+                "fact:qualification_ref",
+                "animus#18"
+            ),
+            (
+                "revision_selection_unpublished",
+                "fact:revisions",
+                "lattice#25"
+            ),
+        ])
+    );
+    for unpublished in [
+        "stale_or_unknown_agent",
+        "agent_authority_denied",
+        "revision_not_selected_for_new_sessions",
+        "qualification_missing_stale_or_mismatched",
+        "policy_unknown_or_ambiguous",
+        "synthetic_disconnected",
+    ] {
+        assert!(codes.contains(unpublished), "{unpublished}");
+    }
+    let candidate = explanation
+        .candidates
+        .iter()
+        .find(|c| c.execution.id == "agent-a-1" && c.model.id == "svc-serving-b")
+        .ok_or("missing declared candidate")?;
+    assert_eq!(candidate.worker.source, "lattice-workers");
+    assert_eq!(
+        owned(&candidate.blockers),
+        BTreeSet::from([
+            ("serving_port_absent", "fact:serving_readiness", "kiln#49"),
+            ("dispatch_outcome_unknown", "fact:lifecycle", "lattice#6"),
+            ("liveness_unobserved", "fact:liveness", "kiln#49"),
+            (
+                "host_reachability_unknown",
+                "fact:host_reachability",
+                "kiln#49"
+            ),
+            (
+                "allocation_liveness_unknown",
+                "fact:allocation_liveness",
+                "kiln#49"
+            ),
+        ])
+    );
+    assert!(
+        candidate
+            .blockers
+            .iter()
+            .any(|b| b.code == "worker_not_idle")
+    );
+    assert!(explanation.candidates.iter().all(|c| !c.observed_eligible));
+    assert!(!explanation.dispatch_authorized);
+    let mut other = declared_needs()?;
+    other.task_family = "rust-fix".into();
+    other.tools = vec!["edit".into(), "write".into()];
+    let explanation = explain(&snapshot, &other)?;
+    let blockers: Vec<_> = explanation
+        .blockers
+        .iter()
+        .map(|b| (b.code.as_str(), b.constraint.as_str()))
+        .collect();
+    assert!(blockers.contains(&("unsupported_task_family", "rust-fix")));
+    assert!(blockers.contains(&("unsupported_agent_tool", "write")));
+    assert!(
+        !blockers.contains(&("unsupported_agent_tool", "edit")),
+        "a declared tool satisfies exact work"
+    );
+    Ok(())
+}
+
+/// #60 with Lattice v2: undeclared capability stays unknown with its owner
+/// and is never reported as unsupported; unavailable capability is a known
+/// negative.
+#[test]
+fn undeclared_capability_stays_unknown_and_unavailable_is_a_known_negative() -> TestResult {
+    let explanation = explain(&collect(PILOT)?, &needs()?)?;
+    let blockers: Vec<_> = explanation
+        .blockers
+        .iter()
+        .map(|b| (b.code.as_str(), b.constraint.as_str(), b.owner.as_deref()))
+        .collect();
+    for expected in [
+        ("agent_task_family_unknown", "rust-fix", None),
+        ("agent_tool_unknown", "edit", None),
+        (
+            "capability_undeclared",
+            "fact:task_families",
+            Some("configuration"),
+        ),
+        ("capability_undeclared", "fact:tools", Some("configuration")),
+    ] {
+        assert!(blockers.contains(&expected), "missing {expected:?}");
+    }
+    assert!(
+        blockers
+            .iter()
+            .all(|b| b.0 != "unsupported_task_family" && b.0 != "unsupported_agent_tool"),
+        "an undeclared set is unknown, not empty"
+    );
+    let scratch = tempfile::tempdir().map_err(|e| e.to_string())?;
+    copy_tree(&fixtures(), scratch.path())?;
+    let declared = scratch.path().join(DECLARED_CAPTURE);
+    let unavailable = edit_file(
+        &declared,
+        &[(
+            "/profile/tools",
+            serde_json::json!({ "support": "unavailable", "value": null }),
+        )],
+    )?;
+    std::fs::write(&declared, unavailable).map_err(|e| e.to_string())?;
+    let mut set = CollectionSet::load(&scratch.path().join(PILOT))?;
+    with_declared_worker(&mut set);
+    let explanation = explain(&set.collect(scratch.path())?, &declared_needs()?)?;
+    let blockers: Vec<_> = explanation
+        .blockers
+        .iter()
+        .map(|b| (b.code.as_str(), b.constraint.as_str()))
+        .collect();
+    assert!(blockers.contains(&("unsupported_agent_tool", "edit")));
+    assert!(
+        blockers
+            .iter()
+            .all(|b| b.0 != "agent_tool_unknown" && b.0 != "capability_undeclared")
+    );
+    Ok(())
+}
+
+/// #60 with Lattice v2: single-shot liveness never becomes idle or live, an
+/// unobserved liveness is unknown with its owner, attempt and fence are
+/// unchanged, and a worker pinned to another revision of the definition stays
+/// visible as such.
+#[test]
+fn liveness_stays_unknown_and_other_revisions_stay_visible() -> TestResult {
+    let projection = project(&collect(PILOT)?, Some(&needs()?))?;
+    let snapshot = &projection.snapshot;
+    for worker in &snapshot.workers {
+        assert!(!matches!(
+            worker.lifecycle,
+            WorkerLifecycle::Idle | WorkerLifecycle::Healthy | WorkerLifecycle::Executing
+        ));
+        assert_eq!(worker.fence, Some(7));
+        assert_eq!(worker.definition, reference("lattice-agents", DEFINITION));
+    }
+    let dispatched = snapshot
+        .workers
+        .iter()
+        .find(|w| w.execution == reference("aspen-compute", "agent-a-1"))
+        .ok_or("missing dispatched worker")?;
+    assert_eq!(dispatched.lifecycle, WorkerLifecycle::Unknown);
+    assert_eq!(dispatched.attempt.as_deref(), Some("attempt-agent-a-1"));
+    assert!(
+        dispatched
+            .meta
+            .unknown_fields
+            .iter()
+            .any(|f| f == "liveness")
+    );
+    assert_eq!(
+        projection
+            .facts
+            .iter()
+            .find(|f| f.reference == dispatched.meta.reference)
+            .map(|f| f.state),
+        Some(ObservationState::Unknown)
+    );
+    let host_local = snapshot
+        .workers
+        .iter()
+        .find(|w| w.execution.source == "lattice-workers")
+        .ok_or("missing host-local worker")?;
+    assert_eq!(host_local.lifecycle, WorkerLifecycle::Reserved);
+    assert_ne!(host_local.pinned_revision, PROFILE);
+    assert!(
+        !host_local
+            .meta
+            .unknown_fields
+            .iter()
+            .any(|f| f == "liveness"),
+        "not_started is an observed liveness"
+    );
+    let explanation = projection
+        .explanation
+        .as_ref()
+        .ok_or("missing explanation")?;
+    let host_local_codes = candidate_codes(explanation, "host-local", "svc-serving-b")?;
+    for code in ["worker_pinned_other_revision", "awaiting_dispatch"] {
+        assert!(host_local_codes.contains(code), "{code}");
+    }
+    let text = serde_json::to_string(&projection).map_err(|e| e.to_string())?;
+    assert!(text.contains("\"owner\":\"lattice#6\""));
     Ok(())
 }

@@ -300,8 +300,16 @@ entry describes the source tree prepared for the first tagged release.
   rollout/qualification and reservation-versus-usage semantics. Existing worker
   v1 continues to describe configured project admission slots, not machines.
 - Inventory v2 producer collection (Kiln #60). `kiln-adapter-lattice` maps
-  Lattice `lattice.worker-inventory.v1` profiles to definitions and retained
-  instances to workers, never idle or healthy. It also maps
+  Lattice `lattice.worker-inventory.v2` profiles to definitions keyed by their
+  definition identity and retained instances to workers, never idle or healthy.
+  v1 documents are refused as unsupported. Declared task families and tools
+  are known capability, unavailable capability is a known negative, and
+  undeclared capability stays unknown. Single-shot liveness maps to the worker
+  lifecycle, and retained generation orders repeated observations. Lattice wait
+  reasons keep their exact code, subject and owner on definitions and workers.
+  They appear as owned explanation blockers through a provider-neutral core
+  `WaitReason`, omitted when empty, so earlier snapshots keep their identity.
+  The adapter also maps
   `lattice.compute-allocation-observation.v1` (Aspen/Molten #42 records) into
   allocation facts and authority-keyed pools: a shared deployment or pool is
   counted once, and capacity stays unknown. New `kiln-adapter-animus` maps
@@ -312,8 +320,8 @@ entry describes the source tree prepared for the first tagged release.
   `compose_snapshot` joins sources by exact producer identities, never host
   names. `kiln-web-service inventory-collect` reads an explicit
   `kiln.inventory.collection-set.v1` manifest. Unpublished producer facts are
-  listed as unknown. (fixture-tested with Lattice `inspect` captures at
-  1bdacb35 and Animus fixtures at 4071c65e; no live provider)
+  listed as unknown. (fixture-tested with verbatim Lattice v2 `inspect`
+  captures at 9a74e7ef and Animus fixtures at 4071c65e; no live provider)
 - Exact artifact-preview admission and review actions, with native complete
   runtime-closure/NAR/signature verification and a separately hosted disposable
   TryNix Linux engine. Engine-only rehearsal never invents a canonical CI build;

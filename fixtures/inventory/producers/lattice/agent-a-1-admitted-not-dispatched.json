@@ -34,6 +34,7 @@
       "shared_serving_ref": "serving-b",
       "view_id": "host-a-agent-execution"
     },
+    "definition_identity": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6",
     "fence": 7,
     "host_reachability": {
       "owner": "kiln#49",
@@ -42,6 +43,13 @@
     "incarnation": "d56123b706ed2af6ac1a1d10ee749a3b854bcea5508de34738b52dea1f3037c7",
     "lifecycle": {
       "state": "admitted_not_dispatched"
+    },
+    "liveness": {
+      "observed_at_epoch_ms": 1795208972411,
+      "retained_generation": 1,
+      "runtime": "single_shot",
+      "state": "not_started",
+      "unknown_cause": null
     },
     "model_readiness": {
       "state": "no_serving_port"
@@ -55,11 +63,45 @@
         }
       ]
     },
-    "observed_at_epoch_ms": 1795200615765,
+    "observed_at_epoch_ms": 1795208972411,
     "profile_revision": "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72",
-    "schema": "lattice.worker-instance-observation.v1",
+    "schema": "lattice.worker-instance-observation.v2",
     "source": "lattice.implementation-attempt-state.v1",
     "state_digest": "blake3:83bc9d6f77aa498ce9a33060b95f4e6130513bcf0166eef9ff0d9c8543d1316e",
+    "wait_reasons": [
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "awaiting_dispatch",
+        "owner": "kiln#45",
+        "subject": {
+          "field": "lifecycle",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "host_reachability_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "host_reachability",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "allocation_liveness_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "allocation_liveness",
+          "kind": "fact"
+        }
+      }
+    ],
     "work_id": "work-24"
   },
   "model_requests": "unknown",
@@ -86,6 +128,11 @@
     "deadline_secs": {
       "support": "declared",
       "value": 60
+    },
+    "definition": {
+      "basis": "owner_default",
+      "identity": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6",
+      "name": "omp-attempt-worker"
     },
     "executable_identity": {
       "support": "declared",
@@ -134,7 +181,29 @@
     },
     "qualification_ref": null,
     "revision": "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72",
-    "schema": "lattice.worker-profile-facts.v1",
+    "revisions": {
+      "desired": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "pinned": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "prepared": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "qualified": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "selected_for_new_sessions": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      }
+    },
+    "schema": "lattice.worker-profile-facts.v2",
     "serving_readiness": {
       "state": "no_serving_port"
     },
@@ -146,10 +215,60 @@
       "support": "unknown",
       "value": null
     },
+    "task_families": {
+      "support": "unknown",
+      "value": null
+    },
+    "tools": {
+      "support": "unknown",
+      "value": null
+    },
+    "wait_reasons": [
+      {
+        "code": "capability_undeclared",
+        "owner": "configuration",
+        "subject": {
+          "field": "task_families",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "capability_undeclared",
+        "owner": "configuration",
+        "subject": {
+          "field": "tools",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "qualification_unbound",
+        "owner": "animus#18",
+        "subject": {
+          "field": "qualification_ref",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "revision_selection_unpublished",
+        "owner": "lattice#25",
+        "subject": {
+          "field": "revisions",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      }
+    ],
     "workspace": {
       "support": "declared",
       "value": "admitted-read-write-paths"
     }
   },
-  "schema": "lattice.worker-inventory.v1"
+  "schema": "lattice.worker-inventory.v2"
 }

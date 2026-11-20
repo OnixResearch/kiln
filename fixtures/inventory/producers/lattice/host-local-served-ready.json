@@ -10,6 +10,7 @@
     "compute": {
       "compute_kind": "host_local"
     },
+    "definition_identity": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6",
     "fence": 7,
     "host_reachability": {
       "owner": "kiln#49",
@@ -18,6 +19,13 @@
     "incarnation": "8e64c548a6d709b0cda7402424ddb0b60d74df4724f2195e8d79d2ef9410fcfb",
     "lifecycle": {
       "state": "admitted_not_dispatched"
+    },
+    "liveness": {
+      "observed_at_epoch_ms": 1795208972381,
+      "retained_generation": 1,
+      "runtime": "single_shot",
+      "state": "not_started",
+      "unknown_cause": null
     },
     "model_readiness": {
       "routes": [
@@ -45,11 +53,37 @@
         }
       ]
     },
-    "observed_at_epoch_ms": 1795200615751,
+    "observed_at_epoch_ms": 1795208972381,
     "profile_revision": "2fb8023506390884d4d5974a91d807e8a8ff5af11533ecc67b34f39f79e4fa41",
-    "schema": "lattice.worker-instance-observation.v1",
+    "schema": "lattice.worker-instance-observation.v2",
     "source": "lattice.implementation-attempt-state.v1",
     "state_digest": "blake3:21030e3588dc23ef0e0f5a17b66527ba6cadb17005957b89eaf04a723978a10a",
+    "wait_reasons": [
+      {
+        "code": "awaiting_dispatch",
+        "owner": "kiln#45",
+        "subject": {
+          "field": "lifecycle",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "host_reachability_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "host_reachability",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "allocation_liveness_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "allocation_liveness",
+          "kind": "fact"
+        }
+      }
+    ],
     "work_id": "work-24"
   },
   "model_requests": {
@@ -109,6 +143,11 @@
       "support": "declared",
       "value": 60
     },
+    "definition": {
+      "basis": "owner_default",
+      "identity": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6",
+      "name": "omp-attempt-worker"
+    },
     "executable_identity": {
       "support": "declared",
       "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -156,7 +195,29 @@
     },
     "qualification_ref": null,
     "revision": "2fb8023506390884d4d5974a91d807e8a8ff5af11533ecc67b34f39f79e4fa41",
-    "schema": "lattice.worker-profile-facts.v1",
+    "revisions": {
+      "desired": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "pinned": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "prepared": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "qualified": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      },
+      "selected_for_new_sessions": {
+        "owner": "lattice#25",
+        "support": "unknown"
+      }
+    },
+    "schema": "lattice.worker-profile-facts.v2",
     "serving_readiness": {
       "routes": [
         {
@@ -182,10 +243,52 @@
       "support": "unknown",
       "value": null
     },
+    "task_families": {
+      "support": "unknown",
+      "value": null
+    },
+    "tools": {
+      "support": "unknown",
+      "value": null
+    },
+    "wait_reasons": [
+      {
+        "code": "capability_undeclared",
+        "owner": "configuration",
+        "subject": {
+          "field": "task_families",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "capability_undeclared",
+        "owner": "configuration",
+        "subject": {
+          "field": "tools",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "qualification_unbound",
+        "owner": "animus#18",
+        "subject": {
+          "field": "qualification_ref",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "revision_selection_unpublished",
+        "owner": "lattice#25",
+        "subject": {
+          "field": "revisions",
+          "kind": "fact"
+        }
+      }
+    ],
     "workspace": {
       "support": "declared",
       "value": "admitted-read-write-paths"
     }
   },
-  "schema": "lattice.worker-inventory.v1"
+  "schema": "lattice.worker-inventory.v2"
 }

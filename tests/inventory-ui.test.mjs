@@ -119,6 +119,28 @@ test("reservation rejection stays visible in the exact attempt drilldown", () =>
   assert.ok(text.includes("serving_queue_full"));
 });
 
+// r[verify kiln.inventory.producers.scenario.wait]
+test("producer wait reasons and blocker owners stay exact and inert", () => {
+  const inventory = setup();
+  const projection = fixture();
+  const page = () => allText(inventory.render(projection));
+  assert.ok(page().includes("None supplied (not readiness evidence)"), "absent reasons are not readiness evidence");
+  projection.snapshot.agents[0].wait_reasons = [{ code: "revision_selection_unpublished", subject: { kind: "fact", field: "revisions" }, owner: "lattice#25" }];
+  projection.snapshot.workers[0].wait_reasons = [{ code: "serving_snapshot_unavailable", subject: { kind: "route", name: "primary" }, owner: "animus#17" }];
+  projection.attempt_explanations = [{ binding: { work_version: "exact-work", attempt: "attempt-a", fence: 9, worker: { source: "workers", id: "worker-a" }, execution_grant: { source: "policy", id: "grant-a" }, model_services: [], request_admissions: [] }, blockers: [
+    { code: "liveness_unobserved", constraint: "fact:liveness", subject: { source: "workers", id: "worker-a" }, owner: "kiln#49" },
+    { code: "reservation_unknown", constraint: "attempt-a", subject: { source: "policy", id: "grant-a" } },
+  ] }];
+  const text = page();
+  assert.ok(text.includes("revision_selection_unpublished · fact:revisions · owner lattice#25"));
+  assert.ok(text.includes("serving_snapshot_unavailable · route:primary · owner animus#17"));
+  assert.ok(text.includes("liveness_unobserved · fact:liveness · workers / worker-a · owner kiln#49"));
+  assert.ok(descendants(inventory.render(projection)).some((node) => node.tagName === "li" && node.textContent === "reservation_unknown · attempt-a · policy / grant-a"), "Kiln's own blockers carry no owner");
+  projection.snapshot.workers[0].wait_reasons = [{ code: '<img src="https://x" onerror="bad()">', subject: { kind: "fact", field: "liveness" }, owner: "kiln#49" }];
+  const rendered = inventory.render(projection);
+  assert.equal(descendants(rendered).filter((node) => ["script", "img"].includes(node.tagName)).length, 0);
+});
+
 test("delayed reads cannot restore private inventory after clear", async () => {
   const inventory = setup();
   const root = new Element("div");

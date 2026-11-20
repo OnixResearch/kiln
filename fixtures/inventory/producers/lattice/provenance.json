@@ -1,0 +1,26 @@
+{
+  "schema": "kiln.fixture-provenance.v1",
+  "producer": "lattice",
+  "contract": "lattice.worker-inventory.v2",
+  "lattice_commit": "9a74e7ef1da4e0ca7610dce0db039b3825a7154d",
+  "lattice_base": "1bdacb354ec183e8485e3ed702150d0323bd8c25",
+  "lattice_commit_note": "Published on Lattice main (GitHub and Radicle); its full flake check passed. The captures ran on the base plus the uncommitted publish-worker-inventory-v2 change, whose diff from the base equals this commit's diff except for one Cairn evidence file, with no code difference. The captured documents are unchanged.",
+  "schema_document": "docs/worker-inventory.md",
+  "command": "LATTICE_INVENTORY_CAPTURE_DIR=$DIR cargo test -p lattice --lib -- --exact implementation_attempt::cli::inspect::tests::capture_worker_inventory_v2 implementation_attempt::cli::binding::tests::serving::capture_served_worker_inventory_v2 --test-threads 1",
+  "copied": "verbatim",
+  "synthetic": true,
+  "varying_fields": [
+    "instance.observed_at_epoch_ms",
+    "instance.liveness.observed_at_epoch_ms"
+  ],
+  "blake3": {
+    "agent-a-1-admitted-not-dispatched.json": "0a3520621ed2bc5355a895d5b50a94ee5e3a82baeb6c49583422f0a2febd6533",
+    "agent-a-1-declared-capability-dispatched.json": "7bd62735cb6f16081beb9b91b946217b6bbf8cc06e95316b1ad4b7f1ed2aa36f",
+    "agent-a-1-dispatched-outcome-unknown.json": "1621b8dadd8cf7cd1dab5b0f9f77026d25a42ede53c330611e98b19cf1b3072c",
+    "agent-a-1-terminal-failed.json": "32427f0f1169956789fbd2143c202d977a13d2bf95d7c46167ff37158a97c38c",
+    "agent-a-2-dispatched-outcome-unknown.json": "53e6983fc2acd23cf359ca1cf88a8b65b685ff02450658da11d914275c1be2fd",
+    "host-local-served-ready.json": "65c51f44cba4f19c4c680840f233c10fb01bfd8115c38907c821471074b1a285",
+    "host-local-served-unavailable.json": "f0f4b6d3ad64471ceb48fb8b14c53f1e6df6a9b2e0dd046021a3f768a95ea63a",
+    "profile-without-instance.json": "7d22272ba49ec801c7b60e6e86b1aa8a62b87137f87af4b33833f6c688c54e83"
+  }
+}
