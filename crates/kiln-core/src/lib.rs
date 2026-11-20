@@ -5,6 +5,7 @@ extern crate alloc;
 pub mod build;
 pub mod change_review;
 pub mod cob;
+pub mod convergence;
 pub mod discovery;
 pub mod domain;
 pub mod fair_admission;
