@@ -1,0 +1,45 @@
+{
+  "include_evidence": false,
+  "max_age_ms": 60000,
+  "max_candidates": 32,
+  "max_items": 128,
+  "principal": "operator",
+  "schema": "kiln.observe.inventory.v2",
+  "sources": [
+    {
+      "kind": "serving",
+      "minimum_generation": 1,
+      "producer": "animus",
+      "scope": "tenant-pilot",
+      "source": "animus-serving"
+    },
+    {
+      "kind": "compute",
+      "minimum_generation": 1,
+      "producer": "aspen",
+      "scope": "tenant-pilot",
+      "source": "aspen-compute"
+    },
+    {
+      "kind": "policy",
+      "minimum_generation": 1,
+      "producer": "kiln",
+      "scope": "tenant-pilot",
+      "source": "kiln-policy"
+    },
+    {
+      "kind": "agents",
+      "minimum_generation": 1,
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "source": "lattice-agents"
+    },
+    {
+      "kind": "workers",
+      "minimum_generation": 1,
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "source": "lattice-workers"
+    }
+  ]
+}

@@ -1,0 +1,181 @@
+{
+  "instance": {
+    "allocation_liveness": {
+      "owner": "kiln#49",
+      "support": "unknown"
+    },
+    "attempt_id": "attempt-host-local",
+    "binding_identity": "blake3:cc9343660c8a277bd64f4813bd09debc947101c17b7aa339467d9fcfc6337550",
+    "cancellation": "not_requested",
+    "compute": {
+      "compute_kind": "host_local"
+    },
+    "fence": 7,
+    "host_reachability": {
+      "owner": "kiln#49",
+      "support": "unknown"
+    },
+    "incarnation": "8e64c548a6d709b0cda7402424ddb0b60d74df4724f2195e8d79d2ef9410fcfb",
+    "lifecycle": {
+      "state": "admitted_not_dispatched"
+    },
+    "model_readiness": {
+      "routes": [
+        {
+          "route_name": "primary",
+          "service_id": "svc-shared",
+          "snapshot": {
+            "reading": "unavailable"
+          }
+        }
+      ],
+      "state": "observed"
+    },
+    "model_routes": {
+      "kind": "routes",
+      "routes": [
+        {
+          "name": "primary",
+          "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+        }
+      ]
+    },
+    "observed_at_epoch_ms": 1795200615752,
+    "profile_revision": "2fb8023506390884d4d5974a91d807e8a8ff5af11533ecc67b34f39f79e4fa41",
+    "schema": "lattice.worker-instance-observation.v1",
+    "source": "lattice.implementation-attempt-state.v1",
+    "state_digest": "blake3:21030e3588dc23ef0e0f5a17b66527ba6cadb17005957b89eaf04a723978a10a",
+    "work_id": "work-24"
+  },
+  "model_requests": {
+    "served": {
+      "is_complete": true,
+      "overrun": {
+        "is_exact_ceiling": true,
+        "known_tokens": 0,
+        "overrun_requests": 0,
+        "overrun_tokens": 0,
+        "refused_requests": 0,
+        "reserved_tokens": 0,
+        "stop_on_overrun": false,
+        "unknown_usage_requests": 0
+      },
+      "schema": "lattice.model-request-usage.v1",
+      "services": [
+        {
+          "attribution": {
+            "kind": "not_apportioned"
+          },
+          "configuration_ref": "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "dispatched_requests": 0,
+          "known_input_tokens": 0,
+          "known_output_tokens": 0,
+          "model_id": "model",
+          "not_dispatched_requests": 0,
+          "requests": [],
+          "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5",
+          "route_name": "primary",
+          "service_id": "svc-shared",
+          "unknown_usage_requests": 0
+        }
+      ]
+    }
+  },
+  "profile": {
+    "adapter": {
+      "support": "declared",
+      "value": "omp-jsonl"
+    },
+    "checkpoint": {
+      "support": "unavailable",
+      "value": null
+    },
+    "compute": {
+      "support": "declared",
+      "value": {
+        "kind": "host_local"
+      }
+    },
+    "cpu_millis": {
+      "support": "unknown",
+      "value": null
+    },
+    "deadline_secs": {
+      "support": "declared",
+      "value": 60
+    },
+    "executable_identity": {
+      "support": "declared",
+      "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "inputs": {
+      "support": "declared",
+      "value": "workspace-snapshot"
+    },
+    "isolation": {
+      "support": "declared",
+      "value": "required-sandbox"
+    },
+    "max_output_bytes": {
+      "support": "declared",
+      "value": 4096
+    },
+    "memory_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "model_routes": {
+      "support": "declared",
+      "value": {
+        "kind": "routes",
+        "routes": [
+          {
+            "name": "primary",
+            "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+          }
+        ]
+      }
+    },
+    "network": {
+      "support": "declared",
+      "value": "attempt-local-model-broker"
+    },
+    "outputs": {
+      "support": "declared",
+      "value": "candidate-receipt"
+    },
+    "owner": "implementation_attempt",
+    "protocol_revision": {
+      "support": "declared",
+      "value": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906"
+    },
+    "qualification_ref": null,
+    "revision": "2fb8023506390884d4d5974a91d807e8a8ff5af11533ecc67b34f39f79e4fa41",
+    "schema": "lattice.worker-profile-facts.v1",
+    "serving_readiness": {
+      "routes": [
+        {
+          "route_name": "primary",
+          "service_id": "svc-shared",
+          "snapshot": {
+            "reading": "unavailable"
+          }
+        }
+      ],
+      "state": "observed"
+    },
+    "sessions": {
+      "support": "declared",
+      "value": "single-shot-no-session"
+    },
+    "storage_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "workspace": {
+      "support": "declared",
+      "value": "admitted-read-write-paths"
+    }
+  },
+  "schema": "lattice.worker-inventory.v1"
+}

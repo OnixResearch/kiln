@@ -1,0 +1,38 @@
+{
+  "change": "consume-inventory-producer-observations",
+  "issue": 60,
+  "date": "2026-11-20",
+  "base": "e30f178bf20ee720b0611aca021982c9c93176c9",
+  "producer_cohort": {
+    "lattice": "1bdacb35",
+    "lattice_inspect_capture": "evidence/lattice-inspect-capture.patch (throwaway capture tests, not upstreamed)",
+    "animus": "4071c65ec16c8d871bbdb781b25a65e7a5e3c527",
+    "compute_contract": "lattice.compute-allocation-observation.v1 over Aspen/Molten #42 records"
+  },
+  "gates_before_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "0dc09fd0dfef4018998633320a4fcba5db93fe89f1cc2097c538eef21c284949"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "af92429d3f6a5fa169a8567023786911ce6f8a19b302b80318b9a4eaa64652f3"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "1c350647ca820aa0c9e4d67db614c019abb3214dc5aaca94ffdd7f945ec0325f"}
+  ],
+  "gates_after_sync": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "c0ceb5e461bc33f57c97169df7b476e8a6b2fa996478519005421657cefcaa3f"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "a7c6a6bab52b97c95776011c0a211a422a4eea49768cc59a7d41cf807b5d5cf1"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "35a24b314abe5862f98097718137a790559dcf7998f4c356c899a37cfd8a717c"}
+  ],
+  "sync": {"command": "cairn sync consume-inventory-producer-observations --execute", "destination": ".cairn/specs/resource-inventory/spec.md", "receipt_hash": "6542fa4816ba991112402f74cf608f1dc156b93afb22ac1be4a6fa3ff100b10c"},
+  "commands": [
+    {"command": "cargo fmt -- --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 101, "passed": 2227, "failed": 3, "ignored": 14, "failures": "kiln-fleet dispatch x2 (herdr environment PATH exceeds MAX_PATH_BYTES under the nix develop PATH); kiln-adapter-cairn bounded_runtime_hashes_exact_file (debug test binary 268,583,032 bytes above the test's 268,435,456-byte bound)"},
+    {"command": "node --test tests/inventory-ui.test.mjs tests/console-inventory.test.mjs", "exit": 0, "passed": 21},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "96 positive, 627 negative"},
+    {"command": "cairn validate", "exit": 0, "valid": true},
+    {"command": "cairn traceability coverage --json", "exit": 1, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"]},
+    {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0}
+  ],
+  "non_claims": [
+    "All producer inputs are deterministic fixtures or captures; manifests set synthetic: true",
+    "No live provider, fleet, serving or capacity qualification; that stays with Kiln #49",
+    "No reservation, dispatch, routing or admission authority follows from any projection"
+  ]
+}

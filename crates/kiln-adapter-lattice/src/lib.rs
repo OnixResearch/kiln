@@ -1,4 +1,5 @@
 mod adapter;
+pub mod compute_inventory;
 mod implementation;
 mod mapping;
 mod profile;
@@ -6,6 +7,7 @@ mod profile;
 mod unix;
 #[cfg(target_os = "linux")]
 pub mod worker;
+pub mod worker_inventory;
 pub mod workflow_intent;
 
 pub use adapter::LatticeAdapter;

@@ -1,0 +1,139 @@
+{
+  "schema": "animus.serving-availability-snapshot.v1",
+  "source_id": "states-observer",
+  "source_generation": 1,
+  "sequence": 4,
+  "observed_tick": 100,
+  "valid_until_tick": 160,
+  "services": [
+    {
+      "service_id": "svc-loading",
+      "endpoint_identity": "endpoint:loading",
+      "deployment_id": "deploy-serving-a",
+      "deployment_generation": 1,
+      "locality": "local",
+      "model": {
+        "model_id": "model-b",
+        "configuration_ref": "blake3:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "attestation": "observed"
+      },
+      "readiness": "loading",
+      "capabilities": {
+        "text": "supported",
+        "tools": "supported",
+        "streaming": "supported",
+        "structured_output": "unsupported",
+        "developer_role": "unsupported"
+      },
+      "envelope": { "max_context_tokens": 32768, "max_output_tokens": 2048 },
+      "capacity": [],
+      "admission": "owner-admission",
+      "replica": "replica-a",
+      "resource_consumer_ref": "serving-a",
+      "rollout": null
+    },
+    {
+      "service_id": "svc-saturated",
+      "endpoint_identity": "endpoint:saturated",
+      "deployment_id": "deploy-saturated",
+      "deployment_generation": 2,
+      "locality": "private-remote",
+      "model": {
+        "model_id": "model-a",
+        "configuration_ref": "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "attestation": "observed"
+      },
+      "readiness": "ready",
+      "capabilities": {
+        "text": "supported",
+        "tools": "supported",
+        "streaming": "supported",
+        "structured_output": "unsupported",
+        "developer_role": "unsupported"
+      },
+      "envelope": { "max_context_tokens": 8192, "max_output_tokens": 1024 },
+      "capacity": [
+        {
+          "kind": "request-slots",
+          "unit": "requests",
+          "scope": "deployment",
+          "origin": "serving-owner",
+          "value": 0,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        },
+        {
+          "kind": "queue-depth",
+          "unit": "requests",
+          "scope": "deployment",
+          "origin": "serving-owner",
+          "value": 12,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        }
+      ],
+      "admission": "owner-admission",
+      "replica": null,
+      "resource_consumer_ref": null,
+      "rollout": null
+    },
+    {
+      "service_id": "svc-shared",
+      "endpoint_identity": "endpoint:svc-shared",
+      "deployment_id": "deploy-svc-shared",
+      "deployment_generation": 1,
+      "locality": "private-remote",
+      "model": {
+        "model_id": "model",
+        "configuration_ref": "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "attestation": "claimed"
+      },
+      "readiness": "ready",
+      "capabilities": {
+        "text": "supported",
+        "tools": "supported",
+        "streaming": "supported",
+        "structured_output": "supported",
+        "developer_role": "unsupported"
+      },
+      "envelope": { "max_context_tokens": 16384, "max_output_tokens": 2048 },
+      "capacity": [
+        {
+          "kind": "request-slots",
+          "unit": "requests",
+          "scope": "deployment",
+          "origin": "serving-owner",
+          "value": 2,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        }
+      ],
+      "admission": "owner-admission",
+      "replica": "replica-1",
+      "resource_consumer_ref": null,
+      "rollout": null
+    },
+    {
+      "service_id": "svc-absent",
+      "endpoint_identity": "endpoint:absent",
+      "deployment_id": "deploy-absent",
+      "deployment_generation": 1,
+      "locality": "local",
+      "model": null,
+      "readiness": "absent",
+      "capabilities": {
+        "text": "unknown",
+        "tools": "unknown",
+        "streaming": "unknown",
+        "structured_output": "unknown",
+        "developer_role": "unknown"
+      },
+      "envelope": null,
+      "capacity": [],
+      "admission": "not-offered",
+      "replica": null,
+      "resource_consumer_ref": null,
+      "rollout": null
+    }
+  ]
+}

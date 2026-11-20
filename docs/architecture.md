@@ -17,7 +17,8 @@ Kiln owns CI domain meaning. Provider shells own external effects and native aut
 | `kiln-adapter-jj` | Jujutsu source-provider compatibility. |
 | `kiln-adapter-git` | Bounded read-only access to local Git repositories. |
 | `kiln-adapter-pijul` | Exact Pijul state observation and bounded local snapshot acquisition. |
-| `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation. |
+| `kiln-adapter-lattice` | Versioned Lattice workflow lowering, lifecycle admission, controls, logs, and reconciliation; read-only mapping of Lattice worker inventory and compute allocation observations into inventory v2 facts. |
+| `kiln-adapter-animus` | Read-only mapping of Animus serving availability snapshots into inventory v2 model-service facts. |
 | `kiln-adapter-iroh` | Authenticated, bounded native Lattice workflow transport through a controller-local Unix proxy and worker-local Lattice socket; no CI-state or execution authority. |
 | `kiln-adapter-aspen` | Exact Aspen/Molten runtime profile, identity, atomic durability, content, typed effects, ingress, and bounded Unix transport mapping. |
 | `kiln-aspen-extension` | Deterministic Kiln callback decisions and one-shot native callback executable bound to the host's exact runtime profile. |

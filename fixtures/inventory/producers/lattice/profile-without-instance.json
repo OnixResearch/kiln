@@ -1,0 +1,93 @@
+{
+  "instance": null,
+  "model_requests": null,
+  "profile": {
+    "adapter": {
+      "support": "declared",
+      "value": "omp-jsonl"
+    },
+    "checkpoint": {
+      "support": "unavailable",
+      "value": null
+    },
+    "compute": {
+      "support": "declared",
+      "value": {
+        "direct_accelerator": null,
+        "kind": "provider_execution"
+      }
+    },
+    "cpu_millis": {
+      "support": "unknown",
+      "value": null
+    },
+    "deadline_secs": {
+      "support": "declared",
+      "value": 60
+    },
+    "executable_identity": {
+      "support": "declared",
+      "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "inputs": {
+      "support": "declared",
+      "value": "workspace-snapshot"
+    },
+    "isolation": {
+      "support": "declared",
+      "value": "required-sandbox"
+    },
+    "max_output_bytes": {
+      "support": "declared",
+      "value": 4096
+    },
+    "memory_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "model_routes": {
+      "support": "declared",
+      "value": {
+        "kind": "routes",
+        "routes": [
+          {
+            "name": "primary",
+            "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+          }
+        ]
+      }
+    },
+    "network": {
+      "support": "declared",
+      "value": "attempt-local-model-broker"
+    },
+    "outputs": {
+      "support": "declared",
+      "value": "candidate-receipt"
+    },
+    "owner": "implementation_attempt",
+    "protocol_revision": {
+      "support": "declared",
+      "value": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906"
+    },
+    "qualification_ref": null,
+    "revision": "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72",
+    "schema": "lattice.worker-profile-facts.v1",
+    "serving_readiness": {
+      "state": "no_serving_port"
+    },
+    "sessions": {
+      "support": "declared",
+      "value": "single-shot-no-session"
+    },
+    "storage_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "workspace": {
+      "support": "declared",
+      "value": "admitted-read-write-paths"
+    }
+  },
+  "schema": "lattice.worker-inventory.v1"
+}

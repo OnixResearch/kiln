@@ -2698,6 +2698,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-animus"
+version = "0.1.0"
+dependencies = [
+ "onix-kiln-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-adapter-aspen"
 version = "0.1.0"
 dependencies = [
@@ -3449,6 +3458,7 @@ dependencies = [
  "git2",
  "hmac 0.12.1",
  "jiff",
+ "kiln-adapter-animus",
  "kiln-adapter-cairn",
  "kiln-adapter-git",
  "kiln-adapter-github",

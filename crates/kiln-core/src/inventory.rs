@@ -186,6 +186,12 @@ pub struct ComputeDevice {
     /// Authoritative pool references, never independent capacity copies.
     pub accounting_pools: Vec<FactRef>,
     pub qualification: Vec<String>,
+    /// Serving deployment allocations an execution allocation references. The
+    /// compute producer never charges them to this allocation; the deployment's
+    /// own claims are accounted once in its pools. Omitted when empty, so
+    /// earlier snapshots keep their identity.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shared_serving: Vec<FactRef>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -793,6 +799,7 @@ pub fn admit_snapshot(
         tokens(&compute.sandbox)?;
         tokens(&compute.backends)?;
         references(&compute.accounting_pools)?;
+        references(&compute.shared_serving)?;
         tokens(&compute.qualification)?;
     }
     for pool in &snapshot.pools {
@@ -1817,6 +1824,10 @@ fn explain_admitted_attempt(
     }
     result
 }
+
+#[path = "inventory_compose.rs"]
+mod compose;
+pub use compose::{InventoryFragment, InventoryJoins, compose_snapshot};
 
 #[cfg(test)]
 #[path = "inventory_tests.rs"]

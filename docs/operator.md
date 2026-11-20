@@ -3683,6 +3683,14 @@ The example performs no provider discovery and does not qualify a real fleet.
 Kiln core/provider/web maintainers own the contracts and consumers; qualified
 Lattice, Aspen/Molten and Animus observations remain independent prerequisites.
 
+To build the input from producer observations instead, write a
+`kiln.inventory.collection-set.v1` manifest naming the retained Lattice, compute
+allocation and Animus serving documents, and run
+`kiln-web-service inventory-collect MANIFEST PROFILE`. It reads only the named
+files, and its output is the input file above. See
+[inventory producer collection](inventory-producers.md) for the mapping, the
+facts each producer leaves unknown and the producer consumer contract.
+
 #### Exact artifact browser previews
 
 Review can project an explicitly configured `--artifact-previews CATALOG` only

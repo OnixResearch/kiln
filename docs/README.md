@@ -68,6 +68,7 @@ The sections below group the maintained documents by the question they answer.
 - [HTTP API contract](http-api-contract.md): GET-only OpenAPI contract for runs, bindings and artifacts, validated against real responses; lockstep only.
 - [Operator dashboard](observation-dashboard.md): local terminal or offline HTML report; read only.
 - [Resource inventories](operator.md#agent-worker-compute-and-serving-observations): separate read-only definitions, instances, shared compute and serving observations; no dispatch authority.
+- [Inventory producer collection](inventory-producers.md): Lattice, compute allocation and Animus serving observations mapped into inventory v2 with explicit unknowns; read only, fixture-tested.
 - [Console port inventory](console-port-inventory.md): checked route, shell and state inventory of the live console, the reference for its Rats/Meteorite port; no route is migrated.
 - [Atlas view note](atlas-view.md): planned default-off isometric topology view in which every payload stays labeled declared or observed; nothing is implemented.
 

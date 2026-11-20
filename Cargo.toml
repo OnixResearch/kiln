@@ -24,6 +24,7 @@ members = [
   "crates/kiln-adapter-git",
   "crates/kiln-adapter-pijul",
   "crates/kiln-adapter-lattice",
+  "crates/kiln-adapter-animus",
   "crates/kiln-adapter-iroh",
   "crates/kiln-adapter-github",
   "crates/kiln-adapter-gitea",
@@ -152,6 +153,7 @@ kiln-adapter-jj = { path = "crates/kiln-adapter-jj" }
 kiln-adapter-git = { path = "crates/kiln-adapter-git" }
 kiln-adapter-pijul = { path = "crates/kiln-adapter-pijul" }
 kiln-adapter-lattice = { path = "crates/kiln-adapter-lattice" }
+kiln-adapter-animus = { path = "crates/kiln-adapter-animus" }
 kiln-adapter-herdr = { path = "crates/kiln-adapter-herdr" }
 kiln-fleet = { path = "crates/kiln-fleet" }
 kiln-adapter-cairn = { path = "crates/kiln-adapter-cairn" }

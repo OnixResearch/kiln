@@ -1,0 +1,32 @@
+{
+  "work_version": "work-24",
+  "task_family": "rust-fix",
+  "output_contract": "candidate-receipt",
+  "definition": {
+    "source": "lattice-agents",
+    "id": "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72"
+  },
+  "profile_revision": "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72",
+  "policy_ref": "policy-r1",
+  "harness": "omp-jsonl",
+  "tools": [
+    "edit"
+  ],
+  "sandbox": "required-sandbox",
+  "execution_backend": "synthetic-backend",
+  "model_backend": "private-remote",
+  "context_tokens": 8000,
+  "execution_resources": [
+    {
+      "unit": "unified-memory-bytes",
+      "amount": 40
+    }
+  ],
+  "modalities": [
+    "text"
+  ],
+  "model_artifact": "model-a",
+  "qualification_subject": "profile-subject-r1",
+  "qualification_corpus": "rust-corpus-r1",
+  "qualification_protocol": "qualification-v1"
+}
