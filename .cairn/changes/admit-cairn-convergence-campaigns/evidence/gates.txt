@@ -1,0 +1,15 @@
+$ cairn validate --root .
+exit=0
+valid= True issues= []
+
+$ cairn gate proposal admit-cairn-convergence-campaigns --root .
+exit=0
+verdict= PASS valid= True
+
+$ cairn gate design admit-cairn-convergence-campaigns --root .
+exit=0
+verdict= PASS valid= True
+
+$ cairn gate tasks admit-cairn-convergence-campaigns --root .
+exit=0
+verdict= PASS valid= True

@@ -1,0 +1,16 @@
+$ cargo fmt -p onix-kiln-core -p kiln-adapter-cairn -- --check
+fmt_exit=0
+
+$ cargo test -p onix-kiln-core --lib convergence
+test convergence::tests::row_count_bound_is_enforced ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 440 filtered out; finished in 0.01s
+
+core_exit=0
+
+$ cargo test -p kiln-adapter-cairn --lib convergence
+test convergence::tests::rejects_a_row_count_over_the_named_bound ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.46s
+
+adapter_exit=0

@@ -1,0 +1,4 @@
+$ cargo clippy -p onix-kiln-core -p kiln-adapter-cairn --all-targets -- -D warnings
+    Checking kiln-adapter-cairn v0.1.0 (/home/brittonr/wt/kiln-phase2/crates/kiln-adapter-cairn)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.06s
+clippy_exit=0

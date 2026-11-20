@@ -54,6 +54,7 @@ The sections below group the maintained documents by the question they answer.
 ## Gates, review and merge checks
 
 - [Cairn gate](cairn-gate.md): evaluates one exact gate plan through Cairn's versioned contracts.
+- [Cairn convergence campaigns](cairn-convergence.md): admits a convergence receipt, selects unsatisfied evidence and plans Verify-stage builds; advisory only.
 - [Semantic merge orchestration](semantic-merge-orchestration.md): opt-in, fixture-only check of a proposed merge.
 - [Isolated Patchgate review](operator.md#isolated-patchgate-review): isolated review evidence; never a source mutation.
 - [Optional interactive change review](operator.md#optional-interactive-change-review): human change review in the live workspace, separately admitted.
