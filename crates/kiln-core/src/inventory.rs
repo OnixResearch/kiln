@@ -1063,6 +1063,7 @@ fn admission_reason_code(reason: &crate::fair_admission::AdmissionReason) -> &'s
         AdmissionReason::Incompatible => "incompatible",
         AdmissionReason::Stale => "stale",
         AdmissionReason::ConcurrencyFull => "concurrency_full",
+        AdmissionReason::Overloaded => "overloaded",
     }
 }
 

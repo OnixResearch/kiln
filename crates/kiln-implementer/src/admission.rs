@@ -89,6 +89,18 @@ pub enum AdmissionCommand {
         receipt: ContentId,
         consumed: Amounts,
     },
+    /// Retain one injected serving-owner snapshot; evidence, never a grant.
+    ObserveServing {
+        observation: ServingObservation,
+    },
+    /// Revoke an account and its descendants without refunding usage.
+    Revoke {
+        account: ContentId,
+    },
+    /// Read the conservation-checked usage of one root lineage.
+    Lineage {
+        root: ContentId,
+    },
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "snake_case")]
@@ -120,6 +132,12 @@ pub enum AdmissionResult {
     },
     Retained {
         reservation: Box<OwnerReservation>,
+    },
+    Revoked {
+        accounts: u32,
+    },
+    Lineage {
+        usage: Box<LineageUsage>,
     },
 }
 impl Implementer {
@@ -459,6 +477,19 @@ impl Implementer {
                     ) {
                         return Err(refusal("reservation claim/fence expired"));
                     }
+                    // Blocked lineage and serving backpressure are structured
+                    // outcomes; nothing tentative is persisted for them.
+                    let blocker = ledger.lineage_blocker(&reservation.account, Some(now_ms))?;
+                    let serving = (reservation.kind == ChargeKind::WorkerRequest)
+                        .then(|| ledger.request_serving_gate(&reservation, now_ms))
+                        .flatten()
+                        .filter(|gate| *gate != AdmissionReason::Eligible);
+                    if let Some(reason) = blocker.or(serving) {
+                        if let Some(item) = ledger.items.get_mut(&reservation.work_version) {
+                            item.reason = reason;
+                        }
+                        return Ok(AdmissionResult::Owner { reason });
+                    }
                     let inputs = eligible_inputs(
                         &work,
                         &attempts,
@@ -469,9 +500,14 @@ impl Implementer {
                         None,
                     );
                     if ledger.select(&inputs, now_ms)?.as_ref() != Some(&reservation.work_version) {
-                        return Ok(AdmissionResult::Owner {
-                            reason: AdmissionReason::Waiting,
-                        });
+                        // Report the item's exact blocker rather than generic waiting.
+                        let reason = ledger
+                            .items
+                            .get(&reservation.work_version)
+                            .map(|item| item.reason)
+                            .filter(|reason| *reason != AdmissionReason::Eligible)
+                            .unwrap_or(AdmissionReason::Waiting);
+                        return Ok(AdmissionResult::Owner { reason });
                     }
                     let input = inputs
                         .iter()
@@ -520,6 +556,16 @@ impl Implementer {
                     ledger.settle(&operation, &provider, generation, receipt, consumed)?;
                     AdmissionResult::Updated
                 }
+                AdmissionCommand::ObserveServing { observation } => {
+                    ledger.observe_serving(observation)?;
+                    AdmissionResult::Updated
+                }
+                AdmissionCommand::Revoke { account } => AdmissionResult::Revoked {
+                    accounts: ledger.revoke_account(&account)?,
+                },
+                AdmissionCommand::Lineage { root } => AdmissionResult::Lineage {
+                    usage: Box::new(ledger.lineage_usage(&root)?),
+                },
             })
         })()
         .map_err(|e| format!("{}: {}", e.code, e.message))?;

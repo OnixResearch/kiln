@@ -44,6 +44,9 @@ with a snake-case `command` discriminator:
 | `owner_failure` | exact operation/provider/generation, typed reason and bounded optional retry time |
 | `cancel` | `work_version`, `expired`; stop future dispatch, retaining uncertain effects |
 | `settle` | exact owner operation/provider/generation/receipt and actual `consumed` dimensions; definitive evidence only |
+| `observe_serving` | `observation`; retain one serving-owner snapshot per aggregate scope; evidence, never a grant |
+| `revoke` | `account`; revoke the account and its descendants without refunding held or unknown usage |
+| `lineage` | `root`; return the conservation-checked usage of one root lineage |
 
 The shell replaces item priority with the existing admitted work priority and
 computes a conservative canonical payload byte bound itself, including future
@@ -100,6 +103,42 @@ time only: it creates neither an automatic retry, replacement semantic attempt,
 model fallback nor budget reset. A cancellation observation alone does not
 establish zero usage; authoritative settlement carries actual consumption.
 
+### Serving-owner snapshots
+
+<!-- r[impl kiln.admission.serving] -->
+An optional `serving` policy block (`max_snapshot_age_ms`, `capacity_rule` of
+`known_required` or `owner_admission_decides`) turns on a snapshot gate for
+worker-request owners. Without the block nothing changes, including existing
+policy identities. A `ServingObservation` is the provider-neutral projection of
+one service entry of a host-supplied availability snapshot (Animus #17's
+`animus.serving-availability-snapshot.v1` vocabulary): owner provider, owner
+aggregate scope, source generation and sequence, deployment generation,
+readiness, origin, observation window, the owner's declared `ServingBounds`,
+and remaining ongoing slots and queue depth, where an unknown counter is never
+zero. Kiln keeps one per scope; order cannot regress, a scope cannot change
+owner, and the same order with different content is refused. Kiln does not
+decode Animus JSON; the host shell projects it.
+
+| Snapshot state | Outcome |
+| --- | --- |
+| none for the owner or scope | `incomplete` |
+| older than `max_snapshot_age_ms`, from the future, past its window or source-marked stale | `stale` |
+| `absent`, or bounds/owner differ from the request | `incompatible` |
+| `unknown`, `loading`, `draining`, `unavailable` | `waiting` |
+| host-probe counters or unknown slots under `known_required` | `incomplete` |
+| no remaining slot and a full owner queue | `overloaded` |
+| a remaining slot, owner queue room, or unknown slots under `owner_admission_decides` | eligible to ask the owner |
+
+Selection applies the gate before ranking, so a saturated owner causes no claim
+(pre-claim wait). A claimed item keeps its claim, attempt ordinal and lease
+while it waits (post-claim wait). The `request` command applies the exact
+scope/generation/bounds gate and returns the outcome without persisting a
+tentative operation. A passing gate is not a reservation: two callers that see
+the last slot both still need the owner's reply, and only an owner rejection
+refunds. A retained owner operation is decided by the owner, not by a later
+snapshot. Snapshots never refund, never reset a budget and never authorize a
+different model or a new attempt.
+
 ## Accounting and lineage
 
 - Every reservation binds exact work, attempt/fence, operation, owner generation,
@@ -136,6 +175,40 @@ establish zero usage; authoritative settlement carries actual consumption.
   fresh generation and expiry are revalidated without another debit. Each worker
   retains its own request charges. Physical deployment lifetime remains the owner's
   responsibility, separate from acknowledging one worker workflow.
+
+### Recursive lineage
+
+<!-- r[impl kiln.admission.lineage] -->
+Recursive workloads (for example a root model coordinator with generated
+subcalls and nested child executions) charge one admitted lineage. Transfers
+are subtractive, so new call IDs, workers, batches or nesting depth cannot
+mint quota; the item budget and the account's available quota both bound every
+request, and simultaneous children racing for the final allowance get one
+success and one `admission_budget_exhausted` refusal before dispatch.
+
+A lineage blocker walks an account's ancestors. A revoked account gives
+`denied`; an ancestor deadline at or before now gives `expired`; a parent
+attempt whose queued work was cancelled, had cancellation requested or expired
+gives `cancelled` or `expired`. Enqueue returns the blocker without inserting,
+selection records it, and request, transfer and dispatch intent refuse. A
+parent that completes normally does not block its children. Revocation and
+cancellation never refund outstanding or unknown operations.
+
+`lineage_usage` (the `lineage` command) sums a root's whole subtree into
+available, tentative, held, unknown, settled and rejected amounts, per-charge-
+kind totals and the unknown-operation count. It fails closed unless the root's
+original quota equals available + tentative + held + unknown + settled in every
+dimension, so a small root transcript still reports every descendant's model
+subcalls and unavailable accounting stays unknown. Explanations carry the
+account's root, depth and blocker plus the serving gate and its snapshot.
+
+`config/fair-admission-lineage.ncl` types a recursive budget profile: root
+quota and deadline, named accounts with parent, allocation and deadline, and
+finite depth and fan-out. It rejects forward or unknown parents, allocations
+above the parent's remainder, deadlines past the parent's and depth or fan-out
+beyond the bounds. Rust re-admits the export (`LineageProfile::validate`) and
+derives domain-tagged BLAKE3 account identities from names. Exporting a profile
+grants nothing: each transfer still needs a current parent attempt and fence.
 
 ## Effects, restart and cancellation
 
@@ -284,10 +357,17 @@ Focused commands for the integration owner (not live qualification):
 
 ```console
 cargo test --locked -p onix-kiln-core fair_admission --lib
-cargo test --locked -p kiln-implementer --test admission
+cargo test --locked -p kiln-implementer --test admission --test admission_lineage
 nickel export --format json config/fixtures/fair-admission-positive.ncl
 nickel export --format json config/fixtures/fair-admission-weighted-positive.ncl
+nickel export --format json config/fixtures/fair-admission-serving-positive.ncl
+nickel export --format json config/fixtures/fair-admission-lineage-positive.ncl
 ```
+
+The serving-policy and recursive-lineage exports are committed as
+`fixtures/fair-admission/serving-policy.json` and
+`fixtures/fair-admission/recursive-lineage.json`; the core and durable tests
+read them and `scripts/check-nickel-fixtures.sh` refuses a stale export.
 
 Each `config/fixtures/negative-fair-admission-*.ncl` export must fail. Behavioral
 cases include competing campaigns and child bursts, duplicate receipts and quota
@@ -295,8 +375,14 @@ transfers, item/byte/fanout/group-active limits, weighted/dominant arithmetic an
 priority ties, stale/incompatible offers, independent progress, shared model
 allocation/request separation, cancellation races, authority/generation changes,
 concurrent durable claims/reservation intents and reopen before/after possible
-transport. Native Cairn proposal/design/tasks gates for `connect-fair-admission`
-passed before product edits; those structural passes are not product test results.
+transport. Serving and lineage cases add saturated, stale, out-of-order,
+host-probed and mismatched snapshots, two callers on the last slot, a two-level
+recursive profile with changed call IDs, batches and depth, children racing for
+the final allowance, duplicate requests and receipts, stale owner incarnations,
+revocation, parent cancellation and expiry, and reopen with outstanding child
+reservations. Native Cairn proposal/design/tasks gates for `connect-fair-admission`
+and `connect-serving-lineage-admission` passed before product edits; those
+structural passes are not product test results.
 
 Fairness claims apply only to admitted comparable eligible finite workloads in
 one explicit measurement window and the configured campaign shares. Reservations

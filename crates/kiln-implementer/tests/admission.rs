@@ -79,6 +79,7 @@ fn policy() -> AdmissionPolicy {
         strategy: FairnessStrategy::DominantShare,
         shares: BTreeMap::from([(a("a"), 1), (a("b"), 1)]),
         group_limits: vec![],
+        serving: None,
     }
 }
 fn account(c: &str) -> BudgetAccount {
@@ -916,7 +917,7 @@ fn exhausted_child_and_incomplete_provider_do_not_block_independent_ready_work()
     let state = i.admission_snapshot().unwrap_or_else(|_| unreachable!());
     assert_eq!(
         state
-            .explanation(&w.identity().unwrap_or_else(|_| unreachable!()))
+            .explanation(&w.identity().unwrap_or_else(|_| unreachable!()), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::Incomplete

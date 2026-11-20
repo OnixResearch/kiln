@@ -140,6 +140,7 @@ fn local_policy(
         strategy: FairnessStrategy::DominantShare,
         shares: BTreeMap::from([(campaign, 1)]),
         group_limits: Vec::new(),
+        serving: None,
     })
 }
 

@@ -629,6 +629,7 @@ fn cairn_lifecycle_cannot_reuse_another_task_spec_candidate_or_authoritative_res
             1,
         )]),
         group_limits: vec![],
+        serving: None,
     };
     let policy_identity = policy.identity().unwrap_or_else(|_| unreachable!());
     let tx = shell
@@ -713,6 +714,7 @@ fn cairn_lifecycle_cannot_reuse_another_task_spec_candidate_or_authoritative_res
             1,
         )]),
         group_limits: vec![],
+        serving: None,
     };
     let tx = shell
         .connection

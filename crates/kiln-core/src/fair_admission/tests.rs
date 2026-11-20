@@ -3,6 +3,8 @@ use super::*;
 use crate::operations::UsageValue;
 use alloc::vec;
 
+mod serving_lineage;
+
 fn id(s: &str) -> ContentId {
     ContentId::from_blake3_hex(blake3::hash(s.as_bytes()).to_hex().to_string())
         .unwrap_or_else(|_| unreachable!())
@@ -30,6 +32,7 @@ fn policy(strategy: FairnessStrategy) -> AdmissionPolicy {
         strategy,
         shares: BTreeMap::from([(alias("a"), 1), (alias("b"), 1)]),
         group_limits: vec![],
+        serving: None,
     }
 }
 fn root(c: &str) -> BudgetAccount {
@@ -275,7 +278,7 @@ fn missing_capacity_and_stale_campaign_do_not_block_independent_compatible_work(
         Some(id("b1"))
     );
     assert_eq!(
-        l.explanation(&id("a1"))
+        l.explanation(&id("a1"), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::Incomplete
@@ -298,7 +301,7 @@ fn missing_capacity_and_stale_campaign_do_not_block_independent_compatible_work(
         Some(id("b1"))
     );
     assert_eq!(
-        l.explanation(&id("a1"))
+        l.explanation(&id("a1"), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::Incompatible
@@ -330,7 +333,7 @@ fn queue_items_bytes_grouping_age_and_fanout_have_explicit_bounds() {
         None
     );
     assert_eq!(
-        l.explanation(&id("a1"))
+        l.explanation(&id("a1"), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::Expired
@@ -816,7 +819,7 @@ fn exhausted_account_and_aggregate_group_concurrency_do_not_head_of_line_block()
         Some(id("b1"))
     );
     assert_eq!(
-        l.explanation(&id("a1"))
+        l.explanation(&id("a1"), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::BudgetExhausted
@@ -844,7 +847,7 @@ fn exhausted_account_and_aggregate_group_concurrency_do_not_head_of_line_block()
         None
     );
     assert_eq!(
-        l.explanation(&id("b1"))
+        l.explanation(&id("b1"), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::ConcurrencyFull
@@ -930,7 +933,7 @@ fn weighted_u128_overflow_is_a_blocker_not_wrapped_priority() {
         Some(id("b1"))
     );
     assert_eq!(
-        l.explanation(&id("a1"))
+        l.explanation(&id("a1"), 100)
             .unwrap_or_else(|_| unreachable!())
             .reason,
         AdmissionReason::Incomplete

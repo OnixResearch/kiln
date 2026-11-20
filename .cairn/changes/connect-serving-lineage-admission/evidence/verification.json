@@ -1,0 +1,52 @@
+{
+  "change": "connect-serving-lineage-admission",
+  "date": "2026-11-20",
+  "base": "e30f178bf20ee720b0611aca021982c9c93176c9",
+  "scope": "deterministic fixtures with injected serving owners and snapshots",
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    {
+      "command": "cargo test --locked -p onix-kiln-core fair_admission --lib",
+      "exit": 0,
+      "result": "26 passed (18 existing, 8 new serving/lineage/profile tests)"
+    },
+    {
+      "command": "cargo test --locked -p kiln-implementer --test admission --test admission_lineage",
+      "exit": 0,
+      "result": "17 existing and 2 new durable tests passed"
+    },
+    {
+      "command": "cargo test --locked --workspace --no-fail-fast",
+      "exit": 101,
+      "result": "2210 passed, 3 failed, 14 ignored. kiln-fleet dispatch (2) fails identically on pristine e30f178 under the same devShell PATH ('herdr environment PATH is invalid') and passes with a short PATH; kiln-adapter-cairn bounded_runtime_hashes_exact_file_and_rejects_missing_executable passes in isolation (2/2). No failing target touches changed code."
+    },
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "97 positive, 633 negative" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    {
+      "command": "cairn gate proposal|design|tasks connect-serving-lineage-admission",
+      "exit": 0,
+      "result": "PASS before product edits (prerequisite-gates.json) and after"
+    },
+    {
+      "command": "cairn sync connect-serving-lineage-admission --execute",
+      "exit": 0,
+      "result": "sync_delta_spec into .cairn/specs/fair-admission"
+    },
+    {
+      "command": "cairn traceability coverage --policy cairn-policy/generated/cairn-policy.json --json",
+      "exit": 1,
+      "result": "missing []; dangling only the 3 pre-existing kiln.implementation.authority.coverage* references"
+    },
+    {
+      "command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet",
+      "exit": 0
+    }
+  ],
+  "non_claims": [
+    "no live serving owner, Animus endpoint, physical placement or capacity was exercised (Kiln #49)",
+    "no cross-host, crash-campaign or production qualification",
+    "snapshot vocabulary mirrors animus.serving-availability-snapshot.v1; no Animus decoder is included",
+    "fairness applies only to comparable eligible finite workloads in one accounting window; reservations are non-preemptible"
+  ]
+}

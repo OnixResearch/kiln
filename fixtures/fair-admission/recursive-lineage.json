@@ -1,0 +1,43 @@
+{
+  "accounts": [
+    {
+      "allocation": {
+        "cpu_ms": 20000,
+        "model_requests": 12
+      },
+      "deadline_ms": 40000,
+      "name": "child_a",
+      "parent": "root"
+    },
+    {
+      "allocation": {
+        "cpu_ms": 20000,
+        "model_requests": 12
+      },
+      "deadline_ms": 40000,
+      "name": "child_b",
+      "parent": "root"
+    },
+    {
+      "allocation": {
+        "cpu_ms": 5000,
+        "model_requests": 4
+      },
+      "deadline_ms": 30000,
+      "name": "grandchild_a1",
+      "parent": "child_a"
+    }
+  ],
+  "campaign": "rlm",
+  "max_children": 4,
+  "max_depth": 2,
+  "root": {
+    "deadline_ms": 50000,
+    "quota": {
+      "cpu_ms": 60000,
+      "model_requests": 40
+    }
+  },
+  "tenant": "tenant",
+  "version": 1
+}

@@ -38,6 +38,19 @@ entry describes the source tree prepared for the first tagged release.
   Existing verification/publication authority and first metric receipts remain
   unchanged; current OMP JSONL events are not model turns. (#90; deterministic
   core, durable store, adapter and operator CLI fixtures)
+- Opt-in serving backpressure and recursive budget lineage for fair
+  admission. A provider-neutral serving-owner snapshot (the Animus #17
+  availability shape) holds worker-request work before claim and before each
+  request as `overloaded`, `stale`, `waiting`, `incomplete` or `incompatible`;
+  a snapshot never reserves, replaces the owner grant or refunds. Lineage
+  revocation and cancelled or expired parent attempts block new descendant
+  queueing, requests, transfers and dispatch without refunds, and a
+  conservation-checked lineage view keeps available, tentative, held, unknown,
+  settled and rejected usage apart. Serving policy and recursive budget
+  profiles are typed Nickel with checked committed exports. Defaults and
+  existing policy identities are unchanged. (#61; deterministic core and
+  durable-store fixtures with injected owners; no live serving, capacity or
+  cross-host qualification)
 - Default-off, exact-revision session-trace pointer observations freeze locally
   admitted Git notes in the existing review journal. BLAKE3 pointer/note
   identities remain distinct from external IDs and URL hosts; missing,
