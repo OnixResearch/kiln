@@ -489,11 +489,15 @@ fn execution_lookup_rejects_ambiguous_stale_and_wrong_source_authority() {
 
 #[test]
 fn execution_lookup_deadline_covers_both_response_bodies_and_keeps_http_timeout() {
+    // Delays are minimums on a loaded host, so each case that expects a second
+    // request leaves hundreds of milliseconds of slack for the first exchange.
+    // (300, 500, 700): each body fits the budget alone; together they exceed it,
+    // so only a cumulative deadline fails after two requests.
     for (first, second, budget, http_ms, succeeds, requests) in [
         (0, 0, 1000, 2000, true, 2),
         (500, 0, 100, 2000, false, 1),
-        (0, 500, 100, 2000, false, 2),
-        (80, 500, 150, 2000, false, 2),
+        (0, 900, 600, 2000, false, 2),
+        (300, 500, 700, 2000, false, 2),
         (500, 0, 2000, 100, false, 1),
         (0, 0, 0, 2000, false, 0),
     ] {
