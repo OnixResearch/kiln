@@ -1,6 +1,7 @@
 pub mod acceptance;
 mod adapter;
 pub mod campaign;
+pub mod convergence;
 pub mod implementation;
 pub mod lifecycle_observation;
 mod machine;
