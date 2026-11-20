@@ -1,0 +1,163 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-20 cairn archive admit-cairn-convergence-campaigns --root . --execute
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: admit-cairn-convergence-campaigns",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns"
+    }
+  ],
+  "blocked": false,
+  "change": "admit-cairn-convergence-campaigns",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "710d57bb4c639e6f1f3d1b8d7d6f46f3213cae638943ef334c5c7c3fa71bde8a",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+    "receipt_hash": "06734f6ba6543d3a4e6ed3aa9e9e5c565d33811c5cc526f23359dc206b7c2185",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "a4eb4132bbe012d2897009ab66000912f42fa4d1b52eb6471eba7ff8b9038d5e",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "aae7a05ccfd71bd01ef0afb2593bc9a16121ed72f4c1b02a0d97fa03b947bf44",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/design.md"
+        },
+        {
+          "content_hash": "9d67406148b0d8b6a44de5b79f6a1fb8a61c999cbb67346ef4ff426183b641fa",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/evidence/clippy.txt"
+        },
+        {
+          "content_hash": "b01435906bf9a39e30fc75b34e78552c4e23c703723707122341151623bb557d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/evidence/gates.txt"
+        },
+        {
+          "content_hash": "a01d79a00367fa390f1131e54280076c82f3ca404c60c453a73d38c4578cc2be",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/evidence/sync.txt"
+        },
+        {
+          "content_hash": "8547aa44dff9ab0d1349281f6ce7c7ed874f795155dbfa2ae6d9c629e56014ad",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/evidence/tests.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/metadata.json"
+        },
+        {
+          "content_hash": "87d41aebf0ec28abdba16535fa4f02e105b9d7f37bc25a1fe4d435c7affb9382",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/proposal.md"
+        },
+        {
+          "content_hash": "e573e6d64cc343f8635d1bf38bc3add9a8482ecdf2306307d903b3153d16643e",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/specs/convergence-campaign/spec.md"
+        },
+        {
+          "content_hash": "47b4b3648b91bccaa08faea378d7158059cbd18720ae2e4e23d22cf57da32f9a",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-20-admit-cairn-convergence-campaigns/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns"
+        }
+      ],
+      "manifest_hash": "2f0b0605dc2bdd9800be7b4396e9290fa8803d1a2527abc1435d53ed18b02da3"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "aae7a05ccfd71bd01ef0afb2593bc9a16121ed72f4c1b02a0d97fa03b947bf44",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/design.md"
+        },
+        {
+          "content_hash": "9d67406148b0d8b6a44de5b79f6a1fb8a61c999cbb67346ef4ff426183b641fa",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/evidence/clippy.txt"
+        },
+        {
+          "content_hash": "b01435906bf9a39e30fc75b34e78552c4e23c703723707122341151623bb557d",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/evidence/gates.txt"
+        },
+        {
+          "content_hash": "a01d79a00367fa390f1131e54280076c82f3ca404c60c453a73d38c4578cc2be",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/evidence/sync.txt"
+        },
+        {
+          "content_hash": "8547aa44dff9ab0d1349281f6ce7c7ed874f795155dbfa2ae6d9c629e56014ad",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/evidence/tests.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/metadata.json"
+        },
+        {
+          "content_hash": "87d41aebf0ec28abdba16535fa4f02e105b9d7f37bc25a1fe4d435c7affb9382",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/proposal.md"
+        },
+        {
+          "content_hash": "e573e6d64cc343f8635d1bf38bc3add9a8482ecdf2306307d903b3153d16643e",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/specs/convergence-campaign/spec.md"
+        },
+        {
+          "content_hash": "47b4b3648b91bccaa08faea378d7158059cbd18720ae2e4e23d22cf57da32f9a",
+          "exists": true,
+          "path": "./.cairn/changes/admit-cairn-convergence-campaigns/tasks.md"
+        }
+      ],
+      "manifest_hash": "3cfa11ab3a55d68fd61f768083ff5702f58740c315b0aaa48b0328c4798b0232"
+    },
+    "kind": "archive",
+    "manifest_hash": "ef772c9c5723b081d200c16c989f070bd3f186b4fc4eb9a53a56867b99a51624"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "887d8d37b61a709658ecfb75028aea1cfe0fc63673f81ded260bd0e4872597de",
+  "policy": "cairn-default",
+  "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+  "profile_identity_hash": "e978c46a559a2d6309f3b97e7411205932d79d1e99cb3e9f6b4461d0f405ef98",
+  "reasons": [],
+  "receipt_hash": "3b2b2a56cbd047ce34d3f66854d9ff2f20ba058870c230da3631bd0fbfcdde63",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0

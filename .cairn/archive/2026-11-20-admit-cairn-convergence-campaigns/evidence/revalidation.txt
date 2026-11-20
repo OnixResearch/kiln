@@ -1,0 +1,11 @@
+# Orchestrator re-validation before archive, 2026-11-20 (dev shell, RUSTC_WRAPPER= CARGO_TARGET_DIR=target)
+$ cargo test -p onix-kiln-core --lib convergence
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 440 filtered out
+exit=0
+$ cargo test -p kiln-adapter-cairn --lib convergence
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 25 filtered out
+exit=0
+$ cargo clippy -p onix-kiln-core -p kiln-adapter-cairn --all-targets -- -D warnings
+exit=0
+$ cargo fmt -p onix-kiln-core -p kiln-adapter-cairn -- --check
+exit=0

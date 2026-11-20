@@ -1,0 +1,155 @@
+$ cairn sync admit-cairn-convergence-campaigns --root . --execute  # cairn 0.2.1 (/nix/store/xbm6dqspcqz6idirz6hkjzwb66mzkdig-cairn-0.2.1/bin/cairn)
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/admit-cairn-convergence-campaigns/specs/convergence-campaign/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/admit-cairn-convergence-campaigns/specs/convergence-campaign/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "admit-cairn-convergence-campaigns",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "710d57bb4c639e6f1f3d1b8d7d6f46f3213cae638943ef334c5c7c3fa71bde8a",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+    "receipt_hash": "06734f6ba6543d3a4e6ed3aa9e9e5c565d33811c5cc526f23359dc206b7c2185",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/admit-cairn-convergence-campaigns/specs/convergence-campaign/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "c0bda7bb83dae7fbf6c6f1b26e8237778b3745a5c8f9f2f2a11e8943444413d8",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": false,
+        "accepted_before_hash": "df0eee7d3cfc6c826425120506e801ebf7aba7377508f90f48ecd3372ef7ae9b",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "e573e6d64cc343f8635d1bf38bc3add9a8482ecdf2306307d903b3153d16643e",
+        "destination": ".cairn/specs/convergence-campaign/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "3f0883c8132106da0ecca6b010f2f1e474a3411bec11344620b9db7e18ec2d34",
+        "operations": [
+          {
+            "block_hash": "621d381f014013ff2232162a5ecdf7cab7eb21c595c1a7d969ce9714cded281e",
+            "heading": "### Requirement: Bounded admission of a Cairn convergence receipt",
+            "kind": "added",
+            "requirement_id": "kiln.convergence.intake"
+          },
+          {
+            "block_hash": "d7826e9df6d611736544427f23bc51b2d0cf80cb5391ee97c588ef15b49abbea",
+            "heading": "### Requirement: Unsatisfied evidence selection",
+            "kind": "added",
+            "requirement_id": "kiln.convergence.unsatisfied"
+          },
+          {
+            "block_hash": "1622a1de05ef2f7b078f1cb658d2e35b864fc2a5c53822f515da17f60f986ae9",
+            "heading": "### Requirement: One frozen campaign revision from the unsatisfied set",
+            "kind": "added",
+            "requirement_id": "kiln.convergence.campaign"
+          },
+          {
+            "block_hash": "179270412ab791dbc59c62827feb8acd1806b62f4ab966a14c6a2cc330441c52",
+            "heading": "### Requirement: Verify-stage typed evidence build requests",
+            "kind": "added",
+            "requirement_id": "kiln.convergence.verify"
+          },
+          {
+            "block_hash": "5035bba4d783613f6d03aa3e3dd82f1cb612759d6193f61bd3770c85b4bb3a1d",
+            "heading": "### Requirement: Convergence campaign non-claims",
+            "kind": "added",
+            "requirement_id": "kiln.convergence.nonclaims"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.convergence.intake",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.convergence.unsatisfied",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.convergence.campaign",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.convergence.verify",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.convergence.nonclaims",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/admit-cairn-convergence-campaigns/specs/convergence-campaign/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "3f0883c8132106da0ecca6b010f2f1e474a3411bec11344620b9db7e18ec2d34",
+          "exists": true,
+          "path": "./.cairn/specs/convergence-campaign/spec.md"
+        }
+      ],
+      "manifest_hash": "1e349139c9094a40df179323575abfe20d7945aa8a6fb179475fff81dbdb355c"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/specs/convergence-campaign/spec.md"
+        }
+      ],
+      "manifest_hash": "d796d0a31c0c97ea65eb77a1b6fef788d7fbdbab9dec64dbd9cb00e3561020f0"
+    },
+    "kind": "sync",
+    "manifest_hash": "8a5b6f9b89005234bf75e8157eec78e7cba869ba075419256dbfab5a33d749c4"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "37dd0f5824b24a39d2736438034a12d0814193fcd1eba789158c52534c72b124",
+  "policy": "cairn-default",
+  "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+  "profile_identity_hash": "e978c46a559a2d6309f3b97e7411205932d79d1e99cb3e9f6b4461d0f405ef98",
+  "reasons": [],
+  "receipt_hash": "2373a8b4ff80bf111f2bc2aba7a8389e30731b72d7ea8391260669edab4a113b",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0
