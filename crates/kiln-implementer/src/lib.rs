@@ -38,6 +38,9 @@ use rusqlite::{Connection, Transaction, TransactionBehavior, params};
 
 const WORK_KIND: &str = "work";
 const ATTEMPT_KIND: &str = "attempts";
+/// Recorded first launches, kept out of the `attempts` document so a binary
+/// that re-saves attempts without knowing about launches cannot erase them.
+const TRANSPORT_LAUNCH_KIND: &str = "transport_launches";
 const BUSY_TIMEOUT_MS: u64 = 10_000;
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS implementation_state (
@@ -329,17 +332,26 @@ impl Implementer {
         plan: &ContentId,
         launch: Option<&kiln_core::implementation::TransportLaunch>,
     ) -> Result<kiln_core::implementation::TransportStart, String> {
-        self.with_ledgers(|_, attempts| {
-            attempts.begin_dispatch_transport(identity, fence, now_ms, plan, launch)
+        self.with_launches(|attempts, launches| {
+            let previously_started =
+                attempts.begin_dispatch_transport(identity, fence, now_ms, plan)?;
+            launches.start(identity, previously_started, launch)
         })
     }
 
-    /// The launch recorded with an attempt's transport intent, if any.
+    /// The launch recorded for an attempt, if any. It directs recovery only
+    /// while the attempt's transport intent exists.
     pub fn dispatch_launch(
         &mut self,
         identity: &ContentId,
     ) -> Result<Option<kiln_core::implementation::TransportLaunch>, String> {
-        self.with_ledgers(|_, attempts| Ok(attempts.dispatch_launch(identity).cloned()))
+        let transaction = self.connection.transaction().map_err(text)?;
+        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
+            &transaction,
+            TRANSPORT_LAUNCH_KIND,
+        )?;
+        transaction.commit().map_err(text)?;
+        Ok(launches.recall(identity))
     }
 
     /// Install or remove the optional mirror observer.
@@ -580,8 +592,10 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
-        let result = self.with_ledgers(|_, attempts| {
-            attempts.settle_dispatch_without_execution(identity, fence, now_ms, cause)
+        let result = self.with_launches(|attempts, launches| {
+            attempts.settle_dispatch_without_execution(identity, fence, now_ms, cause)?;
+            launches.remove(identity);
+            Ok(())
         });
         if result.is_ok() {
             self.mirror_reconcile(now_ms);
@@ -924,6 +938,38 @@ impl Implementer {
             .map_err(|error| format!("{}: {}", error.code, error.message))?;
         save(&transaction, WORK_KIND, work_version, &work)?;
         save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
+        transaction.commit().map_err(text)?;
+        Ok(result)
+    }
+
+    /// Apply one transition to the attempt ledger and the launch records in a
+    /// single transaction. Only these transitions touch launch records; every
+    /// other save of `attempts` leaves them as they are.
+    fn with_launches<T>(
+        &mut self,
+        apply: impl FnOnce(
+            &mut AttemptLedger,
+            &mut kiln_core::implementation::TransportLaunches,
+        ) -> Result<T, kiln_core::types::Diagnostic>,
+    ) -> Result<T, String> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (mut attempts, attempt_version) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let (mut launches, launch_version) = load::<kiln_core::implementation::TransportLaunches>(
+            &transaction,
+            TRANSPORT_LAUNCH_KIND,
+        )?;
+        let result = apply(&mut attempts, &mut launches)
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
+        save(
+            &transaction,
+            TRANSPORT_LAUNCH_KIND,
+            launch_version,
+            &launches,
+        )?;
         transaction.commit().map_err(text)?;
         Ok(result)
     }

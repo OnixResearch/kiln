@@ -194,17 +194,12 @@ pub struct AttemptLedger {
     dispatch_started: alloc::collections::BTreeSet<String>,
     #[serde(default)]
     dispatch_plans: BTreeMap<String, super::ImplementationDispatchPlan>,
-    /// The provider launch recorded with a transport intent, in the same
-    /// ledger mutation. Present exactly while the intent is, for intents that
-    /// recorded one; intents persisted before launches were recorded have none.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    dispatch_launches: BTreeMap<String, TransportLaunch>,
 }
 
 /// The exact provider program and state root of an attempt's first launch.
 ///
-/// Recorded with the transport intent, so the launch that won the intent is
-/// the only one recovery may use.
+/// Recorded in the same transaction as the transport intent, so the launch
+/// that won the intent is the only one recovery may use.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransportLaunch {
@@ -228,6 +223,68 @@ impl TransportStart {
     #[must_use]
     pub const fn is_recovery(&self) -> bool {
         matches!(self, Self::Recover(_))
+    }
+}
+
+/// Recorded first launches, kept apart from [`AttemptLedger`] so that a
+/// binary which reads and re-saves the attempt ledger without knowing about
+/// launches can never erase one.
+///
+/// A record is consulted only while its attempt's transport intent exists, so
+/// a record left behind after another writer cleared the intent is inert.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransportLaunches {
+    #[serde(default)]
+    launches: BTreeMap<String, TransportLaunch>,
+}
+
+impl TransportLaunches {
+    /// Combine the attempt ledger's transport-intent transition with the
+    /// launch record: a fresh intent records `launch`, never overwriting a
+    /// different record; an existing intent recalls its recorded launch.
+    ///
+    /// # Errors
+    /// Refuses a fresh intent for which a different launch is already
+    /// recorded, so the enclosing transaction rolls back.
+    // r[impl kiln.implementation.lattice_cli.scenario.bound_root]
+    pub fn start(
+        &mut self,
+        identity: &ContentId,
+        previously_started: bool,
+        launch: Option<&TransportLaunch>,
+    ) -> CoreResult<TransportStart> {
+        if previously_started {
+            return Ok(TransportStart::Recover(self.recall(identity)));
+        }
+        if let Some(launch) = launch {
+            match self.launches.get(identity.as_str()) {
+                Some(recorded) if recorded != launch => {
+                    return Err(refusal(
+                        "implementation_transport_launch_conflict",
+                        "dispatch.launch",
+                        "a different launch is already recorded for this attempt",
+                    ));
+                }
+                Some(_) => {}
+                None => {
+                    self.launches
+                        .insert(identity.as_str().to_string(), launch.clone());
+                }
+            }
+        }
+        Ok(TransportStart::Fresh)
+    }
+
+    /// The launch recorded for this attempt, if any.
+    #[must_use]
+    pub fn recall(&self, identity: &ContentId) -> Option<TransportLaunch> {
+        self.launches.get(identity.as_str()).cloned()
+    }
+
+    /// Remove the record when the attempt's transport intent is settled.
+    pub fn remove(&mut self, identity: &ContentId) {
+        self.launches.remove(identity.as_str());
     }
 }
 
@@ -1327,18 +1384,15 @@ impl AttemptLedger {
         Ok(Some(active.identity))
     }
 
-    /// Reserve transport before dispatch, recording the launch in the same
-    /// mutation. An existing intent returns its recorded launch, which is never
-    /// overwritten.
-    // r[impl kiln.implementation.unknown_barrier] r[impl kiln.implementation.lattice_cli.scenario.bound_root]
+    /// Reserve transport before dispatch. True means recovery is mandatory.
+    // r[impl kiln.implementation.unknown_barrier]
     pub fn begin_dispatch_transport(
         &mut self,
         identity: &ContentId,
         fence: u64,
         now_ms: u64,
         plan: &ContentId,
-        launch: Option<&TransportLaunch>,
-    ) -> CoreResult<TransportStart> {
+    ) -> CoreResult<bool> {
         let attempt = self.authorized(identity, fence, now_ms)?;
         if attempt.dispatch.as_ref().map(|reserved| &reserved.plan) != Some(plan) {
             return Err(refusal(
@@ -1355,23 +1409,7 @@ impl AttemptLedger {
             )
         })?;
         binding.validate_for(identity, fence, plan, &binding.request_digest)?;
-        let key = identity.as_str().to_string();
-        if self.dispatch_started.contains(&key) {
-            return Ok(TransportStart::Recover(
-                self.dispatch_launches.get(&key).cloned(),
-            ));
-        }
-        if let Some(launch) = launch {
-            self.dispatch_launches.insert(key.clone(), launch.clone());
-        }
-        self.dispatch_started.insert(key);
-        Ok(TransportStart::Fresh)
-    }
-
-    /// The launch recorded with this attempt's transport intent, if any.
-    #[must_use]
-    pub fn dispatch_launch(&self, identity: &ContentId) -> Option<&TransportLaunch> {
-        self.dispatch_launches.get(identity.as_str())
+        Ok(!self.dispatch_started.insert(identity.as_str().to_string()))
     }
 
     /// End an attempt whose provider states that no worker effect of it can
@@ -1409,7 +1447,6 @@ impl AttemptLedger {
             attempt.canonical_key.clone()
         };
         self.dispatch_started.remove(identity.as_str());
-        self.dispatch_launches.remove(identity.as_str());
         self.clear_current(&canonical_key);
         Ok(())
     }

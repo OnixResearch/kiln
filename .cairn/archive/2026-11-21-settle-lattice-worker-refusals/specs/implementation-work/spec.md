@@ -21,9 +21,9 @@ r[kiln.implementation.lattice_cli.scenario.credential]
 #### Scenario: Recovery uses the root bound at the first launch
 
 r[kiln.implementation.lattice_cli.scenario.bound_root]
-- GIVEN an attempt whose first `run` was launched with one Lattice program and state root, a profile whose owner-grant gate refused before any launch, a competing process that lost the gate, a later profile naming another root, or a transport intent persisted before launches were recorded
+- GIVEN an attempt whose first `run` was launched with one Lattice program and state root, a profile whose owner-grant gate refused before any launch, a competing process that lost the gate, a later profile naming another root, an older Kiln binary that re-saves the attempt ledger, or a transport intent persisted before launches were recorded
 - WHEN Kiln recovers the attempt
-- THEN the launch MUST be recorded in the same ledger mutation as the transport intent and never overwritten, recovery MUST use only that recorded launch, a profile or process that never reached the transport intent MUST NOT record or direct anything, and an intent without a recorded launch, a recorded root that is not a directory or a changed recorded program MUST keep the unknown outcome without invoking Lattice
+- THEN the launch MUST be recorded in the same transaction as the transport intent, outside the published attempt-ledger document, and never overwritten, recovery MUST use only that recorded launch, a profile or process that never reached the transport intent MUST NOT record or direct anything, a re-saved attempt ledger MUST NOT erase the launch, and an intent without a recorded launch, a recorded root that is not a directory or a changed recorded program MUST keep the unknown outcome without invoking Lattice
 
 #### Scenario: Only a before-effect refusal of the first run settles the attempt
 

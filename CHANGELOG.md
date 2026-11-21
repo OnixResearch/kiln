@@ -451,7 +451,9 @@ entry describes the source tree prepared for the first tagged release.
   and before plan reservation when missing, malformed, non-`env` or reserved;
   `recover` and `cancel` receive none. The first `run`'s transport intent
   records its Lattice program and state root (`TransportLaunch`) in the same
-  ledger mutation, never overwritten, and `recover` uses only that recorded
+  transaction, under its own implementation-state kind `transport_launches`
+  so older binaries re-saving `attempts` cannot erase it; it is never
+  overwritten, and `recover` uses only that recorded
   launch; an intent without one, a missing recorded root or a changed program
   keeps the unknown outcome without invoking Lattice. Only a `run` refusal that is exactly
   Lattice's `lattice.implementation-attempt-refusal.v1` record for the attempt,

@@ -152,5 +152,36 @@
       "Predates this change: a crash between the owner-grant gate and begin_dispatch_transport leaves unknown grants without a transport intent (see re_review.open_items)."
     ],
     "not_run": ["the full workspace test run (left to the parent's flake check)"]
+  },
+  "final_review_2": {
+    "source": "final review of 8f036b29; decisions by Main",
+    "tree": "kiln-84 working tree on 8f036b29",
+    "finding": {
+      "severity": "medium",
+      "summary": "attempt.rs stored dispatch_launches inside the attempts document. Published Kiln binaries deserialize that document without the field and save the whole ledger back, even on reads through with_ledgers, so one operation by an older binary (for example an old web service beside a new CLI during a rolling upgrade) erases a recorded launch while leaving the intent; the next new dispatcher then gets Recover(None) and cannot recover in the intact recorded root.",
+      "resolution": "AttemptLedger and AttemptLedger::begin_dispatch_transport(identity, fence, now_ms, plan) -> CoreResult<bool> are restored to their published shape and semantics; the attempt.rs diff against 339116f6 is additive only. Launches live in a separate pure ledger, kiln_core::implementation::TransportLaunches { launches } (deny_unknown_fields), with start(identity, previously_started, launch) -> CoreResult<TransportStart> (records on a fresh intent, refuses a different existing record, recalls on an existing intent, None for legacy intents), recall(identity) and remove(identity). kiln-implementer stores it under the new kind TRANSPORT_LAUNCH_KIND = \"transport_launches\": begin_dispatch_transport(..., launch) and settle_dispatch_without_execution load attempts and transport_launches in one SQLite transaction (with_launches), apply both pure transitions and save both; every other path saves attempts only and leaves transport_launches untouched. A launch whose intent was cleared elsewhere is inert because recovery consults it only while the intent exists. Adapter call sites are unchanged.",
+      "tests": [
+        "kiln-implementer tests/durable.rs an_older_attempt_writer_cannot_erase_a_recorded_launch (the attempts row is deserialized with the published AttemptLedger and re-saved byte-identically, an ordinary attempts-only save follows, and a new dispatcher under another profile still gets Recover(Some(recorded launch)))",
+        "kiln-core implementation::dispatch::tests::the_attempt_ledger_keeps_its_published_document_shape (the attempts JSON keys are exactly the 339116f6 fields)",
+        "kiln-core implementation::dispatch::tests::transport_launches_record_once_and_recall_only_for_an_existing_intent (record, recall, never overwrite, legacy None, remove, strict encoding)",
+        "kiln-implementer tests/durable.rs before_effect_settlement_survives_restart_without_reconciliation (the launch survives restart and is removed by settlement, both through the implementer)",
+        "kiln-adapter-lattice worker::preparation_tests a_gate_refused_profile_never_directs_recovery, the_gate_loser_of_two_processes_leaves_no_launch and failed_preparation_leaves_owner_grants_committed_and_a_retry_proceeds (kept)",
+        "composed pregate-rejected, lost-before-start and moved-root"
+      ]
+    },
+    "environment": "TMPDIR=/var/tmp/onix-round-20261121/kiln45; the Kiln dev shell through /var/tmp/onix-round-20261121/kiln45/k84-run.sh (nix develop returned immediately)",
+    "commands": [
+      {"command": "cargo fmt --all --check", "exit": 0},
+      {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "warnings": 0},
+      {"command": "cargo test --locked -p onix-kiln-core -p kiln-implementer -p kiln-adapter-lattice", "exit": 0, "passed": 630, "failed": 0, "ignored": 7},
+      {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+      {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0},
+      {"command": "/nix/store/n57sbg8d4nvxqa40nl9a5dib1smpqim3-gitleaks-8.28.0/bin/gitleaks dir <changed paths> --no-banner", "exit": 0, "result": "no leaks found"},
+      {"command": "composed-qualification/qualify.sh pregate_rejected lost_before_start moved_root", "exit": 0, "record": "composed-qualification.json"}
+    ],
+    "open_items": [
+      "Predates this change: a crash between the owner-grant gate and begin_dispatch_transport leaves unknown grants without a transport intent (see re_review.open_items)."
+    ],
+    "not_run": ["the full workspace test run (left to the parent's flake check)"]
   }
 }

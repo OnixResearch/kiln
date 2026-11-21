@@ -1427,6 +1427,110 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
     Ok(())
 }
 
+// r[verify kiln.implementation.lattice_cli.scenario.bound_root]
+#[test]
+fn an_older_attempt_writer_cannot_erase_a_recorded_launch() -> Result<(), Box<dyn std::error::Error>>
+{
+    use kiln_core::implementation::{
+        AttemptLedger, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
+        ImplementationDispatchPlan, TransportLaunch, TransportStart, WorkspaceIsolation,
+    };
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"request")?;
+    let launch = |root: &str| TransportLaunch {
+        lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+        executable_blake3: content('b'),
+        state_directory: root.into(),
+    };
+    assert_eq!(
+        store.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &plan,
+            Some(&launch("/var/lib/lattice/a"))
+        )?,
+        TransportStart::Fresh
+    );
+    drop(store);
+    // An older binary reads the `attempts` document with the published
+    // `AttemptLedger` and saves it back. The document has exactly the
+    // published shape, so the round trip is byte-identical, and it carries no
+    // launch to lose.
+    {
+        let connection = rusqlite::Connection::open(&path)?;
+        let (version, bytes): (i64, Vec<u8>) = connection.query_row(
+            "SELECT version, bytes FROM implementation_state WHERE kind = 'attempts'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        let published: AttemptLedger = serde_json::from_slice(&bytes)?;
+        let resaved = serde_json::to_vec(&published)?;
+        assert_eq!(resaved, bytes);
+        assert!(!String::from_utf8(bytes)?.contains("launch"));
+        connection.execute(
+            "UPDATE implementation_state SET version = ?1, bytes = ?2 WHERE kind = 'attempts'",
+            rusqlite::params![version + 1, resaved],
+        )?;
+    }
+    let mut store = open(&path);
+    // Ordinary attempt-only saves leave launch records untouched too.
+    store.renew(&attempt.identity, attempt.fence, 2, LEASE)?;
+    assert!(store.dispatch_requires_recovery(&attempt.identity)?);
+    // A new dispatcher under another profile still recovers with the recorded
+    // launch.
+    assert_eq!(
+        store.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            3,
+            &plan,
+            Some(&launch("/var/lib/lattice/b"))
+        )?,
+        TransportStart::Recover(Some(launch("/var/lib/lattice/a")))
+    );
+    Ok(())
+}
+
 // r[verify kiln.implementation.lattice_cli.scenario.refusal]
 #[test]
 fn before_effect_settlement_survives_restart_without_reconciliation()

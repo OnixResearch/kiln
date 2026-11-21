@@ -3,7 +3,7 @@
  "change": "settle-lattice-worker-refusals",
  "issue": 45,
  "observed_on": "2026-11-21, Linux 6.18.60 x86_64",
- "tree": "kiln-84 working tree on cd9014a8 with the final-review amendment (the launch is recorded in the transport intent; no binding file)",
+ "tree": "kiln-84 working tree on 8f036b29 with the final-review-2 amendment (the launch is recorded with the transport intent under its own implementation-state kind transport_launches; the attempts document keeps its published shape)",
  "scope": "Kiln's kiln-lattice-dispatch --worker-request transport against the real Lattice db64cd65 binary, every worker the pinned OMP in bubblewrap reaching only a local HTTP 400 endpoint (endpoint.py). No model, provider, forge or remote was contacted. The live scenario was not run.",
  "harness": {
   "origin": "Lattice db64cd65 .cairn/changes/execute-admitted-implementation-attempt/evidence/composed-qualification/",
@@ -14,7 +14,7 @@
    "endpoint.py": {"blake3": "74f29ad0155f07720157d79a511054de85ef369adcaeb1cd727d5216f6d376f6", "change": "identical to the Lattice evidence"},
    "qualify.sh": {"blake3": "bf8999c00a34c58d1202b5fb9d67c07d4a3b9e6f3e7e303135d8fac2f084a2a2", "change": "attempt() prepares twice to bind dispatch_plan; refusals adds kiln-unplanned and stale-fence-replay; lost_before_start creates the state root and records the launch through the real begin-transport path (no binding file); new scenarios crossed, substituted_dispatched, moved_root (a lost acknowledgement followed by a state-root change) and pregate_rejected; the lost-during-run, moved-root and pregate-rejected output directories are named lost-run, moved and pregate so the broker socket path stays under 108 bytes below the /var/tmp output root"},
    "summarize.py": {"blake3": "aed8232464b934687225e541c9d09f57c313198f02c83e690be4e31f41113623", "change": "kiln_attempt also reports workflow, failure and cause"},
-   "summary.json": {"blake3": "03f97b5da7e4c5d0ca6954fde3a33d61e73632f5646317a998f410aaae95d5d8", "change": "output of summarize.py for the current run below"}
+   "summary.json": {"blake3": "2fe23f02c2561be350d0621e21f43e26654f7b045c79b307696a566203578f04", "change": "output of summarize.py for the final-review-2 run (pregate_rejected, lost_before_start, moved_root)"}
   }
  },
  "pins": {
@@ -24,8 +24,8 @@
    "path": "/nix/store/185y79mjf7gg6aqw4l1szzpr7xyga795-lattice-db64cd65/bin/lattice",
    "blake3": "db786b08de68f7ff7046ac87f789551d7449675f6aad94863c988d0f88a41765"
   },
-  "kiln_lattice_dispatch": {"build": "cargo build --locked -p kiln-adapter-lattice --bin kiln-lattice-dispatch on the amended kiln-84 tree", "blake3": "b5a4b1733540e1de2e3542405375823c477302a78e13eace1780a09f97ee6634"},
-  "k45_harness": {"blake3": "10ecc6a6ea53c11eb2903075cbce41419d953c80b89b5c175f63fae4083e237a"},
+  "kiln_lattice_dispatch": {"build": "cargo build --locked -p kiln-adapter-lattice --bin kiln-lattice-dispatch on the amended kiln-84 tree", "blake3": "c2f8b91b4735eb779c0197c2d177c510a997492c1c815036b7a52e5779d86a54"},
+  "k45_harness": {"blake3": "e26c646ac8801a15bedf840e6c9c9a2a7932d567c9cdb8fcecdcfdaa4fb9c5a9"},
   "omp": {
    "path": "/nix/store/ii3yn9v4cj6dg87b9kkzycjzxplgf93d-omp-18.18.7/bin/omp",
    "blake3": "7ee769b6a4161b9d50410b31be252133fedb459e4441c6da4c92f3733a8d135f",
@@ -38,11 +38,12 @@
  },
  "commands": {
   "environment": "TMPDIR=/var/tmp/onix-round-20261121/kiln45 (/tmp was full) LATTICE=<lattice pin> KILN=$W/kiln-45f-target/debug/kiln-lattice-dispatch HARNESS=$W/kiln-45f-target/debug/k45-harness OMP BWRAP SOCAT WORKER_SHELL=<pins> OUT=/var/tmp/onix-round-20261121/kiln45/q (W=/home/brittonr/.cargo-target/producer-work)",
-  "qualify": "qualify.sh moved_root lost_before_start lost_during_run refusals crossed pregate_rejected",
+  "qualify": "qualify.sh pregate_rejected lost_before_start moved_root (final-review-2 run); the earlier final-review run on 8f036b29 ran qualify.sh moved_root lost_before_start lost_during_run refusals crossed pregate_rejected with exit 0",
   "summary": "summarize.py /var/tmp/onix-round-20261121/kiln45/q",
   "exits": {"qualify": 0, "summarize": 0},
-  "retained_output": "$W/k45f-requal/out (copy of the output root, not committed); qualify.log blake3 d55adb6891dd2823a9fbeca358155bd769d4a0cdc0ab891a845966f5bbf8caf3",
-  "not_rerun": "run, substituted_dispatched and cancel were last run on an earlier review tree (dispatch blake3 ee77a645…): run dispatch 0, duplicate 0, kiln-substituted 2, lattice-substituted 1, lattice-duplicate 0; substituted-dispatched retained dispatched:true on dispatch and recover; cancel 0."
+  "retained_output": "$W/k45f-requal/out (copy of the output root, not committed); qualify.log blake3 035239a1592a4e8f5c88b9f6d440d51c18711427034c7de13656a6f8768d1af0",
+  "stored_kinds": "In every rerun database the attempts document has exactly the published keys (attempts, consumed, current, dispatch_plans, dispatch_started, fence_counter, resolved_unknown); pregate and moved hold their launch under transport_launches (pregate: profile B's root, moved: root A); lost-before-start's launch was removed with its settled intent.",
+  "not_rerun": "lost_during_run, refusals and crossed were last run on 8f036b29 (results below); run, substituted_dispatched and cancel were last run on an earlier review tree (dispatch blake3 ee77a645…): run dispatch 0, duplicate 0, kiln-substituted 2, lattice-substituted 1, lattice-duplicate 0; substituted-dispatched retained dispatched:true on dispatch and recover; cancel 0."
  },
  "scenarios": {
   "pregate-rejected": {

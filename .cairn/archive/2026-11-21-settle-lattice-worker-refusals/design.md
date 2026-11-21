@@ -109,41 +109,54 @@ runs.
 **Alternatives considered:** Passing the variable to every Lattice command
 would expose the secret to commands that never resolve it.
 
-### Decision: Record the launch inside the transport intent
+### Decision: Record the launch with the transport intent, in its own state kind
 
 **Choice:** `kiln_core::implementation::TransportLaunch { lattice_program,
-executable_blake3, state_directory }` is recorded by
-`AttemptLedger::begin_dispatch_transport(identity, fence, now_ms, plan,
-launch: Option<&TransportLaunch>) -> TransportStart` in the same ledger
-mutation that inserts the transport intent, in a
-`dispatch_launches` map (`#[serde(default, skip_serializing_if =
-"BTreeMap::is_empty")]`, so existing ledgers load and serialize unchanged). A
-fresh start returns `TransportStart::Fresh`; an existing intent returns
-`TransportStart::Recover(recorded)`, the recorded launch or `None` for an intent
-persisted before launches were recorded, and never overwrites it. Every path
-that removes the intent (`settle_dispatch_without_execution`) removes the
-launch. `Implementer` passes the launch through in the same transaction. The
-worker's fresh `run` uses the launch it just recorded; `recover` uses only the
-returned recorded launch, re-hashing its program, and refuses before invoking
-Lattice when there is none, its root is not a real directory (a symbolic link
-counts as missing) or the program's BLAKE3 differs
-(`worker_binding::recovery_launch`). `prepare_launch_files` keeps every
-fallible filesystem step of the first launch (output directory, frozen request
-and state root, all idempotent, no binding file) before the owner-grant gate
-`admission_before_transport`, so an unwritable root fails with grants still
-committed and a retry proceeds (re-review finding).
+executable_blake3, state_directory }` (`deny_unknown_fields`) is kept in a
+separate pure ledger, `TransportLaunches { launches }`, stored under its own
+implementation-state kind `transport_launches`. `AttemptLedger` and its
+`begin_dispatch_transport(identity, fence, now_ms, plan) -> CoreResult<bool>`
+keep exactly their published shape and semantics. `TransportLaunches::start(
+identity, previously_started, launch) -> CoreResult<TransportStart>` records the
+launch for a fresh intent (refusing a different existing record, never
+overwriting it) and recalls the record for an existing intent:
+`TransportStart::Recover(Some(launch))`, or `Recover(None)` for an intent
+persisted before launches were recorded; `remove` drops it on settlement.
+`Implementer::begin_dispatch_transport(..., launch)` loads `attempts` and
+`transport_launches` in one SQLite transaction, applies both pure transitions
+and saves both; `settle_dispatch_without_execution` does the same and removes
+the launch in the transaction that settles the attempt. Every other path that
+saves `attempts` leaves `transport_launches` untouched. The worker's fresh `run`
+uses the launch it just recorded; `recover` uses only the returned recorded
+launch, re-hashing its program, and refuses before invoking Lattice when there
+is none, its root is not a real directory (a symbolic link counts as missing)
+or the program's BLAKE3 differs (`worker_binding::recovery_launch`).
+`prepare_launch_files` keeps every fallible filesystem step of the first launch
+(output directory, frozen request and state root, all idempotent) before the
+owner-grant gate `admission_before_transport`, so an unwritable root fails with
+grants still committed and a retry proceeds (re-review finding).
+
+A launch record whose intent was cleared by some other writer is inert:
+recovery consults the record only while `AttemptLedger` holds the intent, and
+the published binaries never clear an intent.
 
 **Rationale:** Lattice proves no-start only inside the root holding the
 intent. Recovering in another root would create a fresh closure marker there
 and report no start for an attempt that may have run (review finding 1). A
-launch record written outside the intent, as the earlier binding file was,
-could be left by a profile or process whose owner-grant gate then refused, and
-later direct recovery into a never-launched root (final-review finding).
-Recording it in the same mutation as the intent makes the launch that won the
-intent the only one recovery can see.
+launch record written outside the intent's transaction, as the earlier binding
+file was, could be left by a profile or process whose owner-grant gate then
+refused, and later direct recovery into a never-launched root (final-review
+finding). Writing it in the same transaction as the intent makes the launch that
+won the intent the only one recovery can see. It is not a field of the
+`attempts` document because published Kiln binaries deserialize that document
+without such a field and save the whole ledger back, even on reads; one
+operation by an older binary during a rolling upgrade would erase the launch
+while keeping the intent, and the next dispatcher would get `Recover(None)`
+(final-review finding 2).
 
-**Alternatives considered:** A per-attempt binding file before the gate (the
-previous round) cannot tell which writer won the intent.
+**Alternatives considered:** A per-attempt binding file before the gate cannot
+tell which writer won the intent. A `dispatch_launches` field inside the
+`attempts` document is erased by older writers.
 
 ### Decision: Settle only proven before-effect refusals of the first run
 
