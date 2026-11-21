@@ -567,12 +567,23 @@ fn admit_evidence_build_capability(
         required_outcomes: required_outcomes(),
     };
     admit_operation(capability, &request)?;
-    if selection.realization != EvidenceRealization::BuildFromPlan {
-        return Err(Diagnostic::new(
-            "unsupported_capability",
-            "convergence.verify.realization",
-            "the pinned Mantle adapter exposes only build --plan, not a preserve or realize operation",
-        ));
+    let declares_realize = capability.operations.contains(&Operation::Realize);
+    match selection.realization {
+        EvidenceRealization::BuildFromPlan if declares_realize => {
+            return Err(Diagnostic::new(
+                "realization_profile_mismatch",
+                "convergence.verify.realization",
+                "build-from-plan must not select a profile that declares the preserve realization capability",
+            ));
+        }
+        EvidenceRealization::PreserveCacheOnly if !declares_realize => {
+            return Err(Diagnostic::new(
+                "unsupported_capability",
+                "convergence.verify.realization",
+                "the pinned Mantle adapter exposes only build --plan, not a preserve or realize operation",
+            ));
+        }
+        EvidenceRealization::BuildFromPlan | EvidenceRealization::PreserveCacheOnly => {}
     }
     Ok(())
 }

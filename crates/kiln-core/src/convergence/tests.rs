@@ -515,6 +515,45 @@ fn preserve_realization_fails_before_effects() {
 }
 
 #[test]
+fn preserve_realization_is_admitted_only_with_the_declared_capability() {
+    let mut realize_capability = capability();
+    realize_capability.operations.insert(Operation::Realize);
+    let mut selection = build_selection();
+    selection.realization = EvidenceRealization::PreserveCacheOnly;
+    let requests = plan_evidence_builds(&revision(), &selection, &realize_capability)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(requests.len(), 2);
+    assert!(
+        requests
+            .iter()
+            .all(|request| request.realization == EvidenceRealization::PreserveCacheOnly)
+    );
+
+    assert_eq!(
+        plan_evidence_builds(&revision(), &selection, &capability()).map(|_| ()),
+        Err(Diagnostic::new(
+            "unsupported_capability",
+            "convergence.verify.realization",
+            "the pinned Mantle adapter exposes only build --plan, not a preserve or realize operation",
+        ))
+    );
+}
+
+#[test]
+fn build_realization_must_not_select_a_realize_profile() {
+    let mut realize_capability = capability();
+    realize_capability.operations.insert(Operation::Realize);
+    assert_eq!(
+        plan_evidence_builds(&revision(), &build_selection(), &realize_capability).map(|_| ()),
+        Err(Diagnostic::new(
+            "realization_profile_mismatch",
+            "convergence.verify.realization",
+            "build-from-plan must not select a profile that declares the preserve realization capability",
+        ))
+    );
+}
+
+#[test]
 fn a_missing_plan_is_refused() {
     let mut selection = build_selection();
     selection.plans.remove("job-two");

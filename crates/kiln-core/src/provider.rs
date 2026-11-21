@@ -33,6 +33,8 @@ pub enum Operation {
     Resume,
     Reconcile,
     ReadLogs,
+    /// Realize a frozen plan through a provider's preserve route.
+    Realize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
