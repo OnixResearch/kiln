@@ -1,11 +1,17 @@
-# Live qualification: blocked on the clean-export executable identity
+# Live qualification: stopped because the clean-export build failed its own check phase
 
-The clean export of Mantle ead7b8dac087fad0170daca01356afbb3b43b179 was extracted to /tmp/mantle-realize-clean-20261120 and built with:
+Clean export of Mantle ead7b8dac087fad0170daca01356afbb3b43b179 at /tmp/mantle-realize-clean-20261120, built with:
   nix --option min-free 0 --option builders '' build --no-write-lock-file --no-link --print-out-paths path:/tmp/mantle-realize-clean-20261120#default
 
-First attempt: background job bg_1205 reached its 3600 second job deadline while compiling /nix/store/q5b24fbsqvpqb72ijildxbg6a4ckyvss-mantle-0.1.0.drv. Diagnostic: 'Error: [Command timed out after 3600 seconds]'.
-Retry: job bg_1252 restarted the same derivation without a deadline; mantle-deps was already complete and the mantle-0.1.0 derivation was compiling when the run budget ended.
+First attempt was cut by the 3600 s background-job deadline. The retry finished with EXIT=1:
 
-No executable identity was fabricated. PINNED_REALIZE_MANTLE_EXECUTABLE_PATH and PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3 remain placeholders until that build prints its output path. The live pilot qualification was therefore not run; the profile contract check and all focused Rust checks below did pass.
+error: Cannot build '/nix/store/q5b24fbsqvpqb72ijildxbg6a4ckyvss-mantle-0.1.0.drv'.
+       Reason: builder failed with exit code 101.
+       test protected_exec_seccomp::linux::tests::seccomp_supervisor_continue_race_executes_replaced_bytes ... FAILED
+       thread 'protected_exec_seccomp::linux::tests::seccomp_supervisor_continue_race_executes_replaced_bytes' panicked at src/protected_exec_seccomp.rs:1360:51:
+       called 'Result::unwrap()' on an 'Err' value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+       test result: FAILED. 267 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
+
+Per the phase 2b specification, a producer revision whose canonical clean-export build fails its own check phase is not admitted: this step stops and reports instead of selecting the cohort. No executable identity was fabricated; PINNED_REALIZE_MANTLE_EXECUTABLE_PATH and PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3 remain placeholders, the Nickel profile carries the same placeholders, and the live pilot qualification was not run.
 
 An existing /nix/store/qgz2y1dfs3dardlrz70f6q3g78pdlpiv-mantle-0.1.0/bin/mantle (b82b72ef613f36c454198a2212b341ee10f6a7ff67b13ec6b4058031760d20f3) was not used: its source revision is not attributable to the pinned clean export.
