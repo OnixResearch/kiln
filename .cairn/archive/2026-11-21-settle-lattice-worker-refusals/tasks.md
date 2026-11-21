@@ -16,3 +16,10 @@
 ## Phase 4: Verification
 
 - [x] [serial] [depends:kiln.implementation.lattice_cli] Run the repository gates and a composed local requalification against the Lattice `db64cd65` binary with pinned OMP, and retain the evidence. r[kiln.implementation.lattice_cli]
+
+## Phase 5: Review amendments
+
+- [x] [serial] [depends:kiln.implementation.lattice_cli] Retain `stale_fence` refusals, settle refusals only from the first `run`, and strictly deserialize refusal and closure records (`deny_unknown_fields`, duplicate keys refused, `revision_refusal` only for its reasons); test every table reason from `run` and `recover`, duplicates, unknown fields and refusal-plus-result. r[kiln.implementation.lattice_cli.scenario.refusal] r[kiln.implementation.lattice_cli.scenario.closed]
+- [x] [serial] [depends:kiln.implementation.lattice_cli.scenario.refusal] Bind the Lattice program and state root at the first launch before its transport intent and recover only with the bound values; test a changed profile, an absent binding, a missing or symlinked bound root, a conflicting rebinding and the 0400 mode. r[kiln.implementation.lattice_cli.scenario.bound_root]
+- [x] [serial] [depends:kiln.implementation.lattice_cli.scenario.bound_root] Resolve the credential environment right after claim authorization and before plan reservation; test that missing and reserved credentials leave no reservation. r[kiln.implementation.lattice_cli.scenario.credential]
+- [x] [serial] [depends:kiln.implementation.lattice_cli.scenario.credential] Rerun the composed qualification with a moved-root scenario, and amend the proposal, design, spec delta, synced spec, runbook and changelog. r[kiln.implementation.lattice_cli]

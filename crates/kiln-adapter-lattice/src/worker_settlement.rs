@@ -14,13 +14,24 @@ pub const OBSERVATION_SCHEMA: &str = "lattice.implementation-attempt-observation
 pub const CLOSED_STATUS: &str = "not_started_closed_by_recovery";
 
 /// Refusal reasons Lattice reports with `dispatched:false` when no worker
-/// effect of the refused attempt can have started.
-const NOT_DISPATCHED_REASONS: [&str; 5] = [
-    "stale_fence",
+/// effect of the refused attempt can have started, and whose check Kiln
+/// accepts as a no-start proof for its only `run` launch.
+///
+/// `stale_fence` is deliberately absent: Lattice `db64cd65` records a fence
+/// before it writes the execution intent and does not recheck it, so a
+/// concurrent lower-fence invocation can still start after another one was
+/// refused as stale. It stays for reconciliation until Lattice closes that race.
+const NOT_DISPATCHED_REASONS: [&str; 4] = [
     "crossed_attempt",
     "profile_revision_superseded",
     "revision_not_admitted",
     "revision_blocked",
+];
+/// Reasons that carry the agent-revision lifecycle's own refusal.
+const REVISION_REASONS: [&str; 3] = [
+    "revision_not_admitted",
+    "revision_blocked",
+    "export_revoked",
 ];
 
 /// Credential variable names are short upper-case identifiers.
@@ -172,33 +183,59 @@ pub enum RefusalOutcome {
     Retain,
 }
 
+/// Which Lattice command produced an outcome.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Launch {
+    /// The attempt's first and only `run`, launched with no prior transport intent.
+    Run,
+    /// `recover` with the state root and program bound at the first launch.
+    Recover,
+}
+
+/// The exact refusal record; every other field is refused.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RefusalRecord {
+    schema: String,
+    reason: String,
+    work_id: String,
+    attempt_id: String,
+    fence: u64,
+    dispatched: bool,
+    #[serde(default)]
+    revision_refusal: Option<serde_json::Map<String, Value>>,
+}
+
 /// Classify the complete stdout of a non-zero Lattice exit against the
 /// request envelope.
+///
+/// A refusal returned by `recover` describes that invocation, not whether the
+/// original `run` started, so it is always retained. Only one strict record
+/// is admitted: duplicate or unknown fields, such as a result, artifacts or
+/// acceptance, are retained, and `revision_refusal` is admitted only for the
+/// reasons that carry it.
 #[must_use]
-pub fn classify_refusal(envelope: &Value, stdout: &[u8]) -> RefusalOutcome {
-    let Ok(record) = serde_json::from_slice::<Value>(stdout) else {
+pub fn classify_refusal(envelope: &Value, stdout: &[u8], launch: Launch) -> RefusalOutcome {
+    if launch != Launch::Run {
+        return RefusalOutcome::Retain;
+    }
+    let Ok(record) = serde_json::from_slice::<RefusalRecord>(stdout) else {
         return RefusalOutcome::Retain;
     };
-    let same_text = |field: &str| {
-        record.get(field).and_then(Value::as_str).is_some()
-            && record.get(field) == envelope.get(field)
-    };
-    let bound = record.get("schema").and_then(Value::as_str) == Some(REFUSAL_SCHEMA)
-        && same_text("work_id")
-        && same_text("attempt_id")
-        && record.get("fence").and_then(Value::as_u64).is_some()
-        && record.get("fence") == envelope.get("fence");
-    match (
-        bound,
-        record.get("dispatched").and_then(Value::as_bool),
-        record.get("reason").and_then(Value::as_str),
-    ) {
-        (true, Some(false), Some(reason)) if NOT_DISPATCHED_REASONS.contains(&reason) => {
-            RefusalOutcome::BeforeEffect {
-                reason: reason.to_owned(),
-            }
+    let same_text =
+        |field: &str, value: &str| envelope.get(field).and_then(Value::as_str) == Some(value);
+    let bound = record.schema == REFUSAL_SCHEMA
+        && same_text("work_id", &record.work_id)
+        && same_text("attempt_id", &record.attempt_id)
+        && envelope.get("fence").and_then(Value::as_u64) == Some(record.fence);
+    let reason = record.reason.as_str();
+    let consistent = record.revision_refusal.is_some() == REVISION_REASONS.contains(&reason);
+    if bound && consistent && !record.dispatched && NOT_DISPATCHED_REASONS.contains(&reason) {
+        RefusalOutcome::BeforeEffect {
+            reason: record.reason,
         }
-        _ => RefusalOutcome::Retain,
+    } else {
+        RefusalOutcome::Retain
     }
 }
 
@@ -211,16 +248,35 @@ pub enum Observed {
     ClosedBeforeExecution,
 }
 
-/// Classify one exit-zero observation of the exact request and plan.
+/// The exact closure record `recover` prints; every other field is refused.
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ClosureRecord {
+    schema: String,
+    envelope: Value,
+    request_identity: String,
+    status: String,
+    result: Value,
+    accepted: bool,
+    integrated: bool,
+    dispatch_plan: String,
+}
+
+/// Classify the complete stdout of one exit-zero observation of the exact
+/// request and plan.
 ///
 /// # Errors
-/// Refuses another schema, envelope or echoed plan, and a closure that carries
-/// a result.
+/// Refuses malformed output, another schema, envelope or echoed plan, and a
+/// closure that is not exactly Lattice's closure record: one with duplicate
+/// or unknown fields, a result, acceptance, integration, or another request
+/// identity.
 pub fn classify_observation(
     request: &Value,
-    observed: &Value,
+    stdout: &[u8],
     plan: &str,
 ) -> Result<Observed, &'static str> {
+    let observed: Value = serde_json::from_slice(stdout)
+        .map_err(|_| "worker response malformed after possible dispatch")?;
     if observed.get("schema").and_then(Value::as_str) != Some(OBSERVATION_SCHEMA)
         || observed.get("envelope").is_none()
         || observed.get("envelope") != request.get("envelope")
@@ -233,11 +289,21 @@ pub fn classify_observation(
     if observed.get("status").and_then(Value::as_str) != Some(CLOSED_STATUS) {
         return Ok(Observed::Execution);
     }
-    if observed
-        .get("result")
-        .is_none_or(|result| !result.is_null())
+    let closure: ClosureRecord = serde_json::from_slice(stdout)
+        .map_err(|_| "closed-before-execution observation is not the exact closure record")?;
+    if closure.schema != OBSERVATION_SCHEMA
+        || Some(&closure.envelope) != request.get("envelope")
+        || request.get("admitted_envelope").and_then(Value::as_str)
+            != Some(closure.request_identity.as_str())
+        || closure.status != CLOSED_STATUS
+        || !closure.result.is_null()
+        || closure.accepted
+        || closure.integrated
+        || closure.dispatch_plan != plan
     {
-        return Err("closed-before-execution observation carries a result");
+        return Err(
+            "closed-before-execution observation contradicts the request or carries evidence",
+        );
     }
     Ok(Observed::ClosedBeforeExecution)
 }

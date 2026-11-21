@@ -105,12 +105,35 @@ scenario_run() {
 # started; re-entry recovers by closing the attempt, twice.
 scenario_lost_before_start() {
   attempt lost-before-start fail
-  "$HARNESS" begin-transport --database "$OUT/lost-before-start/kiln.sqlite" --enrollment "$OUT/lost-before-start/enrollment.json" \
-    --request "$OUT/lost-before-start/request.json" --plan "$OUT/lost-before-start/plan.json" \
-    --observations "$OUT/lost-before-start/observations.json" > "$OUT/lost-before-start/begin-transport.json"
+  local dir="$OUT/lost-before-start"
+  # Kiln #45 review: a first launch binds its program and state root (and
+  # creates that root) before the transport intent, exactly as worker::run does.
+  mkdir -p -m 700 "$dir/transport" "$dir/state"
+  jq -cn --arg attempt "$(jq -r .attempt "$dir/setup.json")" --argjson fence "$(jq -r .fence "$dir/setup.json")" \
+    --arg program "$LATTICE" --arg blake3 "$(b3 "$LATTICE")" --arg state "$dir/state" \
+    '{schema:"kiln.lattice-transport-binding.v1",attempt:$attempt,fence:$fence,lattice_program:$program,executable_blake3:$blake3,state_directory:$state}' \
+    > "$dir/transport/transport-binding-$(jq -r .attempt "$dir/setup.json")-$(jq -r .fence "$dir/setup.json").json"
+  "$HARNESS" begin-transport --database "$dir/kiln.sqlite" --enrollment "$dir/enrollment.json" \
+    --request "$dir/request.json" --plan "$dir/plan.json" \
+    --observations "$dir/observations.json" > "$dir/begin-transport.json"
   dispatch lost-before-start recover
   dispatch lost-before-start recover-replay
   finish lost-before-start
+}
+
+# I (Kiln #45 review): the first run executes under root A; the profile then
+# names root B. Kiln's second call recovers with the bound root A, reconciles
+# the retained execution, and never invokes Lattice in B.
+scenario_moved_root() {
+  local dir="$OUT/moved-root"
+  attempt moved-root fail
+  dispatch moved-root dispatch
+  mkdir -p "$dir/state-b"
+  jq --arg root "$dir/state-b" '.state_directory = $root' "$dir/transport.json" > "$dir/transport-b.json"
+  cp "$dir/transport-b.json" "$dir/transport.json"
+  dispatch moved-root recover-moved
+  find "$dir/state-b" -mindepth 1 | wc -l > "$dir/state-b.count"
+  finish moved-root
 }
 
 # C: the controller is killed while Lattice runs; the worker finishes; re-entry

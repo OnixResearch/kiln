@@ -37,6 +37,52 @@
     "No model, provider or forge was contacted",
     "The credential pass-through is covered by unit tests and a real child process, not by a credentialed composed run",
     "Settlement does not release admission owner reservations; owner reconciliation still owns them",
-    "not_dispatched_binding_rejected and not_dispatched_revision_blocked observations are still reconciled as executions"
-  ]
+    "not_dispatched_binding_rejected and not_dispatched_revision_blocked observations are still reconciled as executions",
+    "The bound Lattice state root is assumed durable; losing or replacing it in place voids the no-start evidence of a closure recovered from it",
+    "stale_fence refusals stay unknown until Lattice makes its fence check atomic with intent creation"
+  ],
+  "review": {
+    "source": "history://Kiln45Review on the #45 slice as integrated in 4ccae671; decisions by Main",
+    "tree": "kiln-84 working tree on 4ccae671",
+    "findings": [
+      {
+        "finding": 1,
+        "severity": "critical",
+        "summary": "Recovery could settle an executed attempt after the profile's Lattice state root changed, because recover used the current profile's root.",
+        "resolution": "Before the first run's transport intent, worker::run creates the state root and retains OUTPUT/transport-binding-ATTEMPT-FENCE.json (kiln.lattice-transport-binding.v1; exclusive create, 0400, file and directory fsync, byte equality on conflict) with the program, its BLAKE3 and the root. recover uses only the bound values, re-hashes the bound program, and without a binding or with a bound root that is not a directory refuses before invoking Lattice. A closure settles only from a bound recover.",
+        "tests": ["worker::binding::tests::recovery_uses_the_root_bound_at_the_first_launch", "worker::binding::tests::a_missing_binding_or_bound_root_never_recovers_in_a_fresh_root", "worker::binding::tests::malformed_bindings_are_refused", "composed moved-root"]
+      },
+      {
+        "finding": 2,
+        "severity": "critical",
+        "summary": "stale_fence with dispatched:false is not a durable no-start proof: Lattice db64cd65 checks the fence (session/fencing.rs:81-101) before writing the intent (cli/execution.rs:169-240).",
+        "resolution": "stale_fence is no longer settled, and every refusal returned by recover is retained; only run refusals of crossed_attempt, profile_revision_superseded, revision_not_admitted and revision_blocked with dispatched:false settle.",
+        "tests": ["worker::settlement::tests::only_run_refusals_lattice_proves_undispatched_settle", "composed refusals"]
+      },
+      {
+        "finding": 3,
+        "severity": "medium",
+        "summary": "Refusal and closure objects were parsed as loose JSON values, so a refusal with a result or duplicate keys could settle.",
+        "resolution": "Refusals and closures deserialize into typed records with deny_unknown_fields; duplicate keys are refused; revision_refusal is admitted exactly for the agent-revision reasons; a closure must also match the request's admitted_envelope and carry result:null, accepted:false and integrated:false.",
+        "tests": ["worker::settlement::tests::crossed_unknown_contradictory_or_malformed_refusals_are_retained", "worker::settlement::tests::recovery_closure_is_no_execution_only_as_the_exact_closure_record"]
+      }
+    ],
+    "other_decisions": [
+      "The credential environment is resolved right after claim authorization, before plan reservation, request sealing, admission, the transport binding and the transport intent (worker::credential_ordering_tests::a_refused_credential_is_rejected_before_any_plan_reservation asserts no reservation).",
+      "v2-only is enforced by config/implementation-worker.ncl and campaign binding; the direct worker runtime keeps its pre-existing v1 branch (transport_profile_mode_matches)."
+    ],
+    "commands": [
+      {"command": "cargo fmt --all --check", "exit": 0},
+      {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "warnings": 0},
+      {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 101, "passed": 2279, "failed": 4, "ignored": 14, "note": "the four failures are kiln-web-service code_review::structural preview tests (fallback interrupted) and worker::tests::streaming_cancellation_and_deadline_terminate_owned_descendants, outside this change, under host load"},
+      {"command": "cargo test --locked -p kiln-web-service --lib -- code_review::structural worker::tests::streaming_cancellation_and_deadline_terminate_owned_descendants", "exit": 0, "passed": 8, "failed": 0},
+      {"command": "cargo test --locked -p kiln-adapter-lattice --lib", "exit": 0, "passed": 62, "failed": 0},
+      {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "99 positive, 636 negative"},
+      {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+      {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"], "note": "the same three dangling markers as the base"},
+      {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0},
+      {"command": "nix run --builders '' nixpkgs#gitleaks -- dir <changed paths> --no-banner", "exit": 0, "result": "no leaks found"},
+      {"command": "composed-qualification/qualify.sh run lost_before_start lost_during_run refusals crossed substituted_dispatched moved_root cancel", "exit": 0, "record": "composed-qualification.json"}
+    ]
+  }
 }

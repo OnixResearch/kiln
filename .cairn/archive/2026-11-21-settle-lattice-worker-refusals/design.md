@@ -92,33 +92,60 @@ before the transport intent leaves no unknown outcome.
 `[A-Z][A-Z0-9_]{0,127}`, and a typed `CredentialRefusal` otherwise:
 `Malformed` (shape or field), `UnsupportedProvider`, `MalformedKey`, or
 `ReservedName` for process-control names (`PATH`, `HOME`, `LD_*`,
-`LATTICE_*` and the rest of a named list). The shell resolves the value only
-for a fresh `run`, before `begin_dispatch_transport`; an absent or empty value
-is `CredentialRefusal::Missing`. The launch uses `EnvironmentMode::Clear` with
-that single entry. `recover` and `cancel` keep an empty environment because
-neither starts a worker.
+`LATTICE_*` and the rest of a named list). Right after the current claim is
+authorized, and before plan reservation, request sealing, owner-grant
+admission, the transport binding and the transport intent, the shell resolves
+the value for a fresh `run` (no prior transport intent); an absent or empty
+value is `CredentialRefusal::Missing`. The launch uses `EnvironmentMode::Clear`
+with that single entry. `recover` and `cancel` keep an empty environment
+because neither starts a worker.
 
-**Rationale:** The request is already admitted and sealed, so its credential
-reference is the only authority for naming a variable. Refusing before the
-transport intent keeps a missing credential from becoming an unknown outcome.
-Reserved names would change how the Lattice process itself runs.
+**Rationale:** The request is already admitted, so its credential reference is
+the only authority for naming a variable. Refusing before every durable step
+keeps a missing credential from leaving a reservation, a seal or an unknown
+outcome behind. Reserved names would change how the Lattice process itself
+runs.
 
 **Alternatives considered:** Passing the variable to every Lattice command
 would expose the secret to commands that never resolve it.
 
-### Decision: Settle only proven before-effect refusals
+### Decision: Bind the program and state root at the first launch
 
-**Choice:** `worker_settlement::classify_refusal(envelope, stdout)` is pure.
-The shell calls it only for a non-zero exit (`Disposition::ExitFailed`); it
-parses the complete stdout as one refusal record. It returns
-`BeforeEffect { reason }` only when the schema is exact, the `work_id`,
-`attempt_id` and `fence` equal the request envelope, `dispatched` is `false`
-and the reason is one Lattice's table allows as not dispatched
-(`stale_fence`, `crossed_attempt`, `profile_revision_superseded`,
-`revision_not_admitted`, `revision_blocked`). Everything else returns
-`Retain`, including an unknown reason, a crossed attempt, `dispatched:true`,
-`dispatched:false` for a reason the table marks as always dispatched, and
-more than one record. Timeouts, cancellation and output overflow are never
+**Choice:** Before `begin_dispatch_transport` for a fresh `run`, the shell
+durably retains `OUTPUT/transport-binding-ATTEMPT-FENCE.json`
+(`kiln.lattice-transport-binding.v1` with the attempt, fence, `lattice_program`,
+its BLAKE3 and `state_directory`) by exclusive create, mode 0400, file and
+directory fsync, and byte equality on a repeated first launch. This follows the
+frozen-request pattern rather than the ledger's transport intent, which is an
+identity set without launch fields. `recover` loads the binding and uses only
+the bound program (re-hashed against the bound BLAKE3) and root. An absent
+binding (an intent persisted before this change, or a changed output
+directory), a binding of another attempt or fence, or a bound root that is not a
+directory refuses before Lattice is invoked, keeping the unknown outcome.
+
+**Rationale:** Lattice proves no-start only inside the root holding the
+intent. Recovering in another root would create a fresh closure marker there
+and report no start for an attempt that may have run (review finding 1).
+
+### Decision: Settle only proven before-effect refusals of the first run
+
+**Choice:** `worker_settlement::classify_refusal(envelope, stdout, launch)` is
+pure. The shell calls it only for a non-zero exit (`Disposition::ExitFailed`).
+A `recover` refusal is always `Retain`: it describes the recover invocation,
+not whether the first `run` started. A `run` refusal is strictly deserialized
+into Lattice's record (`deny_unknown_fields`, duplicate keys refused,
+`revision_refusal` required exactly for `revision_not_admitted`,
+`revision_blocked` and `export_revoked`). It returns `BeforeEffect { reason }`
+only when the schema is exact, the `work_id`, `attempt_id` and `fence` equal
+the request envelope, `dispatched` is `false` and the reason is
+`crossed_attempt`, `profile_revision_superseded`, `revision_not_admitted` or
+`revision_blocked`. `stale_fence` is retained: Lattice `db64cd65` records a
+fence (`session/fencing.rs:81-101`) before it writes the execution intent
+(`cli/execution.rs:169-240`), so a concurrent lower-fence invocation can still
+start after another was refused as stale (review finding 2); Lattice owns that
+fix. Any unknown field (a result, artifacts, acceptance), duplicate key, more
+than one record, unknown reason or crossed identity returns `Retain`
+(review finding 3). Timeouts, cancellation and output overflow are never
 parsed.
 
 `BeforeEffect` calls the new `Implementer::settle_dispatch_without_execution`,
@@ -129,27 +156,32 @@ and cause `lattice_refused_before_effect:<reason>` and its transport intent is
 removed. The dispatch reports the settlement as an error naming the reason.
 
 **Rationale:** Lattice is the only witness of whether its state root started a
-worker, and it states that per record. Unknown or contradictory records must
-fail closed. Removing the intent records that no transport is outstanding,
-and the terminal phase prevents any further dispatch of that attempt.
+worker. Only the first `run` speaks for the only launch, and only checks that
+are atomic with Lattice's intent creation prove no start. Unknown or
+contradictory records must fail closed.
 
-### Decision: Closed-before-execution is no execution
+### Decision: Closed-before-execution is no execution only in the bound root
 
-**Choice:** An exit-zero observation with status
-`not_started_closed_by_recovery`, `result:null`, the same envelope and echoed
-`dispatch_plan` settles the attempt through the same transition with cause
-`lattice_closed_before_execution`, instead of `reconcile_dispatch`.
+**Choice:** An exit-zero observation whose status is
+`not_started_closed_by_recovery` must deserialize strictly into Lattice's
+closure record (schema, envelope, request identity, status, `result:null`,
+`accepted:false`, `integrated:false`, `dispatch_plan`; no other or duplicate
+field) with the request's envelope, `admitted_envelope` and plan. Only a bound
+`recover` settles it, with cause `lattice_closed_before_execution`, instead of
+`reconcile_dispatch`; a closure reported by `run` is retained.
 
-**Rationale:** Lattice exclusively created the closure marker, so the attempt
-cannot execute. Recording it as an execution would bind a workflow that never
-ran.
+**Rationale:** Lattice exclusively created the closure marker in the bound
+root, so the attempt cannot execute there. Recording it as an execution would
+bind a workflow that never ran.
 
-### Decision: Transport v2 only in Nickel
+### Decision: Transport v2 only in Nickel and campaign binding
 
 **Choice:** `Transport.schema` admits exactly
 `kiln.lattice-implementation-cli.v2`. `implementation-worker-positive.ncl`
 exports a v2 transport; `negative-implementation-worker-transport-v1.ncl`
-must be rejected.
+must be rejected. Campaign binding already requires v2. The direct worker
+runtime keeps its pre-existing v1 branch (`transport_profile_mode_matches`)
+for plans without a native request profile; this change does not remove it.
 
 ## Risks / Trade-offs
 
@@ -162,3 +194,7 @@ must be rejected.
   compute ports that the standalone CLI does not have; they are out of scope.
 - The admission ledger's owner reservations are not released by a
   settlement; owner reconciliation still owns them.
+- The bound state root is assumed durable. Losing or replacing it in place
+  voids the no-start evidence of a closure recovered from it.
+- `stale_fence` refusals stay unknown until Lattice makes its fence check
+  atomic with intent creation; Kiln can then revisit settling them.

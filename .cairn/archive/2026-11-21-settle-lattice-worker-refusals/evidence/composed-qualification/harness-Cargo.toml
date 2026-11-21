@@ -7,8 +7,8 @@ publish = false
 [workspace]
 
 [dependencies]
-kiln-core = { package = "onix-kiln-core", path = "../../kiln-45f/crates/kiln-core" }
-kiln-implementer = { path = "../../kiln-45f/crates/kiln-implementer" }
+kiln-core = { package = "onix-kiln-core", path = "../../kiln-84/crates/kiln-core" }
+kiln-implementer = { path = "../../kiln-84/crates/kiln-implementer" }
 serde_json = "1.0.145"
 serde = "1.0.228"
 blake3 = "1.8.2"

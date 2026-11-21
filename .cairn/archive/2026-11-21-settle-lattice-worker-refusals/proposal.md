@@ -37,18 +37,27 @@ transport must consume, and the Lattice status comment on Kiln #45
   the brokered model route.
 - `config/implementation-worker.ncl` admits exactly
   `kiln.lattice-implementation-cli.v2`, with positive and negative fixtures.
+  Campaign binding already requires v2; the direct worker runtime keeps its
+  pre-existing v1 branch.
 - The `run` launch passes exactly one environment variable: the one named by
   the admitted request's `omp.model_broker.credential` (`provider:"env"`,
   `key`, no `field`). A missing variable, a malformed reference or key, a
   non-`env` provider or a reserved process-control name is a typed refusal
-  before transport intent. No credential keeps today's empty environment.
-  `recover` and `cancel` keep the empty environment.
-- The transport parses `lattice.implementation-attempt-refusal.v1` bound to
-  the request's work, attempt and fence. `dispatched:false` with a reason that
-  Lattice's table admits as not dispatched settles the attempt as failed
-  before any effect and clears its transport intent; every other refusal is
-  retained for reconciliation. `not_started_closed_by_recovery` is settled the
-  same way as no execution and is never passed to `reconcile_dispatch`.
+  right after claim authorization, before plan reservation and every other
+  durable step. No credential keeps today's empty environment. `recover` and
+  `cancel` keep the empty environment.
+- Before the first `run`'s transport intent, Kiln durably binds the Lattice
+  program and state root to the attempt; `recover` uses only the bound values
+  and never invokes Lattice without a binding or in a missing bound root.
+- The transport strictly parses `lattice.implementation-attempt-refusal.v1`
+  bound to the request's work, attempt and fence. Only a `run` refusal with
+  `dispatched:false` and reason `crossed_attempt`,
+  `profile_revision_superseded`, `revision_not_admitted` or `revision_blocked`
+  settles the attempt as failed before any effect and clears its transport
+  intent; `stale_fence`, every `recover` refusal and every other or
+  contradictory record is retained for reconciliation. A bound recovery's exact
+  `not_started_closed_by_recovery` record is settled the same way as no
+  execution and is never passed to `reconcile_dispatch`.
 - `kiln_core::implementation::AttemptLedger` gains the pure transition
   `settle_dispatch_without_execution`.
 

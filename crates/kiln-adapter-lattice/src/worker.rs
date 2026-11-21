@@ -11,6 +11,8 @@ use std::collections::BTreeMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+#[path = "worker_binding.rs"]
+mod binding;
 #[path = "worker_metrics.rs"]
 mod metrics;
 #[path = "worker_settlement.rs"]
@@ -207,12 +209,23 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     let profile: WorkerTransportProfile =
         read_json(&required(flags, "--worker-transport-profile")?)?;
     let enrollment: Enrollment = read_json(&required(flags, "--enrollment")?)?;
-    if program_identity(&profile.lattice_program)? != profile.executable_blake3 {
-        return Err("unqualified or changed Lattice implementation executable".into());
-    }
     // The admitted request alone names the one variable that may reach Lattice.
     let credential =
         settlement::credential_variable(&request).map_err(|error| error.to_string())?;
+    let mut implementer = Implementer::open(&required(flags, "--database")?, enrollment)?;
+    let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
+    // Before any durable step (plan reservation, request seal, admission or
+    // transport intent), a fresh run needs its one credential variable.
+    let recovery = implementer.dispatch_requires_recovery(&attempt.identity)?;
+    let mut environment = if recovery {
+        Vec::new()
+    } else {
+        settlement::credential_environment(credential, credential.and_then(std::env::var_os))
+            .map_err(|error| error.to_string())?
+    };
+    if program_identity(&profile.lattice_program)? != profile.executable_blake3 {
+        return Err("unqualified or changed Lattice implementation executable".into());
+    }
     let execution = plan
         .execution
         .as_ref()
@@ -263,8 +276,6 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                 .into(),
         );
     }
-    let mut implementer = Implementer::open(&required(flags, "--database")?, enrollment)?;
-    let attempt = implementer.authorize_current(&plan.attempt_identity, plan.fence, clock()?)?;
     let ledger = implementer.work()?;
     let work = ledger
         .current()
@@ -345,13 +356,7 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             "bound worker execution requires an explicit owner-grant admission policy".into(),
         );
     }
-    let recovery = implementer.dispatch_requires_recovery(&attempt.identity)?;
-    let mut environment = Vec::new();
     if !recovery {
-        // A missing credential is refused before any admission or transport intent.
-        environment =
-            settlement::credential_environment(credential, credential.and_then(std::env::var_os))
-                .map_err(|error| error.to_string())?;
         let item = admission
             .items
             .get(&plan.work_identity)
@@ -391,17 +396,6 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             clock()?,
         )?;
     }
-    let recovery = implementer.begin_dispatch_transport(
-        &attempt.identity,
-        attempt.fence,
-        clock()?,
-        &reservation.plan,
-    )?;
-    if recovery {
-        // Recovery never starts a worker, so it never receives the credential.
-        environment.clear();
-    }
-    let command = if recovery { "recover" } else { "run" };
     let output_dir = &profile.output_directory;
     if !output_dir.is_absolute() || !profile.state_directory.is_absolute() {
         return Err("worker state/output paths must be absolute".into());
@@ -454,17 +448,75 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             Err(error) => return Err(error.to_string()),
         }
     }
+    // The first launch's program and state root are bound before its transport
+    // intent; recovery never follows a later profile into another root.
+    let binding_path =
+        binding::TransportBinding::path(output_dir, &attempt.identity, attempt.fence);
+    if !recovery {
+        // The bound root exists from the first launch on, so recovery after a
+        // loss before Lattice started still runs in it, never in a fresh root.
+        directories
+            .create(&profile.state_directory)
+            .map_err(|error| error.to_string())?;
+        binding::retain(
+            &binding_path,
+            &binding::TransportBinding::new(
+                &attempt.identity,
+                attempt.fence,
+                &profile.lattice_program,
+                &profile.executable_blake3,
+                &profile.state_directory,
+            ),
+        )?;
+    }
+    let recovery = implementer.begin_dispatch_transport(
+        &attempt.identity,
+        attempt.fence,
+        clock()?,
+        &reservation.plan,
+    )?;
+    let (lattice_program, state_directory) = if recovery {
+        // Recovery never starts a worker, so it never receives the credential.
+        environment.clear();
+        let retained = binding::load(&binding_path)?;
+        let state_is_directory = retained
+            .as_ref()
+            .is_some_and(|bound| binding::is_directory(&bound.state_directory));
+        let bound = binding::recovery_launch(
+            retained,
+            &attempt.identity,
+            attempt.fence,
+            state_is_directory,
+        )?;
+        let bound_blake3 = ContentId::from_blake3_hex(bound.executable_blake3.clone())
+            .map_err(|error| format!("{error:?}"))?;
+        if program_identity(&bound.lattice_program)? != bound_blake3 {
+            return Err("the bound Lattice executable changed; Lattice was not invoked".into());
+        }
+        (bound.lattice_program, bound.state_directory)
+    } else {
+        (
+            profile.lattice_program.clone(),
+            profile.state_directory.clone(),
+        )
+    };
+    let launch_kind = if recovery {
+        settlement::Launch::Recover
+    } else {
+        settlement::Launch::Run
+    };
+    let command = if recovery { "recover" } else { "run" };
     let args: Vec<std::ffi::OsString> = vec![
         "implementation-attempt".into(),
         command.into(),
         "--request".into(),
         frozen_request.as_os_str().into(),
         "--state".into(),
-        profile.state_directory.as_os_str().into(),
+        state_directory.as_os_str().into(),
     ];
     let launch = RunRequest {
         command: lattice_command(
-            profile.lattice_program.clone(),
+            lattice_program.clone(),
             args,
             output_dir.clone(),
             environment,
@@ -492,8 +544,8 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     }
     let cancel_flag = cancellation.clone();
     let done = finished.clone();
-    let cancel_program = profile.lattice_program.clone();
-    let cancel_state = profile.state_directory.clone();
+    let cancel_program = lattice_program.clone();
+    let cancel_state = state_directory.clone();
     let cancel_root = output_dir.clone();
     let cancel_request = frozen_request.clone();
     let watcher = std::thread::spawn(move || {
@@ -583,9 +635,10 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         }
     }
     if outcome.disposition == Disposition::ExitFailed {
-        // Only Lattice can witness that no worker effect of this attempt began.
+        // Only Lattice can witness that no worker effect of this attempt began,
+        // and only the first `run` speaks for the attempt's only launch.
         if let settlement::RefusalOutcome::BeforeEffect { reason } =
-            settlement::classify_refusal(envelope, &outcome.stdout.bytes)
+            settlement::classify_refusal(envelope, &outcome.stdout.bytes, launch_kind)
         {
             implementer.settle_dispatch_without_execution(
                 &attempt.identity,
@@ -603,10 +656,15 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     }
     let observed: serde_json::Value = serde_json::from_slice(&outcome.stdout.bytes)
         .map_err(|_| "worker response malformed after possible dispatch")?;
-    if settlement::classify_observation(&request, &observed, reservation.plan.as_str())?
+    if settlement::classify_observation(&request, &outcome.stdout.bytes, reservation.plan.as_str())?
         == settlement::Observed::ClosedBeforeExecution
     {
-        // Recovery exclusively closed the attempt: it never executes.
+        if launch_kind != settlement::Launch::Recover {
+            return Err(
+                "closure reported outside bound recovery; retain state and reconcile".into(),
+            );
+        }
+        // Recovery in the bound root exclusively closed the attempt: it never executes.
         implementer.settle_dispatch_without_execution(
             &attempt.identity,
             attempt.fence,
@@ -622,7 +680,7 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
     // Observation failure cannot turn a valid native result into a failed
     // dispatch or grant candidate authority. Raw transport evidence is retained
     // above; absent/malformed telemetry is explicit in this diagnostic.
-    let metrics_result = read_metrics_artifact(&profile.state_directory, &attempt, &observed)
+    let metrics_result = read_metrics_artifact(&state_directory, &attempt, &observed)
         .and_then(|bytes| metrics::normalize(&request, &observed, &bytes))
         .and_then(|observation| {
             implementer.record_worker_observation(&attempt.identity, attempt.fence, &observation)
@@ -731,5 +789,205 @@ mod launch_environment_tests {
         let cleared = settlement::credential_environment(none, Some(OsString::from("fake-value")))
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(observe(cleared), "unset|unset|unset");
+    }
+}
+
+#[cfg(test)]
+mod credential_ordering_tests {
+    use super::run;
+    use kiln_core::implementation::{
+        AcceptanceObligation, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
+        Enrollment, IMPLEMENTATION_WORK_SCHEMA, ImplementationDispatchPlan, ImplementationWork,
+        SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind, WorkspaceIsolation,
+    };
+    use kiln_core::types::{ContentId, ExternalRef, ProviderProfileId};
+    use kiln_implementer::Implementer;
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::path::Path;
+
+    const LEASE_MS: u64 = 600_000;
+    /// A variable no test environment defines.
+    const UNSET: &str = "KILN_TEST_UNSET_LATTICE_CREDENTIAL_45";
+
+    fn content(character: char) -> ContentId {
+        ContentId::from_blake3_hex(character.to_string().repeat(64))
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    fn enrollment() -> Enrollment {
+        Enrollment {
+            repositories: BTreeSet::from(["onix/kiln".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        }
+    }
+
+    fn work() -> ImplementationWork {
+        ImplementationWork {
+            schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+            revision: 1,
+            actor: "operator".to_string(),
+            repository: "onix/kiln".to_string(),
+            project: "kiln".to_string(),
+            base: Some(
+                ExternalRef::new("git", "commit", &"a".repeat(40))
+                    .unwrap_or_else(|_| unreachable!()),
+            ),
+            title: "Credential ordering".to_string(),
+            requested_outcome: "implement".to_string(),
+            acceptance: vec![AcceptanceObligation {
+                id: "accepted".to_string(),
+                statement: "verified".to_string(),
+            }],
+            dependencies: Vec::new(),
+            permitted_paths: vec!["crates".to_string()],
+            permitted_effects: BTreeSet::from(["write_source".to_string()]),
+            verification_profile: content('9'),
+            budget: WorkBudget {
+                attempts: 2,
+                minutes_per_attempt: 60,
+            },
+            terminal_policy: TerminalPolicy::VerifiedPullRequest,
+            priority: 1,
+            aliases: vec![SourceRef {
+                kind: WorkSourceKind::GitHubIssue,
+                source: ExternalRef::new("github", "issue", "onix/kiln#45")
+                    .unwrap_or_else(|_| unreachable!()),
+                native_id: "onix/kiln#45".to_string(),
+                version: content('1'),
+            }],
+        }
+    }
+
+    fn write(path: &Path, value: &impl serde::Serialize) {
+        std::fs::write(
+            path,
+            serde_json::to_vec(value).unwrap_or_else(|_| unreachable!()),
+        )
+        .unwrap_or_else(|_| unreachable!());
+    }
+
+    /// Run the transport for one claimed attempt and report its result and
+    /// whether any dispatch plan was reserved.
+    fn dispatch(credential: serde_json::Value) -> (Result<String, String>, bool) {
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let root = directory.path();
+        let database = root.join("kiln.sqlite");
+        let now = super::clock().unwrap_or_else(|_| unreachable!());
+        let work = work();
+        let attempt = {
+            let mut owner = Implementer::open(&database, enrollment())
+                .unwrap_or_else(|error| unreachable!("{error}"));
+            owner
+                .admit(&work, None)
+                .unwrap_or_else(|error| unreachable!("{error}"));
+            owner
+                .claim_next(now, LEASE_MS)
+                .unwrap_or_else(|error| unreachable!("{error}"))
+                .unwrap_or_else(|| unreachable!())
+        };
+        let plan = ImplementationDispatchPlan {
+            schema: DISPATCH_PLAN_SCHEMA.into(),
+            work_identity: attempt.work_identity.clone(),
+            work_revision: work.revision,
+            attempt_identity: attempt.identity.clone(),
+            fence: attempt.fence,
+            repository: work.repository.clone(),
+            base: work.base.clone(),
+            workspace: DispatchWorkspace {
+                identity: content('e'),
+                isolation: WorkspaceIsolation::IsolatedSnapshot,
+                network: false,
+                credentials: false,
+                projection: None,
+            },
+            provider_profile: ProviderProfileId::new("lattice-implementation")
+                .unwrap_or_else(|_| unreachable!()),
+            permitted_paths: work.permitted_paths.clone(),
+            permitted_effects: work.permitted_effects.clone(),
+            controls: DispatchControls {
+                cancel: true,
+                pause: false,
+                resume: false,
+            },
+            deadline_minutes: 1,
+            token_budget: 1000,
+            invocation_budget: 1,
+            expected_output: content('f'),
+            execution: None,
+        };
+        write(&root.join("plan.json"), &plan);
+        write(&root.join("enrollment.json"), &enrollment());
+        write(
+            &root.join("request.json"),
+            &serde_json::json!({"envelope": {}, "omp": {"model_broker": {"credential": credential}}}),
+        );
+        write(
+            &root.join("transport.json"),
+            &serde_json::json!({
+                "schema": "kiln.lattice-implementation-cli.v2",
+                "lattice_program": root.join("not-a-store-program"),
+                "executable_blake3": "b".repeat(64),
+                "state_directory": root.join("state"),
+                "output_directory": root.join("transport"),
+            }),
+        );
+        let flags = BTreeMap::from([
+            ("--database".to_string(), database.display().to_string()),
+            (
+                "--enrollment".to_string(),
+                root.join("enrollment.json").display().to_string(),
+            ),
+            (
+                "--dispatch-plan".to_string(),
+                root.join("plan.json").display().to_string(),
+            ),
+            (
+                "--worker-request".to_string(),
+                root.join("request.json").display().to_string(),
+            ),
+            (
+                "--worker-transport-profile".to_string(),
+                root.join("transport.json").display().to_string(),
+            ),
+        ]);
+        let result = run(&flags);
+        let reserved = Implementer::open(&database, enrollment())
+            .and_then(|mut owner| owner.dispatch_reservation(&attempt.identity))
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some();
+        (result, reserved)
+    }
+
+    // r[verify kiln.implementation.lattice_cli.scenario.credential]
+    #[test]
+    fn a_refused_credential_is_rejected_before_any_plan_reservation() {
+        let (missing, reserved) = dispatch(serde_json::json!({"provider": "env", "key": UNSET}));
+        assert!(
+            missing
+                .as_ref()
+                .is_err_and(|error| error.starts_with("worker_credential_missing:")),
+            "{missing:?}"
+        );
+        assert!(!reserved);
+        let (reserved_name, reserved) =
+            dispatch(serde_json::json!({"provider": "env", "key": "PATH"}));
+        assert!(
+            reserved_name
+                .as_ref()
+                .is_err_and(|error| error.starts_with("worker_credential_reserved_name:")),
+            "{reserved_name:?}"
+        );
+        assert!(!reserved);
+        // Without a declared credential the credential stage passes, and the
+        // next check (the immutable executable) refuses, still before any
+        // reservation.
+        let (undeclared, reserved) = dispatch(serde_json::Value::Null);
+        assert!(
+            undeclared
+                .as_ref()
+                .is_err_and(|error| error.contains("not an admitted immutable Nix program")),
+            "{undeclared:?}"
+        );
+        assert!(!reserved);
     }
 }

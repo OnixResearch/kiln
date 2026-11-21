@@ -447,14 +447,21 @@ entry describes the source tree prepared for the first tagged release.
   `dispatch_plan` (the campaign prepares twice, since the plan frames the
   native worker profile), and a missing or different plan is refused before
   transport intent. `run` receives exactly the one `env` variable the request's
-  `omp.model_broker.credential` names, refused before transport intent when
-  missing, malformed, non-`env` or reserved; `recover` and `cancel` receive
-  none. A typed `lattice.implementation-attempt-refusal.v1` for the attempt
-  with `dispatched:false` and a not-dispatched reason ends it as an
-  infrastructure failure with nothing to reconcile, and recovery's
-  `not_started_closed_by_recovery` is recorded as no execution; every other
-  refusal stays for reconciliation. `config/implementation-worker.ncl` admits
-  only transport v2, and the local fixture and runbook use request v3 with
+  `omp.model_broker.credential` names, refused right after claim authorization
+  and before plan reservation when missing, malformed, non-`env` or reserved;
+  `recover` and `cancel` receive none. The first `run` durably binds its
+  Lattice program and state root before its transport intent, and `recover`
+  uses only the bound values; an absent binding or missing bound root keeps the
+  unknown outcome without invoking Lattice. Only a `run` refusal that is exactly
+  Lattice's `lattice.implementation-attempt-refusal.v1` record for the attempt,
+  with `dispatched:false` and reason `crossed_attempt`,
+  `profile_revision_superseded`, `revision_not_admitted` or `revision_blocked`,
+  ends it as an infrastructure failure with nothing to reconcile, and a bound
+  recovery's exact `not_started_closed_by_recovery` record is recorded as no
+  execution; `stale_fence`, every `recover` refusal and every contradictory
+  record stay for reconciliation. `config/implementation-worker.ncl` and
+  campaign binding admit only transport v2 (the direct worker runtime keeps its
+  v1 branch), and the local fixture and runbook use request v3 with
   `network:false` and the brokered model route. Breaking for prepared requests
   without `dispatch_plan`. (workspace tests; composed local qualification with
   the real Lattice binary and a local HTTP 400 endpoint, no model call)

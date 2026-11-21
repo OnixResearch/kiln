@@ -18,20 +18,32 @@ fn with(mut value: Value, field: &str, new: Value) -> Value {
 fn request(credential: Value) -> Value {
     json!({
         "envelope": envelope(),
+        "admitted_envelope": "f".repeat(64),
         "dispatch_plan": PLAN,
         "omp": {"model_broker": {"endpoint": "http://127.0.0.1:1/v1/chat/completions", "credential": credential}},
     })
 }
 
+/// One refusal record exactly as Lattice `db64cd65` prints it, including the
+/// lifecycle refusal the agent-revision reasons carry.
 fn refusal_record(reason: &str, dispatched: bool) -> Value {
-    json!({
+    let record = json!({
         "schema": REFUSAL_SCHEMA,
         "reason": reason,
         "work_id": "a".repeat(64),
         "attempt_id": "b".repeat(64),
         "fence": 7,
         "dispatched": dispatched,
-    })
+    });
+    if REVISION_REASONS.contains(&reason) {
+        with(
+            record,
+            "revision_refusal",
+            json!({"code": "session_revoked"}),
+        )
+    } else {
+        record
+    }
 }
 
 fn refusal(reason: &str, dispatched: bool) -> Vec<u8> {
@@ -167,7 +179,7 @@ fn the_request_must_carry_the_reserved_plan() {
 
 // r[verify kiln.implementation.lattice_cli.scenario.refusal]
 #[test]
-fn every_lattice_refusal_reason_settles_only_when_it_cannot_have_dispatched() {
+fn only_run_refusals_lattice_proves_undispatched_settle() {
     let envelope = envelope();
     // Lattice's refusal table: (reason, dispatched values Lattice can emit).
     let table: [(&str, &[bool]); 7] = [
@@ -181,8 +193,9 @@ fn every_lattice_refusal_reason_settles_only_when_it_cannot_have_dispatched() {
     ];
     for (reason, emitted) in table {
         for dispatched in [false, true] {
-            let outcome = classify_refusal(&envelope, &refusal(reason, dispatched));
-            let settles = !dispatched && emitted.contains(&false);
+            // stale_fence:false is not a no-start proof while Lattice's fence
+            // check races its intent creation.
+            let settles = !dispatched && emitted.contains(&false) && reason != "stale_fence";
             let expected = if settles {
                 RefusalOutcome::BeforeEffect {
                     reason: reason.to_owned(),
@@ -190,37 +203,43 @@ fn every_lattice_refusal_reason_settles_only_when_it_cannot_have_dispatched() {
             } else {
                 RefusalOutcome::Retain
             };
-            assert_eq!(outcome, expected, "{reason} dispatched:{dispatched}");
+            let record = refusal(reason, dispatched);
+            assert_eq!(
+                classify_refusal(&envelope, &record, Launch::Run),
+                expected,
+                "{reason} dispatched:{dispatched}"
+            );
+            // A recover refusal describes the recover invocation only.
+            assert_eq!(
+                classify_refusal(&envelope, &record, Launch::Recover),
+                RefusalOutcome::Retain,
+                "recover {reason} dispatched:{dispatched}"
+            );
         }
     }
-    // The agent-revision reasons carry the lifecycle refusal; it is ignored.
-    let revision = with(
-        refusal_record("revision_blocked", false),
-        "revision_refusal",
-        json!({"code": "session_revoked"}),
-    );
-    assert_eq!(
-        classify_refusal(&envelope, revision.to_string().as_bytes()),
-        RefusalOutcome::BeforeEffect {
-            reason: "revision_blocked".into()
-        }
-    );
 }
 
 // r[verify kiln.implementation.lattice_cli.scenario.refusal]
 #[test]
-fn crossed_unknown_or_malformed_refusals_are_retained() {
+fn crossed_unknown_contradictory_or_malformed_refusals_are_retained() {
     let envelope = envelope();
-    let base = refusal_record("stale_fence", false);
-    let changed = |field: &str, new: Value| {
-        classify_refusal(
-            &envelope,
-            with(base.clone(), field, new).to_string().as_bytes(),
-        )
-    };
+    let base = refusal_record("crossed_attempt", false);
+    let classify =
+        |record: &Value| classify_refusal(&envelope, record.to_string().as_bytes(), Launch::Run);
+    assert_eq!(
+        classify(&base),
+        RefusalOutcome::BeforeEffect {
+            reason: "crossed_attempt".into()
+        }
+    );
+    let changed = |field: &str, new: Value| classify(&with(base.clone(), field, new));
     let mut without_dispatched = base.clone();
     if let Some(fields) = without_dispatched.as_object_mut() {
         fields.remove("dispatched");
+    }
+    let mut without_lifecycle = refusal_record("revision_blocked", false);
+    if let Some(fields) = without_lifecycle.as_object_mut() {
+        fields.remove("revision_refusal");
     }
     for (label, outcome) in [
         ("unknown reason", changed("reason", json!("lease_lost"))),
@@ -233,14 +252,54 @@ fn crossed_unknown_or_malformed_refusals_are_retained() {
         ("crossed fence", changed("fence", json!(8))),
         ("string fence", changed("fence", json!("7"))),
         ("string dispatched", changed("dispatched", json!("false"))),
-        (
-            "missing dispatched",
-            classify_refusal(&envelope, without_dispatched.to_string().as_bytes()),
-        ),
+        ("missing dispatched", classify(&without_dispatched)),
         ("missing reason", changed("reason", Value::Null)),
+        // Execution evidence or any other extension contradicts a no-start refusal.
+        (
+            "result",
+            changed("result", json!({"disposition": "failed"})),
+        ),
+        (
+            "artifacts",
+            changed("artifacts", json!({"raw_events": "/x"})),
+        ),
+        ("accepted", changed("accepted", json!(false))),
+        (
+            "lifecycle refusal on another reason",
+            changed("revision_refusal", json!({"code": "session_revoked"})),
+        ),
+        (
+            "revision reason without its lifecycle refusal",
+            classify(&without_lifecycle),
+        ),
+        (
+            "non-object lifecycle refusal",
+            classify(&with(
+                refusal_record("revision_blocked", false),
+                "revision_refusal",
+                json!("session_revoked"),
+            )),
+        ),
     ] {
         assert_eq!(outcome, RefusalOutcome::Retain, "{label}");
     }
+    // Duplicate keys are refused rather than resolved by the parser.
+    let a = "a".repeat(64);
+    let b = "b".repeat(64);
+    let duplicated = format!(
+        r#"{{"schema":"{REFUSAL_SCHEMA}","reason":"substituted_request","reason":"crossed_attempt","work_id":"{a}","attempt_id":"{b}","fence":7,"dispatched":false}}"#
+    );
+    assert_eq!(
+        classify_refusal(&envelope, duplicated.as_bytes(), Launch::Run),
+        RefusalOutcome::Retain
+    );
+    let dispatched_twice = format!(
+        r#"{{"schema":"{REFUSAL_SCHEMA}","reason":"crossed_attempt","work_id":"{a}","attempt_id":"{b}","fence":7,"dispatched":true,"dispatched":false}}"#
+    );
+    assert_eq!(
+        classify_refusal(&envelope, dispatched_twice.as_bytes(), Launch::Run),
+        RefusalOutcome::Retain
+    );
     for stdout in [
         &b""[..],
         b"not json",
@@ -248,20 +307,30 @@ fn crossed_unknown_or_malformed_refusals_are_retained() {
         b"[]",
         b"{\"schema\":\"lattice.implementation-attempt-refusal.v1\"}",
     ] {
-        assert_eq!(classify_refusal(&envelope, stdout), RefusalOutcome::Retain);
+        assert_eq!(
+            classify_refusal(&envelope, stdout, Launch::Run),
+            RefusalOutcome::Retain
+        );
     }
-    let twice = [refusal("stale_fence", false), refusal("stale_fence", false)].concat();
-    assert_eq!(classify_refusal(&envelope, &twice), RefusalOutcome::Retain);
+    let twice = [
+        refusal("crossed_attempt", false),
+        refusal("crossed_attempt", false),
+    ]
+    .concat();
+    assert_eq!(
+        classify_refusal(&envelope, &twice, Launch::Run),
+        RefusalOutcome::Retain
+    );
     // An envelope without the bound fields never matches a record.
     assert_eq!(
-        classify_refusal(&json!({}), &refusal("stale_fence", false)),
+        classify_refusal(&json!({}), &refusal("crossed_attempt", false), Launch::Run),
         RefusalOutcome::Retain
     );
 }
 
 // r[verify kiln.implementation.lattice_cli.scenario.closed]
 #[test]
-fn recovery_closure_is_no_execution_only_for_the_exact_envelope_and_plan() {
+fn recovery_closure_is_no_execution_only_as_the_exact_closure_record() {
     let request = request(Value::Null);
     let closed = json!({
         "schema": OBSERVATION_SCHEMA,
@@ -273,38 +342,84 @@ fn recovery_closure_is_no_execution_only_for_the_exact_envelope_and_plan() {
         "integrated": false,
         "dispatch_plan": PLAN,
     });
-    assert_eq!(
-        classify_observation(&request, &closed, PLAN),
-        Ok(Observed::ClosedBeforeExecution)
-    );
+    let classify = |observed: &Value, plan: &str| {
+        classify_observation(&request, observed.to_string().as_bytes(), plan)
+    };
+    assert_eq!(classify(&closed, PLAN), Ok(Observed::ClosedBeforeExecution));
     let mut executed = closed.clone();
     if let Some(fields) = executed.as_object_mut() {
         fields.remove("status");
     }
     let executed = with(executed, "result", json!({"disposition": "failed"}));
-    assert_eq!(
-        classify_observation(&request, &executed, PLAN),
-        Ok(Observed::Execution)
-    );
-    let contradictory = with(closed.clone(), "result", json!({"disposition": "failed"}));
-    assert!(classify_observation(&request, &contradictory, PLAN).is_err());
+    assert_eq!(classify(&executed, PLAN), Ok(Observed::Execution));
     let mut missing_result = closed.clone();
     if let Some(fields) = missing_result.as_object_mut() {
         fields.remove("result");
     }
-    assert!(classify_observation(&request, &missing_result, PLAN).is_err());
-    let crossed = with(
-        closed.clone(),
-        "envelope",
-        with(envelope(), "fence", json!(8)),
-    );
-    assert!(classify_observation(&request, &crossed, PLAN).is_err());
-    let other_schema = with(closed.clone(), "schema", json!(REFUSAL_SCHEMA));
-    assert!(classify_observation(&request, &other_schema, PLAN).is_err());
-    assert!(classify_observation(&request, &closed, &"e".repeat(64)).is_err());
+    for (label, observed, plan) in [
+        (
+            "result",
+            with(closed.clone(), "result", json!({"disposition": "failed"})),
+            PLAN,
+        ),
+        ("missing result", missing_result, PLAN),
+        (
+            "artifacts",
+            with(closed.clone(), "artifacts", json!({"raw_events": "/x"})),
+            PLAN,
+        ),
+        (
+            "accepted",
+            with(closed.clone(), "accepted", json!(true)),
+            PLAN,
+        ),
+        (
+            "integrated",
+            with(closed.clone(), "integrated", json!(true)),
+            PLAN,
+        ),
+        (
+            "unchanged observation",
+            with(closed.clone(), "unchanged", json!({})),
+            PLAN,
+        ),
+        (
+            "another request identity",
+            with(closed.clone(), "request_identity", json!("e".repeat(64))),
+            PLAN,
+        ),
+        (
+            "crossed envelope",
+            with(
+                closed.clone(),
+                "envelope",
+                with(envelope(), "fence", json!(8)),
+            ),
+            PLAN,
+        ),
+        (
+            "other schema",
+            with(closed.clone(), "schema", json!(REFUSAL_SCHEMA)),
+            PLAN,
+        ),
+        ("other plan", closed.clone(), "eeee"),
+    ] {
+        assert!(classify(&observed, plan).is_err(), "{label}");
+    }
     let mut unplanned = closed;
     if let Some(fields) = unplanned.as_object_mut() {
         fields.remove("dispatch_plan");
     }
-    assert!(classify_observation(&request, &unplanned, PLAN).is_err());
+    assert!(classify(&unplanned, PLAN).is_err());
+    // Duplicate keys in a closure are refused rather than resolved.
+    let envelope_text = envelope().to_string();
+    let identity = "f".repeat(64);
+    let duplicated = format!(
+        r#"{{"schema":"{OBSERVATION_SCHEMA}","envelope":{envelope_text},"request_identity":"{identity}","status":"{CLOSED_STATUS}","result":null,"result":{{"disposition":"failed"}},"accepted":false,"integrated":false,"dispatch_plan":"{PLAN}"}}"#
+    );
+    assert!(classify_observation(&request, duplicated.as_bytes(), PLAN).is_err());
+    let duplicated_null = format!(
+        r#"{{"schema":"{OBSERVATION_SCHEMA}","envelope":{envelope_text},"request_identity":"{identity}","status":"{CLOSED_STATUS}","result":{{"disposition":"failed"}},"result":null,"accepted":false,"integrated":false,"dispatch_plan":"{PLAN}"}}"#
+    );
+    assert!(classify_observation(&request, duplicated_null.as_bytes(), PLAN).is_err());
 }
