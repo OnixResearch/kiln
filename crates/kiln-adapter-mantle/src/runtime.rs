@@ -54,6 +54,21 @@ pub trait MantleRuntime {
         total_bound: usize,
     ) -> PortResult<(Vec<u8>, bool)>;
 
+    /// Read one bounded regular file whole. Used for provider receipts.
+    fn read_bounded_file(&self, path: &Path, max_bytes: usize) -> PortResult<Vec<u8>> {
+        let _ = (path, max_bytes);
+        Err(infrastructure(
+            "mantle_file_read_unsupported",
+            "Mantle runtime does not implement bounded file reads",
+        ))
+    }
+
+    /// Prepare the exact directory that will hold a provider receipt.
+    fn prepare_directory(&self, path: &Path) -> PortResult<()> {
+        let _ = path;
+        Ok(())
+    }
+
     /// Observe bounded NAR facts for one exported product path.
     fn store_object_facts(
         &self,
@@ -106,6 +121,63 @@ impl MantleRuntime for BoundedMantleRuntime {
         kiln_nix_store::nar::observe_path(path, candidates, candidates_complete, bounds)
             .map(Some)
             .map_err(PortFailure::Domain)
+    }
+
+    fn read_bounded_file(&self, path: &Path, max_bytes: usize) -> PortResult<Vec<u8>> {
+        if !path.is_absolute() || max_bytes == 0 {
+            return Err(domain(
+                "mantle_file_bound",
+                "mantle.file",
+                "Mantle bounded file read requires an absolute path and a positive bound",
+            ));
+        }
+        let metadata = std::fs::metadata(path).map_err(|_| {
+            infrastructure(
+                "mantle_file_metadata",
+                "Mantle receipt file metadata is unavailable",
+            )
+        })?;
+        let max_bytes_u64 = u64::try_from(max_bytes).map_err(|_| {
+            domain(
+                "mantle_file_bound",
+                "mantle.file",
+                "Mantle file bound is not representable",
+            )
+        })?;
+        if !metadata.is_file() || metadata.len() > max_bytes_u64 {
+            return Err(domain(
+                "mantle_file_bound",
+                "mantle.file",
+                "Mantle receipt file is not a bounded regular file",
+            ));
+        }
+        std::fs::read(path).map_err(|_| {
+            infrastructure("mantle_file_read", "Mantle receipt file could not be read")
+        })
+    }
+
+    fn prepare_directory(&self, path: &Path) -> PortResult<()> {
+        if !path.is_absolute() {
+            return Err(domain(
+                "mantle_directory",
+                "mantle.directory",
+                "Mantle receipt directory must be absolute",
+            ));
+        }
+        std::fs::create_dir_all(path).map_err(|_| {
+            infrastructure(
+                "mantle_directory",
+                "Mantle receipt directory could not be created",
+            )
+        })?;
+        if !path.is_dir() {
+            return Err(domain(
+                "mantle_directory",
+                "mantle.directory",
+                "Mantle receipt directory is not a directory",
+            ));
+        }
+        Ok(())
     }
 }
 
