@@ -533,12 +533,14 @@ impl Workspace {
                 .response);
         }
         // r[impl kiln.cairn.workspace.scenario.example] The real Cairn workspace shell over the synthetic stores.
+        // r[impl kiln.cairn.workspace.agents.scenario.source] Its agents section reads the synthetic inventory.
         if kiln_web_service::cairn_workspace::http::ROUTES.contains(&path) {
             return Ok(kiln_web_service::cairn_workspace::http::response(
                 Some(&self.campaign),
                 &req.method,
                 &req.target,
                 Role::Operator,
+                &inventory::cairn_observation,
             ));
         }
         if path.starts_with("/api/feeds") || path.starts_with("/feeds") {

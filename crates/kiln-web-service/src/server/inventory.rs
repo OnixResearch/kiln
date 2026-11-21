@@ -3,6 +3,7 @@ use kiln_core::types::ContentId;
 use kiln_implementer::observation::ImplementationObservation;
 
 use super::{ApiResponse, Context, Principal, Request, error_response};
+use crate::cairn_workspace::agents::InventoryObservation;
 use crate::engine::Role;
 
 const MAXIMUM_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
@@ -111,6 +112,25 @@ pub(super) fn campaign_response(
             headers: Vec::new(),
         },
         _ => error_response(503, "campaign_projection_byte_bound"),
+    }
+}
+
+// r[impl kiln.cairn.workspace.agents.scenario.source]
+/// The resource inventory beside a Cairn change detail, for the requesting
+/// principal and the host clock. Its failure never fails the detail.
+pub(super) fn cairn_observation(
+    context: &Context<'_>,
+    principal: &Principal,
+) -> InventoryObservation {
+    let Some(path) = context.inventory else {
+        return InventoryObservation::NotConfigured;
+    };
+    let Ok(now) = crate::engine::host_time_ms() else {
+        return InventoryObservation::Unavailable("clock_unavailable".into());
+    };
+    match crate::inventory::read_inventory(path, &principal.id, now) {
+        Ok(projection) => InventoryObservation::Admitted(Box::new(projection)),
+        Err(code) => InventoryObservation::Unavailable(code),
     }
 }
 

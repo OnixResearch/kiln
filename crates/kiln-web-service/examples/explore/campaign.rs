@@ -590,8 +590,10 @@ mod tests {
     }
 
     // r[verify kiln.cairn.workspace.scenario.example]
+    // r[verify kiln.cairn.workspace.agents.scenario.source]
     #[test]
     fn synthetic_cairn_changes_join_real_work_attempts_and_members() -> Result {
+        use kiln_web_service::cairn_workspace::agents::InventoryObservation;
         use kiln_web_service::cairn_workspace::http::{
             DETAIL_ROUTE, INDEX_ROUTE, response as cairn,
         };
@@ -599,12 +601,18 @@ mod tests {
         use serde_json::json;
         let root = tempfile::tempdir()?;
         let database = seed(root.path())?;
+        let inventory_reads = std::cell::Cell::new(0_usize);
+        let observe = || {
+            inventory_reads.set(inventory_reads.get() + 1);
+            crate::inventory::cairn_observation()
+        };
         let read = |target: &str| -> Result<Value> {
-            let response = cairn(Some(&database), "GET", target, Role::Viewer);
+            let response = cairn(Some(&database), "GET", target, Role::Viewer, &observe);
             assert_eq!(response.status, 200, "{target}");
             Ok(serde_json::from_slice(&response.body)?)
         };
         let index = read(INDEX_ROUTE)?;
+        assert_eq!(inventory_reads.get(), 0, "the index reads no inventory");
         let changes: Vec<&str> = index["changes"]
             .as_array()
             .ok_or("index has no changes")?
@@ -660,6 +668,48 @@ mod tests {
             Some(&json!("failed"))
         );
         assert_eq!(planning.pointer("/units/0/attempts/1"), None);
+        // The agents section reads the synthetic inventory beside the change
+        // and keeps workflow revisions apart, owned by Lattice #25.
+        assert_eq!(inventory_reads.get(), 1);
+        assert_eq!(planning.pointer("/agents/source"), Some(&json!("admitted")));
+        assert_eq!(
+            planning.pointer("/agents/workflow_revisions/selected_for_new_sessions"),
+            Some(&json!({"state": "unpublished", "value": null, "owner": "lattice#25"}))
+        );
+        assert_eq!(
+            planning.pointer("/agents/definitions/0/selected_for_new_sessions/state"),
+            Some(&json!("recorded"))
+        );
+        let text = planning.to_string();
+        assert!(!text.contains("worker-a-session") && !text.contains("worker-a-workspace"));
+        // An inventory refusal leaves the canonical change readable.
+        let refused = cairn(
+            Some(&database),
+            "GET",
+            &format!(
+                "{DETAIL_ROUTE}?repository={}&change=synthetic-planning",
+                repository_identity(REPOSITORY)
+            ),
+            Role::Viewer,
+            &|| InventoryObservation::Unavailable("inventory_input_unavailable".into()),
+        );
+        assert_eq!(refused.status, 200);
+        let refused: Value = serde_json::from_slice(&refused.body)?;
+        assert_eq!(
+            (
+                refused.pointer("/agents/source"),
+                refused.pointer("/agents/reason"),
+                refused.pointer("/agents/definitions"),
+                refused.pointer("/units/0/native_id"),
+            ),
+            (
+                Some(&json!("unavailable")),
+                Some(&json!("inventory_input_unavailable")),
+                Some(&json!([])),
+                Some(&json!("synthetic-planning/task-plan")),
+            )
+        );
+        assert_ne!(refused["identity"], planning["identity"]);
         // B: depends on A's exact current work identity and waits for its review.
         let assurance = detail("synthetic-assurance")?;
         assert_eq!(

@@ -299,12 +299,31 @@ This is the intended conservative result. The explanation names every exact
 blocker. Where Lattice publishes a reason, the blocker carries its exact code
 and owner.
 
+## Cairn workspace consumer
+
+Lattice #24 and #25 also name the Cairn workspace (#84) as a consumer. The
+Cairn change detail (`kiln.cairn-workspace-detail.v3`) carries an `agents`
+section that `kiln_web_service::cairn_workspace::agents` computes from the same
+admitted, principal-checked inventory projection, never from the Lattice
+documents. It shows each definition's desired, prepared, qualified and
+selected revision slots as `recorded`, `not_recorded`, `unknown` with its
+owner, `unmanaged` or `unpublished`; its task-family references with evidence
+class and provenance, where only `live` counts as live; its declared
+capability; each worker's pinned revision against the selection, its pin and
+blocked state; and every wait reason with its owner. Workflow revisions are a
+separate slot, `unpublished` with owner `lattice#25`, until Lattice publishes
+them. The section copies no session, workspace, execution or grant reference,
+model-service binding, full qualification record, preparation failure or other
+work's attempt. The operator guide's **Agents and revisions** describes the
+page. The change package is
+`.cairn/archive/2026-11-21-show-agent-revisions-in-cairn-workspace/`.
+
 ## Consumer contract for producers
 
 | Producer | Kiln reads today | Kiln needs before a producer fact can be ready |
 |---|---|---|
 | Lattice #24 | `lattice.worker-inventory.v3`: definition identity apart from the profile revision; profile revision, adapter, outputs, routes, compute requirement; declared, qualified, unavailable or unknown task families and tools; definition-scoped wait reasons; instance incarnation, attempt, fence, binding, allocation id, served-route service ids, lifecycle, single-shot liveness with cause and retained generation, instance wait reasons | an observed liveness or idle signal for a reusable runtime (Lattice owns none today, so workers are never idle); definition authority for admission; a definition-name field if inventory v2 adds one |
-| Lattice #25 | desired, prepared, qualified and selected revision slots, unmanaged, owned unknown or recorded, with rollout generation; capability qualifications; each instance's pin with status and blocked state; `revision_not_admitted` | a published revocation fact for a revision, so that Kiln does not infer it from empty qualifications |
+| Lattice #25 | desired, prepared, qualified and selected revision slots, unmanaged, owned unknown or recorded, with rollout generation; capability qualifications; each instance's pin with status and blocked state; `revision_not_admitted` | a published revocation fact for a revision, so that Kiln does not infer it from empty qualifications; selected and pinned workflow revisions for the Cairn workspace |
 | Lattice #6 | instance `attempt_id`, `fence`, `work_id`; `dispatch_outcome_unknown` and `cancellation_unobserved` reasons | an observed attempt outcome and cancellation, so that these reasons can clear |
 | Aspen/Molten #42 | allocation, readback and offer facts through Lattice's DTO | pool capacity, allocatable and reserved amounts per accounting authority, and free offers that are not yet allocated |
 | Animus #17/#18 | snapshot readiness, capacity evidence, placement reference; Lattice's serving reasons on workers (`animus#17`); attachment identities, evidence class and provenance through Lattice's capability qualifications, and `qualification_unbound` on definitions (`animus#18`) | routing eligibility for a policy, artifact cache state, and live-provenance qualification with its subject, corpus, protocol and verified contracts |

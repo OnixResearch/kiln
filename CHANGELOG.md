@@ -513,6 +513,20 @@ entry describes the source tree prepared for the first tagged release.
   conflict behavior. The disposable explorer has A→B, historical C and
   completion-only D without provider execution. (#84; synthetic local rehearsal,
   not a live campaign, worker or lifecycle completion claim)
+- The Cairn change detail (`kiln.cairn-workspace-detail.v3`) gains an **Agents
+  and revisions** section from the admitted resource inventory, never from
+  producer documents: each definition's desired, prepared, qualified and
+  selected revisions as `recorded`, `not_recorded`, `unknown` with its owner,
+  `unmanaged` or `unpublished`; task-family qualification references with
+  evidence class and provenance, where `fixture` never reads as live; declared
+  capability; each worker's pinned revision against the selection, its pin and
+  blocked state; and owner-attributed wait reasons. Workflow revisions are a
+  separate slot, unpublished with owner `lattice#25`. Sessions, workspaces,
+  execution and grant references, model-service bindings, full qualification
+  records, preparation failures and other work's attempts are never copied. An
+  unconfigured or refused inventory is named and never fails the detail; the
+  console refuses `v2` details. (#84 for Lattice #24 and #25; projection tests
+  over the Lattice v3 fixtures, route and Node UI tests; no live provider)
 - Adopt already implemented work for a freshly selected completion-only Cairn
   change instead of blocking it. Every required native unit needs current
   canonical work whose latest attempt is verified with exactly one passing

@@ -5081,16 +5081,18 @@ path described below.
 | Route | Method | Purpose |
 | --- | --- | --- |
 | `/api/implementation/cairn` | GET | `kiln.cairn-workspace-index.v2`: changes with stage lane, unit spread, open decisions, first ranked blocker and counts |
-| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v2`: exact change's units, attempts, dependencies, memberships, decisions and ranked blockers with a BLAKE3 view identity |
+| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v3`: exact change's units, attempts, dependencies, memberships, decisions, ranked blockers and agent revisions with a BLAKE3 view identity |
 
-The console refuses older `v1` index/detail documents rather than inferring
-missing lane facts. Viewers and operators may read both routes; worker principals
+The console refuses older `v1` index and `v1`/`v2` detail documents rather
+than inferring missing lane or agent facts. Viewers and operators may read both
+routes; worker principals
 are refused. The detail admits exactly `repository=HEX&change=NAME`: a
 64-character lowercase hex identity and a percent-encoded change name of at
 most 256 bytes without `/` or control characters. Both responses are bounded
 to 4 MiB; the index lists at most 512 changes and reports truncation. Without
 `--implementation-work` both routes return 503
-`cairn_workspace_input_not_configured`, not an empty workspace.
+`cairn_workspace_input_not_configured`, not an empty workspace. Only the
+detail reads `--inventory`; see **Agents and revisions** below.
 
 Each unit reads in five separate facets:
 
@@ -5174,6 +5176,54 @@ binding, stage, selection and goal, admission, enumeration, hold and owner,
 pending effects, remaining obligations and member blockers. **About this
 view** keeps copyable repository and view identities, snapshot/truncation facts,
 non-claims and the lane/facet legend outside the main reading path.
+
+<!-- r[related kiln.cairn.workspace.agents] -->
+**Agents and revisions** (Lattice #24 and #25) reads the configured
+`--inventory` input through the same principal-checked projection as
+`/api/inventory`, never producer documents. The detail's `agents` section has
+its own `source`: `admitted`, `not_configured` (no `--inventory`) or
+`unavailable` with the refusal code, such as `inventory_principal_denied` or
+`clock_unavailable`. A missing or refused inventory leaves the Cairn facts
+readable and never reads as an empty fleet. The view identity binds the
+inventory projection it was computed from.
+
+Every revision fact is a slot with one of five states, each with its own
+words on the page:
+
+| State | Meaning |
+| --- | --- |
+| `recorded` | The producer recorded the value shown. |
+| `not_recorded` | A managed lifecycle records no value for the projected revision, such as a revoked qualification. |
+| `unknown` | The producer manages the fact but does not know it; `owner` names who can resolve it (`kiln#49` preparation, `animus#18` qualification, `lattice#25` selection and pins). |
+| `unmanaged` | No producer revision lifecycle governs the definition or session. It is neither unknown nor unqualified. |
+| `unpublished` | No producer publishes the fact. |
+
+**Workflow revisions** come first and stay separate from worker revisions.
+Lattice does not publish them yet, so both the selected and the pinned
+workflow revision read `unpublished` with owner `lattice#25`. Each **agent
+definition** shows its observation state, profile revision, lifecycle
+management, the desired, prepared, qualified and selected-for-new-sessions
+slots, the rollout generation of a recorded selection, declared task families,
+tools, harnesses, output contracts and models (`declared`, `none` or
+`unknown`), authority, and its wait reasons as `code · subject · owner`. A task
+family shows its qualification reference, evidence class and provenance. Only
+`live` provenance reads as live evidence; a `fixture` reference reads
+**Fixture evidence, not live**. Each **worker** shows its lifecycle, pinned
+revision, whether that matches the definition's selection (`matches_selected`,
+`differs_from_selected`, `no_selection` or `definition_not_observed`), its pin
+(status, qualification reference, rollout generation and pin identity, or the
+pin's slot state), **Pin blocked** when further effects are refused, and its
+wait reasons. A worker whose attempt and fence equal an attempt of this change
+reads **On this change**, lists first and shows that attempt. Other workers
+read **Other work** or **No attempt** without the identity.
+
+The section never copies sessions, workspaces, execution allocations or
+grants, model-service bindings, full qualification records, preparation
+failures or other work's attempts, even when the inventory profile includes
+evidence. Until capability-scoped observers exist (#69/#70/#75/#76/#79), every
+viewer and operator admitted to the inventory sees the same section. Kiln does
+not yet bind a Cairn unit to the definition its work needs (#83), so the
+section lists every definition and worker in the inventory.
 
 Open decisions follow the blockers. For each campaign, the page reads its
 inbox and matches exact decision identity and this change's member key. Only

@@ -1,0 +1,42 @@
+{
+  "change": "show-agent-revisions-in-cairn-workspace",
+  "issue": 84,
+  "consumer_of": ["lattice#24", "lattice#25"],
+  "date": "2026-11-21",
+  "base": "339116f68e762e4caf0d05a9ac73a6e97a74b67d",
+  "gates_before_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "57ee41c3a661e67bfb055b9dc7aba017e10aa36258d81fc84c67c38edb57de41"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "f0c87fe313f0faf5f12d361baa49acca91f79d265022648a6f45b47afb203a4b"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "939fcac4b396cf6c79d90ab25edface99842d46a04d44ee4efcceaea2a021426"}
+  ],
+  "gates_after_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "5472e8b3cb4943d19a0c7cfac63454b32c0c823e6b55445d829182b18c209595"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "43e2074cc878fc883742954cd6d4f718d6a98bc4e41bee2a3785e047ab79e6b4"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "ebb33f698125331f72359dabefd837fba0a2ceb8bd059a6fc28725241bd98345"}
+  ],
+  "sync": {"command": "cairn sync show-agent-revisions-in-cairn-workspace --root . --policy cairn-policy/generated/cairn-policy.json --execute", "destination": ".cairn/specs/cairn-workspace/spec.md", "receipt_hash": "0f48411835297effb3cc2d676c51bf1f537a89d585ef652fda7f0b560bd70b40"},
+  "archive": {"command": "cairn archive show-agent-revisions-in-cairn-workspace --root . --policy cairn-policy/generated/cairn-policy.json --execute", "receipt_hash": "ce91f8057a2d6bb8d22acda251e7f6980f859335757a500b04a0de745dc7a632", "note": "Cairn wrote the 1970-01-01 prefix; the directory was renamed to the 2026-11-21 date like the other changes archived today"},
+  "commands": [
+    {"command": "cargo fmt --all -- --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "warnings": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 0, "passed": 2269, "failed": 0, "ignored": 14},
+    {"command": "cargo test --locked -p kiln-web-service --lib cairn_workspace", "exit": 0, "passed": 18},
+    {"command": "cargo test --locked -p kiln-web-service --example explore", "exit": 0, "passed": 13},
+    {"command": "node --test tests/*.test.mjs", "exit": 0, "passed": 145, "failed": 0},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "98 positive, 635 negative"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+    {"command": "cairn traceability coverage --root . --json --policy cairn-policy/generated/cairn-policy.json", "exit": 1, "requirements": 2090, "referenced": 2090, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"]},
+    {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "warnings": 0, "errors": 0},
+    {"command": "gitleaks dir <each changed path> --no-banner", "exit": 0, "leaks": 0}
+  ],
+  "environment": "nix develop shell with TMPDIR=/tmp, empty RUSTC_WRAPPER, CARGO_BUILD_JOBS=6 and a short PATH including mold and pkg-config; node from the host for the Node tests",
+  "non_claims": [
+    "Every inventory input is a deterministic Lattice v3 fixture capture or the synthetic exploration inventory; no live producer, fleet or session was observed",
+    "The only qualification reference is fixture provenance; the section shows it as fixture evidence, never live",
+    "Workflow revisions are not published by Lattice; the section shows an unpublished slot owned by lattice#25 and infers nothing",
+    "Every authenticated viewer and operator admitted to the inventory sees the same section; capability-scoped observers (#69/#70/#75/#76/#79) are not implemented",
+    "Kiln does not bind a Cairn unit to the definition its work needs (#83); the section lists every definition and worker in the inventory",
+    "No browser review of the page was performed; rendering is covered by the Node UI tests",
+    "No reservation, dispatch, selection, promotion or provider contact"
+  ]
+}

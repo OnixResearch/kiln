@@ -1,13 +1,15 @@
 //! Read-only HTTP shell of the Cairn workspace over the `--implementation-work`
 //! database: role, method and exact query admission, one bounded snapshot read
-//! and the response byte bound. The service and the exploration workspace
-//! share it.
+//! and the response byte bound. The detail also asks its caller for the
+//! resource inventory observation, which fails independently. The service and
+//! the exploration workspace share it.
 use std::path::Path;
 
 use kiln_core::implementation::campaign::MAX_ID_BYTES;
 use kiln_implementer::observation::ImplementationObservation;
 use kiln_provider_api::inventory::InventoryReadFailure;
 
+use super::agents::InventoryObservation;
 use super::{CairnKey, MALFORMED, detail, index};
 use crate::engine::{ApiResponse, Role};
 
@@ -78,9 +80,17 @@ fn encode(value: &impl serde::Serialize) -> Result<Vec<u8>, &'static str> {
 }
 
 // r[impl kiln.cairn.workspace]
+// r[impl kiln.cairn.workspace.agents.scenario.source]
 /// Serves both routes for an authenticated principal's role over the
-/// configured implementation database.
-pub fn response(database: Option<&Path>, method: &str, target: &str, role: Role) -> ApiResponse {
+/// configured implementation database. `inventory` is called only for an
+/// admitted detail request.
+pub fn response(
+    database: Option<&Path>,
+    method: &str,
+    target: &str,
+    role: Role,
+    inventory: &dyn Fn() -> InventoryObservation,
+) -> ApiResponse {
     let key = match admit(method, role, target) {
         Ok(key) => key,
         Err((status, code)) => return error(status, code),
@@ -97,7 +107,7 @@ pub fn response(database: Option<&Path>, method: &str, target: &str, role: Role)
     };
     let body = match key {
         None => index(&snapshot).and_then(|index| encode(&index)),
-        Some(key) => match detail(&snapshot, &key) {
+        Some(key) => match detail(&snapshot, &key, &inventory()) {
             Ok(Some(detail)) => encode(&detail),
             Ok(None) => return error(404, "cairn_change_not_found"),
             Err(code) => Err(code),
@@ -175,7 +185,9 @@ mod tests {
         let root = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
         let absent = root.path().join("absent.sqlite");
         let status = |database: Option<&Path>| {
-            let response = response(database, "GET", INDEX_ROUTE, Role::Viewer);
+            let response = response(database, "GET", INDEX_ROUTE, Role::Viewer, &|| {
+                unreachable!("the index reads no inventory")
+            });
             (
                 response.status,
                 serde_json::from_slice::<serde_json::Value>(&response.body)
