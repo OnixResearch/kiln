@@ -1,0 +1,11 @@
+# Live qualification: blocked on the clean-export executable identity
+
+The clean export of Mantle ead7b8dac087fad0170daca01356afbb3b43b179 was extracted to /tmp/mantle-realize-clean-20261120 and built with:
+  nix --option min-free 0 --option builders '' build --no-write-lock-file --no-link --print-out-paths path:/tmp/mantle-realize-clean-20261120#default
+
+First attempt: background job bg_1205 reached its 3600 second job deadline while compiling /nix/store/q5b24fbsqvpqb72ijildxbg6a4ckyvss-mantle-0.1.0.drv. Diagnostic: 'Error: [Command timed out after 3600 seconds]'.
+Retry: job bg_1252 restarted the same derivation without a deadline; mantle-deps was already complete and the mantle-0.1.0 derivation was compiling when the run budget ended.
+
+No executable identity was fabricated. PINNED_REALIZE_MANTLE_EXECUTABLE_PATH and PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3 remain placeholders until that build prints its output path. The live pilot qualification was therefore not run; the profile contract check and all focused Rust checks below did pass.
+
+An existing /nix/store/qgz2y1dfs3dardlrz70f6q3g78pdlpiv-mantle-0.1.0/bin/mantle (b82b72ef613f36c454198a2212b341ee10f6a7ff67b13ec6b4058031760d20f3) was not used: its source revision is not attributable to the pinned clean export.

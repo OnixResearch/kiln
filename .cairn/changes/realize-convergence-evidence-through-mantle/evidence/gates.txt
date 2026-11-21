@@ -1,0 +1,12 @@
+=== cairn gate proposal
+EXIT=0
+PASS True
+=== cairn gate design
+EXIT=0
+PASS True
+=== cairn gate tasks
+EXIT=0
+PASS True
+=== cairn validate --root .
+EXIT=0
+valid True changes 7 change_issues 0 issues 0 spec_issues 0 findings 0

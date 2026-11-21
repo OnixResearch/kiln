@@ -67,24 +67,35 @@ because its evidence job cannot be named.
 
 ## Verify stage
 
-The pinned `kiln-adapter-mantle` runs only `mantle --json build --plan <plan>`
-against Mantle `d75158b0` and admits `mantle.build-request.v1`. Verify therefore
-requests a fresh plan build:
+Verify admits two realizations, each against its own pinned cohort:
+
+- `EvidenceRealization::BuildFromPlan` lowers to the build profile
+  (`mantle --json build --plan <plan>`, Mantle `d75158b0`) and
+  `mantle.build-request.v1`.
+- `EvidenceRealization::PreserveCacheOnly` lowers to the foreign-realize
+  profile (`mantle foreign-import realize` on the cache-only preserve route,
+  Mantle `ead7b8dac`) and `mantle-foreign-realization-receipt-v1`. See
+  [Mantle foreign realize](mantle-foreign-realize.md).
 
 `plan_evidence_builds(revision, selection, capability)` requires the selected
 `CapabilityProfile` to declare a `Build`-role `Dispatch` with the outcome
-classes Kiln must preserve, and requires an exact plan per campaign job. It
-produces one deterministic `EvidenceBuildRequest` per item with a derived
-`effect_id` and `idempotency_key`. Each request lowers with
+classes Kiln must preserve, and requires an exact plan per campaign job. A
+preserve realization additionally requires `Operation::Realize`; a
+`BuildFromPlan` selection against a profile that declares `Realize` is refused
+with `realization_profile_mismatch`. Both refusals happen before any request or
+effect. It produces one deterministic `EvidenceBuildRequest` per item with a
+derived `effect_id` and `idempotency_key`. Each request lowers with
 `into_build_effect_plan(attempt_id)` to the existing `BuildEffectPlan`, so the
-shell uses the existing `BuildPort::dispatch` and Mantle completion admission.
+shell uses the existing `BuildPort::dispatch` and the selected adapter's
+completion admission.
 
-`EvidenceRealization::PreserveCacheOnly` is refused with
-`unsupported_capability` before any request exists. The phase-1 pilot evidence
-was realized through Mantle's `foreign-import realize` cache-only preserve route
-(now on Mantle main `ead7b8dac`). `kiln-adapter-mantle` has no such operation, so
-Kiln cannot reproduce or preserve that output through this cohort. Adding it
-requires a new pinned Mantle cohort and profile, not a silent fallback.
+The phase-1 pilot evidence is realized through the preserve route: the adapter
+verifies the frozen plan, import receipt, source bundle, execution profile,
+cache-closure policy and endpoint binding by BLAKE3 identity, dispatches one
+bounded realization, and admits completion only when the closed-world receipt
+binds those identities, selects exactly one root and maps every required
+product to it. A campaign that requests preserve evidence without the realize
+capability still fails with `unsupported_capability` before effects.
 
 The fixture `fixtures/cairn/convergence/pilot/receipt-retained.json` is the
 retained 740-row pilot receipt (one `current`, 739 `untargeted`). Tests admit it

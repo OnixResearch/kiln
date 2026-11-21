@@ -1,0 +1,2 @@
+Nickel fixture gate passed (96 positive, 630 negative)
+EXIT=0

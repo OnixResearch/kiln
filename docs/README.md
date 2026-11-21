@@ -45,6 +45,7 @@ The sections below group the maintained documents by the question they answer.
 - [Nix build](nix-build-adapter.md): one exact derivation through the pinned store CLI; local, bounded.
 - [Hosted Radicle Nix provider](radicle-nix-provider.md): one bounded check for one admitted repository.
 - [Mantle build](mantle-build.md): one exact build cohort; Kiln keeps candidate and CI truth.
+- [Mantle foreign realize](mantle-foreign-realize.md): one exact preserve-route cohort for frozen evidence graphs.
 - [Aspen runtime backend](aspen-runtime-backend.md): workload-neutral substrate; Kiln keeps CI meaning.
 - [Kiln Aspen host](../runtime/kiln-aspen-host/README.md): deployable shell for private Kiln-on-Aspen cohorts.
 - [Artifact readiness](artifact-readiness.md): opt-in real hosted/Nix phase measurements and matched-cohort analysis; no unmeasured speedup claim.
