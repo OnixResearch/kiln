@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use kiln_adapter_mantle::{
     BoundedMantleRuntime, MantleRealizeAdapter, MantleRealizeBinding, MantleRealizeLimits,
     MantleRealizeProfile, MantleRealizeRuntimeBinding, PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3,
-    PINNED_REALIZE_MANTLE_EXECUTABLE_PATH, PINNED_REALIZE_STORE_PREFIX,
+    PINNED_REALIZE_MANTLE_EXECUTABLE_PATH, PINNED_REALIZE_STORE_PREFIX, realization_receipt_digest,
 };
 use kiln_core::build::{BuildEffectPlan, BuildEvaluationOutcome};
 use kiln_core::types::{
@@ -38,7 +38,7 @@ const POLICY_PATH: &str =
 const BINDING_PATH: &str =
     "/datapool/mantle-store/convergence-pilot-20261119/binding/remote-endpoint-binding.json";
 const DEFAULT_EXECUTION_PROFILE: &str =
-    "/tmp/mantle-realize-clean-20261120/config/foreign-execution-profiles/generated/nix.json";
+    "/home/brittonr/wt/kiln-phase2b/fixtures/mantle/foreign-realize/execution-profile.json";
 const DEFAULT_PILOT_RECEIPT: &str =
     "/home/brittonr/wt/convergence-evidence/realization/realization-receipt.json";
 
@@ -59,11 +59,11 @@ fn environment(name: &str, default: &str) -> String {
 fn realize_pilot_evidence_through_the_pinned_cohort() {
     let store = PathBuf::from(environment(
         "KILN_REALIZE_STORE",
-        "/datapool/mantle-store/kiln-phase2b-20261120/store",
+        "/datapool/mantle-store/kiln-phase2b-20261121/store",
     ));
     let state = PathBuf::from(environment(
         "KILN_REALIZE_STATE",
-        "/datapool/mantle-store/kiln-phase2b-20261120/state",
+        "/datapool/mantle-store/kiln-phase2b-20261121/state",
     ));
     let execution_profile = PathBuf::from(environment(
         "KILN_REALIZE_EXECUTION_PROFILE",
@@ -111,7 +111,7 @@ fn realize_pilot_evidence_through_the_pinned_cohort() {
             max_result_bytes: 67_108_864,
             max_stderr_bytes: 1_048_576,
             max_receipt_bytes: 67_108_864,
-            max_input_bytes: 67_108_864,
+            max_input_bytes: 268_435_456,
             max_executable_bytes: 268_435_456,
             max_in_flight: 4,
             stdin_max_bytes: 1,
@@ -140,7 +140,13 @@ fn realize_pilot_evidence_through_the_pinned_cohort() {
     };
     let mut adapter =
         MantleRealizeAdapter::new(profile, BoundedMantleRuntime).unwrap_or_else(|_| unreachable!());
-    let observation = adapter.dispatch(&plan).unwrap_or_else(|_| unreachable!());
+    let observation = match adapter.dispatch(&plan) {
+        Ok(observation) => observation,
+        Err(error) => {
+            eprintln!("dispatch error: {error:?}");
+            unreachable!()
+        }
+    };
     assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
     assert_eq!(observation.products.len(), 1);
     assert!(observation.receipt_identity.is_some());
@@ -166,9 +172,16 @@ fn realize_pilot_evidence_through_the_pinned_cohort() {
         &serde_json::json!(PILOT_IMPORT)
     );
 
+    let pilot_bytes = std::fs::read(&pilot_receipt).unwrap_or_else(|_| unreachable!());
     let pilot: serde_json::Value =
-        serde_json::from_slice(&std::fs::read(&pilot_receipt).unwrap_or_else(|_| unreachable!()))
-            .unwrap_or_else(|_| unreachable!());
+        serde_json::from_slice(&pilot_bytes).unwrap_or_else(|_| unreachable!());
+    let recomputed = realization_receipt_digest(&pilot_bytes).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        recomputed,
+        field(&pilot, "receipt_blake3")
+            .as_str()
+            .unwrap_or_else(|| unreachable!())
+    );
     let comparison = serde_json::json!({
         "selected_root_paths_equal": field(&generated, "selected_root_paths") == field(&pilot, "selected_root_paths"),
         "plan_blake3_equal": field(&generated, "plan_blake3") == field(&pilot, "plan_blake3"),
@@ -193,4 +206,25 @@ fn realize_pilot_evidence_through_the_pinned_cohort() {
         "{}",
         serde_json::to_string_pretty(&comparison).unwrap_or_default()
     );
+}
+
+#[test]
+#[ignore = "oracle over the full retained pilot receipt"]
+fn full_pilot_receipt_digest_matches_producer() {
+    let path = PathBuf::from(environment(
+        "KILN_REALIZE_PILOT_RECEIPT",
+        DEFAULT_PILOT_RECEIPT,
+    ));
+    let bytes = std::fs::read(&path).unwrap_or_else(|_| unreachable!());
+    let receipt: serde_json::Value =
+        serde_json::from_slice(&bytes).unwrap_or_else(|_| unreachable!());
+    let recomputed = realization_receipt_digest(&bytes).unwrap_or_else(|_| unreachable!());
+    let producer = field(&receipt, "receipt_blake3")
+        .as_str()
+        .unwrap_or_else(|| unreachable!());
+    println!(
+        "receipt={} recomputed={recomputed} producer={producer}",
+        path.display()
+    );
+    assert_eq!(recomputed, producer);
 }

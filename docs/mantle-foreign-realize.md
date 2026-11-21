@@ -9,7 +9,7 @@ its schemas and `config/mantle-build-profile.ncl` do not change.
 
 The realize profile pins:
 
-- Mantle revision `ead7b8dac087fad0170daca01356afbb3b43b179`;
+- Mantle revision `4b05f9f677c8236b28aaaeca2af902063610b252`;
 - the executable identity observed from a clean export of that revision;
 - plan schema `mantle-foreign-executable-plan-v1`;
 - import-receipt schema `foreign-derivation-import-receipt-v1`;

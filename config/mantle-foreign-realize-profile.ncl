@@ -42,7 +42,7 @@ let Binding = {
 in
 let Profile = {
   source | Exact "ssh://git@github.com/OnixResearch/mantle.git",
-  revision | Exact "ead7b8dac087fad0170daca01356afbb3b43b179",
+  revision | Exact "4b05f9f677c8236b28aaaeca2af902063610b252",
   contract_license | Exact "MIT OR Apache-2.0",
   cli_license | Exact "AGPL-3.0-or-later",
   bounded_exec_source | Exact "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
@@ -55,8 +55,8 @@ let Profile = {
   platform | Exact "x86_64-linux",
   provider_profile_id | Exact "mantle-foreign-realize-v1",
   capabilities | Exact ["cancel", "dispatch", "observe", "realize", "reconcile"],
-  executable_path | Exact "/nix/store/PLACEHOLDER-mantle-0.1.0/bin/mantle",
-  executable_identity | Exact "0000000000000000000000000000000000000000000000000000000000000000",
+  executable_path | Exact "/nix/store/ahqnikfq18p6ycp4krx58cqgr5inm2sd-mantle-0.1.0/bin/mantle",
+  executable_identity | Exact "9c2225afe460f7d45854072ca05d8451507385070f36a66602edf542b51cc87f",
   store_prefix | Exact "/nix/store",
   store_path | AbsolutePath,
   state_path | AbsolutePath,
@@ -97,7 +97,7 @@ let MaxRequestBytes = 1048576 in
 let MaxResultBytes = 67108864 in
 let MaxStderrBytes = 1048576 in
 let MaxReceiptBytes = 67108864 in
-let MaxInputBytes = 67108864 in
+let MaxInputBytes = 268435456 in
 let MaxExecutableBytes = 268435456 in
 let MaxInFlight = 16 in
 let StdinMaxBytes = 1 in
@@ -107,7 +107,7 @@ let TeardownTimeoutMilliseconds = 1000 in
 {
   profile | Profile = {
     source = "ssh://git@github.com/OnixResearch/mantle.git",
-    revision = "ead7b8dac087fad0170daca01356afbb3b43b179",
+    revision = "4b05f9f677c8236b28aaaeca2af902063610b252",
     contract_license = "MIT OR Apache-2.0",
     cli_license = "AGPL-3.0-or-later",
     bounded_exec_source = "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git",
@@ -120,8 +120,8 @@ let TeardownTimeoutMilliseconds = 1000 in
     platform = "x86_64-linux",
     provider_profile_id = "mantle-foreign-realize-v1",
     capabilities = ["cancel", "dispatch", "observe", "realize", "reconcile"],
-    executable_path = "/nix/store/PLACEHOLDER-mantle-0.1.0/bin/mantle",
-    executable_identity = "0000000000000000000000000000000000000000000000000000000000000000",
+    executable_path = "/nix/store/ahqnikfq18p6ycp4krx58cqgr5inm2sd-mantle-0.1.0/bin/mantle",
+    executable_identity = "9c2225afe460f7d45854072ca05d8451507385070f36a66602edf542b51cc87f",
     store_prefix = "/nix/store",
     store_path = "/var/lib/kiln/mantle-realize-store",
     state_path = "/var/lib/kiln/mantle-realize-state",

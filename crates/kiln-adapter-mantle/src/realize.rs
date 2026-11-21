@@ -30,7 +30,7 @@ use crate::runtime::{MantleProcessOutput, MantleRuntime, ProcessInvocation};
 
 // r[impl kiln.mantle.foreign_realize.profile]
 pub const PINNED_REALIZE_MANTLE_SOURCE: &str = "ssh://git@github.com/OnixResearch/mantle.git";
-pub const PINNED_REALIZE_MANTLE_REVISION: &str = "ead7b8dac087fad0170daca01356afbb3b43b179";
+pub const PINNED_REALIZE_MANTLE_REVISION: &str = "4b05f9f677c8236b28aaaeca2af902063610b252";
 pub const PINNED_REALIZE_MANTLE_CONTRACT_LICENSE: &str = "MIT OR Apache-2.0";
 pub const PINNED_REALIZE_MANTLE_CLI_LICENSE: &str = "AGPL-3.0-or-later";
 pub const PINNED_REALIZE_MANTLE_PLAN_SCHEMA: &str = "mantle-foreign-executable-plan-v1";
@@ -40,9 +40,9 @@ pub const PINNED_REALIZE_MANTLE_COMMAND: &str = "foreign-import realize";
 pub const PINNED_REALIZE_MANTLE_PLATFORM: &str = "x86_64-linux";
 pub const PINNED_REALIZE_STORE_PREFIX: &str = "/nix/store";
 pub const PINNED_REALIZE_MANTLE_EXECUTABLE_PATH: &str =
-    "/nix/store/PLACEHOLDER-mantle-0.1.0/bin/mantle";
+    "/nix/store/ahqnikfq18p6ycp4krx58cqgr5inm2sd-mantle-0.1.0/bin/mantle";
 pub const PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3: &str =
-    "0000000000000000000000000000000000000000000000000000000000000000";
+    "9c2225afe460f7d45854072ca05d8451507385070f36a66602edf542b51cc87f";
 pub const PINNED_REALIZE_BOUNDED_EXEC_SOURCE: &str =
     "https://git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git";
 pub const PINNED_REALIZE_BOUNDED_EXEC_REVISION: &str = "29dac88ecded94457572db3fdfaaaab95fa91525";
@@ -1225,6 +1225,21 @@ const fn outcome_name(outcome: BuildEvaluationOutcome) -> &'static str {
         BuildEvaluationOutcome::ProviderError => "provider_error",
         BuildEvaluationOutcome::Unknown => "unknown",
     }
+}
+
+/// Recompute the producer's receipt digest over the supplied receipt bytes.
+///
+/// The live qualification uses this oracle against the full retained pilot
+/// receipt; completion already checks it on every admitted receipt.
+pub fn realization_receipt_digest(bytes: &[u8]) -> PortResult<String> {
+    let receipt: RealizationReceipt = serde_json::from_slice(bytes).map_err(|_| {
+        domain(
+            "mantle_realize_receipt_parse",
+            "mantle.realize.receipt",
+            "Mantle realization receipt is not valid closed-world JSON",
+        )
+    })?;
+    receipt_digest(&receipt)
 }
 
 fn receipt_digest(receipt: &RealizationReceipt) -> PortResult<String> {

@@ -15,7 +15,7 @@ bundle and its manifest identity, an execution profile, a cache-closure policy
 and a remote endpoint binding. Mantle realizes that graph through
 `foreign-import realize` on the `cache-only-preserve-v1` route, hydrating the
 runtime closure from a bound cache and admitting one selected output root.
-Mantle `ead7b8dac087fad0170daca01356afbb3b43b179` contains the preserve-route
+Mantle `4b05f9f677c8236b28aaaeca2af902063610b252` contains the preserve-route
 guide fix and the raised foreign-import bounds, so the operation can be pinned.
 
 The pinned adapter's completion already proves the surrounding seam: one
@@ -37,7 +37,7 @@ for the live qualification, never a mutable input.
 **Choice:** The build cohort, its schemas (`mantle.build-*`), its
 `MantleProfile` and `config/mantle-build-profile.ncl` stay byte-for-byte as
 they are. A second, independent cohort pins Mantle
-`ead7b8dac087fad0170daca01356afbb3b43b179` and exactly one operation,
+`4b05f9f677c8236b28aaaeca2af902063610b252` and exactly one operation,
 `foreign-import realize`, with the same Bounded Exec revision
 `29dac88ecded94457572db3fdfaaaab95fa91525`.
 

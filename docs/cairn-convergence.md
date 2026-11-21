@@ -74,7 +74,7 @@ Verify admits two realizations, each against its own pinned cohort:
   `mantle.build-request.v1`.
 - `EvidenceRealization::PreserveCacheOnly` lowers to the foreign-realize
   profile (`mantle foreign-import realize` on the cache-only preserve route,
-  Mantle `ead7b8dac`) and `mantle-foreign-realization-receipt-v1`. See
+  Mantle `4b05f9f6`) and `mantle-foreign-realization-receipt-v1`. See
   [Mantle foreign realize](mantle-foreign-realize.md).
 
 `plan_evidence_builds(revision, selection, capability)` requires the selected
