@@ -1,0 +1,45 @@
+   Compiling kiln-adapter-mantle v0.1.0 (/home/brittonr/wt/kiln-phase2b/crates/kiln-adapter-mantle)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.73s
+     Running tests/live_realize_pilot.rs (target/debug/deps/live_realize_pilot-235216e0c7c4f507)
+
+running 1 test
+test realize_pilot_evidence_through_the_pinned_cohort has been running for over 60 seconds
+{
+  "generated_receipt_blake3": "4c7b60d7eb928e68f43d185df7c1b9eb589d10bcbab57afc817988030432af1f",
+  "import_receipt_blake3_equal": true,
+  "observation": {
+    "attempt_id": "attempt-phase2b-live",
+    "builder_identity": "9c2225afe460f7d45854072ca05d8451507385070f36a66602edf542b51cc87f",
+    "cache_kind": "substitution",
+    "cache_source_identity": "b64221ba8f3e19280b38e8162f517d1c4770595ba145818f2bd74734049a9f11",
+    "candidate_id": "pilot-candidate",
+    "effect_id": "realize-pilot-live",
+    "idempotency_key": "edd387e529e1d4b277d726edc93901889413dc0dc393c7c7fd715981afb08a78",
+    "log_identities": [],
+    "metrics": [],
+    "outcome": "success",
+    "pipeline_revision": "pilot-pipeline",
+    "plan_identity": "edd387e529e1d4b277d726edc93901889413dc0dc393c7c7fd715981afb08a78",
+    "platform": "x86_64-linux",
+    "policy_identity": "0d228941b966d100140a23dbd865f39a4d54579662747b42ec41f718832261a7",
+    "products": [
+      {
+        "artifact_identity": "c8164e10926b3adfd3dbca7be0429bebc15fe6879dbc13e86fa401660c8f17ec",
+        "name": "out",
+        "store_identity": "deb9bef70884e50bb71395a449bcd412b417c2b83539b41fe8c7522c9bae0dbe"
+      }
+    ],
+    "provider_profile": "mantle-foreign-realize-v1",
+    "receipt_identity": "b64221ba8f3e19280b38e8162f517d1c4770595ba145818f2bd74734049a9f11",
+    "store_identity": "1ea6c084ae665eef3f98936ba9d36854b52c61c9556cae6d47daf323fd7ab7d5",
+    "worker_identity": "33ecd07f3976124b1f76af7750b4a36b416b83775b7514e92278f414045b6a69"
+  },
+  "pilot_receipt_blake3": "e96d2864c5e2b5454fcb0fdf924e9d1e4768b896b4b2e4ad395d32acd3827a8d",
+  "plan_blake3_equal": true,
+  "selected_root_paths_equal": true
+}
+test realize_pilot_evidence_through_the_pinned_cohort ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 392.43s
+
+EXIT=0

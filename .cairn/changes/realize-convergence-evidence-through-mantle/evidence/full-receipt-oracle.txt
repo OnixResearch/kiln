@@ -1,0 +1,11 @@
+   Compiling kiln-adapter-mantle v0.1.0 (/home/brittonr/wt/kiln-phase2b/crates/kiln-adapter-mantle)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.89s
+     Running tests/live_realize_pilot.rs (target/debug/deps/live_realize_pilot-235216e0c7c4f507)
+
+running 1 test
+receipt=/home/brittonr/wt/convergence-evidence/realization/realization-receipt.json recomputed=e96d2864c5e2b5454fcb0fdf924e9d1e4768b896b4b2e4ad395d32acd3827a8d producer=e96d2864c5e2b5454fcb0fdf924e9d1e4768b896b4b2e4ad395d32acd3827a8d
+test full_pilot_receipt_digest_matches_producer ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.27s
+
+EXIT=0

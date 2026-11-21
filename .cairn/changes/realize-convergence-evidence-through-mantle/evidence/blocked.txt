@@ -15,3 +15,11 @@ error: Cannot build '/nix/store/q5b24fbsqvpqb72ijildxbg6a4ckyvss-mantle-0.1.0.dr
 Per the phase 2b specification, a producer revision whose canonical clean-export build fails its own check phase is not admitted: this step stops and reports instead of selecting the cohort. No executable identity was fabricated; PINNED_REALIZE_MANTLE_EXECUTABLE_PATH and PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3 remain placeholders, the Nickel profile carries the same placeholders, and the live pilot qualification was not run.
 
 An existing /nix/store/qgz2y1dfs3dardlrz70f6q3g78pdlpiv-mantle-0.1.0/bin/mantle (b82b72ef613f36c454198a2212b341ee10f6a7ff67b13ec6b4058031760d20f3) was not used: its source revision is not attributable to the pinned clean export.
+
+## Resolution
+
+The orchestrator re-pinned Mantle main to `4b05f9f677c8236b28aaaeca2af902063610b252`, which is `ead7b8dac` plus eight repairs to the test files and one scheduling bound. Its canonical clean-export `#default` build passed its check phase and produced:
+- `/nix/store/ahqnikfq18p6ycp4krx58cqgr5inm2sd-mantle-0.1.0` with `bin/mantle` BLAKE3 `9c2225afe460f7d45854072ca05d8451507385070f36a66602edf542b51cc87f`;
+- transcript `/home/brittonr/wt/convergence-evidence/mantle-clean-4b05f9f677c8.log`.
+
+The realize cohort now pins `4b05f9f6`, so the block above is historical. The full-receipt digest oracle was retained in the live test; the tracked fixture was reduced with the command in `fixtures/mantle/foreign-realize/SOURCE.md`.
