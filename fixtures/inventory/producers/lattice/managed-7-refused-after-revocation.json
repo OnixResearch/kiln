@@ -1,0 +1,174 @@
+{
+  "instance": null,
+  "model_requests": null,
+  "profile": {
+    "adapter": {
+      "support": "declared",
+      "value": "omp-jsonl"
+    },
+    "capability_qualifications": [],
+    "checkpoint": {
+      "support": "unavailable",
+      "value": null
+    },
+    "compute": {
+      "support": "declared",
+      "value": {
+        "kind": "host_local"
+      }
+    },
+    "cpu_millis": {
+      "support": "unknown",
+      "value": null
+    },
+    "deadline_secs": {
+      "support": "declared",
+      "value": 60
+    },
+    "definition": {
+      "basis": "declared",
+      "identity": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+      "name": "rust-implementer"
+    },
+    "executable_identity": {
+      "support": "declared",
+      "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "inputs": {
+      "support": "declared",
+      "value": "workspace-snapshot"
+    },
+    "isolation": {
+      "support": "declared",
+      "value": "required-sandbox"
+    },
+    "max_output_bytes": {
+      "support": "declared",
+      "value": 4096
+    },
+    "memory_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "model_routes": {
+      "support": "declared",
+      "value": {
+        "kind": "routes",
+        "routes": [
+          {
+            "name": "primary",
+            "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+          }
+        ]
+      }
+    },
+    "network": {
+      "support": "declared",
+      "value": "attempt-local-model-broker"
+    },
+    "outputs": {
+      "support": "declared",
+      "value": "candidate-receipt"
+    },
+    "owner": "implementation_attempt",
+    "protocol_revision": {
+      "support": "declared",
+      "value": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906"
+    },
+    "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+    "revisions": {
+      "desired": {
+        "support": "recorded",
+        "value": {
+          "generation": 1,
+          "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+        }
+      },
+      "prepared": {
+        "support": "recorded",
+        "value": [
+          "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+        ]
+      },
+      "qualified": {
+        "support": "recorded",
+        "value": [
+          {
+            "evidence_class": "task_family_evaluation",
+            "is_revoked": false,
+            "provenance": "fixture",
+            "qualification_ref": "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc",
+            "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+            "task_family": "rust-implementation"
+          }
+        ]
+      },
+      "selected_for_new_sessions": {
+        "support": "recorded",
+        "value": {
+          "kind": "promotion",
+          "qualification_ref": "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc",
+          "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+          "rollout_generation": 1
+        }
+      }
+    },
+    "schema": "lattice.worker-profile-facts.v3",
+    "serving_readiness": {
+      "state": "no_serving_port"
+    },
+    "sessions": {
+      "support": "declared",
+      "value": "single-shot-no-session"
+    },
+    "storage_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "task_families": {
+      "support": "declared",
+      "value": [
+        "rust-implementation"
+      ]
+    },
+    "tools": {
+      "support": "declared",
+      "value": [
+        "edit",
+        "read",
+        "write"
+      ]
+    },
+    "wait_reasons": [
+      {
+        "code": "qualification_unbound",
+        "owner": "animus#18",
+        "subject": {
+          "field": "capability_qualifications",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "revision_not_admitted",
+        "owner": "lattice#25",
+        "subject": {
+          "field": "revisions",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      }
+    ],
+    "workspace": {
+      "support": "declared",
+      "value": "admitted-read-write-paths"
+    }
+  },
+  "schema": "lattice.worker-inventory.v3"
+}

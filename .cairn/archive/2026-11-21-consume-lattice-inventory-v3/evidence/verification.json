@@ -1,0 +1,42 @@
+{
+  "change": "consume-lattice-inventory-v3",
+  "issue": 60,
+  "date": "2026-11-21",
+  "base": "70c8f217433bb24010d4f48a1abdc55ce8e44e03",
+  "approval": "owner-approved Lattice v3 cutover, 2026-11-20",
+  "producer": {
+    "lattice": "ed51aee274d7f4ffe8cb390fbcb313bb0c91e6d1 (captures taken from the final integration tree; the published commit's inventory code is identical to the captured tree)",
+    "captures": "fixtures/inventory/producers/lattice/ (16 files, verbatim; BLAKE3 in provenance.json)"
+  },
+  "gates_before_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "4522af09023aa26cc220e84878bed45fc195f7ed309e7c5d6aaf2d7701e75786"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "1bfb707a2beb6db4a905337a1c0064de72b3489a948b64c72c41722bf1f4e0fc"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "76ab60d44f0df8e976ef0f636f140597a3f563c6e6bbc1d70b49729164cb0eb2"}
+  ],
+  "gates_after_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "2a773b3209216e2768686a8fd77fdf4ad8de0de17c5fa09e8de9d3f6b6969d1e"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "1a0c3774a06e665fbf7bc70a2e8ba0fad2518c02b66769e2cf1edabfb8e1535d"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "124d64044e6d67e6b05ce01fe211c783c7fa698b0b3ebf159806bafebbdf65ca"}
+  ],
+  "sync": {"command": "cairn sync consume-lattice-inventory-v3 --root . --policy cairn-policy/generated/cairn-policy.json --execute", "destination": ".cairn/specs/resource-inventory/spec.md", "receipt_hash": "89c92c724ce39525c89c9b2287a20ec94c22dbf50b8ce71d3861cd360a494b7f"},
+  "commands": [
+    {"command": "cargo fmt -- --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "warnings": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 0, "passed": 2263, "failed": 0, "ignored": 14},
+    {"command": "node --test tests/inventory-ui.test.mjs tests/console-inventory.test.mjs", "exit": 0, "passed": 23},
+    {"command": "node --test tests/*.test.mjs", "exit": 0, "passed": 142},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "98 positive, 635 negative"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+    {"command": "cairn traceability coverage --json --policy cairn-policy/generated/cairn-policy.json", "exit": 1, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"]},
+    {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0}
+  ],
+  "environment": "nix develop shell with TMPDIR=/tmp, empty RUSTC_WRAPPER, CARGO_BUILD_JOBS=6 and a short PATH including mold and pkg-config",
+  "non_claims": [
+    "All producer inputs are deterministic fixtures or captures; manifests set synthetic: true",
+    "The only qualification is an Animus #18 attachment of fixture provenance; no live producer has qualified a Lattice revision",
+    "No live provider, fleet, serving or capacity qualification; that stays with Kiln #49",
+    "No producer-derived combination is observed eligible; full qualification records (Animus #18), authority, pool capacity (#42), routing permission, policy and an idle worker remain unpublished",
+    "Revocation of a revision is inferred from empty capability qualifications, revision_not_admitted and blocked pins; v3 publishes no revocation slot",
+    "No reservation, dispatch, routing or model load is performed"
+  ]
+}

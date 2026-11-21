@@ -125,20 +125,50 @@ test("producer wait reasons and blocker owners stay exact and inert", () => {
   const projection = fixture();
   const page = () => allText(inventory.render(projection));
   assert.ok(page().includes("None supplied (not readiness evidence)"), "absent reasons are not readiness evidence");
-  projection.snapshot.agents[0].wait_reasons = [{ code: "revision_selection_unpublished", subject: { kind: "fact", field: "revisions" }, owner: "lattice#25" }];
+  projection.snapshot.agents[0].wait_reasons = [{ code: "revision_fact_unknown", subject: { kind: "fact", field: "revisions.prepared" }, owner: "kiln#49" }];
   projection.snapshot.workers[0].wait_reasons = [{ code: "serving_snapshot_unavailable", subject: { kind: "route", name: "primary" }, owner: "animus#17" }];
   projection.attempt_explanations = [{ binding: { work_version: "exact-work", attempt: "attempt-a", fence: 9, worker: { source: "workers", id: "worker-a" }, execution_grant: { source: "policy", id: "grant-a" }, model_services: [], request_admissions: [] }, blockers: [
     { code: "liveness_unobserved", constraint: "fact:liveness", subject: { source: "workers", id: "worker-a" }, owner: "kiln#49" },
     { code: "reservation_unknown", constraint: "attempt-a", subject: { source: "policy", id: "grant-a" } },
   ] }];
   const text = page();
-  assert.ok(text.includes("revision_selection_unpublished · fact:revisions · owner lattice#25"));
+  assert.ok(text.includes("revision_fact_unknown · fact:revisions.prepared · owner kiln#49"));
   assert.ok(text.includes("serving_snapshot_unavailable · route:primary · owner animus#17"));
   assert.ok(text.includes("liveness_unobserved · fact:liveness · workers / worker-a · owner kiln#49"));
   assert.ok(descendants(inventory.render(projection)).some((node) => node.tagName === "li" && node.textContent === "reservation_unknown · attempt-a · policy / grant-a"), "Kiln's own blockers carry no owner");
   projection.snapshot.workers[0].wait_reasons = [{ code: '<img src="https://x" onerror="bad()">', subject: { kind: "fact", field: "liveness" }, owner: "kiln#49" }];
   const rendered = inventory.render(projection);
   assert.equal(descendants(rendered).filter((node) => ["script", "img"].includes(node.tagName)).length, 0);
+});
+
+// r[verify kiln.inventory.producers.scenario.revisions]
+// r[verify kiln.inventory.producers.scenario.qualification]
+test("revision lifecycle, qualification provenance and pins stay distinct", () => {
+  const inventory = setup();
+  const projection = fixture();
+  const page = () => allText(inventory.render(projection));
+  let text = page();
+  assert.ok(text.includes("Not published by the producer"), "an absent management state is not unmanaged");
+  assert.ok(text.includes("None current (not absence evidence)"));
+  assert.ok(text.includes("Not published (an unknown pin is listed in unknown fields)"));
+  projection.snapshot.agents[0].revisions.management = "unmanaged";
+  projection.snapshot.workers[0].pin = { state: "unmanaged" };
+  text = page();
+  assert.ok(text.includes("Unmanaged (no producer revision lifecycle; not unknown, not unqualified)"));
+  assert.ok(text.includes("Unmanaged (admitted outside a revision lifecycle)"));
+  const reference = { task_family: "rust-implementation", reference: "blake3:f87c", evidence_class: "task_family_evaluation", provenance: "fixture" };
+  projection.snapshot.agents[0].revisions.management = "managed";
+  projection.snapshot.agents[0].task_family_qualifications = [reference];
+  projection.snapshot.workers[0].pin = { state: "recorded", qualification: "blake3:f87c", rollout_generation: 1, identity: "blake3:7363", status: "released", blocked: true };
+  projection.explanation = { work_version: "exact-work", definition: projection.snapshot.agents[0].meta.reference, policy_ref: "policy-r1", combinations_considered: 0, truncated: false, dispatch_authorized: false, task_family_qualification: reference, blockers: [{ code: "task_family_qualification_not_live", constraint: "blake3:f87c", subject: projection.snapshot.agents[0].meta.reference }], candidates: [] };
+  text = page();
+  assert.ok(text.includes("Managed by the producer's revision lifecycle"));
+  assert.equal(text.split("rust-implementation · blake3:f87c · task_family_evaluation · fixture provenance (not live evidence)").length - 1, 2, "the definition and the explanation both show provenance");
+  assert.ok(text.includes("released · qualification blake3:f87c · rollout generation 1 · pin blake3:7363 · blocked: further effects or export refused"));
+  assert.ok(text.includes("task_family_qualification_not_live · blake3:f87c"));
+  assert.ok(!text.includes("live provenance"), "fixture evidence is never shown as live");
+  projection.explanation.task_family_qualification = undefined;
+  assert.ok(page().includes("None current for this exact revision"));
 });
 
 test("delayed reads cannot restore private inventory after clear", async () => {

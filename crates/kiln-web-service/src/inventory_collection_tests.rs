@@ -1,9 +1,10 @@
 //! Kiln #60 acceptance over producer-shaped fixtures: Lattice
-//! `lattice.worker-inventory.v2` `inspect` output captured at Lattice
-//! 9a74e7ef, compute allocation observations from Lattice's fixtures, and
-//! Animus #17 serving snapshots. Each test names the criterion it covers.
-//! Everything here is deterministic fixture evidence; no live provider, fleet
-//! or capacity is claimed.
+//! `lattice.worker-inventory.v3` `inspect` output captured on the Lattice #25
+//! integration tree (unmanaged and managed revision lifecycles), compute
+//! allocation observations from Lattice's fixtures, and Animus #17 serving
+//! snapshots. Each test names the criterion it covers. Everything here is
+//! deterministic fixture evidence; no live provider, fleet, qualification or
+//! capacity is claimed.
 // r[verify kiln.inventory.collection]
 // r[verify kiln.inventory.collection.scenario.parity]
 // r[verify kiln.inventory.collection.scenario.hostname]
@@ -11,13 +12,15 @@
 // r[verify kiln.inventory.producers]
 // r[verify kiln.inventory.producers.scenario.capability]
 // r[verify kiln.inventory.producers.scenario.wait]
+// r[verify kiln.inventory.producers.scenario.revisions]
+// r[verify kiln.inventory.producers.scenario.qualification]
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use kiln_core::inventory::{
-    FactRef, Health, InventoryProfile, InventoryProjection, InventorySnapshot, ObservationState,
-    ReadinessExplanation, ServingState, WorkNeeds, WorkerLifecycle, explain_readiness,
-    project_inventory,
+    EvidenceProvenance, FactRef, Health, InventoryProfile, InventoryProjection, InventorySnapshot,
+    ObservationState, ReadinessExplanation, RevisionManagement, RevisionPin, ServingState,
+    TaskFamilyQualification, WorkNeeds, WorkerLifecycle, explain_readiness, project_inventory,
 };
 use kiln_provider_api::inventory::{InventoryObservationPort, InventoryReadFailure};
 use serde_json::Value;
@@ -30,14 +33,19 @@ use crate::inventory::{InventoryInput, read_inventory, render_html, run_cli_args
 type TestResult<T = ()> = Result<T, String>;
 
 /// A clock five seconds after the fixtures' collection time.
-const NOW_MS: u64 = 1_795_208_985_000;
-const PROFILE: &str = "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72";
+const NOW_MS: u64 = 1_795_237_895_000;
+const PROFILE: &str = "7a2e02cbb387e5e5744d4a63084238c2b6cb58d8572ad048fadcd38887ec1258";
 /// The definition identity of every undeclared OMP attempt-worker capture.
 const DEFINITION: &str = "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6";
+/// The declared `rust-implementer` definition, unmanaged and managed alike.
 const DECLARED_DEFINITION: &str =
     "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1";
-const DECLARED_PROFILE: &str = "88cbb6128daf0fc09cb3b01ceeaa35109493d28c934ec5adc2e392557578a2f7";
+const DECLARED_PROFILE: &str = "facae6f62ce3c6ffae5db21ae9c23281bcd5e1c884ac8145ed1ec6e9e13da8bd";
 const DECLARED_CAPTURE: &str = "lattice/agent-a-1-declared-capability-dispatched.json";
+const MANAGED_PROFILE: &str = "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46";
+/// The Animus #18 attachment the managed promotion recorded, with `fixture` provenance.
+const QUALIFICATION_REF: &str =
+    "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc";
 const PILOT: &str = "pilot.collection.json";
 const SHARED_POOL: &str = "shared-pool.collection.json";
 const CONFIGURED_ONLY: &str = "configured-only.collection.json";
@@ -783,9 +791,9 @@ fn unsafe_or_unsupported_manifests_refuse_before_projection() -> TestResult {
         assert_eq!(result.err().as_deref(), Some(expected), "{path}");
     }
     for (source, contract) in [
-        ("aspen-compute", "lattice.worker-inventory.v2"),
-        ("lattice-agents", "lattice.worker-inventory.v1"),
-        ("lattice-workers", "lattice.worker-inventory.v1"),
+        ("aspen-compute", "lattice.worker-inventory.v3"),
+        ("lattice-agents", "lattice.worker-inventory.v2"),
+        ("lattice-workers", "lattice.worker-inventory.v2"),
     ] {
         let wrong_contract = collect_with(PILOT, |set| {
             for c in set.collections.iter_mut().filter(|c| c.source == source) {
@@ -798,26 +806,26 @@ fn unsafe_or_unsupported_manifests_refuse_before_projection() -> TestResult {
             "{source} {contract}"
         );
     }
-    let v1 = tempfile::tempdir().map_err(|e| e.to_string())?;
-    copy_tree(&fixtures(), v1.path())?;
+    let v2 = tempfile::tempdir().map_err(|e| e.to_string())?;
+    copy_tree(&fixtures(), v2.path())?;
     let downgraded = edit_file(
-        &v1.path().join("lattice/profile-without-instance.json"),
+        &v2.path().join("lattice/profile-without-instance.json"),
         &[
-            ("/schema", "lattice.worker-inventory.v1".into()),
-            ("/profile/schema", "lattice.worker-profile-facts.v1".into()),
+            ("/schema", "lattice.worker-inventory.v2".into()),
+            ("/profile/schema", "lattice.worker-profile-facts.v2".into()),
         ],
     )?;
     std::fs::write(
-        v1.path().join("lattice/profile-without-instance.json"),
+        v2.path().join("lattice/profile-without-instance.json"),
         downgraded,
     )
     .map_err(|e| e.to_string())?;
     assert_eq!(
-        collect_snapshot(&v1.path().join(CONFIGURED_ONLY))
+        collect_snapshot(&v2.path().join(CONFIGURED_ONLY))
             .err()
             .as_deref(),
         Some("lattice_inventory_unsupported_schema"),
-        "a v1 Lattice document is refused, never read as v2"
+        "a v2 Lattice document is refused, never read as v3"
     );
     let unavailable_with_documents = collect_with(PILOT, |set| {
         for c in set
@@ -935,10 +943,11 @@ fn owned(blockers: &[kiln_core::inventory::Blocker]) -> BTreeSet<OwnedBlocker<'_
         .collect()
 }
 
-/// #60 with Lattice v2: declared task families and tools are known
+/// #60 with Lattice v3: declared task families and tools are known
 /// capability. A definition that declares what exact work needs is no longer
 /// blocked on capability; it stays blocked by exact producer reasons with
-/// their owners and by facts no producer publishes yet.
+/// their owners and by facts no producer publishes yet. An unmanaged
+/// definition carries no revision owner: there is no lifecycle to wait on.
 #[test]
 fn declared_capability_satisfies_exact_work_and_leaves_owned_producer_reasons() -> TestResult {
     let snapshot = collect_with(PILOT, with_declared_worker)?;
@@ -962,19 +971,13 @@ fn declared_capability_satisfies_exact_work_and_leaves_owned_producer_reasons() 
     }
     assert_eq!(
         owned(&explanation.blockers),
-        BTreeSet::from([
-            (
-                "qualification_unbound",
-                "fact:qualification_ref",
-                "animus#18"
-            ),
-            (
-                "revision_selection_unpublished",
-                "fact:revisions",
-                "lattice#25"
-            ),
-        ])
+        BTreeSet::from([(
+            "qualification_unbound",
+            "fact:capability_qualifications",
+            "animus#18"
+        )])
     );
+    assert_eq!(explanation.task_family_qualification, None);
     for unpublished in [
         "stale_or_unknown_agent",
         "agent_authority_denied",
@@ -1035,7 +1038,7 @@ fn declared_capability_satisfies_exact_work_and_leaves_owned_producer_reasons() 
     Ok(())
 }
 
-/// #60 with Lattice v2: undeclared capability stays unknown with its owner
+/// #60 with Lattice v3: undeclared capability stays unknown with its owner
 /// and is never reported as unsupported; unavailable capability is a known
 /// negative.
 #[test]
@@ -1092,7 +1095,7 @@ fn undeclared_capability_stays_unknown_and_unavailable_is_a_known_negative() -> 
     Ok(())
 }
 
-/// #60 with Lattice v2: single-shot liveness never becomes idle or live, an
+/// #60 with Lattice v3: single-shot liveness never becomes idle or live, an
 /// unobserved liveness is unknown with its owner, attempt and fence are
 /// unchanged, and a worker pinned to another revision of the definition stays
 /// visible as such.
@@ -1155,5 +1158,150 @@ fn liveness_stays_unknown_and_other_revisions_stay_visible() -> TestResult {
     }
     let text = serde_json::to_string(&projection).map_err(|e| e.to_string())?;
     assert!(text.contains("\"owner\":\"lattice#6\""));
+    Ok(())
+}
+
+/// The pilot manifest with its Lattice sources replaced by managed captures.
+fn managed_snapshot(agents: &[&str], workers: &[&str]) -> TestResult<InventorySnapshot> {
+    collect_with(PILOT, |set| {
+        for c in set.collections.iter_mut() {
+            let documents = match c.source.as_str() {
+                "lattice-agents" => agents,
+                "lattice-workers" => workers,
+                _ => continue,
+            };
+            c.documents = documents
+                .iter()
+                .map(|name| format!("lattice/{name}"))
+                .collect();
+        }
+    })
+}
+
+/// Exact work the managed `rust-implementer` revision was promoted for.
+fn managed_needs() -> TestResult<WorkNeeds> {
+    let mut needs = declared_needs()?;
+    needs.profile_revision = MANAGED_PROFILE.into();
+    Ok(needs)
+}
+
+/// #60 with Lattice v3: a managed definition promoted with a fixture Animus
+/// #18 attachment is selected for new sessions, so neither selection nor
+/// qualification waits on an owner; the explanation shows the reference with
+/// its provenance and never counts fixture evidence as live. After the
+/// revision is revoked, the reference is gone, new sessions are refused with
+/// Lattice's owner, and every pin is blocked.
+#[test]
+fn managed_revisions_show_selection_pins_and_fixture_provenance() -> TestResult {
+    let snapshot = managed_snapshot(
+        &["managed-3-promoted.json"],
+        &[
+            "managed-4-admitted-session-live.json",
+            "managed-5-terminal-pin-released.json",
+        ],
+    )?;
+    let projection = project(&snapshot, Some(&managed_needs()?))?;
+    let agent = projection
+        .snapshot
+        .agents
+        .iter()
+        .find(|a| a.meta.reference == reference("lattice-agents", DECLARED_DEFINITION))
+        .ok_or("missing managed definition")?;
+    assert_eq!(
+        agent.revisions.management,
+        Some(RevisionManagement::Managed)
+    );
+    assert_eq!(
+        agent.revisions.selected_for_new_sessions.as_deref(),
+        Some(MANAGED_PROFILE)
+    );
+    let pins: Vec<_> = projection
+        .snapshot
+        .workers
+        .iter()
+        .filter_map(|w| w.pin.as_ref())
+        .collect();
+    assert_eq!(pins.len(), 2);
+    assert!(pins.iter().all(|pin| matches!(
+        pin,
+        RevisionPin::Recorded { qualification, blocked: false, .. } if qualification == QUALIFICATION_REF
+    )));
+    let explanation = projection
+        .explanation
+        .as_ref()
+        .ok_or("missing explanation")?;
+    assert_eq!(
+        explanation.task_family_qualification,
+        Some(TaskFamilyQualification {
+            task_family: "rust-implementation".into(),
+            reference: QUALIFICATION_REF.into(),
+            evidence_class: "task_family_evaluation".into(),
+            provenance: EvidenceProvenance::Fixture,
+        })
+    );
+    let blockers: Vec<_> = explanation
+        .blockers
+        .iter()
+        .map(|b| (b.code.as_str(), b.constraint.as_str(), b.owner.as_deref()))
+        .collect();
+    assert!(blockers.contains(&(
+        "task_family_qualification_not_live",
+        QUALIFICATION_REF,
+        None
+    )));
+    for absent in [
+        "revision_not_selected_for_new_sessions",
+        "agent_revision_mismatch",
+        "unsupported_task_family",
+        "qualification_unbound",
+        "revision_not_admitted",
+        "revision_fact_unknown",
+    ] {
+        assert!(blockers.iter().all(|b| b.0 != absent), "{absent}");
+    }
+    assert!(
+        owned(&explanation.blockers).is_empty(),
+        "no definition-scoped producer reason remains"
+    );
+    assert!(
+        blockers
+            .iter()
+            .any(|b| b.0 == "qualification_missing_stale_or_mismatched"),
+        "a reference is not a full qualification record"
+    );
+    assert!(explanation.candidates.iter().all(|c| {
+        !c.observed_eligible && c.blockers.iter().all(|b| b.code != "worker_pin_blocked")
+    }));
+
+    let revoked = managed_snapshot(
+        &["managed-7-refused-after-revocation.json"],
+        &[
+            "managed-6-revoked-live-session.json",
+            "managed-6-revoked-terminal.json",
+        ],
+    )?;
+    let explanation = explain(&revoked, &managed_needs()?)?;
+    assert_eq!(explanation.task_family_qualification, None);
+    assert!(
+        explanation
+            .blockers
+            .iter()
+            .all(|b| b.code != "task_family_qualification_not_live")
+    );
+    assert_eq!(
+        owned(&explanation.blockers),
+        BTreeSet::from([
+            (
+                "qualification_unbound",
+                "fact:capability_qualifications",
+                "animus#18"
+            ),
+            ("revision_not_admitted", "fact:revisions", "lattice#25"),
+        ])
+    );
+    assert!(!explanation.candidates.is_empty());
+    assert!(explanation.candidates.iter().all(|c| {
+        !c.observed_eligible && c.blockers.iter().any(|b| b.code == "worker_pin_blocked")
+    }));
     Ok(())
 }

@@ -6,7 +6,7 @@
     "source": "lattice-agents",
     "id": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6"
   },
-  "profile_revision": "8a836baf7f4924334a2d50ced5590fd4f5a70e91bc67ee04c667c00722b17b72",
+  "profile_revision": "7a2e02cbb387e5e5744d4a63084238c2b6cb58d8572ad048fadcd38887ec1258",
   "policy_ref": "policy-r1",
   "harness": "omp-jsonl",
   "tools": [

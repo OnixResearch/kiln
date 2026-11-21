@@ -5,7 +5,7 @@
       "support": "unknown"
     },
     "attempt_id": "attempt-host-local",
-    "binding_identity": "blake3:cc9343660c8a277bd64f4813bd09debc947101c17b7aa339467d9fcfc6337550",
+    "binding_identity": "blake3:cec4032d6989cb78ecdce67b4e4ec8e1518be031fa02a6d107db2d1ca5802d71",
     "cancellation": "not_requested",
     "compute": {
       "compute_kind": "host_local"
@@ -16,12 +16,12 @@
       "owner": "kiln#49",
       "support": "unknown"
     },
-    "incarnation": "8e64c548a6d709b0cda7402424ddb0b60d74df4724f2195e8d79d2ef9410fcfb",
+    "incarnation": "97e27c9eaa5ea7a0a9e69fe68347a0a0a4012acfa63cfd45250d5a5672226a3f",
     "lifecycle": {
       "state": "admitted_not_dispatched"
     },
     "liveness": {
-      "observed_at_epoch_ms": 1795208972384,
+      "observed_at_epoch_ms": 1795237881810,
       "retained_generation": 1,
       "runtime": "single_shot",
       "state": "not_started",
@@ -48,11 +48,14 @@
         }
       ]
     },
-    "observed_at_epoch_ms": 1795208972384,
-    "profile_revision": "2fb8023506390884d4d5974a91d807e8a8ff5af11533ecc67b34f39f79e4fa41",
-    "schema": "lattice.worker-instance-observation.v2",
+    "observed_at_epoch_ms": 1795237881810,
+    "pinned": {
+      "support": "unmanaged"
+    },
+    "profile_revision": "d35dafdc3606dbe61288366cf10f9d2a96ca8a186af5ee40386fae45ed3fbe88",
+    "schema": "lattice.worker-instance-observation.v3",
     "source": "lattice.implementation-attempt-state.v1",
-    "state_digest": "blake3:21030e3588dc23ef0e0f5a17b66527ba6cadb17005957b89eaf04a723978a10a",
+    "state_digest": "blake3:42370382463405c348c88653b771d377519d9936ed372f71410d34f2566be783",
     "wait_reasons": [
       {
         "code": "serving_snapshot_unavailable",
@@ -128,6 +131,7 @@
       "support": "declared",
       "value": "omp-jsonl"
     },
+    "capability_qualifications": [],
     "checkpoint": {
       "support": "unavailable",
       "value": null
@@ -196,31 +200,22 @@
       "support": "declared",
       "value": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906"
     },
-    "qualification_ref": null,
-    "revision": "2fb8023506390884d4d5974a91d807e8a8ff5af11533ecc67b34f39f79e4fa41",
+    "revision": "d35dafdc3606dbe61288366cf10f9d2a96ca8a186af5ee40386fae45ed3fbe88",
     "revisions": {
       "desired": {
-        "owner": "lattice#25",
-        "support": "unknown"
-      },
-      "pinned": {
-        "owner": "lattice#25",
-        "support": "unknown"
+        "support": "unmanaged"
       },
       "prepared": {
-        "owner": "lattice#25",
-        "support": "unknown"
+        "support": "unmanaged"
       },
       "qualified": {
-        "owner": "lattice#25",
-        "support": "unknown"
+        "support": "unmanaged"
       },
       "selected_for_new_sessions": {
-        "owner": "lattice#25",
-        "support": "unknown"
+        "support": "unmanaged"
       }
     },
-    "schema": "lattice.worker-profile-facts.v2",
+    "schema": "lattice.worker-profile-facts.v3",
     "serving_readiness": {
       "routes": [
         {
@@ -270,15 +265,7 @@
         "code": "qualification_unbound",
         "owner": "animus#18",
         "subject": {
-          "field": "qualification_ref",
-          "kind": "fact"
-        }
-      },
-      {
-        "code": "revision_selection_unpublished",
-        "owner": "lattice#25",
-        "subject": {
-          "field": "revisions",
+          "field": "capability_qualifications",
           "kind": "fact"
         }
       },
@@ -296,5 +283,5 @@
       "value": "admitted-read-write-paths"
     }
   },
-  "schema": "lattice.worker-inventory.v2"
+  "schema": "lattice.worker-inventory.v3"
 }

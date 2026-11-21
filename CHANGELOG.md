@@ -300,15 +300,28 @@ entry describes the source tree prepared for the first tagged release.
   rollout/qualification and reservation-versus-usage semantics. Existing worker
   v1 continues to describe configured project admission slots, not machines.
 - Inventory v2 producer collection (Kiln #60). `kiln-adapter-lattice` maps
-  Lattice `lattice.worker-inventory.v2` profiles to definitions keyed by their
+  Lattice `lattice.worker-inventory.v3` profiles to definitions keyed by their
   definition identity and retained instances to workers, never idle or healthy.
-  v1 documents are refused as unsupported. Declared task families and tools
-  are known capability, unavailable capability is a known negative, and
-  undeclared capability stays unknown. Single-shot liveness maps to the worker
+  v1 and v2 documents are refused as unsupported; v2 revisions were
+  per-attempt, because they framed the task prompt and base snapshot, and are
+  never compared with v3's stabilized revisions. Declared task families and
+  tools are known capability, unavailable capability is a known negative, and
+  undeclared capability stays unknown. The Lattice #25 revision lifecycle maps
+  onto the definition's revisions (desired, prepared, qualified, selected for
+  new sessions, rollout generation) and each worker's revision pin, with
+  `unmanaged`, owned `unknown` and `recorded` kept distinct. A definition is
+  projected at its selected revision while workers pinned to older revisions
+  stay visible; two selected revisions or any other contradictory lifecycle
+  fact is refused. Task-family qualifications keep their Animus #18 reference,
+  evidence class and provenance; the readiness explanation shows the needed
+  family's current reference and never counts `fixture` evidence as live, and
+  a blocked pin blocks its worker. Single-shot liveness maps to the worker
   lifecycle, and retained generation orders repeated observations. Lattice wait
-  reasons keep their exact code, subject and owner on definitions and workers.
+  reasons keep their exact code, subject and owner on definitions and workers,
+  and a managed revision fact Lattice leaves unknown keeps its slot owner.
   They appear as owned explanation blockers through a provider-neutral core
-  `WaitReason`, omitted when empty, so earlier snapshots keep their identity.
+  `WaitReason`; the new core revision, qualification and pin fields are omitted
+  when empty, so earlier snapshots keep their identity.
   The adapter also maps
   `lattice.compute-allocation-observation.v1` (Aspen/Molten #42 records) into
   allocation facts and authority-keyed pools: a shared deployment or pool is
@@ -320,8 +333,9 @@ entry describes the source tree prepared for the first tagged release.
   `compose_snapshot` joins sources by exact producer identities, never host
   names. `kiln-web-service inventory-collect` reads an explicit
   `kiln.inventory.collection-set.v1` manifest. Unpublished producer facts are
-  listed as unknown. (fixture-tested with verbatim Lattice v2 `inspect`
-  captures at 9a74e7ef and Animus fixtures at 4071c65e; no live provider)
+  listed as unknown. (fixture-tested with verbatim Lattice v3 `inspect`
+  captures of the Lattice #25 integration tree, including a fixture-provenance
+  Animus #18 attachment, and Animus fixtures at 4071c65e; no live provider)
 - Exact artifact-preview admission and review actions, with native complete
   runtime-closure/NAR/signature verification and a separately hosted disposable
   TryNix Linux engine. Engine-only rehearsal never invents a canonical CI build;

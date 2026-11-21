@@ -78,6 +78,26 @@
     if (!Array.isArray(values) || !values.length) return "None supplied (not readiness evidence)";
     return values.map((v) => `${text(v?.code)} · ${v?.subject?.kind === "route" ? `route:${text(v.subject.name)}` : `fact:${text(v?.subject?.field)}`} · owner ${text(v?.owner)}`).join("; ");
   }
+  // Unmanaged is not unknown: no producer revision lifecycle governs the definition.
+  function management(value) {
+    if (value === "unmanaged") return "Unmanaged (no producer revision lifecycle; not unknown, not unqualified)";
+    if (value === "managed") return "Managed by the producer's revision lifecycle";
+    return "Not published by the producer";
+  }
+  // A qualification reference is evidence, never authority; fixture provenance is never live evidence.
+  function qualification(v) {
+    const provenance = v?.provenance === "live" ? "live provenance" : v?.provenance === "fixture" ? "fixture provenance (not live evidence)" : `provenance ${text(v?.provenance)}`;
+    return `${text(v?.task_family)} · ${text(v?.reference)} · ${text(v?.evidence_class)} · ${provenance}`;
+  }
+  function qualifications(values) {
+    if (!Array.isArray(values) || !values.length) return "None current (not absence evidence)";
+    return values.map(qualification).join("; ");
+  }
+  function pin(value) {
+    if (value === null || value === undefined) return "Not published (an unknown pin is listed in unknown fields)";
+    if (value.state === "unmanaged") return "Unmanaged (admitted outside a revision lifecycle)";
+    return `${text(value.status)} · qualification ${text(value.qualification)} · rollout generation ${number(value.rollout_generation)} · pin ${text(value.identity)}${value.blocked ? " · blocked: further effects or export refused" : ""}`;
+  }
   const CAMPAIGN_SCHEMA = "kiln.selected-campaign-projection.v1";
   function validateCampaign(value) {
     if (!record(value) || value.schema !== CAMPAIGN_SCHEMA || !/^[a-f0-9]{64}$/.test(value.identity)
@@ -402,11 +422,12 @@
     page.append(heading);
     page.append(section("Agents — immutable definitions, not running instances", "inventory-agents", snapshot.agents.map((agent) => row(projection, agent, agent.profile_revision, [
       ["Task families (declared)", list(agent.task_families)], ["Output contracts", list(agent.output_contracts)], ["Harnesses", list(agent.harnesses)], ["Tools", list(agent.tools)], ["Permitted models", list(agent.permitted_models)], ["Authority", agent.authority],
-      ["Desired revision", agent.revisions.desired], ["Prepared revision", agent.revisions.prepared], ["Qualified revision", agent.revisions.qualified], ["Selected for new sessions", agent.revisions.selected_for_new_sessions], ["Preparation failure", agent.revisions.preparation_failure], ["Revision generation", number(agent.revisions.generation)],
+      ["Revision lifecycle", management(agent.revisions.management)], ["Desired revision", agent.revisions.desired], ["Prepared revision", agent.revisions.prepared], ["Qualified revision", agent.revisions.qualified], ["Selected for new sessions", agent.revisions.selected_for_new_sessions], ["Preparation failure", agent.revisions.preparation_failure], ["Revision generation", number(agent.revisions.generation)],
+      ["Task-family qualification references (family · reference · class · provenance)", qualifications(agent.task_family_qualifications)],
       ["Observed instances of this definition", String(snapshot.workers.filter((w) => refText(w.definition) === refText(agent.meta.reference)).length) + " supplied; not a fleet total"], ["Producer wait reasons (code · subject · owner)", waits(agent.wait_reasons)],
     ], details("Qualification: exact subject / corpus / protocol, accepted denominators, cost, unknown use and limitations (not availability)", agent.qualifications)))));
     page.append(section("Workers — actual instances and pinned bindings", "inventory-workers", snapshot.workers.map((worker) => row(projection, worker, `${worker.meta.reference.id} · ${worker.lifecycle}`, [
-      ["Incarnation", worker.incarnation], ["Stable session", worker.session], ["Definition", refText(worker.definition)], ["Actually pinned revision", worker.pinned_revision], ["Observed lifecycle", worker.lifecycle], ["Attempt", worker.attempt], ["Fence", number(worker.fence)], ["Execution binding", refText(worker.execution)], ["Execution grant", refText(worker.execution_grant)], ["Workspace alias", worker.workspace], ["Independent model-service bindings", list(worker.model_services)], ["Producer wait reasons (code · subject · owner)", waits(worker.wait_reasons)],
+      ["Incarnation", worker.incarnation], ["Stable session", worker.session], ["Definition", refText(worker.definition)], ["Actually pinned revision", worker.pinned_revision], ["Revision pin", pin(worker.pin)], ["Observed lifecycle", worker.lifecycle], ["Attempt", worker.attempt], ["Fence", number(worker.fence)], ["Execution binding", refText(worker.execution)], ["Execution grant", refText(worker.execution_grant)], ["Workspace alias", worker.workspace], ["Independent model-service bindings", list(worker.model_services)], ["Producer wait reasons (code · subject · owner)", waits(worker.wait_reasons)],
     ]))));
     const computeRows = snapshot.compute.map((device) => row(projection, device, `${device.kind} · ${device.host}`, [
       ["Host", device.host], ["Device", device.device], ["Provider pool", device.pool], ["Health / draining", device.health], ["Sandbox capabilities", list(device.sandbox)], ["Backend capabilities", list(device.backends)], ["Shared accounting pool identities", list(device.accounting_pools)], ["Shared serving allocations (charged once to the deployment)", list(device.shared_serving)], ["Compatibility / qualification", list(device.qualification)],
@@ -425,7 +446,7 @@
     if (projection.work_requirements_unknown) work.append(element("p", "Exact current admitted work requirements are unknown. Select a work version with an admitted requirements attachment; no readiness inferred.", "small"));
     const explanation = projection.explanation;
     if (explanation) {
-      work.append(facts([["Exact work version", explanation.work_version], ["Definition", refText(explanation.definition)], ["Policy", explanation.policy_ref], ["Candidate combinations", number(explanation.combinations_considered)], ["Truncated", String(explanation.truncated)], ["Dispatch authorization", "Never granted by this view"]]), blockers(explanation.blockers));
+      work.append(facts([["Exact work version", explanation.work_version], ["Definition", refText(explanation.definition)], ["Policy", explanation.policy_ref], ["Needed task-family qualification", explanation.task_family_qualification ? qualification(explanation.task_family_qualification) : "None current for this exact revision"], ["Candidate combinations", number(explanation.combinations_considered)], ["Truncated", String(explanation.truncated)], ["Dispatch authorization", "Never granted by this view"]]), blockers(explanation.blockers));
       for (const candidate of explanation.candidates) {
         const item = element("details", undefined, "inventory-disclosure");
         item.append(element("summary", `${refText(candidate.worker)} → ${refText(candidate.execution)} + ${refText(candidate.model)} · ${candidate.observed_eligible ? "observed eligible, revalidate" : "blocked / unknown"}`), blockers(candidate.blockers));

@@ -10,9 +10,10 @@ use serde::Deserialize;
 pub(super) const MAX_LATTICE_WAIT_REASONS: usize = 32;
 /// The profile's own worker configuration declares the missing fact.
 const CONFIGURATION_OWNER: &str = "configuration";
-/// Qualification evidence that promotes declared support.
-const QUALIFICATION_OWNER: &str = "animus#18";
-/// Desired, prepared, qualified, selected and pinned revisions.
+/// Qualification evidence that promotes declared support, and the owner of
+/// an unknown `qualified` revision slot.
+pub(super) const QUALIFICATION_OWNER: &str = "animus#18";
+/// Desired and selected revisions, pins and session admission.
 pub(super) const REVISION_OWNER: &str = "lattice#25";
 /// Serving readiness of one route.
 const SERVING_OWNER: &str = "animus#17";
@@ -22,13 +23,18 @@ const DISPATCH_OWNER: &str = "kiln#45";
 const ATTEMPT_OWNER: &str = "lattice#6";
 /// Live host, serving port and liveness observation.
 pub(super) const LIVE_HOST_OWNER: &str = "kiln#49";
+/// Preparation of a desired revision (the owner of an unknown `prepared` slot).
+pub(super) const PREPARATION_OWNER: &str = "kiln#49";
+/// Kiln's code for a revision fact Lattice manages but leaves unknown with an
+/// owner. It is derived from the slot, not from Lattice's reason vocabulary.
+const REVISION_FACT_UNKNOWN: &str = "revision_fact_unknown";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd)]
 #[serde(rename_all = "snake_case")]
 pub(super) enum Code {
     CapabilityUndeclared,
     QualificationUnbound,
-    RevisionSelectionUnpublished,
+    RevisionNotAdmitted,
     ServingPortAbsent,
     ServingSnapshotUnavailable,
     ServingPortIssue,
@@ -49,7 +55,7 @@ pub(super) enum Code {
 pub(super) enum Field {
     TaskFamilies,
     Tools,
-    QualificationRef,
+    CapabilityQualifications,
     Revisions,
     ServingReadiness,
     Lifecycle,
@@ -86,7 +92,7 @@ impl Code {
         match self {
             Self::CapabilityUndeclared => "capability_undeclared",
             Self::QualificationUnbound => "qualification_unbound",
-            Self::RevisionSelectionUnpublished => "revision_selection_unpublished",
+            Self::RevisionNotAdmitted => "revision_not_admitted",
             Self::ServingPortAbsent => "serving_port_absent",
             Self::ServingSnapshotUnavailable => "serving_snapshot_unavailable",
             Self::ServingPortIssue => "serving_port_issue",
@@ -108,7 +114,7 @@ impl Code {
         match self {
             Self::CapabilityUndeclared => CONFIGURATION_OWNER,
             Self::QualificationUnbound => QUALIFICATION_OWNER,
-            Self::RevisionSelectionUnpublished => REVISION_OWNER,
+            Self::RevisionNotAdmitted => REVISION_OWNER,
             Self::ServingSnapshotUnavailable
             | Self::ServingPortIssue
             | Self::ServingSnapshotNotCurrent
@@ -128,9 +134,7 @@ impl Code {
     pub(super) const fn is_definition_scoped(self) -> bool {
         matches!(
             self,
-            Self::CapabilityUndeclared
-                | Self::QualificationUnbound
-                | Self::RevisionSelectionUnpublished
+            Self::CapabilityUndeclared | Self::QualificationUnbound | Self::RevisionNotAdmitted
         )
     }
 
@@ -166,8 +170,8 @@ impl Code {
             }
             SubjectDto::Fact { field } => match self {
                 Self::CapabilityUndeclared => matches!(field, Field::TaskFamilies | Field::Tools),
-                Self::QualificationUnbound => *field == Field::QualificationRef,
-                Self::RevisionSelectionUnpublished => *field == Field::Revisions,
+                Self::QualificationUnbound => *field == Field::CapabilityQualifications,
+                Self::RevisionNotAdmitted => *field == Field::Revisions,
                 Self::ServingPortAbsent => *field == Field::ServingReadiness,
                 Self::AwaitingDispatch | Self::AdmissionExpired | Self::DispatchOutcomeUnknown => {
                     *field == Field::Lifecycle
@@ -190,7 +194,7 @@ impl Field {
         match self {
             Self::TaskFamilies => "task_families",
             Self::Tools => "tools",
-            Self::QualificationRef => "qualification_ref",
+            Self::CapabilityQualifications => "capability_qualifications",
             Self::Revisions => "revisions",
             Self::ServingReadiness => "serving_readiness",
             Self::Lifecycle => "lifecycle",
@@ -205,6 +209,10 @@ impl Field {
 impl ReasonDto {
     pub(super) fn names(&self, code: Code, field: Field) -> bool {
         self.code == code && self.subject == SubjectDto::Fact { field }
+    }
+
+    pub(super) fn is(&self, code: Code) -> bool {
+        self.code == code
     }
 }
 
@@ -242,5 +250,17 @@ pub(super) fn map(reason: &ReasonDto) -> WaitReason {
             SubjectDto::Route { name } => WaitSubject::Route { name: name.clone() },
         },
         owner: reason.owner.clone(),
+    }
+}
+
+/// Kiln's reason for a managed revision fact Lattice leaves unknown, with the
+/// owner Lattice published on the slot.
+pub(super) fn revision_fact_unknown(field: &str, owner: &str) -> WaitReason {
+    WaitReason {
+        code: REVISION_FACT_UNKNOWN.to_owned(),
+        subject: WaitSubject::Fact {
+            field: field.to_owned(),
+        },
+        owner: owner.to_owned(),
     }
 }

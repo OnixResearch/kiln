@@ -88,6 +88,15 @@ pub enum Permission {
     Unknown,
 }
 
+/// Whether a producer's revision lifecycle governs a definition. `unmanaged`
+/// is neither unknown nor unqualified: there is no lifecycle fact to publish.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RevisionManagement {
+    Unmanaged,
+    Managed,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RevisionState {
@@ -98,6 +107,55 @@ pub struct RevisionState {
     pub preparation_failure: Option<String>,
     pub generation: u64,
     pub evidence: Vec<String>,
+    /// Omitted when the producer does not say, so earlier snapshots keep
+    /// their identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub management: Option<RevisionManagement>,
+}
+
+/// How the producer labelled a qualification's evidence. Fixture evidence is
+/// never live evidence.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceProvenance {
+    Fixture,
+    Live,
+}
+
+/// A producer-recorded, unrevoked reference that qualifies one task family
+/// of the definition's profile revision. It is evidence, never authority.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskFamilyQualification {
+    pub task_family: String,
+    pub reference: String,
+    pub evidence_class: String,
+    pub provenance: EvidenceProvenance,
+}
+
+/// The state of a worker session's pin in a producer's revision lifecycle.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PinStatus {
+    Live,
+    Closed,
+    Released,
+}
+
+/// A worker's revision pin. `unmanaged`: the session was admitted outside a
+/// revision lifecycle. `recorded`: the lifecycle's pin; `blocked` means a
+/// further effect or export would be refused.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
+pub enum RevisionPin {
+    Unmanaged {},
+    Recorded {
+        qualification: String,
+        rollout_generation: u64,
+        identity: String,
+        status: PinStatus,
+        blocked: bool,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -168,6 +226,10 @@ pub struct AgentDefinition {
     /// earlier snapshots keep their identity.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub wait_reasons: Vec<WaitReason>,
+    /// Current task-family qualification references of `profile_revision`,
+    /// sorted by task family, at most one per family. Omitted when empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_family_qualifications: Vec<TaskFamilyQualification>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -203,6 +265,10 @@ pub struct WorkerInstance {
     /// earlier snapshots keep their identity.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub wait_reasons: Vec<WaitReason>,
+    /// The session's revision pin. Omitted when the producer publishes none;
+    /// an unknown pin is listed in `meta.unknown_fields` as `pinned`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pin: Option<RevisionPin>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -532,6 +598,12 @@ pub struct ReadinessExplanation {
     pub combinations_considered: usize,
     pub truncated: bool,
     pub dispatch_authorized: bool,
+    /// The needed task family's current qualification reference on the exact
+    /// revision, with its provenance. Present only for a definition at the
+    /// needed revision whose fact is not missing, stale or in the future;
+    /// omitted otherwise, so earlier explanations keep their encoding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_family_qualification: Option<TaskFamilyQualification>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -640,6 +712,27 @@ fn wait_reasons(values: &[WaitReason]) -> Result<(), &'static str> {
         }
     }
     Ok(())
+}
+/// Public tokens, bounded, strictly ascending by task family: one reference
+/// per family.
+fn task_family_qualifications(values: &[TaskFamilyQualification]) -> Result<(), &'static str> {
+    if values.len() > MAX_REQUIREMENTS {
+        return Err("inventory_field_bound");
+    }
+    for value in values {
+        token(&value.task_family)?;
+        token(&value.reference)?;
+        token(&value.evidence_class)?;
+    }
+    let ascending = values.windows(2).all(|pair| match pair {
+        [first, second] => first.task_family < second.task_family,
+        _ => false,
+    });
+    if ascending {
+        Ok(())
+    } else {
+        Err("inventory_task_family_qualification_unordered")
+    }
 }
 
 fn exact(values: &[u64]) -> Result<(), &'static str> {
@@ -858,6 +951,7 @@ pub fn admit_snapshot(
                 return Err("inventory_outcome_denominator_missing");
             }
         }
+        task_family_qualifications(&agent.task_family_qualifications)?;
     }
     for worker in &snapshot.workers {
         token(&worker.incarnation)?;
@@ -873,6 +967,17 @@ pub fn admit_snapshot(
         optional(&worker.workspace)?;
         references(&worker.model_services)?;
         wait_reasons(&worker.wait_reasons)?;
+        if let Some(RevisionPin::Recorded {
+            qualification,
+            rollout_generation,
+            identity,
+            ..
+        }) = &worker.pin
+        {
+            token(qualification)?;
+            token(identity)?;
+            exact(&[*rollout_generation])?;
+        }
         if worker.attempt.is_some() != worker.fence.is_some() {
             return Err("inventory_attempt_fence_incomplete");
         }
@@ -1114,6 +1219,30 @@ fn require_capability(
         require(values, wanted, unsupported, &agent.meta.reference, result);
     }
 }
+/// The needed family's reference counts only for a definition at the needed
+/// revision whose fact is current or merely has other unknown fields; a
+/// missing, stale or future fact shows no qualification.
+// r[impl kiln.inventory.producers.scenario.qualification]
+fn task_family_qualification(
+    agent: &AgentDefinition,
+    needs: &WorkNeeds,
+    statuses: &[SourceStatus],
+    profile: &InventoryProfile,
+    now: u64,
+) -> Option<TaskFamilyQualification> {
+    let fresh = matches!(
+        fact_state(&agent.meta, statuses, profile, now),
+        ObservationState::Current | ObservationState::Unknown
+    );
+    if !fresh || agent.profile_revision != needs.profile_revision {
+        return None;
+    }
+    agent
+        .task_family_qualifications
+        .iter()
+        .find(|q| q.task_family == needs.task_family)
+        .cloned()
+}
 fn check_pools(
     refs: &[FactRef],
     snapshot: &InventorySnapshot,
@@ -1251,6 +1380,7 @@ fn explain_admitted_readiness(
         combinations_considered: 0,
         truncated: false,
         dispatch_authorized: false,
+        task_family_qualification: None,
     };
     for status in statuses {
         if status.state != ObservationState::Current {
@@ -1330,6 +1460,17 @@ fn explain_admitted_readiness(
                     "revision_not_selected_for_new_sessions",
                     Some(&agent.meta.reference),
                     &agent.profile_revision,
+                ));
+            }
+            result.task_family_qualification =
+                task_family_qualification(agent, needs, statuses, profile, now);
+            if let Some(q) = &result.task_family_qualification
+                && q.provenance != EvidenceProvenance::Live
+            {
+                result.blockers.push(blocker(
+                    "task_family_qualification_not_live",
+                    Some(&agent.meta.reference),
+                    &q.reference,
                 ));
             }
             let applicable = agent.qualifications.iter().any(|q| {
@@ -1475,6 +1616,18 @@ fn explain_admitted_readiness(
                 ));
             }
             wait_blockers(&worker.wait_reasons, &worker.meta.reference, &mut reasons);
+            if let Some(RevisionPin::Recorded {
+                identity,
+                blocked: true,
+                ..
+            }) = &worker.pin
+            {
+                reasons.push(blocker(
+                    "worker_pin_blocked",
+                    Some(&worker.meta.reference),
+                    identity,
+                ));
+            }
             if let Some(agent) = snapshot
                 .agents
                 .iter()
