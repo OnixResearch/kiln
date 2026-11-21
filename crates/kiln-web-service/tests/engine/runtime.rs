@@ -894,9 +894,15 @@ fn repository_feeds_and_external_subscription_round_trip() {
             .send(),
     );
     let retained: serde_json::Value = checked(retained.json());
+    // Subscriptions are listed by id, which hashes the URL; the refreshed feed's
+    // URL carries this run's server port, so select it by id, not by position.
     let retained_first = retained
         .get("subscriptions")
-        .and_then(|value| value.get(0))
+        .and_then(serde_json::Value::as_array)
+        .and_then(|rows| {
+            rows.iter()
+                .find(|row| row.get("id").and_then(serde_json::Value::as_str) == Some(id.as_str()))
+        })
         .unwrap_or_else(|| unreachable!("fixture subscription"));
     assert!(
         retained_first
