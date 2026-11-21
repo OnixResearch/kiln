@@ -442,6 +442,22 @@ entry describes the source tree prepared for the first tagged release.
 - Opt-in bounded queues, reservation-time fairness accounting, parent budgets,
   exact owner grants and conservative unknown-effect reconciliation. Physical
   deployment and worker-request resource dimensions remain separate.
+- The Lattice implementation CLI transport (Kiln #45) consumes Lattice
+  `db64cd65`'s coordinator contract. Prepared requests carry the reserved
+  `dispatch_plan` (the campaign prepares twice, since the plan frames the
+  native worker profile), and a missing or different plan is refused before
+  transport intent. `run` receives exactly the one `env` variable the request's
+  `omp.model_broker.credential` names, refused before transport intent when
+  missing, malformed, non-`env` or reserved; `recover` and `cancel` receive
+  none. A typed `lattice.implementation-attempt-refusal.v1` for the attempt
+  with `dispatched:false` and a not-dispatched reason ends it as an
+  infrastructure failure with nothing to reconcile, and recovery's
+  `not_started_closed_by_recovery` is recorded as no execution; every other
+  refusal stays for reconciliation. `config/implementation-worker.ncl` admits
+  only transport v2, and the local fixture and runbook use request v3 with
+  `network:false` and the brokered model route. Breaking for prepared requests
+  without `dispatch_plan`. (workspace tests; composed local qualification with
+  the real Lattice binary and a local HTTP 400 endpoint, no model call)
 - Native-consumer qualification campaigns and frozen positive/negative controls,
   plus an opt-in onix-core deployment/guest composition. Actual model routes,
   isolation/grants, immutable executables, canonical writer access and approved

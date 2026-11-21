@@ -1415,6 +1415,84 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
     Ok(())
 }
 
+// r[verify kiln.implementation.lattice_cli.scenario.refusal]
+#[test]
+fn before_effect_settlement_survives_restart_without_reconciliation()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::{
+        AttemptPhase, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, FailureClass,
+        ImplementationDispatchPlan, WorkspaceIsolation,
+    };
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"request")?;
+    assert!(
+        store
+            .settle_dispatch_without_execution(&attempt.identity, attempt.fence, 1, "refused")
+            .is_err()
+    );
+    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan)?);
+    drop(store);
+    let mut store = open(&path);
+    store.settle_dispatch_without_execution(
+        &attempt.identity,
+        attempt.fence,
+        2,
+        "lattice_refused_before_effect:crossed_attempt",
+    )?;
+    drop(store);
+    let mut store = open(&path);
+    let settled = store.attempt(&attempt.identity)?.ok_or("missing attempt")?;
+    assert_eq!(settled.phase, AttemptPhase::Failed);
+    assert_eq!(settled.failure, Some(FailureClass::Infrastructure));
+    assert_eq!(settled.workflow, None);
+    assert!(!store.dispatch_requires_recovery(&attempt.identity)?);
+    assert!(store.recover(LEASE)?.active.is_empty());
+    let next = store
+        .claim_next(LEASE, LEASE)?
+        .ok_or("settled attempt must not block a replacement")?;
+    assert!(next.fence > attempt.fence);
+    Ok(())
+}
+
 // r[verify kiln.implementation.current_authority.scenario.cancelled]
 #[test]
 fn cancelled_and_superseded_attempts_lose_unexpired_authority_atomically()

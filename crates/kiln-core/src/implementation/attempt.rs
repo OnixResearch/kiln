@@ -1320,6 +1320,45 @@ impl AttemptLedger {
         Ok(!self.dispatch_started.insert(identity.as_str().to_string()))
     }
 
+    /// End an attempt whose provider states that no worker effect of it can
+    /// have started, such as a typed before-effect refusal or a recovery that
+    /// closed the attempt before execution.
+    ///
+    /// Only a current claimed attempt with its reservation, a persisted
+    /// transport intent and no recorded workflow qualifies. The attempt fails
+    /// as infrastructure, never unknown, and its transport intent is cleared,
+    /// so nothing remains to reconcile and the attempt cannot dispatch again.
+    // r[impl kiln.implementation.lattice_cli.scenario.refusal] r[impl kiln.implementation.lattice_cli.scenario.closed]
+    pub fn settle_dispatch_without_execution(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        cause: &str,
+    ) -> CoreResult<()> {
+        self.require_phase(identity, fence, now_ms, &[AttemptPhase::Claimed])?;
+        let cause = bounded_cause(cause)?;
+        let started = self.dispatch_started.contains(identity.as_str());
+        let canonical_key = {
+            let attempt = self.attempt_mut(identity)?;
+            if attempt.dispatch.is_none() || attempt.workflow.is_some() || !started {
+                return Err(refusal(
+                    "implementation_settlement_binding",
+                    "attempt.dispatch",
+                    "only a reserved, started transport with no recorded execution settles without execution",
+                ));
+            }
+            attempt.phase = AttemptPhase::Failed;
+            attempt.ended_at_ms = Some(now_ms);
+            attempt.failure = Some(FailureClass::Infrastructure);
+            attempt.cause = Some(cause);
+            attempt.canonical_key.clone()
+        };
+        self.dispatch_started.remove(identity.as_str());
+        self.clear_current(&canonical_key);
+        Ok(())
+    }
+
     /// Retain an independently observed provider termination after an unknown
     /// outcome. This does not accept a candidate or refund consumed budget.
     // r[impl kiln.implementation.unknown_barrier]

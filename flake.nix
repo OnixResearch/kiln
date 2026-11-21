@@ -2016,6 +2016,13 @@
                 exit 1
               fi
             done
+            # r[impl kiln.implementation.lattice_cli.scenario.config] r[verify kiln.implementation.lattice_cli.scenario.config]
+            nickel typecheck config/implementation-worker.ncl
+            nickel export config/fixtures/implementation-worker-positive.ncl >/dev/null
+            if nickel export config/fixtures/negative-implementation-worker-transport-v1.ncl >/dev/null 2>&1; then
+              echo "negative implementation worker transport fixture passed" >&2
+              exit 1
+            fi
             nickel typecheck config/gitea-contracts.ncl
             nickel typecheck config/gitea-ci.ncl
             nickel typecheck config/gitea-job.ncl

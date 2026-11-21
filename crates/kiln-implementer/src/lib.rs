@@ -561,6 +561,24 @@ impl Implementer {
         })
     }
 
+    /// End an attempt whose provider states that no worker effect of it can
+    /// have started; see `AttemptLedger::settle_dispatch_without_execution`.
+    pub fn settle_dispatch_without_execution(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        cause: &str,
+    ) -> Result<(), String> {
+        let result = self.with_ledgers(|_, attempts| {
+            attempts.settle_dispatch_without_execution(identity, fence, now_ms, cause)
+        });
+        if result.is_ok() {
+            self.mirror_reconcile(now_ms);
+        }
+        result
+    }
+
     pub fn observe_metrics(
         &mut self,
         identity: &ContentId,

@@ -1,0 +1,105 @@
+{
+ "schema": "kiln.composed-qualification-record.v1",
+ "change": "settle-lattice-worker-refusals",
+ "issue": 45,
+ "observed_on": "2026-11-21, Linux 6.18.60 x86_64",
+ "scope": "Kiln's kiln-lattice-dispatch --worker-request transport from this change against the real Lattice db64cd65 binary, every worker the pinned OMP in bubblewrap reaching only a local HTTP 400 endpoint (endpoint.py). No model, provider, forge or remote was contacted. The live scenario was not run.",
+ "harness": {
+  "origin": "Lattice db64cd65 .cairn/changes/execute-admitted-implementation-attempt/evidence/composed-qualification/",
+  "directory": "composed-qualification/",
+  "files": {
+   "harness-main.rs.txt": {"blake3": "68dd1893432a0da676d4f6af9e8731925a1d4357a0f87b552e44e5c49ecb3b51", "change": "identical to the Lattice evidence"},
+   "harness-Cargo.toml": {"blake3": "05bb7fdb8a39db8b272fde1cca800fa876ccf2957adf0c5eb4390d3fd6b8d4e0", "change": "only the Kiln path dependencies point at this change's tree"},
+   "endpoint.py": {"blake3": "74f29ad0155f07720157d79a511054de85ef369adcaeb1cd727d5216f6d376f6", "change": "identical to the Lattice evidence"},
+   "qualify.sh": {"blake3": "8c4b143032527d104cef4b7e5bf0b3982249fb085194e344dafedfada2eb9403", "change": "attempt() prepares twice to bind dispatch_plan; refusals adds kiln-unplanned and stale-fence-replay; new scenarios crossed and substituted_dispatched"},
+   "summarize.py": {"blake3": "aed8232464b934687225e541c9d09f57c313198f02c83e690be4e31f41113623", "change": "kiln_attempt also reports workflow, failure and cause"},
+   "summary.json": {"blake3": "ae844db42392cd8224140a7303d239ae7bc17d268f3915d8facd5ad5ed99b452", "change": "output of summarize.py /tmp/k45f"}
+  }
+ },
+ "pins": {
+  "lattice": {
+   "source": "OnixResearch/lattice db64cd654e52cf6579643e6e96ad92bda2b3d61a (clean checkout)",
+   "build": "cargo build --release --locked -p lattice in the Lattice dev shell with empty RUSTC_WRAPPER, then nix store add-path",
+   "path": "/nix/store/185y79mjf7gg6aqw4l1szzpr7xyga795-lattice-db64cd65/bin/lattice",
+   "blake3": "db786b08de68f7ff7046ac87f789551d7449675f6aad94863c988d0f88a41765"
+  },
+  "kiln_lattice_dispatch": {"build": "cargo build --locked -p kiln-adapter-lattice --bin kiln-lattice-dispatch on this change's final tree", "blake3": "9862bdfd994de881f066d9e8073f39add6f5436200e1de7f554e86747231ca07"},
+  "k45_harness": {"blake3": "d44c9dbf8dfa073f4b5d64c2c3773a22fdf8f3c38a005e6204ec9c9f792ad35d"},
+  "omp": {"path": "/nix/store/ii3yn9v4cj6dg87b9kkzycjzxplgf93d-omp-18.18.7/bin/omp", "blake3": "7ee769b6a4161b9d50410b31be252133fedb459e4441c6da4c92f3733a8d135f"},
+  "bubblewrap": {"path": "/nix/store/gr9l6ql3wg70idpqlqhnfdx81hak22c8-bubblewrap-0.11.0/bin/bwrap", "blake3": "cd5be4481cfe2e79bbf4183ef9122dd15c3ce379594b67121a4b540ac920864e"},
+  "socat": {"path": "/nix/store/k562gy1wa1rwyhlp6ma2cp37zlc0mspl-socat-1.8.1.3/bin/socat1", "blake3": "b8e3a6f91077c9cf3a65265e260b969edbdbb99ebcdbb190340df4fa99676f04"},
+  "worker_shell": {"path": "/nix/store/v8sa6r6q037ihghxfbwzjj4p59v2x0pv-bash-5.3p9/bin/bash", "blake3": "e2129fd97d773dec8d2702df5f415030332c9e309ed8c9e50fdd9cbbc2b61bae"},
+  "pins_note": "OMP, bubblewrap, socat and shell bytes equal the pins in Lattice's composed-qualification.json"
+ },
+ "commands": {
+  "environment": "LATTICE=<lattice pin> KILN=$W/kiln-45f-target/debug/kiln-lattice-dispatch HARNESS=$W/kiln-45f-target/debug/k45-harness OMP BWRAP SOCAT WORKER_SHELL=<pins> OUT=/tmp/k45f (W=/home/brittonr/.cargo-target/producer-work)",
+  "qualify": "qualify.sh run lost_before_start lost_during_run refusals crossed substituted_dispatched cancel",
+  "summary": "summarize.py /tmp/k45f",
+  "exits": {"qualify": 0, "summarize": 0},
+  "retained_output": "$W/k45f-requal/out (copy of /tmp/k45f, 3.1 MB, not committed); qualify.log blake3 dbe24a7e2f2b23667d913756583f9da93558cdcc1b0b5b095416064e2ce41793"
+ },
+ "scenarios": {
+  "run": {
+   "exits": {"dispatch": 0, "duplicate": 0, "kiln-substituted": 2, "lattice-substituted": 1, "lattice-duplicate": 0},
+   "endpoint_requests": 1,
+   "kiln_attempt": {"phase": "executing", "workflow": "lattice/implementation-attempt/e5295397…"},
+   "observed": "The prepared request carries dispatch_plan equal to the harness plan digest, the second preparation kept the worker profile, and the observation echoes the plan. Kiln reconciles the single execution; the duplicate reconciles without a second endpoint request."
+  },
+  "lost-before-start": {
+   "exits": {"recover": 0, "recover-replay": 2},
+   "endpoint_requests": 0,
+   "lattice_stdout": {"recover": "status not_started_closed_by_recovery, result null"},
+   "kiln_attempt": {"phase": "failed", "failure": "infrastructure", "cause": "lattice_closed_before_execution", "workflow": null},
+   "observed": "Kiln records the closure as no execution instead of reconcile_dispatch. The replay is refused by Kiln before transport because the attempt is settled (implementation_fence_stale)."
+  },
+  "lost-during-run": {
+   "exits": {"dispatch": 137, "recover": 0, "recover-replay": 0},
+   "endpoint_requests": 1,
+   "kiln_attempt": {"phase": "executing", "workflow": "lattice/implementation-attempt/a0f29928…"},
+   "observed": "SIGKILL of the controller; recovery reconciles the retained result without re-execution, as before."
+  },
+  "refusals": {
+   "exits": {"kiln-crossed-fence": 2, "kiln-unplanned": 2, "lattice-higher": 1, "lattice-crossed": 1, "stale-fence": 2, "stale-fence-replay": 2},
+   "endpoint_requests": 0,
+   "lattice_stdout": {"stale-fence": "{reason: stale_fence, dispatched: false}"},
+   "kiln_attempt": {"phase": "failed", "failure": "infrastructure", "cause": "lattice_refused_before_effect:stale_fence", "workflow": null},
+   "observed": "kiln-unplanned (the probe request without dispatch_plan) is refused before transport intent. stale-fence is settled before any effect; the replay is refused by Kiln before Lattice runs."
+  },
+  "crossed": {
+   "exits": {"lattice-other": 1, "crossed-attempt": 2, "crossed-replay": 2},
+   "endpoint_requests": 0,
+   "lattice_stdout": {"crossed-attempt": "{reason: crossed_attempt, dispatched: false}"},
+   "kiln_attempt": {"phase": "failed", "failure": "infrastructure", "cause": "lattice_refused_before_effect:crossed_attempt", "workflow": null},
+   "observed": "Lattice recorded another attempt at the same work and fence without a worker (provider allocation unavailable); Kiln's attempt is refused as crossed_attempt with dispatched:false and settled."
+  },
+  "substituted-dispatched": {
+   "exits": {"lattice-substituted": 0, "dispatch": 2, "recover": 2},
+   "endpoint_requests": 1,
+   "lattice_stdout": {"dispatch": "{reason: substituted_request, dispatched: true}", "recover": "{reason: substituted_request, dispatched: true}"},
+   "kiln_attempt": {"phase": "claimed", "failure": null, "workflow": null, "transport_intent": "retained (the second Kiln call ran recover)"},
+   "observed": "Another request's intent executed in the attempt directory. Kiln retains the attempt for reconciliation on dispatch and on recovery and never settles it."
+  },
+  "cancel": {
+   "exits": {"dispatch": 0},
+   "endpoint_requests": 1,
+   "kiln_attempt": {"phase": "cancelled", "failure": "unknown"},
+   "observed": "SIGTERM forwarded as implementation-attempt cancel, as before."
+  }
+ },
+ "comparison_with_lattice_evidence": {
+  "baseline": "Lattice db64cd65 composed-qualification.json current_run (Kiln 70c8f217, OUT=/tmp/k45r)",
+  "changed": [
+   "refusals.stale-fence: exit 2 in both; before, the attempt stayed claimed with an unreconciled transport intent; now it is failed/infrastructure with cause lattice_refused_before_effect:stale_fence",
+   "lost-before-start.recover: before, not_started_closed_by_recovery was reconciled as an execution (phase executing) and recover-replay exited 0; now the attempt is failed/infrastructure lattice_closed_before_execution with no workflow and the replay is refused (exit 2)",
+   "worker requests now carry dispatch_plan; observations echo it"
+  ],
+  "added": ["refusals.kiln-unplanned", "refusals.stale-fence-replay", "crossed", "substituted-dispatched"],
+  "unchanged": "run, lost-during-run and cancel exits and endpoint request counts"
+ },
+ "non_claims": [
+  "No model was called; every worker reached only the local HTTP 400 endpoint, so no candidate was produced",
+  "The credential pass-through was exercised by unit tests and a real child process, not by this composed run; every broker here declares credential:null",
+  "The Lattice binary is a local release build of the published commit added to the Nix store, not a Nix-built package",
+  "The live scenario, Kiln #49 deployment and Kiln #46 independent acceptance remain separate"
+ ]
+}

@@ -13,7 +13,7 @@ in
 let Positive = std.contract.from_predicate (fun value => std.is_number value && value > 0) in
 {
   Transport = {
-    schema | std.contract.from_predicate (fun value => value == "kiln.lattice-implementation-cli.v1"),
+    schema | std.contract.from_predicate (fun value => value == "kiln.lattice-implementation-cli.v2"),
     lattice_program | Token,
     executable_blake3 | Digest,
     state_directory | Token,

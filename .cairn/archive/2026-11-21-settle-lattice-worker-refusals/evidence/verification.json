@@ -1,0 +1,42 @@
+{
+  "change": "settle-lattice-worker-refusals",
+  "issue": 45,
+  "date": "2026-11-21",
+  "base": "339116f68e762e4caf0d05a9ac73a6e97a74b67d",
+  "producer": {
+    "lattice": "db64cd654e52cf6579643e6e96ad92bda2b3d61a (docs/candidate-worker.md, Coordinator transport and refusal table)"
+  },
+  "gates_before_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "f9c15927c26e424cc3bebff252acf4a687441764337918b73bb00f62c949ad69"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "06c520f357a589aed2195e804ac6736fccc4f1c97785460df6836397911b63d4"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "11789cea4ac97756791b10c4f0a8163e15a58622768a649acfbc3e3526f0b252"}
+  ],
+  "gates_after_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "1f2a7734ae60620ce55c5c8f564661f099bf02eab7765272b2dc5eb10d573560"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "5fcff2e38e4335048a8538611ab175a18651525f95c8264873fc6f114ce2e32c"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "f3cf5b2c45ad1207f7c998a9bc2ad2b544463620fbd87dc9e004240272ced91b"}
+  ],
+  "sync": {"command": "cairn sync settle-lattice-worker-refusals --root . --policy cairn-policy/generated/cairn-policy.json --execute", "destination": ".cairn/specs/implementation-work/spec.md", "receipt_hash": "85639c0e89487260e88fa2c44faec0e5daaa8b50f68b22d009047c53a31be942"},
+  "archive": {"command": "cairn archive settle-lattice-worker-refusals --root . --policy cairn-policy/generated/cairn-policy.json --execute", "note": "Cairn wrote the 1970-01-01 prefix; the directory was renamed at integration to the 2026-11-21 date like the other changes archived today"},
+  "commands": [
+    {"command": "cargo fmt --all --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "warnings": 0, "note": "last run before a rustfmt-only reflow of worker_settlement_tests.rs"},
+    {"command": "cargo clippy --locked -p kiln-web-service --features implementation-fixtures --bin kiln-implementation-fixture -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 0, "passed": 2273, "failed": 0, "ignored": 14, "note": "baseline 2263; worker_settlement_tests.rs was later rewritten without indexing for clippy and re-run below"},
+    {"command": "cargo test --locked -p kiln-adapter-lattice", "exit": 0, "passed": 58, "failed": 0},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "99 positive, 636 negative"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"], "note": "the same three dangling markers as the base; none from this change"},
+    {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0},
+    {"command": "nix run --builders '' nixpkgs#gitleaks -- dir <changed paths> --no-banner", "exit": 0, "result": "no leaks found"},
+    {"command": "composed-qualification/qualify.sh run lost_before_start lost_during_run refusals crossed substituted_dispatched cancel", "exit": 0, "record": "composed-qualification.json"}
+  ],
+  "environment": "nix develop shell with TMPDIR=/tmp, empty RUSTC_WRAPPER, CARGO_BUILD_JOBS=6, CARGO_TARGET_DIR=/home/brittonr/.cargo-target/producer-work/kiln-45f-target and a short PATH",
+  "not_run": ["nix flake check (left to integration)", "the live composed scenario", "cairn release-readiness"],
+  "non_claims": [
+    "No model, provider or forge was contacted",
+    "The credential pass-through is covered by unit tests and a real child process, not by a credentialed composed run",
+    "Settlement does not release admission owner reservations; owner reconciliation still owns them",
+    "not_dispatched_binding_rejected and not_dispatched_revision_blocked observations are still reconciled as executions"
+  ]
+}

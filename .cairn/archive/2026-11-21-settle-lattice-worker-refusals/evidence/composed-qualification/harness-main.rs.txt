@@ -1,0 +1,493 @@
+//! Scratch composed-qualification harness for Lattice #6 against Kiln #45.
+//!
+//! It seeds one local `kiln-implementer` store with the same synthetic
+//! local-only admission and owner-reservation steps as Kiln's own
+//! `kiln-implementation-fixture` (crates/kiln-web-service/src/bin/
+//! implementation-fixture.rs at 70c8f217), but for the current Lattice v3
+//! request. It never contacts a provider, model or forge. It is not Kiln source.
+
+use kiln_core::fair_admission::{
+    AdmissionPhase, AdmissionPolicy, AdmissionReason, Amounts, BudgetAccount, ChargeKind, ClaimRef,
+    EligibilityInput, OwnerReply, OwnerReservation, QueueItem, ReservationState, ServingBounds, UsageObservation,
+};
+use kiln_core::implementation::{
+    AcceptanceObligation, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchExecutionBindings,
+    DispatchWorkspace, Enrollment, IMPLEMENTATION_WORK_SCHEMA, ImplementationAttempt,
+    ImplementationDispatchPlan, ImplementationWork, SourceRef, TerminalPolicy, WorkBudget,
+    WorkSourceKind, WorkspaceIsolation, acceptance_digest, admit_dispatch_plan,
+};
+use kiln_core::inventory::{AttemptBinding, FactRef, ResourceRequirement, WorkNeeds, WorkNeedsAttachment};
+use kiln_core::operations::{FairnessStrategy, TenantUsage, UsageValue};
+use kiln_core::types::{Alias, ContentId, ExternalRef, ProviderProfileId};
+use kiln_implementer::Implementer;
+use kiln_implementer::admission::{AdmissionCommand, AdmissionResult};
+use serde_json::{Value, json};
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::{Path, PathBuf};
+
+const REPOSITORY: &str = "qualification/disposable";
+const PROVIDER: &str = "scripted-local-omp";
+const LEASE_MS: u64 = 1_200_000;
+const WINDOW_MS: u64 = 1_800_000;
+const DEADLINE_MINUTES: u32 = 10;
+
+fn text<E: std::fmt::Debug>(error: E) -> String {
+    format!("{error:?}")
+}
+
+fn now() -> Result<u64, String> {
+    let elapsed = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_err(text)?;
+    u64::try_from(elapsed.as_millis()).map_err(text)
+}
+
+fn id(value: &str) -> Result<ContentId, String> {
+    ContentId::from_blake3_hex(value.to_owned()).map_err(text)
+}
+
+fn content(seed: &str) -> Result<ContentId, String> {
+    id(blake3::hash(seed.as_bytes()).to_hex().as_str())
+}
+
+fn alias(value: &str) -> Result<Alias, String> {
+    Alias::new(value).map_err(text)
+}
+
+fn flags() -> Result<(String, BTreeMap<String, String>), String> {
+    let mut arguments = std::env::args().skip(1);
+    let command = arguments.next().ok_or("command required")?;
+    let mut flags = BTreeMap::new();
+    while let Some(flag) = arguments.next() {
+        let value = arguments.next().ok_or_else(|| format!("{flag} requires a value"))?;
+        flags.insert(flag, value);
+    }
+    Ok((command, flags))
+}
+
+fn flag<'a>(flags: &'a BTreeMap<String, String>, key: &str) -> Result<&'a str, String> {
+    flags.get(key).map(String::as_str).ok_or_else(|| format!("{key} is required"))
+}
+
+fn read(path: &str) -> Result<Value, String> {
+    serde_json::from_slice(&std::fs::read(path).map_err(text)?).map_err(text)
+}
+
+fn write(path: &str, value: &impl serde::Serialize) -> Result<(), String> {
+    std::fs::write(path, serde_json::to_vec_pretty(value).map_err(text)?).map_err(text)
+}
+
+fn enrollment() -> Enrollment {
+    Enrollment {
+        repositories: BTreeSet::from([REPOSITORY.to_owned()]),
+        actors: BTreeSet::from(["operator".to_owned()]),
+    }
+}
+
+fn work(base: &str, source_id: &str) -> Result<ImplementationWork, String> {
+    Ok(ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_owned(),
+        revision: 1,
+        actor: "operator".to_owned(),
+        repository: REPOSITORY.to_owned(),
+        project: "qualification".to_owned(),
+        base: Some(ExternalRef::new("git", "commit", base).map_err(text)?),
+        title: "Lattice #6 composed qualification".to_owned(),
+        requested_outcome: "replace 41 with 42 in src/main.rs".to_owned(),
+        acceptance: vec![AcceptanceObligation {
+            id: "answer".to_owned(),
+            statement: "src/main.rs returns 42".to_owned(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["src/main.rs".to_owned()],
+        permitted_effects: BTreeSet::from(["write_source".to_owned()]),
+        verification_profile: content("k45-verification-profile")?,
+        budget: WorkBudget {
+            attempts: 3,
+            minutes_per_attempt: DEADLINE_MINUTES,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::CairnTask,
+            source: ExternalRef::new("cairn", "task", source_id).map_err(text)?,
+            native_id: source_id.to_owned(),
+            version: content(&format!("readiness:{source_id}"))?,
+        }],
+    })
+}
+
+fn amounts() -> Result<Amounts, String> {
+    Ok(BTreeMap::from([(alias("worker_requests")?, 1)]))
+}
+
+fn policy(work: &ImplementationWork) -> Result<AdmissionPolicy, String> {
+    Ok(AdmissionPolicy {
+        version: 1,
+        accounting_basis: work.identity().map_err(text)?,
+        max_items: 1,
+        max_bytes: 1_048_576,
+        max_wait_ms: WINDOW_MS,
+        max_observation_age_ms: WINDOW_MS,
+        max_retry_after_ms: 30_000,
+        max_children: 1,
+        max_active: 1,
+        strategy: FairnessStrategy::DominantShare,
+        shares: BTreeMap::from([(alias("scripted_local")?, 1)]),
+        group_limits: Vec::new(),
+        serving: None,
+    })
+}
+
+/// Kiln fixture `setup_local_admission`, with a qualification-sized window.
+fn admission(owner: &mut Implementer, work: &ImplementationWork, now: u64) -> Result<u64, String> {
+    let identity = work.identity().map_err(text)?;
+    let provider = ProviderProfileId::new(PROVIDER).map_err(text)?;
+    let tenant = alias("scripted_local")?;
+    let deadline = now.saturating_add(WINDOW_MS);
+    let policy = policy(work)?;
+    owner.admission_apply(AdmissionCommand::Configure { policy: policy.clone() }, now)?;
+    owner.admission_apply(
+        AdmissionCommand::Root {
+            account: BudgetAccount {
+                identity: identity.clone(),
+                parent: None,
+                parent_attempt: None,
+                campaign: tenant.clone(),
+                tenant: tenant.clone(),
+                deadline_ms: deadline,
+                available: amounts()?,
+                consumed: Amounts::new(),
+                children: 0,
+            },
+        },
+        now,
+    )?;
+    let usage = TenantUsage {
+        tenant: tenant.clone(),
+        share: 1,
+        provider: provider.clone(),
+        interval_start: now.saturating_sub(180_000),
+        interval_end: now,
+        observed_at: now,
+        resources: BTreeMap::from([(alias("worker_requests")?, UsageValue { amount: 0, capacity: Some(1) })]),
+    };
+    owner.admission_apply(
+        AdmissionCommand::Observe {
+            observation: UsageObservation {
+                usage,
+                generation: 1,
+                accounting_basis: policy.accounting_basis,
+                covered: BTreeMap::new(),
+                complete: true,
+            },
+        },
+        now,
+    )?;
+    owner.admission_apply(
+        AdmissionCommand::Enqueue {
+            item: QueueItem {
+                work_version: identity.clone(),
+                account: identity.clone(),
+                tenant: tenant.clone(),
+                campaign: tenant,
+                repository: alias("qualification-disposable")?,
+                priority: work.priority,
+                bytes: 1,
+                enqueued_at_ms: now,
+                deadline_ms: deadline,
+                eligible_at_ms: now,
+                claim: None,
+                phase: AdmissionPhase::PreClaim,
+                reason: AdmissionReason::Waiting,
+                order: 0,
+                required_owners: BTreeMap::from([(provider, ChargeKind::WorkerRequest)]),
+                shared_allocations: Vec::new(),
+                budget: amounts()?,
+            },
+        },
+        now,
+    )?;
+    Ok(deadline)
+}
+
+fn eligibility(identity: &ContentId, now: u64, deadline: u64) -> Result<EligibilityInput, String> {
+    Ok(EligibilityInput {
+        work_version: identity.clone(),
+        reason: AdmissionReason::Eligible,
+        provider: ProviderProfileId::new(PROVIDER).map_err(text)?,
+        generation: 1,
+        observed_at_ms: now,
+        valid_until_ms: deadline,
+    })
+}
+
+fn claim(owner: &mut Implementer, work: &ImplementationWork, now: u64, deadline: u64) -> Result<ImplementationAttempt, String> {
+    let inputs = vec![eligibility(&work.identity().map_err(text)?, now, deadline)?];
+    match owner.admission_apply(AdmissionCommand::Claim { inputs, lease_ms: LEASE_MS }, now)? {
+        AdmissionResult::Claimed { attempt: Some(attempt) } => Ok(*attempt),
+        other => Err(format!("claim did not produce an attempt: {other:?}")),
+    }
+}
+
+/// `setup`: admit one Cairn-task work, configure local admission, claim it and
+/// write the Lattice v3 seed request bound to the actual Kiln observations.
+fn setup(flags: &BTreeMap<String, String>) -> Result<Value, String> {
+    let now = now()?;
+    write(flag(flags, "--enrollment")?, &enrollment())?;
+    let mut owner = Implementer::open(Path::new(flag(flags, "--database")?), enrollment())?;
+    let work = work(flag(flags, "--base")?, flag(flags, "--source-id")?)?;
+    owner.admit(&work, None)?;
+    let deadline = admission(&mut owner, &work, now)?;
+    let attempt = claim(&mut owner, &work, now, deadline)?;
+    let policy_identity = owner.admission_snapshot()?.policy_ref().map_err(text)?;
+    let acceptance = acceptance_digest(&work).map_err(text)?;
+    let source = &work.aliases[0];
+    let workspace_id = content(&format!("workspace:{}", attempt.identity.as_str()))?;
+    let expires = attempt.lease_until_ms.min(deadline).saturating_sub(60_000);
+    let model = flag(flags, "--model")?;
+    let seed = json!({
+        "schema": "lattice.implementation-attempt-run.v3",
+        "envelope": {
+            "schema": "lattice.implementation-attempt-envelope.v1",
+            "work_id": work.identity().map_err(text)?.as_str(),
+            "work_version": work.revision,
+            "source_kind": "cairn_task",
+            "source_id": source.native_id,
+            "repository": work.repository,
+            "base": flag(flags, "--base")?,
+            "readiness_snapshot": source.version.as_str(),
+            "task_spec_digest": acceptance.as_str(),
+            "verification_profile": work.verification_profile.as_str(),
+            "attempt_id": attempt.identity.as_str(),
+            "fence": attempt.fence,
+            "workspace_id": workspace_id.as_str(),
+            "worker_profile": "0".repeat(64),
+            "budget": {"max_turns": 4, "max_seconds": 300, "max_cost_micros": 0},
+            "policy_digest": policy_identity.as_str(),
+        },
+        "admitted_envelope": "",
+        "expires_at_ms": expires,
+        "workspace_root": flag(flags, "--workspace")?,
+        "read_paths": ["src"],
+        "write_paths": ["src"],
+        "program": flag(flags, "--omp")?,
+        "sandbox_program": flag(flags, "--bwrap")?,
+        "omp": {
+            "revision": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906",
+            "executable_blake3": flag(flags, "--omp-blake3")?,
+            "base_identity": "0".repeat(64),
+            "model": format!("lattice/{model}"),
+            "prompt": "Use the edit tool to replace 41 with 42 in src/main.rs. Do not run commands. Reply done.",
+            "model_broker": {
+                "schema": "lattice.candidate-model-broker.v1",
+                "endpoint": flag(flags, "--endpoint")?,
+                "model": model,
+                "credential": null,
+                "relay": {"path": flag(flags, "--socat")?, "blake3": flag(flags, "--socat-blake3")?},
+                "shell": {"path": flag(flags, "--shell")?, "blake3": flag(flags, "--shell-blake3")?},
+                "sandbox_blake3": flag(flags, "--bwrap-blake3")?,
+                "expires_at_ms": expires,
+                "max_requests": 2,
+            },
+        },
+        "output_limit_bytes": 1_048_576,
+        "allow_unchanged": false,
+        "worker_compute": {"kind": "host_local"},
+        "execution_binding": {
+            "schema": "lattice.execution-binding.v1",
+            "compute": {"kind": "host_local"},
+            "model_routes": {"kind": "routes", "routes": [{"name": "primary", "route_identity": format!("blake3:{}", "0".repeat(64))}]},
+        },
+        "network": false,
+    });
+    write(flag(flags, "--seed")?, &seed)?;
+    Ok(json!({"work": work.identity().map_err(text)?.as_str(), "attempt": attempt.identity.as_str(),
+        "fence": attempt.fence, "lease_until_ms": attempt.lease_until_ms, "deadline_ms": deadline,
+        "policy": policy_identity.as_str(), "scope": "synthetic-local-only"}))
+}
+
+fn current(owner: &mut Implementer, request: &Value) -> Result<(ImplementationWork, ImplementationAttempt), String> {
+    let envelope = request.get("envelope").ok_or("request envelope missing")?;
+    let attempt_id = id(envelope["attempt_id"].as_str().ok_or("attempt id missing")?)?;
+    let fence = envelope["fence"].as_u64().ok_or("fence missing")?;
+    let attempt = owner.authorize_current(&attempt_id, fence, now()?)?;
+    let work = owner
+        .work()?
+        .current()
+        .find(|work| work.identity().is_ok_and(|identity| identity == attempt.work_identity))
+        .cloned()
+        .ok_or("attempt work is not current")?;
+    Ok((work, attempt))
+}
+
+/// Kiln fixture `reserve_local_fixture`: one committed local owner grant.
+fn reserve(owner: &mut Implementer, attempt: &ImplementationAttempt, profile_revision: &str) -> Result<(), String> {
+    let now = now()?;
+    let ledger = owner.admission_snapshot()?;
+    let item = ledger.items.get(&attempt.work_identity).ok_or("work not queued")?;
+    let claim = ClaimRef { attempt: attempt.identity.clone(), fence: attempt.fence };
+    if item.claim.as_ref() != Some(&claim) {
+        return Err("queue claim differs from attempt".into());
+    }
+    let input = ledger.eligibility.get(&attempt.work_identity).cloned().ok_or("eligibility missing")?;
+    // A finite local owner-aggregate bound; no serving owner is contacted.
+    let bounds = ServingBounds { scope: content("k45-local-serving-scope")?, max_ongoing: 1, max_queued: 0 };
+    let reservation = OwnerReservation {
+        version: 1,
+        operation: attempt.identity.clone(),
+        provider: input.provider.clone(),
+        generation: input.generation,
+        work_version: attempt.work_identity.clone(),
+        claim,
+        account: item.account.clone(),
+        kind: ChargeKind::WorkerRequest,
+        subject: id(profile_revision)?,
+        accounting_basis: ledger.policy.as_ref().ok_or("policy missing")?.accounting_basis.clone(),
+        serving_bounds: Some(bounds.clone()),
+        amounts: amounts()?,
+        expires_at_ms: item.deadline_ms.min(attempt.lease_until_ms),
+        state: ReservationState::Tentative,
+        receipt: None,
+    };
+    owner.admission_apply(AdmissionCommand::Request { reservation: reservation.clone(), inputs: vec![input] }, now)?;
+    let reply = OwnerReply {
+        version: 1,
+        operation: reservation.operation.clone(),
+        provider: reservation.provider.clone(),
+        generation: reservation.generation,
+        receipt: reservation.operation.clone(),
+        state: ReservationState::Committed,
+        retry_at_ms: None,
+        serving_bounds: Some(bounds),
+    };
+    owner.admission_apply(AdmissionCommand::Reply { reply }, now)?;
+    Ok(())
+}
+
+/// `bind`: attach needs, reserve the owner grant and write the exact v2-transport
+/// dispatch plan and fresh admission observations for the prepared request.
+fn bind(flags: &BTreeMap<String, String>) -> Result<Value, String> {
+    let mut owner = Implementer::open(Path::new(flag(flags, "--database")?), enrollment())?;
+    let request = read(flag(flags, "--request")?)?;
+    let (work, attempt) = current(&mut owner, &request)?;
+    let envelope = &request["envelope"];
+    let profile = envelope["worker_profile"].as_str().ok_or("profile missing")?;
+    let policy = owner.admission_snapshot()?.policy_ref().map_err(text)?;
+    let requirements = WorkNeedsAttachment::new(
+        attempt.work_identity.clone(),
+        attempt.work_revision,
+        policy.clone(),
+        WorkNeeds {
+            work_version: attempt.work_identity.as_str().to_owned(),
+            task_family: "scripted_implementation".into(),
+            output_contract: content("k45-output-contract")?.as_str().to_owned(),
+            definition: FactRef { source: "scripted-local-fixture".into(), id: "omp-attempt-worker".into() },
+            profile_revision: profile.to_owned(),
+            policy_ref: policy.as_str().to_owned(),
+            harness: "omp".into(),
+            tools: vec!["read".into(), "edit".into(), "write".into()],
+            sandbox: "isolated_snapshot".into(),
+            execution_backend: "native_lattice_local".into(),
+            model_backend: "scripted_local".into(),
+            context_tokens: 4096,
+            execution_resources: vec![ResourceRequirement { unit: "worker_requests".into(), amount: 1 }],
+            modalities: vec!["text".into()],
+            model_artifact: None,
+            qualification_subject: "scripted-local-only".into(),
+            qualification_corpus: "qualification-disposable".into(),
+            qualification_protocol: "lattice-6-composed-v1".into(),
+        },
+    )
+    .map_err(str::to_owned)?;
+    owner.attach_work_needs(&requirements)?;
+    let local = "scripted-local-fixture".to_owned();
+    let plan = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.to_owned(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: attempt.work_revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: id(envelope["workspace_id"].as_str().ok_or("workspace missing")?)?,
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: ProviderProfileId::new(PROVIDER).map_err(text)?,
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls { cancel: true, pause: false, resume: false },
+        deadline_minutes: DEADLINE_MINUTES,
+        token_budget: 4096,
+        invocation_budget: 4,
+        expected_output: content("k45-output-contract")?,
+        execution: Some(DispatchExecutionBindings {
+            requirements,
+            attempt: AttemptBinding {
+                work_version: attempt.work_identity.as_str().to_owned(),
+                attempt: attempt.identity.as_str().to_owned(),
+                fence: attempt.fence,
+                worker: FactRef { source: local.clone(), id: profile.to_owned() },
+                execution_grant: FactRef { source: local.clone(), id: attempt.identity.as_str().to_owned() },
+                model_services: Vec::new(),
+                request_admissions: Vec::new(),
+            },
+            native_request_profile: Some(id(profile)?),
+        }),
+    };
+    let digest = admit_dispatch_plan(&work, &attempt, &plan).map_err(text)?;
+    reserve(&mut owner, &attempt, profile)?;
+    let now = now()?;
+    let observations: Vec<EligibilityInput> =
+        owner.admission_snapshot()?.eligibility.into_values().filter(|input| input.valid_until_ms >= now).collect();
+    write(flag(flags, "--plan")?, &plan)?;
+    write(flag(flags, "--observations")?, &observations)?;
+    Ok(json!({"plan": digest.as_str(), "attempt": attempt.identity.as_str(), "fence": attempt.fence,
+        "scope": "synthetic-local-only"}))
+}
+
+/// `begin-transport`: Kiln's own pre-transport steps from `worker::run`, then
+/// stop, simulating controller loss after Kiln's transport intent and before
+/// any Lattice process starts.
+fn begin_transport(flags: &BTreeMap<String, String>) -> Result<Value, String> {
+    let mut owner = Implementer::open(Path::new(flag(flags, "--database")?), enrollment())?;
+    let request_path = PathBuf::from(flag(flags, "--request")?);
+    let request = read(flag(flags, "--request")?)?;
+    let bytes = std::fs::read(&request_path).map_err(text)?;
+    let plan: ImplementationDispatchPlan =
+        serde_json::from_slice(&std::fs::read(flag(flags, "--plan")?).map_err(text)?).map_err(text)?;
+    let fresh: Vec<EligibilityInput> =
+        serde_json::from_slice(&std::fs::read(flag(flags, "--observations")?).map_err(text)?).map_err(text)?;
+    let (work, attempt) = current(&mut owner, &request)?;
+    let reservation = owner.reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, now()?, &plan)?;
+    owner.bind_campaign_request(&work, &attempt.identity, attempt.fence, now()?, &bytes)?;
+    owner.admission_before_transport(&attempt.identity, attempt.fence, &fresh, now()?)?;
+    let recovery = owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now()?, &reservation.plan)?;
+    Ok(json!({"transport_intent": true, "previously_started": recovery, "lattice_started": false}))
+}
+
+/// `status`: the retained attempt phase and dispatch facts.
+fn status(flags: &BTreeMap<String, String>) -> Result<Value, String> {
+    let mut owner = Implementer::open(Path::new(flag(flags, "--database")?), enrollment())?;
+    let attempt = owner.attempt(&id(flag(flags, "--attempt")?)?)?.ok_or("attempt missing")?;
+    serde_json::to_value(&attempt).map_err(text)
+}
+
+fn main() {
+    let result = flags().and_then(|(command, flags)| match command.as_str() {
+        "setup" => setup(&flags),
+        "bind" => bind(&flags),
+        "begin-transport" => begin_transport(&flags),
+        "status" => status(&flags),
+        _ => Err("usage: k45-harness setup|bind|begin-transport|status ...".into()),
+    });
+    match result {
+        Ok(value) => println!("{value}"),
+        Err(error) => {
+            eprintln!("k45-harness: {error}");
+            std::process::exit(2);
+        }
+    }
+}

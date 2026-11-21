@@ -636,9 +636,15 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
     let acceptance = acceptance_digest(&work).map_err(|e| format!("{}: {}", e.code, e.message))?;
     let mut request: Value = read_json(&required(flags, "--worker-request")?)?;
     if request.get("schema").and_then(Value::as_str)
-        != Some("lattice.implementation-attempt-run.v1")
+        != Some("lattice.implementation-attempt-run.v3")
     {
-        return Err("worker request must be native prepared implementation-attempt request".into());
+        return Err(
+            "worker request must be a native prepared lattice.implementation-attempt-run.v3 request"
+                .into(),
+        );
+    }
+    if request.get("dispatch_plan").is_some() {
+        return Err("prepared fixture request already names a dispatch plan; bind it once".into());
     }
     let envelope = request
         .get("envelope")
@@ -715,16 +721,48 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
                     .is_some_and(|got| got == expected)
             })
     };
-    if !exact_strings("read_paths", &["src", ".omp", ".cairn"])
+    // The brokered OMP route has no network device: only its attempt-local
+    // model broker reaches the scripted loopback endpoint.
+    let broker = request
+        .pointer("/omp/model_broker")
+        .and_then(Value::as_object)
+        .ok_or("prepared request lacks its model broker")?;
+    let routes = request
+        .pointer("/execution_binding/model_routes/routes")
+        .and_then(Value::as_array)
+        .ok_or("prepared request lacks its model routes")?;
+    let [route] = routes.as_slice() else {
+        return Err("prepared request must declare exactly the primary model route".into());
+    };
+    let route_identity = route
+        .get("route_identity")
+        .and_then(Value::as_str)
+        .filter(|_| route.get("name").and_then(Value::as_str) == Some("primary"))
+        .ok_or("prepared request must declare exactly the primary model route")?
+        .to_owned();
+    let host_local = json!({"kind": "host_local"});
+    if !exact_strings("read_paths", &["src", ".cairn"])
         || !exact_strings("write_paths", &["src/scripted_model_result.txt"])
-        || request.get("network").and_then(Value::as_bool) != Some(true)
-        || request.get("network_namespace").and_then(Value::as_str)
-            != Some("/run/netns/kiln-scripted-model")
+        || request.get("network").and_then(Value::as_bool) != Some(false)
+        || request.get("network_namespace").is_some()
+        || request.get("worker_compute") != Some(&host_local)
+        || request
+            .pointer("/execution_binding/schema")
+            .and_then(Value::as_str)
+            != Some("lattice.execution-binding.v1")
+        || request.pointer("/execution_binding/compute") != Some(&host_local)
+        || broker.get("schema").and_then(Value::as_str) != Some("lattice.candidate-model-broker.v1")
+        || broker.get("model").and_then(Value::as_str) != Some("scripted-v1")
+        || !broker.get("credential").is_some_and(Value::is_null)
+        || !broker
+            .get("endpoint")
+            .and_then(Value::as_str)
+            .is_some_and(|endpoint| endpoint.starts_with("http://127.0.0.1:"))
         || request.get("output_limit_bytes").and_then(Value::as_u64) != Some(1_048_576)
         || request.get("allow_unchanged").and_then(Value::as_bool) != Some(false)
     {
         return Err(
-            "prepared request differs from immutable fixture filesystem/network/output grants"
+            "prepared request differs from immutable fixture filesystem/compute/broker/output grants"
                 .into(),
         );
     }
@@ -773,7 +811,7 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         || plan.deadline_minutes != 2
         || plan.invocation_budget != 4
         || plan.token_budget != 4096
-        || !plan.workspace.network
+        || plan.workspace.network
         || plan.workspace.credentials
     {
         return Err("dispatch template differs from exact scripted local work/profile/workspace/budget contract".into());
@@ -782,7 +820,7 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .get("envelope")
         .and_then(Value::as_object)
         .ok_or("request envelope missing")?;
-    if request.get("network").and_then(Value::as_bool) != Some(true)
+    if request.get("network").and_then(Value::as_bool) != Some(false)
         || envelope.get("workspace_id").and_then(Value::as_str)
             != Some(plan.workspace.identity.as_str())
     {
@@ -797,7 +835,7 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .pointer("/omp/model")
         .and_then(Value::as_str)
         .ok_or("prepared request model declaration missing")?;
-    if model != "kiln-scripted/scripted-v1" {
+    if model != "lattice/scripted-v1" {
         return Err("prepared request is not the reviewed scripted local model".into());
     }
     let requirements = kiln_core::inventory::WorkNeedsAttachment::new(
@@ -834,6 +872,8 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
     .map_err(str::to_string)?;
     let local_source = "scripted-local-fixture".to_string();
     let execution_grant = attempt.as_str().to_string();
+    let native_profile = ContentId::from_blake3_hex(worker_profile.clone())
+        .map_err(|e| format!("{}: {}", e.code, e.message))?;
     let refs = AttemptBinding {
         work_version: actual.work_identity.as_str().to_owned(),
         attempt: attempt.as_str().to_owned(),
@@ -852,15 +892,26 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         }],
         request_admissions: vec![FactRef {
             source: local_source,
-            id: "/run/netns/kiln-scripted-model".into(),
+            id: route_identity,
         }],
     };
     plan.execution = Some(DispatchExecutionBindings {
         requirements: requirements.clone(),
         attempt: refs,
-        native_request_profile: None,
+        native_request_profile: Some(native_profile),
     });
-    admit_dispatch_plan(&work, &actual, &plan).map_err(|e| format!("{}: {}", e.code, e.message))?;
+    let plan_identity = admit_dispatch_plan(&work, &actual, &plan)
+        .map_err(|e| format!("{}: {}", e.code, e.message))?;
+    // The worker profile does not frame per-attempt envelope values or the
+    // dispatch plan, so preparing this seed again keeps the bound profile.
+    let seed = request
+        .as_object_mut()
+        .ok_or("prepared request is not an object")?;
+    seed.insert(
+        "dispatch_plan".into(),
+        Value::String(plan_identity.as_str().to_owned()),
+    );
+    seed.insert("admitted_envelope".into(), Value::String(String::new()));
     owner.attach_work_needs(&requirements)?;
     let retained = owner
         .work_needs(&actual.work_identity, &policy)?
@@ -877,7 +928,7 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .filter(|i| i.valid_until_ms >= now)
         .collect();
     Ok(
-        json!({"schema":"kiln.scripted-execution-binding.v1","scope":"synthetic-local-only","dispatch_plan":plan,"admission_observations":observations,"worker_request":request}),
+        json!({"schema":"kiln.scripted-execution-binding.v2","scope":"synthetic-local-only","dispatch_plan":plan,"dispatch_plan_identity":plan_identity,"admission_observations":observations,"worker_seed":request}),
     )
 }
 fn run() -> Result<(), String> {
