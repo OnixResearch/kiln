@@ -82,7 +82,38 @@
       {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"], "note": "the same three dangling markers as the base"},
       {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0},
       {"command": "nix run --builders '' nixpkgs#gitleaks -- dir <changed paths> --no-banner", "exit": 0, "result": "no leaks found"},
-      {"command": "composed-qualification/qualify.sh run lost_before_start lost_during_run refusals crossed substituted_dispatched moved_root cancel", "exit": 0, "record": "composed-qualification.json"}
+      {"command": "composed-qualification/qualify.sh run lost_before_start lost_during_run refusals crossed substituted_dispatched moved_root cancel", "exit": 0, "record": "the earlier review run; superseded for moved_root, lost_before_start, lost_during_run, refusals and crossed by re_review below", "note": "this run's moved_root completed its first dispatch before the root change and did not exercise a lost acknowledgement"}
     ]
+  },
+  "re_review": {
+    "source": "re-review of d8d85a18; decisions by Main",
+    "tree": "kiln-84 working tree on d8d85a18",
+    "findings": [
+      {
+        "finding": "HIGH liveness: the owner-grant gate admission_before_transport (Committed to Unknown, queue phase to DispatchIntent) ran before state-root creation and binding retention, so a failed preparation stranded the attempt with unknown grants and no transport intent.",
+        "resolution": "prepare_launch_files in crates/kiln-adapter-lattice/src/worker.rs now performs every fallible first-launch filesystem step (output directory, frozen request, bound state root, binding) before admission_before_transport, and the binding is still retained before begin_dispatch_transport. A conflicting binding is still refused, never replaced.",
+        "tests": ["worker::preparation_tests::failed_preparation_leaves_owner_grants_committed_and_a_retry_proceeds (unwritable root and conflicting binding keep the reservation Committed and the queue phase unchanged; a retry after removing the cause prepares; a retry after a crash following retention passes the gate, which then moves the reservation to Unknown and the phase to DispatchIntent)"]
+      },
+      {
+        "finding": "Evidence gap: the moved-root scenario completed its first dispatch before changing the root, so it did not exercise a lost acknowledgement.",
+        "resolution": "moved_root now kills kiln-lattice-dispatch while Lattice runs the first launch under root A (the lost-during-run mechanism), changes the profile's root to B and recovers: Kiln recovered in A with one endpoint request and root B absent.",
+        "tests": ["composed moved-root"]
+      }
+    ],
+    "open_items": [
+      "Predates this change: a crash between the owner-grant gate (admission_before_transport, crates/kiln-implementer/src/admission.rs, reservations to Unknown) and begin_dispatch_transport (crates/kiln-adapter-lattice/src/worker.rs) leaves unknown grants without a transport intent; a fresh run is refused by the gate and there is no intent to recover. The two transactions are not merged in this change."
+    ],
+    "environment": "TMPDIR=/var/tmp/onix-round-20261121/kiln45 because /tmp (datapool/tmp) was full from other sessions; the pinned OMP store path was collected by host auto-GC and rebuilt from its recorded flake to the same store path and executable BLAKE3 (see composed-qualification.json)",
+    "commands": [
+      {"command": "cargo fmt --all --check", "exit": 0},
+      {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "warnings": 0, "note": "before the test-only ServingBounds fix in worker_preparation_tests.rs"},
+      {"command": "cargo clippy --locked -p kiln-adapter-lattice --all-targets -- -D warnings", "exit": 0, "note": "after the test-only fix"},
+      {"command": "cargo test --locked -p kiln-adapter-lattice -p kiln-implementer", "exit": 0, "passed": 159, "failed": 0, "ignored": 7},
+      {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+      {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0},
+      {"command": "/nix/store/n57sbg8d4nvxqa40nl9a5dib1smpqim3-gitleaks-8.28.0/bin/gitleaks dir <changed paths> --no-banner", "exit": 0, "result": "no leaks found", "note": "nix run nixpkgs#gitleaks hung under the host load, so the store gitleaks 8.28.0 was run directly"},
+      {"command": "composed-qualification/qualify.sh moved_root lost_before_start lost_during_run refusals crossed", "exit": 0, "record": "composed-qualification.json"}
+    ],
+    "not_run": ["the full workspace test run (left to the parent's flake check)"]
   }
 }

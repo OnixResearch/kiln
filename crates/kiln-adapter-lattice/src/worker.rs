@@ -151,6 +151,95 @@ fn lattice_command(
     }
 }
 
+/// Prepare every launch file before any owner grant is consumed: the private
+/// output directory, the frozen request and, for the first launch, the bound
+/// state root and its durable binding. Returns the frozen request and binding
+/// paths. Each step is idempotent, and a conflicting frozen request or binding
+/// is refused rather than replaced.
+// r[impl kiln.implementation.lattice_cli.scenario.bound_root]
+fn prepare_launch_files(
+    profile: &WorkerTransportProfile,
+    attempt: &ContentId,
+    fence: u64,
+    request_id: &ContentId,
+    request_bytes: &[u8],
+    first_launch: bool,
+) -> Result<(PathBuf, PathBuf), String> {
+    let output_dir = &profile.output_directory;
+    if !output_dir.is_absolute() || !profile.state_directory.is_absolute() {
+        return Err("worker state/output paths must be absolute".into());
+    }
+    let mut directories = std::fs::DirBuilder::new();
+    directories.recursive(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::DirBuilderExt;
+        directories.mode(0o700);
+    }
+    directories
+        .create(output_dir)
+        .map_err(|error| error.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if std::fs::metadata(output_dir)
+            .map_err(|error| error.to_string())?
+            .permissions()
+            .mode()
+            & 0o077
+            != 0
+        {
+            return Err("worker transport observations require a private output directory".into());
+        }
+    }
+    let frozen_request = output_dir.join(format!("request-{}.json", request_id.as_str()));
+    {
+        use std::io::Write;
+        let mut options = std::fs::OpenOptions::new();
+        options.create_new(true).write(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o400);
+        }
+        match options.open(&frozen_request) {
+            Ok(mut file) => file
+                .write_all(request_bytes)
+                .and_then(|_| file.sync_all())
+                .map_err(|error| error.to_string())?,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                if std::fs::read(&frozen_request).map_err(|error| error.to_string())?
+                    != request_bytes
+                {
+                    return Err("frozen request conflict".into());
+                }
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    // The first launch's program and state root are bound before its transport
+    // intent; recovery never follows a later profile into another root.
+    let binding_path = binding::TransportBinding::path(output_dir, attempt, fence);
+    if first_launch {
+        // The bound root exists from the first launch on, so recovery after a
+        // loss before Lattice started still runs in it, never in a fresh root.
+        directories
+            .create(&profile.state_directory)
+            .map_err(|error| error.to_string())?;
+        binding::retain(
+            &binding_path,
+            &binding::TransportBinding::new(
+                attempt,
+                fence,
+                &profile.lattice_program,
+                &profile.executable_blake3,
+                &profile.state_directory,
+            ),
+        )?;
+    }
+    Ok((frozen_request, binding_path))
+}
+
 /// Exact files for the guarded existing implementation-worker consumer.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -356,7 +445,9 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             "bound worker execution requires an explicit owner-grant admission policy".into(),
         );
     }
-    if !recovery {
+    let fresh: Vec<kiln_core::fair_admission::EligibilityInput> = if recovery {
+        Vec::new()
+    } else {
         let item = admission
             .items
             .get(&plan.work_identity)
@@ -384,89 +475,33 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                 "worker runtime/invocations exceed parent queue, lease or dispatch budget".into(),
             );
         }
-        let fresh: Vec<kiln_core::fair_admission::EligibilityInput> =
-            match flags.get("--admission-observations") {
-                Some(path) => read_json(Path::new(path))?,
-                None => Vec::new(),
-            };
+        match flags.get("--admission-observations") {
+            Some(path) => read_json(Path::new(path))?,
+            None => Vec::new(),
+        }
+    };
+    // Every fallible filesystem step of the first launch (output directory,
+    // frozen request, bound state root and binding) precedes the owner-grant
+    // gate, which moves committed owner reservations to unknown. A failure here
+    // leaves the grants committed, so a retry after fixing the cause proceeds.
+    let (frozen_request, binding_path) = prepare_launch_files(
+        &profile,
+        &attempt.identity,
+        attempt.fence,
+        &request_id,
+        &request_bytes,
+        !recovery,
+    )?;
+    let output_dir = &profile.output_directory;
+    if !recovery {
+        // Open item (predates this change): a crash between this gate and
+        // `begin_dispatch_transport` leaves unknown grants with no transport
+        // intent; neither a fresh run nor recovery can then proceed.
         implementer.admission_before_transport(
             &attempt.identity,
             attempt.fence,
             &fresh,
             clock()?,
-        )?;
-    }
-    let output_dir = &profile.output_directory;
-    if !output_dir.is_absolute() || !profile.state_directory.is_absolute() {
-        return Err("worker state/output paths must be absolute".into());
-    }
-    let mut directories = std::fs::DirBuilder::new();
-    directories.recursive(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::DirBuilderExt;
-        directories.mode(0o700);
-    }
-    directories
-        .create(output_dir)
-        .map_err(|error| error.to_string())?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if std::fs::metadata(output_dir)
-            .map_err(|error| error.to_string())?
-            .permissions()
-            .mode()
-            & 0o077
-            != 0
-        {
-            return Err("worker transport observations require a private output directory".into());
-        }
-    }
-    let frozen_request = output_dir.join(format!("request-{}.json", request_id.as_str()));
-    {
-        use std::io::Write;
-        let mut options = std::fs::OpenOptions::new();
-        options.create_new(true).write(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o400);
-        }
-        match options.open(&frozen_request) {
-            Ok(mut file) => file
-                .write_all(&request_bytes)
-                .and_then(|_| file.sync_all())
-                .map_err(|error| error.to_string())?,
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                if std::fs::read(&frozen_request).map_err(|error| error.to_string())?
-                    != request_bytes
-                {
-                    return Err("frozen request conflict".into());
-                }
-            }
-            Err(error) => return Err(error.to_string()),
-        }
-    }
-    // The first launch's program and state root are bound before its transport
-    // intent; recovery never follows a later profile into another root.
-    let binding_path =
-        binding::TransportBinding::path(output_dir, &attempt.identity, attempt.fence);
-    if !recovery {
-        // The bound root exists from the first launch on, so recovery after a
-        // loss before Lattice started still runs in it, never in a fresh root.
-        directories
-            .create(&profile.state_directory)
-            .map_err(|error| error.to_string())?;
-        binding::retain(
-            &binding_path,
-            &binding::TransportBinding::new(
-                &attempt.identity,
-                attempt.fence,
-                &profile.lattice_program,
-                &profile.executable_blake3,
-                &profile.state_directory,
-            ),
         )?;
     }
     let recovery = implementer.begin_dispatch_transport(
@@ -991,3 +1026,7 @@ mod credential_ordering_tests {
         assert!(!reserved);
     }
 }
+
+#[cfg(test)]
+#[path = "worker_preparation_tests.rs"]
+mod preparation_tests;

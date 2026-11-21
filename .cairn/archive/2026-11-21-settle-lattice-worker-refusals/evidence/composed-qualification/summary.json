@@ -1,76 +1,4 @@
 {
- "cancel": {
-  "calls": {
-   "dispatch": {
-    "exit": 0,
-    "stderr": "kiln worker metrics unavailable: native OMP terminal observation is unavailable",
-    "stdout": [
-     {
-      "accepted": false,
-      "envelope_attempt": "971f2767981a580c55b01cd0858bd156751882f2f990baa258613e93e821058c",
-      "envelope_fence": 1,
-      "execution_binding": "blake3:5d0af8bd5f00f4ad345ac9ea65cf9247ecba40de7e98f4a8f2de12bd7a8db6d6",
-      "integrated": false,
-      "request_identity": "a7efc8a32cca07eb80736c8879381dbaa9c11cf9ab4a99d524da6c558f0f5131",
-      "result": {
-       "disposition": "cancelled",
-       "receipt": null,
-       "stdout_blake3": "4b370947207ad2208b7b1dc0700a11a651e1f79d0a68c3f6742f7b57b7657235"
-      },
-      "schema": "lattice.implementation-attempt-observation.v1"
-     }
-    ]
-   }
-  },
-  "endpoint_requests": 1,
-  "kiln_attempt": {
-   "cause": "provider cancellation observed; retained usage is not refunded",
-   "dispatch": {
-    "effect_id": "dispatch-6b9e6ed5fa5d78dfa3031927717e5bf375c11c95fcec57a42963317915f1e52f",
-    "idempotency_key": {
-     "contract_version": 1,
-     "native_id": "6b9e6ed5fa5d78dfa3031927717e5bf375c11c95fcec57a42963317915f1e52f",
-     "native_kind": "implementation-dispatch",
-     "provider_namespace": "kiln"
-    },
-    "plan": "7d97431c1cda4c7bfd36c4e6d392e94ed3646db39f80ff2e0525a78d02a2b747",
-    "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283622524,
-    "schema": "kiln.implementation-dispatch.v1"
-   },
-   "dispatch_request_binding": {
-    "attempt": "971f2767981a580c55b01cd0858bd156751882f2f990baa258613e93e821058c",
-    "fence": 1,
-    "plan": "7d97431c1cda4c7bfd36c4e6d392e94ed3646db39f80ff2e0525a78d02a2b747",
-    "request_digest": "924ccb71ebba92ee5ee9c8b5a9a6dc978966a0801fae7eb6394abdf7b504cb49",
-    "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "001ba25e6d611710eea67e92161bb243acbd013db40857831b06478720bb967f"
-   },
-   "execution": null,
-   "failure": "unknown",
-   "fence": 1,
-   "phase": "cancelled",
-   "workflow": {
-    "contract_version": 1,
-    "native_id": "924ccb71ebba92ee5ee9c8b5a9a6dc978966a0801fae7eb6394abdf7b504cb49",
-    "native_kind": "implementation-attempt",
-    "provider_namespace": "lattice"
-   }
-  },
-  "lattice_state_files": [
-   "cb315a6bcd82472abe10f7488a46eb761fdb246f9c16e1ada87ba153baad38c5/cancel.request 64",
-   "cb315a6bcd82472abe10f7488a46eb761fdb246f9c16e1ada87ba153baad38c5/candidate.redb 548864",
-   "cb315a6bcd82472abe10f7488a46eb761fdb246f9c16e1ada87ba153baad38c5/execution-binding.json 780",
-   "cb315a6bcd82472abe10f7488a46eb761fdb246f9c16e1ada87ba153baad38c5/intent.json 64",
-   "cb315a6bcd82472abe10f7488a46eb761fdb246f9c16e1ada87ba153baad38c5/omp-observation.json 64",
-   "cb315a6bcd82472abe10f7488a46eb761fdb246f9c16e1ada87ba153baad38c5/raw-events.jsonl 624",
-   "works/969b6b11aead964a9996b7daf4fc4dbc43c948a6b5c77157bb3b85f499a8193b/00000000000000000001 64"
-  ],
-  "omp_observation": {
-   "Err": "OMP JSONL stream is malformed, truncated or incomplete"
-  },
-  "prepared_worker_profile": "b136b1421de44460cc64b2d6d816d7f107d50c02283f5be42aa03c817554e173"
- },
  "crossed": {
   "calls": {
    "crossed-attempt": {
@@ -100,25 +28,25 @@
   "kiln_attempt": {
    "cause": "lattice_refused_before_effect:crossed_attempt",
    "dispatch": {
-    "effect_id": "dispatch-b4e6389b6b954288d4354a4ae01fceaca0d6541a9a9338a98e3ddceab73e0a95",
+    "effect_id": "dispatch-17bd363b1eb8e518b6d5536d273a117ef8483cea321b79a2ed8ec8d33ea7cc6b",
     "idempotency_key": {
      "contract_version": 1,
-     "native_id": "b4e6389b6b954288d4354a4ae01fceaca0d6541a9a9338a98e3ddceab73e0a95",
+     "native_id": "17bd363b1eb8e518b6d5536d273a117ef8483cea321b79a2ed8ec8d33ea7cc6b",
      "native_kind": "implementation-dispatch",
      "provider_namespace": "kiln"
     },
-    "plan": "b7646a0d5a2f54540917ca68f3cf5b0bde3153597217088c1a6d99e8104493b7",
+    "plan": "a00c265867c4c0e8390974a23fee92a5d5947afbc84c3c6ce66dc25d235217e5",
     "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283575671,
+    "reserved_at_ms": 1795287093845,
     "schema": "kiln.implementation-dispatch.v1"
    },
    "dispatch_request_binding": {
     "attempt": "be884a299fed4c7ce76ba28830de3d9a9766047a0b16a510a594192118f7fc1a",
     "fence": 1,
-    "plan": "b7646a0d5a2f54540917ca68f3cf5b0bde3153597217088c1a6d99e8104493b7",
-    "request_digest": "e248fa030eb32cb8aeda3c10a400669d39a5ae0ba7a27ac4d51a665d974555c6",
+    "plan": "a00c265867c4c0e8390974a23fee92a5d5947afbc84c3c6ce66dc25d235217e5",
+    "request_digest": "32f44ca13be893fd3031d0dc258dda38fb5e93c5bbf6de625cd0f0bf93c2b49e",
     "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "eb0cfd8edbe2e6b5d3e69f870d97b088a7ec546a6a6e12482659e51913ea8861"
+    "seal": "293e5b594043f8ed420df04131fe41d74af338aefdbe8b686205b2df654b41a4"
    },
    "execution": null,
    "failure": "infrastructure",
@@ -127,10 +55,10 @@
    "workflow": null
   },
   "lattice_state_files": [
-   "works/5e4b05acd8b081274b5bb75adf180552f35658d63504ec957163f6828ec98102/00000000000000000001 64"
+   "works/0549b514fbadfe611ab416cc98371b2cb068db840d02648db754859b9eddbac4/00000000000000000001 64"
   ],
   "omp_observation": null,
-  "prepared_worker_profile": "2b47117ce7e04504c13c0f4243d72489a425207a5ba35c90ede92eb89deedc18"
+  "prepared_worker_profile": "11f118558bd3a959f8992adacb04f3a443bedc1547ed19cb1f8d0f95a0f3cf39"
  },
  "lost-before-start": {
   "calls": {
@@ -143,7 +71,7 @@
       "envelope_attempt": "d92c099bf4058d2f15c1506d9b6dbc76960958e1e8ded042b89ab7560a6a1a5d",
       "envelope_fence": 1,
       "integrated": false,
-      "request_identity": "1cc893ea4e148dfe8a2f9e021233ea39d38bbebb68808ac0a7bd7d0d81a873b7",
+      "request_identity": "f9bf781efba1593321153f08942add939fda03e7ecb18f81070d7d779154894c",
       "result": null,
       "schema": "lattice.implementation-attempt-observation.v1",
       "status": "not_started_closed_by_recovery"
@@ -160,25 +88,25 @@
   "kiln_attempt": {
    "cause": "lattice_closed_before_execution",
    "dispatch": {
-    "effect_id": "dispatch-915fc0428756c918d91ccaa795770876efdf26b8bb734766330fc2603a22eaf9",
+    "effect_id": "dispatch-31bdc29440f0841467be868548b4cbf1b6729ea6e0212a352d258c913705f0af",
     "idempotency_key": {
      "contract_version": 1,
-     "native_id": "915fc0428756c918d91ccaa795770876efdf26b8bb734766330fc2603a22eaf9",
+     "native_id": "31bdc29440f0841467be868548b4cbf1b6729ea6e0212a352d258c913705f0af",
      "native_kind": "implementation-dispatch",
      "provider_namespace": "kiln"
     },
-    "plan": "8123c590337cf0ce966989d827f5eda6596c4dc9877e62592dc09cfc842b0103",
+    "plan": "c65721066de715d729d25fa8a7e87e3add3a6f98443ee8b597d5f0aa79e808ce",
     "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283508574,
+    "reserved_at_ms": 1795287050917,
     "schema": "kiln.implementation-dispatch.v1"
    },
    "dispatch_request_binding": {
     "attempt": "d92c099bf4058d2f15c1506d9b6dbc76960958e1e8ded042b89ab7560a6a1a5d",
     "fence": 1,
-    "plan": "8123c590337cf0ce966989d827f5eda6596c4dc9877e62592dc09cfc842b0103",
-    "request_digest": "3fea80472309ece2b7824f55d6fe5d630b67d7fcb6a6424c2d004dc51e185112",
+    "plan": "c65721066de715d729d25fa8a7e87e3add3a6f98443ee8b597d5f0aa79e808ce",
+    "request_digest": "02dca3708bd5c78c943b60980b32bf58c4703d36cbaf91196d14a421878c206e",
     "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "5ff1bfb9e2177b4c3f3ce590a77d6c97b6a4a19cb827f5cf2ecbd7fc42627928"
+    "seal": "40213ce92c79756e799594db69715520923d649a061ad2de1f3e9d9d2a5ce99e"
    },
    "execution": null,
    "failure": "infrastructure",
@@ -187,12 +115,12 @@
    "workflow": null
   },
   "lattice_state_files": [
-   "b2c251678ee7a09aee0a557c2d4567158085a53d5b5992003c598f90a1f4c5c9/intent.json 88"
+   "ffefc00a80336204c54f21fda9e83b8314d97f66888cb9e109d287fe91bfaec3/intent.json 88"
   ],
   "omp_observation": null,
-  "prepared_worker_profile": "704bd3a33321fe9ab8bff2c91477ba70bdf261e54cf2abd4357aecd5259daac0"
+  "prepared_worker_profile": "75111bdbf1dba1a9af030c3de3ab3c7faf05e7394f06b2030d5c2cf073a1c5bd"
  },
- "lost-during-run": {
+ "lost-run": {
   "calls": {
    "dispatch": {
     "exit": 137,
@@ -205,15 +133,15 @@
     "stdout": [
      {
       "accepted": false,
-      "envelope_attempt": "fb7df24b7e6f791d0d3cc0b9c16354ac4a82e855f2c0d7bce62f03c6913c3bf5",
+      "envelope_attempt": "29a246bc277866425affff0960c79d12169de5e8127f9f8c61d01bd66464a953",
       "envelope_fence": 1,
-      "execution_binding": "blake3:22c109b9249f381860ebb1b586fbb72738b88ddc6642eac8f56eacd56b661e1f",
+      "execution_binding": "blake3:ff7bad068ea8b52e701196bba378c14beeba012df65e6ae171b1796d954cbc6a",
       "integrated": false,
-      "request_identity": "86dddd63772a18bb4e424efeed6223fff005f48f7a7f04052ef76edcf9fca504",
+      "request_identity": "923170373d1e3ad0d60b19150e5d139a22fcb21d609be08b9c89e4c7fdd9383e",
       "result": {
        "disposition": "failed",
        "receipt": null,
-       "stdout_blake3": "ba97fba9e320bab3945cc80f59fc90ff21abc87bb67c5f529e850aaccfe6a087"
+       "stdout_blake3": "544dd0dd81d92e3a565b56b2994aec95cdd33dfacdc824298f24d77b25425bce"
       },
       "schema": "lattice.implementation-attempt-observation.v1"
      }
@@ -225,15 +153,15 @@
     "stdout": [
      {
       "accepted": false,
-      "envelope_attempt": "fb7df24b7e6f791d0d3cc0b9c16354ac4a82e855f2c0d7bce62f03c6913c3bf5",
+      "envelope_attempt": "29a246bc277866425affff0960c79d12169de5e8127f9f8c61d01bd66464a953",
       "envelope_fence": 1,
-      "execution_binding": "blake3:22c109b9249f381860ebb1b586fbb72738b88ddc6642eac8f56eacd56b661e1f",
+      "execution_binding": "blake3:ff7bad068ea8b52e701196bba378c14beeba012df65e6ae171b1796d954cbc6a",
       "integrated": false,
-      "request_identity": "86dddd63772a18bb4e424efeed6223fff005f48f7a7f04052ef76edcf9fca504",
+      "request_identity": "923170373d1e3ad0d60b19150e5d139a22fcb21d609be08b9c89e4c7fdd9383e",
       "result": {
        "disposition": "failed",
        "receipt": null,
-       "stdout_blake3": "ba97fba9e320bab3945cc80f59fc90ff21abc87bb67c5f529e850aaccfe6a087"
+       "stdout_blake3": "544dd0dd81d92e3a565b56b2994aec95cdd33dfacdc824298f24d77b25425bce"
       },
       "schema": "lattice.implementation-attempt-observation.v1"
      }
@@ -244,25 +172,25 @@
   "kiln_attempt": {
    "cause": null,
    "dispatch": {
-    "effect_id": "dispatch-b896ef29ac134b01a8f309545604117a62688de7a1b1392ca9cf297823b95bdd",
+    "effect_id": "dispatch-c0ff1f9b226e53d11fc6c927a4932e108e07b6afbde93fa13911b3f0cefc6117",
     "idempotency_key": {
      "contract_version": 1,
-     "native_id": "b896ef29ac134b01a8f309545604117a62688de7a1b1392ca9cf297823b95bdd",
+     "native_id": "c0ff1f9b226e53d11fc6c927a4932e108e07b6afbde93fa13911b3f0cefc6117",
      "native_kind": "implementation-dispatch",
      "provider_namespace": "kiln"
     },
-    "plan": "320467198ddae48fec65853493356bf11c8262308ff7a5493846721aa93e4d4b",
+    "plan": "b972d32bcc1ae67342fa296326fb80351ac95fa1dbc7522fc390f016736e9f31",
     "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283522045,
+    "reserved_at_ms": 1795287061155,
     "schema": "kiln.implementation-dispatch.v1"
    },
    "dispatch_request_binding": {
-    "attempt": "fb7df24b7e6f791d0d3cc0b9c16354ac4a82e855f2c0d7bce62f03c6913c3bf5",
+    "attempt": "29a246bc277866425affff0960c79d12169de5e8127f9f8c61d01bd66464a953",
     "fence": 1,
-    "plan": "320467198ddae48fec65853493356bf11c8262308ff7a5493846721aa93e4d4b",
-    "request_digest": "2a11ac91df7c3aabb9c8be4043cde7d965807e900bf214642fe8086b8eea7613",
+    "plan": "b972d32bcc1ae67342fa296326fb80351ac95fa1dbc7522fc390f016736e9f31",
+    "request_digest": "c0bc00531b710b78a3a28c16a1540a411bffb9f761032b3b9d56ac618188c645",
     "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "16127b35773aeb72fb8c79cf382d7b490ca67929b5b6fbb3c3a41d0352e04b62"
+    "seal": "fe56e7f29c90d4b0833fbf15fb34d367ac1008b8e21b6a5e4607ea2c8b9c5584"
    },
    "execution": null,
    "failure": null,
@@ -270,52 +198,37 @@
    "phase": "executing",
    "workflow": {
     "contract_version": 1,
-    "native_id": "2a11ac91df7c3aabb9c8be4043cde7d965807e900bf214642fe8086b8eea7613",
+    "native_id": "c0bc00531b710b78a3a28c16a1540a411bffb9f761032b3b9d56ac618188c645",
     "native_kind": "implementation-attempt",
     "provider_namespace": "lattice"
    }
   },
   "lattice_state_files": [
-   "7ae1b805f79fda7076fc88dc112930ceaf8b2eb3c0e1b30db6ad0ddbff15a2b1/candidate.redb 548864",
-   "7ae1b805f79fda7076fc88dc112930ceaf8b2eb3c0e1b30db6ad0ddbff15a2b1/execution-binding.json 780",
-   "7ae1b805f79fda7076fc88dc112930ceaf8b2eb3c0e1b30db6ad0ddbff15a2b1/intent.json 64",
-   "7ae1b805f79fda7076fc88dc112930ceaf8b2eb3c0e1b30db6ad0ddbff15a2b1/omp-observation.json 250",
-   "7ae1b805f79fda7076fc88dc112930ceaf8b2eb3c0e1b30db6ad0ddbff15a2b1/raw-events.jsonl 3219",
-   "works/5948dcbfbd500b97b8528036e49528285dda83c5cc2429eeb6d2c21c90aed8d7/00000000000000000001 64"
+   "e2b778e60965fc50b6e27b31b82b0814b69c30c9449abdf242a9c7ed9cf228f8/candidate.redb 548864",
+   "e2b778e60965fc50b6e27b31b82b0814b69c30c9449abdf242a9c7ed9cf228f8/execution-binding.json 780",
+   "e2b778e60965fc50b6e27b31b82b0814b69c30c9449abdf242a9c7ed9cf228f8/intent.json 64",
+   "e2b778e60965fc50b6e27b31b82b0814b69c30c9449abdf242a9c7ed9cf228f8/omp-observation.json 250",
+   "e2b778e60965fc50b6e27b31b82b0814b69c30c9449abdf242a9c7ed9cf228f8/raw-events.jsonl 3251",
+   "works/c103b1009dd0e085014f14b53ff7c4fca2676aec2e073e881286fa9eefab525a/00000000000000000001 64"
   ],
   "omp_observation": {
    "Ok": {
     "event_count": 8,
-    "raw_events_blake3": "ba97fba9e320bab3945cc80f59fc90ff21abc87bb67c5f529e850aaccfe6a087",
+    "raw_events_blake3": "544dd0dd81d92e3a565b56b2994aec95cdd33dfacdc824298f24d77b25425bce",
     "schema": "lattice.omp-jsonl-observation.v1",
-    "session_id": "01a1ff3c-973e-7281-8e1d-4cc916c62de3",
+    "session_id": "01a1ff72-943e-762b-9488-e7c559418451",
     "terminal": "failed",
     "usage_complete": false
    }
   },
-  "prepared_worker_profile": "214d617bf9a6db4ea45bd15ce25c4e943771ebe8ec7b573b9d846bca1c0f1fdc"
+  "prepared_worker_profile": "8f82c85715ee7de0de5f8f0d59d1a1dfc06ff4547c1e5c7cb243d9cd03f11418"
  },
- "moved-root": {
+ "moved": {
   "calls": {
    "dispatch": {
-    "exit": 0,
+    "exit": 137,
     "stderr": "",
-    "stdout": [
-     {
-      "accepted": false,
-      "envelope_attempt": "01c18f655355d103a6b057ae9f2dcd66b7b4b697e23b70257f62d90e8b4fb8e7",
-      "envelope_fence": 1,
-      "execution_binding": "blake3:23a9f1714733ff54664d52ea4c1d8d238205e8c8d10e25f3320df014b3a0a682",
-      "integrated": false,
-      "request_identity": "8b962a7ad28bc1e3e6d85796af5047618008f429e1882ee294c233b8522325dd",
-      "result": {
-       "disposition": "failed",
-       "receipt": null,
-       "stdout_blake3": "dc80f5ad63d52e3038c56c6c3d01827518980dade622a50424fa316c7e13675e"
-      },
-      "schema": "lattice.implementation-attempt-observation.v1"
-     }
-    ]
+    "stdout": []
    },
    "recover-moved": {
     "exit": 0,
@@ -323,15 +236,35 @@
     "stdout": [
      {
       "accepted": false,
-      "envelope_attempt": "01c18f655355d103a6b057ae9f2dcd66b7b4b697e23b70257f62d90e8b4fb8e7",
+      "envelope_attempt": "13fb81826d8f3829598d2ba6757fef196fedd632d9a016ecfbb1a63b1bb03487",
       "envelope_fence": 1,
-      "execution_binding": "blake3:23a9f1714733ff54664d52ea4c1d8d238205e8c8d10e25f3320df014b3a0a682",
+      "execution_binding": "blake3:363388239fede7a114a43315c350d5a35fa92eeed98e6c2dc22ad1e0a6248c4e",
       "integrated": false,
-      "request_identity": "8b962a7ad28bc1e3e6d85796af5047618008f429e1882ee294c233b8522325dd",
+      "request_identity": "6c3dbfe060960a76a9eba400e696d69a8e0e960ea4ffa0d4e6e93e33b2807b9e",
       "result": {
        "disposition": "failed",
        "receipt": null,
-       "stdout_blake3": "dc80f5ad63d52e3038c56c6c3d01827518980dade622a50424fa316c7e13675e"
+       "stdout_blake3": "625ea5e2978a91b522fea16b56548de7523a95f742d9bc38def606b7497ab166"
+      },
+      "schema": "lattice.implementation-attempt-observation.v1"
+     }
+    ]
+   },
+   "recover-moved-replay": {
+    "exit": 0,
+    "stderr": "",
+    "stdout": [
+     {
+      "accepted": false,
+      "envelope_attempt": "13fb81826d8f3829598d2ba6757fef196fedd632d9a016ecfbb1a63b1bb03487",
+      "envelope_fence": 1,
+      "execution_binding": "blake3:363388239fede7a114a43315c350d5a35fa92eeed98e6c2dc22ad1e0a6248c4e",
+      "integrated": false,
+      "request_identity": "6c3dbfe060960a76a9eba400e696d69a8e0e960ea4ffa0d4e6e93e33b2807b9e",
+      "result": {
+       "disposition": "failed",
+       "receipt": null,
+       "stdout_blake3": "625ea5e2978a91b522fea16b56548de7523a95f742d9bc38def606b7497ab166"
       },
       "schema": "lattice.implementation-attempt-observation.v1"
      }
@@ -342,25 +275,25 @@
   "kiln_attempt": {
    "cause": null,
    "dispatch": {
-    "effect_id": "dispatch-f631da285da87f2746139eabc7d2db504d54eaea7e3af40f3514e25d46f3ed38",
+    "effect_id": "dispatch-db4134bffda3e596cb060aba1f879d72cbb372855d48d3a175b2d24b024adf54",
     "idempotency_key": {
      "contract_version": 1,
-     "native_id": "f631da285da87f2746139eabc7d2db504d54eaea7e3af40f3514e25d46f3ed38",
+     "native_id": "db4134bffda3e596cb060aba1f879d72cbb372855d48d3a175b2d24b024adf54",
      "native_kind": "implementation-dispatch",
      "provider_namespace": "kiln"
     },
-    "plan": "a422769a8c48e4b67a303ed7c147f3db4df8131bd0b3914be77b73d194ab455f",
+    "plan": "90eacb34c4f7c25548591582f8f5a4226b1f16a6e995bdea0d2bc4120cd1bdb8",
     "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283603479,
+    "reserved_at_ms": 1795287035745,
     "schema": "kiln.implementation-dispatch.v1"
    },
    "dispatch_request_binding": {
-    "attempt": "01c18f655355d103a6b057ae9f2dcd66b7b4b697e23b70257f62d90e8b4fb8e7",
+    "attempt": "13fb81826d8f3829598d2ba6757fef196fedd632d9a016ecfbb1a63b1bb03487",
     "fence": 1,
-    "plan": "a422769a8c48e4b67a303ed7c147f3db4df8131bd0b3914be77b73d194ab455f",
-    "request_digest": "85a5436ec8f71e06d59c91338579124a772119819988a12b4c3550b8b1dd0151",
+    "plan": "90eacb34c4f7c25548591582f8f5a4226b1f16a6e995bdea0d2bc4120cd1bdb8",
+    "request_digest": "173547cffb18423f668995d96353347f52042d5bd58ee2df5c4f6f777c041a39",
     "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "780a84e402d70f9c1b249f5b68554215cc2bffc6562d7c8612b477473f6c7314"
+    "seal": "7755b00946ebda5f307854be6eee89d87f4c0c0f26ff258e17aaf5fc585a9faa"
    },
    "execution": null,
    "failure": null,
@@ -368,30 +301,30 @@
    "phase": "executing",
    "workflow": {
     "contract_version": 1,
-    "native_id": "85a5436ec8f71e06d59c91338579124a772119819988a12b4c3550b8b1dd0151",
+    "native_id": "173547cffb18423f668995d96353347f52042d5bd58ee2df5c4f6f777c041a39",
     "native_kind": "implementation-attempt",
     "provider_namespace": "lattice"
    }
   },
   "lattice_state_files": [
-   "2c7fcc3aae458b2b134e71ae2ce0da986ce4aaa0c93c1618e9e1feb9f7c565be/candidate.redb 548864",
-   "2c7fcc3aae458b2b134e71ae2ce0da986ce4aaa0c93c1618e9e1feb9f7c565be/execution-binding.json 780",
-   "2c7fcc3aae458b2b134e71ae2ce0da986ce4aaa0c93c1618e9e1feb9f7c565be/intent.json 64",
-   "2c7fcc3aae458b2b134e71ae2ce0da986ce4aaa0c93c1618e9e1feb9f7c565be/omp-observation.json 250",
-   "2c7fcc3aae458b2b134e71ae2ce0da986ce4aaa0c93c1618e9e1feb9f7c565be/raw-events.jsonl 3251",
-   "works/c1ed5729136a46922821a90d12f1b0b4a7b15c80be28ec41638771b561cf294a/00000000000000000001 64"
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/candidate.redb 548864",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/execution-binding.json 780",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/intent.json 64",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/omp-observation.json 250",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/raw-events.jsonl 3251",
+   "works/2b5b49cdfa3f7eb86a306ffb1eb46341faf432ec3d70671e55d3d9c1d0f30459/00000000000000000001 64"
   ],
   "omp_observation": {
    "Ok": {
     "event_count": 8,
-    "raw_events_blake3": "dc80f5ad63d52e3038c56c6c3d01827518980dade622a50424fa316c7e13675e",
+    "raw_events_blake3": "625ea5e2978a91b522fea16b56548de7523a95f742d9bc38def606b7497ab166",
     "schema": "lattice.omp-jsonl-observation.v1",
-    "session_id": "01a1ff3d-d745-7568-b91c-a06703d49cb7",
+    "session_id": "01a1ff72-3178-7173-abda-2b6bfa483906",
     "terminal": "failed",
     "usage_complete": false
    }
   },
-  "prepared_worker_profile": "49644ba36d5ceaed1426a591aeb2fc2e4a61c928806b53ad9e2954eb212cbc1d"
+  "prepared_worker_profile": "220254c840cb2d633c157239dec14b0d554c01912168476ce82e67cb53c1bc14"
  },
  "refusals": {
   "calls": {
@@ -442,7 +375,7 @@
       "envelope_attempt": "6b7bfe32f9b91a0330ba59f7545a14447ed1277619f960ea71adb42acc37958e",
       "envelope_fence": 1,
       "integrated": false,
-      "request_identity": "d0fab75d811c422d2aea6f7a02207feab9591eb993c8a52ae8ac8c2b7c21ac09",
+      "request_identity": "9308ec3b1f98885718730ae0cebee55e9af79ec72c4f68d553840cc77c772119",
       "result": null,
       "schema": "lattice.implementation-attempt-observation.v1",
       "status": "not_started_closed_by_recovery"
@@ -454,25 +387,25 @@
   "kiln_attempt": {
    "cause": "lattice_closed_before_execution",
    "dispatch": {
-    "effect_id": "dispatch-3a41970807349b151ac3d2a512ea9c3cf41f48001b2ce078f9973daf466f0db5",
+    "effect_id": "dispatch-21a57da5302db501cd21b047594dfe253a8f709b944e14e5af393418cc183cc7",
     "idempotency_key": {
      "contract_version": 1,
-     "native_id": "3a41970807349b151ac3d2a512ea9c3cf41f48001b2ce078f9973daf466f0db5",
+     "native_id": "21a57da5302db501cd21b047594dfe253a8f709b944e14e5af393418cc183cc7",
      "native_kind": "implementation-dispatch",
      "provider_namespace": "kiln"
     },
-    "plan": "f58631d408724a2f0fdd69af4ec249382c1e24a3aeb97ffe4df5b7fd2ab8676d",
+    "plan": "16c3895078103b35f370cc8ce4499d626829dfb20b4a52991ef1fd49ba26bd4a",
     "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283560672,
+    "reserved_at_ms": 1795287082932,
     "schema": "kiln.implementation-dispatch.v1"
    },
    "dispatch_request_binding": {
     "attempt": "6b7bfe32f9b91a0330ba59f7545a14447ed1277619f960ea71adb42acc37958e",
     "fence": 1,
-    "plan": "f58631d408724a2f0fdd69af4ec249382c1e24a3aeb97ffe4df5b7fd2ab8676d",
-    "request_digest": "c3b2f7ccc35015c18bde52f08c7bc93a5c23931b87754180041c3b9ac89c418b",
+    "plan": "16c3895078103b35f370cc8ce4499d626829dfb20b4a52991ef1fd49ba26bd4a",
+    "request_digest": "aa66bdea5383b82e93f0052d10f997bedd96e320476585e1dd75ab09fe46f938",
     "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "4f95601d0952056346d464d41df8cebef7b6afc61cddaaa31f81dbd3944906df"
+    "seal": "ba6161304a242e43d246877b1b0da39b02b0e91160ae43c7dfc688758b3146fd"
    },
    "execution": null,
    "failure": "infrastructure",
@@ -481,227 +414,10 @@
    "workflow": null
   },
   "lattice_state_files": [
-   "3f0f3638ebcef8edde7fb5fbd0ced45e33dc7d43c57bbb40b3256cb9d0f75964/intent.json 88",
-   "works/049ff4ca41be67dd3812411a38defd1944c1c353ab824302fa6c62ca08390140/00000000000000000002 64"
+   "48ec5a3f8d54836c9c46deb660774032cff83f2a20fe2a6322b160c15e51c66e/intent.json 88",
+   "works/3b504d27ef92d9b4a764ceba283bce339cfc3f3c3c9b4252879ee47f5c77b19b/00000000000000000002 64"
   ],
   "omp_observation": null,
-  "prepared_worker_profile": "50ace3ad6255540201257dfd081fca6df7dc1bd741b49c036756325327ae98be"
- },
- "run": {
-  "calls": {
-   "dispatch": {
-    "exit": 0,
-    "stderr": "",
-    "stdout": [
-     {
-      "accepted": false,
-      "envelope_attempt": "005fbe79437145dde67c37f87d872214dc30c14c696c579a7751e50898d11ab9",
-      "envelope_fence": 1,
-      "execution_binding": "blake3:a2f948b34c793e35dc4e758ebf7f81b0626863acc12abdb1f0a2b50d4a54f6d7",
-      "integrated": false,
-      "request_identity": "bcc63ad528e1cf21a8fd66e54a3accffbf6256bc417f4118284441cfa9ded107",
-      "result": {
-       "disposition": "failed",
-       "receipt": null,
-       "stdout_blake3": "ceb852681da72aef57e25795d7af4cc0749c5644903fda4fbbfea21bdb153d0d"
-      },
-      "schema": "lattice.implementation-attempt-observation.v1"
-     }
-    ]
-   },
-   "duplicate": {
-    "exit": 0,
-    "stderr": "",
-    "stdout": [
-     {
-      "accepted": false,
-      "envelope_attempt": "005fbe79437145dde67c37f87d872214dc30c14c696c579a7751e50898d11ab9",
-      "envelope_fence": 1,
-      "execution_binding": "blake3:a2f948b34c793e35dc4e758ebf7f81b0626863acc12abdb1f0a2b50d4a54f6d7",
-      "integrated": false,
-      "request_identity": "bcc63ad528e1cf21a8fd66e54a3accffbf6256bc417f4118284441cfa9ded107",
-      "result": {
-       "disposition": "failed",
-       "receipt": null,
-       "stdout_blake3": "ceb852681da72aef57e25795d7af4cc0749c5644903fda4fbbfea21bdb153d0d"
-      },
-      "schema": "lattice.implementation-attempt-observation.v1"
-     }
-    ]
-   },
-   "kiln-substituted": {
-    "exit": 2,
-    "stderr": "kiln-lattice-dispatch: implementation_request_binding_conflict: attempt already retains a different request byte binding",
-    "stdout": []
-   },
-   "lattice-duplicate": {
-    "exit": 0,
-    "stderr": "",
-    "stdout": [
-     {
-      "accepted": false,
-      "envelope_attempt": "005fbe79437145dde67c37f87d872214dc30c14c696c579a7751e50898d11ab9",
-      "envelope_fence": 1,
-      "execution_binding": "blake3:a2f948b34c793e35dc4e758ebf7f81b0626863acc12abdb1f0a2b50d4a54f6d7",
-      "integrated": false,
-      "request_identity": "bcc63ad528e1cf21a8fd66e54a3accffbf6256bc417f4118284441cfa9ded107",
-      "result": {
-       "disposition": "failed",
-       "receipt": null,
-       "stdout_blake3": "ceb852681da72aef57e25795d7af4cc0749c5644903fda4fbbfea21bdb153d0d"
-      },
-      "schema": "lattice.implementation-attempt-observation.v1"
-     }
-    ]
-   },
-   "lattice-substituted": {
-    "exit": 1,
-    "stderr": "configuration error: request differs from persisted execution intent; this request dispatched nothing, but the persisted intent may have executed",
-    "stdout": [
-     {
-      "dispatched": true,
-      "reason": "substituted_request",
-      "schema": "lattice.implementation-attempt-refusal.v1"
-     }
-    ]
-   }
-  },
-  "endpoint_requests": 1,
-  "kiln_attempt": {
-   "cause": null,
-   "dispatch": {
-    "effect_id": "dispatch-4050e6f0ae1b6e0ff415641afeeb6288dd97ac228f7c637d5f0e3aa13188695f",
-    "idempotency_key": {
-     "contract_version": 1,
-     "native_id": "4050e6f0ae1b6e0ff415641afeeb6288dd97ac228f7c637d5f0e3aa13188695f",
-     "native_kind": "implementation-dispatch",
-     "provider_namespace": "kiln"
-    },
-    "plan": "adb095cf86070430c2e1cf6a49da3214945e55c468ac0232dab09b6f14febbcc",
-    "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283488951,
-    "schema": "kiln.implementation-dispatch.v1"
-   },
-   "dispatch_request_binding": {
-    "attempt": "005fbe79437145dde67c37f87d872214dc30c14c696c579a7751e50898d11ab9",
-    "fence": 1,
-    "plan": "adb095cf86070430c2e1cf6a49da3214945e55c468ac0232dab09b6f14febbcc",
-    "request_digest": "c9517df93d979e102249085d6be050f83a6604ffcaf5beb3fb62915cbebc9e99",
-    "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "826fe3466b2f61d0d6946a24998497cc6eea24153e3c89088e84f4683f809f79"
-   },
-   "execution": null,
-   "failure": null,
-   "fence": 1,
-   "phase": "executing",
-   "workflow": {
-    "contract_version": 1,
-    "native_id": "c9517df93d979e102249085d6be050f83a6604ffcaf5beb3fb62915cbebc9e99",
-    "native_kind": "implementation-attempt",
-    "provider_namespace": "lattice"
-   }
-  },
-  "lattice_state_files": [
-   "dd3b7a26be550a726e6c3bc5e88542735559e657e704224350aa76d250e9956a/candidate.redb 548864",
-   "dd3b7a26be550a726e6c3bc5e88542735559e657e704224350aa76d250e9956a/execution-binding.json 780",
-   "dd3b7a26be550a726e6c3bc5e88542735559e657e704224350aa76d250e9956a/intent.json 64",
-   "dd3b7a26be550a726e6c3bc5e88542735559e657e704224350aa76d250e9956a/omp-observation.json 250",
-   "dd3b7a26be550a726e6c3bc5e88542735559e657e704224350aa76d250e9956a/raw-events.jsonl 3247",
-   "works/fa9cc59e36a5fec144ee2fede9572584df0f1e36bd97dc961da59a42bbeb56a3/00000000000000000001 64"
-  ],
-  "omp_observation": {
-   "Ok": {
-    "event_count": 8,
-    "raw_events_blake3": "ceb852681da72aef57e25795d7af4cc0749c5644903fda4fbbfea21bdb153d0d",
-    "schema": "lattice.omp-jsonl-observation.v1",
-    "session_id": "01a1ff3c-1859-71fc-b8e7-aaf14bebdaa8",
-    "terminal": "failed",
-    "usage_complete": false
-   }
-  },
-  "prepared_worker_profile": "ce84e80dc43a03db07795d04450af461eca4ee41aff61f9bf6731f21cc7d685f"
- },
- "substituted-dispatched": {
-  "calls": {
-   "dispatch": {
-    "exit": 2,
-    "stderr": "kiln-lattice-dispatch: worker has no complete observed result; retain state and reconcile",
-    "stdout": []
-   },
-   "lattice-substituted": {
-    "exit": 0,
-    "stderr": "",
-    "stdout": [
-     {
-      "accepted": false,
-      "envelope_attempt": "7da29767e2031733be0c95d3deb0fdfd4a3567c20a47fef9bd355c5d6e26ff0b",
-      "envelope_fence": 1,
-      "execution_binding": "blake3:b1fe18e5844cb055e387da8276e5910617858d2e4b568d5209f890f49813d92b",
-      "integrated": false,
-      "request_identity": "e5d92bd1601ba7aac58ab09f26b255241e1addafb77d08218330909f6e721e2d",
-      "result": {
-       "disposition": "failed",
-       "receipt": null,
-       "stdout_blake3": "6f1a0955a4f7c372d943d11fa216eff8968bcd56ac89b4680f204d95ebbab3bb"
-      },
-      "schema": "lattice.implementation-attempt-observation.v1"
-     }
-    ]
-   },
-   "recover": {
-    "exit": 2,
-    "stderr": "kiln-lattice-dispatch: worker has no complete observed result; retain state and reconcile",
-    "stdout": []
-   }
-  },
-  "endpoint_requests": 1,
-  "kiln_attempt": {
-   "cause": null,
-   "dispatch": {
-    "effect_id": "dispatch-3a6b8b897d72a1d8a20e6ec55f0e929fd57ddd8e32fe2ee99c5afc46ebc65f4e",
-    "idempotency_key": {
-     "contract_version": 1,
-     "native_id": "3a6b8b897d72a1d8a20e6ec55f0e929fd57ddd8e32fe2ee99c5afc46ebc65f4e",
-     "native_kind": "implementation-dispatch",
-     "provider_namespace": "kiln"
-    },
-    "plan": "982faa27e62979bc8e9cb0fd68a6aadb090859ea050ff496d48495ebd5344675",
-    "provider_profile": "scripted-local-omp",
-    "reserved_at_ms": 1795283584943,
-    "schema": "kiln.implementation-dispatch.v1"
-   },
-   "dispatch_request_binding": {
-    "attempt": "7da29767e2031733be0c95d3deb0fdfd4a3567c20a47fef9bd355c5d6e26ff0b",
-    "fence": 1,
-    "plan": "982faa27e62979bc8e9cb0fd68a6aadb090859ea050ff496d48495ebd5344675",
-    "request_digest": "7ea20a65d45c91b6adb4fb772d1b3e2e8a4a183f32b7972c860b27a13d323a54",
-    "schema": "kiln.implementation-dispatch-request-binding.v1",
-    "seal": "d3f3351204d0c48a011525ad5db8f3e62d05e04d22b5620b918a10582c06dbad"
-   },
-   "execution": null,
-   "failure": null,
-   "fence": 1,
-   "phase": "claimed",
-   "workflow": null
-  },
-  "lattice_state_files": [
-   "5eb00f03b51c8c066d45fd9af849eed7063ab8f2a5a08699af6f7697a81f7d9f/candidate.redb 548864",
-   "5eb00f03b51c8c066d45fd9af849eed7063ab8f2a5a08699af6f7697a81f7d9f/execution-binding.json 780",
-   "5eb00f03b51c8c066d45fd9af849eed7063ab8f2a5a08699af6f7697a81f7d9f/intent.json 64",
-   "5eb00f03b51c8c066d45fd9af849eed7063ab8f2a5a08699af6f7697a81f7d9f/omp-observation.json 250",
-   "5eb00f03b51c8c066d45fd9af849eed7063ab8f2a5a08699af6f7697a81f7d9f/raw-events.jsonl 3099",
-   "works/76a9269c842eaf4df9ffc423f7323b2f20e4bb352bbfa2314e22d95b45a08147/00000000000000000001 64"
-  ],
-  "omp_observation": {
-   "Ok": {
-    "event_count": 8,
-    "raw_events_blake3": "6f1a0955a4f7c372d943d11fa216eff8968bcd56ac89b4680f204d95ebbab3bb",
-    "schema": "lattice.omp-jsonl-observation.v1",
-    "session_id": "01a1ff3d-6dcb-7280-817e-e3c7347db251",
-    "terminal": "failed",
-    "usage_complete": false
-   }
-  },
-  "prepared_worker_profile": "4388b2c1e786cbf3abd236b425a19c5a1e13dad6293ff0addce35a9fedaab470"
+  "prepared_worker_profile": "5dad8584e61a4782ba3342f40d955c15292c916e25fe3e707a36ffae70c34af6"
  }
 }

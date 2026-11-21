@@ -122,6 +122,13 @@ the bound program (re-hashed against the bound BLAKE3) and root. An absent
 binding (an intent persisted before this change, or a changed output
 directory), a binding of another attempt or fence, or a bound root that is not a
 directory refuses before Lattice is invoked, keeping the unknown outcome.
+`prepare_launch_files` performs every fallible filesystem step of the first
+launch (output directory, frozen request, bound root and binding) before the
+owner-grant gate `admission_before_transport`, which moves committed owner
+reservations to unknown. An unwritable root or a conflicting binding (never
+replaced, which would be unsafe against a concurrent launch) therefore fails
+with the grants still committed, and a retry after fixing the cause proceeds
+(re-review finding).
 
 **Rationale:** Lattice proves no-start only inside the root holding the
 intent. Recovering in another root would create a fresh closure marker there
@@ -198,3 +205,10 @@ for plans without a native request profile; this change does not remove it.
   voids the no-start evidence of a closure recovered from it.
 - `stale_fence` refusals stay unknown until Lattice makes its fence check
   atomic with intent creation; Kiln can then revisit settling them.
+- **Open item, predates this change:** a crash between the owner-grant gate
+  (`admission_before_transport`, `crates/kiln-implementer/src/admission.rs`,
+  which sets reservations to unknown) and `begin_dispatch_transport` in
+  `crates/kiln-adapter-lattice/src/worker.rs` leaves unknown grants without a
+  transport intent; the gate refuses non-committed grants on retry and there is
+  no intent to recover, so the attempt waits for owner reconciliation. Merging
+  the two transactions is left for a later change.

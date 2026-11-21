@@ -121,29 +121,18 @@ scenario_lost_before_start() {
   finish lost-before-start
 }
 
-# I (Kiln #45 review): the first run executes under root A; the profile then
-# names root B. Kiln's second call recovers with the bound root A, reconciles
-# the retained execution, and never invokes Lattice in B.
+# I (Kiln #45 review): Kiln's acknowledgement is lost while Lattice runs the
+# first launch under root A (the lost-during-run mechanism); the profile then
+# names root B. Recovery must use the bound root A, reconcile the retained
+# execution without re-executing, and never create or use B.
 scenario_moved_root() {
-  local dir="$OUT/moved-root"
-  attempt moved-root fail
-  dispatch moved-root dispatch
-  mkdir -p "$dir/state-b"
-  jq --arg root "$dir/state-b" '.state_directory = $root' "$dir/transport.json" > "$dir/transport-b.json"
-  cp "$dir/transport-b.json" "$dir/transport.json"
-  dispatch moved-root recover-moved
-  find "$dir/state-b" -mindepth 1 | wc -l > "$dir/state-b.count"
-  finish moved-root
-}
-
-# C: the controller is killed while Lattice runs; the worker finishes; re-entry
-# recovers the retained result without a second execution.
-scenario_lost_during_run() {
-  local dir="$OUT/lost-during-run"
-  attempt lost-during-run hold
-  ( dispatch lost-during-run dispatch ) &
+  # Short directory names keep the broker socket path under 108 bytes below
+  # the /var/tmp output root.
+  local dir="$OUT/moved"
+  attempt moved hold
+  ( dispatch moved dispatch ) &
   local runner=$!
-  wait_for_request lost-during-run
+  wait_for_request moved
   pkill -KILL -f "kiln-lattice-dispatch --database $dir/kiln.sqlite" || true
   wait "$runner" || true
   touch "$dir/release"
@@ -151,9 +140,32 @@ scenario_lost_during_run() {
     [ -n "$(find "$dir/state" -name omp-observation.json 2>/dev/null)" ] && ! pgrep -f "implementation-attempt run --request $dir/transport" >/dev/null && break
     sleep 0.1
   done
-  dispatch lost-during-run recover
-  dispatch lost-during-run recover-replay
-  finish lost-during-run
+  jq --arg root "$dir/state-b" '.state_directory = $root' "$dir/transport.json" > "$dir/transport-b.json"
+  cp "$dir/transport-b.json" "$dir/transport.json"
+  dispatch moved recover-moved
+  dispatch moved recover-moved-replay
+  if [ -e "$dir/state-b" ]; then find "$dir/state-b" | wc -l; else echo absent; fi > "$dir/state-b.observed"
+  finish moved
+}
+
+# C: the controller is killed while Lattice runs; the worker finishes; re-entry
+# recovers the retained result without a second execution.
+scenario_lost_during_run() {
+  local dir="$OUT/lost-run"
+  attempt lost-run hold
+  ( dispatch lost-run dispatch ) &
+  local runner=$!
+  wait_for_request lost-run
+  pkill -KILL -f "kiln-lattice-dispatch --database $dir/kiln.sqlite" || true
+  wait "$runner" || true
+  touch "$dir/release"
+  for _ in $(seq 3000); do
+    [ -n "$(find "$dir/state" -name omp-observation.json 2>/dev/null)" ] && ! pgrep -f "implementation-attempt run --request $dir/transport" >/dev/null && break
+    sleep 0.1
+  done
+  dispatch lost-run recover
+  dispatch lost-run recover-replay
+  finish lost-run
 }
 
 # D: crossed plan fence at Kiln; higher fence, crossed attempt and stale fence at Lattice.
