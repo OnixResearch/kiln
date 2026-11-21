@@ -1,0 +1,233 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-21 cairn archive realize-convergence-evidence-through-mantle --root . --execute
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: realize-convergence-evidence-through-mantle",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle"
+    }
+  ],
+  "blocked": false,
+  "change": "realize-convergence-evidence-through-mantle",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "710d57bb4c639e6f1f3d1b8d7d6f46f3213cae638943ef334c5c7c3fa71bde8a",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+    "receipt_hash": "06734f6ba6543d3a4e6ed3aa9e9e5c565d33811c5cc526f23359dc206b7c2185",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "98a6ce632cd6ece84939c24788e2df6997e9ab401a02d2329f452d00b9c47e0b",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "bb195b93503936e6cfa6824a57a733537c7e8afaf44635ec9aa86b2029129dbc",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/design.md"
+        },
+        {
+          "content_hash": "5b90e2768a8195ad7f4b4eb9f8355994f27021952d5317cb5f316ddb7ea24809",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/blocked.txt"
+        },
+        {
+          "content_hash": "3cb308b5ea86bc286e1eb687d509a49d18e3aedc8253ee08ee521add5578a396",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/full-receipt-oracle.txt"
+        },
+        {
+          "content_hash": "389f775e06564e3b3ef17c67f973a08fb7f049152f6ac254d0d5db5c37a47b59",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/gates.txt"
+        },
+        {
+          "content_hash": "2831736e401779678146e4c78c3757a31411fa250b6fbd857a21764091cfbdf0",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/live-qualification.txt"
+        },
+        {
+          "content_hash": "89e6e16f4ac05e5bda827ad8d68f79c215db67ca2fb61c308f6578050aa6482e",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/nickel.txt"
+        },
+        {
+          "content_hash": "076c705ffdb9a31c96872f03f5fcef5fed51ebca906bc0db0c0620faeeb7b7dd",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/qualification.md"
+        },
+        {
+          "content_hash": "0663e46d82424013a54b36dfb9b9604ad6737c30751836d9550f628f59210830",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/realization-receipt.b3"
+        },
+        {
+          "content_hash": "487193756d0f2486728f6985893454421051b4816978e367ea085292773c4c27",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/realization-receipt.json.bz2"
+        },
+        {
+          "content_hash": "6bc49e1e38d0e909c437bf6a206acc573b148825cd18591c48089214743b8db5",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/rust-checks.txt"
+        },
+        {
+          "content_hash": "cc2b891aad8d7ac3cc65df3fc79509fb0960e20fca536a2e30cedddb1db1abb0",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/evidence/sync.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/metadata.json"
+        },
+        {
+          "content_hash": "042797f08af62cc02b558c69af64f58453a02e8da63e5900426e38dd9ea5da60",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/proposal.md"
+        },
+        {
+          "content_hash": "33ac21bce70a6f78373af4e416f62c424356ecee011b25fb1f5b78418f072882",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/specs/convergence-campaign/spec.md"
+        },
+        {
+          "content_hash": "61e37408516cf2af27f71d2158870db8fb5b2085c4e7c676a64fd349ff7e1c00",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/specs/mantle-foreign-realize-adapter/spec.md"
+        },
+        {
+          "content_hash": "d403dc2a42b37a32768e13cac0b9a9d0527106ba676076e9884ebdbbc1bae708",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-21-realize-convergence-evidence-through-mantle/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle"
+        }
+      ],
+      "manifest_hash": "a28c9a1080a5ce03c3fe0af0ece2e41abc06c1927425315b65496a42e83a4bd3"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "bb195b93503936e6cfa6824a57a733537c7e8afaf44635ec9aa86b2029129dbc",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/design.md"
+        },
+        {
+          "content_hash": "5b90e2768a8195ad7f4b4eb9f8355994f27021952d5317cb5f316ddb7ea24809",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/blocked.txt"
+        },
+        {
+          "content_hash": "3cb308b5ea86bc286e1eb687d509a49d18e3aedc8253ee08ee521add5578a396",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/full-receipt-oracle.txt"
+        },
+        {
+          "content_hash": "389f775e06564e3b3ef17c67f973a08fb7f049152f6ac254d0d5db5c37a47b59",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/gates.txt"
+        },
+        {
+          "content_hash": "2831736e401779678146e4c78c3757a31411fa250b6fbd857a21764091cfbdf0",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/live-qualification.txt"
+        },
+        {
+          "content_hash": "89e6e16f4ac05e5bda827ad8d68f79c215db67ca2fb61c308f6578050aa6482e",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/nickel.txt"
+        },
+        {
+          "content_hash": "076c705ffdb9a31c96872f03f5fcef5fed51ebca906bc0db0c0620faeeb7b7dd",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/qualification.md"
+        },
+        {
+          "content_hash": "0663e46d82424013a54b36dfb9b9604ad6737c30751836d9550f628f59210830",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/realization-receipt.b3"
+        },
+        {
+          "content_hash": "487193756d0f2486728f6985893454421051b4816978e367ea085292773c4c27",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/realization-receipt.json.bz2"
+        },
+        {
+          "content_hash": "6bc49e1e38d0e909c437bf6a206acc573b148825cd18591c48089214743b8db5",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/rust-checks.txt"
+        },
+        {
+          "content_hash": "cc2b891aad8d7ac3cc65df3fc79509fb0960e20fca536a2e30cedddb1db1abb0",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/evidence/sync.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/metadata.json"
+        },
+        {
+          "content_hash": "042797f08af62cc02b558c69af64f58453a02e8da63e5900426e38dd9ea5da60",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/proposal.md"
+        },
+        {
+          "content_hash": "33ac21bce70a6f78373af4e416f62c424356ecee011b25fb1f5b78418f072882",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/specs/convergence-campaign/spec.md"
+        },
+        {
+          "content_hash": "61e37408516cf2af27f71d2158870db8fb5b2085c4e7c676a64fd349ff7e1c00",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/specs/mantle-foreign-realize-adapter/spec.md"
+        },
+        {
+          "content_hash": "d403dc2a42b37a32768e13cac0b9a9d0527106ba676076e9884ebdbbc1bae708",
+          "exists": true,
+          "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/tasks.md"
+        }
+      ],
+      "manifest_hash": "181391fb228aab6ee5b5d941493cb666fa2260b550280585d4ee5c7f53e5cba2"
+    },
+    "kind": "archive",
+    "manifest_hash": "a4ccd83a20f82e4d4e1266f1caa5fae065bc587857854de1262dca0de3646b2b"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "5ff0bb3ff8ac592b5db906b776291c6dbe2c1dd5cab8115756150f7591fcb115",
+  "policy": "cairn-default",
+  "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+  "profile_identity_hash": "8e7c38b6f42780f0181d4944aff4be344e429739ae7b80ec45d791d611a4947c",
+  "reasons": [],
+  "receipt_hash": "6b551a7a3d4546700c0e550331e566dbbe4e86d06d6c2ada1e6bf38b25ff3f29",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0

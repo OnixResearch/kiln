@@ -1,0 +1,208 @@
+$ cairn sync realize-convergence-evidence-through-mantle --root . --execute  # cairn 0.2.1 at Cairn 830b544
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/realize-convergence-evidence-through-mantle/specs/convergence-campaign/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/specs/convergence-campaign/spec.md"
+    },
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/realize-convergence-evidence-through-mantle/specs/mantle-foreign-realize-adapter/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/realize-convergence-evidence-through-mantle/specs/mantle-foreign-realize-adapter/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "realize-convergence-evidence-through-mantle",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "710d57bb4c639e6f1f3d1b8d7d6f46f3213cae638943ef334c5c7c3fa71bde8a",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+    "receipt_hash": "06734f6ba6543d3a4e6ed3aa9e9e5c565d33811c5cc526f23359dc206b7c2185",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/realize-convergence-evidence-through-mantle/specs/convergence-campaign/spec.md",
+    "./.cairn/changes/realize-convergence-evidence-through-mantle/specs/mantle-foreign-realize-adapter/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "a4aee8785fa16d87f16cadd1d1d22acdca8186ff122e83312b0b8d6c322503eb",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "3f0883c8132106da0ecca6b010f2f1e474a3411bec11344620b9db7e18ec2d34",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "33ac21bce70a6f78373af4e416f62c424356ecee011b25fb1f5b78418f072882",
+        "destination": ".cairn/specs/convergence-campaign/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "9fc9aaac10ef5b4c64ceeee2e86eb5a65fcd28f53e0efa532f0ff06009a0f02c",
+        "operations": [
+          {
+            "block_hash": "ef5470c535f734d1b39c74f64b8d080f00bccbc9e6e4a087500387f3a2a07330",
+            "heading": "### Requirement: Verify-stage typed evidence build requests",
+            "kind": "modified",
+            "requirement_id": "kiln.convergence.verify"
+          },
+          {
+            "block_hash": "78f75a91744defd07be496904229e3d3044a05a1d437746cfdd404895c58c2e0",
+            "heading": "### Requirement: Preserve-route evidence realization",
+            "kind": "added",
+            "requirement_id": "kiln.convergence.realize"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "modified",
+            "requirement_id": "kiln.convergence.verify",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.convergence.realize",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/realize-convergence-evidence-through-mantle/specs/convergence-campaign/spec.md"
+      },
+      {
+        "accepted_before_exists": false,
+        "accepted_before_hash": "1086091d8165cfead9ea7a48524b5d24b801803d1e7a3ece4d739e6d1ba254cd",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "61e37408516cf2af27f71d2158870db8fb5b2085c4e7c676a64fd349ff7e1c00",
+        "destination": ".cairn/specs/mantle-foreign-realize-adapter/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "aa21c0752683f8da30c7c0d32cf90ed3725c5a7f8083048b7fd7b23a51adf6e8",
+        "operations": [
+          {
+            "block_hash": "f9bdc17b46a31cd36711e3d91e7f56d70ce7b3bc6fb42d8b72199546ccd12b5d",
+            "heading": "### Requirement: Pinned foreign-realize cohort and profile",
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.profile"
+          },
+          {
+            "block_hash": "3410b234507c9eaf8c31ccdb97d21a5af6a822b88fa48bbd487004e9d3436acb",
+            "heading": "### Requirement: Exact bounded realize dispatch",
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.dispatch"
+          },
+          {
+            "block_hash": "63a5cafb7c7e4dcf6076e0e1f41a57f8502426bbab5cb0fde80ca3e41ba2ac5e",
+            "heading": "### Requirement: Closed-world realization completion",
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.completion"
+          },
+          {
+            "block_hash": "5e29329bf1edb0a4ca94c065ef17819b58412fd93f371602417a781fae0f4a38",
+            "heading": "### Requirement: Realize recovery and failure classes",
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.recovery"
+          },
+          {
+            "block_hash": "38019d75b3a67562101a00ccbbc34d06e6c92a5a11a931008f2457f21dda1863",
+            "heading": "### Requirement: Realize adapter non-claims",
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.nonclaims"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.profile",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.dispatch",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.completion",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.recovery",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.mantle.foreign_realize.nonclaims",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/realize-convergence-evidence-through-mantle/specs/mantle-foreign-realize-adapter/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "9fc9aaac10ef5b4c64ceeee2e86eb5a65fcd28f53e0efa532f0ff06009a0f02c",
+          "exists": true,
+          "path": "./.cairn/specs/convergence-campaign/spec.md"
+        },
+        {
+          "content_hash": "aa21c0752683f8da30c7c0d32cf90ed3725c5a7f8083048b7fd7b23a51adf6e8",
+          "exists": true,
+          "path": "./.cairn/specs/mantle-foreign-realize-adapter/spec.md"
+        }
+      ],
+      "manifest_hash": "cf89f6846690ff2626ea8c99c1158d5109af5c0e7932ac319ac81c29087f6a28"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "3f0883c8132106da0ecca6b010f2f1e474a3411bec11344620b9db7e18ec2d34",
+          "exists": true,
+          "path": "./.cairn/specs/convergence-campaign/spec.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/specs/mantle-foreign-realize-adapter/spec.md"
+        }
+      ],
+      "manifest_hash": "8e1664e98f3a8377bde28ff4a436f6603c22a8d66edc960aaf1d02e1644ad96a"
+    },
+    "kind": "sync",
+    "manifest_hash": "48697ca724620676da8cafff6659859771068c70eff4bf7a4148b379ce925e2c"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "45eb1921005225ec51c832d5ed235e61f6f6bf775c559a24ec1dc77dc20795ff",
+  "policy": "cairn-default",
+  "policy_hash": "0275076bb1de7db7255c153248133144c98bcbbcd9376a11f1ecb4162e99fa63",
+  "profile_identity_hash": "8e7c38b6f42780f0181d4944aff4be344e429739ae7b80ec45d791d611a4947c",
+  "reasons": [],
+  "receipt_hash": "92051fa4cdc23514e41d73af81334360ac93262c7a7fccc40ef021c1ed8d4f1a",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0
