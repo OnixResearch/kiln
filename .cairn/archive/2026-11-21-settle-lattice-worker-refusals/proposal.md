@@ -46,9 +46,10 @@ transport must consume, and the Lattice status comment on Kiln #45
   right after claim authorization, before plan reservation and every other
   durable step. No credential keeps today's empty environment. `recover` and
   `cancel` keep the empty environment.
-- Before the first `run`'s transport intent, Kiln durably binds the Lattice
-  program and state root to the attempt; `recover` uses only the bound values
-  and never invokes Lattice without a binding or in a missing bound root.
+- The first `run`'s transport intent records its Lattice program and state
+  root in the same ledger mutation (`TransportLaunch`, never overwritten);
+  `recover` uses only that recorded launch and never invokes Lattice without
+  one or in a missing recorded root.
 - The transport strictly parses `lattice.implementation-attempt-refusal.v1`
   bound to the request's work, attempt and fence. Only a `run` refusal with
   `dispatched:false` and reason `crossed_attempt`,

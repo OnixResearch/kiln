@@ -953,14 +953,14 @@ r[kiln.implementation.lattice_cli.scenario.plan]
 r[kiln.implementation.lattice_cli.scenario.credential]
 - GIVEN an admitted request whose model broker names an `env` credential, a malformed or non-`env` credential, a reserved process-control name, or no credential
 - WHEN Kiln launches `run`
-- THEN only the named variable MUST be passed and every other variable withheld, a missing or empty value, a malformed reference or key and a reserved name MUST be refused after claim authorization and before plan reservation, request sealing, admission, the transport binding or the transport intent, and no declared credential MUST keep a fully cleared environment
+- THEN only the named variable MUST be passed and every other variable withheld, a missing or empty value, a malformed reference or key and a reserved name MUST be refused after claim authorization and before plan reservation, request sealing, admission or the transport intent, and no declared credential MUST keep a fully cleared environment
 
 #### Scenario: Recovery uses the root bound at the first launch
 
 r[kiln.implementation.lattice_cli.scenario.bound_root]
-- GIVEN an attempt whose first `run` was launched with one Lattice program and state root, and a later profile naming another root
+- GIVEN an attempt whose first `run` was launched with one Lattice program and state root, a profile whose owner-grant gate refused before any launch, a competing process that lost the gate, a later profile naming another root, or a transport intent persisted before launches were recorded
 - WHEN Kiln recovers the attempt
-- THEN the binding MUST have been durably retained before the transport intent and recovery MUST use the bound program and root, and an absent binding, a binding of another attempt or fence, a conflicting rebinding or a bound root that is not a directory MUST keep the unknown outcome without invoking Lattice
+- THEN the launch MUST be recorded in the same ledger mutation as the transport intent and never overwritten, recovery MUST use only that recorded launch, a profile or process that never reached the transport intent MUST NOT record or direct anything, and an intent without a recorded launch, a recorded root that is not a directory or a changed recorded program MUST keep the unknown outcome without invoking Lattice
 
 #### Scenario: Only a before-effect refusal of the first run settles the attempt
 

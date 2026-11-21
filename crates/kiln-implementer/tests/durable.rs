@@ -975,7 +975,11 @@ fn racing_callbacks(
     let binding =
         store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"race request")?;
     assert_eq!(binding.plan, plan);
-    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
+    assert!(
+        !store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan, None)?
+            .is_recovery()
+    );
     store.start_execution(
         &attempt.identity,
         attempt.fence,
@@ -1367,7 +1371,11 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
         1,
         b"exact request bytes",
     )?;
-    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan)?);
+    assert!(
+        !store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan, None)?
+            .is_recovery()
+    );
     drop(store);
     let mut store = open(&path);
     assert!(
@@ -1381,7 +1389,11 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
             )
             .is_err()
     );
-    assert!(store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
+    assert!(
+        store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan, None)?
+            .is_recovery()
+    );
     store.recover(LEASE)?;
     assert!(store.claim_next(LEASE, LEASE)?.is_none());
     assert_eq!(store.recover(LEASE)?.active, vec![attempt.identity.clone()]);
@@ -1469,9 +1481,20 @@ fn before_effect_settlement_survives_restart_without_reconciliation()
             .settle_dispatch_without_execution(&attempt.identity, attempt.fence, 1, "refused")
             .is_err()
     );
-    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan)?);
+    let launch = kiln_core::implementation::TransportLaunch {
+        lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+        executable_blake3: content('b'),
+        state_directory: "/var/lib/lattice/a".into(),
+    };
+    assert!(
+        !store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan, Some(&launch))?
+            .is_recovery()
+    );
     drop(store);
     let mut store = open(&path);
+    // The launch survives restart with its intent.
+    assert_eq!(store.dispatch_launch(&attempt.identity)?, Some(launch));
     store.settle_dispatch_without_execution(
         &attempt.identity,
         attempt.fence,
@@ -1485,6 +1508,8 @@ fn before_effect_settlement_survives_restart_without_reconciliation()
     assert_eq!(settled.failure, Some(FailureClass::Infrastructure));
     assert_eq!(settled.workflow, None);
     assert!(!store.dispatch_requires_recovery(&attempt.identity)?);
+    // Settlement cleared the launch with the intent, across restart.
+    assert_eq!(store.dispatch_launch(&attempt.identity)?, None);
     assert!(store.recover(LEASE)?.active.is_empty());
     let next = store
         .claim_next(LEASE, LEASE)?

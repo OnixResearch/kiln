@@ -464,8 +464,15 @@ fn begin_transport(flags: &BTreeMap<String, String>) -> Result<Value, String> {
     let reservation = owner.reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, now()?, &plan)?;
     owner.bind_campaign_request(&work, &attempt.identity, attempt.fence, now()?, &bytes)?;
     owner.admission_before_transport(&attempt.identity, attempt.fence, &fresh, now()?)?;
-    let recovery = owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now()?, &reservation.plan)?;
-    Ok(json!({"transport_intent": true, "previously_started": recovery, "lattice_started": false}))
+    // Kiln #45 final review: the transport intent records the launch, exactly
+    // as worker::run does for a first launch.
+    let launch = kiln_core::implementation::TransportLaunch {
+        lattice_program: flag(flags, "--lattice")?.to_owned(),
+        executable_blake3: id(flag(flags, "--lattice-blake3")?)?,
+        state_directory: flag(flags, "--state")?.to_owned(),
+    };
+    let start = owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now()?, &reservation.plan, Some(&launch))?;
+    Ok(json!({"transport_intent": true, "previously_started": start.is_recovery(), "launch_recorded": owner.dispatch_launch(&attempt.identity)?, "lattice_started": false}))
 }
 
 /// `status`: the retained attempt phase and dispatch facts.

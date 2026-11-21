@@ -318,18 +318,28 @@ impl Implementer {
         Ok(attachment)
     }
 
-    /// Returns true after possible prior dispatch; caller MUST recover instead
-    /// of dispatching. Intent is committed before this returns to transport.
+    /// Persist the transport intent and, for a fresh start, its launch in the
+    /// same transaction. `Recover` after a possible prior dispatch carries the
+    /// recorded launch; the caller MUST recover with it instead of dispatching.
     pub fn begin_dispatch_transport(
         &mut self,
         identity: &ContentId,
         fence: u64,
         now_ms: u64,
         plan: &ContentId,
-    ) -> Result<bool, String> {
+        launch: Option<&kiln_core::implementation::TransportLaunch>,
+    ) -> Result<kiln_core::implementation::TransportStart, String> {
         self.with_ledgers(|_, attempts| {
-            attempts.begin_dispatch_transport(identity, fence, now_ms, plan)
+            attempts.begin_dispatch_transport(identity, fence, now_ms, plan, launch)
         })
+    }
+
+    /// The launch recorded with an attempt's transport intent, if any.
+    pub fn dispatch_launch(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<kiln_core::implementation::TransportLaunch>, String> {
+        self.with_ledgers(|_, attempts| Ok(attempts.dispatch_launch(identity).cloned()))
     }
 
     /// Install or remove the optional mirror observer.

@@ -94,7 +94,7 @@ before the transport intent leaves no unknown outcome.
 `ReservedName` for process-control names (`PATH`, `HOME`, `LD_*`,
 `LATTICE_*` and the rest of a named list). Right after the current claim is
 authorized, and before plan reservation, request sealing, owner-grant
-admission, the transport binding and the transport intent, the shell resolves
+admission and the transport intent, the shell resolves
 the value for a fresh `run` (no prior transport intent); an absent or empty
 value is `CredentialRefusal::Missing`. The launch uses `EnvironmentMode::Clear`
 with that single entry. `recover` and `cancel` keep an empty environment
@@ -109,30 +109,41 @@ runs.
 **Alternatives considered:** Passing the variable to every Lattice command
 would expose the secret to commands that never resolve it.
 
-### Decision: Bind the program and state root at the first launch
+### Decision: Record the launch inside the transport intent
 
-**Choice:** Before `begin_dispatch_transport` for a fresh `run`, the shell
-durably retains `OUTPUT/transport-binding-ATTEMPT-FENCE.json`
-(`kiln.lattice-transport-binding.v1` with the attempt, fence, `lattice_program`,
-its BLAKE3 and `state_directory`) by exclusive create, mode 0400, file and
-directory fsync, and byte equality on a repeated first launch. This follows the
-frozen-request pattern rather than the ledger's transport intent, which is an
-identity set without launch fields. `recover` loads the binding and uses only
-the bound program (re-hashed against the bound BLAKE3) and root. An absent
-binding (an intent persisted before this change, or a changed output
-directory), a binding of another attempt or fence, or a bound root that is not a
-directory refuses before Lattice is invoked, keeping the unknown outcome.
-`prepare_launch_files` performs every fallible filesystem step of the first
-launch (output directory, frozen request, bound root and binding) before the
-owner-grant gate `admission_before_transport`, which moves committed owner
-reservations to unknown. An unwritable root or a conflicting binding (never
-replaced, which would be unsafe against a concurrent launch) therefore fails
-with the grants still committed, and a retry after fixing the cause proceeds
-(re-review finding).
+**Choice:** `kiln_core::implementation::TransportLaunch { lattice_program,
+executable_blake3, state_directory }` is recorded by
+`AttemptLedger::begin_dispatch_transport(identity, fence, now_ms, plan,
+launch: Option<&TransportLaunch>) -> TransportStart` in the same ledger
+mutation that inserts the transport intent, in a
+`dispatch_launches` map (`#[serde(default, skip_serializing_if =
+"BTreeMap::is_empty")]`, so existing ledgers load and serialize unchanged). A
+fresh start returns `TransportStart::Fresh`; an existing intent returns
+`TransportStart::Recover(recorded)`, the recorded launch or `None` for an intent
+persisted before launches were recorded, and never overwrites it. Every path
+that removes the intent (`settle_dispatch_without_execution`) removes the
+launch. `Implementer` passes the launch through in the same transaction. The
+worker's fresh `run` uses the launch it just recorded; `recover` uses only the
+returned recorded launch, re-hashing its program, and refuses before invoking
+Lattice when there is none, its root is not a real directory (a symbolic link
+counts as missing) or the program's BLAKE3 differs
+(`worker_binding::recovery_launch`). `prepare_launch_files` keeps every
+fallible filesystem step of the first launch (output directory, frozen request
+and state root, all idempotent, no binding file) before the owner-grant gate
+`admission_before_transport`, so an unwritable root fails with grants still
+committed and a retry proceeds (re-review finding).
 
 **Rationale:** Lattice proves no-start only inside the root holding the
 intent. Recovering in another root would create a fresh closure marker there
-and report no start for an attempt that may have run (review finding 1).
+and report no start for an attempt that may have run (review finding 1). A
+launch record written outside the intent, as the earlier binding file was,
+could be left by a profile or process whose owner-grant gate then refused, and
+later direct recovery into a never-launched root (final-review finding).
+Recording it in the same mutation as the intent makes the launch that won the
+intent the only one recovery can see.
+
+**Alternatives considered:** A per-attempt binding file before the gate (the
+previous round) cannot tell which writer won the intent.
 
 ### Decision: Settle only proven before-effect refusals of the first run
 

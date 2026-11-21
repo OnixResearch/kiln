@@ -3,7 +3,9 @@ use bounded_exec::{
     CommandSpec, Disposition, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest,
     TerminationScope,
 };
-use kiln_core::implementation::{Enrollment, ImplementationDispatchPlan};
+use kiln_core::implementation::{
+    Enrollment, ImplementationDispatchPlan, TransportLaunch, TransportStart,
+};
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_implementer::Implementer;
 use serde::{Deserialize, Serialize};
@@ -152,19 +154,16 @@ fn lattice_command(
 }
 
 /// Prepare every launch file before any owner grant is consumed: the private
-/// output directory, the frozen request and, for the first launch, the bound
-/// state root and its durable binding. Returns the frozen request and binding
-/// paths. Each step is idempotent, and a conflicting frozen request or binding
-/// is refused rather than replaced.
-// r[impl kiln.implementation.lattice_cli.scenario.bound_root]
+/// output directory, the frozen request and, for the first launch, its state
+/// root. Returns the frozen request path. Each step is idempotent, and a
+/// conflicting frozen request is refused rather than replaced. Nothing here
+/// binds the launch: only the transport intent records it.
 fn prepare_launch_files(
     profile: &WorkerTransportProfile,
-    attempt: &ContentId,
-    fence: u64,
     request_id: &ContentId,
     request_bytes: &[u8],
     first_launch: bool,
-) -> Result<(PathBuf, PathBuf), String> {
+) -> Result<PathBuf, String> {
     let output_dir = &profile.output_directory;
     if !output_dir.is_absolute() || !profile.state_directory.is_absolute() {
         return Err("worker state/output paths must be absolute".into());
@@ -217,27 +216,29 @@ fn prepare_launch_files(
             Err(error) => return Err(error.to_string()),
         }
     }
-    // The first launch's program and state root are bound before its transport
-    // intent; recovery never follows a later profile into another root.
-    let binding_path = binding::TransportBinding::path(output_dir, attempt, fence);
     if first_launch {
-        // The bound root exists from the first launch on, so recovery after a
-        // loss before Lattice started still runs in it, never in a fresh root.
+        // The root exists before the transport intent records it, so recovery
+        // after a loss before Lattice started still runs in it, never in a
+        // fresh root.
         directories
             .create(&profile.state_directory)
             .map_err(|error| error.to_string())?;
-        binding::retain(
-            &binding_path,
-            &binding::TransportBinding::new(
-                attempt,
-                fence,
-                &profile.lattice_program,
-                &profile.executable_blake3,
-                &profile.state_directory,
-            ),
-        )?;
     }
-    Ok((frozen_request, binding_path))
+    Ok(frozen_request)
+}
+
+/// The launch a fresh run records with its transport intent.
+fn first_launch(profile: &WorkerTransportProfile) -> Result<TransportLaunch, String> {
+    let text = |path: &Path| {
+        path.to_str()
+            .map(str::to_owned)
+            .ok_or_else(|| "Lattice program and state paths must be UTF-8".to_string())
+    };
+    Ok(TransportLaunch {
+        lattice_program: text(&profile.lattice_program)?,
+        executable_blake3: profile.executable_blake3.clone(),
+        state_directory: text(&profile.state_directory)?,
+    })
 }
 
 /// Exact files for the guarded existing implementation-worker consumer.
@@ -481,17 +482,11 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
         }
     };
     // Every fallible filesystem step of the first launch (output directory,
-    // frozen request, bound state root and binding) precedes the owner-grant
-    // gate, which moves committed owner reservations to unknown. A failure here
-    // leaves the grants committed, so a retry after fixing the cause proceeds.
-    let (frozen_request, binding_path) = prepare_launch_files(
-        &profile,
-        &attempt.identity,
-        attempt.fence,
-        &request_id,
-        &request_bytes,
-        !recovery,
-    )?;
+    // frozen request and state root) precedes the owner-grant gate, which moves
+    // committed owner reservations to unknown. A failure here leaves the grants
+    // committed, so a retry after fixing the cause proceeds.
+    let fresh_launch = first_launch(&profile)?;
+    let frozen_request = prepare_launch_files(&profile, &request_id, &request_bytes, !recovery)?;
     let output_dir = &profile.output_directory;
     if !recovery {
         // Open item (predates this change): a crash between this gate and
@@ -504,36 +499,37 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             clock()?,
         )?;
     }
-    let recovery = implementer.begin_dispatch_transport(
+    // The transport intent records this launch in the same ledger mutation; an
+    // existing intent returns the launch that won it, never this profile's.
+    let start = implementer.begin_dispatch_transport(
         &attempt.identity,
         attempt.fence,
         clock()?,
         &reservation.plan,
+        Some(&fresh_launch),
     )?;
-    let (lattice_program, state_directory) = if recovery {
-        // Recovery never starts a worker, so it never receives the credential.
-        environment.clear();
-        let retained = binding::load(&binding_path)?;
-        let state_is_directory = retained
-            .as_ref()
-            .is_some_and(|bound| binding::is_directory(&bound.state_directory));
-        let bound = binding::recovery_launch(
-            retained,
-            &attempt.identity,
-            attempt.fence,
-            state_is_directory,
-        )?;
-        let bound_blake3 = ContentId::from_blake3_hex(bound.executable_blake3.clone())
-            .map_err(|error| format!("{error:?}"))?;
-        if program_identity(&bound.lattice_program)? != bound_blake3 {
-            return Err("the bound Lattice executable changed; Lattice was not invoked".into());
-        }
-        (bound.lattice_program, bound.state_directory)
-    } else {
-        (
+    let recovery = start.is_recovery();
+    let (lattice_program, state_directory) = match start {
+        TransportStart::Fresh => (
             profile.lattice_program.clone(),
             profile.state_directory.clone(),
-        )
+        ),
+        TransportStart::Recover(recorded) => {
+            // Recovery never starts a worker, so it never receives the credential.
+            environment.clear();
+            let state_is_directory = recorded
+                .as_ref()
+                .is_some_and(|launch| binding::is_directory(Path::new(&launch.state_directory)));
+            let program_matches = recorded.as_ref().is_some_and(|launch| {
+                program_identity(Path::new(&launch.lattice_program))
+                    .is_ok_and(|identity| identity == launch.executable_blake3)
+            });
+            let recorded = binding::recovery_launch(recorded, state_is_directory, program_matches)?;
+            (
+                PathBuf::from(recorded.lattice_program),
+                PathBuf::from(recorded.state_directory),
+            )
+        }
     };
     let launch_kind = if recovery {
         settlement::Launch::Recover

@@ -584,18 +584,31 @@ mod tests {
         ledger
             .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))
             .unwrap_or_else(|error| unreachable!("{error:?}"));
-        assert!(
-            !ledger
-                .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &digest)
-                .unwrap_or_else(|error| unreachable!("{error:?}"))
+        let launch = crate::implementation::TransportLaunch {
+            lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+            executable_blake3: content('b'),
+            state_directory: "/var/lib/lattice/a".into(),
+        };
+        assert_eq!(
+            ledger
+                .begin_dispatch_transport(
+                    &attempt.identity,
+                    attempt.fence,
+                    2,
+                    &digest,
+                    Some(&launch)
+                )
+                .unwrap_or_else(|error| unreachable!("{error:?}")),
+            crate::implementation::TransportStart::Fresh
         );
+        assert_eq!(ledger.dispatch_launch(&attempt.identity), Some(&launch));
         assert!(settle(&mut ledger, attempt.fence + 1, "refused").is_err());
         assert!(settle(&mut ledger, attempt.fence, "").is_err());
         assert!(ledger.dispatch_requires_recovery(&attempt.identity));
         settle(
             &mut ledger,
             attempt.fence,
-            "lattice_refused_before_effect:stale_fence",
+            "lattice_refused_before_effect:crossed_attempt",
         )
         .unwrap_or_else(|error| unreachable!("{error:?}"));
         let settled = ledger
@@ -606,15 +619,17 @@ mod tests {
         assert_eq!(settled.workflow, None);
         assert_eq!(
             settled.cause.as_deref(),
-            Some("lattice_refused_before_effect:stale_fence")
+            Some("lattice_refused_before_effect:crossed_attempt")
         );
         assert!(!ledger.dispatch_requires_recovery(&attempt.identity));
+        // Settlement clears the recorded launch with the intent.
+        assert_eq!(ledger.dispatch_launch(&attempt.identity), None);
         assert_eq!(ledger.unresolved().count(), 0);
         // Terminal: neither a repeated settlement nor a new transport is admitted.
         assert!(settle(&mut ledger, attempt.fence, "refused").is_err());
         assert!(
             ledger
-                .begin_dispatch_transport(&attempt.identity, attempt.fence, 4, &digest)
+                .begin_dispatch_transport(&attempt.identity, attempt.fence, 4, &digest, None)
                 .is_err()
         );
         // No unknown outcome blocks the next attempt of the same work.
@@ -637,7 +652,7 @@ mod tests {
             .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         executed
-            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &digest)
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &digest, None)
             .unwrap_or_else(|error| unreachable!("{error:?}"));
         executed
             .reconcile_dispatch(
@@ -658,6 +673,73 @@ mod tests {
             Some(AttemptPhase::Executing)
         );
         assert!(executed.dispatch_requires_recovery(&attempt.identity));
+    }
+
+    #[test]
+    // r[verify kiln.implementation.lattice_cli.scenario.bound_root]
+    fn legacy_intents_keep_their_encoding_and_never_gain_a_launch() {
+        use crate::implementation::{TransportLaunch, TransportStart};
+        let work = work();
+        let launch = TransportLaunch {
+            lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+            executable_blake3: content('b'),
+            state_directory: "/var/lib/lattice/a".into(),
+        };
+        let started = |launch: Option<&TransportLaunch>| {
+            let mut ledger = AttemptLedger::default();
+            let attempt = ledger
+                .claim(&work, 0, DEFAULT_LEASE_MS)
+                .unwrap_or_else(|_| unreachable!());
+            let digest = ledger
+                .reserve_dispatch_plan(
+                    &work,
+                    &attempt.identity,
+                    attempt.fence,
+                    1,
+                    &plan(&work, &attempt),
+                )
+                .unwrap_or_else(|error| unreachable!("{error:?}"))
+                .plan;
+            ledger
+                .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            assert_eq!(
+                ledger
+                    .begin_dispatch_transport(&attempt.identity, attempt.fence, 3, &digest, launch)
+                    .unwrap_or_else(|error| unreachable!("{error:?}")),
+                TransportStart::Fresh
+            );
+            (ledger, attempt, digest)
+        };
+        // An intent without a launch serializes exactly as before launches existed.
+        let (legacy, attempt, digest) = started(None);
+        let encoded = serde_json::to_value(&legacy).unwrap_or_else(|_| unreachable!());
+        assert!(encoded.get("dispatch_launches").is_none());
+        assert!(encoded.get("dispatch_started").is_some());
+        let mut reloaded: AttemptLedger =
+            serde_json::from_value(encoded).unwrap_or_else(|_| unreachable!());
+        assert_eq!(reloaded, legacy);
+        // Recovery of a legacy intent has no launch, and none is recorded late.
+        assert_eq!(
+            reloaded
+                .begin_dispatch_transport(
+                    &attempt.identity,
+                    attempt.fence,
+                    4,
+                    &digest,
+                    Some(&launch)
+                )
+                .unwrap_or_else(|error| unreachable!("{error:?}")),
+            TransportStart::Recover(None)
+        );
+        assert_eq!(reloaded.dispatch_launch(&attempt.identity), None);
+        // A recorded launch round-trips.
+        let (recorded, attempt, _) = started(Some(&launch));
+        let encoded = serde_json::to_value(&recorded).unwrap_or_else(|_| unreachable!());
+        assert!(encoded.get("dispatch_launches").is_some());
+        let reloaded: AttemptLedger =
+            serde_json::from_value(encoded).unwrap_or_else(|_| unreachable!());
+        assert_eq!(reloaded.dispatch_launch(&attempt.identity), Some(&launch));
     }
 
     #[test]
@@ -826,15 +908,41 @@ mod tests {
                 )
                 .is_err()
         );
-        assert!(
-            !ledger
-                .begin_dispatch_transport(&attempt.identity, attempt.fence, 4, &digest)
-                .unwrap_or_else(|_| unreachable!())
-        );
-        assert!(
+        // r[verify kiln.implementation.lattice_cli.scenario.bound_root]
+        let launch = |root: &str| crate::implementation::TransportLaunch {
+            lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+            executable_blake3: content('b'),
+            state_directory: root.into(),
+        };
+        assert_eq!(
             ledger
-                .begin_dispatch_transport(&attempt.identity, attempt.fence, 5, &digest)
-                .unwrap_or_else(|_| unreachable!())
+                .begin_dispatch_transport(
+                    &attempt.identity,
+                    attempt.fence,
+                    4,
+                    &digest,
+                    Some(&launch("/var/lib/lattice/b"))
+                )
+                .unwrap_or_else(|_| unreachable!()),
+            crate::implementation::TransportStart::Fresh
+        );
+        // A later caller with another profile recovers with the recorded
+        // launch, which is never overwritten.
+        assert_eq!(
+            ledger
+                .begin_dispatch_transport(
+                    &attempt.identity,
+                    attempt.fence,
+                    5,
+                    &digest,
+                    Some(&launch("/var/lib/lattice/a"))
+                )
+                .unwrap_or_else(|_| unreachable!()),
+            crate::implementation::TransportStart::Recover(Some(launch("/var/lib/lattice/b")))
+        );
+        assert_eq!(
+            ledger.dispatch_launch(&attempt.identity),
+            Some(&launch("/var/lib/lattice/b"))
         );
         let mut crossed = bound.clone();
         crossed

@@ -106,19 +106,40 @@ scenario_run() {
 scenario_lost_before_start() {
   attempt lost-before-start fail
   local dir="$OUT/lost-before-start"
-  # Kiln #45 review: a first launch binds its program and state root (and
-  # creates that root) before the transport intent, exactly as worker::run does.
-  mkdir -p -m 700 "$dir/transport" "$dir/state"
-  jq -cn --arg attempt "$(jq -r .attempt "$dir/setup.json")" --argjson fence "$(jq -r .fence "$dir/setup.json")" \
-    --arg program "$LATTICE" --arg blake3 "$(b3 "$LATTICE")" --arg state "$dir/state" \
-    '{schema:"kiln.lattice-transport-binding.v1",attempt:$attempt,fence:$fence,lattice_program:$program,executable_blake3:$blake3,state_directory:$state}' \
-    > "$dir/transport/transport-binding-$(jq -r .attempt "$dir/setup.json")-$(jq -r .fence "$dir/setup.json").json"
+  # Kiln #45 final review: a first launch creates its state root before the
+  # owner-grant gate and records its program and root in the transport intent,
+  # exactly as worker::run does; the harness persists that intent and stops.
+  mkdir -p -m 700 "$dir/state"
   "$HARNESS" begin-transport --database "$dir/kiln.sqlite" --enrollment "$dir/enrollment.json" \
     --request "$dir/request.json" --plan "$dir/plan.json" \
-    --observations "$dir/observations.json" > "$dir/begin-transport.json"
+    --observations "$dir/observations.json" \
+    --lattice "$LATTICE" --lattice-blake3 "$(b3 "$LATTICE")" --state "$dir/state" > "$dir/begin-transport.json"
   dispatch lost-before-start recover
   dispatch lost-before-start recover-replay
   finish lost-before-start
+}
+
+# J (Kiln #45 final review): under profile A (output A, root A) the owner-grant
+# gate refuses for lack of a fresh observation; profile B (output B, root B)
+# then launches; a retry under profile A must recover with B's recorded launch
+# and never touch root A.
+scenario_pregate_rejected() {
+  local dir="$OUT/pregate"
+  attempt pregate fail
+  cp "$dir/transport.json" "$dir/transport-b.json"
+  jq --arg o "$dir/transport-a" --arg s "$dir/state-a" '.output_directory = $o | .state_directory = $s' \
+    "$dir/transport-b.json" > "$dir/transport-a.json"
+  cp "$dir/observations.json" "$dir/observations-fresh.json"
+  echo '[]' > "$dir/observations.json"
+  cp "$dir/transport-a.json" "$dir/transport.json"
+  dispatch pregate gate-refused-a
+  cp "$dir/observations-fresh.json" "$dir/observations.json"
+  cp "$dir/transport-b.json" "$dir/transport.json"
+  dispatch pregate launch-b
+  cp "$dir/transport-a.json" "$dir/transport.json"
+  dispatch pregate recover-under-a
+  if [ -e "$dir/state-a" ]; then find "$dir/state-a" -mindepth 1 | wc -l; else echo absent; fi > "$dir/state-a.observed"
+  finish pregate
 }
 
 # I (Kiln #45 review): Kiln's acknowledgement is lost while Lattice runs the

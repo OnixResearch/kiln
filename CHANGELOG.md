@@ -449,10 +449,11 @@ entry describes the source tree prepared for the first tagged release.
   transport intent. `run` receives exactly the one `env` variable the request's
   `omp.model_broker.credential` names, refused right after claim authorization
   and before plan reservation when missing, malformed, non-`env` or reserved;
-  `recover` and `cancel` receive none. The first `run` durably binds its
-  Lattice program and state root before its transport intent, and `recover`
-  uses only the bound values; an absent binding or missing bound root keeps the
-  unknown outcome without invoking Lattice. Only a `run` refusal that is exactly
+  `recover` and `cancel` receive none. The first `run`'s transport intent
+  records its Lattice program and state root (`TransportLaunch`) in the same
+  ledger mutation, never overwritten, and `recover` uses only that recorded
+  launch; an intent without one, a missing recorded root or a changed program
+  keeps the unknown outcome without invoking Lattice. Only a `run` refusal that is exactly
   Lattice's `lattice.implementation-attempt-refusal.v1` record for the attempt,
   with `dispatched:false` and reason `crossed_attempt`,
   `profile_revision_superseded`, `revision_not_admitted` or `revision_blocked`,
