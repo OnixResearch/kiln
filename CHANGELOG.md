@@ -484,9 +484,8 @@ entry describes the source tree prepared for the first tagged release.
   GitHub intake policy with exactly the types, policy validation, work
   construction and ledger admission `poll` applies, using a synthetic issue
   and an in-memory ledger; it opens no database, credential or transport.
-  Webhook intake and polling share one `ImplementationIssuePolicy::validate`,
-  so polling now also refuses an invalid repository policy or base reference
-  before any provider call.
+  Webhook intake and polling share one `ImplementationIssuePolicy::validate`.
+  The probe uses the first enrolled actor a polled issue can carry.
 - `kiln-web-service implementation-verification-graph` installs the canonical
   CI graph constructor that was the `implementation_verification_profile`
   example, with unchanged behaviour.
@@ -656,6 +655,13 @@ entry describes the source tree prepared for the first tagged release.
   one unchanged, two unavailable). (#93; pure-core, durable-store, CLI and
   Nickel-fixture tests; no captured agent plan or measured quality gain)
 
+### Changed
+
+- `poll` now refuses an invalid repository policy (for example
+  `repository_id` 0) or base reference before any GitHub call, as webhook
+  intake already did. It previously checked only the selection, so such a
+  policy could admit polled work.
+
 ### Fixed
 
 - Serve the GitHub DNS helper entry (`--internal-github-status-dns <ppid>`) in
@@ -666,9 +672,10 @@ entry describes the source tree prepared for the first tagged release.
   A process that never dispatched the entry now refuses to build the resolver
   (`github_status_dns_unserved`), and helper failures are named on stderr.
 - Report the real cause of an implementer JSON input failure: malformed JSON
-  and schema mismatches are distinguished, missing, duplicate and unknown field
-  names are kept, every message gives the line and column, and value-bearing
-  messages are reduced to the mismatch kind and expected type. Previously every
+  and schema mismatches are distinguished, missing and duplicate field names
+  are kept, every message gives the line and column, and messages that would
+  quote input (an unknown member name or a value) are reduced to the mismatch
+  kind and the type's expected names. Previously every
   failure read "<path> is not valid JSON", which hid a policy `base` without
   `contract_version` in the #49 pilot.
 - Bring the accepted GitHub landing, source-status and publication

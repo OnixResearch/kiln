@@ -25,3 +25,16 @@ $ cairn traceability coverage --root . --policy <nickel export cairn-policy/deve
 exit 0 {"dangling":0,"missing":0,"requirements":2243,"verdict":"pass"}
 
 Not run here: the full workspace gates (run at integration once the remaining slices join).
+
+Review fixes (probe actor selection, unknown member names withheld), parent 151dd893:
+$ cargo fmt --all --check
+exit 0
+$ cargo clippy --locked -p kiln-adapter-github --all-targets [--all-features] -- -D warnings
+exit 0 (both)
+$ cargo test --locked -p kiln-adapter-github --no-fail-fast
+exit 0; 126 passed, 0 failed, 0 ignored
+  poll::tests::policy_check_probes_with_an_actor_polling_accepts ok
+  poll::tests::policy_check_refuses_what_polling_or_admission_would_refuse ok
+  tests::unknown_member_names_are_withheld ok
+$ cairn validate; cairn gate proposal|design|tasks check-github-intake-policy
+exit 0; PASS (each)

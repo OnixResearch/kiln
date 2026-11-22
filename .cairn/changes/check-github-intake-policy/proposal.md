@@ -8,7 +8,7 @@ The live #49 pilot passed its `policy-check` stage and then failed at `poll`. Th
 
 `kiln-implementer policy-check --policy PATH --enrollment PATH` MUST read both files with the same types and reader `poll` uses, apply the policy validation every intake pass applies, and admit one synthetic open issue through poll's record bounds, work construction and ledger admission in an empty in-memory ledger. It opens no database, reads no credential and contacts no provider. Webhook intake and polling MUST share that one policy validation; polling now also refuses an invalid repository policy or base reference before any provider call, as webhook intake already did.
 
-Implementer JSON input failures MUST name the file, distinguish malformed JSON from a schema mismatch, and give the line and column. A schema mismatch MUST name a missing, duplicate or unknown field and MUST NOT echo an input value.
+Implementer JSON input failures MUST name the file, distinguish malformed JSON from a schema mismatch, and give the line and column. A schema mismatch MUST name a missing or duplicate field and MUST NOT echo input, including an unknown member name.
 
 ## Impact
 

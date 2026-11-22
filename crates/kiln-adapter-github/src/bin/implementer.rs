@@ -2036,9 +2036,10 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T
 }
 
 /// Name a JSON input failure by its real cause and location without echoing
-/// input values. Malformed JSON keeps serde's fixed syntax message; a schema
-/// mismatch keeps missing, duplicate and unknown field names, and reduces any
-/// message that would quote a value to its kind and expected type.
+/// input. Malformed JSON keeps serde's fixed syntax message. A schema mismatch
+/// keeps missing and duplicate field names, which come from the type, and
+/// reduces every message that would quote input (an unknown member name or a
+/// value) to its kind and the type's expected names.
 // r[impl kiln.implementation.json_input_diagnostics]
 fn json_input_error(path: &std::path::Path, error: &serde_json::Error) -> String {
     use serde_json::error::Category;
@@ -2064,20 +2065,38 @@ fn json_input_error(path: &std::path::Path, error: &serde_json::Error) -> String
 }
 
 fn schema_detail(message: &str) -> String {
-    const NAMED_FIELD: [&str; 3] = ["missing field `", "duplicate field `", "unknown field `"];
-    const VALUE_BEARING: [(&str, &str); 4] = [
+    // serde names these from the target type's own field list.
+    const SCHEMA_NAMED: [&str; 2] = ["missing field `", "duplicate field `"];
+    // These quote input first; only serde's trailing expectation is kept.
+    const INPUT_QUOTING: [(&str, &str); 5] = [
+        ("unknown field", "unknown field (name withheld)"),
+        ("unknown variant", "a value names an unknown variant"),
         ("invalid type", "a value has the wrong type"),
         ("invalid value", "a value is not admitted"),
         ("invalid length", "a sequence has the wrong length"),
-        ("unknown variant", "a value names an unknown variant"),
     ];
-    if NAMED_FIELD.iter().any(|prefix| message.starts_with(prefix)) {
+    const NOTHING_EXPECTED: [&str; 2] = [", there are no fields", ", there are no variants"];
+    if SCHEMA_NAMED
+        .iter()
+        .any(|prefix| message.starts_with(prefix))
+    {
         return message.to_string();
     }
-    let kind = VALUE_BEARING
+    let Some((_, kind)) = INPUT_QUOTING
         .iter()
         .find(|(prefix, _)| message.starts_with(prefix))
-        .map_or("a value was refused by its type", |(_, kind)| kind);
+    else {
+        // Custom validation messages may quote input; keep none of them.
+        return "a value was refused by its type".to_string();
+    };
+    if let Some(nothing) = NOTHING_EXPECTED
+        .iter()
+        .find(|suffix| message.ends_with(*suffix))
+    {
+        return format!("{kind}{nothing}");
+    }
+    // The expectation is appended after the quoted input, so the last
+    // separator starts it even when the input contains the same text.
     match message.rsplit_once(", expected ") {
         Some((_, expected)) => format!("{kind}, expected {expected}"),
         None => kind.to_string(),
@@ -2259,5 +2278,27 @@ mod tests {
             diagnosis::<kiln_core::implementation::TerminalPolicy>(&format!("\"{secret}\""));
         assert!(!variant.contains(secret), "{variant}");
         assert!(variant.contains("a value names an unknown variant, expected"));
+    }
+
+    // r[verify kiln.implementation.json_input_diagnostics.scenario.redacted]
+    #[test]
+    fn unknown_member_names_are_withheld() {
+        type Selection = kiln_adapter_github::implementation::IssueSelection;
+        let secret = "SECRET_token_do_not_echo";
+        let unknown = diagnosis::<Selection>(&format!("{{\"issues\": [1], \"{secret}\": 1}}"));
+        assert!(!unknown.contains(secret), "{unknown}");
+        assert!(
+            unknown.starts_with(
+                "policy.json does not match its schema: unknown field (name withheld), expected `issues` or `labels` at line 1 column "
+            ),
+            "{unknown}"
+        );
+        // A member name that imitates serde's separator still stays hidden.
+        let imitation = diagnosis::<Selection>(&format!("{{\"{secret}, expected {secret}\": 1}}"));
+        assert!(!imitation.contains(secret), "{imitation}");
+        assert!(
+            imitation.contains("expected `issues` or `labels`"),
+            "{imitation}"
+        );
     }
 }

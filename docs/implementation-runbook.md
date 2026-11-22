@@ -41,7 +41,7 @@ Admit authenticated GitHub issue deliveries using `kiln-implementer drain`/`run`
 
 Before starting intake, preflight the exact policy and enrollment files with `kiln-implementer policy-check --policy FILE --enrollment FILE`. It reads them with the types and reader `poll` uses, applies the policy validation every intake pass applies, and admits one synthetic open issue from an enrolled actor through poll's work construction and ledger admission in an in-memory ledger. It needs no database, credential or network, prints `{"policy":"admitted","repository":"owner/repo"}` on success, and exits 2 with the refusal otherwise. A deployment's policy-check stage should call this command rather than re-checking JSON keys itself, so the preflight cannot admit a policy `poll` rejects. It does not prove that any issue is selected or that the GitHub credential and transport work.
 
-Implementer JSON input errors name the file and say whether it "is not valid JSON" (a syntax error) or "does not match its schema" (for example ``missing field `contract_version` ``), always with the line and column. Messages never quote input values.
+Implementer JSON input errors name the file and say whether it "is not valid JSON" (a syntax error) or "does not match its schema" (for example ``missing field `contract_version` ``), always with the line and column. Messages never quote input: an unknown member name is reported as "unknown field (name withheld)" with the type's expected field names, and a rejected value only by the kind of mismatch and the expected type.
 
 Default operator intake selects `AbortActive`. When an embedder explicitly selects
 `FinishActive`, capture and canonical verification use the single transactional

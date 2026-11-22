@@ -245,13 +245,19 @@ pub fn check_poll_policy(
     enrollment: &Enrollment,
 ) -> PortResult<PolicyCheck> {
     policy.validate()?;
-    let actor = enrollment.actors.iter().next().ok_or_else(|| {
-        refusal(
-            "github_poll_enrollment",
-            "enrollment.actors",
-            "enrollment names no actor, so polling can admit no issue",
-        )
-    })?;
+    // Polling admits an issue only from an actor its record checks accept, so
+    // the probe uses the first such enrolled actor and ignores the rest.
+    let actor = enrollment
+        .actors
+        .iter()
+        .find(|actor| valid_record_actor(actor))
+        .ok_or_else(|| {
+            refusal(
+                "github_poll_enrollment",
+                "enrollment.actors",
+                "enrollment names no actor a polled issue can carry, so polling can admit no issue",
+            )
+        })?;
     let repository_key = policy.repository_key();
     let record = IssuePollRecord {
         number: PROBE_ISSUE_NUMBER,
@@ -280,6 +286,10 @@ pub fn check_poll_policy(
     })
 }
 
+fn valid_record_actor(actor: &str) -> bool {
+    !actor.is_empty() && actor.len() <= MAX_ACTOR_BYTES && !actor.chars().any(char::is_control)
+}
+
 fn validate_record(record: &IssuePollRecord, enrolled_actors: &BTreeSet<String>) -> PortResult<()> {
     if record.number == 0
         || record.updated_at_ms == 0
@@ -289,9 +299,7 @@ fn validate_record(record: &IssuePollRecord, enrolled_actors: &BTreeSet<String>)
             .body
             .as_deref()
             .is_some_and(|body| body.len() > MAX_BODY_BYTES)
-        || record.actor.is_empty()
-        || record.actor.len() > MAX_ACTOR_BYTES
-        || record.actor.chars().any(char::is_control)
+        || !valid_record_actor(&record.actor)
         || record.labels.len() > MAX_ISSUE_LABELS
         || record.labels.iter().any(|label| !valid_label(label))
         || !matches!(record.state.as_str(), "open" | "closed")
@@ -826,13 +834,42 @@ mod tests {
             .err()
             .unwrap_or_else(|| unreachable!());
         assert_eq!(code(refused), "implementation_unenrolled");
-        let no_actor = Enrollment {
-            actors: BTreeSet::new(),
-            ..enrollment()
-        };
-        let refused = check_poll_policy(&policy(), &no_actor)
+        // No actor, or only actors no polled issue can carry, admits nothing.
+        for actors in [
+            BTreeSet::new(),
+            BTreeSet::from([String::new(), "bad\u{7}actor".to_string()]),
+        ] {
+            let refused = check_poll_policy(
+                &policy(),
+                &Enrollment {
+                    actors,
+                    ..enrollment()
+                },
+            )
             .err()
             .unwrap_or_else(|| unreachable!());
-        assert_eq!(code(refused), "github_poll_enrollment");
+            assert_eq!(code(refused), "github_poll_enrollment");
+        }
+    }
+
+    // r[verify kiln.implementation.policy_check.scenario.admitted]
+    #[test]
+    fn policy_check_probes_with_an_actor_polling_accepts() {
+        // "" sorts first and fails the record checks; polling still admits an
+        // issue from "operator", so the preflight must admit the policy too.
+        let mixed = Enrollment {
+            actors: BTreeSet::from([String::new(), "operator".to_string()]),
+            ..enrollment()
+        };
+        assert!(check_poll_policy(&policy(), &mixed).is_ok());
+        let admissions = poll_implementation_issues(
+            &policy(),
+            &mixed.actors,
+            &mut page(vec![record(1, 10, "open")]),
+            0,
+            1,
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(admissions.as_slice(), [IssueAdmission::Work(_)]));
     }
 }
