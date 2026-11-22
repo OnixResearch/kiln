@@ -422,12 +422,15 @@ pub struct GrantBudget {
 }
 
 /// The exact attempt lineage a binding is valid for, read from the current
-/// attempt owner.
+/// attempt owner. The shell builds it only for the current, active attempt of
+/// a work unit; it never builds facts for a non-current attempt.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptLineage {
     /// Selected campaign revision, when the attempt runs under a campaign.
     pub campaign_revision: Option<ContentId>,
+    /// Project of the admitted work (`ImplementationWork.project`).
+    pub project: String,
     /// Work identity.
     pub work: ContentId,
     /// Work version.
@@ -504,16 +507,11 @@ impl AttemptAuthorityBinding {
         Ok(())
     }
 
-    /// The attempt lineage this binding is valid for.
+    /// The attempt lineage this binding is valid for. The project is the
+    /// ceiling's, which admission requires to equal the work's project.
     #[must_use]
     pub fn lineage(&self) -> AttemptLineage {
-        AttemptLineage {
-            campaign_revision: self.campaign_revision.clone(),
-            work: self.work.clone(),
-            work_version: self.work_version,
-            attempt: self.attempt.clone(),
-            fence: self.fence,
-        }
+        self.fields().lineage()
     }
 
     fn fields(&self) -> GrantFields<'_> {
@@ -535,17 +533,22 @@ impl AttemptAuthorityBinding {
         }
     }
 
-    /// Refusal when this binding does not bind exactly `current`. A replaced
-    /// fence is stale; any other difference is foreign.
+    /// Refusal when this binding does not bind exactly `current`. Another
+    /// campaign revision, project, work or version is foreign; with those
+    /// equal, another fence is a replaced attempt and therefore stale; with the
+    /// fence equal too, another attempt identity is foreign.
     fn lineage_refusal(&self, current: &AttemptLineage) -> Option<LineageRefusal> {
+        if self.campaign_revision != current.campaign_revision
+            || self.ceiling.project != current.project
+            || self.work != current.work
+            || self.work_version != current.work_version
+        {
+            return Some(LineageRefusal::ForeignLineage);
+        }
         if self.fence != current.fence {
             return Some(LineageRefusal::StaleGeneration);
         }
-        if self.campaign_revision != current.campaign_revision
-            || self.work != current.work
-            || self.work_version != current.work_version
-            || self.attempt != current.attempt
-        {
+        if self.attempt != current.attempt {
             return Some(LineageRefusal::ForeignLineage);
         }
         None
@@ -554,7 +557,8 @@ impl AttemptAuthorityBinding {
 
 /// An admitted, not yet issued grant: the issuance intent. Its `intent`
 /// identity is deterministic over every binding field except the proof
-/// reference, so recovery re-derives the same intent and never a second one.
+/// reference. Recovery resumes the stored intent record rather than
+/// re-deriving it from fresh facts, so it never issues a second grant.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AdmittedGrant {
@@ -607,6 +611,17 @@ impl AdmittedGrant {
             ));
         }
         Ok(())
+    }
+
+    /// Whether this intent binds exactly `current`.
+    #[must_use]
+    pub fn binds(&self, current: &AttemptLineage) -> bool {
+        self.campaign_revision == current.campaign_revision
+            && self.ceiling.project == current.project
+            && self.work == current.work
+            && self.work_version == current.work_version
+            && self.attempt == current.attempt
+            && self.fence == current.fence
     }
 
     /// Identity of the binding this intent issues under `grant_ref`.
@@ -696,6 +711,17 @@ struct GrantFields<'a> {
 
 // r[impl kiln.attempt.grant_lineage.identity]
 impl GrantFields<'_> {
+    fn lineage(&self) -> AttemptLineage {
+        AttemptLineage {
+            campaign_revision: self.campaign_revision.cloned(),
+            project: self.ceiling.project.clone(),
+            work: self.work.clone(),
+            work_version: self.work_version,
+            attempt: self.attempt.clone(),
+            fence: self.fence,
+        }
+    }
+
     fn validate(&self) -> CoreResult<()> {
         if self.schema != ATTEMPT_AUTHORITY_BINDING_SCHEMA {
             return Err(Diagnostic::new(
@@ -889,8 +915,8 @@ pub struct ChildGrantRequest {
 /// Returns [`LineageError::Invalid`] for malformed input and
 /// [`LineageError::Refused`] when the ceiling generation moved
 /// (`stale_generation`), the ceiling expired (`outlives_parent`), the ceiling
-/// names other work (`foreign_lineage`) or no owner-confirmed reservation
-/// matches the request (`budget_unbound`).
+/// names another project or other work (`foreign_lineage`) or no
+/// owner-confirmed reservation matches the request (`budget_unbound`).
 pub fn admit_root(
     request: RootGrantRequest,
     facts: &RootFacts<'_>,
@@ -903,11 +929,12 @@ pub fn admit_root(
     if current.now_s >= request.ceiling.not_after_s {
         return Err(LineageRefusal::OutlivesParent.into());
     }
-    if request
-        .ceiling
-        .work
-        .as_ref()
-        .is_some_and(|work| *work != current.attempt.work)
+    if request.ceiling.project != current.attempt.project
+        || request
+            .ceiling
+            .work
+            .as_ref()
+            .is_some_and(|work| *work != current.attempt.work)
     {
         return Err(LineageRefusal::ForeignLineage.into());
     }
@@ -958,8 +985,7 @@ pub fn admit_child(
         return Err(LineageRefusal::DelegationNotPermitted.into());
     }
     let ceiling = AuthorityCeiling::new(parent.ceiling.generation, request.terms)?;
-    let child_roles = role_bits(&ceiling.operations);
-    if child_roles.count_ones() != 1 || child_roles & role_bits(&parent.ceiling.operations) == 0 {
+    if !role_derives(&parent.ceiling, &ceiling) {
         return Err(LineageRefusal::RoleEscalation.into());
     }
     if ceiling
@@ -980,10 +1006,7 @@ pub fn admit_child(
         )
         .into());
     }
-    let shared = request.budget == parent.budget;
-    let disjoint = request.budget.parent_budget_identity == parent.budget.account
-        && request.budget.account != parent.budget.account;
-    if facts.budget != Some(&request.budget) || !(shared || disjoint) {
+    if facts.budget != Some(&request.budget) || !budget_derives(&parent.budget, &request.budget) {
         return Err(LineageRefusal::BudgetUnbound.into());
     }
     let depth = parent
@@ -1013,14 +1036,18 @@ pub fn admit_child(
 /// Check that `binding` and every ancestor are still current.
 ///
 /// `ancestors` lists the binding's ancestors root first, excluding the binding.
-/// Every link must recompute and attenuate its predecessor. A revoked or
-/// expired ancestor invalidates every descendant.
+/// Every link must recompute, link to its predecessor by identity, depth and
+/// root policy, be covered by the predecessor's ceiling, hold exactly one role
+/// its predecessor holds, and charge the predecessor's account or one
+/// transferred from it. A revoked or expired ancestor invalidates every
+/// descendant.
 ///
 /// # Errors
-/// Returns `foreign_lineage` for a forged or broken chain or another attempt,
-/// `stale_generation` for a moved authority generation, an older revocation
-/// view, a revoked lineage grant or a replaced fence, `outlives_parent` for an
-/// expired lineage grant, and `depth_exceeded` for a chain over the bound.
+/// Returns `foreign_lineage` for a forged, broken or wider chain or another
+/// project, work or attempt, `stale_generation` for a moved authority
+/// generation, an older revocation view, a revoked lineage grant or a replaced
+/// fence, `outlives_parent` for an expired lineage grant, and `depth_exceeded`
+/// for a chain over the bound.
 pub fn check_current(
     binding: &AttemptAuthorityBinding,
     ancestors: &[AttemptAuthorityBinding],
@@ -1041,6 +1068,8 @@ pub fn check_current(
                     && Some(link.depth) == parent.depth.checked_add(1)
                     && link.root_policy_ref == parent.root_policy_ref
                     && parent.ceiling.covers(&link.ceiling)
+                    && role_derives(&parent.ceiling, &link.ceiling)
+                    && budget_derives(&parent.budget, &link.budget)
             }
         };
         if !linked {
@@ -1061,6 +1090,19 @@ pub fn check_current(
         previous = Some(link);
     }
     Ok(())
+}
+
+/// Whether `child` holds exactly one role, and one that `parent` holds.
+fn role_derives(parent: &AuthorityCeiling, child: &AuthorityCeiling) -> bool {
+    let child_roles = role_bits(&child.operations);
+    child_roles.count_ones() == 1 && child_roles & role_bits(&parent.operations) != 0
+}
+
+/// Whether `child` shares the parent's account or charges a disjoint account
+/// transferred from it.
+fn budget_derives(parent: &GrantBudget, child: &GrantBudget) -> bool {
+    child == parent
+        || (child.parent_budget_identity == parent.account && child.account != parent.account)
 }
 
 fn text_field(field: &str, value: &str, max_bytes: usize) -> CoreResult<()> {

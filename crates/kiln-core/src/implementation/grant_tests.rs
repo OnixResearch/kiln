@@ -42,6 +42,7 @@ fn routes(list: &[&str]) -> BTreeSet<String> {
 fn lineage() -> AttemptLineage {
     AttemptLineage {
         campaign_revision: Some(id('c')),
+        project: "kiln".to_string(),
         work: id('1'),
         work_version: 2,
         attempt: id('a'),
@@ -108,9 +109,12 @@ fn root_terms(operations: BTreeSet<Op>) -> CeilingTerms {
 }
 
 fn root_request(operations: BTreeSet<Op>) -> RootGrantRequest {
+    root_request_from(root_terms(operations))
+}
+
+fn root_request_from(terms: CeilingTerms) -> RootGrantRequest {
     RootGrantRequest {
-        ceiling: AuthorityCeiling::new(GENERATION, root_terms(operations))
-            .unwrap_or_else(|_| unreachable!()),
+        ceiling: AuthorityCeiling::new(GENERATION, terms).unwrap_or_else(|_| unreachable!()),
         root_policy_ref: POLICY.to_string(),
         holder: COORDINATOR.to_string(),
         incarnation: None,
@@ -119,10 +123,14 @@ fn root_request(operations: BTreeSet<Op>) -> RootGrantRequest {
 }
 
 fn root_with(operations: BTreeSet<Op>) -> AttemptAuthorityBinding {
+    root_from(root_terms(operations))
+}
+
+fn root_from(terms: CeilingTerms) -> AttemptAuthorityBinding {
     let world = World::new();
     let budget = root_budget();
     admit_root(
-        root_request(operations),
+        root_request_from(terms),
         &RootFacts {
             current: world.current(),
             budget: Some(&budget),
@@ -258,9 +266,11 @@ fn a_root_binds_the_admitted_ceiling_to_the_current_attempt() {
     expired.now_s = ROOT_NOT_AFTER;
     let mut other_work = World::new();
     other_work.attempt.work = id('2');
+    let mut other_project = World::new();
+    other_project.attempt.project = "other".to_string();
     let mut other_budget = root_budget();
     other_budget.account = id('f');
-    let cases: [(&str, LineageRefusal, &World, Option<&GrantBudget>); 5] = [
+    let cases: [(&str, LineageRefusal, &World, Option<&GrantBudget>); 6] = [
         (
             "moved generation",
             LineageRefusal::StaleGeneration,
@@ -277,6 +287,12 @@ fn a_root_binds_the_admitted_ceiling_to_the_current_attempt() {
             "ceiling for other work",
             LineageRefusal::ForeignLineage,
             &other_work,
+            Some(&budget),
+        ),
+        (
+            "ceiling for another project",
+            LineageRefusal::ForeignLineage,
+            &other_project,
             Some(&budget),
         ),
         (
@@ -299,6 +315,26 @@ fn a_root_binds_the_admitted_ceiling_to_the_current_attempt() {
             "{name}"
         );
     }
+    let mut foreign_terms = root_terms(all());
+    foreign_terms.project = "other".to_string();
+    foreign_terms.work = None;
+    let mut project_wide = root_request(all());
+    project_wide.ceiling =
+        AuthorityCeiling::new(GENERATION, foreign_terms).unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        refusal(admit(project_wide, &world, Some(&budget))),
+        Some(LineageRefusal::ForeignLineage),
+        "a project-wide ceiling from another project cannot bind this attempt"
+    );
+    let mut own_terms = root_terms(all());
+    own_terms.work = None;
+    let mut own_project = root_request(all());
+    own_project.ceiling =
+        AuthorityCeiling::new(GENERATION, own_terms).unwrap_or_else(|_| unreachable!());
+    assert!(
+        admit(own_project, &world, Some(&budget)).is_ok(),
+        "a project-wide ceiling for the work's own project binds"
+    );
     let mut forged = root_request(all());
     forged.ceiling.max_depth = MAX_GRANT_DEPTH;
     assert!(matches!(
@@ -354,7 +390,7 @@ type RefusalCase = (&'static str, fn() -> Case, Change, LineageRefusal);
 fn every_lineage_refusal_has_a_negative_fixture() {
     let from_root = Case::from_root;
     let from_child = Case::from_child;
-    let cases: [RefusalCase; 34] = [
+    let cases: [RefusalCase; 38] = [
         (
             "other project",
             from_root,
@@ -598,6 +634,40 @@ fn every_lineage_refusal_has_a_negative_fixture() {
             |c| c.world.attempt.fence = 6,
             LineageRefusal::StaleGeneration,
         ),
+        (
+            "successor attempt with a new fence",
+            from_root,
+            |c| {
+                c.world.attempt.attempt = id('f');
+                c.world.attempt.fence = 8;
+            },
+            LineageRefusal::StaleGeneration,
+        ),
+        (
+            "successor attempt under a child",
+            from_child,
+            |c| {
+                c.world.attempt.attempt = id('f');
+                c.world.attempt.fence = 8;
+            },
+            LineageRefusal::StaleGeneration,
+        ),
+        (
+            "other work with a new fence",
+            from_root,
+            |c| {
+                c.world.attempt.work = id('2');
+                c.world.attempt.attempt = id('f');
+                c.world.attempt.fence = 8;
+            },
+            LineageRefusal::ForeignLineage,
+        ),
+        (
+            "attempt in another project",
+            from_child,
+            |c| c.world.attempt.project = "other".to_string(),
+            LineageRefusal::ForeignLineage,
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (name, base, change, expected) in cases {
@@ -840,8 +910,10 @@ fn no_admitted_child_covers_an_operation_its_parent_lacks() {
     assert!(admitted > 0);
 }
 
-/// Every combination of lifetime, depth, route, work and project around a
-/// parent: an admitted child's ceiling is always covered by its parent's.
+/// Every combination of lifetime, depth, route, work, project and audience
+/// under a work-scoped and a project-wide parent. An explicit oracle, written
+/// independently of `covers`, decides which children admit; every admitted
+/// child is also covered by its parent.
 #[test]
 // r[verify kiln.attempt.grant_lineage.attenuation.scenario.property]
 fn no_admitted_child_exceeds_its_parent_in_any_dimension() {
@@ -855,37 +927,115 @@ fn no_admitted_child_exceeds_its_parent_in_any_dimension() {
     let works = [Some(id('1')), None];
     let projects = ["kiln", "other"];
     let audiences = [AUDIENCE, "did:web:other"];
-    let mut admitted = 0_usize;
-    for not_after_s in lifetimes {
-        for max_depth in 0..=MAX_GRANT_DEPTH {
-            for disclosure_routes in &route_sets {
-                for work in &works {
-                    for project in projects {
-                        for audience in audiences {
-                            let mut case = Case::from_root();
-                            case.request.terms = CeilingTerms {
-                                audience: audience.to_string(),
-                                project: project.to_string(),
-                                work: work.clone(),
-                                operations: operations(&CODING),
-                                not_after_s,
-                                max_depth,
-                                disclosure_routes: disclosure_routes.clone(),
-                            };
-                            if let Ok(grant) = case.run() {
-                                assert!(case.parent.ceiling.covers(&grant.ceiling));
-                                assert!(grant.ceiling.max_depth < case.parent.ceiling.max_depth);
-                                admitted += 1;
+    let mut project_wide_terms = root_terms(Op::ALL.into_iter().collect());
+    project_wide_terms.work = None;
+    let parents = [(root(), false), (root_from(project_wide_terms), true)];
+    for (parent, project_wide) in parents {
+        let mut admitted = 0_usize;
+        for not_after_s in lifetimes {
+            for max_depth in 0..=MAX_GRANT_DEPTH {
+                for (route_index, disclosure_routes) in route_sets.iter().enumerate() {
+                    for work in &works {
+                        for project in projects {
+                            for audience in audiences {
+                                let mut case = Case::from_root();
+                                case.parent = parent.clone();
+                                case.request.terms = CeilingTerms {
+                                    audience: audience.to_string(),
+                                    project: project.to_string(),
+                                    work: work.clone(),
+                                    operations: operations(&CODING),
+                                    not_after_s,
+                                    max_depth,
+                                    disclosure_routes: disclosure_routes.clone(),
+                                };
+                                // Oracle: the parent holds audience AUDIENCE,
+                                // project "kiln", routes {source-view,
+                                // cairn-context} (route sets 0..=2),
+                                // lifetime ROOT_NOT_AFTER and depth ROOT_DEPTH;
+                                // a work-scoped parent also holds work '1'.
+                                let expected = audience == AUDIENCE
+                                    && project == "kiln"
+                                    && (project_wide || work.is_some())
+                                    && route_index <= 2
+                                    && not_after_s <= ROOT_NOT_AFTER
+                                    && max_depth < ROOT_DEPTH;
+                                let result = case.run();
+                                assert_eq!(
+                                    result.is_ok(),
+                                    expected,
+                                    "{project_wide} {audience} {project} {work:?} {route_index} {not_after_s} {max_depth}"
+                                );
+                                if let Ok(grant) = result {
+                                    assert!(case.parent.ceiling.covers(&grant.ceiling));
+                                    admitted += 1;
+                                }
                             }
                         }
                     }
                 }
             }
         }
+        // Two lifetimes, two depths and three route sets admit; a project-wide
+        // parent also admits the project-wide child.
+        let works_admitted = if project_wide { 2 } else { 1 };
+        assert_eq!(admitted, 2 * 2 * 3 * works_admitted);
     }
-    // Only the two permitted lifetimes, two permitted depths and three
-    // permitted route sets admit, for the parent's own work, project and audience.
-    assert_eq!(admitted, 2 * 2 * 3);
+}
+
+/// Rebuild a binding's ceiling and binding identities after an edit, so the
+/// link recomputes and only the lineage rules can refuse it.
+fn reseal(mut binding: AttemptAuthorityBinding) -> AttemptAuthorityBinding {
+    binding.ceiling.identity = ContentId::from_blake3_hex(binding.ceiling.view().digest_hex())
+        .unwrap_or_else(|_| unreachable!());
+    binding.identity =
+        ContentId::from_blake3_hex(binding.fields().binding_digest_hex(&binding.grant_ref))
+            .unwrap_or_else(|_| unreachable!());
+    binding
+}
+
+#[test]
+// r[verify kiln.attempt.grant_lineage.foreign] r[verify kiln.attempt.grant_lineage.foreign.scenario.refused]
+fn check_current_refuses_every_recomputing_link_that_breaks_lineage() {
+    let case = Case::from_root();
+    let root = case.parent.clone();
+    let child = issue(&case, 2);
+    let world = World::new();
+    let ancestors = core::slice::from_ref(&root);
+    assert_eq!(check_current(&child, ancestors, &world.current()), Ok(()));
+
+    type Edit = fn(&mut AttemptAuthorityBinding);
+    let edits: [(&str, Edit); 6] = [
+        ("wider lifetime", |b| {
+            b.ceiling.not_after_s = ROOT_NOT_AFTER + 1
+        }),
+        ("wider route", |b| {
+            b.ceiling
+                .disclosure_routes
+                .insert("secret-view".to_string());
+        }),
+        ("depth 2 under the root", |b| b.depth = 2),
+        ("other root policy", |b| {
+            b.root_policy_ref = "policy:other".to_string()
+        }),
+        ("mixed roles", |b| {
+            b.ceiling.operations.insert(Op::VerificationAdmit);
+        }),
+        ("unrelated budget", |b| {
+            b.budget.parent_budget_identity = id('f')
+        }),
+    ];
+    for (name, edit) in edits {
+        let mut forged = child.clone();
+        edit(&mut forged);
+        let forged = reseal(forged);
+        assert_eq!(forged.validate(), Ok(()), "{name}: the link recomputes");
+        assert_eq!(
+            check_current(&forged, ancestors, &world.current()),
+            Err(LineageRefusal::ForeignLineage),
+            "{name}"
+        );
+    }
 }
 
 fn work() -> ImplementationWork {
@@ -927,6 +1077,7 @@ fn attempt_root(ledger: &AttemptLedger, attempt: &ContentId, proof: u8) -> Attem
     let mut world = World::new();
     world.attempt = AttemptLineage {
         campaign_revision: None,
+        project: "kiln".to_string(),
         work: claimed.work_identity.clone(),
         work_version: claimed.work_revision,
         attempt: claimed.identity.clone(),
@@ -973,27 +1124,28 @@ fn the_attempt_retains_one_exact_binding_and_round_trips_without_one() {
     );
 
     let code = |result: CoreResult<()>| result.err().map(|diagnostic| diagnostic.code);
+    let at = 1;
     let binding = attempt_root(&ledger, &attempt.identity, 1);
     let alternative = attempt_root(&ledger, &attempt.identity, 7);
     let mut tampered = binding.clone();
     tampered.fence += 1;
     assert_eq!(
-        code(ledger.bind_authority(&attempt.identity, tampered)),
+        code(ledger.bind_authority(&attempt.identity, tampered, at)),
         Some("authority_binding_identity".to_string()),
         "a binding that does not recompute is refused"
     );
     assert_eq!(
-        code(ledger.bind_authority(&attempt.identity, binding.clone())),
+        code(ledger.bind_authority(&attempt.identity, binding.clone(), at)),
         None
     );
     assert_eq!(ledger.authority(&attempt.identity), Some(&binding));
     assert_eq!(
-        code(ledger.bind_authority(&attempt.identity, binding.clone())),
+        code(ledger.bind_authority(&attempt.identity, binding.clone(), at)),
         None,
         "the same binding is idempotent"
     );
     assert_eq!(
-        code(ledger.bind_authority(&attempt.identity, alternative)),
+        code(ledger.bind_authority(&attempt.identity, alternative, at)),
         Some("implementation_authority_rebind".to_string()),
         "an alternative proof cannot replace the bound grant"
     );
@@ -1014,17 +1166,44 @@ fn the_attempt_retains_one_exact_binding_and_round_trips_without_one() {
         .claim(&other_work, 0, DEFAULT_LEASE_MS)
         .unwrap_or_else(|_| unreachable!());
     assert_eq!(
-        code(ledger.bind_authority(&other.identity, binding)),
+        code(ledger.bind_authority(&other.identity, binding, at)),
         Some("implementation_authority_lineage".to_string()),
         "a binding for another attempt cannot bind this one"
     );
 
     let other_binding = attempt_root(&ledger, &other.identity, 2);
+    assert_eq!(
+        code(ledger.bind_authority(&other.identity, other_binding.clone(), DEFAULT_LEASE_MS)),
+        Some("implementation_lease_expired".to_string()),
+        "a lease-expired attempt binds nothing"
+    );
     ledger
         .cancel(&other.identity, other.fence, 1, "operator")
         .unwrap_or_else(|_| unreachable!());
     assert_eq!(
-        code(ledger.bind_authority(&other.identity, other_binding)),
+        code(ledger.bind_authority(&other.identity, other_binding, at)),
         Some("implementation_authority_inactive".to_string())
+    );
+
+    // A1 is still `Claimed` after its lease lapsed and A2 replaced it; even a
+    // clock inside A1's old lease cannot bind authority to it.
+    let short_lease = 10;
+    let mut replaced = AttemptLedger::default();
+    let first = replaced
+        .claim(&work, 0, short_lease)
+        .unwrap_or_else(|_| unreachable!());
+    let first_binding = attempt_root(&replaced, &first.identity, 3);
+    let second = replaced
+        .claim(&work, short_lease + 1, DEFAULT_LEASE_MS)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(
+        replaced.get(&first.identity).map(|a| a.phase),
+        Some(crate::implementation::AttemptPhase::Claimed)
+    );
+    assert_ne!(first.identity, second.identity);
+    assert_eq!(
+        code(replaced.bind_authority(&first.identity, first_binding, at)),
+        Some("implementation_fence_stale".to_string()),
+        "a replaced attempt binds nothing"
     );
 }

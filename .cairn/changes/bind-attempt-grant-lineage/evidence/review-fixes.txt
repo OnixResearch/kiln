@@ -1,0 +1,53 @@
+Review fixes on top of 4d95d16f (independent review history://KilnS2Review: 2 P2, 4 P3).
+
+What landed:
+
+1. [P2] `AttemptLedger::bind_authority(identity, binding, now_ms)`: after the
+   lineage, rebind and inactive checks, a first binding now calls
+   `require_active(identity, binding.fence, now_ms)`. An identical binding still
+   returns early. Negatives: lease expired (`implementation_lease_expired`) and
+   A1 still `Claimed` after A2 replaced it, bound at a clock inside A1's old
+   lease (`implementation_fence_stale`).
+2. [P2] `AttemptLineage.project` (from `ImplementationWork.project`).
+   `admit_root` refuses `foreign_lineage` when the ceiling's project differs,
+   including a project-wide ceiling; `check_current` compares the project on
+   every link. Negatives: root ceiling for another project, a project-wide
+   ceiling from another project (and a positive project-wide ceiling for the
+   work's own project), and an attempt in another project under a child.
+3. [P3] Lineage refusal order: campaign revision, project, work and version
+   (foreign), then fence (stale), then attempt identity (foreign). New
+   fixtures: successor attempt with a new fence (root and child) =>
+   stale_generation; other work with a new fence => foreign_lineage. The
+   predecessor-fence fixtures still give stale_generation.
+4. [P3] `check_current`'s parent branch also requires exactly one role that
+   the parent holds (`role_derives`) and the shared-or-disjoint budget rule
+   (`budget_derives`); `admit_child` uses the same two helpers.
+5. [P3] `check_current_refuses_every_recomputing_link_that_breaks_lineage`:
+   resealed links that recompute (wider lifetime, wider route, depth 2 directly
+   under the root, other root policy, mixed roles, unrelated budget) each give
+   foreign_lineage. The dimension sweep now also runs under a project-wide
+   parent and asserts admission against an explicit oracle independent of
+   `covers` (12 and 24 admitted children).
+6. [P3] `GrantIssuanceState::reconcile(now_s, authority_generation, attempt)`
+   returns `Issue` only for an unissued intent with the current generation and
+   exact attempt lineage (`AdmittedGrant::binds`), otherwise `Abandon`.
+   Negatives: moved generation, replaced attempt and fence, another project.
+
+Notes: the `AdmittedGrant` doc and design now say recovery resumes the stored
+intent; design records that S6 owns blocking a second root and alternative
+proofs and comparing the incarnation with the recorded launch, and that the
+shell never builds current facts for a non-current attempt. The delta spec's
+root, foreign, identity, attempt and issuance requirements were updated to match.
+
+Checks (store rust-minimal-1.88.0 toolchain, private target,
+TMPDIR=/var/tmp/agents/kiln-s2, --offline):
+
+$ cargo fmt --all --check                                   exit 0
+$ cargo test -p onix-kiln-core                              exit 0 (lib 522 passed; 1 + 1 + 4 other targets)
+$ cargo test -p kiln-implementer --lib grant_issuance       exit 0 (3 passed)
+$ cargo clippy -p onix-kiln-core -p kiln-implementer -p kiln-adapter-lattice -p kiln-web-service --all-targets -- -D warnings
+                                                            exit 0
+$ cairn validate; cairn gate proposal|design|tasks bind-attempt-grant-lineage
+                                                            exit 0, no issues
+$ cairn traceability coverage --profile kiln-active-development
+                                                            exit 0, 0 dangling, 0 missing kiln.attempt.grant_lineage.*

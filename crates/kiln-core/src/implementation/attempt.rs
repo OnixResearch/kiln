@@ -774,24 +774,32 @@ impl AttemptLedger {
             .and_then(|attempt| attempt.metrics.as_ref())
     }
 
-    /// Bind the admitted authority lineage of one active attempt.
+    /// Bind the admitted authority lineage of the current active attempt.
     ///
     /// The binding must recompute and name exactly this attempt's work,
     /// version, identity and fence. Repeating the same binding is idempotent; a
     /// different binding is refused, since a scope change needs a new grant and
-    /// identity.
+    /// identity. A first binding requires the attempt to hold the current,
+    /// unexpired claim, so a lease-expired or replaced attempt binds nothing.
     ///
     /// # Errors
-    /// Returns the binding diagnostic, or a refusal for a missing, inactive or
-    /// different attempt, or an already different binding.
+    /// Returns the binding diagnostic, or a refusal for a missing, inactive,
+    /// expired, replaced or different attempt, or an already different binding.
     // r[impl kiln.attempt.grant_lineage.attempt]
     pub fn bind_authority(
         &mut self,
         identity: &ContentId,
         binding: super::grant::AttemptAuthorityBinding,
+        now_ms: u64,
     ) -> CoreResult<()> {
         binding.validate()?;
-        let attempt = self.attempt_mut(identity)?;
+        let attempt = self.get(identity).ok_or_else(|| {
+            refusal(
+                "implementation_attempt_missing",
+                "attempt.identity",
+                "attempt identity is not retained",
+            )
+        })?;
         if binding.attempt != attempt.identity
             || binding.work != attempt.work_identity
             || binding.work_version != attempt.work_revision
@@ -804,22 +812,26 @@ impl AttemptLedger {
             ));
         }
         match &attempt.authority {
-            Some(existing) if *existing == binding => Ok(()),
-            Some(_) => Err(refusal(
-                "implementation_authority_rebind",
-                "attempt.authority",
-                "attempt authority is already bound to a different grant",
-            )),
-            None if !attempt.phase.is_active() => Err(refusal(
-                "implementation_authority_inactive",
-                "attempt.authority",
-                "only an active attempt admits an authority binding",
-            )),
-            None => {
-                attempt.authority = Some(binding);
-                Ok(())
+            Some(existing) if *existing == binding => return Ok(()),
+            Some(_) => {
+                return Err(refusal(
+                    "implementation_authority_rebind",
+                    "attempt.authority",
+                    "attempt authority is already bound to a different grant",
+                ));
             }
+            None if !attempt.phase.is_active() => {
+                return Err(refusal(
+                    "implementation_authority_inactive",
+                    "attempt.authority",
+                    "only an active attempt admits an authority binding",
+                ));
+            }
+            None => {}
         }
+        self.require_active(identity, binding.fence, now_ms)?;
+        self.attempt_mut(identity)?.authority = Some(binding);
+        Ok(())
     }
 
     /// Read the admitted authority binding of one attempt.

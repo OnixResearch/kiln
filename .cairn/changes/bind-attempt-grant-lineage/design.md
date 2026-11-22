@@ -20,7 +20,10 @@ plan's C5 exactly. Additional types:
 - `CeilingTerms`: the requested ceiling before its generation and identity are
   fixed. A child's generation is always its parent's.
 - `GrantBudget { parent_budget_identity, account }`: the C5 `budget` field.
-- `AttemptLineage`: the current attempt facts a lineage must match.
+- `AttemptLineage`: the current attempt facts a lineage must match: campaign
+  revision, project (`ImplementationWork.project`), work, version, attempt and
+  fence. The shell builds these facts only for the work unit's current, active
+  attempt; it never builds current facts for a non-current attempt.
 - `AdmittedGrant`: an admitted, not yet issued grant (the issuance intent). It
   carries every binding field except `grant_ref` and `identity`, plus an
   `intent` identity. `issue(grant_ref)` yields the binding.
@@ -28,10 +31,11 @@ plan's C5 exactly. Additional types:
   input stays distinct from the closed refusal set.
 
 `admit_child` therefore returns an `AdmittedGrant`, not a finished binding: the
-proof reference is the BLAKE3 of a token that exists only after minting, and
-recovery must re-derive the same intent identity whether or not a token was
-minted. This is the one deviation from the plan's wording "returning a child
-binding".
+proof reference is the BLAKE3 of a token that exists only after minting.
+Recovery resumes the stored intent record (whose identity excludes the proof
+reference) rather than re-deriving it from fresh facts, so a crash between
+intent and minting cannot yield a second grant. This is the one deviation from
+the plan's wording "returning a child binding".
 
 ### Identities
 
@@ -70,9 +74,12 @@ exactly one role, and only a role its parent holds; otherwise it is
 1. `check_current(parent, ancestors)`:
    - the chain is at most `MAX_GRANT_LINEAGE` long (`depth_exceeded`);
    - every link recomputes, links root first by parent identity and depth,
-     keeps the root policy, and is covered by its predecessor (`foreign_lineage`);
-   - every link binds the current fence (`stale_generation`) and the current
-     campaign revision, work, version and attempt (`foreign_lineage`);
+     keeps the root policy, is covered by its predecessor, holds exactly one
+     role its predecessor holds, and shares its predecessor's account or
+     charges one transferred from it (`foreign_lineage`);
+   - every link binds the current campaign revision, project, work and version
+     (`foreign_lineage`), then the current fence (`stale_generation`), then the
+     current attempt identity (`foreign_lineage`);
    - every link carries the current authority generation, was admitted at or
      before the observed revocation generation, and has an unrevoked proof
      (`stale_generation`);
@@ -92,12 +99,21 @@ exactly one role, and only a role its parent holds; otherwise it is
    (`budget_unbound`).
 
 Disclosure-route widening maps to `widen_resource`, because routes are
-resources and C5's refusal set is closed. A predecessor fence maps to
-`stale_generation` and is checked before the attempt identity, which also
-changes with the fence.
+resources and C5's refusal set is closed. The lineage comparison orders its
+checks so that each state the attempt ledger can produce maps to one reason:
+other work is foreign even when its fence also differs; with the work equal, a
+new fence is a replaced attempt and stale even though the replacement's
+attempt identity also differs; with the fence equal, another attempt identity
+is foreign.
 
-`admit_root` checks the ceiling, generation, expiry, work scope and confirmed
-reservation, and binds the current attempt with depth 0.
+`admit_root` checks the ceiling, generation, expiry, project and work scope
+(a project-wide ceiling from another project is `foreign_lineage`) and the
+confirmed reservation, and binds the current attempt with depth 0.
+
+`AttemptLedger::bind_authority(identity, binding, now_ms)` records a first
+binding only while the attempt holds the current, unexpired claim at that fence
+(`require_active`), so a lease-expired attempt, or one still `Claimed` after a
+successor replaced it, binds nothing. An identical binding stays idempotent.
 
 ### Revocation and expiry propagation
 
@@ -118,11 +134,22 @@ refuses:
 - a second proof for one intent;
 - one proof for two intents.
 
-`reconcile(now_s)` returns `Issue` for an unissued, current intent. The shell
-first looks for a token already minted for that intent rather than minting
-again. Replaying records issues nothing. Two grants sharing one reserved
-account share its #61 allowance; they cannot multiply it, because #61 enforces
-the account.
+`reconcile(now_s, authority_generation, attempt)` returns `Issue` only for an
+unissued intent that is current: same authority generation, same attempt
+lineage (including the fence), no revoked ancestor and not expired. Every
+other unissued intent is `Abandon`. The shell first looks for a token already
+minted for an `Issue` intent rather than minting again. Replaying records
+issues nothing. Two grants sharing one reserved account share its #61
+allowance; they cannot multiply it, because #61 enforces the account.
+
+### Owned by S6, not this core
+
+- Blocking a second root binding for one attempt and refusing an alternative
+  proof presented for an invalidated attempt at the receiving owner; this core
+  only refuses a different binding on the attempt record.
+- Comparing a binding's worker `incarnation` against the attempt's recorded
+  `TransportLaunch`; this core carries the incarnation but has no launch facts.
+- Building `CurrentFacts` from the attempt owner, only for the current attempt.
 
 ### Basalt B1 request (draft for the Basalt owner)
 

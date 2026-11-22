@@ -14,7 +14,7 @@
 use std::collections::BTreeMap;
 
 use kiln_core::implementation::authority::AUTHORITY_DIGEST_BYTES;
-use kiln_core::implementation::grant::{AdmittedGrant, MAX_GRANT_LINEAGE};
+use kiln_core::implementation::grant::{AdmittedGrant, AttemptLineage, MAX_GRANT_LINEAGE};
 use kiln_core::types::{ContentId, CoreResult, Diagnostic};
 use serde::{Deserialize, Serialize};
 
@@ -204,8 +204,19 @@ impl GrantIssuanceState {
     }
 
     /// Effects a live shell still owes, in intent order.
+    ///
+    /// `authority_generation` and `attempt` are the current owner facts. An
+    /// unissued intent is issued only while it is current: an intent from
+    /// another authority generation or for another attempt lineage (including
+    /// a replaced fence), under a revoked ancestor, or past its expiry is
+    /// abandoned instead.
     #[must_use]
-    pub fn reconcile(&self, now_s: u64) -> Vec<GrantIssuanceAction> {
+    pub fn reconcile(
+        &self,
+        now_s: u64,
+        authority_generation: u64,
+        attempt: &AttemptLineage,
+    ) -> Vec<GrantIssuanceAction> {
         let mut actions = Vec::new();
         for (intent, state) in &self.intents {
             let ancestor_revoked = self.ancestor_revoked(&state.grant);
@@ -217,7 +228,11 @@ impl GrantIssuanceState {
                     });
                 }
                 Some(_) => {}
-                None if ancestor_revoked || now_s >= state.grant.ceiling.not_after_s => {
+                None if ancestor_revoked
+                    || now_s >= state.grant.ceiling.not_after_s
+                    || state.grant.ceiling.generation != authority_generation
+                    || !state.grant.binds(attempt) =>
+                {
                     actions.push(GrantIssuanceAction::Abandon {
                         intent: intent.clone(),
                     });
@@ -282,6 +297,7 @@ mod tests {
     fn lineage() -> AttemptLineage {
         AttemptLineage {
             campaign_revision: None,
+            project: "kiln".to_string(),
             work: id('1'),
             work_version: 1,
             attempt: id('a'),
@@ -400,17 +416,44 @@ mod tests {
         let crashed = GrantIssuanceState::replay(&[intended(&root), intended(&root)])
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            crashed.reconcile(NOW),
+            crashed.reconcile(NOW, GENERATION, &lineage()),
             vec![GrantIssuanceAction::Issue {
                 intent: root.intent.clone()
             }],
             "a duplicate intent stays one logical issuance"
         );
         assert_eq!(crashed.issued(&root.intent), None);
+        let abandoned = vec![GrantIssuanceAction::Abandon {
+            intent: root.intent.clone(),
+        }];
+        assert_eq!(
+            crashed.reconcile(NOW, GENERATION + 1, &lineage()),
+            abandoned,
+            "an intent from a moved authority generation is never minted"
+        );
+        let mut replaced = lineage();
+        replaced.attempt = id('f');
+        replaced.fence = 2;
+        assert_eq!(
+            crashed.reconcile(NOW, GENERATION, &replaced),
+            abandoned,
+            "an intent for a replaced attempt is never minted"
+        );
+        let mut other_project = lineage();
+        other_project.project = "other".to_string();
+        assert_eq!(
+            crashed.reconcile(NOW, GENERATION, &other_project),
+            abandoned,
+            "an intent for another lineage is never minted"
+        );
 
         let records = [intended(&root), issued(&root, 1), issued(&root, 1)];
         let done = GrantIssuanceState::replay(&records).unwrap_or_else(|_| unreachable!());
-        assert_eq!(done.reconcile(NOW), Vec::new(), "replay owes no new grant");
+        assert_eq!(
+            done.reconcile(NOW, GENERATION, &lineage()),
+            Vec::new(),
+            "replay owes no new grant"
+        );
         assert_eq!(done.issued(&root.intent), Some(&proof(1)));
         assert_eq!(
             GrantIssuanceState::replay(&records).ok(),
@@ -508,7 +551,7 @@ mod tests {
                 intent: pending_child.intent.clone(),
             },
         ];
-        let mut actions = state.reconcile(NOW);
+        let mut actions = state.reconcile(NOW, GENERATION, &lineage());
         actions.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
         expected.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
         assert_eq!(actions, expected);
@@ -521,7 +564,7 @@ mod tests {
             })
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            acknowledged.reconcile(NOW),
+            acknowledged.reconcile(NOW, GENERATION, &lineage()),
             vec![GrantIssuanceAction::Abandon {
                 intent: pending_child.intent.clone()
             }],
@@ -533,7 +576,7 @@ mod tests {
             GrantIssuanceState::replay(&[intended(&root), issued(&root, 1), intended(&short)])
                 .unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            expiring.reconcile(NOW + 1),
+            expiring.reconcile(NOW + 1, GENERATION, &lineage()),
             vec![GrantIssuanceAction::Abandon {
                 intent: short.intent.clone()
             }],
