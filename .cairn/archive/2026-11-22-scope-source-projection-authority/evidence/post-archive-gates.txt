@@ -1,0 +1,15 @@
+After the archive and dropping this change's delta root from
+cairn-policy/development-coverage.ncl, with
+/nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn and
+P=cairn-policy/generated/cairn-policy.json:
+
+$ cairn validate --root . --policy "$P"
+  -> exit 0, policy kiln-default, 7 active changes, 0 issues, 0 change, spec or profile issues, 0 findings
+$ nickel export --format json cairn-policy/development-coverage.ncl > dev-policy.json
+$ cairn traceability coverage --root . --policy dev-policy.json --profile kiln-active-development --json
+  -> exit 0, verdict pass, 2256 requirements, 0 dangling, 0 missing (177 requirement files)
+$ cairn traceability coverage --root . --policy "$P" --json   # accepted-only (cairn-default)
+  -> exit 0, verdict pass, 2256 requirements, 0 dangling, 0 missing (173 requirement files)
+
+No traceability markers were added: every requirement of this change was
+already covered in both profiles.

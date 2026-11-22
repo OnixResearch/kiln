@@ -1,0 +1,198 @@
+$ cairn sync scope-source-projection-authority --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "scope-source-projection-authority",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "377768bda5a9721f8486ef4391d35fc14622cad948dcae7c31c502261c87e8a9",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "0e6d8a48933777b0c3aa77d9bf9ca73a209bb18c8a678e2aa081b628fb74fd80",
+        "blocked": false,
+        "changed": false,
+        "delta_hash": "a0a82cbfe3daf414971a3622b636ca17d4c0602471e02c05a18562ef21b6cc92",
+        "destination": ".cairn/specs/source-projection/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "0e6d8a48933777b0c3aa77d9bf9ca73a209bb18c8a678e2aa081b628fb74fd80",
+        "operations": [
+          {
+            "block_hash": "6626e350dad1e7c6f507623d1d3a1876f894cd3ac657692f6d36a047b4f31e68",
+            "heading": "### Requirement: Closed source-view authority vocabulary",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.vocabulary"
+          },
+          {
+            "block_hash": "34b1e67cf7af03c96baa4e757a90e91856360b25ffcf4bcb459eccf474027651",
+            "heading": "### Requirement: Exact source-view requests",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.request"
+          },
+          {
+            "block_hash": "2c4a3c03ee15592a6ff5c008a0f4e04d45f05980131b44cbe6efa828ee4ba3bb",
+            "heading": "### Requirement: Per-component effective scope",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.scope"
+          },
+          {
+            "block_hash": "120679bb5e60ea64cf69a114323cb0b9fcff7a29753c82e3085eff8c9be05f95",
+            "heading": "### Requirement: Source-view authority port",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.port"
+          },
+          {
+            "block_hash": "31ac089351cdfa18c4e5f79922ac248cf426b9958701fcea87043b8fd1ab1ef6",
+            "heading": "### Requirement: Explicit local source compatibility",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.compatibility"
+          },
+          {
+            "block_hash": "9dfd0b289b474f3e35b820b1a0d218f4c2a1b8ab3ea6e337409557d585941033",
+            "heading": "### Requirement: Restricted audience views",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.restricted"
+          },
+          {
+            "block_hash": "a4abfe1085fcb422dbd7bcc222aa94615c86e4e5aa3fbea3f246050430168723",
+            "heading": "### Requirement: Keyed handles, cursors and caches",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.handles"
+          },
+          {
+            "block_hash": "863d6cb55602e011a0bf1774f2868dd66f6fda14787be277252163be713fe79c",
+            "heading": "### Requirement: Uniform unavailability and distinct coverage",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.unavailable"
+          },
+          {
+            "block_hash": "4f55107a60e114beae8e5311fe90ea293e2c35bef38fc649ddd2548e94368779",
+            "heading": "### Requirement: Restricted Cairn context",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.cairn"
+          },
+          {
+            "block_hash": "727f967cffa13982120f58312266b869be5277eaa4db1b9e139317e9664d1edf",
+            "heading": "### Requirement: Attenuated sharing",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.sharing.attenuation"
+          },
+          {
+            "block_hash": "fdfbe4d8bad46d2ec425fa660ed62d8fe9ba5c490b3c68bbf53ca9be22646735",
+            "heading": "### Requirement: Frozen view ceilings",
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.sharing.ceiling"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.vocabulary",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.request",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.scope",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.port",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.authority.compatibility",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.restricted",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.handles",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.unavailable",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.disclosure.cairn",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.sharing.attenuation",
+            "state": "already_applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.source.projection.sharing.ceiling",
+            "state": "already_applied"
+          }
+        ],
+        "source": ".cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md"
+      }
+    ]
+  },
+  "mutated": false,
+  "mutation_manifest": null,
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "ed8d9b6a6f6d7990fa14a19a551f1bc69569d9a98f233a738435bc3ab49c6512",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "7a64904265d39b9636ced087cdd730170fe8e4c6d1bbae613ee30db123b5f49a",
+  "reasons": [],
+  "receipt_hash": "81458dd3207cd1fae91d6e15a713623c9339808af90f43dd9fe520ed33ce275d",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0

@@ -1,0 +1,153 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive scope-source-projection-authority --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: scope-source-projection-authority",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority"
+    }
+  ],
+  "blocked": false,
+  "change": "scope-source-projection-authority",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "ce1993489b93ec88ef006cafbb8952fa82421dd3108779bffa62c22337ed169a",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "8b4dd17297ba57c2b0e3487d760779c9893d956302a16ac1597f24193540ef85",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/design.md"
+        },
+        {
+          "content_hash": "efedcc1eafef81c230cebeeeee6378942cd98cef71d42a0febc79d371403b582",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/evidence/guide-checks.txt"
+        },
+        {
+          "content_hash": "8d1801b7e3bd21a28349ce7c614a6a08524fc8920e57ba0775c4da427d5c00f3",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/evidence/sync.txt"
+        },
+        {
+          "content_hash": "1189f983c7dcb4999824933a4a2540d61b1e0254b716bc8247602620bc242e59",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/evidence/verification.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/metadata.json"
+        },
+        {
+          "content_hash": "bf8ecf4d82b3f538dead903656bbcc1fd9c3667c574ebb44484543b315ec4091",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/proposal.md"
+        },
+        {
+          "content_hash": "a0a82cbfe3daf414971a3622b636ca17d4c0602471e02c05a18562ef21b6cc92",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/specs/source-projection/spec.md"
+        },
+        {
+          "content_hash": "02a92a3cb94b11ad0f7571f6f750887374eea6cce45f9d3856a647ea8351ff72",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-scope-source-projection-authority/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/scope-source-projection-authority"
+        }
+      ],
+      "manifest_hash": "f78f741d6eff37eba735840e5ec31084e3d3008f67fe0f12ef8bba8dd2ee2dc4"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "8b4dd17297ba57c2b0e3487d760779c9893d956302a16ac1597f24193540ef85",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/design.md"
+        },
+        {
+          "content_hash": "efedcc1eafef81c230cebeeeee6378942cd98cef71d42a0febc79d371403b582",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/evidence/guide-checks.txt"
+        },
+        {
+          "content_hash": "8d1801b7e3bd21a28349ce7c614a6a08524fc8920e57ba0775c4da427d5c00f3",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/evidence/sync.txt"
+        },
+        {
+          "content_hash": "1189f983c7dcb4999824933a4a2540d61b1e0254b716bc8247602620bc242e59",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/evidence/verification.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/metadata.json"
+        },
+        {
+          "content_hash": "bf8ecf4d82b3f538dead903656bbcc1fd9c3667c574ebb44484543b315ec4091",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/proposal.md"
+        },
+        {
+          "content_hash": "a0a82cbfe3daf414971a3622b636ca17d4c0602471e02c05a18562ef21b6cc92",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md"
+        },
+        {
+          "content_hash": "02a92a3cb94b11ad0f7571f6f750887374eea6cce45f9d3856a647ea8351ff72",
+          "exists": true,
+          "path": "./.cairn/changes/scope-source-projection-authority/tasks.md"
+        }
+      ],
+      "manifest_hash": "d8613eb1491aea18b116f01019fe48fe4642f1f4912378ffbde4d24b05d75832"
+    },
+    "kind": "archive",
+    "manifest_hash": "639c9dadd4ce880252da20a6a0d47f2198875122ef0914d81e3ed4e54f88f62e"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "6bbfa7dee54ad7220d95e870f7970d5e6a6664dff8be19326a57ed2ea51cf27d",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "7a64904265d39b9636ced087cdd730170fe8e4c6d1bbae613ee30db123b5f49a",
+  "reasons": [],
+  "receipt_hash": "7e026f5a302b8981099fb1e0ec86cd3245dad784520edb9c521b011200a71258",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0
