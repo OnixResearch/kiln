@@ -21,3 +21,13 @@ gate design exit=0
 gate tasks exit=0
 validate exit=0
 traceability exit=0
+
+Review follow-up on 64bdad0d (same toolchain and flags):
+$ cargo test --offline --locked -p onix-kiln-core --lib projection::  -> exit 0, 62 passed
+$ cargo test --offline --locked -p onix-kiln-core                     -> exit 0, lib 546 passed, doctests pass
+$ cargo clippy --offline --locked -p onix-kiln-core --all-targets -- -D warnings -> exit 0
+$ cargo fmt --all --check -> exit 0; scripts/check-nickel-fixtures.sh -> exit 0 (103/655)
+$ cairn gate proposal|design|tasks, validate, traceability coverage -> exit 0
+Mutation checks (scratch copy, each check removed, then restored), every mutant killed:
+  lookup recheck; capability context filter; restrict_context source binding;
+  request repository check; join repository key; join view-binding key; snapshot within.

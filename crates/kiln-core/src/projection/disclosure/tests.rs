@@ -331,7 +331,8 @@ fn forbidden_only_change(corpus: &Corpus, cases: &mut Cases, round: u64) -> Proj
 fn forbidden_only_changes_leave_the_visible_result_equal() {
     let corpus = Corpus::load();
     let baseline = view_of(&corpus, "project-reader");
-    let baseline_entries: Vec<(Option<String>, EntryKind, VisibleStatus, bool)> = baseline
+    type Seen = (Option<String>, Option<EntryKind>, VisibleStatus, bool);
+    let baseline_entries: Vec<Seen> = baseline
         .entries()
         .iter()
         .map(|e| (e.display_path.clone(), e.kind, e.status, e.readable))
@@ -350,7 +351,7 @@ fn forbidden_only_changes_leave_the_visible_result_equal() {
         );
         let scope = corpus.scope_with(grants.clone(), "did:key:z6MkReader", &facts.exact_revision);
         let view = ok(restrict(&trusted, &scope, &ceiling, &key(), corpus.now_s));
-        let entries: Vec<(Option<String>, EntryKind, VisibleStatus, bool)> = view
+        let entries: Vec<Seen> = view
             .entries()
             .iter()
             .map(|e| (e.display_path.clone(), e.kind, e.status, e.readable))
@@ -363,21 +364,34 @@ fn forbidden_only_changes_leave_the_visible_result_equal() {
             "round {round}"
         );
     }
-    // A hidden dependency identity changes nothing either.
+    // A hidden dependency identity at the same snapshot changes nothing the
+    // holder receives: not the entries, handles, view reference or cursors.
     let mut facts = corpus.facts();
     for dependency in &mut facts.dependencies {
         dependency.status = DependencyStatus::Present {
             identity: digest("shared-crate-v2"),
         };
     }
+    let changed_trusted = corpus.trusted_with(&definition, &facts);
+    let scope = corpus.scope("project-reader");
     let view = ok(restrict(
-        &corpus.trusted_with(&definition, &facts),
-        &corpus.scope("project-reader"),
+        &changed_trusted,
+        &scope,
         &ceiling,
         &key(),
         corpus.now_s,
     ));
-    assert_eq!(view.content_identity(), baseline.content_identity());
+    assert_ne!(view.binding().manifest(), baseline.binding().manifest());
+    assert_eq!(
+        ok(serde_json::to_string(&view.presentation())),
+        ok(serde_json::to_string(&baseline.presentation()))
+    );
+    let page = |view: &AudienceView| {
+        ok(view.page(&key(), &scope, corpus.now_s, None, 2))
+            .next
+            .map(|cursor| cursor.to_token())
+    };
+    assert_eq!(page(&view), page(&baseline));
 }
 
 // r[verify kiln.source.projection.disclosure.handles.scenario.keyed]
@@ -460,6 +474,7 @@ fn handles_are_keyed_scoped_and_confer_nothing() {
             grants: holder.grants.clone(),
             not_after_s: holder.not_after_s,
             depth: holder.depth,
+            generation: crate::projection::restricted_corpus::GENERATION,
         },
     );
     let request = SourceAuthorityRequest {
@@ -495,8 +510,9 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
     let now = corpus.now_s;
     let reader = view_of(&corpus, "project-reader");
     let trusted = corpus.trusted("project-reader");
-    let forbidden = reader.lookup(&trusted, "crates/secret/src/key.rs");
-    let missing = reader.lookup(&trusted, "crates/secret/src/absent.rs");
+    let reader_scope = corpus.scope("project-reader");
+    let forbidden = reader.lookup(&trusted, &reader_scope, now, "crates/secret/src/key.rs");
+    let missing = reader.lookup(&trusted, &reader_scope, now, "crates/secret/src/absent.rs");
     let forbidden_error = forbidden.err().unwrap_or_else(|| unreachable!("hidden"));
     let missing_error = missing.err().unwrap_or_else(|| unreachable!("missing"));
     assert_eq!(forbidden_error.reason(), UnavailableReason::Forbidden);
@@ -510,17 +526,18 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
         ok(serde_json::to_string(&missing_error.public())),
         r#"{"error":"unavailable"}"#
     );
-    ok(reader.lookup(&trusted, "crates/app/src/main.rs"));
+    ok(reader.lookup(&trusted, &reader_scope, now, "crates/app/src/main.rs"));
 
     // An alias of a hidden origin is as unavailable as a missing path.
     let agent = view_of(&corpus, "agent");
     let agent_trusted = corpus.trusted("agent");
+    let agent_scope = corpus.scope("agent");
     assert_eq!(
-        unavailable(agent.lookup(&agent_trusted, "aliases/shared.rs")),
+        unavailable(agent.lookup(&agent_trusted, &agent_scope, now, "aliases/shared.rs")),
         UnavailableReason::Forbidden
     );
     assert_eq!(
-        unavailable(agent.lookup(&agent_trusted, "aliases/absent.rs")),
+        unavailable(agent.lookup(&agent_trusted, &agent_scope, now, "aliases/absent.rs")),
         UnavailableReason::Missing
     );
     // Origin probes outside discovery are refused, never classified.
@@ -539,9 +556,53 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
     }
     // A stale trusted view is refused.
     assert_eq!(
-        unavailable(reader.lookup(&agent_trusted, "crates/app/src/main.rs")),
+        unavailable(reader.lookup(&agent_trusted, &reader_scope, now, "crates/app/src/main.rs")),
         UnavailableReason::Stale
     );
+    // A cached view is not served after revocation, narrowing or expiry.
+    let narrowed = corpus.scope_with(
+        vec![grant(
+            "crates/app",
+            &[
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ],
+        )],
+        "did:key:z6MkReader",
+        &corpus.revision,
+    );
+    let holder = &corpus.view("project-reader").holder;
+    let mut facts = crate::projection::authority::EffectiveScopeFacts {
+        audience: holder.audience.clone(),
+        repository: corpus.repository().identity().clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: corpus.revision.clone(),
+        },
+        revision: corpus.revision.clone(),
+        view_binding: crate::projection::restricted_corpus::corpus_view_binding(),
+        admitted: holder.grants.clone(),
+        capabilities: Vec::new(),
+        not_after_s: holder.not_after_s,
+        depth: holder.depth,
+        generation: crate::projection::restricted_corpus::GENERATION,
+        revocation_generation: crate::projection::restricted_corpus::REVOCATION_GENERATION + 1,
+        provenance: crate::implementation::authority::AuthorityProvenance::VerifiedUcan,
+    };
+    facts.capabilities =
+        crate::projection::authority::SessionCapability::under(&facts.context(), &holder.grants);
+    let revoked = ok(crate::projection::authority::EffectiveSourceScope::new(
+        facts,
+    ));
+    for (scope, at) in [
+        (&narrowed, now),
+        (&revoked, now),
+        (&reader_scope, holder.not_after_s),
+    ] {
+        assert_eq!(
+            unavailable(reader.lookup(&trusted, scope, at, "crates/app/src/main.rs")),
+            UnavailableReason::Stale
+        );
+    }
 }
 
 // r[verify kiln.source.projection.disclosure.unavailable.scenario.coverage]
@@ -589,7 +650,9 @@ fn coverage_distinguishes_unrequested_absent_unknown_and_truncated() {
     truncated_facts.coverage = crate::projection::Coverage::Truncated;
     let partial = corpus.trusted_with(&admitted, &truncated_facts);
     let unknown = ok(restrict(&partial, &scope, &ceiling, &key(), now));
-    assert_eq!(unknown.coverage(), VisibleCoverage::Unavailable);
+    // The view's coverage does not reveal the incomplete enumeration; only a
+    // probe of a discoverable path learns that its presence is unknown.
+    assert_eq!(unknown.coverage(), VisibleCoverage::Complete);
     assert_eq!(
         lookup(&unknown, "crates/app/src/absent.rs"),
         OriginLookup::Unknown
@@ -694,8 +757,9 @@ fn cursors_and_caches_bind_scope_and_recheck_current_authority() {
                 revision: corpus.revision.clone(),
             },
             revision: corpus.revision.clone(),
+            view_binding: crate::projection::restricted_corpus::corpus_view_binding(),
             admitted: holder.grants.clone(),
-            capabilities: holder.grants.clone(),
+            capabilities: Vec::new(),
             not_after_s: holder.not_after_s,
             depth: holder.depth,
             generation: crate::projection::restricted_corpus::GENERATION,
@@ -703,6 +767,10 @@ fn cursors_and_caches_bind_scope_and_recheck_current_authority() {
             provenance: crate::implementation::authority::AuthorityProvenance::VerifiedUcan,
         };
         change(&mut facts);
+        facts.capabilities = crate::projection::authority::SessionCapability::under(
+            &facts.context(),
+            &holder.grants,
+        );
         let current = ok(crate::projection::authority::EffectiveSourceScope::new(
             facts,
         ));
@@ -911,7 +979,8 @@ fn restricted_context_hides_prerequisites_and_binds_its_audience() {
     let agent = context_for("agent");
     let maintainer = context_for("maintainer");
 
-    // The hidden prerequisite is a handle and a status, nothing more.
+    // The hidden prerequisite is a handle; its status is withheld because the
+    // reader may not discover its change.
     let task = reader
         .items()
         .iter()
@@ -921,7 +990,7 @@ fn restricted_context_hides_prerequisites_and_binds_its_audience() {
         .hidden_prerequisites()
         .first()
         .unwrap_or_else(|| unreachable!("hidden prerequisite"));
-    assert_eq!(hidden.status, CairnStatus::Open);
+    assert_eq!(hidden.status, PrerequisiteStatus::Unavailable);
     assert_eq!(task.prerequisites, vec![hidden.handle]);
     assert_eq!(reader.blocked(&task.handle), Some(true));
     assert_eq!(task.text.as_deref(), Some("Wire the app entry point"));
@@ -960,6 +1029,7 @@ fn restricted_context_hides_prerequisites_and_binds_its_audience() {
     assert_eq!(reader.blocked(&maintainer_task.handle), None);
     // A stale scope delivers nothing.
     let reader_view = view_of(&corpus, "project-reader");
+    let reader_scope = corpus.scope("project-reader");
     assert_eq!(
         unavailable(restrict_context(
             &reader_view,
@@ -969,6 +1039,64 @@ fn restricted_context_hides_prerequisites_and_binds_its_audience() {
             now
         )),
         UnavailableReason::Stale
+    );
+    // An observation of another repository or revision is refused.
+    let moved = ok(ExternalRef::new("git", "commit", &"5".repeat(40)));
+    for (repository, revision) in [
+        (digest("other-repository"), corpus.revision.clone()),
+        (corpus.repository().identity().clone(), moved),
+    ] {
+        let foreign = ok(CairnObservation::new(
+            repository,
+            revision,
+            corpus.cairn.clone(),
+        ));
+        assert_eq!(
+            unavailable(restrict_context(
+                &reader_view,
+                &foreign,
+                &reader_scope,
+                &key(),
+                now
+            )),
+            UnavailableReason::Stale
+        );
+    }
+
+    // Status is shown where the holder may discover the prerequisite's
+    // change, even when the view's ceiling hides the item itself.
+    let mut narrow = corpus.view("project-reader").definition.clone();
+    narrow.selection.include = vec!["crates/**".into(), ".cairn/changes/app-feature/**".into()];
+    let narrow = ok(admit_definition(&narrow));
+    let both = corpus.scope_with(
+        vec![
+            grant("crates/app", &[SourceViewOperation::Discover]),
+            grant(".cairn/changes", &[SourceViewOperation::Discover]),
+        ],
+        "did:key:z6MkReader",
+        &corpus.revision,
+    );
+    let narrow_view = ok(restrict(
+        &corpus.trusted_with(&narrow, &corpus.facts()),
+        &both,
+        &ViewCeiling::from_definition(&narrow),
+        &key(),
+        now,
+    ));
+    let permitted = ok(restrict_context(
+        &narrow_view,
+        &observation,
+        &both,
+        &key(),
+        now,
+    ));
+    assert_eq!(
+        permitted
+            .hidden_prerequisites()
+            .iter()
+            .map(|hidden| hidden.status)
+            .collect::<Vec<_>>(),
+        vec![PrerequisiteStatus::Open]
     );
 }
 
@@ -986,7 +1114,11 @@ fn cairn_observation_admits_only_change_scoped_items() {
         prerequisites: prerequisites.iter().map(ToString::to_string).collect(),
     };
     let codes = |items: Vec<CairnItem>| -> Vec<String> {
-        match CairnObservation::new(items) {
+        match CairnObservation::new(
+            corpus.repository().identity().clone(),
+            corpus.revision.clone(),
+            items,
+        ) {
             Ok(_) => unreachable!("invalid observation admitted"),
             Err(diagnostics) => diagnostics.into_iter().map(|d| d.code).collect(),
         }
@@ -1018,7 +1150,12 @@ fn cairn_observation_admits_only_change_scoped_items() {
     let mut reversed = corpus.cairn.clone();
     reversed.reverse();
     assert_eq!(
-        ok(CairnObservation::new(reversed)).identity(),
+        ok(CairnObservation::new(
+            corpus.repository().identity().clone(),
+            corpus.revision.clone(),
+            reversed
+        ))
+        .identity(),
         corpus.observation().identity()
     );
 }
@@ -1073,6 +1210,7 @@ fn an_unchecked_sibling_capability_discloses_nothing() {
             grants: holder.grants.clone(),
             not_after_s: holder.not_after_s,
             depth: holder.depth,
+            generation: crate::projection::restricted_corpus::GENERATION,
         },
     );
     // The session's capability set also reports a sibling crate that the
@@ -1140,7 +1278,7 @@ fn an_unchecked_sibling_capability_discloses_nothing() {
         ]
     );
     assert_eq!(
-        unavailable(view.lookup(&trusted, "crates/secret/src/key.rs")),
+        unavailable(view.lookup(&trusted, &scope, now, "crates/secret/src/key.rs")),
         UnavailableReason::Forbidden
     );
     assert_eq!(
@@ -1154,4 +1292,131 @@ fn an_unchecked_sibling_capability_discloses_nothing() {
     );
     let presented = ok(serde_json::to_string(&view.presentation()));
     assert!(!presented.contains("crates/secret"));
+}
+
+// r[verify kiln.source.projection.disclosure.handles.scenario.keyed]
+#[test]
+fn generated_entries_need_full_source_and_resolve_rechecks_the_manifest() {
+    use SourceViewOperation as Op;
+    let corpus = Corpus::load();
+    let now = corpus.now_s;
+    let mut facts = corpus.facts();
+    facts.generated.push(crate::projection::GeneratedEntry {
+        destination: "generated/schema.rs".into(),
+        kind: EntryKind::File,
+        generator: crate::projection::ComponentVersion {
+            name: "codegen".into(),
+            version: "1".into(),
+        },
+        input_identity: digest("schema-input"),
+    });
+    let restricted = |name: &str| {
+        let trusted = corpus.trusted_with(&corpus.definition(name), &facts);
+        let view = ok(restrict(
+            &trusted,
+            &corpus.scope(name),
+            &corpus.ceiling(name),
+            &key(),
+            now,
+        ));
+        (trusted, view)
+    };
+    let (maintainer_trusted, maintainer) = restricted("maintainer");
+    let generated = maintainer
+        .entries()
+        .iter()
+        .find(|entry| entry.display_path.as_deref() == Some("generated/schema.rs"))
+        .unwrap_or_else(|| unreachable!("full source sees generated output"));
+    assert_eq!(generated.status, VisibleStatus::Generated);
+    let resolved = ok(maintainer.resolve(
+        &maintainer_trusted,
+        &corpus.scope("maintainer"),
+        now,
+        &generated.handle,
+        Op::ReadContent,
+    ));
+    assert_eq!(resolved.destination, "generated/schema.rs");
+    for name in ["project-reader", "agent"] {
+        let (trusted, view) = restricted(name);
+        assert!(
+            trusted
+                .manifest()
+                .entries
+                .iter()
+                .any(|entry| entry.destination == "generated/schema.rs"),
+            "{name} trusted view holds the generated entry"
+        );
+        assert!(!shown(&view).contains(&"generated/schema.rs"), "{name}");
+        assert_eq!(
+            unavailable(view.resolve(
+                &trusted,
+                &corpus.scope(name),
+                now,
+                &generated.handle,
+                Op::ReadContent
+            )),
+            UnavailableReason::Missing,
+            "{name}"
+        );
+    }
+    // A handle resolved against another trusted view is stale.
+    let reader = view_of(&corpus, "project-reader");
+    let main = handle_of(&reader, "crates/app/src/main.rs");
+    assert_eq!(
+        unavailable(reader.resolve(
+            &corpus.trusted("agent"),
+            &corpus.scope("project-reader"),
+            now,
+            &main,
+            Op::ReadContent
+        )),
+        UnavailableReason::Stale
+    );
+}
+
+// r[verify kiln.source.projection.disclosure.restricted.scenario.presentation]
+#[test]
+fn read_only_by_handle_entries_leak_no_order_count_or_kind() {
+    use SourceViewOperation as Op;
+    let corpus = Corpus::load();
+    let now = corpus.now_s;
+    let scope = corpus.scope_with(
+        vec![
+            grant("crates/app", &[Op::ReadContent]),
+            grant("crates/shared", &[Op::Discover, Op::ReadContent]),
+        ],
+        "did:key:z6MkReader",
+        &corpus.revision,
+    );
+    let view = ok(restrict(
+        &corpus.trusted("project-reader"),
+        &scope,
+        &corpus.ceiling("project-reader"),
+        &key(),
+        now,
+    ));
+    let entries = view.entries();
+    let first_undisplayed = entries
+        .iter()
+        .position(|entry| entry.display_path.is_none())
+        .unwrap_or(entries.len());
+    let (displayed, undisplayed) = entries.split_at(first_undisplayed);
+    assert_eq!(
+        displayed
+            .iter()
+            .filter_map(|entry| entry.display_path.as_deref())
+            .collect::<Vec<_>>(),
+        ["aliases/shared.rs", "crates/shared/src/lib.rs"]
+    );
+    assert_eq!(undisplayed.len(), 3);
+    assert!(
+        undisplayed.iter().all(|entry| {
+            entry.display_path.is_none() && entry.kind.is_none() && entry.readable
+        })
+    );
+    let handles: Vec<OpaqueHandle> = undisplayed.iter().map(|entry| entry.handle).collect();
+    let mut sorted = handles.clone();
+    sorted.sort();
+    assert_eq!(handles, sorted, "ordered by handle, not by source path");
+    assert!(displayed.iter().all(|entry| entry.kind.is_some()));
 }

@@ -159,7 +159,7 @@ r[kiln.source.projection.disclosure.handles.scenario.narrowing]
 
 ### Requirement: Uniform unavailability and distinct coverage
 
-r[kiln.source.projection.disclosure.unavailable] A missing, forbidden or stale object MUST share one public unavailable shape while the trusted owner keeps the reason. A holder that may discover a path MUST be told whether it is present, unrequested by the definition, known absent, unknown because enumeration was incomplete, or beyond a named bound. Missing and denied dependencies MUST be the same unavailable state.
+r[kiln.source.projection.disclosure.unavailable] A missing, forbidden or stale object MUST share one public unavailable shape while the trusted owner keeps the reason. A view's coverage MUST be only complete or truncated at a named bound, computed over the holder-visible entries alone, and MUST NOT depend on hidden entries or reveal global counts. A holder that may discover a path MUST be told whether it is present, unrequested by the definition, known absent, or beyond the named bound; a truncated source enumeration MUST surface only as an unknown answer to such a lookup of a path the holder may discover. Missing and denied dependencies MUST be the same unavailable state.
 
 #### Scenario: Missing and forbidden probes look the same
 
@@ -172,8 +172,8 @@ r[kiln.source.projection.disclosure.unavailable.scenario.probe]
 
 r[kiln.source.projection.disclosure.unavailable.scenario.coverage]
 - GIVEN complete, truncated-enumeration and bounded views
-- WHEN discoverable paths are looked up
-- THEN present, unrequested, absent, unknown and truncated MUST be distinct results
+- WHEN the views are presented and discoverable paths are looked up
+- THEN each view's coverage MUST be complete or truncated over its visible entries only, and present, unrequested, absent, unknown and truncated MUST be distinct lookup results, with unknown only for the truncated enumeration
 
 #### Scenario: Denied dependencies are only unavailable
 
@@ -184,14 +184,14 @@ r[kiln.source.projection.disclosure.unavailable.scenario.dependencies]
 
 ### Requirement: Restricted Cairn context
 
-r[kiln.source.projection.disclosure.cairn] Cairn context MUST be disclosed through `.cairn/changes/<id>/**` path authority and no separate resource family. A complete observation MUST admit items only under their own change path with unique ids and known prerequisites. A restricted context MUST bind the audience's view binding and the exact observation, MUST show only items the holder may discover with text only under read authority, MUST represent a hidden prerequisite of a visible item only as an opaque handle and status, and MUST NOT convert into, or be accepted as, a complete observation.
+r[kiln.source.projection.disclosure.cairn] Cairn context MUST be disclosed through `.cairn/changes/<id>/**` path authority and no separate resource family. A complete observation MUST bind its repository and exact revision and admit items only under their own change path with unique ids and known prerequisites. A restricted context MUST be derived only from an observation of the view's repository at its exact revision, MUST bind the audience's view binding and the exact observation, MUST show only items the holder may discover with text only under read authority, and MUST NOT convert into, or be accepted as, a complete observation. A hidden prerequisite of a visible item MUST appear only as an opaque handle; its status MUST be shown only when the holder may discover `.cairn/changes/<id>/` of the prerequisite's change, and otherwise MUST be `unavailable`, which still blocks the item that depends on it.
 
 #### Scenario: A hidden prerequisite stays an obligation
 
 r[kiln.source.projection.disclosure.cairn.scenario.hidden_prerequisite]
-- GIVEN a visible task depending on a hidden open task
-- WHEN the reader's, agent's and maintainer's contexts are delivered
-- THEN the reader MUST see the task blocked by an opaque handle without its name or text, the agent MUST see no text, the maintainer MUST see every item, and each context MUST be bound to its own audience
+- GIVEN a visible task depending on a hidden open task, and observations of another repository or revision
+- WHEN the reader's, agent's and maintainer's contexts are delivered, and a holder whose ceiling hides the prerequisite but who may discover its change receives one
+- THEN the reader MUST see the task blocked by an opaque handle with an `unavailable` status and without its name or text, the holder that may discover the change MUST see the prerequisite's real status, the agent MUST see no text, the maintainer MUST see every item, each context MUST be bound to its own audience, and a foreign observation MUST be refused as stale
 
 #### Scenario: Observations stay change-scoped
 

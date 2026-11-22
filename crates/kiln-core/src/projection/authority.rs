@@ -555,6 +555,39 @@ impl SnapshotRule {
 // ---------------------------------------------------------------------------
 // Effective scope
 
+/// The context a raw session capability was observed under. A capability
+/// confirms an admitted grant only when every key equals the scope's.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CapabilityContext {
+    pub repository: ContentId,
+    pub snapshot: SnapshotRule,
+    pub view_binding: ContentId,
+    pub generation: u64,
+    pub revocation_generation: u64,
+}
+
+/// One leaf grant from a session's raw capability set, with the context the
+/// adapter observed it under.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SessionCapability {
+    pub grant: SourceGrant,
+    pub context: CapabilityContext,
+}
+
+impl SessionCapability {
+    /// Raw capabilities observed under one context.
+    #[must_use]
+    pub fn under(context: &CapabilityContext, grants: &[SourceGrant]) -> Vec<Self> {
+        grants
+            .iter()
+            .map(|grant| Self {
+                grant: grant.clone(),
+                context: context.clone(),
+            })
+            .collect()
+    }
+}
+
 /// Facts an authority adapter read from one admitted session.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EffectiveScopeFacts {
@@ -565,19 +598,37 @@ pub struct EffectiveScopeFacts {
     pub snapshot: SnapshotRule,
     /// The exact revision this session admitted under `snapshot`.
     pub revision: ExternalRef,
+    /// The view binding or ceiling the admissions were made through.
+    pub view_binding: ContentId,
     /// Grants the port admitted one by one: the resource and operation of
     /// each admitted request, or a grant individually re-admitted for it.
     pub admitted: Vec<SourceGrant>,
     /// The session's raw effective capability set. It only confirms an
-    /// admitted grant; a grant present here but never admitted, such as a
-    /// sibling the delegation chain rule did not check, confers nothing.
-    pub capabilities: Vec<SourceGrant>,
+    /// admitted grant, and only when observed for this repository, snapshot,
+    /// view binding and both generations; a grant present here but never
+    /// admitted, such as a sibling the delegation chain rule did not check,
+    /// confers nothing.
+    pub capabilities: Vec<SessionCapability>,
     pub not_after_s: u64,
     /// Remaining delegation depth.
     pub depth: u8,
     pub generation: u64,
     pub revocation_generation: u64,
     pub provenance: AuthorityProvenance,
+}
+
+impl EffectiveScopeFacts {
+    /// The context a confirming capability must have been observed under.
+    #[must_use]
+    pub fn context(&self) -> CapabilityContext {
+        CapabilityContext {
+            repository: self.repository.clone(),
+            snapshot: self.snapshot.clone(),
+            view_binding: self.view_binding.clone(),
+            generation: self.generation,
+            revocation_generation: self.revocation_generation,
+        }
+    }
 }
 
 // r[impl kiln.source.projection.authority.scope]
@@ -599,6 +650,7 @@ pub struct EffectiveSourceScope {
     repository: ContentId,
     snapshot: SnapshotRule,
     revision: ExternalRef,
+    view_binding: ContentId,
     grants: Vec<SourceGrant>,
     not_after_s: u64,
     depth: u8,
@@ -633,11 +685,25 @@ impl EffectiveSourceScope {
                 "the scope exceeds its named grant or depth bound",
             ));
         }
-        for grant in facts.admitted.iter().chain(&facts.capabilities) {
+        for grant in facts.admitted.iter().chain(
+            facts
+                .capabilities
+                .iter()
+                .map(|capability| &capability.grant),
+        ) {
             grant.path.validate()?;
         }
         // Effective grants are the admitted ones, each narrowed to the
-        // operations the capability set confirms over its whole path.
+        // operations a capability observed under this exact context confirms
+        // over its whole path. Capabilities of another repository, snapshot,
+        // view binding or generation confirm nothing.
+        let context = facts.context();
+        let confirming: Vec<&SourceGrant> = facts
+            .capabilities
+            .iter()
+            .filter(|capability| capability.context == context)
+            .map(|capability| &capability.grant)
+            .collect();
         let mut grants = Vec::with_capacity(facts.admitted.len());
         for admitted in facts.admitted {
             let operations: BTreeSet<SourceViewOperation> = admitted
@@ -645,7 +711,7 @@ impl EffectiveSourceScope {
                 .iter()
                 .copied()
                 .filter(|operation| {
-                    facts.capabilities.iter().any(|capability| {
+                    confirming.iter().any(|capability| {
                         capability.operations.contains(operation)
                             && capability.path.contains(&admitted.path)
                     })
@@ -670,6 +736,11 @@ impl EffectiveSourceScope {
         );
         facts.snapshot.update(&mut hasher);
         update_external(&mut hasher, "revision", &facts.revision);
+        update_field(
+            &mut hasher,
+            "view_binding",
+            facts.view_binding.as_str().as_bytes(),
+        );
         update_usize(&mut hasher, "grants", grants.len());
         for grant in &grants {
             grant.update(&mut hasher);
@@ -688,6 +759,7 @@ impl EffectiveSourceScope {
             repository: facts.repository,
             snapshot: facts.snapshot,
             revision: facts.revision,
+            view_binding: facts.view_binding,
             grants,
             not_after_s: facts.not_after_s,
             depth: facts.depth,
@@ -713,6 +785,10 @@ impl EffectiveSourceScope {
     #[must_use]
     pub fn revision(&self) -> &ExternalRef {
         &self.revision
+    }
+    #[must_use]
+    pub fn view_binding(&self) -> &ContentId {
+        &self.view_binding
     }
     #[must_use]
     pub fn grants(&self) -> &[SourceGrant] {
@@ -796,6 +872,7 @@ impl EffectiveSourceScope {
                 && scope.repository == first.repository
                 && scope.snapshot == first.snapshot
                 && scope.revision == first.revision
+                && scope.view_binding == first.view_binding
                 && scope.generation == first.generation
                 && scope.revocation_generation == first.revocation_generation
                 && scope.provenance == first.provenance
@@ -811,19 +888,23 @@ impl EffectiveSourceScope {
             .iter()
             .flat_map(|scope| scope.grants.iter().cloned())
             .collect();
-        Self::new(EffectiveScopeFacts {
+        let mut facts = EffectiveScopeFacts {
             audience: first.audience.clone(),
             repository: first.repository.clone(),
             snapshot: first.snapshot.clone(),
             revision: first.revision.clone(),
+            view_binding: first.view_binding.clone(),
             admitted: grants.clone(),
-            capabilities: grants,
+            capabilities: Vec::new(),
             not_after_s: scopes.iter().map(|s| s.not_after_s).min().unwrap_or(0),
             depth: scopes.iter().map(|s| s.depth).min().unwrap_or(0),
             generation: first.generation,
             revocation_generation: first.revocation_generation,
             provenance: first.provenance,
-        })
+        };
+        // Each joined grant was confirmed under this same context already.
+        facts.capabilities = SessionCapability::under(&facts.context(), &grants);
+        Self::new(facts)
     }
 }
 
@@ -1303,19 +1384,23 @@ impl LocalSourceAuthority {
         current: &SourceCurrentness,
         admitted: Vec<SourceGrant>,
     ) -> CoreResult<EffectiveSourceScope> {
-        EffectiveSourceScope::new(EffectiveScopeFacts {
+        let mut facts = EffectiveScopeFacts {
             audience: self.operator.clone(),
             repository: request.repository.clone(),
             snapshot: request.snapshot.clone(),
             revision: current.snapshot.revision.clone(),
+            view_binding: request.view_binding.clone(),
             admitted,
-            capabilities: alloc::vec![self.configured()],
+            capabilities: Vec::new(),
             not_after_s: u64::MAX,
             depth: 0,
             generation: current.generation,
             revocation_generation: current.revocation_generation,
             provenance: AuthorityProvenance::LocalOperator,
-        })
+        };
+        // The configured grant is current for this exact request context.
+        facts.capabilities = SessionCapability::under(&facts.context(), &[self.configured()]);
+        EffectiveSourceScope::new(facts)
     }
 
     fn configured(&self) -> SourceGrant {

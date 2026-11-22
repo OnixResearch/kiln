@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use super::*;
 use crate::projection::disclosure::OpaqueHandle;
 use crate::projection::restricted_corpus::{
-    Corpus, FakeGrant, FakeVerifiedSourceAuthority, digest, ok, verified,
+    Corpus, FakeGrant, FakeVerifiedSourceAuthority, GENERATION, digest, ok, verified,
 };
 
 fn ops(operations: &[SourceViewOperation]) -> BTreeSet<SourceViewOperation> {
@@ -482,6 +482,7 @@ fn fake_verified_port_scopes_each_holder() {
             grants: agent.grants.clone(),
             not_after_s: agent.not_after_s,
             depth: agent.depth,
+            generation: crate::projection::restricted_corpus::GENERATION,
         },
     );
     let profile = verified(&agent.audience);
@@ -578,6 +579,7 @@ fn revalidation_denies_revocation_generation_and_moved_snapshots() {
             grants: reader.grants.clone(),
             not_after_s: reader.not_after_s,
             depth: reader.depth,
+            generation: crate::projection::restricted_corpus::GENERATION,
         },
     );
     let profile = verified(&reader.audience);
@@ -680,6 +682,7 @@ fn port_without_revocation(
             grants: reader.grants.clone(),
             not_after_s: reader.not_after_s,
             depth: reader.depth,
+            generation: crate::projection::restricted_corpus::GENERATION,
         },
     );
     port
@@ -690,21 +693,23 @@ fn port_without_revocation(
 fn effective_scope_identity_binds_every_field() {
     let corpus = Corpus::load();
     let reader = &corpus.view("project-reader").holder;
-    let facts = EffectiveScopeFacts {
+    let mut facts = EffectiveScopeFacts {
         audience: reader.audience.clone(),
         repository: corpus.repository().identity().clone(),
         snapshot: SnapshotRule::Exact {
             revision: corpus.revision.clone(),
         },
         revision: corpus.revision.clone(),
+        view_binding: digest("view"),
         admitted: reader.grants.clone(),
-        capabilities: reader.grants.clone(),
+        capabilities: Vec::new(),
         not_after_s: reader.not_after_s,
         depth: 1,
         generation: 1,
         revocation_generation: 0,
         provenance: AuthorityProvenance::VerifiedUcan,
     };
+    facts.capabilities = SessionCapability::under(&facts.context(), &reader.grants);
     let base = ok(EffectiveSourceScope::new(facts.clone()));
     let mut reordered = facts.clone();
     reordered.admitted.reverse();
@@ -715,12 +720,13 @@ fn effective_scope_identity_binds_every_field() {
     );
 
     type Change = fn(&mut EffectiveScopeFacts);
-    let changes: [Change; 9] = [
+    let changes: [Change; 10] = [
         |f| f.audience = "did:key:z6MkOther".into(),
         |f| f.repository = digest("other"),
         |f| {
             f.revision = ok(ExternalRef::new("git", "commit", &"3".repeat(40)));
         },
+        |f| f.view_binding = digest("other-view"),
         |f| {
             f.admitted.pop();
         },
@@ -764,22 +770,27 @@ fn capability_sets_confirm_but_never_extend_admitted_grants() {
         path: PathScope::from_path(path, true).unwrap_or_else(|| unreachable!("{path}")),
         operations: ops(operations),
     };
-    let scope = |admitted: Vec<SourceGrant>, capabilities: Vec<SourceGrant>| {
-        ok(EffectiveSourceScope::new(EffectiveScopeFacts {
-            audience: "did:key:z6MkReader".into(),
-            repository: corpus.repository().identity().clone(),
-            snapshot: SnapshotRule::Exact {
-                revision: corpus.revision.clone(),
-            },
+    let base = || EffectiveScopeFacts {
+        audience: "did:key:z6MkReader".into(),
+        repository: corpus.repository().identity().clone(),
+        snapshot: SnapshotRule::Exact {
             revision: corpus.revision.clone(),
-            admitted,
-            capabilities,
-            not_after_s: 2_000,
-            depth: 0,
-            generation: 1,
-            revocation_generation: 0,
-            provenance: AuthorityProvenance::VerifiedUcan,
-        }))
+        },
+        revision: corpus.revision.clone(),
+        view_binding: digest("view"),
+        admitted: Vec::new(),
+        capabilities: Vec::new(),
+        not_after_s: 2_000,
+        depth: 0,
+        generation: 1,
+        revocation_generation: 0,
+        provenance: AuthorityProvenance::VerifiedUcan,
+    };
+    let scope = |admitted: Vec<SourceGrant>, capabilities: Vec<SourceGrant>| {
+        let mut facts = base();
+        facts.admitted = admitted;
+        facts.capabilities = SessionCapability::under(&facts.context(), &capabilities);
+        ok(EffectiveSourceScope::new(facts))
     };
     // A capability set reporting an unchecked sibling adds nothing.
     let clipped = scope(
@@ -803,7 +814,32 @@ fn capability_sets_confirm_but_never_extend_admitted_grants() {
     );
     assert_eq!(narrowed.grants(), &[grant("crates/app", &[Op::Discover])]);
 
-    // Individually admitted scopes join; mismatched ones do not.
+    // A capability observed under any other context confirms nothing.
+    type Rekey = fn(&mut CapabilityContext);
+    let rekeys: [Rekey; 6] = [
+        |c| c.repository = digest("other-repository"),
+        |c| {
+            c.snapshot = SnapshotRule::Ref {
+                name: "refs/heads/main".into(),
+                evolution: RefEvolution::Rewrite,
+            }
+        },
+        |c| c.view_binding = digest("other-view"),
+        |c| c.generation += 1,
+        |c| c.generation -= 1,
+        |c| c.revocation_generation += 1,
+    ];
+    for rekey in rekeys {
+        let mut facts = base();
+        facts.admitted = vec![grant("crates/app", &[Op::Discover])];
+        let mut context = facts.context();
+        rekey(&mut context);
+        facts.capabilities = SessionCapability::under(&context, &facts.admitted.clone());
+        let unconfirmed = ok(EffectiveSourceScope::new(facts));
+        assert!(unconfirmed.grants().is_empty(), "{context:?}");
+    }
+
+    // Individually admitted scopes join; a scope differing in any key does not.
     let read = scope(
         vec![grant("crates/app", &[Op::ReadContent])],
         vec![grant("crates/app", &[Op::ReadContent])],
@@ -813,6 +849,118 @@ fn capability_sets_confirm_but_never_extend_admitted_grants() {
     assert!(joined.permits(Op::ReadContent, "crates/app/src/main.rs"));
     assert!(!joined.permits(Op::Discover, "crates/secret/src/key.rs"));
     assert!(EffectiveSourceScope::join(&[]).is_err());
-    let other = corpus.scope("agent");
-    assert!(EffectiveSourceScope::join(&[clipped, other]).is_err());
+    type Change = fn(&mut EffectiveScopeFacts);
+    let mismatches: [Change; 8] = [
+        |f| f.audience = "did:key:z6MkOther".into(),
+        |f| f.repository = digest("other-repository"),
+        |f| {
+            f.snapshot = SnapshotRule::Ref {
+                name: "refs/heads/main".into(),
+                evolution: RefEvolution::Rewrite,
+            }
+        },
+        |f| f.revision = ok(ExternalRef::new("git", "commit", &"4".repeat(40))),
+        |f| f.view_binding = digest("other-view"),
+        |f| f.generation += 1,
+        |f| f.revocation_generation += 1,
+        |f| f.provenance = AuthorityProvenance::LocalOperator,
+    ];
+    for change in mismatches {
+        let mut facts = base();
+        change(&mut facts);
+        facts.admitted = vec![grant("crates/app", &[Op::ReadContent])];
+        facts.capabilities = SessionCapability::under(&facts.context(), &facts.admitted.clone());
+        let other = ok(EffectiveSourceScope::new(facts));
+        assert!(
+            EffectiveSourceScope::join(&[clipped.clone(), other]).is_err(),
+            "a mismatched scope joined"
+        );
+    }
+}
+
+// r[verify kiln.source.projection.authority.scope.scenario.admitted_only]
+// r[verify kiln.source.projection.authority.port.scenario.verified]
+#[test]
+fn fake_port_confirms_only_capabilities_of_the_current_context() {
+    use SourceViewOperation as Op;
+    let corpus = Corpus::load();
+    let now = corpus.now_s;
+    let current = corpus.current();
+    let agent = &corpus.view("agent").holder;
+    let exact = SnapshotRule::Exact {
+        revision: corpus.revision.clone(),
+    };
+    let fake = |repository: ContentId, generation: u64| FakeGrant {
+        repository,
+        snapshot: exact.clone(),
+        grants: agent.grants.clone(),
+        not_after_s: agent.not_after_s,
+        depth: agent.depth,
+        generation,
+    };
+    let main = request(
+        &corpus,
+        Op::ReadContent,
+        components("crates/app/src/main.rs"),
+    );
+    let profile = verified(&agent.audience);
+    let repository = corpus.repository().identity().clone();
+
+    // A grant of another repository confirms nothing for this one.
+    let mut port = FakeVerifiedSourceAuthority::default();
+    port.grant(
+        &agent.audience,
+        fake(digest("other-repository"), GENERATION),
+    );
+    assert_eq!(
+        denied(port.admit(&main, &profile, &current, now)),
+        SourceDenialReason::RepositoryOutOfScope
+    );
+
+    // A grant issued under an older generation confirms nothing, nor do raw
+    // capabilities of another repository or generation; one of the exact
+    // current context does.
+    let mut port = FakeVerifiedSourceAuthority::default();
+    port.grant(&agent.audience, fake(repository.clone(), GENERATION - 1));
+    assert_eq!(
+        denied(port.admit(&main, &profile, &current, now)),
+        SourceDenialReason::ResourceOutOfScope
+    );
+    let context = CapabilityContext {
+        repository: repository.clone(),
+        snapshot: exact.clone(),
+        view_binding: main.view_binding.clone(),
+        generation: GENERATION,
+        revocation_generation: current.revocation_generation,
+    };
+    let mut other_repository = context.clone();
+    other_repository.repository = digest("other-repository");
+    let mut stale = context.clone();
+    stale.generation = GENERATION - 1;
+    for raw in [other_repository, stale] {
+        for capability in SessionCapability::under(&raw, &agent.grants) {
+            port.report_raw(&agent.audience, capability);
+        }
+        assert_eq!(
+            denied(port.admit(&main, &profile, &current, now)),
+            SourceDenialReason::ResourceOutOfScope
+        );
+    }
+    for capability in SessionCapability::under(&context, &agent.grants) {
+        port.report_raw(&agent.audience, capability);
+    }
+    ok(port.admit(&main, &profile, &current, now));
+
+    // A live reference request is outside an exact grant.
+    let mut live = main.clone();
+    live.snapshot = SnapshotRule::Ref {
+        name: "refs/heads/main".into(),
+        evolution: RefEvolution::FastForward,
+    };
+    let mut on_ref = current.clone();
+    on_ref.snapshot.ref_name = Some("refs/heads/main".into());
+    assert_eq!(
+        denied(port.admit(&live, &profile, &on_ref, now)),
+        SourceDenialReason::SnapshotNotAdmitted
+    );
 }

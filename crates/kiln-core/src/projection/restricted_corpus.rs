@@ -10,9 +10,9 @@ use alloc::vec::Vec;
 use serde::Deserialize;
 
 use super::authority::{
-    EffectiveScopeFacts, EffectiveSourceScope, SnapshotRule, SourceAuthority,
-    SourceAuthorityDecision, SourceAuthorityRequest, SourceCurrentness, SourceDenialReason,
-    SourceGrant, check_request,
+    CapabilityContext, EffectiveScopeFacts, EffectiveSourceScope, SessionCapability, SnapshotRule,
+    SourceAuthority, SourceAuthorityDecision, SourceAuthorityRequest, SourceCurrentness,
+    SourceDenialReason, SourceGrant, check_request,
 };
 use super::disclosure::{CairnItem, CairnObservation, HandleKey, ViewCeiling};
 use super::sharing::{SharePlan, ShareRequest};
@@ -43,6 +43,11 @@ pub(super) fn digest(label: &str) -> ContentId {
     ok(ContentId::from_blake3_hex(
         blake3::hash(label.as_bytes()).to_hex().to_string(),
     ))
+}
+
+/// The view binding corpus scopes were admitted through.
+pub(super) fn corpus_view_binding() -> ContentId {
+    digest("corpus-view")
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -237,26 +242,33 @@ impl Corpus {
             .iter()
             .find(|view| view.holder.audience == audience)
             .map(|view| &view.holder);
-        ok(EffectiveSourceScope::new(EffectiveScopeFacts {
+        let mut facts = EffectiveScopeFacts {
             audience: audience.into(),
             repository: self.repository().identity().clone(),
             snapshot: SnapshotRule::Exact {
                 revision: revision.clone(),
             },
             revision: revision.clone(),
+            view_binding: corpus_view_binding(),
             // Each corpus grant stands for one individually admitted request.
             admitted: grants.clone(),
-            capabilities: grants,
+            capabilities: Vec::new(),
             not_after_s: holder.map_or(self.now_s + 1_000, |holder| holder.not_after_s),
             depth: holder.map_or(0, |holder| holder.depth),
             generation: GENERATION,
             revocation_generation: REVOCATION_GENERATION,
             provenance: AuthorityProvenance::VerifiedUcan,
-        }))
+        };
+        facts.capabilities = SessionCapability::under(&facts.context(), &grants);
+        ok(EffectiveSourceScope::new(facts))
     }
 
     pub fn observation(&self) -> CairnObservation {
-        ok(CairnObservation::new(self.cairn.clone()))
+        ok(CairnObservation::new(
+            self.repository().identity().clone(),
+            self.revision.clone(),
+            self.cairn.clone(),
+        ))
     }
 
     pub fn current(&self) -> SourceCurrentness {
@@ -299,6 +311,8 @@ pub(super) struct FakeGrant {
     pub grants: Vec<SourceGrant>,
     pub not_after_s: u64,
     pub depth: u8,
+    /// The authority generation the grant was issued under.
+    pub generation: u64,
 }
 
 /// A fake verified port: a verified subject maps to a recorded grant, and
@@ -310,6 +324,7 @@ pub(super) struct FakeGrant {
 pub(super) struct FakeVerifiedSourceAuthority {
     holders: BTreeMap<String, FakeGrant>,
     unchecked: BTreeMap<String, Vec<SourceGrant>>,
+    raw: BTreeMap<String, Vec<SessionCapability>>,
     revoked: BTreeSet<String>,
     sessions: BTreeMap<u64, (String, EffectiveSourceScope)>,
     next_session: u64,
@@ -330,6 +345,14 @@ impl FakeVerifiedSourceAuthority {
             .push(grant);
     }
 
+    /// Report a raw capability with the exact context it was observed under.
+    pub fn report_raw(&mut self, audience: &str, capability: SessionCapability) {
+        self.raw
+            .entry(audience.into())
+            .or_default()
+            .push(capability);
+    }
+
     /// Issue an admitted share to its recipient.
     pub fn issue(&mut self, plan: &SharePlan) {
         self.grant(
@@ -340,6 +363,7 @@ impl FakeVerifiedSourceAuthority {
                 grants: plan.grants().to_vec(),
                 not_after_s: plan.not_after_s(),
                 depth: plan.depth(),
+                generation: plan.generation(),
             },
         );
     }
@@ -382,12 +406,24 @@ impl SourceAuthority for FakeVerifiedSourceAuthority {
         if self.revoked.contains(subject) {
             return Err(self.deny(request, SourceDenialReason::Revoked));
         }
-        let facts = |admitted: Vec<SourceGrant>, capabilities: Vec<SourceGrant>| {
+        let context = |generation: u64| CapabilityContext {
+            repository: grant.repository.clone(),
+            snapshot: grant.snapshot.clone(),
+            view_binding: request.view_binding.clone(),
+            generation,
+            revocation_generation: current.revocation_generation,
+        };
+        // The holder's grants carry the generation they were issued under;
+        // other raw capabilities carry whatever context they were seen in.
+        let mut capabilities = SessionCapability::under(&context(grant.generation), &grant.grants);
+        capabilities.extend(self.raw.get(subject).cloned().unwrap_or_default());
+        let facts = |admitted: Vec<SourceGrant>, capabilities: Vec<SessionCapability>| {
             ok(EffectiveSourceScope::new(EffectiveScopeFacts {
                 audience: subject.into(),
                 repository: grant.repository.clone(),
                 snapshot: grant.snapshot.clone(),
                 revision: current.snapshot.revision.clone(),
+                view_binding: request.view_binding.clone(),
                 admitted,
                 capabilities,
                 not_after_s: grant.not_after_s,
@@ -398,12 +434,15 @@ impl SourceAuthority for FakeVerifiedSourceAuthority {
             }))
         };
         // The verifier checks the request against the checked chain only.
-        let verified_chain = facts(grant.grants.clone(), grant.grants.clone());
+        let verified_chain = facts(grant.grants.clone(), capabilities.clone());
         if let Err(reason) = check_request(&verified_chain, request, current, now_unix_s) {
             return Err(self.deny(request, reason));
         }
-        let mut capabilities = grant.grants.clone();
-        capabilities.extend(self.unchecked.get(subject).cloned().unwrap_or_default());
+        let unchecked = self.unchecked.get(subject).cloned().unwrap_or_default();
+        capabilities.extend(SessionCapability::under(
+            &context(current.generation),
+            &unchecked,
+        ));
         let scope = facts(
             request.requested_grant().into_iter().collect(),
             capabilities,

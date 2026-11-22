@@ -386,6 +386,7 @@ fn a_view_reference_alone_confers_nothing() {
             grants: holder.grants.clone(),
             not_after_s: holder.not_after_s,
             depth: holder.depth,
+            generation: crate::projection::restricted_corpus::GENERATION,
         },
     );
     let handle = reader
@@ -465,4 +466,42 @@ fn a_view_reference_alone_confers_nothing() {
     assert_ne!(other.identity(), plan.identity());
     assert_eq!(other.grants(), plan.grants());
     assert_ne!(plan.identity(), &digest("plan"));
+}
+
+// r[verify kiln.source.projection.authority.scope.scenario.admitted_only]
+#[test]
+fn an_issued_share_is_current_only_in_its_generation() {
+    use SourceViewOperation as Op;
+    let corpus = Corpus::load();
+    let now = corpus.now_s;
+    let ceiling = corpus.ceiling("project-reader");
+    let plan = ok(admit_share(
+        &corpus.scope("maintainer"),
+        &ceiling,
+        &base_request(&corpus),
+        now,
+    ));
+    let mut port = FakeVerifiedSourceAuthority::default();
+    port.issue(&plan);
+    let request = SourceAuthorityRequest {
+        operation: Op::ReadContent,
+        repository: corpus.repository().identity().clone(),
+        snapshot: SnapshotRule::Exact {
+            revision: corpus.revision.clone(),
+        },
+        view_binding: ceiling.identity().clone(),
+        scope: OriginScope::Components {
+            path: path("crates/app/src/main.rs", false),
+        },
+        request_digest: [7; 32],
+        attempt: None,
+    };
+    let recipient = verified(plan.recipient());
+    ok(port.admit(&request, &recipient, &corpus.current(), now));
+    let mut next = corpus.current();
+    next.generation = plan.generation() + 1;
+    match port.admit(&request, &recipient, &next, now) {
+        Ok(decision) => unreachable!("stale share admitted: {decision:?}"),
+        Err(decision) => assert_eq!(decision.reason, SourceDenialReason::ResourceOutOfScope),
+    }
 }
