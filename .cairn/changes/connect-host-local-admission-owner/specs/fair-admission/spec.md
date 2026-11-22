@@ -29,7 +29,7 @@ r[kiln.admission.host_owner.scenario.replay]
 - WHEN admit, observe and reserve run again, or a larger quota is registered
 - THEN the retained operation MUST be returned without a new request, the account and quota MUST be unchanged, and the larger quota MUST be refused
 - AND release MUST be refused until the attempt is observed terminal, then return a never-dispatched slot without consumption exactly once
-- AND a superseded or lease-expired dispatched holder MUST keep its slot until a termination observation is reconciled
+- AND a holder whose transport may have started MUST keep its slot until a termination is reconciled or a candidate or the worker observation from Lattice's complete native result is retained, while a refusal before any effect or a crash before the transport start MUST be released once the attempt is terminal
 
 ### Requirement: Typed host-owner registration
 

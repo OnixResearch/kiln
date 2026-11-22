@@ -1100,3 +1100,97 @@ fn queued_issue_deliveries_drain_into_admitted_work_once() {
     );
     assert_eq!(forged.len().unwrap_or_else(|_| unreachable!()), 1);
 }
+
+// r[verify kiln.implementation.intake_selection.scenario.refused]
+#[test]
+fn ignored_labeled_deliveries_drain_and_later_events_are_admitted() {
+    let root = TempDir::new().unwrap_or_else(|_| unreachable!());
+    let mut config = config(&root);
+    config.implementation_queue = Some(ImplementationQueueConfig {
+        path: root.path().join("implementation.sqlite"),
+        maximum_deliveries: 8,
+    });
+    let delivery = |sender: &str, added: &str, state: &str, delivery: u64| {
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "action": "labeled",
+            "repository": {"id": 1296269, "name": "Hello-World", "owner": {"login": "octocat"}},
+            "sender": {"login": sender},
+            "label": {"name": added},
+            "issue": {
+                "number": 45,
+                "title": "labelled pilot work",
+                "state": state,
+                "updated_at": format!("2026-11-11T10:00:0{delivery}Z"),
+                "labels": [{"name": added}]
+            }
+        }))
+        .unwrap_or_else(|_| unreachable!());
+        let mut headers = headers(&bytes, delivery);
+        headers.event = "issues".into();
+        assert_eq!(
+            crate::server::store_issue_delivery(&config, &headers, &bytes, SECRET, delivery)
+                .unwrap_or_else(|_| unreachable!()),
+            Some(true)
+        );
+    };
+    delivery("stranger", "kiln-pilot", "open", 1);
+    delivery("operator", "kiln-pilot", "closed", 2);
+    delivery("operator", "triage", "open", 3);
+    delivery("operator", "kiln-pilot", "open", 4);
+    let enrollment = Enrollment {
+        repositories: ["octocat/hello-world".to_string()].into_iter().collect(),
+        actors: ["operator".to_string()].into_iter().collect(),
+    };
+    let mut implementer = Implementer::open_with_local_operator(
+        &root.path().join("work.sqlite"),
+        enrollment,
+        "test-operator",
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let policy = ImplementationIssuePolicy {
+        repository: config.event_policy.clone(),
+        project: "kiln".to_string(),
+        base: None,
+        requested_outcome: "implement".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["crates".to_string()],
+        permitted_effects: std::iter::once("write_source".to_string()).collect(),
+        verification_profile: hash('a'),
+        budget: WorkBudget {
+            attempts: 2,
+            minutes_per_attempt: 60,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        selection: Some(crate::implementation::IssueSelection {
+            issues: Default::default(),
+            labels: std::iter::once("kiln-pilot".to_string()).collect(),
+        }),
+    };
+    let enrolled = ["operator".to_string()].into_iter().collect();
+    // Every delivery drains; only the enrolled, selected, open labelling is work.
+    assert_eq!(
+        crate::implementation::drain_implementation_queue(
+            &config,
+            SECRET,
+            &policy,
+            &enrolled,
+            &mut implementer,
+            8
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}")),
+        4
+    );
+    assert_eq!(
+        implementer
+            .work()
+            .unwrap_or_else(|_| unreachable!())
+            .current()
+            .count(),
+        1
+    );
+}

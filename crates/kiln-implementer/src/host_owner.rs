@@ -220,7 +220,11 @@ impl Implementer {
             .map_err(diagnostic)?;
         let usage_generation = observation.generation;
         self.admission_apply(AdmissionCommand::Observe { observation }, now_ms)?;
-        let observations = profile.eligibility(&ledger, now_ms).map_err(diagnostic)?;
+        let work = self.work()?;
+        let attempts = self.attempts()?;
+        let observations = profile
+            .eligibility(&ledger, &work, &attempts, now_ms)
+            .map_err(diagnostic)?;
         let selected = match self.admission_apply(
             AdmissionCommand::Select {
                 inputs: observations.clone(),

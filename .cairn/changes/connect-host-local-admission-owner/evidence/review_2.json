@@ -1,0 +1,27 @@
+{
+  "change": "connect-host-local-admission-owner",
+  "review": "review_2 (history://AdmissionReview, verification of 8f3d86c8)",
+  "date": "2026-11-22",
+  "base": "8f3d86c8",
+  "resolved": {
+    "1_release": "Whether the worker may still run now comes only from the attempt ledger's transport facts: a recorded transport start (dispatch_requires_recovery) or an acknowledged workflow. Lattice's no-effect witness (settle_dispatch_without_execution) clears the start, so a refusal before any effect releases once the attempt is terminal; a crash between the owner-grant gate and the transport start releases after lease expiry. The admission ledger's intent (unknown reservation, dispatch-intent/executing row) only decides consumption. While the worker may run, an observed stop is a reconciled termination, a retained candidate, or the WorkerObservation Kiln retains only from Lattice's complete native result (record_worker_observation in kiln-adapter-lattice worker.rs, including failed runs). Supersession no longer marks an attempt Unknown when such an observation is retained. Tests: refusal before effect released and consumed; crash before transport released and consumed; observed failed run without candidate released and consumed.",
+    "2_labeled_queue": "A labeled delivery that is not an enrolled sender adding a selected label to an open issue under a selection returns Ok(None), never Err. Test: four labeled deliveries (unenrolled, closed, unselected label, selected) all drain and exactly one work is admitted.",
+    "3_eligibility": "Only rows that can use a slot compete for free slots: live claims first, then unclaimed work the attempt ledger would accept (probe on a clone), ordered by the work ledger's ranking. Dead claims and unclaimable work wait without taking a slot. Tests: a lapsed claim does not block the other work; a higher-priority later work takes the single slot.",
+    "4_label_trigger": "labeled triggers only when payload.label.name is in the selection. Test: adding an unselected label to an issue that already carries a selected one is ignored.",
+    "5_docs": "docs/fair-admission.md and both fair-admission spec copies state exactly when a slot is held within this flow."
+  },
+  "open_operational_limits": [
+    "A slot is held with no release path in this flow while its attempt has a transport start or acknowledged workflow but no reconciled termination, candidate or retained worker observation: a run whose native result never returned (lost dispatcher, unanswered transport), a run whose result returned but whose worker observation could not be retained (metrics unavailable), and lease expiry of an acknowledged attempt, which Kiln #45 does not mark Unknown so reconcile-termination cannot bind it."
+  ],
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "result": "2395 passed, 0 failed, 16 ignored" },
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative" },
+    { "command": "nix build --option builders '' path:$PWD#checks.x86_64-linux.octet", "exit": 0, "result": "0 findings" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    { "command": "cairn gate proposal|design|tasks connect-host-local-admission-owner", "exit": 0, "result": "PASS" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2152, referenced 2119, missing 33, dangling 9; identical to base 203296d4, none new" },
+    { "command": "gitleaks dir over 51 changed paths since 203296d4", "exit": 0, "result": "no leaks; this evidence file rescanned after writing" }
+  ]
+}

@@ -183,8 +183,10 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   every retained debit is composed on top, so nothing resets) and one
   eligibility observation per open queued work, valid for
   `observation_ttl_ms`, then runs the existing selection. Holders stay
-  eligible; other work is eligible only up to the free registered slots
-  (claimed rows first, then queue order), and the rest is observed as `waiting`.
+  eligible. Only rows that can use a slot compete for the free registered
+  slots: live claims first, then unclaimed work the attempt ledger would
+  accept, in the work ledger's ranking. Dead claims and unclaimable work are
+  observed as `waiting` without taking a slot, as is usable work beyond them.
 - `host-owner-reserve` plans one deterministic operation for the exact queued
   claim, persists the tentative request through the `request` command and asks
   the host owner through `AdmissionOwnerPortV1`. The owner decides from the
@@ -196,15 +198,29 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   by an interrupted reserve is resolved first from its own record (committed,
   or rejected/expired with refund), so a crash never wedges the slot.
 - `host-owner-release` settles the reservation only after the attempt ledger
-  records the holding attempt terminal, ended and resolved. A reservation that
-  provably never reached transport (no dispatch intent, transport start or
-  workflow) returns without consuming the slot, matching cancellation before
-  dispatch. Once transport may have started, release also needs the worker
-  observed stopped: a reconciled termination observation
-  (`reconcile-termination`) or a retained candidate. Supersession and lease
-  expiry of a started attempt mark it unknown rather than observing a stop, so
-  its slot stays held; a possible or observed dispatch consumes the slot without
-  refund. Elapsed time, restart and replay release nothing.
+  records the holding attempt terminal, ended and resolved. Whether the worker
+  may still run comes only from the attempt ledger's transport facts: a
+  recorded transport start or an acknowledged workflow. Lattice's no-effect
+  witness (`settle_dispatch_without_execution`) clears the transport start, so
+  a refusal before any effect, or a crash between the owner-grant gate and the
+  transport start, releases once the attempt is terminal. While the worker may
+  run, release also needs an observed stop: a reconciled termination
+  (`reconcile-termination`), a retained candidate, or the worker observation
+  Kiln retains only from Lattice's complete native result (`record_worker_observation`,
+  including failed or aborted runs). The admission ledger's dispatch intent only
+  decides consumption: with intent or transport the slot's budget is consumed;
+  with neither (cancellation before dispatch) it returns unconsumed.
+
+  **Held within this flow.** A slot stays held, with no release path here,
+  while its attempt has a transport start or acknowledged workflow but no
+  reconciled termination, candidate or retained worker observation. In
+  practice that is: a run whose native result never returned (lost
+  dispatcher, unanswered transport), a run whose result returned but whose
+  worker observation could not be retained (metrics unavailable), and lease
+  expiry of an acknowledged attempt, which Kiln #45 does not mark unknown, so
+  `reconcile-termination` cannot bind it. A superseded attempt with started
+  transport and no stop record is marked unknown and released after
+  `reconcile-termination`. Elapsed time, restart and replay release nothing.
 
 The owner's only capacity is its declared registration and its only occupancy
 is the ledger's retained reservations for it. It never reports remote, provider

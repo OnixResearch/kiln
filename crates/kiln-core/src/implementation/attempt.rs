@@ -1381,6 +1381,7 @@ impl AttemptLedger {
                     && attempt.failure.is_none()
                     && attempt.candidate.is_none()
                     && attempt.handoff.is_none()
+                    && attempt.worker_observation.is_none()
                 {
                     attempt.failure = Some(FailureClass::Unknown);
                 }

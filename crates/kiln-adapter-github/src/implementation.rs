@@ -142,6 +142,9 @@ struct Envelope {
     issue: Issue,
     repository: Repository,
     sender: Actor,
+    /// The label a `labeled` event added.
+    #[serde(default)]
+    label: Option<Label>,
 }
 
 #[derive(Deserialize)]
@@ -244,9 +247,23 @@ pub fn admit_implementation_issue(
     }
     let action = match envelope.action.as_str() {
         "opened" | "edited" | "reopened" | "closed" => envelope.action.as_str(),
-        // Under an explicit selection, adding a selected label is an admission
-        // trigger; the sender must still be enrolled below.
-        "labeled" if policy.selection.is_some() => envelope.action.as_str(),
+        // Under an explicit selection, adding a selected label to an open issue
+        // by an enrolled sender is an admission trigger. Any other `labeled`
+        // delivery is ignored, never an error, so it cannot wedge the queue.
+        "labeled" => {
+            let triggers = policy.selection.as_ref().is_some_and(|selection| {
+                envelope
+                    .label
+                    .as_ref()
+                    .is_some_and(|label| selection.labels.contains(&label.name))
+            }) && envelope.issue.state == "open"
+                && valid_actor(&envelope.sender.login)
+                && enrolled_actors.contains(&envelope.sender.login);
+            if !triggers {
+                return Ok(None);
+            }
+            "labeled"
+        }
         _ => return Ok(None),
     };
     if envelope.issue.number == 0 {
@@ -662,30 +679,41 @@ mod tests {
             admit(&by_label, &closed),
             Ok(Some(IssueAdmission::Closed { .. }))
         ));
-        // Adding a selected label admits the issue; without a selection the
-        // event stays ignored, and an unenrolled labeller is refused.
-        let labeled = |sender: &str| {
+        // Adding a selected label to an open issue admits it. Without a
+        // selection, from an unenrolled sender, on a closed issue, or when the
+        // added label is not selected (even if a selected one is already
+        // present), the delivery is ignored rather than refused.
+        let labeled = |sender: &str, added: &str, state: &str| {
             serde_json::to_vec(&serde_json::json!({
                 "action": "labeled",
                 "repository": {"id": 42, "name": "kiln", "owner": {"login": "OnixResearch"}},
                 "sender": {"login": sender},
-                "label": {"name": "kiln-pilot"},
+                "label": {"name": added},
                 "issue": {
                     "number": 46,
                     "title": "Newly labelled pilot issue",
-                    "state": "open",
+                    "state": state,
                     "updated_at": "2026-11-11T11:00:00Z",
-                    "labels": [{"name": "kiln-pilot"}]
+                    "labels": [{"name": "kiln-pilot"}, {"name": "triage"}]
                 }
             }))
             .unwrap_or_else(|_| unreachable!())
         };
         assert!(matches!(
-            admit(&by_label, &labeled("operator")),
+            admit(&by_label, &labeled("operator", "kiln-pilot", "open")),
             Ok(Some(IssueAdmission::Work(_)))
         ));
-        assert!(matches!(admit(&policy(), &labeled("operator")), Ok(None)));
-        assert!(admit(&by_label, &labeled("stranger")).is_err());
+        for (policy, body) in [
+            (policy(), labeled("operator", "kiln-pilot", "open")),
+            (by_label.clone(), labeled("stranger", "kiln-pilot", "open")),
+            (
+                by_label.clone(),
+                labeled("operator", "kiln-pilot", "closed"),
+            ),
+            (by_label.clone(), labeled("operator", "triage", "open")),
+        ] {
+            assert!(matches!(admit(&policy, &body), Ok(None)));
+        }
         let mut empty = policy();
         empty.selection = Some(IssueSelection::default());
         assert!(admit(&empty, &unlabelled).is_err());

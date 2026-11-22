@@ -7,8 +7,10 @@ use kiln_core::fair_admission::{
     AdmissionPhase, EligibilityInput, HostOwnerProfile, ReservationState,
 };
 use kiln_core::implementation::{
-    AcceptanceObligation, Enrollment, IMPLEMENTATION_WORK_SCHEMA, ImplementationAttempt,
+    AcceptanceObligation, AttemptUsage, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
+    Enrollment, IMPLEMENTATION_WORK_SCHEMA, ImplementationAttempt, ImplementationDispatchPlan,
     ImplementationWork, SourceRef, SupersessionRule, TerminalPolicy, WorkBudget, WorkSourceKind,
+    WorkerObservation, WorkerTerminalState, WorkspaceIsolation,
 };
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_implementer::{
@@ -62,7 +64,11 @@ fn work(profile: &HostOwnerProfile, repository: &str, issue: u64) -> Implementat
         actor: "operator".into(),
         repository: repository.into(),
         project: "implementer-sandbox".into(),
-        base: None,
+        base: Some(ok(ExternalRef::new(
+            "git",
+            "commit",
+            "f1adb86f6320f2bbb6c02ae077905a6bb8c22955",
+        ))),
         title: format!("issue {issue}"),
         requested_outcome: "fix the issue".into(),
         acceptance: vec![AcceptanceObligation {
@@ -580,4 +586,199 @@ fn interrupted_reserve_is_resolved_from_its_own_record() {
         .get(&ok(profile.account_identity()))
         .ok_or(()));
     assert_eq!(root.available, slots(3));
+}
+
+fn plan_for(
+    issue: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+) -> ImplementationDispatchPlan {
+    ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.to_string(),
+        work_identity: ok(issue.identity()),
+        work_revision: issue.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: issue.repository.clone(),
+        base: issue.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: ok(ContentId::from_blake3_hex("d".repeat(64))),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: ok(kiln_core::types::ProviderProfileId::new(
+            "onix-local-pilot-omp",
+        )),
+        permitted_paths: vec!["src".to_string()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 20,
+        token_budget: 10_000,
+        invocation_budget: 10,
+        expected_output: ok(ContentId::from_blake3_hex("e".repeat(64))),
+        execution: None,
+    }
+}
+
+fn assert_consumed(i: &mut Implementer, profile: &HostOwnerProfile) {
+    let ledger = ok(i.admission_snapshot());
+    let root = ok(ledger
+        .accounts
+        .get(&ok(profile.account_identity()))
+        .ok_or(()));
+    assert_eq!(root.available, slots(3));
+    assert_eq!(root.consumed, slots(1));
+}
+
+#[test]
+fn lattice_refusal_before_any_effect_releases_the_slot() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
+    let plan = plan_for(&issue, &attempt);
+    let reserved_plan =
+        ok(i.reserve_dispatch_plan(&issue, &attempt.identity, attempt.fence, NOW + 3, &plan));
+    let observations = fresh(&mut i, NOW + 3);
+    ok(i.admission_before_transport(&attempt.identity, attempt.fence, &observations, NOW + 3));
+    ok(i.bind_campaign_request(&issue, &attempt.identity, attempt.fence, NOW + 3, b"{}"));
+    ok(i.begin_dispatch_transport(
+        &attempt.identity,
+        attempt.fence,
+        NOW + 3,
+        &reserved_plan.plan,
+        None,
+    ));
+    // While transport is started and unanswered, the slot is held.
+    refused(
+        i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 4),
+        "host_owner_release_unobserved",
+    );
+    // Lattice's no-effect witness settles the attempt and clears the start.
+    ok(i.settle_dispatch_without_execution(
+        &attempt.identity,
+        attempt.fence,
+        NOW + 5,
+        "lattice_refused_before_effect:crossed_attempt",
+    ));
+    ok(i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 6));
+    assert_eq!(
+        reservation_state(&mut i, &reservation),
+        ReservationState::Settled
+    );
+    // The recorded dispatch intent consumes the slot's budget.
+    assert_consumed(&mut i, &profile);
+}
+
+#[test]
+fn crash_between_the_grant_gate_and_transport_does_not_hold_forever() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, _) = reserved_attempt(&mut i, &profile, &issue);
+    let observations = fresh(&mut i, NOW + 3);
+    ok(i.admission_before_transport(&attempt.identity, attempt.fence, &observations, NOW + 3));
+    // The process stops before any transport start; the lease then expires.
+    ok(i.recover(attempt.lease_until_ms + 1));
+    ok(i.host_owner_release(
+        &profile,
+        &attempt.identity,
+        attempt.fence,
+        attempt.lease_until_ms + 2,
+    ));
+    assert_consumed(&mut i, &profile);
+}
+
+#[test]
+fn observed_failed_run_without_a_candidate_is_released_and_consumed() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, _) = reserved_attempt(&mut i, &profile, &issue);
+    dispatch(&mut i, &attempt, NOW + 3);
+    // Kiln retains Lattice's complete native result: the run ended, failed.
+    let observation = WorkerObservation {
+        terminal: WorkerTerminalState::Failed,
+        worker_profile: None,
+        harness: None,
+        model: None,
+        usage: AttemptUsage::default(),
+    };
+    ok(i.record_worker_observation(&attempt.identity, attempt.fence, &observation));
+    ok(i.recover(attempt.lease_until_ms + 1));
+    ok(i.host_owner_release(
+        &profile,
+        &attempt.identity,
+        attempt.fence,
+        attempt.lease_until_ms + 2,
+    ));
+    assert_consumed(&mut i, &profile);
+}
+
+fn eligible(observed: &kiln_implementer::host_owner::HostOwnerObserved, work: &ContentId) -> bool {
+    observed.observations.iter().any(|input| {
+        &input.work_version == work
+            && input.reason == kiln_core::fair_admission::AdmissionReason::Eligible
+    })
+}
+
+#[test]
+fn a_dead_claim_does_not_block_usable_work() {
+    let dir = ok(tempfile::tempdir());
+    let mut profile = profile();
+    profile.limits.max_active = 2;
+    let first = work(&profile, SANDBOX, 1);
+    let second = work(&profile, SANDBOX, 2);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    intake(&mut i, &[&first, &second]);
+    ok(i.host_owner_admit(&profile, NOW));
+    ok(i.host_owner_observe(&profile, NOW));
+    // The first work is claimed with a short lease that then lapses unreserved.
+    let AdmissionResult::Claimed {
+        attempt: Some(short),
+    } = ok(i.admission_apply(
+        Cmd::Claim {
+            inputs: Vec::new(),
+            lease_ms: 1_000,
+        },
+        NOW + 1,
+    ))
+    else {
+        unreachable!("the top-ranked work is invited")
+    };
+    let (dead, other) = if short.work_identity == ok(first.identity()) {
+        (ok(first.identity()), ok(second.identity()))
+    } else {
+        (ok(second.identity()), ok(first.identity()))
+    };
+    // Before the lease lapses the live claim holds the only invitation.
+    let live = ok(i.host_owner_observe(&profile, NOW + 2));
+    assert!(eligible(&live, &dead) && !eligible(&live, &other));
+    let observed = ok(i.host_owner_observe(&profile, NOW + 5_000));
+    assert!(eligible(&observed, &other));
+    assert!(!eligible(&observed, &dead));
+}
+
+#[test]
+fn scarce_slots_follow_the_work_ranking() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let low = work(&profile, SANDBOX, 1);
+    let mut high = work(&profile, SANDBOX, 2);
+    high.priority = 9;
+    let mut i = open(&dir.path().join("work.sqlite"));
+    // The lower-priority work is queued first.
+    intake(&mut i, &[&low, &high]);
+    ok(i.host_owner_admit(&profile, NOW));
+    let observed = ok(i.host_owner_observe(&profile, NOW));
+    assert!(eligible(&observed, &ok(high.identity())));
+    assert!(!eligible(&observed, &ok(low.identity())));
 }

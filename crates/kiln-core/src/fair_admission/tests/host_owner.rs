@@ -3,8 +3,8 @@
 // r[verify kiln.admission.host_owner_profile.scenario.exports]
 use super::*;
 use crate::implementation::{
-    AcceptanceObligation, AttemptLedger, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, SourceRef,
-    TerminalPolicy, WorkBudget, WorkSourceKind,
+    AcceptanceObligation, AttemptLedger, Enrollment, IMPLEMENTATION_WORK_SCHEMA,
+    ImplementationWork, SourceRef, TerminalPolicy, WorkBudget, WorkLedger, WorkSourceKind,
 };
 use crate::types::ExternalRef;
 
@@ -84,6 +84,20 @@ fn claim(name: &str) -> ClaimRef {
         fence: 1,
     }
 }
+/// The current ready work ledger for `works`.
+fn work_ledger(works: &[&ImplementationWork]) -> WorkLedger {
+    let enrollment = Enrollment {
+        repositories: alloc::collections::BTreeSet::from([
+            "onixresearch/implementer-sandbox".into()
+        ]),
+        actors: alloc::collections::BTreeSet::from(["operator".into()]),
+    };
+    let mut ledger = WorkLedger::default();
+    for work in works {
+        ok(ledger.admit(work, None, &enrollment));
+    }
+    ledger
+}
 /// Configure, root, queue, observe and claim through the existing ledger.
 fn admitted(profile: &HostOwnerProfile, works: &[&ImplementationWork]) -> AdmissionLedger {
     let mut ledger = AdmissionLedger::default();
@@ -94,7 +108,8 @@ fn admitted(profile: &HostOwnerProfile, works: &[&ImplementationWork]) -> Admiss
         assert_eq!(reason, AdmissionReason::Waiting);
     }
     ok(ledger.observe(ok(profile.usage_observation(&ledger, NOW))));
-    let inputs = ok(profile.eligibility(&ledger, NOW));
+    let inputs =
+        ok(profile.eligibility(&ledger, &work_ledger(works), &AttemptLedger::default(), NOW));
     assert_eq!(inputs.len(), works.len());
     ok(ledger.select(&inputs, NOW));
     ledger
@@ -268,7 +283,12 @@ fn second_work_beyond_registered_capacity_is_refused_and_waits() {
     for work in [&first, &second] {
         ok(capped.enqueue(ok(profile.queue_item(work, NOW)), NOW));
     }
-    let invited = ok(profile.eligibility(&capped, NOW));
+    let invited = ok(profile.eligibility(
+        &capped,
+        &work_ledger(&[&first, &second]),
+        &AttemptLedger::default(),
+        NOW,
+    ));
     assert_eq!(
         invited
             .iter()
@@ -289,7 +309,12 @@ fn second_work_beyond_registered_capacity_is_refused_and_waits() {
         "host_owner_capacity"
     );
     // A fresh observation now marks the second work waiting, never eligible.
-    let inputs = ok(profile.eligibility(&ledger, NOW + 1));
+    let inputs = ok(profile.eligibility(
+        &ledger,
+        &WorkLedger::default(),
+        &AttemptLedger::default(),
+        NOW + 1,
+    ));
     let waiting = ok(inputs
         .iter()
         .find(|input| input.work_version == ok(second.identity()))
@@ -321,7 +346,12 @@ fn duplicate_reservation_for_the_same_work_is_refused() {
     // A new registration generation cannot mint a second grant for held work.
     let mut bumped = profile.clone();
     bumped.owner.generation = 2;
-    let fresh = ok(bumped.eligibility(&ledger, NOW + 1));
+    let fresh = ok(bumped.eligibility(
+        &ledger,
+        &WorkLedger::default(),
+        &AttemptLedger::default(),
+        NOW + 1,
+    ));
     ok(ledger.select(&fresh, NOW + 1));
     assert_eq!(
         code(bumped.plan_reservation(&ledger, &issue, &attempt, u64::MAX, NOW + 1)),
