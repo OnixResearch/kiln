@@ -1,0 +1,1109 @@
+//! Attempt grant lineage: the pure attenuation core for delegated attempt
+//! authority (`kiln.attempt-authority-binding.v1`, Kiln #70).
+//!
+//! A root binding ties one admitted standing-policy ceiling to the exact
+//! campaign selection, work version, attempt, fence, holder and #61 budget
+//! reservation. An admitted parent binding derives a child only when the
+//! verified delegator holds the parent, holds explicit delegation permission
+//! and requests a ceiling no broader than the parent's in resource, operation,
+//! audience, lifetime, disclosure route and remaining delegation depth. A child
+//! never crosses from coding authority into verification or publication
+//! authority.
+//!
+//! Currentness walks the whole lineage: a revoked or expired ancestor, a moved
+//! authority generation, a stale revocation view or a replaced fence
+//! invalidates every descendant.
+//!
+//! This module decides over explicit facts. It never mints, signs, stores,
+//! revokes or resolves a token, and a binding holds proof references only, never
+//! token bytes. The shell persists an [`AdmittedGrant`] as the issuance intent
+//! with its #61 reservation, mints the UCAN, and records the proof reference
+//! with [`AdmittedGrant::issue`].
+
+use alloc::collections::BTreeSet;
+use alloc::string::{String, ToString};
+use core::iter::once;
+
+use serde::{Deserialize, Serialize};
+
+use super::authority::{
+    AUTHORITY_DIGEST_BYTES, MAX_AUTHORITY_FIELD_BYTES, MAX_AUTHORITY_REFERENCE_BYTES,
+    ProtectedOperation,
+};
+use crate::types::{ContentId, CoreResult, Diagnostic};
+
+/// Contract schema of an attempt authority binding.
+pub const ATTEMPT_AUTHORITY_BINDING_SCHEMA: &str = "kiln.attempt-authority-binding.v1";
+/// Maximum lineage depth below a root binding. Bounds every chain walk.
+pub const MAX_GRANT_DEPTH: u8 = 8;
+/// Maximum bindings in one lineage chain, root included.
+pub const MAX_GRANT_LINEAGE: usize = MAX_GRANT_DEPTH as usize + 1;
+/// Maximum disclosure routes one ceiling may name.
+pub const MAX_DISCLOSURE_ROUTES: usize = 32;
+
+const CEILING_DOMAIN: &[u8] = b"kiln.authority-ceiling.v1";
+const BINDING_DOMAIN: &[u8] = b"kiln.attempt-authority-binding.v1";
+const INTENT_DOMAIN: &[u8] = b"kiln.attempt-authority-grant-intent.v1";
+const NO_GRANT_REF: [u8; AUTHORITY_DIGEST_BYTES] = [0; AUTHORITY_DIGEST_BYTES];
+
+/// Separated authority roles. A delegated child holds exactly one role, and no
+/// child crosses into a role its parent does not hold.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum GrantRole {
+    /// Claim, renewal, dispatch, candidate submission and cancellation.
+    Coding,
+    /// Independent verification admission.
+    Verification,
+    /// Publication, integration and lifecycle completion.
+    Publication,
+}
+
+impl GrantRole {
+    /// Role that owns one protected operation.
+    #[must_use]
+    pub const fn of(operation: ProtectedOperation) -> Self {
+        match operation {
+            ProtectedOperation::ClaimAcquire
+            | ProtectedOperation::ClaimRenew
+            | ProtectedOperation::Dispatch
+            | ProtectedOperation::CandidateSubmit
+            | ProtectedOperation::AttemptCancel => Self::Coding,
+            ProtectedOperation::VerificationAdmit => Self::Verification,
+            ProtectedOperation::PublicationPublish
+            | ProtectedOperation::IntegrationLand
+            | ProtectedOperation::LifecycleComplete => Self::Publication,
+        }
+    }
+
+    const fn bit(self) -> u8 {
+        match self {
+            Self::Coding => 1,
+            Self::Verification => 2,
+            Self::Publication => 4,
+        }
+    }
+}
+
+fn role_bits(operations: &BTreeSet<ProtectedOperation>) -> u8 {
+    operations
+        .iter()
+        .fold(0, |bits, operation| bits | GrantRole::of(*operation).bit())
+}
+
+/// Closed lineage refusal reasons (`kiln.attempt-authority-binding.v1`).
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LineageRefusal {
+    /// The child names another project, drops the parent's work scope or adds a
+    /// disclosure route the parent does not hold.
+    WidenResource,
+    /// The child requests an operation the parent does not hold.
+    WidenOperation,
+    /// The child names another service audience.
+    WidenAudience,
+    /// The child would outlive its parent, or an ancestor or ceiling expired.
+    OutlivesParent,
+    /// The child requests delegation depth the parent cannot grant, or the
+    /// lineage exceeds [`MAX_GRANT_DEPTH`].
+    DepthExceeded,
+    /// The delegator holds no explicit delegation permission, or the parent
+    /// ceiling permits no further delegation.
+    DelegationNotPermitted,
+    /// The child mixes roles or crosses from one role into another, such as
+    /// coding into verification, publication, integration or lifecycle.
+    RoleEscalation,
+    /// A binding names another campaign, work, version, attempt or holder, its
+    /// identity does not recompute, or its lineage chain is broken.
+    ForeignLineage,
+    /// No owner-confirmed #61 reservation binds the grant, or the requested
+    /// reservation differs from it or from the parent's account.
+    BudgetUnbound,
+    /// The authority generation moved, the revocation view is older than the
+    /// binding, a lineage grant is revoked, or a later fence replaced the attempt.
+    StaleGeneration,
+}
+
+impl LineageRefusal {
+    /// Every refusal in contract order.
+    pub const ALL: [Self; 10] = [
+        Self::WidenResource,
+        Self::WidenOperation,
+        Self::WidenAudience,
+        Self::OutlivesParent,
+        Self::DepthExceeded,
+        Self::DelegationNotPermitted,
+        Self::RoleEscalation,
+        Self::ForeignLineage,
+        Self::BudgetUnbound,
+        Self::StaleGeneration,
+    ];
+
+    /// Stable redacted label.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::WidenResource => "widen_resource",
+            Self::WidenOperation => "widen_operation",
+            Self::WidenAudience => "widen_audience",
+            Self::OutlivesParent => "outlives_parent",
+            Self::DepthExceeded => "depth_exceeded",
+            Self::DelegationNotPermitted => "delegation_not_permitted",
+            Self::RoleEscalation => "role_escalation",
+            Self::ForeignLineage => "foreign_lineage",
+            Self::BudgetUnbound => "budget_unbound",
+            Self::StaleGeneration => "stale_generation",
+        }
+    }
+}
+
+/// Why a grant was not admitted: malformed input, or a lineage refusal.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LineageError {
+    /// A requested field is missing, oversized or otherwise malformed.
+    Invalid(Diagnostic),
+    /// The request is well formed but the lineage refuses it.
+    Refused(LineageRefusal),
+}
+
+impl From<Diagnostic> for LineageError {
+    fn from(diagnostic: Diagnostic) -> Self {
+        Self::Invalid(diagnostic)
+    }
+}
+
+impl From<LineageRefusal> for LineageError {
+    fn from(refusal: LineageRefusal) -> Self {
+        Self::Refused(refusal)
+    }
+}
+
+/// The requested terms of one ceiling, before its generation and identity are
+/// fixed.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CeilingTerms {
+    /// Service audience the grant is valid for.
+    pub audience: String,
+    /// Project scope.
+    pub project: String,
+    /// Exact work scope, or the whole project when absent.
+    pub work: Option<ContentId>,
+    /// Protected operations the grant may invoke.
+    pub operations: BTreeSet<ProtectedOperation>,
+    /// Last valid instant, exclusive, in host seconds.
+    pub not_after_s: u64,
+    /// Further delegation hops permitted below a binding with this ceiling.
+    pub max_depth: u8,
+    /// Disclosure routes the grant may use.
+    pub disclosure_routes: BTreeSet<String>,
+}
+
+/// Immutable authority ceiling. A scope increase needs a new, independently
+/// authorized ceiling and identity.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuthorityCeiling {
+    /// BLAKE3 identity over every other field.
+    pub identity: ContentId,
+    /// Service audience the grant is valid for.
+    pub audience: String,
+    /// Authority generation the ceiling was admitted under.
+    pub generation: u64,
+    /// Project scope.
+    pub project: String,
+    /// Exact work scope, or the whole project when absent.
+    pub work: Option<ContentId>,
+    /// Protected operations the grant may invoke.
+    pub operations: BTreeSet<ProtectedOperation>,
+    /// Last valid instant, exclusive, in host seconds.
+    pub not_after_s: u64,
+    /// Further delegation hops permitted below a binding with this ceiling.
+    pub max_depth: u8,
+    /// Disclosure routes the grant may use.
+    pub disclosure_routes: BTreeSet<String>,
+}
+
+impl AuthorityCeiling {
+    /// Fix one ceiling's generation and identity.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a zero generation, malformed text, an empty
+    /// operation set, a zero lifetime, a depth above [`MAX_GRANT_DEPTH`] or too
+    /// many disclosure routes.
+    pub fn new(generation: u64, terms: CeilingTerms) -> CoreResult<Self> {
+        let view = CeilingView {
+            audience: &terms.audience,
+            generation,
+            project: &terms.project,
+            work: terms.work.as_ref(),
+            operations: &terms.operations,
+            not_after_s: terms.not_after_s,
+            max_depth: terms.max_depth,
+            disclosure_routes: &terms.disclosure_routes,
+        };
+        view.validate_bounds()?;
+        let identity = ContentId::from_blake3_hex(view.digest_hex())?;
+        Ok(Self {
+            identity,
+            audience: terms.audience,
+            generation,
+            project: terms.project,
+            work: terms.work,
+            operations: terms.operations,
+            not_after_s: terms.not_after_s,
+            max_depth: terms.max_depth,
+            disclosure_routes: terms.disclosure_routes,
+        })
+    }
+
+    /// Revalidate bounds and recompute the identity of a ceiling that may have
+    /// arrived through serde.
+    ///
+    /// # Errors
+    /// Returns the bounds diagnostic, or `authority_ceiling_identity` when the
+    /// identity does not recompute.
+    pub fn validate(&self) -> CoreResult<()> {
+        self.view().validate_bounds()?;
+        self.identity.validate()?;
+        if self.identity.as_str() != self.view().digest_hex() {
+            return Err(Diagnostic::new(
+                "authority_ceiling_identity",
+                "ceiling.identity",
+                "authority ceiling identity does not recompute",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Whether this ceiling contains `other` in every attenuable dimension.
+    #[must_use]
+    pub fn covers(&self, other: &Self) -> bool {
+        self.attenuation(other).is_none()
+    }
+
+    /// First dimension in which `child` is broader than this ceiling.
+    fn attenuation(&self, child: &Self) -> Option<LineageRefusal> {
+        if child.audience != self.audience {
+            return Some(LineageRefusal::WidenAudience);
+        }
+        let work_widened = match (&self.work, &child.work) {
+            (Some(parent), Some(child)) => parent != child,
+            (Some(_), None) => true,
+            (None, _) => false,
+        };
+        if child.project != self.project
+            || work_widened
+            || !child.disclosure_routes.is_subset(&self.disclosure_routes)
+        {
+            return Some(LineageRefusal::WidenResource);
+        }
+        if !child.operations.is_subset(&self.operations) {
+            return Some(LineageRefusal::WidenOperation);
+        }
+        if child.not_after_s > self.not_after_s {
+            return Some(LineageRefusal::OutlivesParent);
+        }
+        if child.max_depth >= self.max_depth {
+            return Some(LineageRefusal::DepthExceeded);
+        }
+        None
+    }
+
+    fn view(&self) -> CeilingView<'_> {
+        CeilingView {
+            audience: &self.audience,
+            generation: self.generation,
+            project: &self.project,
+            work: self.work.as_ref(),
+            operations: &self.operations,
+            not_after_s: self.not_after_s,
+            max_depth: self.max_depth,
+            disclosure_routes: &self.disclosure_routes,
+        }
+    }
+}
+
+/// Borrowed ceiling fields, so requested terms and retained ceilings share one
+/// bounds check and one identity.
+struct CeilingView<'a> {
+    audience: &'a str,
+    generation: u64,
+    project: &'a str,
+    work: Option<&'a ContentId>,
+    operations: &'a BTreeSet<ProtectedOperation>,
+    not_after_s: u64,
+    max_depth: u8,
+    disclosure_routes: &'a BTreeSet<String>,
+}
+
+impl CeilingView<'_> {
+    fn validate_bounds(&self) -> CoreResult<()> {
+        text_field("ceiling.audience", self.audience, MAX_AUTHORITY_FIELD_BYTES)?;
+        text_field("ceiling.project", self.project, MAX_AUTHORITY_FIELD_BYTES)?;
+        if let Some(work) = self.work {
+            work.validate()?;
+        }
+        if self.generation == 0 {
+            return Err(Diagnostic::new(
+                "authority_ceiling_generation",
+                "ceiling.generation",
+                "authority ceiling requires a non-zero generation",
+            ));
+        }
+        if self.operations.is_empty() {
+            return Err(Diagnostic::new(
+                "authority_ceiling_operations",
+                "ceiling.operations",
+                "authority ceiling requires at least one operation",
+            ));
+        }
+        if self.not_after_s == 0 {
+            return Err(Diagnostic::new(
+                "authority_ceiling_lifetime",
+                "ceiling.not_after_s",
+                "authority ceiling requires a bounded non-zero lifetime",
+            ));
+        }
+        if self.max_depth > MAX_GRANT_DEPTH {
+            return Err(Diagnostic::new(
+                "authority_ceiling_depth",
+                "ceiling.max_depth",
+                "authority ceiling delegation depth exceeds the lineage bound",
+            ));
+        }
+        if self.disclosure_routes.len() > MAX_DISCLOSURE_ROUTES {
+            return Err(Diagnostic::new(
+                "authority_ceiling_routes",
+                "ceiling.disclosure_routes",
+                "authority ceiling names too many disclosure routes",
+            ));
+        }
+        for route in self.disclosure_routes {
+            text_field(
+                "ceiling.disclosure_routes",
+                route,
+                MAX_AUTHORITY_FIELD_BYTES,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn digest_hex(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(CEILING_DOMAIN);
+        put_text(&mut hasher, self.audience);
+        put_u64(&mut hasher, self.generation);
+        put_text(&mut hasher, self.project);
+        put_optional_id(&mut hasher, self.work);
+        put_u64(&mut hasher, self.operations.len() as u64);
+        for operation in self.operations {
+            put_text(&mut hasher, operation.basalt_operation());
+        }
+        put_u64(&mut hasher, self.not_after_s);
+        hasher.update(&[self.max_depth]);
+        put_u64(&mut hasher, self.disclosure_routes.len() as u64);
+        for route in self.disclosure_routes {
+            put_text(&mut hasher, route);
+        }
+        hasher.finalize().to_hex().to_string()
+    }
+}
+
+/// The #61 budget reservation one grant is charged against.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GrantBudget {
+    /// Parent budget account the reservation was transferred from.
+    pub parent_budget_identity: ContentId,
+    /// Account the grant charges: the parent's account under shared-parent
+    /// charging, or a disjoint #61 `Transfer` child account.
+    pub account: ContentId,
+}
+
+/// The exact attempt lineage a binding is valid for, read from the current
+/// attempt owner.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AttemptLineage {
+    /// Selected campaign revision, when the attempt runs under a campaign.
+    pub campaign_revision: Option<ContentId>,
+    /// Work identity.
+    pub work: ContentId,
+    /// Work version.
+    pub work_version: u64,
+    /// Attempt identity.
+    pub attempt: ContentId,
+    /// Current attempt fence.
+    pub fence: u64,
+}
+
+/// One attempt's admitted authority binding
+/// (`kiln.attempt-authority-binding.v1`). It holds proof references only.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AttemptAuthorityBinding {
+    /// Contract schema.
+    pub schema: String,
+    /// Immutable ceiling of this binding.
+    pub ceiling: AuthorityCeiling,
+    /// Standing root policy reference the lineage descends from.
+    pub root_policy_ref: String,
+    /// UCAN proof reference: BLAKE3 of the compact token. Never the token.
+    pub grant_ref: [u8; AUTHORITY_DIGEST_BYTES],
+    /// Holder DID.
+    pub holder: String,
+    /// Worker incarnation the grant is bound to, when one exists.
+    pub incarnation: Option<ContentId>,
+    /// Selected campaign revision.
+    pub campaign_revision: Option<ContentId>,
+    /// Work identity.
+    pub work: ContentId,
+    /// Work version.
+    pub work_version: u64,
+    /// Attempt identity.
+    pub attempt: ContentId,
+    /// Attempt fence.
+    pub fence: u64,
+    /// #61 reservation the grant is charged against.
+    pub budget: GrantBudget,
+    /// Parent binding identity, absent for a root binding.
+    pub parent: Option<ContentId>,
+    /// Distance from the root binding.
+    pub depth: u8,
+    /// Revocation generation observed when the grant was admitted.
+    pub revocation_generation: u64,
+    /// BLAKE3 identity over every other field.
+    pub identity: ContentId,
+}
+
+impl AttemptAuthorityBinding {
+    /// Revalidate bounds, ceiling and identity of a binding that may have
+    /// arrived through serde.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a wrong schema, malformed field, a zero proof
+    /// reference, an inconsistent depth, or an identity that does not recompute.
+    pub fn validate(&self) -> CoreResult<()> {
+        if self.grant_ref == NO_GRANT_REF {
+            return Err(Diagnostic::new(
+                "authority_binding_grant_ref",
+                "binding.grant_ref",
+                "authority binding requires a proof reference",
+            ));
+        }
+        self.fields().validate()?;
+        self.identity.validate()?;
+        if self.identity.as_str() != self.fields().binding_digest_hex(&self.grant_ref) {
+            return Err(Diagnostic::new(
+                "authority_binding_identity",
+                "binding.identity",
+                "authority binding identity does not recompute",
+            ));
+        }
+        Ok(())
+    }
+
+    /// The attempt lineage this binding is valid for.
+    #[must_use]
+    pub fn lineage(&self) -> AttemptLineage {
+        AttemptLineage {
+            campaign_revision: self.campaign_revision.clone(),
+            work: self.work.clone(),
+            work_version: self.work_version,
+            attempt: self.attempt.clone(),
+            fence: self.fence,
+        }
+    }
+
+    fn fields(&self) -> GrantFields<'_> {
+        GrantFields {
+            schema: &self.schema,
+            ceiling: &self.ceiling,
+            root_policy_ref: &self.root_policy_ref,
+            holder: &self.holder,
+            incarnation: self.incarnation.as_ref(),
+            campaign_revision: self.campaign_revision.as_ref(),
+            work: &self.work,
+            work_version: self.work_version,
+            attempt: &self.attempt,
+            fence: self.fence,
+            budget: &self.budget,
+            parent: self.parent.as_ref(),
+            depth: self.depth,
+            revocation_generation: self.revocation_generation,
+        }
+    }
+
+    /// Refusal when this binding does not bind exactly `current`. A replaced
+    /// fence is stale; any other difference is foreign.
+    fn lineage_refusal(&self, current: &AttemptLineage) -> Option<LineageRefusal> {
+        if self.fence != current.fence {
+            return Some(LineageRefusal::StaleGeneration);
+        }
+        if self.campaign_revision != current.campaign_revision
+            || self.work != current.work
+            || self.work_version != current.work_version
+            || self.attempt != current.attempt
+        {
+            return Some(LineageRefusal::ForeignLineage);
+        }
+        None
+    }
+}
+
+/// An admitted, not yet issued grant: the issuance intent. Its `intent`
+/// identity is deterministic over every binding field except the proof
+/// reference, so recovery re-derives the same intent and never a second one.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdmittedGrant {
+    /// Contract schema of the binding this intent issues.
+    pub schema: String,
+    /// Immutable ceiling.
+    pub ceiling: AuthorityCeiling,
+    /// Standing root policy reference.
+    pub root_policy_ref: String,
+    /// Holder DID.
+    pub holder: String,
+    /// Worker incarnation.
+    pub incarnation: Option<ContentId>,
+    /// Selected campaign revision.
+    pub campaign_revision: Option<ContentId>,
+    /// Work identity.
+    pub work: ContentId,
+    /// Work version.
+    pub work_version: u64,
+    /// Attempt identity.
+    pub attempt: ContentId,
+    /// Attempt fence.
+    pub fence: u64,
+    /// #61 reservation.
+    pub budget: GrantBudget,
+    /// Parent binding identity, absent for a root grant.
+    pub parent: Option<ContentId>,
+    /// Distance from the root binding.
+    pub depth: u8,
+    /// Revocation generation observed at admission.
+    pub revocation_generation: u64,
+    /// BLAKE3 intent identity over every other field.
+    pub intent: ContentId,
+}
+
+impl AdmittedGrant {
+    /// Revalidate bounds and recompute the intent identity.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a malformed field or an intent that does not
+    /// recompute.
+    pub fn validate(&self) -> CoreResult<()> {
+        self.fields().validate()?;
+        self.intent.validate()?;
+        if self.intent.as_str() != self.fields().intent_digest_hex() {
+            return Err(Diagnostic::new(
+                "authority_grant_intent",
+                "grant.intent",
+                "authority grant intent does not recompute",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Identity of the binding this intent issues under `grant_ref`.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a zero proof reference.
+    pub fn binding_identity(
+        &self,
+        grant_ref: &[u8; AUTHORITY_DIGEST_BYTES],
+    ) -> CoreResult<ContentId> {
+        if *grant_ref == NO_GRANT_REF {
+            return Err(Diagnostic::new(
+                "authority_binding_grant_ref",
+                "binding.grant_ref",
+                "authority binding requires a proof reference",
+            ));
+        }
+        ContentId::from_blake3_hex(self.fields().binding_digest_hex(grant_ref))
+    }
+
+    /// Record the minted token's proof reference and produce the binding.
+    ///
+    /// # Errors
+    /// Returns a diagnostic for a zero proof reference.
+    pub fn issue(
+        self,
+        grant_ref: [u8; AUTHORITY_DIGEST_BYTES],
+    ) -> CoreResult<AttemptAuthorityBinding> {
+        let identity = self.binding_identity(&grant_ref)?;
+        Ok(AttemptAuthorityBinding {
+            schema: self.schema,
+            ceiling: self.ceiling,
+            root_policy_ref: self.root_policy_ref,
+            grant_ref,
+            holder: self.holder,
+            incarnation: self.incarnation,
+            campaign_revision: self.campaign_revision,
+            work: self.work,
+            work_version: self.work_version,
+            attempt: self.attempt,
+            fence: self.fence,
+            budget: self.budget,
+            parent: self.parent,
+            depth: self.depth,
+            revocation_generation: self.revocation_generation,
+            identity,
+        })
+    }
+
+    fn fields(&self) -> GrantFields<'_> {
+        GrantFields {
+            schema: &self.schema,
+            ceiling: &self.ceiling,
+            root_policy_ref: &self.root_policy_ref,
+            holder: &self.holder,
+            incarnation: self.incarnation.as_ref(),
+            campaign_revision: self.campaign_revision.as_ref(),
+            work: &self.work,
+            work_version: self.work_version,
+            attempt: &self.attempt,
+            fence: self.fence,
+            budget: &self.budget,
+            parent: self.parent.as_ref(),
+            depth: self.depth,
+            revocation_generation: self.revocation_generation,
+        }
+    }
+}
+
+/// Borrowed binding fields shared by the intent and binding identities.
+struct GrantFields<'a> {
+    schema: &'a str,
+    ceiling: &'a AuthorityCeiling,
+    root_policy_ref: &'a str,
+    holder: &'a str,
+    incarnation: Option<&'a ContentId>,
+    campaign_revision: Option<&'a ContentId>,
+    work: &'a ContentId,
+    work_version: u64,
+    attempt: &'a ContentId,
+    fence: u64,
+    budget: &'a GrantBudget,
+    parent: Option<&'a ContentId>,
+    depth: u8,
+    revocation_generation: u64,
+}
+
+// r[impl kiln.attempt.grant_lineage.identity]
+impl GrantFields<'_> {
+    fn validate(&self) -> CoreResult<()> {
+        if self.schema != ATTEMPT_AUTHORITY_BINDING_SCHEMA {
+            return Err(Diagnostic::new(
+                "authority_binding_schema",
+                "binding.schema",
+                "authority binding schema is not supported",
+            ));
+        }
+        self.ceiling.validate()?;
+        text_field(
+            "binding.root_policy_ref",
+            self.root_policy_ref,
+            MAX_AUTHORITY_REFERENCE_BYTES,
+        )?;
+        text_field("binding.holder", self.holder, MAX_AUTHORITY_FIELD_BYTES)?;
+        for id in [self.incarnation, self.campaign_revision, self.parent]
+            .into_iter()
+            .flatten()
+            .chain([
+                self.work,
+                self.attempt,
+                &self.budget.parent_budget_identity,
+                &self.budget.account,
+            ])
+        {
+            id.validate()?;
+        }
+        if self.work_version == 0 {
+            return Err(Diagnostic::new(
+                "authority_binding_version",
+                "binding.work_version",
+                "authority binding requires a non-zero work version",
+            ));
+        }
+        if self
+            .ceiling
+            .work
+            .as_ref()
+            .is_some_and(|work| work != self.work)
+        {
+            return Err(Diagnostic::new(
+                "authority_binding_work",
+                "binding.work",
+                "authority binding work lies outside its ceiling",
+            ));
+        }
+        if (self.depth == 0) != self.parent.is_none()
+            || self.depth.saturating_add(self.ceiling.max_depth) > MAX_GRANT_DEPTH
+        {
+            return Err(Diagnostic::new(
+                "authority_binding_depth",
+                "binding.depth",
+                "authority binding depth must be zero exactly for a root and stay within the lineage bound",
+            ));
+        }
+        Ok(())
+    }
+
+    fn hash_into(&self, hasher: &mut blake3::Hasher) {
+        put_text(hasher, self.schema);
+        put_id(hasher, &self.ceiling.identity);
+        put_text(hasher, self.root_policy_ref);
+        put_text(hasher, self.holder);
+        put_optional_id(hasher, self.incarnation);
+        put_optional_id(hasher, self.campaign_revision);
+        put_id(hasher, self.work);
+        put_u64(hasher, self.work_version);
+        put_id(hasher, self.attempt);
+        put_u64(hasher, self.fence);
+        put_id(hasher, &self.budget.parent_budget_identity);
+        put_id(hasher, &self.budget.account);
+        put_optional_id(hasher, self.parent);
+        hasher.update(&[self.depth]);
+        put_u64(hasher, self.revocation_generation);
+    }
+
+    fn intent_digest_hex(&self) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(INTENT_DOMAIN);
+        self.hash_into(&mut hasher);
+        hasher.finalize().to_hex().to_string()
+    }
+
+    fn binding_digest_hex(&self, grant_ref: &[u8; AUTHORITY_DIGEST_BYTES]) -> String {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(BINDING_DOMAIN);
+        self.hash_into(&mut hasher);
+        hasher.update(grant_ref);
+        hasher.finalize().to_hex().to_string()
+    }
+
+    fn admit(self) -> CoreResult<AdmittedGrant> {
+        self.validate()?;
+        let intent = ContentId::from_blake3_hex(self.intent_digest_hex())?;
+        Ok(AdmittedGrant {
+            schema: self.schema.to_string(),
+            ceiling: self.ceiling.clone(),
+            root_policy_ref: self.root_policy_ref.to_string(),
+            holder: self.holder.to_string(),
+            incarnation: self.incarnation.cloned(),
+            campaign_revision: self.campaign_revision.cloned(),
+            work: self.work.clone(),
+            work_version: self.work_version,
+            attempt: self.attempt.clone(),
+            fence: self.fence,
+            budget: self.budget.clone(),
+            parent: self.parent.cloned(),
+            depth: self.depth,
+            revocation_generation: self.revocation_generation,
+            intent,
+        })
+    }
+}
+
+/// Current owner facts every lineage check reads. The shell reads them from
+/// the attempt owner and the authority state; callers cannot supply a binding
+/// in their place.
+#[derive(Clone, Copy, Debug)]
+pub struct CurrentFacts<'a> {
+    /// Host clock, in seconds.
+    pub now_s: u64,
+    /// Current authority generation.
+    pub authority_generation: u64,
+    /// Generation of the revocation view the shell read.
+    pub revocation_generation: u64,
+    /// Revoked proof references in that view.
+    pub revoked: &'a BTreeSet<[u8; AUTHORITY_DIGEST_BYTES]>,
+    /// The current attempt lineage.
+    pub attempt: &'a AttemptLineage,
+}
+
+/// Facts for admitting a root grant from a standing-policy ceiling.
+#[derive(Clone, Copy, Debug)]
+pub struct RootFacts<'a> {
+    /// Currentness facts.
+    pub current: CurrentFacts<'a>,
+    /// The #61 reservation the budget owner confirmed for this grant.
+    pub budget: Option<&'a GrantBudget>,
+}
+
+/// Facts for deriving a child grant from an admitted parent.
+#[derive(Clone, Copy, Debug)]
+pub struct DelegationFacts<'a> {
+    /// Currentness facts.
+    pub current: CurrentFacts<'a>,
+    /// Verified subject presenting the parent grant.
+    pub delegator: &'a str,
+    /// Whether the delegator's verified session holds explicit delegation
+    /// permission over the parent's scope.
+    pub delegate_permitted: bool,
+    /// The parent's ancestors, root first, excluding the parent.
+    pub ancestors: &'a [AttemptAuthorityBinding],
+    /// The #61 reservation the budget owner confirmed for this child.
+    pub budget: Option<&'a GrantBudget>,
+}
+
+/// Request to bind a standing-policy ceiling to the current attempt.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RootGrantRequest {
+    /// Admitted standing-policy ceiling.
+    pub ceiling: AuthorityCeiling,
+    /// Standing root policy reference.
+    pub root_policy_ref: String,
+    /// Holder DID.
+    pub holder: String,
+    /// Worker incarnation, when one exists.
+    pub incarnation: Option<ContentId>,
+    /// Requested #61 reservation.
+    pub budget: GrantBudget,
+}
+
+/// Request to derive one child grant from an admitted parent.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChildGrantRequest {
+    /// Requested child ceiling. Its generation is the parent's.
+    pub terms: CeilingTerms,
+    /// Child holder DID.
+    pub holder: String,
+    /// Worker incarnation, when one exists.
+    pub incarnation: Option<ContentId>,
+    /// Requested #61 reservation.
+    pub budget: GrantBudget,
+}
+
+// r[impl kiln.attempt.grant_lineage.root]
+/// Bind one admitted standing-policy ceiling to the current attempt.
+///
+/// # Errors
+/// Returns [`LineageError::Invalid`] for malformed input and
+/// [`LineageError::Refused`] when the ceiling generation moved
+/// (`stale_generation`), the ceiling expired (`outlives_parent`), the ceiling
+/// names other work (`foreign_lineage`) or no owner-confirmed reservation
+/// matches the request (`budget_unbound`).
+pub fn admit_root(
+    request: RootGrantRequest,
+    facts: &RootFacts<'_>,
+) -> Result<AdmittedGrant, LineageError> {
+    let current = &facts.current;
+    request.ceiling.validate()?;
+    if request.ceiling.generation != current.authority_generation {
+        return Err(LineageRefusal::StaleGeneration.into());
+    }
+    if current.now_s >= request.ceiling.not_after_s {
+        return Err(LineageRefusal::OutlivesParent.into());
+    }
+    if request
+        .ceiling
+        .work
+        .as_ref()
+        .is_some_and(|work| *work != current.attempt.work)
+    {
+        return Err(LineageRefusal::ForeignLineage.into());
+    }
+    if facts.budget != Some(&request.budget) {
+        return Err(LineageRefusal::BudgetUnbound.into());
+    }
+    let attempt = current.attempt;
+    Ok(GrantFields {
+        schema: ATTEMPT_AUTHORITY_BINDING_SCHEMA,
+        ceiling: &request.ceiling,
+        root_policy_ref: &request.root_policy_ref,
+        holder: &request.holder,
+        incarnation: request.incarnation.as_ref(),
+        campaign_revision: attempt.campaign_revision.as_ref(),
+        work: &attempt.work,
+        work_version: attempt.work_version,
+        attempt: &attempt.attempt,
+        fence: attempt.fence,
+        budget: &request.budget,
+        parent: None,
+        depth: 0,
+        revocation_generation: current.revocation_generation,
+    }
+    .admit()?)
+}
+
+// r[impl kiln.attempt.grant_lineage.attenuation] r[impl kiln.attempt.grant_lineage.foreign] r[impl kiln.attempt.grant_lineage.budget]
+/// Derive one child grant from an admitted parent.
+///
+/// Checks run in a fixed order, so one request always yields the same
+/// refusal: lineage currentness, delegator and delegation permission, role,
+/// then audience, resource, operation, lifetime and depth attenuation, and
+/// finally the #61 reservation.
+///
+/// # Errors
+/// Returns [`LineageError::Invalid`] for malformed input and
+/// [`LineageError::Refused`] with the first [`LineageRefusal`] that applies.
+pub fn admit_child(
+    parent: &AttemptAuthorityBinding,
+    request: ChildGrantRequest,
+    facts: &DelegationFacts<'_>,
+) -> Result<AdmittedGrant, LineageError> {
+    check_current(parent, facts.ancestors, &facts.current)?;
+    if parent.holder != facts.delegator {
+        return Err(LineageRefusal::ForeignLineage.into());
+    }
+    if !facts.delegate_permitted || parent.ceiling.max_depth == 0 {
+        return Err(LineageRefusal::DelegationNotPermitted.into());
+    }
+    let ceiling = AuthorityCeiling::new(parent.ceiling.generation, request.terms)?;
+    let child_roles = role_bits(&ceiling.operations);
+    if child_roles.count_ones() != 1 || child_roles & role_bits(&parent.ceiling.operations) == 0 {
+        return Err(LineageRefusal::RoleEscalation.into());
+    }
+    if ceiling
+        .work
+        .as_ref()
+        .is_some_and(|work| *work != parent.work)
+    {
+        return Err(LineageRefusal::ForeignLineage.into());
+    }
+    if let Some(refusal) = parent.ceiling.attenuation(&ceiling) {
+        return Err(refusal.into());
+    }
+    if facts.current.now_s >= ceiling.not_after_s {
+        return Err(Diagnostic::new(
+            "authority_grant_expired",
+            "request.terms.not_after_s",
+            "a child grant must be valid now",
+        )
+        .into());
+    }
+    let shared = request.budget == parent.budget;
+    let disjoint = request.budget.parent_budget_identity == parent.budget.account
+        && request.budget.account != parent.budget.account;
+    if facts.budget != Some(&request.budget) || !(shared || disjoint) {
+        return Err(LineageRefusal::BudgetUnbound.into());
+    }
+    let depth = parent
+        .depth
+        .checked_add(1)
+        .ok_or(LineageRefusal::DepthExceeded)?;
+    Ok(GrantFields {
+        schema: ATTEMPT_AUTHORITY_BINDING_SCHEMA,
+        ceiling: &ceiling,
+        root_policy_ref: &parent.root_policy_ref,
+        holder: &request.holder,
+        incarnation: request.incarnation.as_ref(),
+        campaign_revision: parent.campaign_revision.as_ref(),
+        work: &parent.work,
+        work_version: parent.work_version,
+        attempt: &parent.attempt,
+        fence: parent.fence,
+        budget: &request.budget,
+        parent: Some(&parent.identity),
+        depth,
+        revocation_generation: facts.current.revocation_generation,
+    }
+    .admit()?)
+}
+
+// r[impl kiln.attempt.grant_lineage.currentness]
+/// Check that `binding` and every ancestor are still current.
+///
+/// `ancestors` lists the binding's ancestors root first, excluding the binding.
+/// Every link must recompute and attenuate its predecessor. A revoked or
+/// expired ancestor invalidates every descendant.
+///
+/// # Errors
+/// Returns `foreign_lineage` for a forged or broken chain or another attempt,
+/// `stale_generation` for a moved authority generation, an older revocation
+/// view, a revoked lineage grant or a replaced fence, `outlives_parent` for an
+/// expired lineage grant, and `depth_exceeded` for a chain over the bound.
+pub fn check_current(
+    binding: &AttemptAuthorityBinding,
+    ancestors: &[AttemptAuthorityBinding],
+    facts: &CurrentFacts<'_>,
+) -> Result<(), LineageRefusal> {
+    if ancestors.len() >= MAX_GRANT_LINEAGE {
+        return Err(LineageRefusal::DepthExceeded);
+    }
+    let mut previous: Option<&AttemptAuthorityBinding> = None;
+    for link in ancestors.iter().chain(once(binding)) {
+        if link.validate().is_err() {
+            return Err(LineageRefusal::ForeignLineage);
+        }
+        let linked = match previous {
+            None => link.parent.is_none(),
+            Some(parent) => {
+                link.parent.as_ref() == Some(&parent.identity)
+                    && Some(link.depth) == parent.depth.checked_add(1)
+                    && link.root_policy_ref == parent.root_policy_ref
+                    && parent.ceiling.covers(&link.ceiling)
+            }
+        };
+        if !linked {
+            return Err(LineageRefusal::ForeignLineage);
+        }
+        if let Some(refusal) = link.lineage_refusal(facts.attempt) {
+            return Err(refusal);
+        }
+        if link.ceiling.generation != facts.authority_generation
+            || link.revocation_generation > facts.revocation_generation
+            || facts.revoked.contains(&link.grant_ref)
+        {
+            return Err(LineageRefusal::StaleGeneration);
+        }
+        if facts.now_s >= link.ceiling.not_after_s {
+            return Err(LineageRefusal::OutlivesParent);
+        }
+        previous = Some(link);
+    }
+    Ok(())
+}
+
+fn text_field(field: &str, value: &str, max_bytes: usize) -> CoreResult<()> {
+    if value.is_empty()
+        || value.len() > max_bytes
+        || !value.is_ascii()
+        || value.trim() != value
+        || value.bytes().any(|byte| byte.is_ascii_control())
+    {
+        return Err(Diagnostic::new(
+            "authority_grant_field",
+            field,
+            "authority grant field must be bounded non-empty trimmed ASCII",
+        ));
+    }
+    Ok(())
+}
+
+fn put_text(hasher: &mut blake3::Hasher, value: &str) {
+    put_u64(hasher, value.len() as u64);
+    hasher.update(value.as_bytes());
+}
+
+fn put_u64(hasher: &mut blake3::Hasher, value: u64) {
+    hasher.update(&value.to_be_bytes());
+}
+
+fn put_id(hasher: &mut blake3::Hasher, value: &ContentId) {
+    put_text(hasher, value.as_str());
+}
+
+fn put_optional_id(hasher: &mut blake3::Hasher, value: Option<&ContentId>) {
+    match value {
+        None => {
+            hasher.update(&[0]);
+        }
+        Some(value) => {
+            hasher.update(&[1]);
+            put_id(hasher, value);
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "grant_tests.rs"]
+mod tests;

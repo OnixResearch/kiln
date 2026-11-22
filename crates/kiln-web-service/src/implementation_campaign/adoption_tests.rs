@@ -121,6 +121,7 @@ fn verified(work: &ImplementationWork, ordinal: u8, checks: Vec<CiCheck>) -> Imp
         failure: None,
         cause: None,
         superseded_by: None,
+        authority: None,
     }
 }
 

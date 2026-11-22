@@ -235,6 +235,7 @@ mod tests {
             failure: None,
             cause: None,
             superseded_by: None,
+            authority: None,
         }
     }
 

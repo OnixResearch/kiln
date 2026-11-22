@@ -17,6 +17,7 @@ pub mod campaign;
 pub mod candidate;
 pub mod continuation;
 pub mod dispatch;
+pub mod grant;
 pub mod metrics;
 pub mod native_git;
 pub mod plan_review;

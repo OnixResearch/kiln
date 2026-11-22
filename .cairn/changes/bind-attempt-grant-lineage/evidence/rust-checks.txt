@@ -1,0 +1,30 @@
+Toolchain: the dev shell's rust-minimal-1.88.0 (`/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0`),
+placed on PATH directly because `nix develop` stayed blocked behind the host's
+Nix GC lock and local build queue. Private CARGO_TARGET_DIR, CARGO_BUILD_JOBS=4,
+nice -n 10, --offline.
+
+$ cargo fmt --all --check
+exit 0
+
+$ cargo test -p onix-kiln-core
+lib: 521 passed; 0 failed (includes 7 grant tests and every existing attempt/publication/stack test)
+doc/other targets: 1 + 1 + 4 passed
+exit 0
+
+$ cargo test -p onix-kiln-core --lib grant
+14 passed; 0 failed (7 in implementation::grant::tests)
+exit 0
+
+$ cargo clippy -p onix-kiln-core --all-targets -- -D warnings
+exit 0
+
+$ cargo test -p kiln-implementer --lib grant_issuance
+3 passed; 0 failed
+exit 0
+
+$ cargo clippy -p kiln-implementer --all-targets -- -D warnings
+exit 0
+
+$ cargo clippy -p kiln-adapter-lattice -p kiln-web-service --all-targets -- -D warnings
+(compiles the `authority: None` fixture literals; openssl/zlib pkg-config paths from the dev shell inputs)
+exit 0

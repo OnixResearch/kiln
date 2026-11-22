@@ -431,6 +431,7 @@ mod tests {
                 failure: None,
                 cause: None,
                 superseded_by: None,
+                authority: None,
             },
             &ImplementationDispatchPlan {
                 schema: kiln_core::implementation::DISPATCH_PLAN_SCHEMA.to_string(),

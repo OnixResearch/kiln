@@ -30,6 +30,19 @@ entry describes the source tree prepared for the first tagged release.
   `detect-coding-agent` 0.1.1 declaration patch, added for the former Rust 1.88
   pin, remains in place.
   (#69; adapter, implementer, policy and denial fixtures)
+- Attempt grant lineage core (`kiln.attempt-authority-binding.v1`): a root
+  binding ties an admitted ceiling to the exact campaign revision, work
+  version, attempt, fence, holder and #61 reservation, and an admitted parent
+  derives a child only under explicit delegation permission with no wider
+  resource, operation, audience, lifetime, disclosure route or depth, and no
+  role crossing from coding into verification or publication. Every refusal is
+  one closed `LineageRefusal`; revocation, expiry, a moved generation or a
+  replaced fence on any ancestor invalidates every descendant. Ceiling, intent
+  and binding identities are deterministic BLAKE3, and a binding holds proof
+  references only. Attempts retain one optional binding, absent from
+  serialization until bound; an unwired issuance fold resumes an unissued
+  intent under its original identity and propagates revocation. Verified
+  cross-holder delegation waits for Basalt B1. (#70; pure-core fixtures)
 - Pure `no_std + alloc` `kiln-core` implements both transitions:
   `state + command -> events + requested effects` and
   `state + event -> new state`, with no filesystem, process, network, clock or

@@ -175,6 +175,10 @@ pub struct ImplementationAttempt {
     pub cause: Option<String>,
     /// Newer work revision that superseded this attempt, if any.
     pub superseded_by: Option<u64>,
+    /// Admitted authority lineage binding (`kiln.attempt-authority-binding.v1`).
+    /// Holds proof references only, never token bytes. Absent until bound.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authority: Option<super::grant::AttemptAuthorityBinding>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -421,6 +425,7 @@ impl AttemptLedger {
             failure: None,
             cause: None,
             superseded_by: None,
+            authority: None,
         };
         self.consumed
             .insert(canonical_key.as_str().to_string(), ordinal);
@@ -767,6 +772,64 @@ impl AttemptLedger {
     pub fn metrics(&self, identity: &ContentId) -> Option<&super::AttemptMetrics> {
         self.get(identity)
             .and_then(|attempt| attempt.metrics.as_ref())
+    }
+
+    /// Bind the admitted authority lineage of one active attempt.
+    ///
+    /// The binding must recompute and name exactly this attempt's work,
+    /// version, identity and fence. Repeating the same binding is idempotent; a
+    /// different binding is refused, since a scope change needs a new grant and
+    /// identity.
+    ///
+    /// # Errors
+    /// Returns the binding diagnostic, or a refusal for a missing, inactive or
+    /// different attempt, or an already different binding.
+    // r[impl kiln.attempt.grant_lineage.attempt]
+    pub fn bind_authority(
+        &mut self,
+        identity: &ContentId,
+        binding: super::grant::AttemptAuthorityBinding,
+    ) -> CoreResult<()> {
+        binding.validate()?;
+        let attempt = self.attempt_mut(identity)?;
+        if binding.attempt != attempt.identity
+            || binding.work != attempt.work_identity
+            || binding.work_version != attempt.work_revision
+            || binding.fence != attempt.fence
+        {
+            return Err(refusal(
+                "implementation_authority_lineage",
+                "attempt.authority",
+                "authority binding names another attempt, work version or fence",
+            ));
+        }
+        match &attempt.authority {
+            Some(existing) if *existing == binding => Ok(()),
+            Some(_) => Err(refusal(
+                "implementation_authority_rebind",
+                "attempt.authority",
+                "attempt authority is already bound to a different grant",
+            )),
+            None if !attempt.phase.is_active() => Err(refusal(
+                "implementation_authority_inactive",
+                "attempt.authority",
+                "only an active attempt admits an authority binding",
+            )),
+            None => {
+                attempt.authority = Some(binding);
+                Ok(())
+            }
+        }
+    }
+
+    /// Read the admitted authority binding of one attempt.
+    #[must_use]
+    pub fn authority(
+        &self,
+        identity: &ContentId,
+    ) -> Option<&super::grant::AttemptAuthorityBinding> {
+        self.get(identity)
+            .and_then(|attempt| attempt.authority.as_ref())
     }
 
     /// Read the durable dispatch reservation for one attempt.

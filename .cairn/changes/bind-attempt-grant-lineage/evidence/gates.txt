@@ -1,0 +1,15 @@
+$ cairn validate --root . --policy cairn-policy/generated/cairn-policy.json
+{"issues":[],"blocked":null}
+exit 0
+$ cairn gate proposal bind-attempt-grant-lineage --root . --policy cairn-policy/generated/cairn-policy.json
+{"issues":[],"blocked":null}
+exit 0
+$ cairn gate design bind-attempt-grant-lineage --root . --policy cairn-policy/generated/cairn-policy.json
+{"issues":[],"blocked":null}
+exit 0
+$ cairn gate tasks bind-attempt-grant-lineage --root . --policy cairn-policy/generated/cairn-policy.json
+{"issues":[],"blocked":null}
+exit 0
+$ cairn traceability coverage --root . --policy target/development-coverage-policy.json --profile kiln-active-development --json
+exit 0
+{"dangling":[],"missing_owned_by_change":[]}
