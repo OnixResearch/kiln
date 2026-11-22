@@ -106,6 +106,12 @@ new fence is a replaced attempt and stale even though the replacement's
 attempt identity also differs; with the fence equal, another attempt identity
 is foreign.
 
+Behaviour note: because campaign revision and work version are compared
+before the fence, a predecessor whose work version was superseded, or whose
+campaign revision moved, now reports `foreign_lineage` rather than
+`stale_generation`. Only a replacement within the same campaign revision and
+work version reports `stale_generation`.
+
 `admit_root` checks the ceiling, generation, expiry, project and work scope
 (a project-wide ceiling from another project is `foreign_lineage`) and the
 confirmed reservation, and binds the current attempt with depth 0.
@@ -134,10 +140,15 @@ refuses:
 - a second proof for one intent;
 - one proof for two intents.
 
-`reconcile(now_s, authority_generation, attempt)` returns `Issue` only for an
-unissued intent that is current: same authority generation, same attempt
-lineage (including the fence), no revoked ancestor and not expired. Every
-other unissued intent is `Abandon`. The shell first looks for a token already
+`reconcile(now_s, authority_generation, current)` spans attempt lineages, so
+`current` resolves each intent to the current lineage of its own work unit:
+the shell maps the intent's work unit to its current, active attempt and
+returns `None` when there is none (for example, a cancelled work unit). It
+returns `Issue` only for an unissued intent that is current: same authority
+generation, an exact binding to the resolved lineage (including the fence), no
+revoked ancestor and not expired. Every other unissued intent, including one
+whose work unit resolves to `None`, is `Abandon`. Intents of several current
+attempts are issued in one call. The shell first looks for a token already
 minted for an `Issue` intent rather than minting again. Replaying records
 issues nothing. Two grants sharing one reserved account share its #61
 allowance; they cannot multiply it, because #61 enforces the account.

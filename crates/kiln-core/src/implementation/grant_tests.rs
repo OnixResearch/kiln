@@ -1005,7 +1005,8 @@ fn check_current_refuses_every_recomputing_link_that_breaks_lineage() {
     assert_eq!(check_current(&child, ancestors, &world.current()), Ok(()));
 
     type Edit = fn(&mut AttemptAuthorityBinding);
-    let edits: [(&str, Edit); 6] = [
+    let edits: [(&str, Edit); 7] = [
+        ("other parent identity", |b| b.parent = Some(id('9'))),
         ("wider lifetime", |b| {
             b.ceiling.not_after_s = ROOT_NOT_AFTER + 1
         }),
@@ -1035,6 +1036,51 @@ fn check_current_refuses_every_recomputing_link_that_breaks_lineage() {
             Err(LineageRefusal::ForeignLineage),
             "{name}"
         );
+    }
+
+    // A sibling root R2 differs from R1 only in its proof reference, so every
+    // other link rule passes; only the parent identity tells them apart.
+    let sibling_root = admit_root(
+        root_request(Op::ALL.into_iter().collect()),
+        &RootFacts {
+            current: world.current(),
+            budget: Some(&root_budget()),
+        },
+    )
+    .ok()
+    .and_then(|grant| grant.issue(grant_ref(9)).ok())
+    .unwrap_or_else(|| unreachable!());
+    assert_ne!(sibling_root.identity, root.identity);
+    assert_eq!(check_current(&sibling_root, &[], &world.current()), Ok(()));
+    assert_eq!(
+        check_current(
+            &child,
+            core::slice::from_ref(&sibling_root),
+            &world.current()
+        ),
+        Err(LineageRefusal::ForeignLineage),
+        "a child of R1 presented under R2 is foreign"
+    );
+}
+
+#[test]
+// r[verify kiln.attempt.grant_lineage.issuance]
+fn an_intent_binds_only_its_exact_attempt_lineage() {
+    let grant = Case::from_root().run().unwrap_or_else(|_| unreachable!());
+    assert!(grant.binds(&lineage()));
+    type Flip = fn(&mut AttemptLineage);
+    let flips: [(&str, Flip); 6] = [
+        ("campaign revision", |l| l.campaign_revision = Some(id('d'))),
+        ("project", |l| l.project = "other".to_string()),
+        ("work", |l| l.work = id('2')),
+        ("work version", |l| l.work_version += 1),
+        ("attempt", |l| l.attempt = id('f')),
+        ("fence", |l| l.fence += 1),
+    ];
+    for (name, flip) in flips {
+        let mut other = lineage();
+        flip(&mut other);
+        assert!(!grant.binds(&other), "{name}");
     }
 }
 

@@ -1,0 +1,55 @@
+Verification fixes on top of 4da6a76a.
+
+What landed:
+
+1. [P2] `GrantIssuanceState::reconcile(now_s, authority_generation, current)`
+   takes a per-intent resolver `current: impl Fn(&AdmittedGrant) ->
+   Option<&AttemptLineage>` mapping the intent to its work unit's current
+   attempt lineage. `Abandon` when the resolver gives `None` or `binds` fails
+   (or generation, revoked ancestor, expiry); otherwise `Issue`. New test
+   `reconcile_resolves_each_intent_against_its_own_work_unit`: two current
+   attempts both `Issue` in one call; a cancelled work unit (`None`) `Abandon`
+   beside an `Issue`; a stale and a current attempt give `Abandon` and `Issue`.
+   Doc, design and spec wording updated.
+2. [P3] `check_current_refuses_every_recomputing_link_that_breaks_lineage`
+   gains a resealed "other parent identity" edit and a child of root R1
+   presented under sibling root R2 (same everything but the proof reference);
+   both give foreign_lineage.
+3. [P3] `an_intent_binds_only_its_exact_attempt_lineage` flips each of
+   campaign revision, project, work, work version, attempt and fence alone;
+   none binds.
+
+Design records the behaviour note: a predecessor whose work version was
+superseded, or whose campaign revision moved, reports foreign_lineage, not
+stale_generation.
+
+Mutation checks (each check temporarily removed with the edit tool, the named
+test run, then restored; grant.rs's snapshot hash returned to its
+pre-mutation value):
+
+- `link.parent.as_ref() == Some(&parent.identity)` -> `true`:
+  check_current_refuses_every_recomputing_link_that_breaks_lineage FAILED
+- `binds` campaign revision -> `true`: an_intent_binds... FAILED
+- `binds` project -> `true`: FAILED
+- `binds` work -> `true`: FAILED
+- `binds` work version -> `true`: FAILED
+- `binds` attempt -> `true`: FAILED
+- `binds` fence -> `true`: FAILED
+- reconcile `None` treated as current
+  (`current(..).is_some_and(|l| !binds(l))`):
+  reconcile_resolves... FAILED ("a work unit with no current attempt abandons its intent")
+- reconcile without `binds` (`current(..).is_none()`):
+  reconcile_resolves... FAILED ("a stale attempt abandons while a current one issues")
+
+Checks after restore (store rust-minimal-1.88.0, private target,
+TMPDIR=/var/tmp/agents/kiln-s2, --offline):
+
+$ cargo fmt --all --check                                   exit 0
+$ cargo test -p onix-kiln-core                              exit 0 (lib 523 passed; 1 + 1 + 4 other targets)
+$ cargo test -p kiln-implementer --lib grant_issuance       exit 0 (4 passed)
+$ cargo clippy -p onix-kiln-core -p kiln-implementer -p kiln-adapter-lattice -p kiln-web-service --all-targets -- -D warnings
+                                                            exit 0
+$ cairn validate; cairn gate proposal|design|tasks bind-attempt-grant-lineage
+                                                            exit 0, no issues
+$ cairn traceability coverage --profile kiln-active-development
+                                                            exit 0, 0 dangling, 0 missing kiln.attempt.grant_lineage.*
