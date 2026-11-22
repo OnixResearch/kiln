@@ -267,7 +267,6 @@ fn effective_view_is_selection_ceiling_snapshot_and_current_grant() {
         DisclosureRefusal::NotAuthorized,
         DisclosureRefusal::Stale,
         DisclosureRefusal::OutsideSelection,
-        DisclosureRefusal::TruncatedInput,
     ] {
         assert_eq!(refusal.public(), PublicUnavailable::SHAPE);
     }
@@ -522,6 +521,101 @@ fn handles_are_keyed_scoped_and_confer_nothing() {
 
 // r[verify kiln.source.projection.disclosure.unavailable.scenario.probe]
 #[test]
+fn attribution_judges_authority_not_display() {
+    let corpus = Corpus::load();
+    let now = corpus.now_s;
+    let definition = corpus.definition("project-reader");
+    let ceiling = corpus.ceiling("project-reader");
+    let scope = corpus.scope("project-reader");
+    let scoped = corpus.trusted("project-reader");
+    let unscoped = corpus.resolved(&definition, &corpus.facts());
+    let reader = view_of(&corpus, "project-reader");
+    let attribute = |view: &AudienceView,
+                     trusted: &crate::projection::AdmittedPartialView,
+                     path: &str| { view.attribute(trusted, &scope, now, path) };
+    // A truly hidden existing file is forbidden and a nonexistent one
+    // missing, judged against the complete unscoped view.
+    assert_eq!(
+        attribute(&reader, &unscoped, "crates/secret/src/key.rs"),
+        Some(UnavailableReason::Forbidden)
+    );
+    assert_eq!(
+        attribute(&reader, &unscoped, "crates/secret/src/absent.rs"),
+        Some(UnavailableReason::Missing)
+    );
+    // The view's own scoped manifest, or a truncated unscoped view, cannot
+    // attribute anything.
+    assert_eq!(
+        attribute(&reader, scoped.view(), "crates/secret/src/key.rs"),
+        None
+    );
+    let mut truncated = corpus.facts();
+    truncated.coverage = crate::projection::Coverage::Truncated;
+    assert_eq!(
+        attribute(
+            &reader,
+            &corpus.resolved(&definition, &truncated),
+            "crates/secret/src/key.rs"
+        ),
+        None
+    );
+
+    // An authorized destination the view's bound cut is truncated, not
+    // forbidden, both for the owner and in the lookup's internal reason.
+    let bound = 2;
+    let cut = ok(restrict_bounded(
+        &scoped,
+        &scope,
+        &ceiling,
+        &key(),
+        now,
+        bound,
+    ));
+    assert!(!shown(&cut).contains(&"crates/app/src/main.rs"));
+    assert_eq!(
+        attribute(&cut, &unscoped, "crates/app/src/main.rs"),
+        Some(UnavailableReason::Truncated)
+    );
+    assert_eq!(
+        unavailable(cut.lookup(scoped.view(), &scope, now, "crates/app/src/main.rs")),
+        UnavailableReason::Truncated
+    );
+    assert_eq!(
+        attribute(&cut, &unscoped, "crates/secret/src/key.rs"),
+        Some(UnavailableReason::Forbidden)
+    );
+    // One a truncated holder-scoped enumeration never listed is unknown.
+    let selection = ScopedSelection::for_holder(&scope, &ceiling);
+    let short = adapter_enumeration(&corpus.facts(), &selection, 4);
+    let partial = ok(restrict(
+        &ok(ScopedEnumeration::new(
+            &selection,
+            corpus.resolved(&definition, &short),
+        )),
+        &scope,
+        &ceiling,
+        &key(),
+        now,
+    ));
+    assert!(!shown(&partial).contains(&"crates/shared/src/lib.rs"));
+    assert_eq!(
+        attribute(&partial, &unscoped, "crates/shared/src/lib.rs"),
+        Some(UnavailableReason::Unknown)
+    );
+    // A scope that is no longer current attributes nothing but staleness.
+    assert_eq!(
+        reader.attribute(
+            &unscoped,
+            &corpus.scope("agent"),
+            now,
+            "crates/secret/src/key.rs"
+        ),
+        Some(UnavailableReason::Stale)
+    );
+}
+
+// r[verify kiln.source.projection.disclosure.unavailable.scenario.probe]
+#[test]
 fn missing_and_forbidden_probes_share_one_public_shape() {
     use SourceViewOperation as Op;
     let corpus = Corpus::load();
@@ -590,7 +684,7 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
             "crates/secret/src/absent.rs",
             "crates/app/src/main.rs",
         ]
-        .map(|destination| reader.attribute(&unscoped, destination)),
+        .map(|destination| reader.attribute(&unscoped, &reader_scope, now, destination)),
         [
             Some(UnavailableReason::Forbidden),
             Some(UnavailableReason::Missing),
@@ -604,7 +698,7 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
         &corpus.facts_at(&ok(ExternalRef::new("git", "commit", &"6".repeat(40)))),
     );
     assert_eq!(
-        reader.attribute(&moved, "crates/secret/src/key.rs"),
+        reader.attribute(&moved, &reader_scope, now, "crates/secret/src/key.rs"),
         Some(UnavailableReason::Stale)
     );
 
@@ -852,7 +946,7 @@ fn hidden_entries_never_truncate_a_holder_scoped_enumeration() {
     // truncation was decided by hidden entries. Complete input is filtered.
     assert_eq!(
         selection.filter_facts(&wide).err(),
-        Some(DisclosureRefusal::TruncatedInput)
+        Some(ScopingError::TruncatedInput)
     );
     let filtered = ok(selection.filter_facts(&facts));
     assert_eq!(filtered.coverage, Coverage::Complete);

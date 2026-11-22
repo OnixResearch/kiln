@@ -381,7 +381,7 @@ r[kiln.source.projection.disclosure.unavailable] A missing, forbidden or stale o
 r[kiln.source.projection.disclosure.unavailable.scenario.probe]
 - GIVEN a hidden path, a missing path, an alias of a hidden origin and origin probes outside discovery
 - WHEN they are looked up
-- THEN each MUST be refused with the same serialized shape, while the trusted owner MUST attribute an existing hidden path as forbidden and a nonexistent one as missing against its unscoped trusted view
+- THEN each MUST be refused with the same serialized shape, while the trusted owner, judging the holder's current authority against its complete unscoped trusted view, MUST attribute an existing path the holder may not discover as forbidden, a nonexistent one as missing, and a discoverable one the listing stopped before as truncated or unknown, and MUST attribute nothing against the holder's own scoped or a truncated view
 
 #### Scenario: Coverage states are distinct
 

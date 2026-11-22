@@ -285,6 +285,12 @@ pub enum UnavailableReason {
     Missing,
     /// It exists but the holder is not authorized for it.
     Forbidden,
+    /// The holder may discover it, but the view's own bound cut it from the
+    /// listing.
+    Truncated,
+    /// The holder may discover it, but the holder-scoped enumeration was
+    /// truncated before listing it.
+    Unknown,
     /// The view, cursor or handle no longer matches current authority.
     Stale,
 }
@@ -325,9 +331,6 @@ pub enum DisclosureRefusal {
     Stale,
     /// An enumeration holds an entry outside the selection it claims.
     OutsideSelection,
-    /// A truncated enumeration of a wider selection was offered for
-    /// filtering; it must be enumerated again over the scoped selection.
-    TruncatedInput,
 }
 
 impl DisclosureRefusal {
@@ -335,6 +338,28 @@ impl DisclosureRefusal {
     pub const fn public(&self) -> PublicUnavailable {
         PublicUnavailable::SHAPE
     }
+}
+
+/// Why holder filtering refused a set of facts. It is a shell-side error
+/// with no public form, so the only handling is to enumerate again over the
+/// scoped selection; it can never be shown to a holder as availability.
+///
+/// ```compile_fail,E0599
+/// fn shown(error: kiln_core::projection::disclosure::ScopingError) {
+///     let _ = error.public();
+/// }
+/// ```
+///
+/// ```compile_fail,E0277
+/// fn shown(error: kiln_core::projection::disclosure::ScopingError) {
+///     let _ = serde_json::to_string(&error);
+/// }
+/// ```
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ScopingError {
+    /// The facts come from a truncated enumeration of a wider selection,
+    /// whose truncation hidden entries may have caused.
+    TruncatedInput,
 }
 
 // ---------------------------------------------------------------------------
@@ -541,13 +566,10 @@ impl ScopedSelection {
     /// may see.
     ///
     /// # Errors
-    /// Returns [`DisclosureRefusal::TruncatedInput`] for truncated facts.
-    pub fn filter_facts(
-        &self,
-        facts: &ProjectionFacts,
-    ) -> Result<ProjectionFacts, DisclosureRefusal> {
+    /// Returns [`ScopingError::TruncatedInput`] for truncated facts.
+    pub fn filter_facts(&self, facts: &ProjectionFacts) -> Result<ProjectionFacts, ScopingError> {
         if facts.coverage != Coverage::Complete {
-            return Err(DisclosureRefusal::TruncatedInput);
+            return Err(ScopingError::TruncatedInput);
         }
         Ok(ProjectionFacts {
             repository: facts.repository.clone(),
@@ -962,15 +984,31 @@ impl AudienceView {
         }
     }
 
+    /// Whether `scope` may discover an origin through this view's ceiling.
+    /// Generated output, which has no native path, needs full source.
+    fn discoverable(&self, scope: &EffectiveSourceScope, origin: &EntryOrigin) -> bool {
+        match origin {
+            EntryOrigin::Native { path, .. } => {
+                self.ceiling.allows(SourceViewOperation::Discover, path)
+                    && scope.permits(SourceViewOperation::Discover, path)
+            }
+            EntryOrigin::Generated { .. } => {
+                full_source(scope, &self.ceiling, SourceViewOperation::Discover)
+            }
+        }
+    }
+
     // r[impl kiln.source.projection.disclosure.unavailable]
     /// Look up a displayed destination path after rechecking the binding
     /// against the holder's current scope. A hidden and a missing path give
     /// the same public refusal. The internal reason here is judged against
-    /// the holder-scoped enumeration; [`attribute`](Self::attribute) gives
+    /// the holder-scoped enumeration: an enumerated entry the holder may
+    /// discover but the view's bound cut is `Truncated`, one it may not
+    /// discover by name is `Forbidden`. [`attribute`](Self::attribute) gives
     /// the owner's attribution against the unscoped trusted view.
     ///
     /// # Errors
-    /// Returns `Unavailable` for a hidden, missing or stale lookup.
+    /// Returns `Unavailable` for a hidden, missing, unlisted or stale lookup.
     pub fn lookup(
         &self,
         trusted: &AdmittedPartialView,
@@ -989,52 +1027,77 @@ impl AudienceView {
         {
             return Ok(entry);
         }
-        let exists = trusted
+        let reason = match trusted
             .manifest()
             .entries
             .iter()
-            .any(|entry| entry.destination == destination);
-        Err(Unavailable::new(if exists {
-            UnavailableReason::Forbidden
-        } else {
-            UnavailableReason::Missing
-        }))
+            .find(|entry| entry.destination == destination)
+        {
+            None => UnavailableReason::Missing,
+            // Every discoverable enumerated entry is displayed unless the
+            // view's own bound cut it.
+            Some(entry) if self.discoverable(scope, &entry.origin) => UnavailableReason::Truncated,
+            Some(_) => UnavailableReason::Forbidden,
+        };
+        Err(Unavailable::new(reason))
     }
 
     /// Attribute a destination this view does not display, for the trusted
-    /// owner's audit only: `Forbidden` when the shell's unscoped trusted
-    /// view holds it, `Missing` when it does not, and `Stale` when that view
-    /// is of another repository, revision or definition. A displayed
-    /// destination is not refused and has no attribution. The reason never
+    /// owner's audit only, against the shell's complete unscoped trusted
+    /// view and the holder's current `scope`. A destination that view does
+    /// not hold is `Missing`. One the holder may not discover through the
+    /// view's ceiling under a current grant is `Forbidden`; one it may
+    /// discover but that is not listed is `Truncated` or `Unknown`.
+    ///
+    /// There is no attribution for a displayed destination, for a view that
+    /// is this view's own scoped manifest, or for a truncated view, which
+    /// cannot tell missing from unlisted. A scope that is no longer current,
+    /// or a view of another repository, revision or definition, or one that
+    /// disagrees with the scoped enumeration, is `Stale`. The reason never
     /// reaches the holder, whose refusal keeps its one public shape.
     #[must_use]
     pub fn attribute(
         &self,
         unscoped: &AdmittedPartialView,
+        scope: &EffectiveSourceScope,
+        now_unix_s: u64,
         destination: &str,
     ) -> Option<UnavailableReason> {
         let manifest = unscoped.manifest();
-        if manifest.repository != self.binding.repository
+        if !self.binding.current_for(scope, now_unix_s)
+            || manifest.repository != self.binding.repository
             || manifest.exact_revision != self.binding.snapshot
             || manifest.definition != self.binding.definition
         {
             return Some(UnavailableReason::Stale);
         }
-        if self
-            .entries
-            .iter()
-            .any(|entry| entry.display_path.as_deref() == Some(destination))
+        if manifest.identity == self.binding.manifest
+            || manifest.coverage != Coverage::Complete
+            || self
+                .entries
+                .iter()
+                .any(|entry| entry.display_path.as_deref() == Some(destination))
         {
             return None;
         }
-        let exists = manifest
+        let Some(entry) = manifest
             .entries
             .iter()
-            .any(|entry| entry.destination == destination);
-        Some(if exists {
-            UnavailableReason::Forbidden
+            .find(|entry| entry.destination == destination)
+        else {
+            return Some(UnavailableReason::Missing);
+        };
+        if !self.discoverable(scope, &entry.origin) {
+            return Some(UnavailableReason::Forbidden);
+        }
+        // Discoverable yet undisplayed is unlisted only when something cut
+        // the listing; otherwise the unscoped view disagrees with this one.
+        Some(if !self.enumeration_complete {
+            UnavailableReason::Unknown
+        } else if self.coverage == VisibleCoverage::Complete {
+            UnavailableReason::Stale
         } else {
-            UnavailableReason::Missing
+            UnavailableReason::Truncated
         })
     }
 
