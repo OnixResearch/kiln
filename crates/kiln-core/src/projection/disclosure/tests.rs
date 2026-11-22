@@ -253,7 +253,7 @@ fn effective_view_is_selection_ceiling_snapshot_and_current_grant() {
         ok(crate::projection::resolve(
             &corpus.definition("agent"),
             &other_repository,
-            &selection.filter_facts(&foreign),
+            &ok(selection.filter_facts(&foreign)),
         )),
     ));
     assert_eq!(
@@ -267,6 +267,7 @@ fn effective_view_is_selection_ceiling_snapshot_and_current_grant() {
         DisclosureRefusal::NotAuthorized,
         DisclosureRefusal::Stale,
         DisclosureRefusal::OutsideSelection,
+        DisclosureRefusal::TruncatedInput,
     ] {
         assert_eq!(refusal.public(), PublicUnavailable::SHAPE);
     }
@@ -579,6 +580,33 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
         );
     }
     ok(reader.lookup(&trusted, &reader_scope, now, "crates/app/src/main.rs"));
+    // The trusted owner attributes a refused probe against its unscoped
+    // trusted view: the existing hidden file is forbidden and the absent one
+    // missing, while the holder received one public shape for both.
+    let unscoped = corpus.resolved(&corpus.definition("project-reader"), &corpus.facts());
+    assert_eq!(
+        [
+            "crates/secret/src/key.rs",
+            "crates/secret/src/absent.rs",
+            "crates/app/src/main.rs",
+        ]
+        .map(|destination| reader.attribute(&unscoped, destination)),
+        [
+            Some(UnavailableReason::Forbidden),
+            Some(UnavailableReason::Missing),
+            None
+        ]
+    );
+    let [hidden_error, missing_error, _] = errors;
+    assert_eq!(hidden_error.public(), missing_error.public());
+    let moved = corpus.resolved(
+        &corpus.definition("project-reader"),
+        &corpus.facts_at(&ok(ExternalRef::new("git", "commit", &"6".repeat(40)))),
+    );
+    assert_eq!(
+        reader.attribute(&moved, "crates/secret/src/key.rs"),
+        Some(UnavailableReason::Stale)
+    );
 
     // An alias of a hidden origin is as unavailable as a missing path.
     let agent = view_of(&corpus, "agent");
@@ -698,9 +726,14 @@ fn coverage_distinguishes_unrequested_absent_unknown_and_truncated() {
         OriginLookup::Absent
     );
 
-    let mut truncated_facts = corpus.facts();
+    // The adapter stopped while enumerating the holder's own selection.
+    let selection = ScopedSelection::for_holder(&scope, &ceiling);
+    let mut truncated_facts = ok(selection.filter_facts(&corpus.facts()));
     truncated_facts.coverage = crate::projection::Coverage::Truncated;
-    let partial = corpus.trusted_with("maintainer", &admitted, &truncated_facts);
+    let partial = ok(ScopedEnumeration::new(
+        &selection,
+        corpus.resolved(&admitted, &truncated_facts),
+    ));
     let unknown = ok(restrict(&partial, &scope, &ceiling, &key(), now));
     // A truncated holder-scoped enumeration is an incomplete listing, and a
     // probe of a discoverable path it did not list is unknown.
@@ -757,7 +790,7 @@ fn adapter_enumeration(
     selection: &ScopedSelection,
     bound: usize,
 ) -> ProjectionFacts {
-    let mut listed = selection.filter_facts(facts);
+    let mut listed = ok(selection.filter_facts(facts));
     if listed.entries.len() > bound {
         listed.entries.truncate(bound);
         listed.coverage = crate::projection::Coverage::Truncated;
@@ -811,14 +844,34 @@ fn hidden_entries_never_truncate_a_holder_scoped_enumeration() {
         });
     }
     facts.entries.sort_by(|a, b| a.path.cmp(&b.path));
-    let bound = selection.filter_facts(&corpus.facts()).entries.len();
+    let bound = ok(selection.filter_facts(&corpus.facts())).entries.len();
     let whole_view = ScopedSelection::for_holder(&corpus.scope("maintainer"), &ceiling);
+    let wide = adapter_enumeration(&facts, &whole_view, bound);
+    assert_eq!(wide.coverage, Coverage::Truncated);
+    // Filtering that truncated wider enumeration per holder is refused: its
+    // truncation was decided by hidden entries. Complete input is filtered.
     assert_eq!(
-        adapter_enumeration(&facts, &whole_view, bound).coverage,
-        Coverage::Truncated
+        selection.filter_facts(&wide).err(),
+        Some(DisclosureRefusal::TruncatedInput)
     );
-    // ...but the holder-scoped enumeration lists every authorized entry, so
-    // the reader's view is complete and equal to the one without them.
+    let filtered = ok(selection.filter_facts(&facts));
+    assert_eq!(filtered.coverage, Coverage::Complete);
+    assert_eq!(
+        filtered
+            .entries
+            .iter()
+            .map(|entry| entry.path.as_str())
+            .collect::<Vec<_>>(),
+        [
+            ".cairn/changes/app-feature/tasks.md",
+            "crates/app/Cargo.toml",
+            "crates/app/src/main.rs",
+            "crates/app/src/util.rs",
+            "crates/shared/src/lib.rs",
+        ]
+    );
+    // The holder-scoped enumeration lists every authorized entry, so the
+    // reader's view is complete and equal to the one without them.
     let scoped = adapter_enumeration(&facts, &selection, bound);
     assert_eq!(scoped.coverage, Coverage::Complete);
     let trusted = ok(ScopedEnumeration::new(
@@ -911,7 +964,7 @@ fn an_enumeration_over_another_selection_is_refused() {
     // Generated entries stay only in a selection covering the root.
     let mut facts = corpus.facts();
     facts.generated.push(schema_output());
-    let scoped = selection.filter_facts(&facts);
+    let scoped = ok(selection.filter_facts(&facts));
     assert!(scoped.generated.is_empty() && !selection.covers_root());
     ok(ScopedEnumeration::new(
         &selection,
@@ -926,7 +979,7 @@ fn an_enumeration_over_another_selection_is_refused() {
     let full =
         ScopedSelection::for_holder(&corpus.scope("maintainer"), &corpus.ceiling("maintainer"));
     assert!(full.covers_root());
-    assert_eq!(full.filter_facts(&facts).generated, facts.generated);
+    assert_eq!(ok(full.filter_facts(&facts)).generated, facts.generated);
 }
 
 // r[verify kiln.source.projection.disclosure.handles.scenario.cursor]

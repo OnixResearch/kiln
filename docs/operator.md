@@ -2476,11 +2476,14 @@ every use rechecks the holder's current scope. A scope holds only what the
 port admitted request by request; a session's raw capability set confirms
 those grants, only when observed for the same audience, repository, snapshot,
 view binding and generations, but never adds one. A missing, forbidden or
-stale object
-returns one `{"error":"unavailable"}` shape. Cairn context is disclosed
-through `.cairn/changes/<id>/**` path authority; a hidden prerequisite is an
-opaque handle and status, and a `RestrictedContext` can never stand in for a
-complete observation. Sharing is its own operation: `admit_share` derives a
+stale object returns one `{"error":"unavailable"}` shape; the owner attributes
+a refused probe against its unscoped trusted view with
+`AudienceView::attribute`, which never reaches the holder. Cairn context is
+disclosed through `.cairn/changes/<id>/**` path authority; a hidden
+prerequisite is an opaque handle whose status reads `unavailable` unless the
+holder may discover its `.cairn/changes/<id>/` change, and a
+`RestrictedContext` can never stand in for a complete observation. Sharing is
+its own operation: `admit_share` derives a
 plan no broader than the sharer's scope and the frozen ceiling, needs
 `delegate`, and never outlives or matches the sharer's depth. The
 local-operator profile is an explicit full-source grant without delegation.

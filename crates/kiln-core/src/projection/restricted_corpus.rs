@@ -248,7 +248,7 @@ impl Corpus {
         let selection = ScopedSelection::for_holder(scope, ceiling);
         ok(ScopedEnumeration::new(
             &selection,
-            self.resolved(definition, &selection.filter_facts(facts)),
+            self.resolved(definition, &ok(selection.filter_facts(facts))),
         ))
     }
 

@@ -34,13 +34,13 @@ A holder never receives the trusted manifest. What a holder sees depends only on
 
 ### Decision: one public unavailable shape with an internal reason
 
-**Choice:** `Unavailable { reason: Missing | Forbidden | Stale }` whose `public()` is always `{"error":"unavailable"}`. A holder that may discover a path receives `Entries`, `Unrequested`, `Absent`, `Unknown` or `Truncated`.
+**Choice:** `Unavailable { reason: Missing | Forbidden | Stale }` whose `public()` is always `{"error":"unavailable"}`. Because a view is built from the holder-scoped enumeration, the owner attributes a refused probe against its unscoped trusted view with `AudienceView::attribute`, server-side only. A holder that may discover a path receives `Entries`, `Unrequested`, `Absent`, `Unknown` or `Truncated`.
 
 **Rationale:** the owner keeps refusals attributable for audit while probes stay indistinguishable; distinct states only where discovery is authorized satisfy the Seqair section without leaking existence.
 
 ### Decision: Cairn context through path authority
 
-**Choice:** a Cairn item is visible when its `.cairn/changes/<id>/...` path is discoverable under the view's ceiling and the holder's grant; text needs read. A hidden prerequisite of a visible item appears as an opaque handle and its status, so `blocked` still reports it. `RestrictedContext` has no `Deserialize` and no conversion into `CairnObservation`.
+**Choice:** a Cairn item is visible when its `.cairn/changes/<id>/...` path is discoverable under the view's ceiling and the holder's grant; text needs read. A hidden prerequisite of a visible item appears as an opaque handle whose status is `unavailable` unless the holder may discover the prerequisite's `.cairn/changes/<id>/` change, so `blocked` still reports it as an obligation. `RestrictedContext` has no `Deserialize` and no conversion into `CairnObservation`.
 
 **Rationale:** owner decision O4 chose path authority over a separate `kiln://cairn/` family; the compile-fail examples keep a presentation from standing in for the complete lifecycle snapshot.
 

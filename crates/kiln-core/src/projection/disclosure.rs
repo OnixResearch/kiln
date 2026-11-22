@@ -325,6 +325,9 @@ pub enum DisclosureRefusal {
     Stale,
     /// An enumeration holds an entry outside the selection it claims.
     OutsideSelection,
+    /// A truncated enumeration of a wider selection was offered for
+    /// filtering; it must be enumerated again over the scoped selection.
+    TruncatedInput,
 }
 
 impl DisclosureRefusal {
@@ -526,13 +529,27 @@ impl ScopedSelection {
     }
 
     /// Keep the facts inside the selection: native entries it covers, and
-    /// generated entries only when it covers the root. A truncated
-    /// enumeration stays truncated. This models over complete facts what a
-    /// real shell gets by asking the source adapter to enumerate over the
-    /// selection.
-    #[must_use]
-    pub fn filter_facts(&self, facts: &ProjectionFacts) -> ProjectionFacts {
-        ProjectionFacts {
+    /// generated entries only when it covers the root. This models over
+    /// complete facts what a real shell gets by asking the source adapter to
+    /// enumerate over the selection.
+    ///
+    /// Truncated input is refused. Where a wider enumeration stopped depends
+    /// on entries outside this selection, so carrying its truncation into a
+    /// holder's view would let hidden entries decide that view's coverage and
+    /// its unknown answers. A truncated case must be enumerated again over
+    /// this selection, whose own truncation depends only on what the holder
+    /// may see.
+    ///
+    /// # Errors
+    /// Returns [`DisclosureRefusal::TruncatedInput`] for truncated facts.
+    pub fn filter_facts(
+        &self,
+        facts: &ProjectionFacts,
+    ) -> Result<ProjectionFacts, DisclosureRefusal> {
+        if facts.coverage != Coverage::Complete {
+            return Err(DisclosureRefusal::TruncatedInput);
+        }
+        Ok(ProjectionFacts {
             repository: facts.repository.clone(),
             exact_revision: facts.exact_revision.clone(),
             canonical_tree: facts.canonical_tree.clone(),
@@ -552,7 +569,7 @@ impl ScopedSelection {
             } else {
                 Vec::new()
             },
-        }
+        })
     }
 }
 
@@ -948,7 +965,9 @@ impl AudienceView {
     // r[impl kiln.source.projection.disclosure.unavailable]
     /// Look up a displayed destination path after rechecking the binding
     /// against the holder's current scope. A hidden and a missing path give
-    /// the same public refusal; only the reason differs internally.
+    /// the same public refusal. The internal reason here is judged against
+    /// the holder-scoped enumeration; [`attribute`](Self::attribute) gives
+    /// the owner's attribution against the unscoped trusted view.
     ///
     /// # Errors
     /// Returns `Unavailable` for a hidden, missing or stale lookup.
@@ -980,6 +999,43 @@ impl AudienceView {
         } else {
             UnavailableReason::Missing
         }))
+    }
+
+    /// Attribute a destination this view does not display, for the trusted
+    /// owner's audit only: `Forbidden` when the shell's unscoped trusted
+    /// view holds it, `Missing` when it does not, and `Stale` when that view
+    /// is of another repository, revision or definition. A displayed
+    /// destination is not refused and has no attribution. The reason never
+    /// reaches the holder, whose refusal keeps its one public shape.
+    #[must_use]
+    pub fn attribute(
+        &self,
+        unscoped: &AdmittedPartialView,
+        destination: &str,
+    ) -> Option<UnavailableReason> {
+        let manifest = unscoped.manifest();
+        if manifest.repository != self.binding.repository
+            || manifest.exact_revision != self.binding.snapshot
+            || manifest.definition != self.binding.definition
+        {
+            return Some(UnavailableReason::Stale);
+        }
+        if self
+            .entries
+            .iter()
+            .any(|entry| entry.display_path.as_deref() == Some(destination))
+        {
+            return None;
+        }
+        let exists = manifest
+            .entries
+            .iter()
+            .any(|entry| entry.destination == destination);
+        Some(if exists {
+            UnavailableReason::Forbidden
+        } else {
+            UnavailableReason::Missing
+        })
     }
 
     /// Classify a source path the holder may discover: present, unrequested
