@@ -517,6 +517,21 @@ impl ScopedSelection {
                 }
             }
         }
+        Self::over(candidates)
+    }
+
+    /// The whole-ceiling selection: the definition's selection within the
+    /// frozen ceiling, with no holder's grants applied. The owner's audit
+    /// enumeration for [`AudienceView::attribute`] is made over it. For a
+    /// holder whose grants cover the whole ceiling, such as a full-source
+    /// holder, it equals [`for_holder`](Self::for_holder), so that holder's
+    /// own enumeration is also the audit enumeration.
+    #[must_use]
+    pub fn whole(ceiling: &ViewCeiling) -> Self {
+        Self::over(ceiling.paths.clone())
+    }
+
+    fn over(candidates: BTreeSet<PathScope>) -> Self {
         let paths = outermost(candidates);
         let mut hasher = blake3::Hasher::new();
         update_field(&mut hasher, "schema", SCOPED_SELECTION_SCHEMA.as_bytes());
@@ -1043,40 +1058,57 @@ impl AudienceView {
     }
 
     /// Attribute a destination this view does not display, for the trusted
-    /// owner's audit only, against the shell's complete unscoped trusted
-    /// view and the holder's current `scope`. A destination that view does
-    /// not hold is `Missing`. One the holder may not discover through the
-    /// view's ceiling under a current grant is `Forbidden`; one it may
-    /// discover but that is not listed is `Truncated` or `Unknown`.
+    /// owner's audit only, against the owner's audit enumeration and the
+    /// holder's current `scope`. A destination the audit does not hold is
+    /// `Missing`. One the holder may not discover through the view's ceiling
+    /// under a current grant is `Forbidden`; one it may discover but that is
+    /// not listed is `Truncated` or `Unknown`.
     ///
-    /// There is no attribution for a displayed destination, for a view that
-    /// is this view's own scoped manifest, or for a truncated view, which
-    /// cannot tell missing from unlisted. A scope that is no longer current,
-    /// or a view of another repository, revision or definition, or one that
-    /// disagrees with the scoped enumeration, is `Stale`. The reason never
-    /// reaches the holder, whose refusal keeps its one public shape.
+    /// The audit must be a complete enumeration over
+    /// [`ScopedSelection::whole`] of this view's ceiling. Any other
+    /// enumeration, such as another holder's narrower cached view, gets no
+    /// attribution, since it would report a hidden file as missing. For a
+    /// holder whose grants cover the whole ceiling, such as a full-source
+    /// holder, the two selections are equal and its own enumeration is a
+    /// valid audit; nothing in the ceiling is hidden from it.
+    ///
+    /// There is also no attribution for a displayed destination. A scope
+    /// that is no longer current, an audit of another repository, revision
+    /// or definition, or one lacking a destination this view lists, is
+    /// `Stale`. The reason never reaches the holder, whose refusal keeps its
+    /// one public shape.
     #[must_use]
     pub fn attribute(
         &self,
-        unscoped: &AdmittedPartialView,
+        audit: &ScopedEnumeration,
         scope: &EffectiveSourceScope,
         now_unix_s: u64,
         destination: &str,
     ) -> Option<UnavailableReason> {
-        let manifest = unscoped.manifest();
+        let manifest = audit.view.manifest();
+        if &audit.selection != ScopedSelection::whole(&self.ceiling).identity()
+            || manifest.coverage != Coverage::Complete
+        {
+            return None;
+        }
+        let lacks_listed = self.trusted.iter().any(|slot| {
+            !manifest
+                .entries
+                .iter()
+                .any(|entry| entry.destination == slot.destination)
+        });
         if !self.binding.current_for(scope, now_unix_s)
             || manifest.repository != self.binding.repository
             || manifest.exact_revision != self.binding.snapshot
             || manifest.definition != self.binding.definition
+            || lacks_listed
         {
             return Some(UnavailableReason::Stale);
         }
-        if manifest.identity == self.binding.manifest
-            || manifest.coverage != Coverage::Complete
-            || self
-                .entries
-                .iter()
-                .any(|entry| entry.display_path.as_deref() == Some(destination))
+        if self
+            .entries
+            .iter()
+            .any(|entry| entry.display_path.as_deref() == Some(destination))
         {
             return None;
         }
@@ -1091,7 +1123,7 @@ impl AudienceView {
             return Some(UnavailableReason::Forbidden);
         }
         // Discoverable yet undisplayed is unlisted only when something cut
-        // the listing; otherwise the unscoped view disagrees with this one.
+        // the listing; otherwise the audit disagrees with this view.
         Some(if !self.enumeration_complete {
             UnavailableReason::Unknown
         } else if self.coverage == VisibleCoverage::Complete {

@@ -2477,8 +2477,10 @@ port admitted request by request; a session's raw capability set confirms
 those grants, only when observed for the same audience, repository, snapshot,
 view binding and generations, but never adds one. A missing, forbidden or
 stale object returns one `{"error":"unavailable"}` shape; the owner attributes
-a refused probe against its unscoped trusted view with
-`AudienceView::attribute`, which never reaches the holder. Cairn context is
+a refused probe with `AudienceView::attribute` against a complete audit
+enumeration over `ScopedSelection::whole` of the view's ceiling (for a
+full-source holder, its own enumeration), and the reason never reaches the
+holder. Cairn context is
 disclosed through `.cairn/changes/<id>/**` path authority; a hidden
 prerequisite is an opaque handle whose status reads `unavailable` unless the
 holder may discover its `.cairn/changes/<id>/` change, and a

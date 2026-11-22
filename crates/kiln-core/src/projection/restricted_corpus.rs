@@ -252,6 +252,20 @@ impl Corpus {
         ))
     }
 
+    /// The owner's audit enumeration of `facts` under `definition`: over the
+    /// whole-ceiling selection, with no holder's grants applied.
+    pub fn audit(
+        &self,
+        definition: &AdmittedDefinition,
+        facts: &ProjectionFacts,
+    ) -> ScopedEnumeration {
+        let selection = ScopedSelection::whole(&ViewCeiling::from_definition(definition));
+        ok(ScopedEnumeration::new(
+            &selection,
+            self.resolved(definition, &ok(selection.filter_facts(facts))),
+        ))
+    }
+
     /// The unscoped trusted resolution of `facts`; never restricted directly.
     pub fn resolved(
         &self,

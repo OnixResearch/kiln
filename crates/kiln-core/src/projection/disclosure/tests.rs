@@ -528,36 +528,97 @@ fn attribution_judges_authority_not_display() {
     let ceiling = corpus.ceiling("project-reader");
     let scope = corpus.scope("project-reader");
     let scoped = corpus.trusted("project-reader");
-    let unscoped = corpus.resolved(&definition, &corpus.facts());
+    let audit = corpus.audit(&definition, &corpus.facts());
     let reader = view_of(&corpus, "project-reader");
-    let attribute = |view: &AudienceView,
-                     trusted: &crate::projection::AdmittedPartialView,
-                     path: &str| { view.attribute(trusted, &scope, now, path) };
+    let attribute = |view: &AudienceView, audit: &ScopedEnumeration, path: &str| {
+        view.attribute(audit, &scope, now, path)
+    };
     // A truly hidden existing file is forbidden and a nonexistent one
-    // missing, judged against the complete unscoped view.
+    // missing, judged against the whole-ceiling audit enumeration.
     assert_eq!(
-        attribute(&reader, &unscoped, "crates/secret/src/key.rs"),
+        attribute(&reader, &audit, "crates/secret/src/key.rs"),
         Some(UnavailableReason::Forbidden)
     );
     assert_eq!(
-        attribute(&reader, &unscoped, "crates/secret/src/absent.rs"),
+        attribute(&reader, &audit, "crates/secret/src/absent.rs"),
         Some(UnavailableReason::Missing)
     );
-    // The view's own scoped manifest, or a truncated unscoped view, cannot
-    // attribute anything.
+    // The view's own scoped enumeration, or a truncated whole-ceiling one,
+    // cannot attribute anything.
     assert_eq!(
-        attribute(&reader, scoped.view(), "crates/secret/src/key.rs"),
+        attribute(&reader, &scoped, "crates/secret/src/key.rs"),
         None
     );
-    let mut truncated = corpus.facts();
+    let whole = ScopedSelection::whole(&ceiling);
+    let mut truncated = ok(whole.filter_facts(&corpus.facts()));
     truncated.coverage = crate::projection::Coverage::Truncated;
+    let truncated = ok(ScopedEnumeration::new(
+        &whole,
+        corpus.resolved(&definition, &truncated),
+    ));
+    assert_eq!(
+        attribute(&reader, &truncated, "crates/secret/src/key.rs"),
+        None
+    );
+    // Another holder's narrower complete view gives no attribution, even
+    // one holding every destination the probing view lists: it would call
+    // the hidden file missing. The whole-ceiling audit calls it forbidden.
+    let narrowed_scope = corpus.scope_with(
+        vec![grant(
+            "crates/app",
+            &[
+                SourceViewOperation::Discover,
+                SourceViewOperation::ReadContent,
+            ],
+        )],
+        "did:key:z6MkReader",
+        &corpus.revision,
+    );
+    let narrowed = ok(restrict(
+        &corpus.enumerate(&definition, &corpus.facts(), &narrowed_scope, &ceiling),
+        &narrowed_scope,
+        &ceiling,
+        &key(),
+        now,
+    ));
+    for (other, expected) in [
+        (&scoped, None),
+        (&audit, Some(UnavailableReason::Forbidden)),
+    ] {
+        assert_eq!(
+            narrowed.attribute(other, &narrowed_scope, now, "crates/secret/src/key.rs"),
+            expected
+        );
+    }
+    // An audit lacking a destination the view lists is inconsistent.
+    let mut lacking = corpus.facts();
+    lacking
+        .entries
+        .retain(|entry| entry.path != "crates/app/src/main.rs");
     assert_eq!(
         attribute(
             &reader,
-            &corpus.resolved(&definition, &truncated),
+            &corpus.audit(&definition, &lacking),
             "crates/secret/src/key.rs"
         ),
-        None
+        Some(UnavailableReason::Stale)
+    );
+    // A full-source holder's own enumeration is the whole-ceiling one, so it
+    // is a valid audit; nothing in the ceiling is hidden from it.
+    let maintainer_scope = corpus.scope("maintainer");
+    let maintainer_ceiling = corpus.ceiling("maintainer");
+    assert_eq!(
+        ScopedSelection::for_holder(&maintainer_scope, &maintainer_ceiling),
+        ScopedSelection::whole(&maintainer_ceiling)
+    );
+    assert_eq!(
+        view_of(&corpus, "maintainer").attribute(
+            &corpus.trusted("maintainer"),
+            &maintainer_scope,
+            now,
+            "crates/secret/src/absent.rs"
+        ),
+        Some(UnavailableReason::Missing)
     );
 
     // An authorized destination the view's bound cut is truncated, not
@@ -573,7 +634,7 @@ fn attribution_judges_authority_not_display() {
     ));
     assert!(!shown(&cut).contains(&"crates/app/src/main.rs"));
     assert_eq!(
-        attribute(&cut, &unscoped, "crates/app/src/main.rs"),
+        attribute(&cut, &audit, "crates/app/src/main.rs"),
         Some(UnavailableReason::Truncated)
     );
     assert_eq!(
@@ -581,7 +642,7 @@ fn attribution_judges_authority_not_display() {
         UnavailableReason::Truncated
     );
     assert_eq!(
-        attribute(&cut, &unscoped, "crates/secret/src/key.rs"),
+        attribute(&cut, &audit, "crates/secret/src/key.rs"),
         Some(UnavailableReason::Forbidden)
     );
     // One a truncated holder-scoped enumeration never listed is unknown.
@@ -599,13 +660,13 @@ fn attribution_judges_authority_not_display() {
     ));
     assert!(!shown(&partial).contains(&"crates/shared/src/lib.rs"));
     assert_eq!(
-        attribute(&partial, &unscoped, "crates/shared/src/lib.rs"),
+        attribute(&partial, &audit, "crates/shared/src/lib.rs"),
         Some(UnavailableReason::Unknown)
     );
     // A scope that is no longer current attributes nothing but staleness.
     assert_eq!(
         reader.attribute(
-            &unscoped,
+            &audit,
             &corpus.scope("agent"),
             now,
             "crates/secret/src/key.rs"
@@ -674,10 +735,10 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
         );
     }
     ok(reader.lookup(&trusted, &reader_scope, now, "crates/app/src/main.rs"));
-    // The trusted owner attributes a refused probe against its unscoped
-    // trusted view: the existing hidden file is forbidden and the absent one
-    // missing, while the holder received one public shape for both.
-    let unscoped = corpus.resolved(&corpus.definition("project-reader"), &corpus.facts());
+    // The trusted owner attributes a refused probe against its whole-ceiling
+    // audit enumeration: the existing hidden file is forbidden and the absent
+    // one missing, while the holder received one public shape for both.
+    let unscoped = corpus.audit(&corpus.definition("project-reader"), &corpus.facts());
     assert_eq!(
         [
             "crates/secret/src/key.rs",
@@ -693,7 +754,7 @@ fn missing_and_forbidden_probes_share_one_public_shape() {
     );
     let [hidden_error, missing_error, _] = errors;
     assert_eq!(hidden_error.public(), missing_error.public());
-    let moved = corpus.resolved(
+    let moved = corpus.audit(
         &corpus.definition("project-reader"),
         &corpus.facts_at(&ok(ExternalRef::new("git", "commit", &"6".repeat(40)))),
     );

@@ -34,7 +34,7 @@ A holder never receives the trusted manifest. What a holder sees depends only on
 
 ### Decision: one public unavailable shape with an internal reason
 
-**Choice:** `Unavailable { reason: Missing | Forbidden | Stale }` whose `public()` is always `{"error":"unavailable"}`. Because a view is built from the holder-scoped enumeration, the owner attributes a refused probe against its unscoped trusted view with `AudienceView::attribute`, server-side only. A holder that may discover a path receives `Entries`, `Unrequested`, `Absent`, `Unknown` or `Truncated`.
+**Choice:** `Unavailable { reason: Missing | Forbidden | Stale }` whose `public()` is always `{"error":"unavailable"}`. Because a view is built from the holder-scoped enumeration, the owner attributes a refused probe with `AudienceView::attribute`, server-side only, against a complete audit enumeration over the whole-ceiling selection; any other enumeration, such as another holder's narrower cached view, gets no attribution. For a holder whose grants cover the whole ceiling, such as full source, its own enumeration is that audit. A holder that may discover a path receives `Entries`, `Unrequested`, `Absent`, `Unknown` or `Truncated`.
 
 **Rationale:** the owner keeps refusals attributable for audit while probes stay indistinguishable; distinct states only where discovery is authorized satisfy the Seqair section without leaking existence.
 
