@@ -12,6 +12,11 @@ Fix new rustc warnings and `clippy --workspace --all-targets -D warnings` findin
 
 Dependencies held back for 1.88 stay where they are. The Tree-sitter 0.26 pins and the `detect-coding-agent` metadata patch no longer need the old compiler; moving them is separate follow-up work, and the manifest comments say so.
 
+Some fixtures are bound to the workspace toolchain and must be re-qualified on every bump:
+
+- the `pijul-cohort` check pins the Pijul fixture producer's store path and BLAKE3, and the producer is built with `rust-toolchain.toml`. Take the new values from an actual build of `packages.x86_64-linux.pijul-cohort-fixture-producer`; `pijul-native-fixtures` qualifies the new binary.
+- the build-input corpus (`config/build-input-contracts.ncl`, exported to `fixtures/build-inputs/corpus.json`) declares the toolchain its planned commands run under. Re-declare it, re-export, and refresh `fixtures/build-inputs/expected.json` from an actual `build-input-qualification --execute` run. Only toolchain-derived identities may change. Only the `build-input-fixtures` flake check exercises this; the workspace and all-features gates do not enable its feature.
+
 ## Verification
 
 Run the maintained root gates under the 1.97.1 development shell: `cargo fmt --all --check`, `cargo clippy --locked --workspace --all-targets -- -D warnings`, `cargo test --locked --workspace --no-fail-fast`, the no-std wasm32 core checks, rustdoc, the Nickel fixtures, Octet, and the Cairn validation, traceability and change gates. Record each exit status in the change evidence.

@@ -1,10 +1,10 @@
 {
   "schema": "kiln.build-input.qualification.receipt.v1",
-  "corpus": "26a14239856c3e08d840fba3f495ea771afd6594d1cf82946b0b132c3de10899",
-  "revision": "c49181cf6beac0d8694d4f1c8caedc449c0937c1",
+  "corpus": "40f509e23a7567f884e7a23acb3209de99868774728ef039942d2373e0a7e3f8",
+  "revision": "081fed9e737511bcdb57cb94ce13b27b7cbc24c7",
   "toolchain": {
     "declared": [
-      "1.88.0"
+      "1.97.1"
     ]
   },
   "cases": [
@@ -12,7 +12,7 @@
       "id": "alpha-tests",
       "plan": {
         "outcome": "planned",
-        "identity": "6d61d5e3bc91a93610a034ac87a24b5baffb0e6e37e59fb20d44cf5501ae3bd6",
+        "identity": "8f0b202a7ff0e6c45d3fb82c5c700580eebda7cfcb765532117f0b4e9265ebdd",
         "build_root": "",
         "packages": [
           "projects/alpha",
@@ -61,7 +61,7 @@
           }
         ],
         "external_packages": "none",
-        "materialized": "7fd281885e0be6ad9c0694d162c5095b065e01f035818363bf9aab6b62b6b10d"
+        "materialized": "7cfbe6fe9290eba2eeee5aa58fa4307ec72c9a58e88e22453956c7be2243457c"
       },
       "execution": {
         "outcome": "passed",
@@ -72,7 +72,7 @@
       "id": "beta-tests",
       "plan": {
         "outcome": "planned",
-        "identity": "7d0624ba74b33caf1b092f0c4bd6c44d23923f0ef041c285c5de8f84bc1ef922",
+        "identity": "24425451e8c709a3312c7200e4be1f2a856966aa04638862cba58180d43e1422",
         "build_root": "",
         "packages": [
           "projects/beta",
@@ -113,7 +113,7 @@
           }
         ],
         "external_packages": "none",
-        "materialized": "2044c2654a2b60ecfa0a459d154a08a982d2a299e81e1a590e36621d472e23ba"
+        "materialized": "004b6009e73fcc2d23c516dcc9f3c05989d9ab886d1d1fe577daa462ed2080a8"
       },
       "execution": {
         "outcome": "failed",

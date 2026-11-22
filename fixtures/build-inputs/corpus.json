@@ -57,7 +57,7 @@
         ],
         "toolchain": {
           "name": "rust",
-          "version": "1.88.0"
+          "version": "1.97.1"
         }
       }
     },
@@ -118,7 +118,7 @@
         ],
         "toolchain": {
           "name": "rust",
-          "version": "1.88.0"
+          "version": "1.97.1"
         }
       }
     },
@@ -178,7 +178,7 @@
         ],
         "toolchain": {
           "name": "rust",
-          "version": "1.88.0"
+          "version": "1.97.1"
         }
       }
     },
@@ -238,7 +238,7 @@
         ],
         "toolchain": {
           "name": "rust",
-          "version": "1.88.0"
+          "version": "1.97.1"
         }
       }
     },
@@ -303,7 +303,7 @@
         ],
         "toolchain": {
           "name": "rust",
-          "version": "1.88.0"
+          "version": "1.97.1"
         }
       }
     }
@@ -327,7 +327,7 @@
     {
       "executable": false,
       "path": "rust-toolchain.toml",
-      "text": "[toolchain]\nchannel = \"1.88.0\"\nprofile = \"minimal\"\n"
+      "text": "[toolchain]\nchannel = \"1.97.1\"\nprofile = \"minimal\"\n"
     },
     {
       "executable": false,

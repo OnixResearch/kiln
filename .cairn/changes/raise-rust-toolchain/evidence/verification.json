@@ -54,6 +54,23 @@
       "source": "nix build .#packages.x86_64-linux.pijul-cohort-fixture-producer; b3sum --no-names; --version reports pijul 1.0.0-beta.11",
       "reproducibility": "nix build --rebuild of the same derivation exited 0 with identical outputs on this host",
       "qualified_by": "checks.x86_64-linux.pijul-native-fixtures runs the new binary against the Pijul adapter"
+    },
+    {
+      "fixture": "checks.x86_64-linux.build-input-fixtures (fixtures/build-inputs corpus and expectation)",
+      "observed_on": "2026-11-22, integration head 74f7d995",
+      "cause": "The corpus declared toolchain 1.88.0; under the flake's cargo 1.97.1 the harness skipped every execution as the observed toolchain differed, failing planned_commands_qualify_their_views.",
+      "source": "config/build-input-contracts.ncl re-declares 1.97.1 (request toolchain and the corpus rust-toolchain.toml channel); nickel export to corpus.json; cargo run --example build-input-qualification --execute under cargo 1.97.1 (c980f4866 2026-06-30) and rustc 1.97.1 (8bab26f4f 2026-07-14); expected.json is that receipt without timings and toolchain.observed",
+      "changed_fields": {
+        "toolchain.declared": ["1.88.0", "1.97.1"],
+        "cases[alpha-tests].plan.identity": ["6d61d5e3bc91a93610a034ac87a24b5baffb0e6e37e59fb20d44cf5501ae3bd6", "8f0b202a7ff0e6c45d3fb82c5c700580eebda7cfcb765532117f0b4e9265ebdd"],
+        "cases[alpha-tests] materialized view": ["7fd281885e0be6ad9c0694d162c5095b065e01f035818363bf9aab6b62b6b10d", "7cfbe6fe9290eba2eeee5aa58fa4307ec72c9a58e88e22453956c7be2243457c"],
+        "cases[beta-tests].plan.identity": ["7d0624ba74b33caf1b092f0c4bd6c44d23923f0ef041c285c5de8f84bc1ef922", "24425451e8c709a3312c7200e4be1f2a856966aa04638862cba58180d43e1422"],
+        "cases[beta-tests] materialized view": ["2044c2654a2b60ecfa0a459d154a08a982d2a299e81e1a590e36621d472e23ba", "004b6009e73fcc2d23c516dcc9f3c05989d9ab886d1d1fe577daa462ed2080a8"],
+        "corpus": ["26a14239856c3e08d840fba3f495ea771afd6594d1cf82946b0b132c3de10899", "40f509e23a7567f884e7a23acb3209de99868774728ef039942d2373e0a7e3f8"],
+        "revision": ["c49181cf6beac0d8694d4f1c8caedc449c0937c1", "081fed9e737511bcdb57cb94ce13b27b7cbc24c7"]
+      },
+      "unchanged": "every case's planned inputs, view entries, refusals and execution outcomes (alpha passed, beta failed on its undeclared read, three refused cases not run) and the shared edit",
+      "qualified_by": "cargo test -p kiln-web-service --features build-input-fixtures --test build_input_qualification (3 passed) and checks.x86_64-linux.build-input-fixtures"
     }
   ],
   "remaining": [

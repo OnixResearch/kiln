@@ -110,7 +110,7 @@ let cargo_test = fun package =>
     profile = "cargo_compatibility.v1",
     targets = [package],
     command = ["cargo", "test", "--offline", "--locked", "--package", package],
-    toolchain = { name = "rust", version = "1.88.0" },
+    toolchain = { name = "rust", version = "1.97.1" },
     environment = { CARGO_TERM_COLOR = "never" },
   }
 in
@@ -205,7 +205,7 @@ in
       },
       {
         path = "rust-toolchain.toml",
-        text = "[toolchain]\nchannel = \"1.88.0\"\nprofile = \"minimal\"\n",
+        text = "[toolchain]\nchannel = \"1.97.1\"\nprofile = \"minimal\"\n",
         executable = false,
       },
       {
