@@ -206,9 +206,16 @@ async fn run() -> Result<(), String> {
     }
     Ok(())
 }
-#[tokio::main]
-async fn main() {
-    if let Err(error) = run().await {
+fn main() {
+    // GitHub connections re-run this executable as their DNS helper; serve that
+    // entry before the async runtime or the command parser starts.
+    kiln_adapter_github::status::run_internal_resolver_if_requested();
+    let result = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .map_err(|_| "async runtime could not start".to_string())
+        .and_then(|runtime| runtime.block_on(run()));
+    if let Err(error) = result {
         eprintln!("kiln-hosted: {error}");
         std::process::exit(1);
     }

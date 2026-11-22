@@ -91,6 +91,17 @@ and reads no credential. Webhook drain and polling apply the same policy
 validation before any delivery or provider call. See the
 [implementation runbook](implementation-runbook.md#intake-policy-and-immutable-preparation).
 
+Every GitHub HTTPS client (status, polling, publication, landing and source
+status) resolves `api.github.com` in a killed-and-reaped subprocess: it re-runs
+the current executable as `<exe> --internal-github-status-dns <ppid>` with a
+cleared environment and bounded output. `kiln-implementer`, `kiln-adapter-github`
+and `kiln-hosted` serve that reserved entry before parsing their own arguments,
+through `kiln_adapter_github::status::run_internal_resolver_if_requested`. A
+binary that builds a GitHub client must call it first in `main`; otherwise client
+construction fails with `github_status_dns_unserved` instead of re-running an
+executable that cannot answer. A helper failure is reported on standard error
+with the prefix `github status dns helper:`.
+
 `claim` creates one current attempt (default lease one hour, `--lease-ms` to
 override) and prints its canonical JSON including frozen work identity, base and
 fence; `renew --attempt ID --fence N [--lease-ms N]` extends a live lease;

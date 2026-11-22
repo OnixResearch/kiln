@@ -658,6 +658,13 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Fixed
 
+- Serve the GitHub DNS helper entry (`--internal-github-status-dns <ppid>`) in
+  `kiln-implementer` and `kiln-hosted`, not only `kiln-adapter-github`, through
+  one `run_internal_resolver_if_requested` call first in each `main`. GitHub
+  clients re-run their own executable to resolve `api.github.com`, so
+  `kiln-implementer` failed every `poll` and `publish` with an argument error.
+  A process that never dispatched the entry now refuses to build the resolver
+  (`github_status_dns_unserved`), and helper failures are named on stderr.
 - Report the real cause of an implementer JSON input failure: malformed JSON
   and schema mismatches are distinguished, missing, duplicate and unknown field
   names are kept, every message gives the line and column, and value-bearing

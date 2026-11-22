@@ -11,6 +11,7 @@ let ActiveRoots = [
   ".cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md",
   ".cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md",
   ".cairn/changes/check-github-intake-policy/specs/implementation-work/spec.md",
+  ".cairn/changes/serve-github-dns-helper-entry/specs/github-ci/spec.md",
 ]
 in
 let Active =

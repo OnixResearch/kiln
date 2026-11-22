@@ -41,6 +41,7 @@ struct DrainInputs {
 
 // r[impl kiln.implementation.operator_cli]
 fn main() {
+    kiln_adapter_github::status::run_internal_resolver_if_requested();
     if run().is_err() {
         std::process::exit(EXIT_ERROR);
     }

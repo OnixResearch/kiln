@@ -1,0 +1,24 @@
+Observed 2026-11-22 on the kiln-int2 integration branch (parent e489aebd),
+Rust 1.97.1 development shell, private Cargo target.
+
+$ cargo fmt --all --check
+exit 0
+$ cargo clippy --locked -p kiln-adapter-github -p kiln-hosted --all-targets -- -D warnings
+exit 0
+$ cargo clippy --locked -p kiln-adapter-github -p kiln-hosted --all-targets --all-features -- -D warnings
+exit 0
+$ cargo test --locked -p kiln-adapter-github --no-fail-fast
+exit 0; 124 passed, 0 failed, 0 ignored
+  status::dns_tests::an_executable_without_the_entry_is_never_rerun_as_the_helper ok
+  github_dns_entry::adapter_binary_serves_the_dns_helper_entry ok
+  github_dns_entry::implementer_binary_serves_the_dns_helper_entry ok
+$ cargo test --locked -p kiln-hosted --no-fail-fast --test github_dns_entry
+exit 0; 1 passed
+$ <binary> --internal-github-status-dns $$   (kiln-implementer, kiln-adapter-github, kiln-hosted)
+exit 0 each; 140.82.114.5:443 (this host resolved; the offline branch was not exercised here)
+$ cairn validate --root . --policy cairn-policy/generated/cairn-policy.json
+exit 0 {"issues":[],"blocked":null}
+$ cairn gate proposal|design|tasks serve-github-dns-helper-entry --root . --policy cairn-policy/generated/cairn-policy.json
+exit 0 PASS (each)
+$ cairn traceability coverage --profile kiln-active-development (development-coverage.ncl export)
+exit 0 {"dangling":0,"missing":0,"requirements":2246,"verdict":"pass"}

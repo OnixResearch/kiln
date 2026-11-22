@@ -1,7 +1,8 @@
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::io::Read;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use bounded_exec::{
@@ -22,56 +23,96 @@ const API_VERSION: &str = "2022-11-28";
 const PAGE_SIZE: usize = 100;
 
 /// Reserved executable entry: exactly this argument followed by the calling PID.
-/// Hosts of this library must dispatch this before their normal CLI parser.
+/// Hosts of this library dispatch it with [`run_internal_resolver_if_requested`].
 pub const DNS_CHILD_ARGUMENT: &str = "--internal-github-status-dns";
+/// Prefix of every helper failure on standard error.
+pub const DNS_CHILD_FAILURE: &str = "github status dns helper:";
+/// Helper exit status when the lookup or its bounds fail.
+pub const DNS_CHILD_FAILURE_EXIT: i32 = 1;
+/// Helper exit status when the reserved entry is malformed.
+pub const DNS_CHILD_USAGE_EXIT: i32 = 2;
 const DNS_DESTINATION: &str = "api.github.com:443";
 const MAX_DNS_ADDRESSES: usize = 64;
 const MAX_DNS_BYTES: usize = 4096;
 
+/// Set once this process has dispatched the reserved entry, proving that its
+/// executable can serve the helper when re-run.
+static RESOLVER_ENTRY_DISPATCHED: AtomicBool = AtomicBool::new(false);
+
+/// Serve the GitHub DNS helper when this process was started as one, and exit;
+/// otherwise record that this executable serves the helper and return.
+///
+/// Every GitHub HTTPS client resolves `api.github.com` by re-running the
+/// current executable with [`DNS_CHILD_ARGUMENT`] and the caller's PID. Every
+/// binary that can construct one MUST call this first in `main`, before its
+/// own argument parsing. A process that has not called it refuses to construct
+/// the resolver, so an executable that cannot serve the helper is never re-run
+/// as one.
+// r[impl kiln.github.dns_helper_entry]
+pub fn run_internal_resolver_if_requested() {
+    let mut args = std::env::args_os().skip(1);
+    if args.next().as_deref() != Some(OsStr::new(DNS_CHILD_ARGUMENT)) {
+        RESOLVER_ENTRY_DISPATCHED.store(true, Ordering::Release);
+        return;
+    }
+    let parent = args
+        .next()
+        .and_then(|value| value.to_str().and_then(|value| value.parse::<u32>().ok()));
+    let code = match (parent, args.next()) {
+        (Some(parent), None) => match run_dns_child(parent) {
+            Ok(()) => 0,
+            Err(reason) => {
+                eprintln!("{DNS_CHILD_FAILURE} {reason}");
+                DNS_CHILD_FAILURE_EXIT
+            }
+        },
+        _ => {
+            eprintln!("{DNS_CHILD_FAILURE} {DNS_CHILD_ARGUMENT} takes exactly the calling PID");
+            DNS_CHILD_USAGE_EXIT
+        }
+    };
+    std::process::exit(code);
+}
+
 /// Runs only in the credential-free leaf subprocess, never in the HTTP caller.
 /// Parent-death registration and a subsequent PID check close the spawn race.
-pub fn run_dns_child(parent_pid: u32) -> i32 {
+fn run_dns_child(parent_pid: u32) -> Result<(), &'static str> {
     #[cfg(target_os = "linux")]
     {
         if parent_pid == 0
             || nix::sys::prctl::set_pdeathsig(nix::sys::signal::Signal::SIGKILL).is_err()
             || u32::try_from(nix::unistd::getppid().as_raw()).ok() != Some(parent_pid)
         {
-            return 1;
+            return Err("the named PID is not this helper's parent");
         }
-        let addresses = match DNS_DESTINATION.to_socket_addrs() {
-            Ok(addresses) => addresses,
-            Err(_) => return 1,
-        };
+        let addresses = DNS_DESTINATION
+            .to_socket_addrs()
+            .map_err(|_| "api.github.com did not resolve")?;
         let mut output = String::new();
         let mut count = 0;
         for address in addresses {
             count += 1;
             if count > MAX_DNS_ADDRESSES || address.port() != 443 {
-                return 1;
+                return Err("api.github.com resolved outside the admitted bound");
             }
             use std::fmt::Write as _;
             if writeln!(&mut output, "{address}").is_err() || output.len() > MAX_DNS_BYTES {
-                return 1;
+                return Err("api.github.com resolved outside the admitted bound");
             }
         }
         if count == 0 {
-            return 1;
+            return Err("api.github.com resolved to no address");
         }
         use std::io::Write as _;
-        if std::io::stdout()
+        std::io::stdout()
             .lock()
             .write_all(output.as_bytes())
-            .is_err()
-        {
-            return 1;
-        }
-        0
+            .map_err(|_| "resolved addresses could not be written")
     }
     #[cfg(not(target_os = "linux"))]
     {
         let _ = parent_pid;
-        1
+        Err("the helper runs only on Linux")
     }
 }
 
@@ -83,6 +124,12 @@ pub(crate) struct BoundedGithubResolver {
 
 impl BoundedGithubResolver {
     pub(crate) fn current_executable(timeout_ms: u64) -> PortResult<Self> {
+        if !RESOLVER_ENTRY_DISPATCHED.load(Ordering::Acquire) {
+            return Err(infrastructure(
+                "github_status_dns_unserved",
+                "this executable does not dispatch the GitHub DNS helper entry, so it is never re-run as one",
+            ));
+        }
         let program = std::env::current_exe().map_err(|_| {
             infrastructure(
                 "github_status_dns_executable",
@@ -1525,5 +1572,43 @@ mod dns_tests {
                 .kind(),
             std::io::ErrorKind::PermissionDenied
         );
+    }
+
+    // This test process never dispatches the reserved entry, so its executable
+    // (the libtest harness) must never be re-run as the DNS helper.
+    // r[verify kiln.github.dns_helper_entry.scenario.unserved]
+    #[test]
+    fn an_executable_without_the_entry_is_never_rerun_as_the_helper() {
+        let code = |result: PortResult<()>| match result {
+            Err(PortFailure::Infrastructure(failure)) => failure.code,
+            other => unreachable!("expected an infrastructure refusal, got {other:?}"),
+        };
+        assert_eq!(
+            code(BoundedGithubResolver::current_executable(1000).map(|_| ())),
+            "github_status_dns_unserved"
+        );
+        let token = || {
+            ResolvedSecret::from_bytes(b"fixture-token".to_vec())
+                .unwrap_or_else(|_| unreachable!("fixture token is valid"))
+        };
+        assert_eq!(
+            code(crate::poll_http::GithubIssuePollClient::new(token(), 1000).map(|_| ())),
+            "github_status_dns_unserved"
+        );
+        assert_eq!(
+            code(GithubStatusClient::new(tests_config(), token()).map(|_| ())),
+            "github_status_dns_unserved"
+        );
+    }
+
+    fn tests_config() -> StatusConfig {
+        StatusConfig {
+            owner: "octocat".to_string(),
+            repository: "hello-world".to_string(),
+            context: "kiln".to_string(),
+            maximum_response_bytes: 65_536,
+            maximum_pages: 1,
+            timeout_ms: 1000,
+        }
     }
 }

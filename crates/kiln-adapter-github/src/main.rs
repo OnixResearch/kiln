@@ -10,16 +10,6 @@ const USAGE: &str = "usage: kiln-adapter-github --profile PROFILE.json\n       k
 fn run() -> Result<(), PortFailure> {
     let mut args = std::env::args().skip(1);
     let first = args.next();
-    if first.as_deref() == Some(kiln_adapter_github::status::DNS_CHILD_ARGUMENT) {
-        let parent = args
-            .next()
-            .and_then(|value| value.parse::<u32>().ok())
-            .ok_or_else(arguments)?;
-        if args.next().is_some() {
-            return Err(arguments());
-        }
-        std::process::exit(kiln_adapter_github::status::run_dns_child(parent));
-    }
     if first.as_deref() == Some("--help") && args.next().is_none() {
         println!("{USAGE}");
         return Ok(());
@@ -110,6 +100,7 @@ fn arguments() -> PortFailure {
 }
 
 fn main() {
+    kiln_adapter_github::status::run_internal_resolver_if_requested();
     if let Err(error) = run() {
         match error {
             PortFailure::Domain(error) => eprintln!("{}: {}", error.code, error.message),
