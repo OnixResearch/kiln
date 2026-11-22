@@ -103,8 +103,191 @@ let ProfileRules =
     )
   )
 in
+# Source-view authority, `kiln.source-authority-coverage.v1`. Rust
+# (`kiln_core::projection::{authority,disclosure,sharing}`) is authoritative
+# and rechecks every rule. Path scopes are framed per component with an
+# explicit subtree marker; reading never implies delegating; a share is
+# attenuated against the sharer's current scope and the view's frozen ceiling.
+let MaxPathComponents = 256 in
+let MaxGrants = 64 in
+let MaxSharePaths = 32 in
+let MaxDelegationDepth = 8 in
+let MaxPrincipalBytes = 512 in
+let MaxRefNameBytes = 256 in
+let SourceOperation = [|
+  'discover,
+  'read_content,
+  'read_history,
+  'prepare_workspace,
+  'modify_source,
+  'create_source,
+  'delegate,
+  'retrieve_result
+|]
+in
+let Component =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && value != ""
+    && value != "."
+    && value != ".."
+    && !(std.string.contains "/" value)
+    && !(std.string.contains "\\" value)
+    && !(std.string.is_match "[*?\\[\\]{}]" value)
+    && !(has_control value)
+  )
+in
+let NonEmpty = std.contract.from_predicate (fun value => std.is_array value && value != []) in
+# The repository root is the empty component list with `subtree`; an exact
+# scope must name a path.
+let PathScope =
+  std.contract.Sequence [
+    { components | Array Component | AtMost MaxPathComponents, subtree | Bool },
+    std.contract.from_predicate (fun scope => scope.subtree || scope.components != []),
+  ]
+in
+let Grant = { path | PathScope, operations | Array SourceOperation | NonEmpty } in
+# One exact audience DID: no wildcard and no whitespace.
+let Principal =
+  std.contract.from_predicate (fun value =>
+    std.is_string value
+    && std.string.is_match "^did:[^\\s*]+$" value
+    && std.string.length value <= MaxPrincipalBytes
+  )
+in
+let Depth =
+  std.contract.from_predicate (fun value =>
+    std.is_number value
+    && std.number.is_integer value
+    && value >= 0
+    && value <= MaxDelegationDepth
+  )
+in
+let ExternalRef = {
+  contract_version | std.number.PosNat,
+  provider_namespace | Text MaxIdBytes,
+  native_kind | Text MaxIdBytes,
+  native_id | Text MaxIdBytes,
+}
+in
+let Snapshot =
+  std.contract.any_of [
+    { rule | [| 'exact |], revision | ExternalRef },
+    {
+      rule | [| 'ref |],
+      name | Text MaxRefNameBytes,
+      evolution | [| 'fast_forward, 'rewrite |],
+    },
+  ]
+in
+# A delegating child must keep depth to delegate with.
+let ShareRequest =
+  std.contract.Sequence [
+    {
+      recipient | Principal,
+      paths | Array PathScope | NonEmpty | AtMost MaxSharePaths,
+      operations | Array SourceOperation | NonEmpty,
+      snapshot | Snapshot,
+      not_after_s | std.number.PosNat,
+      depth | Depth,
+    },
+    std.contract.from_predicate (fun share =>
+      share.depth >= 1 || !(std.array.elem 'delegate share.operations)
+    ),
+  ]
+in
+let Holder = {
+  audience | Principal,
+  grants | Array Grant | NonEmpty | AtMost MaxGrants,
+  not_after_s | std.number.PosNat,
+  depth | Depth,
+}
+in
+let ShareOutcome = [|
+  'admitted,
+  'request_invalid,
+  'parent_expired,
+  'delegation_not_permitted,
+  'widen_resource,
+  'widen_operation,
+  'widen_snapshot,
+  'outlives_parent,
+  'depth_exceeded
+|]
+in
+let example_revision = {
+  contract_version = 1,
+  provider_namespace = "git",
+  native_kind = "commit",
+  native_id = "1111111111111111111111111111111111111111",
+}
+in
+# The shared restricted-view corpus: one exact snapshot, the views over it
+# with each holder's grants and expected disclosure, and share cases.
+let CairnItem = {
+  change | Text MaxIdBytes,
+  kind | [| 'change, 'requirement, 'task, 'decision, 'evidence |],
+  native_id | Text MaxIdBytes,
+  path | Destination,
+  text | String,
+  status | [| 'open, 'blocked, 'done |],
+  prerequisites | Array (Text MaxIdBytes),
+}
+in
+let RestrictedCorpus = {
+  schema
+    | std.contract.from_predicate (fun value =>
+      value == "kiln.source-projection.restricted-corpus.v1"
+    ),
+  repository | { handle | Text MaxIdBytes, provider | Text MaxIdBytes, native | Text MaxIdBytes },
+  revision | ExternalRef,
+  now_s | std.number.PosNat,
+  entries
+    | Array {
+      path | Destination,
+      blob | Text MaxIdBytes,
+      kind | [| 'file, 'executable, 'symlink |],
+    },
+  dependencies | Array { name | Text MaxIdBytes, identity_label | Text MaxIdBytes },
+  cairn | Array CairnItem,
+  views
+    | Array {
+      name | Text MaxIdBytes,
+      definition | std.contract.Sequence [Fields, ProfileRules],
+      holder | Holder,
+      expect
+        | {
+          visible | Array Destination,
+          cairn | Array (Text MaxIdBytes),
+          hidden_prerequisites | std.number.Nat,
+        },
+    },
+  shares
+    | Array {
+      name | Text MaxIdBytes,
+      view | Text MaxIdBytes,
+      sharer | Text MaxIdBytes,
+      request | ShareRequest,
+      expect | ShareOutcome,
+    },
+}
+in
 {
   Definition = std.contract.Sequence [Fields, ProfileRules],
+  Scope = PathScope,
+  SourceGrant = Grant,
+  Share = ShareRequest,
+  Corpus = RestrictedCorpus,
+  revision = example_revision,
+  # A reader sharing read access to one crate for a bounded time.
+  share_example = {
+    recipient = "did:key:z6MkReviewer",
+    paths = [{ components = ["crates", "app"], subtree = true }],
+    operations = ['discover, 'read_content],
+    snapshot = { rule = 'exact, revision = example_revision },
+    not_after_s = 1500,
+    depth = 0,
+  },
   # A case-sensitive POSIX target with symbolic links and executable bits.
   posix_target = {
     case_sensitive = true,

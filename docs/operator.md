@@ -2448,6 +2448,33 @@ project API still reports the path-derived `repository_key`.
 into an equivalent definition labeled `monorepo_project_scope.v1`; its
 `depends_on` and graph kinds stay affected-project facts.
 
+<!-- r[related kiln.source.projection.disclosure.restricted] -->
+**Capability-scoped views.** A holder never receives the trusted manifest.
+`kiln_core::projection::disclosure::restrict` derives an `AudienceView` from
+it under the holder's current `EffectiveSourceScope` and the view's frozen
+`ViewCeiling`: an entry stays only when its native origin lies in the ceiling
+and a current grant lets the holder discover or read it, and only then are
+entries counted, paged or turned into coverage. Aliases are judged by their
+origin. The source-view vocabulary, `kiln.source-authority-coverage.v1`, has
+eight operations (discover, read, history, prepare, modify, create, delegate,
+result) and none implies another; path scope is compared per component, so a
+grant for `crates/app` never covers `crates/apple`. Handles and cursors are
+BLAKE3 hashes keyed by a shell-held key over a view binding of source,
+definition, manifest, ceiling, audience, scope and generations, and every use
+rechecks the holder's current scope. A scope holds only what the port
+admitted request by request; a session's raw capability set confirms those
+grants but never adds one. A missing, forbidden or stale object
+returns one `{"error":"unavailable"}` shape. Cairn context is disclosed
+through `.cairn/changes/<id>/**` path authority; a hidden prerequisite is an
+opaque handle and status, and a `RestrictedContext` can never stand in for a
+complete observation. Sharing is its own operation: `admit_share` derives a
+plan no broader than the sharer's scope and the frozen ceiling, needs
+`delegate`, and never outlives or matches the sharer's depth. The
+local-operator profile is an explicit full-source grant without delegation.
+No route, worker or adapter uses these contracts yet; the source browser and
+Cairn workspace still serve every viewer the same projection, and the Basalt
+source operations are pending.
+
 <!-- r[related kiln.source.projection.materialization] -->
 **Materialization.** `kiln_core::projection::materialization::plan` turns a
 complete projection and a `kiln.materializer-profile.v1` profile into the

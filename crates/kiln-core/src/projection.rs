@@ -2042,9 +2042,14 @@ pub fn verify_manifest(
     findings.finish(())
 }
 
+pub mod authority;
 pub mod build_inputs;
+pub mod disclosure;
 pub mod materialization;
+pub mod sharing;
 pub mod writeback;
 
+#[cfg(test)]
+mod restricted_corpus;
 #[cfg(test)]
 mod tests;

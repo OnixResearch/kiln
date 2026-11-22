@@ -1,0 +1,652 @@
+{
+  "cairn": [
+    {
+      "change": "app-feature",
+      "kind": "task",
+      "native_id": "app-feature.task.1",
+      "path": ".cairn/changes/app-feature/tasks.md",
+      "prerequisites": [
+        "secret-rotation.task.1"
+      ],
+      "status": "open",
+      "text": "Wire the app entry point"
+    },
+    {
+      "change": "app-feature",
+      "kind": "requirement",
+      "native_id": "app-feature.req.1",
+      "path": ".cairn/changes/app-feature/tasks.md",
+      "prerequisites": [],
+      "status": "done",
+      "text": "The app MUST start"
+    },
+    {
+      "change": "secret-rotation",
+      "kind": "task",
+      "native_id": "secret-rotation.task.1",
+      "path": ".cairn/changes/secret-rotation/tasks.md",
+      "prerequisites": [],
+      "status": "open",
+      "text": "Rotate the signing key"
+    },
+    {
+      "change": "secret-rotation",
+      "kind": "task",
+      "native_id": "secret-rotation.task.2",
+      "path": ".cairn/changes/secret-rotation/tasks.md",
+      "prerequisites": [],
+      "status": "done",
+      "text": "Audit key consumers"
+    }
+  ],
+  "dependencies": [
+    {
+      "identity_label": "shared-crate-v1",
+      "name": "shared-crate"
+    }
+  ],
+  "entries": [
+    {
+      "blob": "app-tasks",
+      "kind": "file",
+      "path": ".cairn/changes/app-feature/tasks.md"
+    },
+    {
+      "blob": "secret-tasks",
+      "kind": "file",
+      "path": ".cairn/changes/secret-rotation/tasks.md"
+    },
+    {
+      "blob": "app-manifest",
+      "kind": "file",
+      "path": "crates/app/Cargo.toml"
+    },
+    {
+      "blob": "app-main",
+      "kind": "file",
+      "path": "crates/app/src/main.rs"
+    },
+    {
+      "blob": "equal-bytes",
+      "kind": "file",
+      "path": "crates/app/src/util.rs"
+    },
+    {
+      "blob": "apple-readme",
+      "kind": "file",
+      "path": "crates/apple/README.md"
+    },
+    {
+      "blob": "secret-manifest",
+      "kind": "file",
+      "path": "crates/secret/Cargo.toml"
+    },
+    {
+      "blob": "equal-bytes",
+      "kind": "file",
+      "path": "crates/secret/src/key.rs"
+    },
+    {
+      "blob": "shared-lib",
+      "kind": "file",
+      "path": "crates/shared/src/lib.rs"
+    },
+    {
+      "blob": "guide",
+      "kind": "file",
+      "path": "docs/guide.md"
+    }
+  ],
+  "now_s": 1000,
+  "repository": {
+    "handle": "restricted-corpus",
+    "native": "OnixResearch/restricted-corpus",
+    "provider": "git-source-v1"
+  },
+  "revision": {
+    "contract_version": 1,
+    "native_id": "1111111111111111111111111111111111111111",
+    "native_kind": "commit",
+    "provider_namespace": "git"
+  },
+  "schema": "kiln.source-projection.restricted-corpus.v1",
+  "shares": [
+    {
+      "expect": "admitted",
+      "name": "attenuated-read",
+      "request": {
+        "depth": 0,
+        "not_after_s": 1500,
+        "operations": [
+          "discover",
+          "read_content"
+        ],
+        "paths": [
+          {
+            "components": [
+              "crates",
+              "app"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    },
+    {
+      "expect": "delegation_not_permitted",
+      "name": "read-does-not-imply-share",
+      "request": {
+        "depth": 0,
+        "not_after_s": 1500,
+        "operations": [
+          "discover"
+        ],
+        "paths": [
+          {
+            "components": [
+              "crates",
+              "app"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "project-reader",
+      "view": "project-reader"
+    },
+    {
+      "expect": "widen_resource",
+      "name": "alias-is-not-a-resource",
+      "request": {
+        "depth": 0,
+        "not_after_s": 1500,
+        "operations": [
+          "discover"
+        ],
+        "paths": [
+          {
+            "components": [
+              "aliases",
+              "shared.rs"
+            ],
+            "subtree": false
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    },
+    {
+      "expect": "widen_resource",
+      "name": "outside-the-view-ceiling",
+      "request": {
+        "depth": 0,
+        "not_after_s": 1500,
+        "operations": [
+          "discover"
+        ],
+        "paths": [
+          {
+            "components": [
+              "docs"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    },
+    {
+      "expect": "widen_operation",
+      "name": "navigation-view-cannot-share-edit",
+      "request": {
+        "depth": 0,
+        "not_after_s": 1500,
+        "operations": [
+          "modify_source"
+        ],
+        "paths": [
+          {
+            "components": [
+              "crates",
+              "app"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    },
+    {
+      "expect": "outlives_parent",
+      "name": "outlives-the-sharer",
+      "request": {
+        "depth": 0,
+        "not_after_s": 2500,
+        "operations": [
+          "discover"
+        ],
+        "paths": [
+          {
+            "components": [
+              "crates",
+              "app"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    },
+    {
+      "expect": "depth_exceeded",
+      "name": "depth-not-below-the-sharer",
+      "request": {
+        "depth": 2,
+        "not_after_s": 1500,
+        "operations": [
+          "discover",
+          "delegate"
+        ],
+        "paths": [
+          {
+            "components": [
+              "crates",
+              "app"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "revision": {
+            "contract_version": 1,
+            "native_id": "1111111111111111111111111111111111111111",
+            "native_kind": "commit",
+            "provider_namespace": "git"
+          },
+          "rule": "exact"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    },
+    {
+      "expect": "widen_snapshot",
+      "name": "tag-cannot-widen-the-snapshot",
+      "request": {
+        "depth": 0,
+        "not_after_s": 1500,
+        "operations": [
+          "discover"
+        ],
+        "paths": [
+          {
+            "components": [
+              "crates",
+              "app"
+            ],
+            "subtree": true
+          }
+        ],
+        "recipient": "did:key:z6MkReviewer",
+        "snapshot": {
+          "evolution": "fast_forward",
+          "name": "refs/tags/v2",
+          "rule": "ref"
+        }
+      },
+      "sharer": "maintainer",
+      "view": "project-reader"
+    }
+  ],
+  "views": [
+    {
+      "definition": {
+        "creation_destinations": [],
+        "dependencies": [
+          {
+            "name": "shared-crate",
+            "required": true
+          }
+        ],
+        "generated_inputs": "refused",
+        "id": "corpus-all",
+        "mounts": [
+          {
+            "destination_prefix": "",
+            "source_prefix": ""
+          }
+        ],
+        "profile": "writable",
+        "required_capabilities": [
+          "exact_tree",
+          "executable_bit"
+        ],
+        "schema": "kiln.source-projection.definition.v1",
+        "selection": {
+          "exclude": [],
+          "include": [
+            "**"
+          ],
+          "root": ""
+        },
+        "target": {
+          "case_sensitive": true,
+          "executable_bit": true,
+          "max_path_bytes": 4096,
+          "symlinks": true
+        }
+      },
+      "expect": {
+        "cairn": [
+          "app-feature.req.1",
+          "app-feature.task.1",
+          "secret-rotation.task.1",
+          "secret-rotation.task.2"
+        ],
+        "hidden_prerequisites": 0,
+        "visible": [
+          ".cairn/changes/app-feature/tasks.md",
+          ".cairn/changes/secret-rotation/tasks.md",
+          "crates/app/Cargo.toml",
+          "crates/app/src/main.rs",
+          "crates/app/src/util.rs",
+          "crates/apple/README.md",
+          "crates/secret/Cargo.toml",
+          "crates/secret/src/key.rs",
+          "crates/shared/src/lib.rs",
+          "docs/guide.md"
+        ]
+      },
+      "holder": {
+        "audience": "did:key:z6MkMaintainer",
+        "depth": 2,
+        "grants": [
+          {
+            "operations": [
+              "discover",
+              "read_content",
+              "read_history",
+              "prepare_workspace",
+              "modify_source",
+              "create_source",
+              "delegate",
+              "retrieve_result"
+            ],
+            "path": {
+              "components": [],
+              "subtree": true
+            }
+          }
+        ],
+        "not_after_s": 2000
+      },
+      "name": "maintainer"
+    },
+    {
+      "definition": {
+        "creation_destinations": [],
+        "dependencies": [
+          {
+            "name": "shared-crate",
+            "required": false
+          }
+        ],
+        "generated_inputs": "refused",
+        "id": "corpus-app-read",
+        "mounts": [
+          {
+            "destination_prefix": "",
+            "source_prefix": ""
+          },
+          {
+            "destination_prefix": "aliases/shared.rs",
+            "source_prefix": "crates/shared/src/lib.rs"
+          }
+        ],
+        "profile": "navigation",
+        "required_capabilities": [],
+        "schema": "kiln.source-projection.definition.v1",
+        "selection": {
+          "exclude": [],
+          "include": [
+            "crates/**",
+            ".cairn/changes/**"
+          ],
+          "root": ""
+        },
+        "target": {
+          "case_sensitive": true,
+          "executable_bit": true,
+          "max_path_bytes": 4096,
+          "symlinks": true
+        }
+      },
+      "expect": {
+        "cairn": [
+          "app-feature.req.1",
+          "app-feature.task.1"
+        ],
+        "hidden_prerequisites": 1,
+        "visible": [
+          ".cairn/changes/app-feature/tasks.md",
+          "aliases/shared.rs",
+          "crates/app/Cargo.toml",
+          "crates/app/src/main.rs",
+          "crates/app/src/util.rs",
+          "crates/shared/src/lib.rs"
+        ]
+      },
+      "holder": {
+        "audience": "did:key:z6MkReader",
+        "depth": 0,
+        "grants": [
+          {
+            "operations": [
+              "discover",
+              "read_content",
+              "read_history"
+            ],
+            "path": {
+              "components": [
+                "crates",
+                "app"
+              ],
+              "subtree": true
+            }
+          },
+          {
+            "operations": [
+              "discover",
+              "read_content",
+              "read_history"
+            ],
+            "path": {
+              "components": [
+                "crates",
+                "shared"
+              ],
+              "subtree": true
+            }
+          },
+          {
+            "operations": [
+              "discover",
+              "read_content"
+            ],
+            "path": {
+              "components": [
+                ".cairn",
+                "changes",
+                "app-feature"
+              ],
+              "subtree": true
+            }
+          }
+        ],
+        "not_after_s": 2000
+      },
+      "name": "project-reader"
+    },
+    {
+      "definition": {
+        "creation_destinations": [],
+        "dependencies": [
+          {
+            "name": "shared-crate",
+            "required": true
+          }
+        ],
+        "generated_inputs": "refused",
+        "id": "corpus-app-agent",
+        "mounts": [
+          {
+            "destination_prefix": "",
+            "source_prefix": ""
+          },
+          {
+            "destination_prefix": "aliases/shared.rs",
+            "source_prefix": "crates/shared/src/lib.rs"
+          }
+        ],
+        "profile": "writable",
+        "required_capabilities": [
+          "exact_tree"
+        ],
+        "schema": "kiln.source-projection.definition.v1",
+        "selection": {
+          "exclude": [],
+          "include": [
+            "crates/app/**",
+            "crates/apple/**",
+            "crates/shared/**",
+            ".cairn/changes/**"
+          ],
+          "root": ""
+        },
+        "target": {
+          "case_sensitive": true,
+          "executable_bit": true,
+          "max_path_bytes": 4096,
+          "symlinks": true
+        }
+      },
+      "expect": {
+        "cairn": [
+          "app-feature.req.1",
+          "app-feature.task.1"
+        ],
+        "hidden_prerequisites": 1,
+        "visible": [
+          ".cairn/changes/app-feature/tasks.md",
+          "crates/app/Cargo.toml",
+          "crates/app/src/main.rs",
+          "crates/app/src/util.rs"
+        ]
+      },
+      "holder": {
+        "audience": "did:key:z6MkAgent",
+        "depth": 0,
+        "grants": [
+          {
+            "operations": [
+              "discover",
+              "read_content",
+              "prepare_workspace",
+              "modify_source",
+              "create_source"
+            ],
+            "path": {
+              "components": [
+                "crates",
+                "app"
+              ],
+              "subtree": true
+            }
+          },
+          {
+            "operations": [
+              "discover"
+            ],
+            "path": {
+              "components": [
+                ".cairn",
+                "changes",
+                "app-feature"
+              ],
+              "subtree": true
+            }
+          }
+        ],
+        "not_after_s": 2000
+      },
+      "name": "agent"
+    }
+  ]
+}

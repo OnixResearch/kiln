@@ -1,0 +1,23 @@
+Toolchain (dev shell's own; nix develop stalled on the shared daemon/GC lock):
+  PATH=/nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0/bin:$PATH
+  CARGO_TARGET_DIR=/home/brittonr/.cargo-target/producer-work/kiln-auth-s3-target
+  TMPDIR=/var/tmp/agents/kiln-s3 CARGO_BUILD_JOBS=4, run under nice -n 10, cargo --offline --locked
+  cargo 1.88.0 (873a06493 2025-05-10)
+
+$ cargo test --offline --locked -p onix-kiln-core --lib projection::   -> exit 0, 58 passed
+$ cargo test --offline --locked -p onix-kiln-core                      -> exit 0, lib 542 passed, doctests incl. 5 new compile-fail pass
+$ cargo clippy --offline --locked -p onix-kiln-core --all-targets -- -D warnings -> exit 0
+$ cargo fmt --all --check                                             -> exit 0
+$ scripts/check-nickel-fixtures.sh                                    -> exit 0 (103 positive, 655 negative)
+$ nickel export --format json config/fixtures/source-projection-restricted-positive.ncl | cmp - fixtures/source-projection/restricted/corpus.json -> identical
+$ cairn gate proposal|design|tasks, cairn validate                     -> exit 0
+$ cairn traceability coverage --policy cairn-policy/generated/cairn-policy.json -> pass, 0 dangling, 0 missing
+
+Still to rerun at integration: the nix develop route, nix flake check, and the
+corpus export equality check in scripts/check-nickel-fixtures.sh (the script is
+an admission file, so its S3 block was not added).
+gate proposal exit=0
+gate design exit=0
+gate tasks exit=0
+validate exit=0
+traceability exit=0

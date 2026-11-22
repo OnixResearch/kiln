@@ -1,0 +1,1464 @@
+//! Audience-restricted views over a trusted projection.
+//!
+//! [`AdmittedPartialView`] is the trusted resolver's view: it holds the
+//! complete manifest with every origin. A holder never receives it. [`restrict`]
+//! filters it under the holder's [`EffectiveSourceScope`] and a frozen
+//! [`ViewCeiling`] *before* anything is counted, paged, grouped or reported,
+//! so the effective view is `selection ∩ ceiling ∩ snapshot ∩ current grant`.
+//!
+//! Handles and cursors are BLAKE3 hashes keyed by a [`HandleKey`] the shell
+//! holds, over the [`ViewBinding`] identity. Knowing a native digest, an
+//! equal-byte file or an alias forges nothing, a handle from another binding
+//! resolves nothing, and every use rechecks the binding against the current
+//! scope. Missing and forbidden objects share one [`PublicUnavailable`] shape.
+//!
+//! Cairn context is disclosed through `.cairn/changes/<id>/**` path authority.
+//! A [`RestrictedContext`] is a presentation, never a complete lifecycle
+//! snapshot:
+//!
+//! ```compile_fail,E0308
+//! use kiln_core::projection::disclosure::{CairnObservation, RestrictedContext};
+//!
+//! fn submit(_: &CairnObservation) {}
+//!
+//! fn misuse(context: &RestrictedContext) {
+//!     submit(context);
+//! }
+//! ```
+//!
+//! ```compile_fail,E0277
+//! use kiln_core::projection::disclosure::{CairnObservation, RestrictedContext};
+//!
+//! fn widen(context: RestrictedContext) -> CairnObservation {
+//!     context.into()
+//! }
+//! ```
+//!
+//! Restricted views, contexts and scopes cannot be deserialized; they come
+//! only from current authority:
+//!
+//! ```compile_fail,E0277
+//! let _ = serde_json::from_str::<kiln_core::projection::disclosure::AudienceView>("{}");
+//! ```
+//!
+//! ```compile_fail,E0277
+//! let _ = serde_json::from_str::<kiln_core::projection::disclosure::RestrictedContext>("{}");
+//! ```
+//!
+//! ```compile_fail,E0277
+//! let _ = serde_json::from_str::<kiln_core::projection::authority::EffectiveSourceScope>("{}");
+//! ```
+
+// r[verify kiln.source.projection.disclosure.cairn.scenario.not_complete]
+// r[verify kiln.source.projection.disclosure.restricted.scenario.unforgeable]
+// The compile-fail examples above are the evidence for both scenarios.
+
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+
+use serde::{Deserialize, Serialize};
+
+use super::authority::{EffectiveSourceScope, PathScope, SourceViewOperation, valid_identifier};
+use super::{
+    AdmittedDefinition, AdmittedPartialView, Coverage, DependencyStatus, EntryKind, EntryOrigin,
+    GLOB_CHARS, ManifestEntry, ProjectionProfile, ResolvedProjectionManifest, update_bool,
+    update_external,
+};
+use crate::monorepo::{finish, update_field, update_usize};
+use crate::paths;
+use crate::types::{ContentId, Diagnostic, ExternalRef};
+
+pub const VIEW_BINDING_SCHEMA: &str = "kiln.source-view-binding.v1";
+pub const VIEW_PRESENTATION_SCHEMA: &str = "kiln.source-view-presentation.v1";
+pub const RESTRICTED_CONTEXT_SCHEMA: &str = "kiln.restricted-context.v1";
+const VIEW_CEILING_SCHEMA: &str = "kiln.source-view-ceiling.v1";
+const VISIBLE_CONTENT_SCHEMA: &str = "kiln.source-view-visible-content.v1";
+const CAIRN_OBSERVATION_SCHEMA: &str = "kiln.cairn-observation.v1";
+const HANDLE_DOMAIN: &str = "kiln.source-view-handle.v1";
+const REFERENCE_DOMAIN: &str = "kiln.source-view-reference.v1";
+const CURSOR_DOMAIN: &str = "kiln.source-view-cursor.v1";
+const CAIRN_HANDLE_DOMAIN: &str = "kiln.cairn-item-handle.v1";
+
+/// Width of a handle key, handle or cursor tag.
+pub const HANDLE_BYTES: usize = 32;
+/// Visible entries one restriction emits before reporting truncation.
+pub const MAX_VISIBLE_ENTRIES: usize = 4_096;
+/// Entries one page returns.
+pub const MAX_PAGE_ENTRIES: usize = 256;
+/// Items in one Cairn observation.
+pub const MAX_CAIRN_ITEMS: usize = 1_024;
+/// Bytes of one Cairn item's text.
+pub const MAX_CAIRN_TEXT_BYTES: usize = 16_384;
+/// Prerequisites of one Cairn item.
+pub const MAX_CAIRN_PREREQUISITES: usize = 64;
+
+// ---------------------------------------------------------------------------
+// Keys, handles and cursors
+
+/// The shell's secret key for handles and cursors. It is never serialized
+/// or printed.
+pub struct HandleKey([u8; HANDLE_BYTES]);
+
+impl core::fmt::Debug for HandleKey {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter.write_str("HandleKey(<redacted>)")
+    }
+}
+
+impl HandleKey {
+    /// Wrap key bytes the shell generated and keeps.
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; HANDLE_BYTES]) -> Self {
+        Self(bytes)
+    }
+
+    fn keyed(&self, domain: &str, parts: &[&[u8]]) -> [u8; HANDLE_BYTES] {
+        let mut hasher = blake3::Hasher::new_keyed(&self.0);
+        update_field(&mut hasher, "domain", domain.as_bytes());
+        for part in parts {
+            update_field(&mut hasher, "part", part);
+        }
+        *hasher.finalize().as_bytes()
+    }
+}
+
+/// A view-scoped opaque reference. It names one entry of one binding and
+/// confers no authority.
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct OpaqueHandle([u8; HANDLE_BYTES]);
+
+impl OpaqueHandle {
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; HANDLE_BYTES] {
+        &self.0
+    }
+
+    #[must_use]
+    pub fn to_hex(&self) -> String {
+        hex(&self.0)
+    }
+
+    /// Parse 64 lowercase or uppercase hexadecimal characters.
+    #[must_use]
+    pub fn from_hex(value: &str) -> Option<Self> {
+        unhex(value).map(Self)
+    }
+}
+
+impl core::fmt::Debug for OpaqueHandle {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(formatter, "OpaqueHandle({})", self.to_hex())
+    }
+}
+
+impl Serialize for OpaqueHandle {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_hex())
+    }
+}
+
+impl<'de> Deserialize<'de> for OpaqueHandle {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        Self::from_hex(&text).ok_or_else(|| serde::de::Error::custom("invalid opaque handle"))
+    }
+}
+
+/// A keyed continuation bound to one view binding and position.
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct ViewCursor {
+    position: u32,
+    tag: [u8; HANDLE_BYTES],
+}
+
+impl ViewCursor {
+    /// `<8 hex position><64 hex tag>`.
+    #[must_use]
+    pub fn to_token(&self) -> String {
+        let mut token = hex(&self.position.to_be_bytes());
+        token.push_str(&hex(&self.tag));
+        token
+    }
+
+    #[must_use]
+    pub fn from_token(token: &str) -> Option<Self> {
+        let position = token.get(..8)?;
+        let tag = unhex(token.get(8..)?)?;
+        let mut bytes = [0_u8; 4];
+        for (slot, pair) in bytes.iter_mut().zip(position.as_bytes().chunks(2)) {
+            *slot = hex_pair(pair)?;
+        }
+        Some(Self {
+            position: u32::from_be_bytes(bytes),
+            tag,
+        })
+    }
+}
+
+impl core::fmt::Debug for ViewCursor {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(formatter, "ViewCursor({})", self.to_token())
+    }
+}
+
+impl Serialize for ViewCursor {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.to_token())
+    }
+}
+
+impl<'de> Deserialize<'de> for ViewCursor {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        Self::from_token(&text).ok_or_else(|| serde::de::Error::custom("invalid view cursor"))
+    }
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut text = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        for nibble in [byte >> 4, byte & 0x0f] {
+            if let Some(digit) = DIGITS.get(usize::from(nibble)) {
+                text.push(char::from(*digit));
+            }
+        }
+    }
+    text
+}
+
+fn hex_digit(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn hex_pair(pair: &[u8]) -> Option<u8> {
+    match pair {
+        [high, low] => Some(hex_digit(*high)? << 4 | hex_digit(*low)?),
+        _ => None,
+    }
+}
+
+fn unhex(value: &str) -> Option<[u8; HANDLE_BYTES]> {
+    if value.len() != HANDLE_BYTES * 2 {
+        return None;
+    }
+    let mut bytes = [0_u8; HANDLE_BYTES];
+    for (slot, pair) in bytes.iter_mut().zip(value.as_bytes().chunks(2)) {
+        *slot = hex_pair(pair)?;
+    }
+    Some(bytes)
+}
+
+// ---------------------------------------------------------------------------
+// Refusals
+
+/// The single public shape for a missing, forbidden or stale object when
+/// discovery is not authorized.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct PublicUnavailable {
+    error: &'static str,
+}
+
+impl PublicUnavailable {
+    const SHAPE: Self = Self {
+        error: "unavailable",
+    };
+}
+
+/// Why an object was unavailable, kept for the trusted owner's audit only.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UnavailableReason {
+    /// Nothing exists under that name.
+    Missing,
+    /// It exists but the holder is not authorized for it.
+    Forbidden,
+    /// The view, cursor or handle no longer matches current authority.
+    Stale,
+}
+
+/// An internally attributable refusal whose public form is uniform.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Unavailable {
+    reason: UnavailableReason,
+}
+
+impl Unavailable {
+    const fn new(reason: UnavailableReason) -> Self {
+        Self { reason }
+    }
+    #[must_use]
+    pub const fn reason(&self) -> UnavailableReason {
+        self.reason
+    }
+    #[must_use]
+    pub const fn public(&self) -> PublicUnavailable {
+        PublicUnavailable::SHAPE
+    }
+}
+
+/// Why a restriction was refused, for the trusted owner's audit.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DisclosureRefusal {
+    /// The scope expired.
+    Expired,
+    /// The scope names another repository.
+    RepositoryMismatch,
+    /// The scope admitted another exact revision.
+    SnapshotMismatch,
+    /// The scope grants neither discovery nor reading anywhere.
+    NotAuthorized,
+}
+
+impl DisclosureRefusal {
+    #[must_use]
+    pub const fn public(&self) -> PublicUnavailable {
+        PublicUnavailable::SHAPE
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Ceiling
+
+// r[impl kiln.source.projection.sharing.ceiling]
+/// The frozen maximum scope of one view definition: path-component prefixes
+/// covering its selection, and the operations its profile can ever admit.
+/// A share binds the ceiling it was admitted under, so a later definition
+/// edit cannot expand it.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ViewCeiling {
+    definition: ContentId,
+    paths: BTreeSet<PathScope>,
+    operations: BTreeSet<SourceViewOperation>,
+    identity: ContentId,
+}
+
+impl ViewCeiling {
+    /// Derive the ceiling from an admitted definition. Each include pattern
+    /// contributes the selection root plus its literal leading components:
+    /// an exact path when the whole pattern is literal, a subtree otherwise.
+    /// Excludes only narrow, so they never widen the ceiling.
+    #[must_use]
+    pub fn from_definition(definition: &AdmittedDefinition) -> Self {
+        let selection = &definition.selection;
+        let root: Vec<String> = if selection.root().is_empty() {
+            Vec::new()
+        } else {
+            selection
+                .root()
+                .split('/')
+                .map(ToString::to_string)
+                .collect()
+        };
+        let mut candidates = BTreeSet::new();
+        for pattern in selection.include() {
+            let mut components = root.clone();
+            let mut subtree = false;
+            for part in pattern.split('/') {
+                if part.contains(GLOB_CHARS) {
+                    subtree = true;
+                    break;
+                }
+                components.push(part.to_string());
+            }
+            candidates.insert(PathScope {
+                components,
+                subtree,
+            });
+        }
+        let paths: BTreeSet<PathScope> = candidates
+            .iter()
+            .filter(|path| {
+                !candidates
+                    .iter()
+                    .any(|other| other != *path && other.contains(path))
+            })
+            .cloned()
+            .collect();
+        let operations = profile_operations(definition.profile());
+        let mut hasher = blake3::Hasher::new();
+        update_field(&mut hasher, "schema", VIEW_CEILING_SCHEMA.as_bytes());
+        update_field(
+            &mut hasher,
+            "definition",
+            definition.identity().as_str().as_bytes(),
+        );
+        update_usize(&mut hasher, "paths", paths.len());
+        for path in &paths {
+            update_usize(&mut hasher, "components", path.components.len());
+            for component in &path.components {
+                update_field(&mut hasher, "component", component.as_bytes());
+            }
+            update_bool(&mut hasher, "subtree", path.subtree);
+        }
+        for operation in &operations {
+            update_field(&mut hasher, "operation", operation.as_str().as_bytes());
+        }
+        Self {
+            definition: definition.identity().clone(),
+            paths,
+            operations,
+            identity: finish(hasher),
+        }
+    }
+
+    #[must_use]
+    pub fn definition(&self) -> &ContentId {
+        &self.definition
+    }
+    #[must_use]
+    pub fn paths(&self) -> &BTreeSet<PathScope> {
+        &self.paths
+    }
+    #[must_use]
+    pub fn operations(&self) -> &BTreeSet<SourceViewOperation> {
+        &self.operations
+    }
+    #[must_use]
+    pub fn identity(&self) -> &ContentId {
+        &self.identity
+    }
+
+    /// Whether the ceiling admits `operation` over a repository path.
+    #[must_use]
+    pub fn allows(&self, operation: SourceViewOperation, path: &str) -> bool {
+        self.operations.contains(&operation) && self.paths.iter().any(|p| p.covers_path(path))
+    }
+
+    /// Whether the ceiling contains every path of `scope`.
+    #[must_use]
+    pub fn contains(&self, scope: &PathScope) -> bool {
+        self.paths.iter().any(|path| path.contains(scope))
+    }
+}
+
+/// Operations a profile can ever admit. Navigation never prepares or
+/// mutates; only a writable view can modify or create source.
+fn profile_operations(profile: ProjectionProfile) -> BTreeSet<SourceViewOperation> {
+    use SourceViewOperation as Op;
+    let mut operations: BTreeSet<Op> =
+        [Op::Discover, Op::ReadContent, Op::ReadHistory, Op::Delegate]
+            .into_iter()
+            .collect();
+    if profile != ProjectionProfile::Navigation {
+        operations.extend([Op::PrepareWorkspace, Op::RetrieveResult]);
+    }
+    if profile == ProjectionProfile::Writable {
+        operations.extend([Op::ModifySource, Op::CreateSource]);
+    }
+    operations
+}
+
+// ---------------------------------------------------------------------------
+// Binding and restricted view
+
+// r[impl kiln.source.projection.disclosure.handles]
+/// Server-side binding of one restricted view: the exact source, definition
+/// and trusted manifest, the ceiling, the audience and its effective scope,
+/// and the authority and revocation generations. Its identity keys handles,
+/// cursors and caches, so a change to any field invalidates all three.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ViewBinding {
+    repository: ContentId,
+    snapshot: ExternalRef,
+    definition: ContentId,
+    manifest: ContentId,
+    ceiling: ContentId,
+    audience: String,
+    effective_scope: ContentId,
+    generation: u64,
+    revocation_generation: u64,
+    identity: ContentId,
+}
+
+impl ViewBinding {
+    fn new(
+        manifest: &ResolvedProjectionManifest,
+        ceiling: &ViewCeiling,
+        scope: &EffectiveSourceScope,
+    ) -> Self {
+        let mut hasher = blake3::Hasher::new();
+        update_field(&mut hasher, "schema", VIEW_BINDING_SCHEMA.as_bytes());
+        update_field(
+            &mut hasher,
+            "repository",
+            manifest.repository.as_str().as_bytes(),
+        );
+        update_external(&mut hasher, "snapshot", &manifest.exact_revision);
+        update_field(
+            &mut hasher,
+            "definition",
+            manifest.definition.as_str().as_bytes(),
+        );
+        update_field(
+            &mut hasher,
+            "manifest",
+            manifest.identity.as_str().as_bytes(),
+        );
+        update_field(&mut hasher, "ceiling", ceiling.identity.as_str().as_bytes());
+        update_field(&mut hasher, "audience", scope.audience().as_bytes());
+        update_field(&mut hasher, "scope", scope.identity().as_str().as_bytes());
+        hasher.update(&scope.generation().to_le_bytes());
+        hasher.update(&scope.revocation_generation().to_le_bytes());
+        Self {
+            repository: manifest.repository.clone(),
+            snapshot: manifest.exact_revision.clone(),
+            definition: manifest.definition.clone(),
+            manifest: manifest.identity.clone(),
+            ceiling: ceiling.identity.clone(),
+            audience: scope.audience().to_string(),
+            effective_scope: scope.identity().clone(),
+            generation: scope.generation(),
+            revocation_generation: scope.revocation_generation(),
+            identity: finish(hasher),
+        }
+    }
+
+    #[must_use]
+    pub fn repository(&self) -> &ContentId {
+        &self.repository
+    }
+    #[must_use]
+    pub fn snapshot(&self) -> &ExternalRef {
+        &self.snapshot
+    }
+    #[must_use]
+    pub fn definition(&self) -> &ContentId {
+        &self.definition
+    }
+    #[must_use]
+    pub fn manifest(&self) -> &ContentId {
+        &self.manifest
+    }
+    #[must_use]
+    pub fn ceiling(&self) -> &ContentId {
+        &self.ceiling
+    }
+    #[must_use]
+    pub fn audience(&self) -> &str {
+        &self.audience
+    }
+    #[must_use]
+    pub fn effective_scope(&self) -> &ContentId {
+        &self.effective_scope
+    }
+    #[must_use]
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+    #[must_use]
+    pub fn revocation_generation(&self) -> u64 {
+        self.revocation_generation
+    }
+    /// Cache and continuation key of the restricted view.
+    #[must_use]
+    pub fn identity(&self) -> &ContentId {
+        &self.identity
+    }
+
+    /// Whether `scope` is the live scope this binding was made under.
+    fn current_for(&self, scope: &EffectiveSourceScope, now_unix_s: u64) -> bool {
+        scope.live_at(now_unix_s)
+            && scope.identity() == &self.effective_scope
+            && scope.audience() == self.audience
+            && scope.generation() == self.generation
+            && scope.revocation_generation() == self.revocation_generation
+    }
+}
+
+/// How one visible entry may be used.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VisibleStatus {
+    /// Native source the holder may also modify through this view.
+    Present,
+    /// Native source the holder may discover or read but not modify.
+    ReadOnly,
+    /// Generator output, never source.
+    Generated,
+}
+
+/// One entry as the holder sees it. `display_path` is withheld unless the
+/// holder may discover the origin; `readable` reports read authority.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct VisibleEntry {
+    pub handle: OpaqueHandle,
+    pub display_path: Option<String>,
+    pub kind: EntryKind,
+    pub status: VisibleStatus,
+    pub readable: bool,
+}
+
+// r[impl kiln.source.projection.disclosure.unavailable.scenario.coverage]
+/// Coverage relative to the authorized scope only.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "state", rename_all = "snake_case")]
+pub enum VisibleCoverage {
+    /// Every authorized entry is listed.
+    Complete,
+    /// Listing stopped at the named bound.
+    Truncated { bound: usize },
+    /// The source enumeration was incomplete; what lies in scope is unknown.
+    Unavailable,
+}
+
+/// A declared dependency as the holder sees it. Missing and denied are the
+/// same `unavailable`; the identity is disclosed only to a full-source holder.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct VisibleDependency {
+    pub name: String,
+    pub required: bool,
+    pub available: bool,
+    pub identity: Option<ContentId>,
+}
+
+/// What a holder learns by looking up a source path it may discover.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OriginLookup<'a> {
+    /// The path is present, under one destination per alias.
+    Entries(Vec<&'a VisibleEntry>),
+    /// The definition does not select the path.
+    Unrequested,
+    /// The path is selected and known to be absent.
+    Absent,
+    /// The enumeration was incomplete, so presence is unknown.
+    Unknown,
+    /// Listing stopped at the named bound before the path could be found.
+    Truncated { bound: usize },
+}
+
+/// Server-side origin of one visible entry; never presented.
+#[derive(Clone, Eq, PartialEq)]
+struct TrustedSlot {
+    destination: String,
+    origin: Option<String>,
+}
+
+// r[impl kiln.source.projection.disclosure.restricted]
+/// A restricted view for one holder. Only [`restrict`] builds one; it cannot
+/// be deserialized, and its presentation omits every trusted binding.
+#[derive(Clone, Eq, PartialEq)]
+pub struct AudienceView {
+    binding: ViewBinding,
+    ceiling: ViewCeiling,
+    reference: OpaqueHandle,
+    entries: Vec<VisibleEntry>,
+    coverage: VisibleCoverage,
+    dependencies: Vec<VisibleDependency>,
+    trusted: Vec<TrustedSlot>,
+}
+
+impl core::fmt::Debug for AudienceView {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("AudienceView")
+            .field("binding", &self.binding.identity)
+            .field("entries", &self.entries.len())
+            .field("coverage", &self.coverage)
+            .finish_non_exhaustive()
+    }
+}
+
+/// The serializable presentation of an audience view.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ViewPresentation<'a> {
+    pub schema: &'static str,
+    pub view: OpaqueHandle,
+    pub entries: &'a [VisibleEntry],
+    pub coverage: VisibleCoverage,
+    pub dependencies: &'a [VisibleDependency],
+}
+
+/// One page of visible entries.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ViewPage<'a> {
+    pub entries: &'a [VisibleEntry],
+    pub next: Option<ViewCursor>,
+}
+
+impl AudienceView {
+    #[must_use]
+    pub fn binding(&self) -> &ViewBinding {
+        &self.binding
+    }
+    #[must_use]
+    pub fn ceiling(&self) -> &ViewCeiling {
+        &self.ceiling
+    }
+    /// Opaque reference to this view, keyed over its binding.
+    #[must_use]
+    pub fn reference(&self) -> OpaqueHandle {
+        self.reference
+    }
+    #[must_use]
+    pub fn entries(&self) -> &[VisibleEntry] {
+        &self.entries
+    }
+    #[must_use]
+    pub fn coverage(&self) -> VisibleCoverage {
+        self.coverage
+    }
+    #[must_use]
+    pub fn dependencies(&self) -> &[VisibleDependency] {
+        &self.dependencies
+    }
+
+    #[must_use]
+    pub fn presentation(&self) -> ViewPresentation<'_> {
+        ViewPresentation {
+            schema: VIEW_PRESENTATION_SCHEMA,
+            view: self.reference,
+            entries: &self.entries,
+            coverage: self.coverage,
+            dependencies: &self.dependencies,
+        }
+    }
+
+    /// BLAKE3 identity of what the holder can see, excluding the keyed
+    /// handles: equal authorized input yields equal content identities.
+    #[must_use]
+    pub fn content_identity(&self) -> ContentId {
+        let mut hasher = blake3::Hasher::new();
+        update_field(&mut hasher, "schema", VISIBLE_CONTENT_SCHEMA.as_bytes());
+        update_usize(&mut hasher, "entries", self.entries.len());
+        for entry in &self.entries {
+            update_field(
+                &mut hasher,
+                "display_path",
+                entry.display_path.as_deref().unwrap_or("").as_bytes(),
+            );
+            update_bool(&mut hasher, "displayed", entry.display_path.is_some());
+            update_field(&mut hasher, "kind", entry.kind.as_str().as_bytes());
+            update_field(&mut hasher, "status", status_label(entry.status).as_bytes());
+            update_bool(&mut hasher, "readable", entry.readable);
+        }
+        match self.coverage {
+            VisibleCoverage::Complete => update_field(&mut hasher, "coverage", b"complete"),
+            VisibleCoverage::Truncated { bound } => {
+                update_field(&mut hasher, "coverage", b"truncated");
+                update_usize(&mut hasher, "bound", bound);
+            }
+            VisibleCoverage::Unavailable => update_field(&mut hasher, "coverage", b"unavailable"),
+        }
+        for dependency in &self.dependencies {
+            update_field(&mut hasher, "dependency", dependency.name.as_bytes());
+            update_bool(&mut hasher, "required", dependency.required);
+            update_bool(&mut hasher, "available", dependency.available);
+            update_field(
+                &mut hasher,
+                "identity",
+                dependency
+                    .identity
+                    .as_ref()
+                    .map_or("", ContentId::as_str)
+                    .as_bytes(),
+            );
+        }
+        finish(hasher)
+    }
+
+    /// Recheck the binding against the holder's current scope.
+    ///
+    /// # Errors
+    /// Returns a stale refusal when the scope changed, narrowed, was revoked
+    /// or expired.
+    pub fn check_current(
+        &self,
+        scope: &EffectiveSourceScope,
+        now_unix_s: u64,
+    ) -> Result<(), Unavailable> {
+        if self.binding.current_for(scope, now_unix_s) {
+            Ok(())
+        } else {
+            Err(Unavailable::new(UnavailableReason::Stale))
+        }
+    }
+
+    // r[impl kiln.source.projection.disclosure.unavailable]
+    /// Look up a displayed destination path. A hidden and a missing path
+    /// give the same public refusal; only the reason differs internally.
+    ///
+    /// # Errors
+    /// Returns `Unavailable` for a hidden, missing or stale lookup.
+    pub fn lookup(
+        &self,
+        trusted: &AdmittedPartialView,
+        destination: &str,
+    ) -> Result<&VisibleEntry, Unavailable> {
+        if trusted.manifest().identity != self.binding.manifest {
+            return Err(Unavailable::new(UnavailableReason::Stale));
+        }
+        if let Some(entry) = self
+            .entries
+            .iter()
+            .find(|entry| entry.display_path.as_deref() == Some(destination))
+        {
+            return Ok(entry);
+        }
+        let exists = trusted
+            .manifest()
+            .entries
+            .iter()
+            .any(|entry| entry.destination == destination);
+        Err(Unavailable::new(if exists {
+            UnavailableReason::Forbidden
+        } else {
+            UnavailableReason::Missing
+        }))
+    }
+
+    /// Classify a source path the holder may discover: present, unrequested
+    /// by the definition, known absent, unknown or beyond the bound.
+    ///
+    /// # Errors
+    /// Returns `Unavailable` when the holder may not discover the path, the
+    /// scope is no longer current or the definition is another one.
+    pub fn lookup_origin(
+        &self,
+        definition: &AdmittedDefinition,
+        scope: &EffectiveSourceScope,
+        now_unix_s: u64,
+        path: &str,
+    ) -> Result<OriginLookup<'_>, Unavailable> {
+        self.check_current(scope, now_unix_s)?;
+        if definition.identity() != &self.binding.definition {
+            return Err(Unavailable::new(UnavailableReason::Stale));
+        }
+        if !paths::canonical(path)
+            || !self.ceiling.allows(SourceViewOperation::Discover, path)
+            || !scope.permits(SourceViewOperation::Discover, path)
+        {
+            return Err(Unavailable::new(UnavailableReason::Forbidden));
+        }
+        if !definition.selects(path) {
+            return Ok(OriginLookup::Unrequested);
+        }
+        let found: Vec<&VisibleEntry> = self
+            .entries
+            .iter()
+            .zip(&self.trusted)
+            .filter(|(_, slot)| slot.origin.as_deref() == Some(path))
+            .map(|(entry, _)| entry)
+            .collect();
+        Ok(if !found.is_empty() {
+            OriginLookup::Entries(found)
+        } else {
+            match self.coverage {
+                VisibleCoverage::Complete => OriginLookup::Absent,
+                VisibleCoverage::Unavailable => OriginLookup::Unknown,
+                VisibleCoverage::Truncated { bound } => OriginLookup::Truncated { bound },
+            }
+        })
+    }
+
+    /// Resolve a handle to its trusted manifest entry for one operation, after
+    /// rechecking the binding and the operation against current authority.
+    /// The shell then admits the origin's exact components at the port.
+    ///
+    /// # Errors
+    /// Returns `Unavailable` for a foreign, forged or stale handle, or an
+    /// operation the scope or ceiling does not grant over the origin.
+    pub fn resolve<'t>(
+        &self,
+        trusted: &'t AdmittedPartialView,
+        scope: &EffectiveSourceScope,
+        now_unix_s: u64,
+        handle: &OpaqueHandle,
+        operation: SourceViewOperation,
+    ) -> Result<&'t ManifestEntry, Unavailable> {
+        self.check_current(scope, now_unix_s)?;
+        if trusted.manifest().identity != self.binding.manifest {
+            return Err(Unavailable::new(UnavailableReason::Stale));
+        }
+        let Some(slot) = self
+            .entries
+            .iter()
+            .zip(&self.trusted)
+            .find(|(entry, _)| &entry.handle == handle)
+            .map(|(_, slot)| slot)
+        else {
+            return Err(Unavailable::new(UnavailableReason::Missing));
+        };
+        let permitted = match &slot.origin {
+            Some(origin) => {
+                self.ceiling.allows(operation, origin) && scope.permits(operation, origin)
+            }
+            None => full_source(scope, &self.ceiling, operation),
+        };
+        if !permitted {
+            return Err(Unavailable::new(UnavailableReason::Forbidden));
+        }
+        trusted
+            .manifest()
+            .entries
+            .iter()
+            .find(|entry| entry.destination == slot.destination)
+            .ok_or(Unavailable::new(UnavailableReason::Stale))
+    }
+
+    // r[impl kiln.source.projection.disclosure.handles.scenario.cursor]
+    /// One bounded page, continuing from a cursor of this binding.
+    ///
+    /// # Errors
+    /// Returns a stale refusal for a cursor of another binding or key, a
+    /// position past the end, or a scope that is no longer current.
+    pub fn page(
+        &self,
+        key: &HandleKey,
+        scope: &EffectiveSourceScope,
+        now_unix_s: u64,
+        cursor: Option<&ViewCursor>,
+        limit: usize,
+    ) -> Result<ViewPage<'_>, Unavailable> {
+        self.check_current(scope, now_unix_s)?;
+        let start = match cursor {
+            None => 0,
+            Some(cursor) => {
+                if cursor.tag != self.cursor_tag(key, cursor.position) {
+                    return Err(Unavailable::new(UnavailableReason::Stale));
+                }
+                usize::try_from(cursor.position).unwrap_or(usize::MAX)
+            }
+        };
+        let end = start
+            .saturating_add(limit.clamp(1, MAX_PAGE_ENTRIES))
+            .min(self.entries.len());
+        let entries = self
+            .entries
+            .get(start..end)
+            .ok_or(Unavailable::new(UnavailableReason::Stale))?;
+        let next = if end < self.entries.len() {
+            let position = u32::try_from(end).unwrap_or(u32::MAX);
+            Some(ViewCursor {
+                position,
+                tag: self.cursor_tag(key, position),
+            })
+        } else {
+            None
+        };
+        Ok(ViewPage { entries, next })
+    }
+
+    fn cursor_tag(&self, key: &HandleKey, position: u32) -> [u8; HANDLE_BYTES] {
+        key.keyed(
+            CURSOR_DOMAIN,
+            &[
+                self.binding.identity.as_str().as_bytes(),
+                &position.to_le_bytes(),
+            ],
+        )
+    }
+}
+
+const fn status_label(status: VisibleStatus) -> &'static str {
+    match status {
+        VisibleStatus::Present => "present",
+        VisibleStatus::ReadOnly => "read_only",
+        VisibleStatus::Generated => "generated",
+    }
+}
+
+/// A full-source holder: the ceiling and one grant cover the whole repository
+/// for `operation`. Generated entries and dependency identities, which have no
+/// native path, are disclosed only to one.
+fn full_source(
+    scope: &EffectiveSourceScope,
+    ceiling: &ViewCeiling,
+    operation: SourceViewOperation,
+) -> bool {
+    let root = PathScope::root();
+    ceiling.operations.contains(&operation)
+        && ceiling.contains(&root)
+        && scope.permits_scope(operation, &root)
+}
+
+// r[impl kiln.source.projection.disclosure.restricted.scenario.filter_first]
+/// Restrict a trusted view to one holder.
+///
+/// An entry is visible only when its native origin lies in the ceiling and a
+/// current grant lets the holder discover or read it. Aliases are judged by
+/// their origin, never by their destination. Filtering happens before the
+/// entries are counted, truncated, paged or turned into coverage, so nothing
+/// outside the scope shapes the result.
+///
+/// # Errors
+/// Returns the internal refusal for an expired scope, another repository or
+/// revision, or a scope without discovery or read anywhere.
+pub fn restrict(
+    view: &AdmittedPartialView,
+    scope: &EffectiveSourceScope,
+    ceiling: &ViewCeiling,
+    key: &HandleKey,
+    now_unix_s: u64,
+) -> Result<AudienceView, DisclosureRefusal> {
+    restrict_bounded(view, scope, ceiling, key, now_unix_s, MAX_VISIBLE_ENTRIES)
+}
+
+fn restrict_bounded(
+    view: &AdmittedPartialView,
+    scope: &EffectiveSourceScope,
+    ceiling: &ViewCeiling,
+    key: &HandleKey,
+    now_unix_s: u64,
+    bound: usize,
+) -> Result<AudienceView, DisclosureRefusal> {
+    use SourceViewOperation as Op;
+    let manifest = view.manifest();
+    if !scope.live_at(now_unix_s) {
+        return Err(DisclosureRefusal::Expired);
+    }
+    if scope.repository() != &manifest.repository {
+        return Err(DisclosureRefusal::RepositoryMismatch);
+    }
+    if scope.revision() != &manifest.exact_revision {
+        return Err(DisclosureRefusal::SnapshotMismatch);
+    }
+    if !scope.names(Op::Discover) && !scope.names(Op::ReadContent) {
+        return Err(DisclosureRefusal::NotAuthorized);
+    }
+    let binding = ViewBinding::new(manifest, ceiling, scope);
+    let writable = manifest.profile == ProjectionProfile::Writable;
+    let mut entries = Vec::new();
+    let mut trusted = Vec::new();
+    let mut truncated = false;
+    for entry in &manifest.entries {
+        let allowed = |operation: Op| match &entry.origin {
+            EntryOrigin::Native { path, .. } => {
+                ceiling.allows(operation, path) && scope.permits(operation, path)
+            }
+            EntryOrigin::Generated { .. } => full_source(scope, ceiling, operation),
+        };
+        let discover = allowed(Op::Discover);
+        let readable = allowed(Op::ReadContent);
+        if !discover && !readable {
+            continue;
+        }
+        if entries.len() >= bound {
+            truncated = true;
+            break;
+        }
+        let (status, origin) = match &entry.origin {
+            EntryOrigin::Generated { .. } => (VisibleStatus::Generated, None),
+            EntryOrigin::Native { path, .. } => (
+                if writable && allowed(Op::ModifySource) {
+                    VisibleStatus::Present
+                } else {
+                    VisibleStatus::ReadOnly
+                },
+                Some(path.clone()),
+            ),
+        };
+        entries.push(VisibleEntry {
+            handle: OpaqueHandle(key.keyed(
+                HANDLE_DOMAIN,
+                &[
+                    binding.identity.as_str().as_bytes(),
+                    entry.destination.as_bytes(),
+                ],
+            )),
+            display_path: discover.then(|| entry.destination.clone()),
+            kind: entry.kind,
+            status,
+            readable,
+        });
+        trusted.push(TrustedSlot {
+            destination: entry.destination.clone(),
+            origin,
+        });
+    }
+    let coverage = if manifest.coverage == Coverage::Truncated {
+        VisibleCoverage::Unavailable
+    } else if truncated {
+        VisibleCoverage::Truncated { bound }
+    } else {
+        VisibleCoverage::Complete
+    };
+    let disclose_identity = full_source(scope, ceiling, Op::Discover);
+    let dependencies = manifest
+        .dependencies
+        .iter()
+        .map(|dependency| {
+            let identity = match &dependency.status {
+                DependencyStatus::Present { identity } => Some(identity),
+                DependencyStatus::Missing | DependencyStatus::Denied => None,
+            };
+            VisibleDependency {
+                name: dependency.name.clone(),
+                required: dependency.required,
+                available: identity.is_some(),
+                identity: identity.filter(|_| disclose_identity).cloned(),
+            }
+        })
+        .collect();
+    let reference =
+        OpaqueHandle(key.keyed(REFERENCE_DOMAIN, &[binding.identity.as_str().as_bytes()]));
+    Ok(AudienceView {
+        binding,
+        ceiling: ceiling.clone(),
+        reference,
+        entries,
+        coverage,
+        dependencies,
+        trusted,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Cairn context
+
+/// The kind of one Cairn lifecycle item.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CairnItemKind {
+    Change,
+    Requirement,
+    Task,
+    Decision,
+    Evidence,
+}
+
+impl CairnItemKind {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Change => "change",
+            Self::Requirement => "requirement",
+            Self::Task => "task",
+            Self::Decision => "decision",
+            Self::Evidence => "evidence",
+        }
+    }
+}
+
+/// The lifecycle status of one item.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CairnStatus {
+    Open,
+    Blocked,
+    Done,
+}
+
+impl CairnStatus {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Blocked => "blocked",
+            Self::Done => "done",
+        }
+    }
+}
+
+/// One Cairn item as the trusted owner observed it.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CairnItem {
+    /// The change directory, `.cairn/changes/<change>`.
+    pub change: String,
+    pub kind: CairnItemKind,
+    /// Native identity, such as a requirement or task id.
+    pub native_id: String,
+    /// Repository path of the item's source document.
+    pub path: String,
+    pub text: String,
+    pub status: CairnStatus,
+    /// Native ids this item depends on.
+    #[serde(default)]
+    pub prerequisites: Vec<String>,
+}
+
+/// The complete canonical Cairn observation retained by the trusted owner.
+/// A restricted context never converts into one.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct CairnObservation {
+    items: Vec<CairnItem>,
+    identity: ContentId,
+}
+
+impl CairnObservation {
+    /// Admit an observation: items in canonical order, each under its own
+    /// change path, with unique native ids and known prerequisites.
+    ///
+    /// # Errors
+    /// Returns sorted diagnostics for every fault.
+    pub fn new(mut items: Vec<CairnItem>) -> Result<Self, Vec<Diagnostic>> {
+        let mut findings = super::Findings::default();
+        if items.len() > MAX_CAIRN_ITEMS {
+            findings.push("bound_exceeded", "items", "too many Cairn items");
+        }
+        items.sort_by(|a, b| a.native_id.cmp(&b.native_id));
+        let ids: BTreeSet<&str> = items.iter().map(|item| item.native_id.as_str()).collect();
+        if ids.len() != items.len() {
+            findings.push(
+                "duplicate_native_id",
+                "items",
+                "Cairn native ids must be unique",
+            );
+        }
+        for item in &items {
+            let field = alloc::format!("items.{}", super::shown(&item.native_id));
+            if !valid_identifier(&item.native_id) || !valid_identifier(&item.change) {
+                findings.push("invalid_identifier", field.clone(), "invalid Cairn id");
+            }
+            let under_change = PathScope::cairn_change(&item.change)
+                .is_some_and(|scope| paths::canonical(&item.path) && scope.covers_path(&item.path));
+            if !under_change {
+                findings.push(
+                    "path_outside_change",
+                    field.clone(),
+                    "a Cairn item must live under its own change path",
+                );
+            }
+            if item.text.len() > MAX_CAIRN_TEXT_BYTES
+                || item.prerequisites.len() > MAX_CAIRN_PREREQUISITES
+            {
+                findings.push(
+                    "bound_exceeded",
+                    field.clone(),
+                    "a Cairn item exceeds a bound",
+                );
+            }
+            if item
+                .prerequisites
+                .iter()
+                .any(|id| !ids.contains(id.as_str()) || id == &item.native_id)
+            {
+                findings.push(
+                    "unknown_prerequisite",
+                    field,
+                    "a prerequisite must name another observed item",
+                );
+            }
+        }
+        if !findings.is_empty() {
+            return Err(findings.into_sorted());
+        }
+        let mut hasher = blake3::Hasher::new();
+        update_field(&mut hasher, "schema", CAIRN_OBSERVATION_SCHEMA.as_bytes());
+        update_usize(&mut hasher, "items", items.len());
+        for item in &items {
+            update_field(&mut hasher, "change", item.change.as_bytes());
+            update_field(&mut hasher, "kind", item.kind.as_str().as_bytes());
+            update_field(&mut hasher, "native_id", item.native_id.as_bytes());
+            update_field(&mut hasher, "path", item.path.as_bytes());
+            update_field(&mut hasher, "text", item.text.as_bytes());
+            update_field(&mut hasher, "status", item.status.as_str().as_bytes());
+            let prerequisites: BTreeSet<&str> =
+                item.prerequisites.iter().map(String::as_str).collect();
+            update_usize(&mut hasher, "prerequisites", prerequisites.len());
+            for prerequisite in prerequisites {
+                update_field(&mut hasher, "prerequisite", prerequisite.as_bytes());
+            }
+        }
+        Ok(Self {
+            items,
+            identity: finish(hasher),
+        })
+    }
+
+    #[must_use]
+    pub fn items(&self) -> &[CairnItem] {
+        &self.items
+    }
+    #[must_use]
+    pub fn identity(&self) -> &ContentId {
+        &self.identity
+    }
+}
+
+/// One Cairn item the holder may discover. `text` needs read authority;
+/// prerequisites are handles whether visible or hidden.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct VisibleCairnItem {
+    pub handle: OpaqueHandle,
+    pub change: String,
+    pub kind: CairnItemKind,
+    pub native_id: String,
+    pub text: Option<String>,
+    pub status: CairnStatus,
+    pub prerequisites: Vec<OpaqueHandle>,
+}
+
+/// A hidden prerequisite of a visible item: its handle and status only.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub struct HiddenPrerequisite {
+    pub handle: OpaqueHandle,
+    pub status: CairnStatus,
+}
+
+// r[impl kiln.source.projection.disclosure.cairn]
+/// Cairn context restricted to one holder and bound to its view binding.
+/// It is a presentation; it cannot be deserialized or converted into a
+/// [`CairnObservation`].
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RestrictedContext {
+    binding: ViewBinding,
+    observation: ContentId,
+    items: Vec<VisibleCairnItem>,
+    hidden_prerequisites: Vec<HiddenPrerequisite>,
+    identity: ContentId,
+}
+
+/// The serializable presentation of a restricted context.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct ContextPresentation<'a> {
+    pub schema: &'static str,
+    pub context: &'a ContentId,
+    pub items: &'a [VisibleCairnItem],
+    pub hidden_prerequisites: &'a [HiddenPrerequisite],
+}
+
+impl RestrictedContext {
+    #[must_use]
+    pub fn binding(&self) -> &ViewBinding {
+        &self.binding
+    }
+    /// The complete observation this context was derived from, server-side.
+    #[must_use]
+    pub fn observation(&self) -> &ContentId {
+        &self.observation
+    }
+    #[must_use]
+    pub fn items(&self) -> &[VisibleCairnItem] {
+        &self.items
+    }
+    #[must_use]
+    pub fn hidden_prerequisites(&self) -> &[HiddenPrerequisite] {
+        &self.hidden_prerequisites
+    }
+    /// Identity binding the delivered context to its view binding (audience,
+    /// effective scope, generations) and the exact observation.
+    #[must_use]
+    pub fn identity(&self) -> &ContentId {
+        &self.identity
+    }
+
+    #[must_use]
+    pub fn presentation(&self) -> ContextPresentation<'_> {
+        ContextPresentation {
+            schema: RESTRICTED_CONTEXT_SCHEMA,
+            context: &self.identity,
+            items: &self.items,
+            hidden_prerequisites: &self.hidden_prerequisites,
+        }
+    }
+
+    /// Whether a visible item still waits on any prerequisite, hidden ones
+    /// included; `None` for a handle this context does not hold.
+    #[must_use]
+    pub fn blocked(&self, handle: &OpaqueHandle) -> Option<bool> {
+        let item = self.items.iter().find(|item| &item.handle == handle)?;
+        Some(item.prerequisites.iter().any(|prerequisite| {
+            self.items
+                .iter()
+                .map(|visible| (visible.handle, visible.status))
+                .chain(
+                    self.hidden_prerequisites
+                        .iter()
+                        .map(|hidden| (hidden.handle, hidden.status)),
+                )
+                .any(|(other, status)| &other == prerequisite && status != CairnStatus::Done)
+        }))
+    }
+}
+
+/// Restrict a Cairn observation to the holder of a current audience view.
+/// An item is visible only when the view's ceiling and a current grant let the
+/// holder discover its change path; its text also needs read authority. A
+/// hidden prerequisite of a visible item appears only as a handle and status.
+///
+/// # Errors
+/// Returns a stale refusal when the scope is no longer the view's.
+pub fn restrict_context(
+    view: &AudienceView,
+    observation: &CairnObservation,
+    scope: &EffectiveSourceScope,
+    key: &HandleKey,
+    now_unix_s: u64,
+) -> Result<RestrictedContext, Unavailable> {
+    use SourceViewOperation as Op;
+    view.check_current(scope, now_unix_s)?;
+    let binding = &view.binding;
+    let handle = |native_id: &str| {
+        OpaqueHandle(key.keyed(
+            CAIRN_HANDLE_DOMAIN,
+            &[binding.identity.as_str().as_bytes(), native_id.as_bytes()],
+        ))
+    };
+    let allowed = |operation: Op, path: &str| {
+        view.ceiling.allows(operation, path) && scope.permits(operation, path)
+    };
+    let by_id: BTreeMap<&str, &CairnItem> = observation
+        .items
+        .iter()
+        .map(|item| (item.native_id.as_str(), item))
+        .collect();
+    let mut items = Vec::new();
+    let mut hidden = BTreeMap::new();
+    for item in &observation.items {
+        if !allowed(Op::Discover, &item.path) {
+            continue;
+        }
+        for prerequisite in &item.prerequisites {
+            if let Some(other) = by_id.get(prerequisite.as_str())
+                && !allowed(Op::Discover, &other.path)
+            {
+                hidden.insert(handle(&other.native_id), other.status);
+            }
+        }
+        items.push(VisibleCairnItem {
+            handle: handle(&item.native_id),
+            change: item.change.clone(),
+            kind: item.kind,
+            native_id: item.native_id.clone(),
+            text: allowed(Op::ReadContent, &item.path).then(|| item.text.clone()),
+            status: item.status,
+            prerequisites: item.prerequisites.iter().map(|id| handle(id)).collect(),
+        });
+    }
+    let hidden_prerequisites: Vec<HiddenPrerequisite> = hidden
+        .into_iter()
+        .map(|(handle, status)| HiddenPrerequisite { handle, status })
+        .collect();
+    let mut hasher = blake3::Hasher::new();
+    update_field(&mut hasher, "schema", RESTRICTED_CONTEXT_SCHEMA.as_bytes());
+    update_field(&mut hasher, "binding", binding.identity.as_str().as_bytes());
+    update_field(
+        &mut hasher,
+        "observation",
+        observation.identity.as_str().as_bytes(),
+    );
+    update_usize(&mut hasher, "items", items.len());
+    for item in &items {
+        update_field(&mut hasher, "handle", item.handle.as_bytes());
+        update_field(
+            &mut hasher,
+            "text",
+            item.text.as_deref().unwrap_or("").as_bytes(),
+        );
+        update_field(&mut hasher, "status", item.status.as_str().as_bytes());
+    }
+    update_usize(&mut hasher, "hidden", hidden_prerequisites.len());
+    for prerequisite in &hidden_prerequisites {
+        update_field(&mut hasher, "hidden", prerequisite.handle.as_bytes());
+        update_field(
+            &mut hasher,
+            "hidden_status",
+            prerequisite.status.as_str().as_bytes(),
+        );
+    }
+    Ok(RestrictedContext {
+        binding: binding.clone(),
+        observation: observation.identity.clone(),
+        items,
+        hidden_prerequisites,
+        identity: finish(hasher),
+    })
+}
+
+#[cfg(test)]
+mod tests;
