@@ -10,6 +10,7 @@ let ActiveRoots = [
   ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
   ".cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md",
   ".cairn/changes/scope-source-projection-authority/specs/source-projection/spec.md",
+  ".cairn/changes/check-github-intake-policy/specs/implementation-work/spec.md",
 ]
 in
 let Active =

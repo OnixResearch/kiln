@@ -101,8 +101,33 @@ pub struct ImplementationIssuePolicy {
 }
 
 impl ImplementationIssuePolicy {
+    /// Refuse a policy that no intake pass may use: an invalid repository
+    /// policy, base reference or selection. Webhook intake, polling and the
+    /// operator preflight all apply exactly this check before any issue.
+    // r[impl kiln.implementation.policy_check]
+    pub fn validate(&self) -> PortResult<()> {
+        admit_event_policy(&self.repository)?;
+        if let Some(base) = &self.base {
+            base.validate()?;
+        }
+        if let Some(selection) = &self.selection {
+            selection.validate()?;
+        }
+        Ok(())
+    }
+
+    /// Lowercase `owner/repository` key that intake binds work and native ids to.
+    #[must_use]
+    pub fn repository_key(&self) -> String {
+        format!(
+            "{}/{}",
+            self.repository.owner.to_ascii_lowercase(),
+            self.repository.repository.to_ascii_lowercase()
+        )
+    }
+
     /// Whether one open issue is admitted as work under this policy. Callers
-    /// validate the selection once per intake pass; each issue's labels are
+    /// validate the policy once per intake pass; each issue's labels are
     /// bounded here.
     pub fn selects(&self, number: u64, labels: &[String]) -> PortResult<bool> {
         match &self.selection {
@@ -189,13 +214,7 @@ pub fn admit_implementation_issue(
     body: &[u8],
     secret: &[u8],
 ) -> PortResult<Option<IssueAdmission>> {
-    admit_event_policy(&policy.repository)?;
-    if let Some(base) = &policy.base {
-        base.validate()?;
-    }
-    if let Some(selection) = &policy.selection {
-        selection.validate()?;
-    }
+    policy.validate()?;
     if body.is_empty() || body.len() > MAX_BODY_BYTES {
         return Err(domain(
             "github_body_bound",
@@ -285,11 +304,7 @@ pub fn admit_implementation_issue(
         ));
     }
     let sequence = timestamp_millis(&envelope.issue.updated_at).ok_or_else(invalid_issue)?;
-    let repository_key = format!(
-        "{}/{}",
-        policy.repository.owner.to_ascii_lowercase(),
-        policy.repository.repository.to_ascii_lowercase()
-    );
+    let repository_key = policy.repository_key();
     let native_id = format!("{repository_key}#{}", envelope.issue.number);
     let source_version = ContentId::from_blake3_hex(blake3::hash(body).to_hex().to_string())
         .map_err(|_| invalid_issue())?;

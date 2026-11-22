@@ -7,7 +7,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use kiln_core::implementation::{AdmissionDecision, IMPLEMENTATION_WORK_SCHEMA};
+use kiln_core::implementation::{
+    AdmissionDecision, Enrollment, IMPLEMENTATION_WORK_SCHEMA, WorkLedger,
+};
 use kiln_core::types::ContentId;
 use kiln_implementer::Implementer;
 use kiln_provider_api::{PortFailure, PortResult};
@@ -80,9 +82,7 @@ pub fn poll_implementation_issues(
             "polling page bound is zero or exceeds its maximum",
         ));
     }
-    if let Some(selection) = &policy.selection {
-        selection.validate()?;
-    }
+    policy.validate()?;
     let mut records: BTreeMap<u64, IssuePollRecord> = BTreeMap::new();
     let mut page = 1;
     let mut pages = 0;
@@ -132,11 +132,7 @@ pub fn poll_implementation_issues(
             _ => break,
         }
     }
-    let repository_key = format!(
-        "{}/{}",
-        policy.repository.owner.to_ascii_lowercase(),
-        policy.repository.repository.to_ascii_lowercase()
-    );
+    let repository_key = policy.repository_key();
     let mut ordered: Vec<IssuePollRecord> = records.into_values().collect();
     ordered.sort_by_key(|record| (record.updated_at_ms, record.number));
     let mut admissions = Vec::with_capacity(ordered.len());
@@ -218,6 +214,70 @@ pub struct PollSummary {
     pub closed: usize,
     /// Open issues outside the policy's explicit selection; never admitted.
     pub unselected: usize,
+}
+
+/// Issue number, update sequence and title of the synthetic open issue the
+/// policy preflight admits. Any valid values serve: the probe exercises the
+/// policy-derived work fields, not issue text.
+const PROBE_ISSUE_NUMBER: u64 = 1;
+const PROBE_UPDATED_AT_MS: u64 = 1;
+const PROBE_TITLE: &str = "policy preflight probe";
+
+/// What the policy preflight admitted.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct PolicyCheck {
+    pub policy: &'static str,
+    pub repository: String,
+}
+
+/// Admit an intake policy and enrollment exactly as [`poll_into_implementer`]
+/// would, without a transport or a ledger file.
+///
+/// The policy passes the same [`ImplementationIssuePolicy::validate`] every
+/// intake pass applies. Then one synthetic open issue from an enrolled actor
+/// goes through poll's record bounds, work construction and ledger admission
+/// in an empty in-memory ledger, so a policy whose derived work the ledger
+/// would refuse fails here instead of at the first polled issue. Selection is
+/// not consulted for the probe: it chooses issues, not work validity.
+// r[impl kiln.implementation.policy_check]
+pub fn check_poll_policy(
+    policy: &ImplementationIssuePolicy,
+    enrollment: &Enrollment,
+) -> PortResult<PolicyCheck> {
+    policy.validate()?;
+    let actor = enrollment.actors.iter().next().ok_or_else(|| {
+        refusal(
+            "github_poll_enrollment",
+            "enrollment.actors",
+            "enrollment names no actor, so polling can admit no issue",
+        )
+    })?;
+    let repository_key = policy.repository_key();
+    let record = IssuePollRecord {
+        number: PROBE_ISSUE_NUMBER,
+        title: PROBE_TITLE.to_string(),
+        body: None,
+        state: "open".to_string(),
+        updated_at_ms: PROBE_UPDATED_AT_MS,
+        actor: actor.clone(),
+        labels: Vec::new(),
+    };
+    validate_record(&record, &enrollment.actors)?;
+    let source_version = record_identity(&repository_key, &record)?;
+    let work = issue_work(
+        policy,
+        record.actor,
+        repository_key.clone(),
+        format!("{repository_key}#{}", record.number),
+        record.title,
+        record.updated_at_ms,
+        source_version,
+    )?;
+    WorkLedger::default().admit(&work, None, enrollment)?;
+    Ok(PolicyCheck {
+        policy: "admitted",
+        repository: repository_key,
+    })
 }
 
 fn validate_record(record: &IssuePollRecord, enrolled_actors: &BTreeSet<String>) -> PortResult<()> {
@@ -685,5 +745,94 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    fn enrollment() -> Enrollment {
+        Enrollment {
+            repositories: BTreeSet::from(["onixresearch/kiln".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        }
+    }
+
+    fn code(failure: PortFailure) -> String {
+        match failure {
+            PortFailure::Domain(diagnostic) => diagnostic.code,
+            other => unreachable!("unexpected failure class {other:?}"),
+        }
+    }
+
+    // r[verify kiln.implementation.policy_check] r[verify kiln.implementation.policy_check.scenario.admitted]
+    #[test]
+    fn policy_check_admits_what_polling_admits() {
+        let mut policy = policy();
+        policy.base = Some(
+            kiln_core::types::ExternalRef::new("git", "commit", "base")
+                .unwrap_or_else(|_| unreachable!()),
+        );
+        assert_eq!(
+            check_poll_policy(&policy, &enrollment()),
+            Ok(PolicyCheck {
+                policy: "admitted",
+                repository: "onixresearch/kiln".to_string(),
+            })
+        );
+        // The same policy and enrollment admit a polled issue.
+        let admissions = poll_implementation_issues(
+            &policy,
+            &enrollment().actors,
+            &mut page(vec![record(1, 10, "open")]),
+            0,
+            1,
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(admissions.as_slice(), [IssueAdmission::Work(_)]));
+    }
+
+    // r[verify kiln.implementation.policy_check.scenario.refused]
+    #[test]
+    fn policy_check_refuses_what_polling_or_admission_would_refuse() {
+        // Policy-level refusals are the ones polling applies before any page.
+        let mut repository = policy();
+        repository.repository.repository_id = 0;
+        let mut selection = policy();
+        selection.selection = Some(crate::implementation::IssueSelection::default());
+        for invalid in [repository, selection] {
+            let refused = check_poll_policy(&invalid, &enrollment())
+                .err()
+                .unwrap_or_else(|| unreachable!());
+            let polled = poll_implementation_issues(
+                &invalid,
+                &enrollment().actors,
+                &mut page(vec![record(1, 10, "open")]),
+                0,
+                1,
+            )
+            .err()
+            .unwrap_or_else(|| unreachable!());
+            assert_eq!(code(refused), code(polled));
+        }
+        // Work the ledger refuses fails the preflight with the ledger's code.
+        let mut budget = policy();
+        budget.budget.attempts = 0;
+        let refused = check_poll_policy(&budget, &enrollment())
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(code(refused), "implementation_budget");
+        let unenrolled = Enrollment {
+            repositories: BTreeSet::from(["onixresearch/other".to_string()]),
+            ..enrollment()
+        };
+        let refused = check_poll_policy(&policy(), &unenrolled)
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(code(refused), "implementation_unenrolled");
+        let no_actor = Enrollment {
+            actors: BTreeSet::new(),
+            ..enrollment()
+        };
+        let refused = check_poll_policy(&policy(), &no_actor)
+            .err()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(code(refused), "github_poll_enrollment");
     }
 }

@@ -82,6 +82,15 @@ admits normalized work into the ledger. Repeated polling is deduplicated by the 
 ledger; closed issues are observed but not treated as completion. It does not
 schedule itself or dispatch work.
 
+`policy-check --policy FILE --enrollment FILE` is the intake preflight. It
+admits the policy and enrollment with exactly the types, policy validation,
+work construction and ledger admission `poll` applies, using one synthetic
+open issue from an enrolled actor and an in-memory ledger, and prints
+`{"policy":"admitted","repository":"owner/repo"}`. It takes no `--database`
+and reads no credential. Webhook drain and polling apply the same policy
+validation before any delivery or provider call. See the
+[implementation runbook](implementation-runbook.md#intake-policy-and-immutable-preparation).
+
 `claim` creates one current attempt (default lease one hour, `--lease-ms` to
 override) and prints its canonical JSON including frozen work identity, base and
 fence; `renew --attempt ID --fence N [--lease-ms N]` extends a live lease;

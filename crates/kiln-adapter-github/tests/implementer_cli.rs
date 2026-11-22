@@ -1095,3 +1095,67 @@ fn host_owner_commands_admit_claim_and_reserve_the_sandbox_issue() {
     assert!(!release.status.success());
     assert!(String::from_utf8_lossy(&release.stderr).contains("host_owner_release_unobserved"));
 }
+
+fn policy_check(policy: &Path, enrollment: &Path) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .arg("policy-check")
+        .arg("--policy")
+        .arg(policy)
+        .arg("--enrollment")
+        .arg(enrollment)
+        .output()
+        .unwrap_or_else(|_| unreachable!())
+}
+
+// r[verify kiln.implementation.policy_check.scenario.missing_field] r[verify kiln.implementation.policy_check.scenario.admitted]
+#[test]
+fn policy_check_reports_the_field_poll_would_reject() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let policy_file = directory.path().join("github-policy.json");
+    let enrollment_file = directory.path().join("enrollment.json");
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from(["octocat/hello-world".to_string()]),
+        actors: BTreeSet::from(["operator".to_string()]),
+    };
+    write(
+        &enrollment_file,
+        &serde_json::to_vec(&enrollment).unwrap_or_else(|_| unreachable!()),
+    );
+
+    write(
+        &policy_file,
+        &serde_json::to_vec_pretty(&policy()).unwrap_or_else(|_| unreachable!()),
+    );
+    let admitted = policy_check(&policy_file, &enrollment_file);
+    assert!(
+        admitted.status.success(),
+        "{}",
+        String::from_utf8_lossy(&admitted.stderr)
+    );
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&admitted.stdout)
+            .unwrap_or_else(|_| unreachable!()),
+        serde_json::json!({"policy": "admitted", "repository": "octocat/hello-world"})
+    );
+
+    // The #49 pilot shape: a base reference without its contract version.
+    let mut document = serde_json::to_value(policy()).unwrap_or_else(|_| unreachable!());
+    let base = document
+        .get_mut("base")
+        .and_then(serde_json::Value::as_object_mut)
+        .unwrap_or_else(|| unreachable!());
+    assert!(base.remove("contract_version").is_some());
+    write(
+        &policy_file,
+        &serde_json::to_vec_pretty(&document).unwrap_or_else(|_| unreachable!()),
+    );
+    let refused = policy_check(&policy_file, &enrollment_file);
+    assert_eq!(refused.status.code(), Some(2));
+    let stderr = String::from_utf8_lossy(&refused.stderr);
+    assert!(
+        stderr.contains("github-policy.json does not match its schema: missing field `contract_version` at line "),
+        "{stderr}"
+    );
+    assert!(stderr.contains(" column "), "{stderr}");
+    assert!(refused.stdout.is_empty());
+}

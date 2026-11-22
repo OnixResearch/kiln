@@ -50,7 +50,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|policy-check|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -62,6 +62,7 @@ fn run() -> Result<(), ()> {
         "run" => run_loop(&flags),
         "poll" => poll(&flags),
         "poll-run" => poll_run(&flags),
+        "policy-check" => policy_check(&flags),
         "status" => status(&flags),
         "claim" => claim(&flags),
         "cancel" => cancel(&flags),
@@ -1811,7 +1812,7 @@ fn poll(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(enrollment) => enrollment,
         Err(error) => return fail(&error),
     };
-    let policy = match read_json(&policy_file) {
+    let policy: ImplementationIssuePolicy = match read_json(&policy_file) {
         Ok(policy) => policy,
         Err(error) => return fail(&error),
     };
@@ -2030,7 +2031,76 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T
     if bytes.len() as u64 > MAX_INPUT_BYTES {
         return Err("JSON input exceeds 16MiB admission bound".into());
     }
-    serde_json::from_slice(&bytes).map_err(|_| format!("{} is not valid JSON", path.display()))
+    serde_json::from_slice(&bytes).map_err(|error| json_input_error(path, &error))
+}
+
+/// Name a JSON input failure by its real cause and location without echoing
+/// input values. Malformed JSON keeps serde's fixed syntax message; a schema
+/// mismatch keeps missing, duplicate and unknown field names, and reduces any
+/// message that would quote a value to its kind and expected type.
+// r[impl kiln.implementation.json_input_diagnostics]
+fn json_input_error(path: &std::path::Path, error: &serde_json::Error) -> String {
+    use serde_json::error::Category;
+    let location = format!("line {} column {}", error.line(), error.column());
+    let rendered = error.to_string();
+    let message = rendered
+        .strip_suffix(&format!(" at {location}"))
+        .unwrap_or(&rendered);
+    match error.classify() {
+        Category::Io => format!("{} could not be read", path.display()),
+        Category::Syntax | Category::Eof => {
+            format!(
+                "{} is not valid JSON: {message} at {location}",
+                path.display()
+            )
+        }
+        Category::Data => format!(
+            "{} does not match its schema: {} at {location}",
+            path.display(),
+            schema_detail(message)
+        ),
+    }
+}
+
+fn schema_detail(message: &str) -> String {
+    const NAMED_FIELD: [&str; 3] = ["missing field `", "duplicate field `", "unknown field `"];
+    const VALUE_BEARING: [(&str, &str); 4] = [
+        ("invalid type", "a value has the wrong type"),
+        ("invalid value", "a value is not admitted"),
+        ("invalid length", "a sequence has the wrong length"),
+        ("unknown variant", "a value names an unknown variant"),
+    ];
+    if NAMED_FIELD.iter().any(|prefix| message.starts_with(prefix)) {
+        return message.to_string();
+    }
+    let kind = VALUE_BEARING
+        .iter()
+        .find(|(prefix, _)| message.starts_with(prefix))
+        .map_or("a value was refused by its type", |(_, kind)| kind);
+    match message.rsplit_once(", expected ") {
+        Some((_, expected)) => format!("{kind}, expected {expected}"),
+        None => kind.to_string(),
+    }
+}
+
+/// Admit the GitHub intake policy and enrollment with the exact types and
+/// validation `poll` applies, without a database, credential or transport.
+// r[impl kiln.implementation.policy_check]
+fn policy_check(flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<String, String> {
+        let enrollment: Enrollment = read_json(&required_path(flags, "--enrollment")?)?;
+        let policy: ImplementationIssuePolicy = read_json(&required_path(flags, "--policy")?)?;
+        let check = kiln_adapter_github::poll::check_poll_policy(&policy, &enrollment)
+            .map_err(|error| format!("{error:?}"))?;
+        serde_json::to_string(&check).map_err(|_| "policy check result encoding failed".into())
+    })();
+    match result {
+        Ok(json) => {
+            println!("{json}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
 }
 
 fn fail(message: &str) -> Result<(), ()> {
@@ -2140,5 +2210,53 @@ mod tests {
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or(0);
         assert!(since > 0);
+    }
+
+    fn diagnosis<T: serde::de::DeserializeOwned + std::fmt::Debug>(document: &str) -> String {
+        match serde_json::from_str::<T>(document) {
+            Ok(value) => unreachable!("unexpectedly admitted {value:?}"),
+            Err(error) => json_input_error(std::path::Path::new("policy.json"), &error),
+        }
+    }
+
+    // r[verify kiln.implementation.json_input_diagnostics] r[verify kiln.implementation.json_input_diagnostics.scenario.schema]
+    #[test]
+    fn schema_mismatch_names_the_missing_field_and_its_location() {
+        let message = diagnosis::<kiln_core::types::ExternalRef>(
+            "{\n  \"provider_namespace\": \"git\",\n  \"native_kind\": \"commit\",\n  \"native_id\": \"base\"\n}",
+        );
+        assert_eq!(
+            message,
+            "policy.json does not match its schema: missing field `contract_version` at line 5 column 1"
+        );
+    }
+
+    // r[verify kiln.implementation.json_input_diagnostics.scenario.malformed]
+    #[test]
+    fn malformed_json_is_distinguished_from_a_schema_mismatch() {
+        let message = diagnosis::<Enrollment>("{\"repositories\": [\"a/b\",]}");
+        assert_eq!(
+            message,
+            "policy.json is not valid JSON: trailing comma at line 1 column 25"
+        );
+        let truncated = diagnosis::<Enrollment>("{\"repositories\": [");
+        assert!(truncated.starts_with("policy.json is not valid JSON: EOF while parsing"));
+    }
+
+    // r[verify kiln.implementation.json_input_diagnostics.scenario.redacted]
+    #[test]
+    fn value_bearing_schema_errors_never_echo_the_value() {
+        let secret = "do-not-echo";
+        let wrong_type = diagnosis::<kiln_core::types::ExternalRef>(&format!(
+            "{{\"contract_version\": \"{secret}\"}}"
+        ));
+        assert_eq!(
+            wrong_type,
+            "policy.json does not match its schema: a value has the wrong type, expected u16 at line 1 column 34"
+        );
+        let variant =
+            diagnosis::<kiln_core::implementation::TerminalPolicy>(&format!("\"{secret}\""));
+        assert!(!variant.contains(secret), "{variant}");
+        assert!(variant.contains("a value names an unknown variant, expected"));
     }
 }

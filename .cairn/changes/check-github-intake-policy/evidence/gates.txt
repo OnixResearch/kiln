@@ -1,0 +1,27 @@
+Observed 2026-11-22 on the kiln-int2 integration branch (parent d1eda7e5),
+Rust 1.97.1 development shell, private Cargo target.
+
+$ cargo fmt --all --check
+exit 0
+$ cargo clippy --locked -p kiln-adapter-github --all-targets -- -D warnings
+exit 0
+$ cargo clippy --locked -p kiln-adapter-github --all-targets --all-features -- -D warnings
+exit 0
+$ cargo test --locked -p kiln-adapter-github --no-fail-fast --bin kiln-implementer --test implementer_cli --lib -- policy_check json schema_mismatch malformed value_bearing
+exit 0
+  poll::tests::policy_check_admits_what_polling_admits ok
+  poll::tests::policy_check_refuses_what_polling_or_admission_would_refuse ok
+  tests::schema_mismatch_names_the_missing_field_and_its_location ok
+  tests::malformed_json_is_distinguished_from_a_schema_mismatch ok
+  tests::value_bearing_schema_errors_never_echo_the_value ok
+  policy_check_reports_the_field_poll_would_reject ok
+$ cargo test --locked -p kiln-adapter-github --no-fail-fast
+exit 0; 121 passed, 0 failed, 0 ignored
+$ cairn validate --root . --policy cairn-policy/generated/cairn-policy.json
+exit 0 {"issues":[],"blocked":null}
+$ cairn gate proposal|design|tasks check-github-intake-policy --root . --policy cairn-policy/generated/cairn-policy.json
+exit 0 PASS (each)
+$ cairn traceability coverage --root . --policy <nickel export cairn-policy/development-coverage.ncl> --profile kiln-active-development --json
+exit 0 {"dangling":0,"missing":0,"requirements":2243,"verdict":"pass"}
+
+Not run here: the full workspace gates (run at integration once the remaining slices join).

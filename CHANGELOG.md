@@ -480,6 +480,13 @@ entry describes the source tree prepared for the first tagged release.
 - GitHub intake policies accept an explicit `selection` of issue numbers and/or
   exact labels; unselected open issues are observed as `unselected` and never
   admitted by webhook drain or polling.
+- `kiln-implementer policy-check --policy FILE --enrollment FILE` admits a
+  GitHub intake policy with exactly the types, policy validation, work
+  construction and ledger admission `poll` applies, using a synthetic issue
+  and an in-memory ledger; it opens no database, credential or transport.
+  Webhook intake and polling share one `ImplementationIssuePolicy::validate`,
+  so polling now also refuses an invalid repository policy or base reference
+  before any provider call.
 - `kiln-web-service implementation-verification-graph` installs the canonical
   CI graph constructor that was the `implementation_verification_profile`
   example, with unchanged behaviour.
@@ -651,6 +658,12 @@ entry describes the source tree prepared for the first tagged release.
 
 ### Fixed
 
+- Report the real cause of an implementer JSON input failure: malformed JSON
+  and schema mismatches are distinguished, missing, duplicate and unknown field
+  names are kept, every message gives the line and column, and value-bearing
+  messages are reduced to the mismatch kind and expected type. Previously every
+  failure read "<path> is not valid JSON", which hid a policy `base` without
+  `contract_version` in the #49 pilot.
 - Bring the accepted GitHub landing, source-status and publication
   requirements in line with the clients: unattended landing and issue closure
   are refused, only an exact external merge is recovered, and candidate upload
