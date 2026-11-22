@@ -368,6 +368,12 @@ impl Implementer {
                                     fence: attempt.fence,
                                 },
                             )?;
+                            bind_owner_transport(
+                                &ledger,
+                                &mut attempts,
+                                &selected,
+                                &attempt.identity,
+                            )?;
                             Some(attempt)
                         }
                     } else {
@@ -461,6 +467,12 @@ impl Implementer {
                                 attempt: attempt.identity.clone(),
                                 fence: attempt.fence,
                             },
+                        )?;
+                        bind_owner_transport(
+                            &ledger,
+                            &mut attempts,
+                            &expected_work_version,
+                            &attempt.identity,
                         )?;
                         let lease = lease_ms.to_string();
                         let parent = parent_budget_identity.as_str();
@@ -1172,6 +1184,27 @@ fn authorize_claim(
         now_ms,
     )
     .map_err(|message| refusal(&message))
+}
+
+// r[impl kiln.admission.host_owner]
+/// A claim of a host-owner queue row may record a workflow only after a
+/// recorded transport start. Bound in the claim's own transaction, before the
+/// attempt exists anywhere else, so no out-of-band launch can precede it.
+fn bind_owner_transport(
+    ledger: &AdmissionLedger,
+    attempts: &mut AttemptLedger,
+    work: &ContentId,
+    attempt: &ContentId,
+) -> Result<(), Diagnostic> {
+    let account = &ledger
+        .items
+        .get(work)
+        .ok_or_else(|| refusal("claimed work is not queued"))?
+        .account;
+    if is_host_owner_account(ledger, account)? {
+        attempts.bind_transport_start(attempt)?;
+    }
+    Ok(())
 }
 
 fn refusal(message: &str) -> Diagnostic {

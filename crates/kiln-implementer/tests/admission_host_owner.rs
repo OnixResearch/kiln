@@ -426,21 +426,44 @@ fn reserved_attempt(
     (attempt, reservation)
 }
 
-/// The real dispatch sequence: plan reservation, owner-grant gate, transport
-/// intent, Lattice acknowledgement and execution observation.
-fn dispatch(i: &mut Implementer, attempt: &ImplementationAttempt, now: u64) {
-    let plan = ok(ContentId::from_blake3_hex("7".repeat(64)));
-    let provider = ok(kiln_core::types::ProviderProfileId::new(
-        "onix-local-pilot-omp",
-    ));
-    ok(i.reserve_dispatch(&attempt.identity, attempt.fence, now, &plan, &provider));
+/// The two in-band dispatch routes: the worker request reconciles the native
+/// workflow, the workflow exchange acknowledges it with `start_execution`.
+#[derive(Clone, Copy)]
+enum Route {
+    Worker,
+    Exchange,
+}
+
+/// The real dispatch sequence: plan reservation, owner-grant gate, sealed
+/// request, transport start, Lattice acknowledgement and execution observation.
+fn dispatch_via(
+    i: &mut Implementer,
+    issue: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    now: u64,
+    route: Route,
+) {
+    let plan = plan_for(issue, attempt);
+    let reserved = ok(i.reserve_dispatch_plan(issue, &attempt.identity, attempt.fence, now, &plan));
     let observations = fresh(i, now);
     ok(i.admission_before_transport(&attempt.identity, attempt.fence, &observations, now));
-    // Transport intent needs the sealed request bytes; the acknowledged
-    // workflow below is the possible-effect fact release must respect.
+    ok(i.bind_campaign_request(issue, &attempt.identity, attempt.fence, now, b"{}"));
+    ok(i.begin_dispatch_transport(&attempt.identity, attempt.fence, now, &reserved.plan, None));
     let workflow = ok(ExternalRef::new("lattice", "workflow", "pilot-run-1"));
-    ok(i.start_execution(&attempt.identity, attempt.fence, now, &workflow));
+    match route {
+        Route::Worker => ok(i.reconcile_dispatch(&attempt.identity, attempt.fence, now, &workflow)),
+        Route::Exchange => ok(i.start_execution(&attempt.identity, attempt.fence, now, &workflow)),
+    }
     ok(i.admission_execution_observed(&attempt.identity, attempt.fence, now));
+}
+
+fn dispatch(
+    i: &mut Implementer,
+    issue: &ImplementationWork,
+    attempt: &ImplementationAttempt,
+    now: u64,
+) {
+    dispatch_via(i, issue, attempt, now, Route::Exchange);
 }
 
 fn reservation_state(
@@ -461,7 +484,7 @@ fn superseded_dispatched_holder_keeps_its_slot_until_termination_is_observed() {
     let issue = work(&profile, SANDBOX, 1);
     let mut i = open(&dir.path().join("work.sqlite"));
     let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
-    dispatch(&mut i, &attempt, NOW + 3);
+    dispatch(&mut i, &issue, &attempt, NOW + 3);
     // A newer issue revision aborts the attempt without observing its worker.
     let mut newer = issue.clone();
     newer.revision = 2;
@@ -495,7 +518,7 @@ fn lease_expired_acknowledged_holder_keeps_its_slot() {
     let issue = work(&profile, SANDBOX, 1);
     let mut i = open(&dir.path().join("work.sqlite"));
     let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
-    dispatch(&mut i, &attempt, NOW + 3);
+    dispatch(&mut i, &issue, &attempt, NOW + 3);
     let recovery = ok(i.recover(attempt.lease_until_ms + 1));
     assert!(recovery.expired.contains(&attempt.identity));
     refused(
@@ -703,7 +726,7 @@ fn observed_failed_run_without_a_candidate_is_released_and_consumed() {
     let issue = work(&profile, SANDBOX, 1);
     let mut i = open(&dir.path().join("work.sqlite"));
     let (attempt, _) = reserved_attempt(&mut i, &profile, &issue);
-    dispatch(&mut i, &attempt, NOW + 3);
+    dispatch(&mut i, &issue, &attempt, NOW + 3);
     // Kiln retains Lattice's complete native result: the run ended, failed.
     let observation = WorkerObservation {
         terminal: WorkerTerminalState::Failed,
@@ -834,4 +857,123 @@ fn a_de_enrolled_actor_does_not_block_other_work() {
     let observed = ok(i.host_owner_observe(&profile, NOW + 2));
     assert!(eligible(&observed, &ok(current.identity())));
     assert!(!eligible(&observed, &ok(former.identity())));
+}
+
+const TRANSPORT_START_REQUIRED: &str = "implementation_transport_start_required";
+
+fn plan_id() -> ContentId {
+    ok(ContentId::from_blake3_hex("7".repeat(64)))
+}
+
+fn provider() -> kiln_core::types::ProviderProfileId {
+    ok(kiln_core::types::ProviderProfileId::new(
+        "onix-local-pilot-omp",
+    ))
+}
+
+#[test]
+fn out_of_band_acknowledgement_of_a_granted_host_owner_claim_is_refused() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, _) = reserved_attempt(&mut i, &profile, &issue);
+    // `reserve`, an out-of-band launch, then `reconcile` or `start`.
+    ok(i.reserve_dispatch(
+        &attempt.identity,
+        attempt.fence,
+        NOW + 3,
+        &plan_id(),
+        &provider(),
+    ));
+    let workflow = ok(ExternalRef::new("lattice", "workflow", "out-of-band"));
+    refused(
+        i.reconcile_dispatch(&attempt.identity, attempt.fence, NOW + 4, &workflow),
+        TRANSPORT_START_REQUIRED,
+    );
+    refused(
+        i.start_execution(&attempt.identity, attempt.fence, NOW + 4, &workflow),
+        TRANSPORT_START_REQUIRED,
+    );
+    let attempts = ok(i.attempts());
+    assert!(
+        ok(attempts.get(&attempt.identity).ok_or(()))
+            .workflow
+            .is_none()
+    );
+}
+
+#[test]
+fn an_ungranted_host_owner_claim_cannot_adopt_a_worker() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    intake(&mut i, &[&issue]);
+    ok(i.host_owner_admit(&profile, NOW));
+    ok(i.host_owner_observe(&profile, NOW));
+    // Claimed through admission, but never granted a host-owner reservation.
+    let attempt = claim(&mut i, NOW + 1);
+    assert!(ok(i.attempts()).transport_start_bound(&attempt.identity));
+    ok(i.reserve_dispatch(
+        &attempt.identity,
+        attempt.fence,
+        NOW + 2,
+        &plan_id(),
+        &provider(),
+    ));
+    let workflow = ok(ExternalRef::new("lattice", "workflow", "ungranted"));
+    refused(
+        i.start_execution(&attempt.identity, attempt.fence, NOW + 3, &workflow),
+        TRANSPORT_START_REQUIRED,
+    );
+    refused(
+        i.reconcile_dispatch(&attempt.identity, attempt.fence, NOW + 3, &workflow),
+        TRANSPORT_START_REQUIRED,
+    );
+}
+
+#[test]
+fn both_in_band_routes_still_record_the_workflow() {
+    for route in [Route::Worker, Route::Exchange] {
+        let dir = ok(tempfile::tempdir());
+        let profile = profile();
+        let issue = work(&profile, SANDBOX, 1);
+        let mut i = open(&dir.path().join("work.sqlite"));
+        let (attempt, _) = reserved_attempt(&mut i, &profile, &issue);
+        dispatch_via(&mut i, &issue, &attempt, NOW + 3, route);
+        let attempts = ok(i.attempts());
+        assert!(
+            ok(attempts.get(&attempt.identity).ok_or(()))
+                .workflow
+                .is_some()
+        );
+    }
+}
+
+#[test]
+fn start_and_reconcile_are_unchanged_without_host_owner_admission() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let first = work(&profile, SANDBOX, 1);
+    let second = work(&profile, SANDBOX, 2);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    intake(&mut i, &[&first, &second]);
+    // No admission policy: the compatibility claim, out-of-band acknowledgement.
+    let started = ok(ok(i.claim_next(NOW, LEASE_MS)).ok_or(()));
+    let reconciled = ok(ok(i.claim_next(NOW, LEASE_MS)).ok_or(()));
+    for attempt in [&started, &reconciled] {
+        assert!(!ok(i.attempts()).transport_start_bound(&attempt.identity));
+        ok(i.reserve_dispatch(
+            &attempt.identity,
+            attempt.fence,
+            NOW + 1,
+            &plan_id(),
+            &provider(),
+        ));
+    }
+    let workflow = ok(ExternalRef::new("lattice", "workflow", "operator-a"));
+    ok(i.start_execution(&started.identity, started.fence, NOW + 2, &workflow));
+    let workflow = ok(ExternalRef::new("lattice", "workflow", "operator-b"));
+    ok(i.reconcile_dispatch(&reconciled.identity, reconciled.fence, NOW + 2, &workflow));
 }

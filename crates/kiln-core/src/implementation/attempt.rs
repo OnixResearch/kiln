@@ -194,6 +194,14 @@ pub struct AttemptLedger {
     dispatch_started: alloc::collections::BTreeSet<String>,
     #[serde(default)]
     dispatch_plans: BTreeMap<String, super::ImplementationDispatchPlan>,
+    /// Attempts that may record a workflow only after a recorded transport
+    /// start. Bound atomically with the claim, so no out-of-band launch can
+    /// precede it. Empty unless an owner such as a host-local owner binds it.
+    #[serde(
+        default,
+        skip_serializing_if = "alloc::collections::BTreeSet::is_empty"
+    )]
+    transport_bound: alloc::collections::BTreeSet<String>,
 }
 
 /// The exact provider program and state root of an attempt's first launch.
@@ -584,6 +592,34 @@ impl AttemptLedger {
         self.get(identity)?.dispatch_request_binding.as_ref()
     }
 
+    /// Require a recorded transport start before any workflow is recorded for
+    /// this attempt. Idempotent.
+    pub fn bind_transport_start(&mut self, identity: &ContentId) -> CoreResult<()> {
+        self.attempt_mut(identity)?;
+        self.transport_bound.insert(identity.as_str().to_string());
+        Ok(())
+    }
+
+    /// Whether this attempt may record a workflow only after a transport start.
+    #[must_use]
+    pub fn transport_start_bound(&self, identity: &ContentId) -> bool {
+        self.transport_bound.contains(identity.as_str())
+    }
+
+    /// Refuse an out-of-band workflow acknowledgement for a bound attempt.
+    fn require_bound_transport_start(&self, identity: &ContentId) -> CoreResult<()> {
+        if self.transport_bound.contains(identity.as_str())
+            && !self.dispatch_started.contains(identity.as_str())
+        {
+            return Err(refusal(
+                "implementation_transport_start_required",
+                "attempt.dispatch",
+                "this attempt's owner admits only a dispatch route that records the transport start before any spawn or delivery",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn dispatch_requires_recovery(&self, identity: &ContentId) -> bool {
         self.dispatch_started.contains(identity.as_str())
     }
@@ -761,6 +797,7 @@ impl AttemptLedger {
         )?;
         workflow.validate()?;
         self.refuse_crossed_run(identity, workflow)?;
+        self.require_bound_transport_start(identity)?;
         let attempt = self.attempt_mut(identity)?;
         if attempt.dispatch.is_none() {
             return Err(refusal(
@@ -805,6 +842,7 @@ impl AttemptLedger {
         )?;
         observed.validate()?;
         self.refuse_crossed_run(identity, observed)?;
+        self.require_bound_transport_start(identity)?;
         let attempt = self.attempt_mut(identity)?;
         if attempt.dispatch.is_none() {
             return Err(refusal(

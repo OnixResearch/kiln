@@ -254,13 +254,12 @@ fn reservation_commits_for_the_sandbox_claim_and_permits_dispatch_intent() {
         ok(profile.plan_reservation(&ledger, &issue, &attempt, u64::MAX, NOW + 1)),
         HostReservationPlan::Retained(retained.clone())
     );
-    // The committed grant is recognised as a host-owner reservation; another
-    // claim holds none.
-    assert!(ok(holds_host_owner_reservation(&ledger, &attempt)));
-    assert!(!ok(holds_host_owner_reservation(
+    // The campaign root is recognised as a host-owner account; another is not.
+    assert!(ok(is_host_owner_account(
         &ledger,
-        &claim("attempt-2")
+        &ok(profile.account_identity())
     )));
+    assert!(!ok(is_host_owner_account(&ledger, &id("other-account"))));
     let policy = ok(ledger.policy_ref());
     ok(ledger.dispatch_intent(&request.operation, &policy, &attempt, 1, NOW + 1));
 }
@@ -396,4 +395,39 @@ fn release_needs_an_observed_terminal_attempt() {
         code(profile.plan_release(&ledger, &AttemptLedger::default(), &attempt)),
         "host_owner_release_unobserved"
     );
+}
+
+#[test]
+fn a_live_claim_on_work_that_is_no_longer_ready_does_not_take_the_slot() {
+    let profile = two_active();
+    // The claimed work now depends on work that does not exist: not ready.
+    let mut blocked = sandbox(&profile, 1);
+    blocked.dependencies = vec![id("missing-dependency")];
+    let ready = sandbox(&profile, 2);
+    let works = work_ledger(&[&blocked, &ready]);
+    let mut attempts = AttemptLedger::default();
+    let live = ok(attempts.claim(&blocked, NOW, crate::implementation::DEFAULT_LEASE_MS));
+    let mut ledger = AdmissionLedger::default();
+    ok(ledger.configure(ok(profile.policy())));
+    ok(ledger.add_root(ok(profile.root_account())));
+    for work in [&blocked, &ready] {
+        ok(ledger.enqueue(ok(profile.queue_item(work, NOW)), NOW));
+    }
+    ok(ledger.bind_claim(
+        &ok(blocked.identity()),
+        ClaimRef {
+            attempt: live.identity.clone(),
+            fence: live.fence,
+        },
+    ));
+    let inputs = ok(profile.eligibility(&ledger, &works, &attempts, &enrollment(), NOW + 1));
+    let reason = |work: &ImplementationWork| {
+        ok(inputs
+            .iter()
+            .find(|input| input.work_version == ok(work.identity()))
+            .map(|input| input.reason)
+            .ok_or(()))
+    };
+    assert_eq!(reason(&ready), AdmissionReason::Eligible);
+    assert_eq!(reason(&blocked), AdmissionReason::Waiting);
 }

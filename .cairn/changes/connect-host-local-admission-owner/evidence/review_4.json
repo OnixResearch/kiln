@@ -1,0 +1,32 @@
+{
+  "change": "connect-host-local-admission-owner",
+  "review": "review_4 (history://AdmissionReview, verification of e969bcfb)",
+  "date": "2026-11-22",
+  "base": "e969bcfb",
+  "resolved": {
+    "1_out_of_band_acknowledgement": {
+      "rule": "An attempt claimed from a host-owner queue row is bound in the attempt ledger (AttemptLedger.transport_bound) to require a recorded transport start. AttemptLedger::start_execution and reconcile_dispatch, the only workflow writes, refuse implementation_transport_start_required for a bound attempt unless dispatch_started already holds it; the check runs inside the same attempt-ledger transaction as the workflow write.",
+      "binding": "kiln-implementer admission.rs binds it in the Claim and ClaimExact branches, in the same SQLite transaction that creates the attempt (attempts.claim) and binds the queue claim, whenever the queue row's account is the domain-tagged host-owner campaign root (fair_admission::is_host_owner_account).",
+      "why_race_free": "The binding is written atomically with the attempt's creation, so no attempt identity exists outside that transaction before it is bound; an out-of-band launch needs the attempt/fence and so cannot precede the binding. The workflow check reads the binding and dispatch_started from the attempt ledger it is about to write, in one immediate transaction, so no binding or transport start can commit in between. The admission ledger is not consulted at workflow-write time.",
+      "in_band_routes": "kiln-lattice-dispatch records begin_dispatch_transport (after the owner-grant gate) before spawn or delivery, then reconcile_dispatch (worker request) or start_execution (workflow exchange); both still record the workflow.",
+      "unbound": "Attempts not claimed from a host-owner queue row are never bound; the field is skipped when empty, so start and reconcile and the serialized attempt ledger are unchanged for them. The earlier CLI-only start guard (holds_host_owner_reservation) was removed; the start command is byte-for-byte as at 203296d4.",
+      "tests": "out-of-band reconcile and start of a granted host-owner claim refused, workflow not recorded; ungranted host-owner claim cannot start or reconcile; both in-band routes record the workflow; start and reconcile unchanged without host-owner admission; the CLI start refusal now reports implementation_transport_start_required."
+    },
+    "2_live_claim_readiness": "Claimed rows must also be ready (the work ledger's ranking set, the same Ready state the selection checks) as well as enrolled. Test: a live claim on work that is no longer ready waits while ready work takes the single slot.",
+    "docs": "docs/fair-admission.md and both fair-admission spec copies state the enforced binding rule and the readiness condition."
+  },
+  "open_operational_limits": [
+    "An acknowledged run (recorded workflow) with no reconciled termination, candidate or retained worker observation whose lease expires keeps its slot with no release path in this flow: Kiln #45 lease expiry does not mark it Unknown, so reconcile-termination cannot bind it."
+  ],
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "result": "2402 passed, 0 failed, 16 ignored" },
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative" },
+    { "command": "nix build --option builders '' path:$PWD#checks.x86_64-linux.octet", "exit": 0, "result": "0 findings" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    { "command": "cairn gate proposal|design|tasks connect-host-local-admission-owner", "exit": 0, "result": "PASS" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2152, referenced 2119, missing 33, dangling 9; identical to base 203296d4, none new" },
+    { "command": "gitleaks dir over 53 changed paths since 203296d4", "exit": 0, "result": "no leaks; this evidence file rescanned after writing" }
+  ]
+}

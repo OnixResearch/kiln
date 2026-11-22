@@ -1069,7 +1069,9 @@ fn host_owner_commands_admit_claim_and_reserve_the_sandbox_issue() {
         &enrollment_file,
     );
     assert!(!start.status.success());
-    assert!(String::from_utf8_lossy(&start.stderr).contains("host_owner_out_of_band_start"));
+    assert!(
+        String::from_utf8_lossy(&start.stderr).contains("implementation_transport_start_required")
+    );
     let repeated = json_output(&run_implementer(&reserve, &database, &enrollment_file));
     assert_eq!(text(&repeated, "/outcome"), "retained");
     assert_eq!(

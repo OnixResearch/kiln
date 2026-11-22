@@ -184,11 +184,11 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   eligibility observation per open queued work, valid for
   `observation_ttl_ms`, then runs the existing selection. Holders stay
   eligible. Only rows the selection could pick compete for the free registered
-  slots: enrolled live claims first, then enrolled ready unclaimed work the
-  attempt ledger would accept, each ordered as the selection orders them
-  (priority descending, then enqueue order). Dead claims, de-enrolled and
-  unclaimable work are observed as `waiting` without taking a slot, as is usable
-  work beyond the free slots.
+  slots: enrolled ready live claims first, then enrolled ready unclaimed work
+  the attempt ledger would accept, each ordered as the selection orders them
+  (priority descending, then enqueue order). Dead claims, de-enrolled, no
+  longer ready and unclaimable work are observed as `waiting` without taking a
+  slot, as is usable work beyond the free slots.
 - `host-owner-reserve` plans one deterministic operation for the exact queued
   claim, persists the tentative request through the `request` command and asks
   the host owner through `AdmissionOwnerPortV1`. The owner decides from the
@@ -228,13 +228,18 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   observation could not be retained (metrics unavailable). Elapsed time,
   restart and replay release nothing.
 
-  **Starting host-owner work.** While a claim holds a host-owner reservation,
-  the operator `start` acknowledgement is refused with
-  `host_owner_out_of_band_start`: it records the workflow only after an
-  out-of-band launch and skips the owner-grant gate. Host-owner work starts only
-  through `kiln-lattice-dispatch` (worker request or workflow exchange), which
-  records the transport start before any spawn or delivery. Without a host-owner
-  reservation `start` is unchanged.
+  **Starting host-owner work.** A claim of a host-owner queue row (its account
+  is the domain-tagged host-owner campaign root) is bound in the attempt ledger,
+  in the claim's own transaction, to require a recorded transport start before
+  any workflow. `start_execution` and `reconcile_dispatch` (the `start` and
+  `reconcile` commands, and every other workflow write) then refuse
+  `implementation_transport_start_required` until `begin_dispatch_transport`
+  has recorded the start, checked in the same attempt-ledger transaction as the
+  workflow write. Only `kiln-lattice-dispatch` (worker request or workflow
+  exchange) records that start, after the owner-grant gate and before any spawn
+  or delivery, so neither an out-of-band launch acknowledged later nor an
+  ungranted claim can adopt a worker. Attempts not claimed from a host-owner
+  queue row are unbound, and `start` and `reconcile` are unchanged for them.
 
 The owner's only capacity is its declared registration and its only occupancy
 is the ledger's retained reservations for it. It never reports remote, provider

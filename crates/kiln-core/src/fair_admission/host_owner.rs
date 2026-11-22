@@ -343,7 +343,7 @@ impl HostOwnerProfile {
     }
     /// One fresh eligibility observation per open queued work that needs this
     /// owner. Holders stay eligible. Only rows the selection could pick compete
-    /// for the free registered slots: enrolled live claims first, then enrolled
+    /// for the free registered slots: enrolled ready live claims first, then enrolled
     /// ready unclaimed work the attempt ledger would accept, each ordered as the
     /// selection orders them (priority descending, then enqueue order). A dead
     /// claim, de-enrolled or unclaimable work waits without taking a slot, so it
@@ -386,19 +386,18 @@ impl HostOwnerProfile {
             let current = work
                 .current()
                 .find(|current| current.identity().is_ok_and(|id| id == item.work_version));
-            let enrolled = current.is_some_and(|current| {
-                enrollment.actors.contains(&current.actor)
-                    && enrollment.repositories.contains(&current.repository)
-            });
-            let can_use = enrolled
+            // The selection denies work outside enrollment or no longer ready,
+            // claimed or not.
+            let selectable = ready.contains(&item.work_version)
+                && current.is_some_and(|current| {
+                    enrollment.actors.contains(&current.actor)
+                        && enrollment.repositories.contains(&current.repository)
+                });
+            let can_use = selectable
                 && match &item.claim {
                     Some(claim) => attempts.is_current(&claim.attempt, claim.fence, now_ms),
-                    None => {
-                        ready.contains(&item.work_version)
-                            && current.is_some_and(|current| {
-                                attempts.clone().claim(current, now_ms, 1).is_ok()
-                            })
-                    }
+                    None => current
+                        .is_some_and(|current| attempts.clone().claim(current, now_ms, 1).is_ok()),
                 };
             if can_use {
                 usable.push(item);
@@ -792,33 +791,16 @@ pub fn host_owner_account_identity(campaign: &Alias, tenant: &Alias) -> CoreResu
     )
 }
 
-/// Whether `claim` holds an unsettled reservation of a registered host-local
-/// owner, recognised by its domain-tagged campaign root account. Such work may
-/// only be started by a dispatch route that records the transport start before
-/// any spawn or delivery, never by the operator `start` acknowledgement.
-pub fn holds_host_owner_reservation(
-    ledger: &AdmissionLedger,
-    claim: &ClaimRef,
-) -> CoreResult<bool> {
-    for reservation in ledger.reservations.values().filter(|r| {
-        &r.claim == claim
-            && r.kind == ChargeKind::Execution
-            && !matches!(
-                r.state,
-                ReservationState::Rejected
-                    | ReservationState::Expired
-                    | ReservationState::Released
-                    | ReservationState::Settled
-            )
-    }) {
-        if let Some(account) = ledger.accounts.get(&reservation.account)
-            && account.parent.is_none()
-            && host_owner_account_identity(&account.campaign, &account.tenant)? == account.identity
-        {
-            return Ok(true);
+/// Whether `account` is a host-owner campaign root account, recognised by its
+/// domain-tagged identity. A claim bound to such a queue row is bound in the
+/// attempt ledger to a recorded transport start before any workflow.
+pub fn is_host_owner_account(ledger: &AdmissionLedger, account: &ContentId) -> CoreResult<bool> {
+    Ok(match ledger.accounts.get(account) {
+        Some(root) if root.parent.is_none() => {
+            host_owner_account_identity(&root.campaign, &root.tenant)? == root.identity
         }
-    }
-    Ok(false)
+        _ => false,
+    })
 }
 
 fn profile_error(message: &str) -> crate::types::Diagnostic {
