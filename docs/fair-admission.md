@@ -183,10 +183,12 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   every retained debit is composed on top, so nothing resets) and one
   eligibility observation per open queued work, valid for
   `observation_ttl_ms`, then runs the existing selection. Holders stay
-  eligible. Only rows that can use a slot compete for the free registered
-  slots: live claims first, then unclaimed work the attempt ledger would
-  accept, in the work ledger's ranking. Dead claims and unclaimable work are
-  observed as `waiting` without taking a slot, as is usable work beyond them.
+  eligible. Only rows the selection could pick compete for the free registered
+  slots: enrolled live claims first, then enrolled ready unclaimed work the
+  attempt ledger would accept, each ordered as the selection orders them
+  (priority descending, then enqueue order). Dead claims, de-enrolled and
+  unclaimable work are observed as `waiting` without taking a slot, as is usable
+  work beyond the free slots.
 - `host-owner-reserve` plans one deterministic operation for the exact queued
   claim, persists the tentative request through the `request` command and asks
   the host owner through `AdmissionOwnerPortV1`. The owner decides from the
@@ -211,16 +213,28 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   decides consumption: with intent or transport the slot's budget is consumed;
   with neither (cancellation before dispatch) it returns unconsumed.
 
-  **Held within this flow.** A slot stays held, with no release path here,
-  while its attempt has a transport start or acknowledged workflow but no
-  reconciled termination, candidate or retained worker observation. In
-  practice that is: a run whose native result never returned (lost
-  dispatcher, unanswered transport), a run whose result returned but whose
-  worker observation could not be retained (metrics unavailable), and lease
-  expiry of an acknowledged attempt, which Kiln #45 does not mark unknown, so
-  `reconcile-termination` cannot bind it. A superseded attempt with started
-  transport and no stop record is marked unknown and released after
-  `reconcile-termination`. Elapsed time, restart and replay release nothing.
+  **Unacknowledged runs.** A lost dispatcher or an unanswered exchange
+  transport has a transport start but no workflow. On lease expiry `recover`
+  marks it unknown; after `reconcile-termination` records the observed stop,
+  `host-owner-release` frees and consumes the slot. A superseded attempt with
+  started transport and no stop record is marked unknown and released the same
+  way.
+
+  **Held within this flow.** The only permanent hold is an acknowledged run (a
+  recorded workflow) with no reconciled termination, candidate or retained
+  worker observation whose lease expires: Kiln #45 does not mark it unknown, so
+  `reconcile-termination` cannot bind it. That covers an acknowledged run whose
+  native result never returned and one whose result returned but whose worker
+  observation could not be retained (metrics unavailable). Elapsed time,
+  restart and replay release nothing.
+
+  **Starting host-owner work.** While a claim holds a host-owner reservation,
+  the operator `start` acknowledgement is refused with
+  `host_owner_out_of_band_start`: it records the workflow only after an
+  out-of-band launch and skips the owner-grant gate. Host-owner work starts only
+  through `kiln-lattice-dispatch` (worker request or workflow exchange), which
+  records the transport start before any spawn or delivery. Without a host-owner
+  reservation `start` is unchanged.
 
 The owner's only capacity is its declared registration and its only occupancy
 is the ledger's retained reservations for it. It never reports remote, provider

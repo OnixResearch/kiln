@@ -782,3 +782,56 @@ fn scarce_slots_follow_the_work_ranking() {
     assert!(eligible(&observed, &ok(high.identity())));
     assert!(!eligible(&observed, &ok(low.identity())));
 }
+
+#[test]
+fn older_same_priority_work_keeps_the_single_slot() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let a = work(&profile, SANDBOX, 1);
+    let b = work(&profile, SANDBOX, 2);
+    // The newer work has the smaller canonical key, so key order would pick it.
+    let (older, newer) = if ok(a.canonical_key()) > ok(b.canonical_key()) {
+        (a, b)
+    } else {
+        (b, a)
+    };
+    let mut i = open(&dir.path().join("work.sqlite"));
+    intake(&mut i, &[&older]);
+    ok(i.host_owner_admit(&profile, NOW));
+    intake(&mut i, &[&newer]);
+    ok(i.host_owner_admit(&profile, NOW + 1));
+    for at in [NOW + 2, NOW + 3, NOW + 4] {
+        let observed = ok(i.host_owner_observe(&profile, at));
+        assert!(eligible(&observed, &ok(older.identity())));
+        assert!(!eligible(&observed, &ok(newer.identity())));
+    }
+}
+
+#[test]
+fn a_de_enrolled_actor_does_not_block_other_work() {
+    let dir = ok(tempfile::tempdir());
+    let path = dir.path().join("work.sqlite");
+    let profile = profile();
+    let mut former = work(&profile, SANDBOX, 1);
+    former.actor = "former".into();
+    let current = work(&profile, SANDBOX, 2);
+    let both = Enrollment {
+        repositories: BTreeSet::from([SANDBOX.into(), OTHER.into()]),
+        actors: BTreeSet::from(["operator".into(), "former".into()]),
+    };
+    let mut i = ok(Implementer::open_with_local_operator(
+        &path,
+        both,
+        "pilot-operator",
+    ));
+    intake(&mut i, &[&former]);
+    ok(i.host_owner_admit(&profile, NOW));
+    intake(&mut i, &[&current]);
+    ok(i.host_owner_admit(&profile, NOW + 1));
+    drop(i);
+    // The former actor is de-enrolled; its older row no longer competes.
+    let mut i = open(&path);
+    let observed = ok(i.host_owner_observe(&profile, NOW + 2));
+    assert!(eligible(&observed, &ok(current.identity())));
+    assert!(!eligible(&observed, &ok(former.identity())));
+}

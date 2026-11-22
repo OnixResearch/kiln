@@ -223,7 +223,7 @@ impl Implementer {
         let work = self.work()?;
         let attempts = self.attempts()?;
         let observations = profile
-            .eligibility(&ledger, &work, &attempts, now_ms)
+            .eligibility(&ledger, &work, &attempts, &self.enrollment, now_ms)
             .map_err(diagnostic)?;
         let selected = match self.admission_apply(
             AdmissionCommand::Select {

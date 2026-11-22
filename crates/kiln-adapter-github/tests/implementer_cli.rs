@@ -1052,6 +1052,24 @@ fn host_owner_commands_admit_claim_and_reserve_the_sandbox_issue() {
     let committed = json_output(&run_implementer(&reserve, &database, &enrollment_file));
     assert_eq!(text(&committed, "/outcome"), "committed");
     assert_eq!(text(&committed, "/reservation/state"), "committed");
+    // Host-owner work never starts through the out-of-band acknowledgement.
+    let start = run_implementer(
+        &[
+            "start",
+            "--attempt",
+            attempt_id.as_str(),
+            "--fence",
+            fence.as_str(),
+            "--workflow-kind",
+            "workflow",
+            "--workflow-id",
+            "out-of-band",
+        ],
+        &database,
+        &enrollment_file,
+    );
+    assert!(!start.status.success());
+    assert!(String::from_utf8_lossy(&start.stderr).contains("host_owner_out_of_band_start"));
     let repeated = json_output(&run_implementer(&reserve, &database, &enrollment_file));
     assert_eq!(text(&repeated, "/outcome"), "retained");
     assert_eq!(

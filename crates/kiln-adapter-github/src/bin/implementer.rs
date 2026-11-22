@@ -765,7 +765,7 @@ fn reserve_plan(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
 }
 
-// r[impl kiln.implementation.dispatch] r[impl kiln.implementation.dispatch_reservation]
+// r[impl kiln.implementation.dispatch] r[impl kiln.implementation.dispatch_reservation] r[impl kiln.admission.host_owner]
 fn start(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let identity = match required_identity(flags, "--attempt") {
         Ok(identity) => identity,
@@ -792,6 +792,25 @@ fn start(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
     };
+    // Host-owner work may only start through a dispatch route that records the
+    // transport start before spawn or delivery; this acknowledgement records the
+    // workflow only after an out-of-band launch, so it is refused outright.
+    let claim = kiln_core::fair_admission::ClaimRef {
+        attempt: identity.clone(),
+        fence,
+    };
+    match implementer.admission_snapshot().and_then(|ledger| {
+        kiln_core::fair_admission::holds_host_owner_reservation(&ledger, &claim)
+            .map_err(|error| format!("{}: {}", error.code, error.message))
+    }) {
+        Ok(false) => {}
+        Ok(true) => {
+            return fail(
+                "host_owner_out_of_band_start: a host-owner reservation requires kiln-lattice-dispatch, which records the transport start before any spawn or delivery",
+            );
+        }
+        Err(error) => return fail(&error),
+    }
     match implementer.start_execution(&identity, fence, wall_clock_ms(), &workflow) {
         Ok(()) => {
             println!("{{\"started\":\"{}\"}}", identity.as_str());

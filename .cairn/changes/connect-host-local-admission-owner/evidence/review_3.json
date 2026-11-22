@@ -1,0 +1,26 @@
+{
+  "change": "connect-host-local-admission-owner",
+  "review": "review_3 (history://AdmissionReview, verification of 49c9aca9)",
+  "date": "2026-11-22",
+  "base": "49c9aca9",
+  "resolved": {
+    "1_eligibility_order": "Usable rows are ordered as the admission selection orders them: live claims first, then priority descending, then enqueue order (QueueItem.order); the work ledger's canonical-key ranking no longer orders them, only its readiness gates unclaimed rows. Test: an older same-priority work with the larger canonical key keeps the single slot over a newer, smaller-key work across three observations.",
+    "2_eligibility_enrollment": "HostOwnerProfile::eligibility takes the shell's Enrollment; rows whose current work's actor or repository is not enrolled (or whose work is no longer current) wait without taking a slot, matching the selection's denial. Test: a de-enrolled actor's older row does not block another work.",
+    "3_docs": "docs/fair-admission.md now states that an unacknowledged run (transport start, no workflow: lost dispatcher or unanswered exchange transport) is marked unknown by recover on lease expiry and released by reconcile-termination then host-owner-release, and restricts the permanent hold to an acknowledged run (recorded workflow) with no reconciled termination, candidate or retained worker observation whose lease expires.",
+    "4_start_route": "kiln-implementer start now refuses with host_owner_out_of_band_start when the claim holds an unsettled Execution reservation on a host-owner campaign root account (fair_admission::holds_host_owner_reservation, recognised by the domain-tagged account identity). Without such a reservation the start path is unchanged apart from one read-only admission snapshot. Tests: the CLI host-owner test refuses start after a committed reservation; the existing non-host-owner start CLI test still passes; a core test recognises the host-owner reservation and not another claim. The rule is stated in docs/fair-admission.md and both fair-admission spec copies."
+  },
+  "open_operational_limits": [
+    "An acknowledged run (recorded workflow) with no reconciled termination, candidate or retained worker observation whose lease expires keeps its slot with no release path in this flow: Kiln #45 lease expiry does not mark it Unknown, so reconcile-termination cannot bind it."
+  ],
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "result": "2397 passed, 0 failed, 16 ignored" },
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative" },
+    { "command": "nix build --option builders '' path:$PWD#checks.x86_64-linux.octet", "exit": 0, "result": "0 findings" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    { "command": "cairn gate proposal|design|tasks connect-host-local-admission-owner", "exit": 0, "result": "PASS" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2152, referenced 2119, missing 33, dangling 9; identical to base 203296d4, none new" },
+    { "command": "gitleaks dir over 52 changed paths since 203296d4", "exit": 0, "result": "no leaks; this evidence file rescanned after writing" }
+  ]
+}

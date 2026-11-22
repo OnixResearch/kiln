@@ -24,7 +24,7 @@ use super::{
     BudgetAccount, ChargeKind, ClaimRef, EligibilityInput, MAX_DIMENSIONS, MAX_RECORDS, OwnerReply,
     OwnerReservation, QueueItem, ReservationState, UsageObservation, add, err, validate_amounts,
 };
-use crate::implementation::{AttemptLedger, ImplementationWork, WorkLedger};
+use crate::implementation::{AttemptLedger, Enrollment, ImplementationWork, WorkLedger};
 use crate::operations::{FairnessStrategy, TenantUsage, UsageValue};
 use crate::types::{Alias, ContentId, CoreResult, ProviderProfileId};
 use alloc::{
@@ -232,11 +232,7 @@ impl HostOwnerProfile {
         Ok(policy)
     }
     pub fn account_identity(&self) -> CoreResult<ContentId> {
-        tagged(
-            "kiln.host-owner.account.v1",
-            &[self.campaign.as_str(), self.tenant.as_str()],
-            &[],
-        )
+        host_owner_account_identity(&self.campaign, &self.tenant)
     }
     /// The campaign's one finite root account.
     pub fn root_account(&self) -> CoreResult<BudgetAccount> {
@@ -346,16 +342,18 @@ impl HostOwnerProfile {
         })
     }
     /// One fresh eligibility observation per open queued work that needs this
-    /// owner. Holders stay eligible. Only rows that can use a slot compete for
-    /// the free registered slots: live claims first, then unclaimed work the
-    /// attempt ledger would accept, in the work ledger's ranking. A dead claim
-    /// or unclaimable work waits without taking a slot, so it never blocks
-    /// usable work and no claim is invited that the owner would then refuse.
+    /// owner. Holders stay eligible. Only rows the selection could pick compete
+    /// for the free registered slots: enrolled live claims first, then enrolled
+    /// ready unclaimed work the attempt ledger would accept, each ordered as the
+    /// selection orders them (priority descending, then enqueue order). A dead
+    /// claim, de-enrolled or unclaimable work waits without taking a slot, so it
+    /// never blocks usable work and no claim is invited the owner would refuse.
     pub fn eligibility(
         &self,
         ledger: &AdmissionLedger,
         work: &WorkLedger,
         attempts: &AttemptLedger,
+        enrollment: &Enrollment,
         now_ms: u64,
     ) -> CoreResult<Vec<EligibilityInput>> {
         let occupied = self.occupied(ledger, None)?;
@@ -368,8 +366,8 @@ impl HostOwnerProfile {
                 (dimension.clone(), capacity.saturating_sub(held))
             })
             .collect();
-        let ranked: Vec<ContentId> = work.ranked().into_iter().map(|row| row.identity).collect();
-        let rank = |id: &ContentId| ranked.iter().position(|r| r == id).unwrap_or(usize::MAX);
+        let ready: BTreeSet<ContentId> =
+            work.ranked().into_iter().map(|row| row.identity).collect();
         let mut held = Vec::new();
         let mut usable = Vec::new();
         let mut idle = Vec::new();
@@ -385,27 +383,36 @@ impl HostOwnerProfile {
                 held.push(item);
                 continue;
             }
-            let can_use = match &item.claim {
-                Some(claim) => attempts.is_current(&claim.attempt, claim.fence, now_ms),
-                None => {
-                    rank(&item.work_version) != usize::MAX
-                        && work
-                            .current()
-                            .find(|current| {
-                                current.identity().is_ok_and(|id| id == item.work_version)
-                            })
-                            .is_some_and(|current| {
+            let current = work
+                .current()
+                .find(|current| current.identity().is_ok_and(|id| id == item.work_version));
+            let enrolled = current.is_some_and(|current| {
+                enrollment.actors.contains(&current.actor)
+                    && enrollment.repositories.contains(&current.repository)
+            });
+            let can_use = enrolled
+                && match &item.claim {
+                    Some(claim) => attempts.is_current(&claim.attempt, claim.fence, now_ms),
+                    None => {
+                        ready.contains(&item.work_version)
+                            && current.is_some_and(|current| {
                                 attempts.clone().claim(current, now_ms, 1).is_ok()
                             })
-                }
-            };
+                    }
+                };
             if can_use {
                 usable.push(item);
             } else {
                 idle.push(item);
             }
         }
-        usable.sort_by_key(|item| (item.claim.is_none(), rank(&item.work_version), item.order));
+        usable.sort_by_key(|item| {
+            (
+                item.claim.is_none(),
+                core::cmp::Reverse(item.priority),
+                item.order,
+            )
+        });
         let mut rows = Vec::with_capacity(held.len() + usable.len() + idle.len());
         rows.extend(held.into_iter().map(|item| (item, true)));
         for item in usable {
@@ -774,6 +781,44 @@ impl HostOwnerProfile {
                 .is_some_and(|capacity| amount <= capacity)
         })
     }
+}
+
+/// Domain-tagged identity of a host-owner campaign root account.
+pub fn host_owner_account_identity(campaign: &Alias, tenant: &Alias) -> CoreResult<ContentId> {
+    tagged(
+        "kiln.host-owner.account.v1",
+        &[campaign.as_str(), tenant.as_str()],
+        &[],
+    )
+}
+
+/// Whether `claim` holds an unsettled reservation of a registered host-local
+/// owner, recognised by its domain-tagged campaign root account. Such work may
+/// only be started by a dispatch route that records the transport start before
+/// any spawn or delivery, never by the operator `start` acknowledgement.
+pub fn holds_host_owner_reservation(
+    ledger: &AdmissionLedger,
+    claim: &ClaimRef,
+) -> CoreResult<bool> {
+    for reservation in ledger.reservations.values().filter(|r| {
+        &r.claim == claim
+            && r.kind == ChargeKind::Execution
+            && !matches!(
+                r.state,
+                ReservationState::Rejected
+                    | ReservationState::Expired
+                    | ReservationState::Released
+                    | ReservationState::Settled
+            )
+    }) {
+        if let Some(account) = ledger.accounts.get(&reservation.account)
+            && account.parent.is_none()
+            && host_owner_account_identity(&account.campaign, &account.tenant)? == account.identity
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn profile_error(message: &str) -> crate::types::Diagnostic {

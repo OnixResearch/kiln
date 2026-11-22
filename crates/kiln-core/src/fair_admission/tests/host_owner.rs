@@ -84,14 +84,17 @@ fn claim(name: &str) -> ClaimRef {
         fence: 1,
     }
 }
-/// The current ready work ledger for `works`.
-fn work_ledger(works: &[&ImplementationWork]) -> WorkLedger {
-    let enrollment = Enrollment {
+fn enrollment() -> Enrollment {
+    Enrollment {
         repositories: alloc::collections::BTreeSet::from([
             "onixresearch/implementer-sandbox".into()
         ]),
         actors: alloc::collections::BTreeSet::from(["operator".into()]),
-    };
+    }
+}
+/// The current ready work ledger for `works`.
+fn work_ledger(works: &[&ImplementationWork]) -> WorkLedger {
+    let enrollment = enrollment();
     let mut ledger = WorkLedger::default();
     for work in works {
         ok(ledger.admit(work, None, &enrollment));
@@ -108,8 +111,13 @@ fn admitted(profile: &HostOwnerProfile, works: &[&ImplementationWork]) -> Admiss
         assert_eq!(reason, AdmissionReason::Waiting);
     }
     ok(ledger.observe(ok(profile.usage_observation(&ledger, NOW))));
-    let inputs =
-        ok(profile.eligibility(&ledger, &work_ledger(works), &AttemptLedger::default(), NOW));
+    let inputs = ok(profile.eligibility(
+        &ledger,
+        &work_ledger(works),
+        &AttemptLedger::default(),
+        &enrollment(),
+        NOW,
+    ));
     assert_eq!(inputs.len(), works.len());
     ok(ledger.select(&inputs, NOW));
     ledger
@@ -246,6 +254,13 @@ fn reservation_commits_for_the_sandbox_claim_and_permits_dispatch_intent() {
         ok(profile.plan_reservation(&ledger, &issue, &attempt, u64::MAX, NOW + 1)),
         HostReservationPlan::Retained(retained.clone())
     );
+    // The committed grant is recognised as a host-owner reservation; another
+    // claim holds none.
+    assert!(ok(holds_host_owner_reservation(&ledger, &attempt)));
+    assert!(!ok(holds_host_owner_reservation(
+        &ledger,
+        &claim("attempt-2")
+    )));
     let policy = ok(ledger.policy_ref());
     ok(ledger.dispatch_intent(&request.operation, &policy, &attempt, 1, NOW + 1));
 }
@@ -287,6 +302,7 @@ fn second_work_beyond_registered_capacity_is_refused_and_waits() {
         &capped,
         &work_ledger(&[&first, &second]),
         &AttemptLedger::default(),
+        &enrollment(),
         NOW,
     ));
     assert_eq!(
@@ -313,6 +329,7 @@ fn second_work_beyond_registered_capacity_is_refused_and_waits() {
         &ledger,
         &WorkLedger::default(),
         &AttemptLedger::default(),
+        &enrollment(),
         NOW + 1,
     ));
     let waiting = ok(inputs
@@ -350,6 +367,7 @@ fn duplicate_reservation_for_the_same_work_is_refused() {
         &ledger,
         &WorkLedger::default(),
         &AttemptLedger::default(),
+        &enrollment(),
         NOW + 1,
     ));
     ok(ledger.select(&fresh, NOW + 1));
