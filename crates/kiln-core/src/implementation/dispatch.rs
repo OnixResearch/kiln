@@ -668,7 +668,6 @@ mod tests {
             lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
             executable_blake3: content('b'),
             state_directory: root.into(),
-            request: None,
         };
         let attempt = content('a');
         let mut launches = TransportLaunches::default();

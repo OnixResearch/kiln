@@ -18,11 +18,12 @@ its account's remainder, and Lattice #6 keeps "Kiln sending lineage" open.
 - `--worker-request`: append the lineage as the request's `lineage` member
   only when the attempt holds a committed reservation. Every admitted byte
   stays in place. Without admission the request keeps its bytes and
-  identities. The sent bytes are frozen under their own BLAKE3, and the
-  transport launch record (`TransportLaunch.request`) keeps that file's path
-  and digest. Recovery and campaign export read exactly the recorded file;
-  recovery checks that it is the admitted request plus at most one
-  well-formed lineage.
+  identities. The sent bytes are frozen atomically under their own BLAKE3,
+  and a separate `transport_requests` record, written with the transport
+  intent and launch, keeps that file's path and digest while the launch
+  record keeps its published shape. Recovery and campaign export read
+  exactly the recorded file; recovery checks that it is the admitted request
+  plus at most one well-formed lineage.
 - `--dispatch-plan` workflow exchange: derive and check the lineage the same
   way, but leave the `lattice.workflow-request` bytes unchanged, because that
   Lattice contract has no lineage field.

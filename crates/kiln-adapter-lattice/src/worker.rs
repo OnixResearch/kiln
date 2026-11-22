@@ -163,20 +163,21 @@ pub fn frozen_request_path(output_directory: &Path, digest: &ContentId) -> PathB
     output_directory.join(format!("request-{}.json", digest.as_str()))
 }
 
-/// The request file Lattice ran for an attempt: the one its recorded launch
-/// names, or, for a launch recorded before Kiln recorded its sent request,
-/// the admitted request frozen in the profile's output directory. Lattice
-/// binds its state to these exact bytes, so `recover`, `cancel`, `inspect`
-/// and `export-candidate` must name this file, not the admitted request.
+/// The request file Lattice ran for an attempt: the one recorded for its
+/// launch (`Implementer::dispatch_request`), or, for a launch recorded
+/// before Kiln recorded its sent request, the admitted request frozen in the
+/// profile's output directory. Lattice binds its state to these exact bytes,
+/// so `recover`, `cancel`, `inspect` and `export-candidate` must name this
+/// file, not the admitted request.
 ///
 /// # Errors
 /// Only if BLAKE3 hex were not a content identity.
 pub fn sent_request_path(
-    launch: Option<&TransportLaunch>,
+    request: Option<&FrozenRequest>,
     profile: &WorkerTransportProfile,
     admitted: &[u8],
 ) -> Result<PathBuf, String> {
-    match launch.and_then(|launch| launch.request.as_ref()) {
+    match request {
         Some(request) => Ok(PathBuf::from(&request.path)),
         None => Ok(frozen_request_path(
             &profile.output_directory,
@@ -200,8 +201,9 @@ pub enum RequestSource<'a> {
         claim: &'a ClaimRef,
         now_ms: u64,
     },
-    /// Recovery: the launch that won the transport intent.
-    Recover { launch: &'a TransportLaunch },
+    /// Recovery: the request recorded for the launch that won the transport
+    /// intent, `None` when an earlier binary recorded that launch.
+    Recover { request: Option<&'a FrozenRequest> },
 }
 
 /// The exact bytes one launch sends and the file they are frozen in.
@@ -245,7 +247,7 @@ impl LaunchRequest {
 /// admitted bytes when the attempt holds an admitted reservation; an
 /// inconsistent lineage is refused before any transport start. Recovery
 /// never derives again: the grants are unknown by then. It reads exactly the
-/// file its recorded launch names, which must still hash to the recorded
+/// file recorded for its launch, which must still hash to the recorded
 /// BLAKE3 and be the admitted bytes, or them plus one well-formed lineage. A
 /// launch recorded before Kiln recorded its request sent the admitted bytes.
 ///
@@ -269,8 +271,8 @@ pub fn launch_request(
                     .map_err(|refusal| refusal.to_string())?;
             LaunchRequest::new(&profile.output_directory, bytes.into_owned())?
         }
-        RequestSource::Recover { launch } => {
-            let Some(recorded) = &launch.request else {
+        RequestSource::Recover { request } => {
+            let Some(recorded) = request else {
                 return LaunchRequest::new(&profile.output_directory, admitted.to_vec());
             };
             let path = PathBuf::from(&recorded.path);
@@ -312,8 +314,11 @@ fn read_bounded(path: &Path) -> Result<Vec<u8>, String> {
 
 /// Prepare every launch file before any owner grant is consumed: the private
 /// output directory, the frozen request and, for the first launch, its state
-/// root. Returns the frozen request path. Each step is idempotent, and a
-/// conflicting frozen request is refused rather than replaced. Nothing here
+/// root. Returns the frozen request path. Each step is idempotent. A frozen
+/// request is written to a temporary file, synced and renamed onto its name,
+/// so a crash never leaves a partial file under it; one found whose bytes do
+/// not hash to its name (left by an earlier, non-atomic writer) is replaced
+/// the same way, and any other conflicting file is refused. Nothing here
 /// binds the launch: only the transport intent records it.
 fn prepare_launch_files(
     profile: &WorkerTransportProfile,
@@ -347,32 +352,8 @@ fn prepare_launch_files(
             return Err("worker transport observations require a private output directory".into());
         }
     }
+    freeze_request(request)?;
     let frozen_request = request.path.clone();
-    let request_bytes = request.bytes.as_slice();
-    {
-        use std::io::Write;
-        let mut options = std::fs::OpenOptions::new();
-        options.create_new(true).write(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o400);
-        }
-        match options.open(&frozen_request) {
-            Ok(mut file) => file
-                .write_all(request_bytes)
-                .and_then(|_| file.sync_all())
-                .map_err(|error| error.to_string())?,
-            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                if std::fs::read(&frozen_request).map_err(|error| error.to_string())?
-                    != request_bytes
-                {
-                    return Err("frozen request conflict".into());
-                }
-            }
-            Err(error) => return Err(error.to_string()),
-        }
-    }
     if first_launch {
         // The root exists before the transport intent records it, so recovery
         // after a loss before Lattice started still runs in it, never in a
@@ -395,8 +376,65 @@ fn first_launch(profile: &WorkerTransportProfile) -> Result<TransportLaunch, Str
         lattice_program: text(&profile.lattice_program)?,
         executable_blake3: profile.executable_blake3.clone(),
         state_directory: text(&profile.state_directory)?,
-        request: None,
     })
+}
+
+/// Freeze `request` at its path; see [`prepare_launch_files`].
+fn freeze_request(request: &LaunchRequest) -> Result<(), String> {
+    match std::fs::symlink_metadata(&request.path) {
+        Ok(metadata) if !metadata.is_file() => {
+            return Err("frozen request path is not an ordinary file".into());
+        }
+        Ok(_) => {
+            let existing = read_bounded(&request.path)?;
+            if existing == request.bytes {
+                return Ok(());
+            }
+            // The name is the BLAKE3 of the bytes it must hold: other bytes
+            // that still hash to it are a conflict, bytes that do not are a
+            // torn write, which no launch can have recorded.
+            if blake3_identity(&existing)? == request.blake3 {
+                return Err("frozen request conflict".into());
+            }
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.to_string()),
+    }
+    write_atomically(&request.path, &request.bytes)
+}
+
+/// Write `bytes` to a temporary file beside `path` (mode 0400), sync it,
+/// rename it onto `path` and sync the directory.
+fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    use std::io::Write;
+    let directory = path
+        .parent()
+        .ok_or("frozen request path has no directory")?;
+    let name = path
+        .file_name()
+        .and_then(std::ffi::OsStr::to_str)
+        .ok_or("frozen request name must be UTF-8")?;
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_nanos();
+    let temporary = directory.join(format!(".{name}.{}.{nanos}.tmp", std::process::id()));
+    let mut options = std::fs::OpenOptions::new();
+    options.create_new(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o400);
+    }
+    let written = options
+        .open(&temporary)
+        .and_then(|mut file| file.write_all(bytes).and_then(|()| file.sync_all()))
+        .and_then(|()| std::fs::rename(&temporary, path))
+        .and_then(|()| std::fs::File::open(directory).and_then(|directory| directory.sync_all()));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    written.map_err(|error| error.to_string())
 }
 
 /// Exact files for the guarded existing implementation-worker consumer.
@@ -673,10 +711,8 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             now_ms: clock()?,
         };
         let request = launch_request(source, &profile, &request_bytes)?;
-        let launch = TransportLaunch {
-            request: Some(request.frozen()?),
-            ..first_launch(&profile)?
-        };
+        let launch = first_launch(&profile)?;
+        let sent = request.frozen()?;
         let path = prepare_launch_files(&profile, &request, true)?;
         // Open item (predates this change): a crash between this gate and
         // `begin_dispatch_transport` leaves unknown grants with no transport
@@ -687,12 +723,13 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             &fresh,
             clock()?,
         )?;
-        let start = implementer.begin_dispatch_transport(
+        let start = implementer.begin_dispatch_transport_sending(
             &attempt.identity,
             attempt.fence,
             clock()?,
             &reservation.plan,
             Some(&launch),
+            Some(&sent),
         )?;
         (Some(path), start)
     };
@@ -721,10 +758,13 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                     .is_ok_and(|identity| identity == launch.executable_blake3)
             });
             let recorded = binding::recovery_launch(recorded, state_is_directory, program_matches)?;
-            // The exact bytes the first launch sent, from the recorded file,
-            // never from the current profile's output directory.
+            // The exact bytes the first launch sent, from the file recorded
+            // for it, never from the current profile's output directory.
+            let sent = implementer.dispatch_request(&attempt.identity)?;
             let request = launch_request(
-                RequestSource::Recover { launch: &recorded },
+                RequestSource::Recover {
+                    request: sent.as_ref(),
+                },
                 &profile,
                 &request_bytes,
             )?;

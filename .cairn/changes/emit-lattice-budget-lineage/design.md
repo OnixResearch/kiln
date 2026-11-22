@@ -43,24 +43,34 @@ being read off part of the attempt's grants.
 **Choice:** the worker route appends `,"lineage":{…}` before the request's
 closing brace, keeping every admitted byte in place, and freezes the sent
 bytes as `request-<BLAKE3 of the sent bytes>.json` before the owner-grant
-gate. The request seal stays on the admitted bytes. `begin_dispatch_transport`
-records the frozen file's path and BLAKE3 in `TransportLaunch.request`.
+gate: a temporary file is synced and renamed onto the name, and a file
+found whose bytes do not hash to its name is replaced the same way. The
+request seal stays on the admitted bytes. `begin_dispatch_transport_sending`
+records the frozen file's path and BLAKE3 for the launch under a separate
+implementation-state kind, `transport_requests` (`TransportRequests`), in
+the same immediate transaction as the transport intent and launch. The
+record answers only while that intent and exact launch are recorded.
 Recovery and campaign export read exactly the recorded file. Recovery checks
 that the file still hashes to the recorded BLAKE3 and is the admitted bytes
 plus at most one well-formed lineage (`verify_frozen`), and never derives
-the lineage again. A launch recorded without `request` predates this change
-and sent the admitted bytes. The exchange route runs the same derivation but
-leaves its `lattice.workflow-request` bytes unchanged.
+the lineage again. A launch without a record predates this change and sent
+the admitted bytes. The exchange route runs the same derivation but leaves
+its `lattice.workflow-request` bytes unchanged.
 
 **Rationale:** Lattice binds its state to the bytes it ran, so `recover`,
 `cancel` and `export-candidate` must name the sent file. Naming it by its own
 digest lets a retry refused before any transport start freeze new bytes
 when its lineage changed (an upgrade, or a second owner's grant arriving)
-instead of being refused forever by an earlier file. Recording it with the
-launch makes recovery independent of the current profile's
-`output_directory`, as the recorded program and state root already are. The
-grants are unknown after the gate, so deriving again would fail or differ.
-The exchange contract denies unknown fields, so it cannot carry the lineage.
+instead of being refused forever by an earlier file; the atomic write keeps a
+crash from leaving a torn file under the name. Recording it for the launch
+makes recovery independent of the current profile's `output_directory`, as
+the recorded program and state root already are. Keeping it out of
+`TransportLaunch` keeps the shared launch document readable by binaries that
+predate it, which refuse unknown fields: a rollback would otherwise fail
+every fresh dispatch after `admission_before_transport` had already moved
+its grants to unknown. The grants are unknown after the gate, so deriving
+again would fail or differ. The exchange contract denies unknown fields, so
+it cannot carry the lineage.
 
 ### Decision: refuse inconsistency, never guess
 
@@ -83,9 +93,10 @@ and are not checked again.
 
 ## Risks / Trade-offs
 
-- An older Kiln binary cannot read a launch record that names its request
-  (`deny_unknown_fields`), so a rolling downgrade fails closed on such
-  attempts.
+- A binary that predates `transport_requests` ignores the record. Recovering
+  a lineage-carrying attempt with such a binary would send the admitted
+  bytes, which Lattice refuses as a substituted request, so the attempt is
+  retained for reconciliation rather than run again.
 - A recovery whose recorded frozen file was lost is refused and retained for
   reconciliation, never re-frozen from the admitted bytes.
 - Lattice's `lineage_blocked` and `lineage_exhausted` refusals are not in

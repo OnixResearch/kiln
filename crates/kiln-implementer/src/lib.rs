@@ -48,6 +48,9 @@ const ATTEMPT_KIND: &str = "attempts";
 /// Recorded first launches, kept out of the `attempts` document so a binary
 /// that re-saves attempts without knowing about launches cannot erase them.
 const TRANSPORT_LAUNCH_KIND: &str = "transport_launches";
+/// The request file each recorded launch sent, kept out of the launch
+/// document so binaries that read launches without knowing about it still can.
+const TRANSPORT_REQUEST_KIND: &str = "transport_requests";
 const BUSY_TIMEOUT_MS: u64 = 10_000;
 const SCHEMA: &str = "
 CREATE TABLE IF NOT EXISTS implementation_state (
@@ -420,6 +423,7 @@ impl Implementer {
     /// Persist the transport intent and, for a fresh start, its launch in the
     /// same transaction. `Recover` after a possible prior dispatch carries the
     /// recorded launch; the caller MUST recover with it instead of dispatching.
+    /// The launch sends no frozen request of its own.
     pub fn begin_dispatch_transport(
         &mut self,
         identity: &ContentId,
@@ -428,10 +432,27 @@ impl Implementer {
         plan: &ContentId,
         launch: Option<&kiln_core::implementation::TransportLaunch>,
     ) -> Result<kiln_core::implementation::TransportStart, String> {
-        self.with_launches(|attempts, launches| {
+        self.begin_dispatch_transport_sending(identity, fence, now_ms, plan, launch, None)
+    }
+
+    /// [`Self::begin_dispatch_transport`] for a launch that sends `request`:
+    /// a fresh start records it for that launch in the same transaction as
+    /// the intent and launch, under its own implementation-state kind.
+    pub fn begin_dispatch_transport_sending(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        plan: &ContentId,
+        launch: Option<&kiln_core::implementation::TransportLaunch>,
+        request: Option<&kiln_core::implementation::FrozenRequest>,
+    ) -> Result<kiln_core::implementation::TransportStart, String> {
+        self.with_launches(|attempts, launches, requests| {
             let previously_started =
                 attempts.begin_dispatch_transport(identity, fence, now_ms, plan)?;
-            launches.start(identity, previously_started, launch)
+            let start = launches.start(identity, previously_started, launch)?;
+            requests.record(identity, &start, launch, request);
+            Ok(start)
         })
     }
 
@@ -448,6 +469,31 @@ impl Implementer {
         )?;
         transaction.commit().map_err(text)?;
         Ok(launches.recall(identity))
+    }
+
+    /// The request file the attempt's recorded launch sent, only while its
+    /// transport intent and that exact launch are recorded. `None` for a
+    /// launch an earlier binary recorded: it sent the admitted request.
+    pub fn dispatch_request(
+        &mut self,
+        identity: &ContentId,
+    ) -> Result<Option<kiln_core::implementation::FrozenRequest>, String> {
+        let transaction = self.connection.transaction().map_err(text)?;
+        let (attempts, _) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
+            &transaction,
+            TRANSPORT_LAUNCH_KIND,
+        )?;
+        let (requests, _) = load::<kiln_core::implementation::TransportRequests>(
+            &transaction,
+            TRANSPORT_REQUEST_KIND,
+        )?;
+        transaction.commit().map_err(text)?;
+        Ok(requests.recall(
+            identity,
+            launches.recall(identity).as_ref(),
+            attempts.dispatch_requires_recovery(identity),
+        ))
     }
 
     /// Install or remove the optional mirror observer.
@@ -708,9 +754,10 @@ impl Implementer {
         now_ms: u64,
         cause: &str,
     ) -> Result<(), String> {
-        let result = self.with_launches(|attempts, launches| {
+        let result = self.with_launches(|attempts, launches, requests| {
             attempts.settle_dispatch_without_execution(identity, fence, now_ms, cause)?;
             launches.remove(identity);
+            requests.remove(identity);
             Ok(())
         });
         if result.is_ok() {
@@ -1228,14 +1275,16 @@ impl Implementer {
         Ok(result)
     }
 
-    /// Apply one transition to the attempt ledger and the launch records in a
-    /// single transaction. Only these transitions touch launch records; every
-    /// other save of `attempts` leaves them as they are.
+    /// Apply one transition to the attempt ledger, the launch records and the
+    /// records of the requests those launches sent, in a single transaction.
+    /// Only these transitions touch launch and request records; every other
+    /// save of `attempts` leaves them as they are.
     fn with_launches<T>(
         &mut self,
         apply: impl FnOnce(
             &mut AttemptLedger,
             &mut kiln_core::implementation::TransportLaunches,
+            &mut kiln_core::implementation::TransportRequests,
         ) -> Result<T, kiln_core::types::Diagnostic>,
     ) -> Result<T, String> {
         let transaction = self
@@ -1247,7 +1296,11 @@ impl Implementer {
             &transaction,
             TRANSPORT_LAUNCH_KIND,
         )?;
-        let result = apply(&mut attempts, &mut launches)
+        let (mut requests, request_version) = load::<kiln_core::implementation::TransportRequests>(
+            &transaction,
+            TRANSPORT_REQUEST_KIND,
+        )?;
+        let result = apply(&mut attempts, &mut launches, &mut requests)
             .map_err(|error| format!("{}: {}", error.code, error.message))?;
         save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
         save(
@@ -1255,6 +1308,12 @@ impl Implementer {
             TRANSPORT_LAUNCH_KIND,
             launch_version,
             &launches,
+        )?;
+        save(
+            &transaction,
+            TRANSPORT_REQUEST_KIND,
+            request_version,
+            &requests,
         )?;
         transaction.commit().map_err(text)?;
         Ok(result)

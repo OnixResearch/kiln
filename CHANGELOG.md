@@ -85,12 +85,14 @@ entry describes the source tree prepared for the first tagged release.
   and omitted otherwise, as for a shared allocation's `gpu`. The
   `--worker-request` route appends the lineage only for an admitted
   attempt, and keeps every admitted byte. Without admission, requests keep
-  their bytes and identities. The sent bytes are frozen under their own
-  BLAKE3, so a retry refused before any transport start is never blocked by
-  an earlier file, and the transport launch record now keeps that file's
-  path and digest. Recovery and campaign export read exactly the recorded
-  file, whatever the profile's output directory. An older binary cannot
-  read such a launch record and fails closed. The `--dispatch-plan` exchange
+  their bytes and identities. The sent bytes are frozen atomically under
+  their own BLAKE3, so a retry refused before any transport start is never
+  blocked by an earlier or torn file. That file's path and digest are
+  recorded for the launch, in the transport intent's transaction, under a
+  separate `transport_requests` record, so the launch record keeps its
+  published shape and an older binary still reads it. Recovery and campaign
+  export read exactly the recorded file, whatever the profile's output
+  directory. The `--dispatch-plan` exchange
   route checks the same lineage, but its `lattice.workflow-request` cannot
   carry it. An unsettled or crossed reservation, a missing required grant,
   an inconsistent ledger, a blocker, backpressure, an exhausted or

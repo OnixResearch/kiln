@@ -208,23 +208,18 @@ pub struct AttemptLedger {
     transport_bound: alloc::collections::BTreeSet<String>,
 }
 
-/// The exact provider program and state root of an attempt's first launch,
-/// and the request bytes it sent.
+/// The exact provider program and state root of an attempt's first launch.
 ///
 /// Recorded in the same transaction as the transport intent, so the launch
-/// that won the intent is the only one recovery may use.
+/// that won the intent is the only one recovery may use. Its encoding is
+/// shared with binaries that predate [`TransportRequests`], so the request
+/// the launch sent is never stored here.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransportLaunch {
     pub lattice_program: String,
     pub executable_blake3: ContentId,
     pub state_directory: String,
-    /// The request file the first launch handed the provider, frozen before
-    /// the transport intent. `None` for a launch recorded before Kiln froze
-    /// the sent bytes under their own digest; such a launch sent the admitted
-    /// request unchanged.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub request: Option<FrozenRequest>,
 }
 
 /// One frozen request file: its absolute path and the BLAKE3 of its bytes.
@@ -233,6 +228,79 @@ pub struct TransportLaunch {
 pub struct FrozenRequest {
     pub path: String,
     pub blake3: ContentId,
+}
+
+/// The request file one recorded launch sent.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RecordedRequest {
+    launch: TransportLaunch,
+    request: FrozenRequest,
+}
+
+/// The request files recorded launches sent, kept under their own
+/// implementation-state kind so that [`TransportLaunches`] stays readable by
+/// binaries that predate them. Written in the same transaction as the
+/// transport intent and its launch.
+///
+/// A record is consulted only while its attempt's transport intent exists and
+/// the same launch is recorded. A launch with no record (recorded by an
+/// earlier binary) sent the admitted request unchanged.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransportRequests {
+    #[serde(default)]
+    requests: BTreeMap<String, RecordedRequest>,
+}
+
+impl TransportRequests {
+    /// After [`TransportLaunches::start`]: a fresh intent that recorded
+    /// `launch` records the request it sends, replacing any record an earlier
+    /// intent left; a fresh intent without both forgets it. An existing
+    /// intent keeps its record.
+    pub fn record(
+        &mut self,
+        identity: &ContentId,
+        start: &TransportStart,
+        launch: Option<&TransportLaunch>,
+        request: Option<&FrozenRequest>,
+    ) {
+        if start.is_recovery() {
+            return;
+        }
+        match (launch, request) {
+            (Some(launch), Some(request)) => {
+                self.requests.insert(
+                    identity.as_str().to_string(),
+                    RecordedRequest {
+                        launch: launch.clone(),
+                        request: request.clone(),
+                    },
+                );
+            }
+            _ => {
+                self.requests.remove(identity.as_str());
+            }
+        }
+    }
+
+    /// The request `launch` sent, while the attempt's transport intent
+    /// exists (`started`) and the record belongs to that exact launch.
+    #[must_use]
+    pub fn recall(
+        &self,
+        identity: &ContentId,
+        launch: Option<&TransportLaunch>,
+        started: bool,
+    ) -> Option<FrozenRequest> {
+        let record = self.requests.get(identity.as_str())?;
+        (started && launch == Some(&record.launch)).then(|| record.request.clone())
+    }
+
+    /// Remove the record when the attempt's transport intent is settled.
+    pub fn remove(&mut self, identity: &ContentId) {
+        self.requests.remove(identity.as_str());
+    }
 }
 
 /// What persisting the transport intent established.

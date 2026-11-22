@@ -1,14 +1,14 @@
 {
   "change": "emit-lattice-budget-lineage",
   "date": "2026-11-22",
-  "base": "0b5235c8 (review fixes on top of the first lineage commit, base 911960de)",
+  "base": "23eaa208 (rollback-safe request record and atomic freezing on top of the lineage commits, base 911960de)",
   "scope": "deterministic in-memory and SQLite admission ledgers, golden request bytes, the transport launch record and Lattice's published lineage consumer; no live Lattice worker, owner or serving capacity",
   "toolchain": "nix develop . --option builders '' did not start within 240 s, so the gates ran with Kiln's pinned Rust 1.88.0 from /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 on PATH; the dev-shell gates must be rerun at integration",
   "commands": [
     { "command": "cargo fmt --all -- --check", "exit": 0 },
-    { "command": "cargo test --locked -p kiln-adapter-lattice --lib --bins", "exit": 0, "result": "85 + 2 passed" },
+    { "command": "cargo test --locked -p kiln-adapter-lattice --lib --bins", "exit": 0, "result": "86 + 2 passed" },
     { "command": "cargo test --locked -p onix-kiln-core --lib transport_launches", "exit": 0, "result": "1 passed" },
-    { "command": "cargo test --locked -p kiln-implementer --test durable", "exit": 0, "result": "22 passed" },
+    { "command": "cargo test --locked -p kiln-implementer --test durable --test admission_host_owner", "exit": 0, "result": "23 + 22 passed" },
     { "command": "cargo test --locked -p kiln-web-service --lib implementation_campaign", "exit": 0, "result": "20 passed" },
     { "command": "cargo clippy --locked -p kiln-adapter-lattice -p kiln-web-service -p onix-kiln-core -p kiln-implementer --all-targets -- -D warnings", "exit": 0 },
     { "command": "python3 -m unittest scripts/test_implementation_qualification.py", "exit": 0, "result": "16 passed" },
@@ -24,7 +24,9 @@
     { "mutation": "fresh request frozen under the admitted digest", "failed": "the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it" },
     { "mutation": "recovery reads the profile's output directory instead of the recorded path", "failed": "the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it" },
     { "mutation": "recovery skips the recorded BLAKE3 check", "failed": "the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it" },
-    { "mutation": "recovery skips verify_frozen", "failed": "the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it" }
+    { "mutation": "recovery skips verify_frozen", "failed": "the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it" },
+    { "mutation": "the sent request written into TransportLaunch again", "failed": "the_sent_request_is_recorded_beside_launches_an_older_binary_still_reads (unknown field `request` under the published launch shape)" },
+    { "mutation": "a frozen file whose bytes do not hash to its name is refused instead of replaced", "failed": "a_torn_frozen_request_is_replaced_atomically" }
   ],
   "not_run": [
     "workspace-wide cargo test and clippy, Octet, gitleaks and nix flake check (integration owner)",

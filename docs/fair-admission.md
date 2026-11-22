@@ -374,22 +374,29 @@ identities. The two routes differ:
   member, keeping every admitted byte in order. The request seal stays on
   the admitted bytes. The sent bytes are frozen before the owner-grant gate
   as `request-<BLAKE3 of the sent bytes>.json` in the transport output
-  directory; without a lineage that is the name earlier launches used. A
-  retry refused before any transport start therefore writes its own file
-  when its lineage changed, for example after a second owner's grant
-  arrived. `begin_dispatch_transport` records the file's path and BLAKE3
-  with the launch (`TransportLaunch.request`). Lattice binds its state to
-  those bytes, so `recover`, `cancel` and campaign `export-candidate` name
-  exactly the recorded file (`worker::sent_request_path`), whatever the
-  current profile's `output_directory`. `--recover` never derives the
-  lineage again, because the grants are unknown by then. It accepts the
-  recorded file only while it hashes to the recorded BLAKE3 and is the
-  admitted bytes, or them plus exactly one well-formed lineage. A missing or
-  crossed file is refused with "Lattice was not invoked for recovery; the
-  first launch may have run; retain the unknown outcome and reconcile". A
-  launch recorded before Kiln recorded its request sent the admitted bytes,
-  so its recovery uses them. An older Kiln binary cannot read a launch
-  record that names its request, and fails closed.
+  directory; without a lineage that is the name earlier launches used. The
+  file is written to a temporary file, synced and renamed onto its name, so
+  a crash never leaves a partial file under it, and a file found whose
+  bytes do not hash to its name is replaced the same way. A retry refused
+  before any transport start therefore writes its own file when its lineage
+  changed, for example after a second owner's grant arrived.
+  `begin_dispatch_transport_sending` records the file's path and BLAKE3 for
+  the launch in the same transaction as the transport intent and launch,
+  under its own implementation-state kind (`transport_requests`). The
+  launch document keeps its published shape, so a binary that predates the
+  record still reads it. Lattice binds its state to the sent bytes, so
+  `recover`, `cancel` and campaign `export-candidate` name exactly the file
+  recorded for the launch (`Implementer::dispatch_request`,
+  `worker::sent_request_path`), whatever the current profile's
+  `output_directory`; the record answers only while the transport intent and
+  that exact launch are recorded. `--recover` never derives the lineage
+  again, because the grants are unknown by then. It accepts the recorded
+  file only while it hashes to the recorded BLAKE3 and is the admitted
+  bytes, or them plus exactly one well-formed lineage. A missing or crossed
+  file is refused with "Lattice was not invoked for recovery; the first
+  launch may have run; retain the unknown outcome and reconcile". A launch
+  with no request record (recorded by an earlier binary) sent the admitted
+  bytes, so its recovery uses them.
 - `--dispatch-plan` (workflow exchange) sends a `lattice.workflow-request`,
   which has no lineage field and denies unknown fields. It runs the same
   derivation and refusals before the transport start, but its request bytes

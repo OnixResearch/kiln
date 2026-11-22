@@ -161,7 +161,7 @@ r[kiln.admission.lattice_lineage.scenario.carried]
 - WHEN the `--worker-request` route builds its request
 - THEN the request MUST be the admitted bytes with one appended `lineage` member matching the committed golden bytes
 - AND Lattice's published schema MUST accept that lineage, with the dimensions it cannot charge listed as unaccounted
-- AND the sent bytes MUST be frozen under their own BLAKE3 before the owner-grant gate, so a retry refused before any transport start writes its own file, and the transport intent MUST record that file's path and BLAKE3 with the launch
+- AND the sent bytes MUST be frozen atomically under their own BLAKE3 before the owner-grant gate, so a retry refused before any transport start writes its own file and a torn file under the name is replaced, and the transport intent's transaction MUST record that file's path and BLAKE3 for the launch in a record separate from the launch record, which MUST keep its published shape
 - AND recovery and candidate export MUST read exactly the recorded file, whatever the current profile's output directory, and recovery MUST refuse a missing file or one that no longer hashes to the recorded BLAKE3 or is not the admitted bytes plus at most one well-formed lineage, retaining the unknown outcome
 
 #### Scenario: The exchange route checks but never carries it

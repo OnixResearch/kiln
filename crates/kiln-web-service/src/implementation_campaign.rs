@@ -667,12 +667,14 @@ impl NativeCampaignConsumer {
         let host_receipt = output.join("host-receipt.json");
         let transport: kiln_adapter_lattice::worker::WorkerTransportProfile =
             read_json(&worker.transport_profile)?;
-        let launch = kiln_implementer::Implementer::open(
+        let mut owner = kiln_implementer::Implementer::open(
             &self.profile.implementation_database,
             read_json(&worker.enrollment)?,
-        )?
-        .dispatch_launch(&attempt.identity)?;
-        let (request, state) = exported_request(launch.as_ref(), &transport, &worker.request)?;
+        )?;
+        let launch = owner.dispatch_launch(&attempt.identity)?;
+        let sent = owner.dispatch_request(&attempt.identity)?;
+        let (request, state) =
+            exported_request(launch.as_ref(), sent.as_ref(), &transport, &worker.request)?;
         let raw = run_role(
             &self.profile,
             &self.profile.roles.exporter,
@@ -1393,15 +1395,17 @@ fn attach_swarm_mirror(
 /// The request file and state root `export-candidate` names: exactly the
 /// ones the attempt's recorded launch ran, since Lattice binds the attempt to
 /// those bytes (the admitted request plus Kiln's budget lineage for an
-/// admitted attempt). A launch recorded before Kiln recorded its request sent
-/// the admitted bytes, frozen in the profile's output directory.
+/// admitted attempt). `sent` is the request recorded for that launch; a
+/// launch recorded before Kiln recorded its request sent the admitted bytes,
+/// frozen in the profile's output directory.
 fn exported_request(
     launch: Option<&kiln_core::implementation::TransportLaunch>,
+    sent: Option<&kiln_core::implementation::FrozenRequest>,
     transport: &kiln_adapter_lattice::worker::WorkerTransportProfile,
     admitted: &Path,
 ) -> Result<(PathBuf, PathBuf), String> {
     let request = kiln_adapter_lattice::worker::sent_request_path(
-        launch,
+        sent,
         transport,
         &fs::read(admitted).map_err(text)?,
     )?;
@@ -1431,31 +1435,30 @@ mod tests {
             state_directory: "/current/state".into(),
             output_directory: "/current/output".into(),
         };
-        let mut launch = TransportLaunch {
+        let launch = TransportLaunch {
             lattice_program: "/nix/store/0-lattice/bin/lattice".into(),
             executable_blake3: id(&"b".repeat(64)).unwrap_or_else(|_| unreachable!()),
             state_directory: "/recorded/state".into(),
-            request: Some(FrozenRequest {
-                path: "/recorded/output/request-sent.json".into(),
-                blake3: id(&"c".repeat(64)).unwrap_or_else(|_| unreachable!()),
-            }),
+        };
+        let sent = FrozenRequest {
+            path: "/recorded/output/request-sent.json".into(),
+            blake3: id(&"c".repeat(64)).unwrap_or_else(|_| unreachable!()),
         };
         assert_eq!(
-            exported_request(Some(&launch), &transport, &admitted),
+            exported_request(Some(&launch), Some(&sent), &transport, &admitted),
             Ok((
                 PathBuf::from("/recorded/output/request-sent.json"),
                 PathBuf::from("/recorded/state")
             ))
         );
         // A launch recorded before its request was: it sent the admitted bytes.
-        launch.request = None;
         let legacy = PathBuf::from(format!("/current/output/request-{digest}.json"));
         assert_eq!(
-            exported_request(Some(&launch), &transport, &admitted),
+            exported_request(Some(&launch), None, &transport, &admitted),
             Ok((legacy.clone(), PathBuf::from("/recorded/state")))
         );
         assert_eq!(
-            exported_request(None, &transport, &admitted),
+            exported_request(None, None, &transport, &admitted),
             Ok((legacy, PathBuf::from("/current/state")))
         );
     }

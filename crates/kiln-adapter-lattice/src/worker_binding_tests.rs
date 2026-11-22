@@ -7,7 +7,6 @@ fn launch(root: &Path) -> TransportLaunch {
         executable_blake3: ContentId::from_blake3_hex("b".repeat(64))
             .unwrap_or_else(|_| unreachable!()),
         state_directory: root.display().to_string(),
-        request: None,
     }
 }
 

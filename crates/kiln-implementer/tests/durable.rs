@@ -1485,7 +1485,6 @@ fn an_older_attempt_writer_cannot_erase_a_recorded_launch() -> Result<(), Box<dy
         lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
         executable_blake3: content('b'),
         state_directory: root.into(),
-        request: None,
     };
     assert_eq!(
         store.begin_dispatch_transport(
@@ -1534,6 +1533,172 @@ fn an_older_attempt_writer_cannot_erase_a_recorded_launch() -> Result<(), Box<dy
         )?,
         TransportStart::Recover(Some(launch("/var/lib/lattice/a")))
     );
+    Ok(())
+}
+
+/// The published (`911960de`) launch record shape, copied so this binary's
+/// launch document is read exactly as an older binary reads it.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(dead_code)]
+struct PublishedLaunch {
+    lattice_program: String,
+    executable_blake3: String,
+    state_directory: String,
+}
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+#[allow(dead_code)]
+struct PublishedLaunches {
+    #[serde(default)]
+    launches: std::collections::BTreeMap<String, PublishedLaunch>,
+}
+
+// r[verify kiln.admission.lattice_lineage.scenario.carried]
+#[test]
+fn the_sent_request_is_recorded_beside_launches_an_older_binary_still_reads()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::{
+        DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, FrozenRequest,
+        ImplementationDispatchPlan, TransportLaunch, TransportStart, WorkspaceIsolation,
+    };
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"request")?;
+    let launch = |root: &str| TransportLaunch {
+        lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+        executable_blake3: content('b'),
+        state_directory: root.into(),
+    };
+    let sent = FrozenRequest {
+        path: "/var/lib/kiln/out/request-sent.json".into(),
+        blake3: content('c'),
+    };
+    let raw = |sql: &str| -> Result<usize, rusqlite::Error> {
+        rusqlite::Connection::open(&path)?.execute(sql, [])
+    };
+
+    // The record commits with the intent and launch or not at all: an
+    // unreadable request document rolls the whole transition back.
+    drop(store);
+    raw(
+        "INSERT INTO implementation_state (kind, version, bytes) VALUES ('transport_requests', 1, x'7b')",
+    )?;
+    let mut store = open(&path);
+    assert!(
+        store
+            .begin_dispatch_transport_sending(
+                &attempt.identity,
+                attempt.fence,
+                1,
+                &plan,
+                Some(&launch("/var/lib/lattice/a")),
+                Some(&sent)
+            )
+            .is_err()
+    );
+    assert!(!store.dispatch_requires_recovery(&attempt.identity)?);
+    assert_eq!(store.dispatch_launch(&attempt.identity)?, None);
+    drop(store);
+    raw("DELETE FROM implementation_state WHERE kind = 'transport_requests'")?;
+    let mut store = open(&path);
+    assert_eq!(
+        store.begin_dispatch_transport_sending(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &plan,
+            Some(&launch("/var/lib/lattice/a")),
+            Some(&sent)
+        )?,
+        TransportStart::Fresh
+    );
+    assert!(store.dispatch_requires_recovery(&attempt.identity)?);
+    assert_eq!(
+        store.dispatch_request(&attempt.identity)?,
+        Some(sent.clone())
+    );
+    drop(store);
+
+    // An older binary reads this binary's launch document with the published
+    // shape; the sent request is not in it.
+    {
+        let connection = rusqlite::Connection::open(&path)?;
+        let bytes: Vec<u8> = connection.query_row(
+            "SELECT bytes FROM implementation_state WHERE kind = 'transport_launches'",
+            [],
+            |row| row.get(0),
+        )?;
+        let published: PublishedLaunches = serde_json::from_slice(&bytes)?;
+        assert_eq!(published.launches.len(), 1);
+        assert!(!String::from_utf8(bytes)?.contains("request"));
+    }
+
+    // A record answers only for the exact launch it was written with.
+    let mut store = open(&path);
+    assert_eq!(
+        store.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            2,
+            &plan,
+            Some(&launch("/var/lib/lattice/b"))
+        )?,
+        TransportStart::Recover(Some(launch("/var/lib/lattice/a")))
+    );
+    assert_eq!(store.dispatch_request(&attempt.identity)?, Some(sent));
+    drop(store);
+    raw(
+        "UPDATE implementation_state SET bytes = CAST(replace(CAST(bytes AS TEXT), '/var/lib/lattice/a', '/var/lib/lattice/z') AS BLOB) WHERE kind = 'transport_launches'",
+    )?;
+    let mut store = open(&path);
+    assert_eq!(store.dispatch_request(&attempt.identity)?, None);
+    drop(store);
+
+    // A launch an older binary recorded has no request record: recovery
+    // falls back to the admitted bytes.
+    raw("DELETE FROM implementation_state WHERE kind = 'transport_requests'")?;
+    let mut store = open(&path);
+    assert!(store.dispatch_launch(&attempt.identity)?.is_some());
+    assert_eq!(store.dispatch_request(&attempt.identity)?, None);
     Ok(())
 }
 
@@ -1595,7 +1760,6 @@ fn before_effect_settlement_survives_restart_without_reconciliation()
         lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
         executable_blake3: content('b'),
         state_directory: "/var/lib/lattice/a".into(),
-        request: None,
     };
     assert!(
         !store

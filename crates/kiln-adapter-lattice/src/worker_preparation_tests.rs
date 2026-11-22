@@ -10,8 +10,8 @@ use kiln_core::fair_admission::{
 use kiln_core::implementation::{
     AcceptanceObligation, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, Enrollment,
     IMPLEMENTATION_WORK_SCHEMA, ImplementationAttempt, ImplementationDispatchPlan,
-    ImplementationWork, SourceRef, TerminalPolicy, TransportLaunch, TransportStart, WorkBudget,
-    WorkSourceKind, WorkspaceIsolation,
+    ImplementationWork, SourceRef, TerminalPolicy, TransportStart, WorkBudget, WorkSourceKind,
+    WorkspaceIsolation,
 };
 use kiln_core::operations::{FairnessStrategy, TenantUsage, UsageValue};
 use kiln_core::types::{Alias, ContentId, ExternalRef, ProviderProfileId};
@@ -627,17 +627,29 @@ fn the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it() {
     owner
         .admission_before_transport(&attempt.identity, attempt.fence, &fresh, now)
         .unwrap_or_else(|error| unreachable!("{error}"));
-    let launch = TransportLaunch {
-        request: Some(
-            request
-                .frozen()
-                .unwrap_or_else(|error| unreachable!("{error}")),
-        ),
-        ..super::first_launch(&transport).unwrap_or_else(|error| unreachable!("{error}"))
-    };
+    let launch = super::first_launch(&transport).unwrap_or_else(|error| unreachable!("{error}"));
+    let sent = request
+        .frozen()
+        .unwrap_or_else(|error| unreachable!("{error}"));
     assert_eq!(
-        owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now, &plan, Some(&launch)),
+        owner.begin_dispatch_transport_sending(
+            &attempt.identity,
+            attempt.fence,
+            now,
+            &plan,
+            Some(&launch),
+            Some(&sent)
+        ),
         Ok(TransportStart::Fresh)
+    );
+    // The sent request is recorded beside the launch, never inside it.
+    assert_eq!(
+        owner.dispatch_launch(&attempt.identity),
+        Ok(Some(launch.clone()))
+    );
+    assert_eq!(
+        owner.dispatch_request(&attempt.identity),
+        Ok(Some(sent.clone()))
     );
 
     // The gate moved the grant to unknown: neither route derives again.
@@ -662,7 +674,7 @@ fn the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it() {
     }
 
     // Recovery under a profile whose output directory moved reads exactly
-    // the recorded file.
+    // the file recorded for the launch.
     let moved = profile(root, "moved", &root.join("state"));
     let recorded =
         match owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now, &plan, None) {
@@ -670,9 +682,15 @@ fn the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it() {
             other => unreachable!("{other:?}"),
         };
     assert_eq!(recorded, launch);
+    let recorded_request = owner
+        .dispatch_request(&attempt.identity)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(recorded_request.as_ref(), Some(&sent));
     let recover = |admitted: &[u8]| {
         launch_request(
-            RequestSource::Recover { launch: &recorded },
+            RequestSource::Recover {
+                request: recorded_request.as_ref(),
+            },
             &moved,
             admitted,
         )
@@ -714,14 +732,58 @@ fn the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it() {
             .contains("Lattice was not invoked for recovery; the first launch may have run")),
         "{missing:?}"
     );
-    // A launch recorded before Kiln recorded its request sent the admitted
-    // bytes, frozen under their digest in the profile's output directory.
-    let legacy = TransportLaunch {
-        request: None,
-        ..recorded.clone()
-    };
+    // A launch recorded with no request record (by an earlier binary) sent
+    // the admitted bytes, frozen under their digest in the output directory.
     assert_eq!(
-        launch_request(RequestSource::Recover { launch: &legacy }, &moved, admitted),
+        launch_request(RequestSource::Recover { request: None }, &moved, admitted),
         Ok(frozen(&moved, admitted))
     );
+}
+
+// r[verify kiln.admission.lattice_lineage.scenario.carried]
+#[test]
+fn a_torn_frozen_request_is_replaced_atomically() {
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let root = directory.path();
+    let transport = profile(root, "transport", &root.join("state"));
+    let request = frozen(&transport, b"{\"schema\":\"sent\"}");
+    let output = &transport.output_directory;
+    let only_frozen = || {
+        std::fs::read_dir(output)
+            .unwrap_or_else(|_| unreachable!())
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .collect::<Vec<_>>()
+    };
+    // A first write leaves exactly the named file, read-only, and no temporary.
+    assert_eq!(
+        prepare_launch_files(&transport, &request, true),
+        Ok(request.path.clone())
+    );
+    assert_eq!(only_frozen(), vec![request.path.clone()]);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(
+            std::fs::metadata(&request.path)
+                .map(|metadata| metadata.permissions().mode() & 0o777)
+                .ok(),
+            Some(0o400)
+        );
+    }
+    // A torn file under the name (empty, or a prefix of the bytes) does not
+    // hash to it: a retry replaces it instead of being blocked by it.
+    for torn in [&b""[..], &b"{\"schema\""[..]] {
+        std::fs::remove_file(&request.path).unwrap_or_else(|_| unreachable!());
+        std::fs::write(&request.path, torn).unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            prepare_launch_files(&transport, &request, true),
+            Ok(request.path.clone())
+        );
+        assert_eq!(
+            std::fs::read(&request.path).ok(),
+            Some(request.bytes.clone())
+        );
+        assert_eq!(only_frozen(), vec![request.path.clone()]);
+    }
 }
