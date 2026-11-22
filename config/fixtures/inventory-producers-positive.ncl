@@ -39,6 +39,13 @@
       kind = "workers",
       minimum_generation = 1,
     },
+    {
+      source = "lattice-workflows",
+      producer = "lattice",
+      scope = "tenant-pilot",
+      kind = "workflow_revisions",
+      minimum_generation = 1,
+    },
   ],
   max_age_ms = 60000,
 }

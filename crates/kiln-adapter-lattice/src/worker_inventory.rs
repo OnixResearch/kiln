@@ -1307,7 +1307,10 @@ pub fn map_worker_inventory(
                 )),
                 None => None,
             },
-            InventoryKind::Compute | InventoryKind::Serving | InventoryKind::Policy => {
+            InventoryKind::Compute
+            | InventoryKind::Serving
+            | InventoryKind::Policy
+            | InventoryKind::WorkflowRevisions => {
                 return Err("lattice_inventory_kind_unsupported");
             }
         };

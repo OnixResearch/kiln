@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     AgentDefinition, ComputeDevice, FactRef, INVENTORY_PROFILE, InventoryKind, InventorySnapshot,
-    MAX_INVENTORY_SOURCES, ModelService, ResourcePool, SourceObservation, WorkerInstance, token,
+    MAX_INVENTORY_SOURCES, ModelService, ResourcePool, SourceObservation, WorkerInstance,
+    WorkflowRevisionSlots, token,
 };
 
 /// Source identities that scope references between inventories. A producer
@@ -42,6 +43,9 @@ pub struct InventoryFragment {
     pub compute: Vec<ComputeDevice>,
     pub pools: Vec<ResourcePool>,
     pub models: Vec<ModelService>,
+    /// Omitted when empty, so earlier fragments keep their encoding.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub workflow_revisions: Vec<WorkflowRevisionSlots>,
 }
 
 impl InventoryFragment {
@@ -56,6 +60,7 @@ impl InventoryFragment {
             compute: Vec::new(),
             pools: Vec::new(),
             models: Vec::new(),
+            workflow_revisions: Vec::new(),
         }
     }
 
@@ -67,6 +72,7 @@ impl InventoryFragment {
             .chain(self.compute.iter().map(|v| &v.meta.reference))
             .chain(self.pools.iter().map(|v| &v.meta.reference))
             .chain(self.models.iter().map(|v| &v.meta.reference))
+            .chain(self.workflow_revisions.iter().map(|v| &v.meta.reference))
     }
 
     fn holds_only_its_kind(&self) -> bool {
@@ -74,11 +80,13 @@ impl InventoryFragment {
         let workers = self.workers.is_empty();
         let compute = self.compute.is_empty() && self.pools.is_empty();
         let models = self.models.is_empty();
+        let workflows = self.workflow_revisions.is_empty();
         match self.kind {
-            InventoryKind::Agents => workers && compute && models,
-            InventoryKind::Workers => agents && compute && models,
-            InventoryKind::Compute => agents && workers && models,
-            InventoryKind::Serving => agents && workers && compute,
+            InventoryKind::Agents => workers && compute && models && workflows,
+            InventoryKind::Workers => agents && compute && models && workflows,
+            InventoryKind::Compute => agents && workers && models && workflows,
+            InventoryKind::Serving => agents && workers && compute && workflows,
+            InventoryKind::WorkflowRevisions => agents && workers && compute && models,
             InventoryKind::Policy => false,
         }
     }
@@ -127,6 +135,7 @@ pub fn compose_snapshot(
         admissions: Vec::new(),
         policies: Vec::new(),
         attempts: Vec::new(),
+        workflow_revisions: Vec::new(),
     };
     for fragment in fragments {
         snapshot.sources.push(fragment.source);
@@ -135,6 +144,9 @@ pub fn compose_snapshot(
         snapshot.compute.extend(fragment.compute);
         snapshot.pools.extend(fragment.pools);
         snapshot.models.extend(fragment.models);
+        snapshot
+            .workflow_revisions
+            .extend(fragment.workflow_revisions);
     }
     for model in &mut snapshot.models {
         let mut pools: BTreeSet<FactRef> = model.accounting_pools.iter().cloned().collect();
@@ -164,6 +176,9 @@ pub fn compose_snapshot(
         .sort_by(|a, b| a.meta.reference.cmp(&b.meta.reference));
     snapshot
         .models
+        .sort_by(|a, b| a.meta.reference.cmp(&b.meta.reference));
+    snapshot
+        .workflow_revisions
         .sort_by(|a, b| a.meta.reference.cmp(&b.meta.reference));
     debug_assert!(snapshot.sources.len() <= MAX_INVENTORY_SOURCES);
     Ok(snapshot)

@@ -3,28 +3,30 @@
 //!
 //! A pure read of Kiln's admitted resource inventory projection: the
 //! definitions' revision slots, task-family qualification references with
-//! their provenance, declared capability, the workers' revision pins and the
-//! owner-attributed wait reasons. It never reads producer documents, storage,
-//! a clock or the environment, and it copies an explicit allow-list of fields:
-//! no session, workspace, execution or grant reference, model-service binding,
-//! full qualification record, preparation failure or other work's attempt.
+//! their provenance, declared capability, the workers' revision pins, the
+//! owner-attributed wait reasons and, apart from them, the workflow revision
+//! slots. It never reads producer documents, storage, a clock or the
+//! environment, and it copies an explicit allow-list of fields: no session,
+//! workspace, execution or grant reference, model-service binding, full
+//! qualification record, preparation failure or other work's attempt, and no
+//! guidance, context or source identity of a workflow.
 use std::collections::BTreeSet;
 
 use kiln_core::inventory::{
-    AgentDefinition, EvidenceProvenance, FactRef, InventoryKind, InventoryProjection,
-    ObservationState, Permission, PinStatus, RevisionManagement, RevisionPin, WaitReason,
-    WaitSubject, WorkerInstance, WorkerLifecycle,
+    AgentDefinition, CompiledWorkflow, EvidenceProvenance, FactRef, InventoryKind,
+    InventoryProjection, ObservationState, Permission, PinStatus, RevisionManagement, RevisionPin,
+    SelectionKind, SourceStatus, WaitReason, WaitSubject, WorkerInstance, WorkerLifecycle,
+    WorkflowRevision, WorkflowRevisionSlots,
 };
 use serde::Serialize;
 
-/// Owner of the workflow revisions Lattice does not publish yet.
-pub const WORKFLOW_REVISION_OWNER: &str = "lattice#25";
 /// Wait reason a producer attaches to each revision fact it leaves unknown.
 const REVISION_FACT_UNKNOWN: &str = "revision_fact_unknown";
 /// Unknown-field name of the whole revision state, for producers that do not
 /// split it into slots.
 const REVISIONS_FIELD: &str = "revisions";
-/// Unknown-field name of a worker's revision pin.
+/// Unknown-field name of a worker's revision pin, and of a workflow
+/// definition's pinned revisions.
 const PINNED_FIELD: &str = "pinned";
 
 /// The resource inventory as the detail route observed it. Its failure is
@@ -59,26 +61,81 @@ impl Slot {
     }
 }
 
-/// Workflow revisions, which no producer publishes yet. Kept apart from the
-/// definitions' and workers' revisions.
+/// The worker revision a workflow revision pairs with, and how it relates to
+/// the worker definition the inventory projects.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct WorkerPairingView {
+    pub definition: FactRef,
+    pub revision: String,
+    pub bundle: String,
+    /// `profile_revision` when it is the definition's projected revision,
+    /// `other_revision`, or `definition_not_observed`.
+    pub observed: &'static str,
+}
+
+/// One workflow revision: its compiled workflow identities and its worker.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct WorkflowRevisionView {
+    pub revision: String,
+    pub workflow: CompiledWorkflow,
+    pub worker: WorkerPairingView,
+}
+
+/// One workflow revision slot. `state` is `recorded`, `not_recorded` or
+/// `unknown`. No producer names an owner for an unknown workflow slot.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct WorkflowSlotView {
+    pub state: &'static str,
+    pub revision: Option<WorkflowRevisionView>,
+}
+
+/// Sessions pinned to one workflow revision in one pin state, counted, never
+/// named.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct WorkflowPinView {
+    pub revision: WorkflowRevisionView,
+    pub status: PinStatus,
+    pub blocked: bool,
+    pub sessions: u64,
+    /// `matches_selected`, `differs_from_selected` or `no_selection`.
+    pub selection: &'static str,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct WorkflowDefinitionView {
+    pub reference: FactRef,
+    pub observation: ObservationState,
+    pub desired: WorkflowSlotView,
+    pub last_usable: WorkflowSlotView,
+    pub selected_for_new_sessions: WorkflowSlotView,
+    /// Rollout generation, kind and qualification reference of a recorded selection.
+    pub rollout_generation: Option<u64>,
+    pub selection_kind: Option<SelectionKind>,
+    pub qualification: Option<String>,
+    /// `recorded` when sessions are pinned, `not_recorded` when none are, or `unknown`.
+    pub pinned_state: &'static str,
+    pub pinned: Vec<WorkflowPinView>,
+}
+
+/// Workflow revisions, kept apart from the definitions' and workers'
+/// revisions, with their own failure boundary.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct WorkflowRevisions {
-    pub selected_for_new_sessions: Slot,
-    pub pinned: Slot,
+    /// `admitted`, `not_configured` or `unavailable`.
+    pub source: &'static str,
+    /// The refusal code of unavailable workflow revisions.
+    pub reason: Option<String>,
+    pub sources: Vec<SourceView>,
+    pub definitions: Vec<WorkflowDefinitionView>,
 }
 
 impl WorkflowRevisions {
-    fn unpublished() -> Self {
-        let slot = || {
-            Slot::new(
-                "unpublished",
-                None,
-                Some(WORKFLOW_REVISION_OWNER.to_owned()),
-            )
-        };
+    fn unobserved(source: &'static str, reason: Option<String>) -> Self {
         Self {
-            selected_for_new_sessions: slot(),
-            pinned: slot(),
+            source,
+            reason,
+            sources: Vec::new(),
+            definitions: Vec::new(),
         }
     }
 }
@@ -465,14 +522,206 @@ fn worker_view(
 fn unobserved(source: &'static str, reason: Option<String>) -> AgentRevisions {
     AgentRevisions {
         source,
-        reason,
+        reason: reason.clone(),
         inventory_identity: None,
         evaluated_at_ms: None,
         synthetic: None,
         sources: Vec::new(),
-        workflow_revisions: WorkflowRevisions::unpublished(),
+        workflow_revisions: WorkflowRevisions::unobserved(source, reason),
         definitions: Vec::new(),
         workers: Vec::new(),
+    }
+}
+
+fn source_view(source: &SourceStatus) -> SourceView {
+    SourceView {
+        source: source.source.clone(),
+        producer: source.producer.clone(),
+        kind: source.kind,
+        state: source.state,
+        reason: source.reason.clone(),
+    }
+}
+
+// r[impl kiln.cairn.workspace.agents.scenario.workflow]
+/// The paired worker revision against the worker definition the inventory
+/// projects.
+fn workflow_revision(
+    projection: &InventoryProjection,
+    revision: &WorkflowRevision,
+) -> WorkflowRevisionView {
+    let worker = &revision.worker;
+    let observed = projection
+        .snapshot
+        .agents
+        .iter()
+        .find(|definition| definition.meta.reference == worker.definition)
+        .map_or("definition_not_observed", |definition| {
+            if definition.profile_revision == worker.revision {
+                "profile_revision"
+            } else {
+                "other_revision"
+            }
+        });
+    WorkflowRevisionView {
+        revision: revision.revision.clone(),
+        workflow: revision.workflow.clone(),
+        worker: WorkerPairingView {
+            definition: worker.definition.clone(),
+            revision: worker.revision.clone(),
+            bundle: worker.bundle.clone(),
+            observed,
+        },
+    }
+}
+
+/// One workflow slot. An unknown slot wins, then a recorded revision; a
+/// workflow lifecycle is always managed, so an empty slot is `not_recorded`.
+fn workflow_slot(
+    projection: &InventoryProjection,
+    slots: &WorkflowRevisionSlots,
+    field: &str,
+    value: Option<&str>,
+) -> WorkflowSlotView {
+    let empty = |state| WorkflowSlotView {
+        state,
+        revision: None,
+    };
+    if slots
+        .meta
+        .unknown_fields
+        .iter()
+        .any(|listed| listed == field)
+    {
+        return empty("unknown");
+    }
+    match value.and_then(|value| slots.revision(value)) {
+        Some(revision) => WorkflowSlotView {
+            state: "recorded",
+            revision: Some(workflow_revision(projection, revision)),
+        },
+        None => empty("not_recorded"),
+    }
+}
+
+fn workflow_definition(
+    projection: &InventoryProjection,
+    slots: &WorkflowRevisionSlots,
+) -> WorkflowDefinitionView {
+    let selection = slots.selected_for_new_sessions.as_ref();
+    let selected = workflow_slot(
+        projection,
+        slots,
+        "selected_for_new_sessions",
+        selection.map(|selection| selection.revision.as_str()),
+    );
+    let recorded = selected.state == "recorded";
+    let pinned_unknown = slots.meta.unknown_fields.iter().any(|f| f == PINNED_FIELD);
+    let pinned: Vec<WorkflowPinView> = slots
+        .pinned
+        .iter()
+        .filter_map(|pin| {
+            let revision = slots.revision(&pin.revision)?;
+            Some(WorkflowPinView {
+                revision: workflow_revision(projection, revision),
+                status: pin.status,
+                blocked: pin.blocked,
+                sessions: pin.sessions,
+                selection: match selection {
+                    None => "no_selection",
+                    Some(selection) if selection.revision == pin.revision => "matches_selected",
+                    Some(_) => "differs_from_selected",
+                },
+            })
+        })
+        .collect();
+    WorkflowDefinitionView {
+        reference: slots.meta.reference.clone(),
+        observation: fact_state(projection, &slots.meta.reference),
+        desired: workflow_slot(projection, slots, "desired", slots.desired.as_deref()),
+        last_usable: workflow_slot(
+            projection,
+            slots,
+            "last_usable",
+            slots.last_usable.as_deref(),
+        ),
+        selected_for_new_sessions: selected,
+        rollout_generation: selection
+            .filter(|_| recorded)
+            .map(|selection| selection.rollout_generation),
+        selection_kind: selection
+            .filter(|_| recorded)
+            .map(|selection| selection.kind),
+        qualification: selection
+            .filter(|_| recorded)
+            .map(|selection| selection.qualification.clone()),
+        pinned_state: if pinned_unknown {
+            "unknown"
+        } else if pinned.is_empty() {
+            "not_recorded"
+        } else {
+            "recorded"
+        },
+        pinned: if pinned_unknown { Vec::new() } else { pinned },
+    }
+}
+
+/// The reason no configured workflow source was observed.
+fn workflow_unavailable_reason(sources: &[&SourceStatus]) -> String {
+    sources
+        .iter()
+        .find_map(|source| source.reason.clone())
+        .unwrap_or_else(|| {
+            let state = sources.first().map(|source| source.state);
+            match state {
+                Some(ObservationState::Missing) => "workflow_revisions_source_missing",
+                Some(ObservationState::OutOfOrder) => "workflow_revisions_source_out_of_order",
+                _ => "workflow_revisions_source_unavailable",
+            }
+            .to_owned()
+        })
+}
+
+// r[impl kiln.cairn.workspace.agents.scenario.workflow_source]
+/// Workflow revisions from the admitted inventory. No configured workflow
+/// source is `not_configured`; configured sources none of which was observed
+/// are `unavailable` with the first refusal code. Either leaves the rest of
+/// the section as it is.
+fn workflow_revisions(projection: &InventoryProjection) -> WorkflowRevisions {
+    let sources: Vec<&SourceStatus> = projection
+        .sources
+        .iter()
+        .filter(|source| source.kind == InventoryKind::WorkflowRevisions)
+        .collect();
+    if sources.is_empty() {
+        return WorkflowRevisions::unobserved("not_configured", None);
+    }
+    let observed = sources.iter().any(|source| {
+        !matches!(
+            source.state,
+            ObservationState::Missing
+                | ObservationState::OutOfOrder
+                | ObservationState::Unavailable
+        )
+    });
+    if !observed {
+        let mut unavailable = WorkflowRevisions::unobserved(
+            "unavailable",
+            Some(workflow_unavailable_reason(&sources)),
+        );
+        unavailable.sources = sources.into_iter().map(source_view).collect();
+        return unavailable;
+    }
+    WorkflowRevisions {
+        source: "admitted",
+        reason: None,
+        sources: sources.into_iter().map(source_view).collect(),
+        definitions: projection
+            .snapshot
+            .workflow_revisions
+            .iter()
+            .map(|slots| workflow_definition(projection, slots))
+            .collect(),
     }
 }
 
@@ -518,15 +767,9 @@ pub fn project(
             .sources
             .iter()
             .filter(|source| matches!(source.kind, InventoryKind::Agents | InventoryKind::Workers))
-            .map(|source| SourceView {
-                source: source.source.clone(),
-                producer: source.producer.clone(),
-                kind: source.kind,
-                state: source.state,
-                reason: source.reason.clone(),
-            })
+            .map(source_view)
             .collect(),
-        workflow_revisions: WorkflowRevisions::unpublished(),
+        workflow_revisions: workflow_revisions(projection),
         definitions,
         workers,
     }
@@ -535,3 +778,7 @@ pub fn project(
 #[cfg(test)]
 #[path = "agents_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "agents_workflow_tests.rs"]
+mod workflow_tests;

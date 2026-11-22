@@ -9,6 +9,7 @@ mod unix;
 pub mod worker;
 pub mod worker_inventory;
 pub mod workflow_intent;
+pub mod workflow_revision_slots;
 
 pub use adapter::LatticeAdapter;
 pub use implementation::{

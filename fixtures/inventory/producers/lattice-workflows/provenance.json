@@ -1,0 +1,29 @@
+{
+  "schema": "kiln.fixture-provenance.v1",
+  "producer": "lattice",
+  "contract": "lattice.workflow-agent-revision-slots.v1",
+  "lattice_commit": "7fb6dc473c2cd7ae23282f515c741d398e885fcf",
+  "schema_documents": [
+    "docs/agent-revisions.md#inspection-and-the-kiln-84-projection",
+    "crates/lattice-core/src/agent_revision/workflow/publication.rs"
+  ],
+  "capture_program": "capture_kiln_workflow_slots.rs in the evidence directory of the Kiln change show-workflow-revisions-in-cairn-workspace, added as tests/capture_kiln_workflow_slots.rs to a detached worktree of the Lattice commit and nowhere else",
+  "capture_program_blake3": "1498cefb567b3181eff0423b805a737bde4a655baf69be241f640d524e780d62",
+  "command": "KILN_WORKFLOW_SLOTS_CAPTURE_DIR=$DIR nix develop . --option builders '' -c cargo test --locked --test capture_kiln_workflow_slots -- --test-threads 1",
+  "lifecycle": "Lattice's own composition (agent_revision::composite::compose of a compiled lattice::workflow::intent plan with a resolved worker bundle), the desire transition desire-workflow applies after composition, prepare and promote through agent_revision::run_command_with_ports with the FixturePreparation and FixtureQualification ports, and seam::admit / seam::close for two sessions; the inputs are the synthetic request and intent of tests/test_agent_revision_shell.rs",
+  "read_back": "the outcome.workflow_slots member of the `lattice agent-revision inspect --store STORE --definition DEFINITION` binary output after each step, re-encoded by serde_json pretty printing (sorted keys, trailing newline)",
+  "copied": "verbatim",
+  "synthetic": true,
+  "scenarios": {
+    "workflow-1-desired.json": "R1 desired only",
+    "workflow-2-promoted.json": "R1 prepared and promoted for new sessions (rollout generation 1)",
+    "workflow-3-session-pinned.json": "session-a pinned to R1, live",
+    "workflow-4-second-revision.json": "R2 (new guidance, worker with a changed executable) desired, prepared and promoted (rollout generation 2); session-b pinned to R2, live; session-a on R1 closed and blocked"
+  },
+  "blake3": {
+    "workflow-1-desired.json": "a5cefa11ffa3bd8544399fdd400db7e04e4d4e481b3c69bd9e02f40d106e9cd5",
+    "workflow-2-promoted.json": "f801963496d620f1ebd615490e811bee87a00d64a5670de98932523e8948e435",
+    "workflow-3-session-pinned.json": "0179375ae2f74c826d876367885b42a51f28b8a5e2ca7911e7839ad9970309a1",
+    "workflow-4-second-revision.json": "22d7c5835ef7a5cedaae777bc84892c039f2ae1c31b2176a488082341ed0abdb"
+  }
+}

@@ -5,7 +5,7 @@
 // campaign answer path exactly where the campaign inbox lists it. Displayed reasons are never parsed into decisions.
 (() => {
   const INDEX_SCHEMA = "kiln.cairn-workspace-index.v2";
-  const DETAIL_SCHEMA = "kiln.cairn-workspace-detail.v3";
+  const DETAIL_SCHEMA = "kiln.cairn-workspace-detail.v4";
   const INDEX_ROUTE = "/api/implementation/cairn";
   const DETAIL_ROUTE = "/api/implementation/cairn/detail";
   const HEX = /^[a-f0-9]{64}$/;
@@ -186,6 +186,14 @@
     ["no_attempt", "No attempt", "", "The worker names no attempt."],
   ]);
   const PIN_STATUSES = vocabulary([["live", "Live session"], ["closed", "Session closed"], ["released", "Pin released"]]);
+  // r[impl kiln.cairn.workspace.agents.scenario.workflow] A workflow revision names the worker revision it pairs with,
+  // compared with the revision the inventory projects for that worker definition.
+  const WORKER_PAIRINGS = vocabulary([
+    ["profile_revision", "Pairs with the projected worker revision", "info", "The paired worker revision is the revision this inventory projects for the worker definition."],
+    ["other_revision", "Pairs with another worker revision", "warning", "The paired worker revision is not the revision this inventory projects for the worker definition."],
+    ["definition_not_observed", "Worker definition not observed", "warning", "The paired worker definition is not in this inventory."],
+  ]);
+  const SELECTION_KINDS = vocabulary([["promotion", "Promotion"], ["rollback", "Rollback", "warning"]]);
   const OBSERVATIONS = vocabulary([
     ["current", "Current"], ["stale", "Stale", "warning", "Observed before the freshness window. Not current."], ["missing", "Missing", "warning"],
     ["future", "From the future", "warning"], ["incomplete", "Incomplete", "warning"], ["out_of_order", "Out of order", "warning"],
@@ -342,9 +350,10 @@
   // r[impl kiln.cairn.workspace.agents.scenario.source] The agents section must name its inventory source, so an
   // unconfigured or unavailable inventory is never drawn as an empty one.
   function admitAgents(value) {
+    const workflow = value?.workflow_revisions;
     return typeof value === "object" && value !== null && AGENT_SOURCES.includes(value.source)
       && Array.isArray(value.definitions) && Array.isArray(value.workers)
-      && typeof value.workflow_revisions === "object" && value.workflow_revisions !== null;
+      && typeof workflow === "object" && workflow !== null && AGENT_SOURCES.includes(workflow.source) && Array.isArray(workflow.definitions);
   }
   function slotWord(slot) { return lookup(SLOT_STATES, slot?.state); }
   // One revision fact in words: its state, then its value, or the owner of an unknown or unpublished fact.
@@ -1451,24 +1460,111 @@
       observationBadge(worker?.observation)), facts(rows));
     return card;
   }
+  function sourceLine(source) {
+    return `${str(source?.source)} (${str(source?.kind)}): ${lookup(OBSERVATIONS, source?.state).label}${str(source?.reason) ? ` · ${source.reason}` : ""}`;
+  }
+  // r[impl kiln.cairn.workspace.agents.scenario.workflow] Workflow revisions are their own slot: each names its compiled
+  // workflow and the worker revision it pairs with, apart from the agent and worker revisions. Sessions are counted, never named.
+  function workflowRevisionNode(revision) {
+    const wrap = element("span", undefined, "cairn-slot");
+    wrap.append(shortCode(revision?.revision), element("span", "Worker", "small"), shortCode(revision?.worker?.revision),
+      badge(lookup(WORKER_PAIRINGS, revision?.worker?.observed)));
+    return wrap;
+  }
+  function workflowSlotNode(slot) {
+    const wrap = element("span", undefined, "cairn-slot");
+    wrap.dataset.slotState = str(slot?.state) || "absent";
+    wrap.append(badge(slotWord(slot)));
+    if (slot?.state === "recorded" && slot.revision && typeof slot.revision === "object") wrap.append(workflowRevisionNode(slot.revision));
+    return wrap;
+  }
+  function workflowPinItem(pin) {
+    const item = element("li", undefined, "cairn-workflow-pin");
+    item.dataset.status = str(pin?.status);
+    const sessions = count(pin?.sessions);
+    item.append(element("span", sessions === null ? "Sessions not recorded" : plural(sessions, "session"), "small"),
+      badge(lookup(PIN_STATUSES, pin?.status)), badge(lookup(SELECTIONS, pin?.selection)));
+    if (pin?.blocked === true) item.append(badge(word("Pin blocked", "failure", "A further effect under this pin would be refused.")));
+    if (pin?.revision && typeof pin.revision === "object") item.append(workflowRevisionNode(pin.revision));
+    return item;
+  }
+  // The identities of each distinct revision the slots and pins name, once each.
+  function workflowIdentities(definition) {
+    const revisions = new Map();
+    for (const slot of [definition?.desired, definition?.last_usable, definition?.selected_for_new_sessions]) {
+      if (slot?.state === "recorded" && slot.revision && typeof slot.revision === "object") revisions.set(str(slot.revision.revision), slot.revision);
+    }
+    for (const pin of list(definition?.pinned)) if (pin?.revision && typeof pin.revision === "object") revisions.set(str(pin.revision.revision), pin.revision);
+    return [...revisions.values()].map((revision) => {
+      const workflow = revision.workflow && typeof revision.workflow === "object" ? revision.workflow : {};
+      const worker = revision.worker && typeof revision.worker === "object" ? revision.worker : {};
+      return disclosure(`Workflow revision ${short(str(revision.revision))}: identities`, `workflow-revision-${str(revision.revision)}`, facts([
+        ["Workflow revision", copyable(revision.revision, "Workflow revision")],
+        ["Compiler", str(workflow.compiler_revision)],
+        ["Compiler artifact", shortCode(workflow.compiler_artifact)],
+        ["Plan", shortCode(workflow.plan)],
+        ["Graph", shortCode(workflow.graph)],
+        ["Cairn selection", shortCode(workflow.selection)],
+        ["Cairn obligations", shortCode(workflow.obligations)],
+        ["Policy", shortCode(workflow.policy)],
+        ["Worker definition", shortCode(worker.definition?.id)],
+        ["Worker revision", shortCode(worker.revision)],
+        ["Worker bundle", shortCode(worker.bundle)],
+      ]));
+    });
+  }
+  function workflowCard(definition) {
+    const card = element("article", undefined, "cairn-member cairn-workflow");
+    const title = element("h4", undefined, "cairn-member-title");
+    title.append(shortCode(definition?.reference?.id));
+    const recorded = definition?.selected_for_new_sessions?.state === "recorded";
+    card.append(title, badges(observationBadge(definition?.observation)), facts([
+      ["Source", str(definition?.reference?.source)],
+      ["Desired", workflowSlotNode(definition?.desired)],
+      ["Last usable", workflowSlotNode(definition?.last_usable)],
+      ["Selected for new sessions", workflowSlotNode(definition?.selected_for_new_sessions)],
+      ["Rollout generation", recorded ? count(definition.rollout_generation) : "No recorded selection"],
+      ["Selected by", recorded ? lookup(SELECTION_KINDS, definition.selection_kind).label : "No recorded selection"],
+      ["Qualification reference", recorded ? shortCode(definition.qualification) : "No recorded selection"],
+      ["Pinned sessions", definition?.pinned_state === "recorded" ? bullets(list(definition.pinned).map(workflowPinItem), "") : badge(slotWord({ state: definition?.pinned_state }))],
+    ]), ...workflowIdentities(definition));
+    return card;
+  }
+  // r[impl kiln.cairn.workspace.agents.scenario.workflow_source] Missing or refused workflow revisions say so with their
+  // code; they never hide the agent and worker revisions or read as no workflow.
+  function workflowSection(workflow) {
+    const children = [element("h4", "Workflow revisions", "cairn-subhead")];
+    if (workflow.source !== "admitted") {
+      const note = workflow.source === "not_configured"
+        ? "No workflow revision source is configured. Workflow revisions are not known here; this is not proof that none exist."
+        : `Workflow revisions are unavailable (${str(workflow.reason) || "reason not recorded"}). Nothing was substituted; agent and worker revisions are unaffected.`;
+      const node = element("p", note, "warning cairn-workflow-source");
+      node.dataset.state = workflow.source;
+      children.push(node);
+      return children;
+    }
+    const cards = element("div", undefined, "cairn-members");
+    cards.append(...workflow.definitions.map(workflowCard));
+    children.push(workflow.definitions.length ? cards : element("p", "The workflow revision source lists no workflow definition.", "small"));
+    return children;
+  }
   function agentsSection(detail) {
     const agents = detail.agents;
     const workflow = agents.workflow_revisions;
     const children = [
       element("p", "Read-only revision, capability and wait facts from the resource inventory admitted for you. They are evidence, never dispatch, selection or promotion authority.", "small"),
-      element("h4", "Workflow revisions", "cairn-subhead"),
-      facts([["Selected for new sessions", slotNode(workflow.selected_for_new_sessions)], ["Pinned", slotNode(workflow.pinned)]]),
     ];
     if (agents.source !== "admitted") {
       const note = agents.source === "not_configured"
-        ? "No resource inventory is configured for this service. Agent and worker revisions are not known here; this is not proof that none exist."
-        : `The resource inventory is unavailable (${str(agents.reason) || "reason not recorded"}). Agent and worker revisions are not shown, and nothing was substituted.`;
+        ? "No resource inventory is configured for this service. Agent, worker and workflow revisions are not known here; this is not proof that none exist."
+        : `The resource inventory is unavailable (${str(agents.reason) || "reason not recorded"}). Agent, worker and workflow revisions are not shown, and nothing was substituted.`;
       const node = element("p", note, "warning cairn-agents-source");
       node.dataset.state = agents.source;
       children.push(node);
       return section("Agents and revisions", "cairn-agents-title", ...children);
     }
     if (agents.synthetic === true) children.push(element("p", "Synthetic inventory: fixture observations, not a live fleet.", "warning cairn-agents-source"));
+    children.push(...workflowSection(workflow));
     children.push(element("h4", "Agent definitions", "cairn-subhead"));
     const definitions = element("div", undefined, "cairn-members");
     definitions.append(...list(agents.definitions).map(definitionCard));
@@ -1477,11 +1573,11 @@
     const workers = element("div", undefined, "cairn-members");
     workers.append(...list(agents.workers).map(workerCard));
     children.push(agents.workers.length ? workers : element("p", "This inventory lists no worker instance. A definition is not a running worker.", "small"));
-    const sources = list(agents.sources).map((source) => `${str(source?.source)} (${str(source?.kind)}): ${lookup(OBSERVATIONS, source?.state).label}${str(source?.reason) ? ` · ${source.reason}` : ""}`);
     children.push(disclosure("Inventory sources and identity", "agents-sources", facts([
       ["Inventory identity", copyable(agents.inventory_identity, "Inventory identity")],
       ["Evaluated", when(agents.evaluated_at_ms)],
-      ["Agents and workers sources", bullets(sources, "None listed")],
+      ["Agents and workers sources", bullets(list(agents.sources).map(sourceLine), "None listed")],
+      ["Workflow revision sources", bullets(list(workflow.sources).map(sourceLine), "None configured")],
     ])));
     return section("Agents and revisions", "cairn-agents-title", ...children);
   }
@@ -1706,6 +1802,6 @@
   window.KilnCairn = Object.freeze({
     load, clear,
     facets: FACETS, lanes: LANES, facet, lane, binding, condition, normalizeRoute, filterPatch, detailPath, indexRows, matches, filterCounts, neighbors, admitDetail, dependencyGraph,
-    slotStates: SLOT_STATES, provenance: PROVENANCE, selections: SELECTIONS, slotText, familyProvenance, admitAgents,
+    slotStates: SLOT_STATES, provenance: PROVENANCE, selections: SELECTIONS, workerPairings: WORKER_PAIRINGS, slotText, familyProvenance, admitAgents,
   });
 })();

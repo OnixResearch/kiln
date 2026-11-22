@@ -564,6 +564,23 @@ entry describes the source tree prepared for the first tagged release.
   unconfigured or refused inventory is named and never fails the detail; the
   console refuses `v2` details. (#84 for Lattice #24 and #25; projection tests
   over the Lattice v3 fixtures, route and Node UI tests; no live provider)
+- The Cairn change detail (`kiln.cairn-workspace-detail.v4`) shows Lattice's
+  workflow revisions in **Agents and revisions** instead of a fixed
+  `unpublished` slot. Kiln reads `lattice.workflow-agent-revision-slots.v1`
+  through the inventory mechanism: a `workflow_revisions` source in the
+  collection manifest and profile, a schema-probed, byte-bounded strict
+  adapter (`kiln_adapter_lattice::workflow_revision_slots`) and provider-neutral
+  `WorkflowRevisionSlots` facts. Each workflow definition's desired, last usable
+  and selected revision reads `recorded`, `not_recorded` or `unknown`, with its
+  compiler, plan, graph and Cairn cohort identities and the worker revision it
+  pairs with, compared with the inventory's projected worker revision; pins are
+  counted per revision with status and blocked state. Session identities, names
+  and guidance, context or source identities are never copied. A missing or
+  refused slots document makes only the workflow source `unavailable` with its
+  refusal code, or `not_configured`; the rest of the detail is unchanged. The
+  console refuses `v3` details. (#84 for Lattice #25; verbatim captures from
+  Lattice `7fb6dc47` with fixture ports, adapter, collection, projection, route
+  and Node UI tests; no live provider)
 - Adopt already implemented work for a freshly selected completion-only Cairn
   change instead of blocking it. Every required native unit needs current
   canonical work whose latest attempt is verified with exactly one passing

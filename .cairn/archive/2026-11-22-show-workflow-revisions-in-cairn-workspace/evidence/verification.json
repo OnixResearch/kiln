@@ -1,0 +1,48 @@
+{
+  "change": "show-workflow-revisions-in-cairn-workspace",
+  "issue": 84,
+  "consumer_of": ["lattice#25"],
+  "date": "2026-11-22",
+  "base": "203296d4",
+  "producer": {
+    "repository": "https://github.com/OnixResearch/lattice.git",
+    "commit": "7fb6dc473c2cd7ae23282f515c741d398e885fcf",
+    "contract": "lattice.workflow-agent-revision-slots.v1",
+    "capture_program": "capture_kiln_workflow_slots.rs (this directory), blake3 1498cefb567b3181eff0423b805a737bde4a655baf69be241f640d524e780d62, added only to a detached worktree of the Lattice commit",
+    "capture_command": "KILN_WORKFLOW_SLOTS_CAPTURE_DIR=$DIR nix develop . --option builders '' -c cargo test --locked --test capture_kiln_workflow_slots -- --test-threads 1",
+    "capture_exit": 0,
+    "determinism": "a second capture run produced byte-identical files",
+    "fixtures": "fixtures/inventory/producers/lattice-workflows/ with provenance.json"
+  },
+  "gates": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "9998aa26167c6519da3979b5dfdf250428be66e61f1b6d51eade72bf9762ef5f"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "9ab041354f9047c68001112bed1ad294da43e2ca37148ba1995cc46e4fefefed"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "b032e92d8f84d35494494e0c73b8dfca7c221469019b28617b69e505bea6c720"}
+  ],
+  "gates_note": "The package was drafted alongside the code; the three gates were first run, and passed, after the implementation draft, and again on the final tree with the receipts above.",
+  "commands": [
+    {"command": "cargo fmt --all -- --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast (nix develop PATH, 5533 bytes)", "exit": 101, "passed": 2384, "failed": 2, "ignored": 16, "suites": 194, "note": "the two failures are kiln-fleet --test dispatch, which refuses a PATH longer than herdr's 4096-byte bound and needs tar on PATH; unrelated to this change"},
+    {"command": "cargo test --locked --workspace --no-fail-fast (short PATH of the needed tool directories)", "exit": 0, "passed": 2386, "failed": 0, "ignored": 16, "suites": 194},
+    {"command": "cargo test --locked -p onix-kiln-core --lib", "exit": 0, "passed": 501},
+    {"command": "cargo test --locked -p kiln-adapter-lattice --lib", "exit": 0, "passed": 72},
+    {"command": "cargo test --locked -p kiln-web-service --lib", "exit": 0, "passed": 316, "ignored": 2},
+    {"command": "cargo test --locked -p kiln-web-service --example explore", "exit": 0, "passed": 13},
+    {"command": "node --test tests/*.test.mjs", "exit": 0, "passed": 146, "failed": 0},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "100 positive, 641 negative"},
+    {"command": "nix build path:$PWD#checks.x86_64-linux.octet --option builders '' --no-link -L", "exit": 0, "findings": 0, "warnings": 0, "errors": 0},
+    {"command": "cairn sync show-workflow-revisions-in-cairn-workspace --root . --policy cairn-policy/generated/cairn-policy.json --execute", "exit": 0, "receipt_hash": "42a19d575805ee652cd9d8284c6909a53061128fd020b7519d273b21c80737c2"},
+    {"command": "cairn archive show-workflow-revisions-in-cairn-workspace --root . --policy cairn-policy/generated/cairn-policy.json --execute", "exit": 0, "receipt_hash": "65ee29374c608644f0e0f87a1c1e7302287e68350d6243ff3cfe300f5e554436", "note": "Cairn wrote the 1970-01-01 prefix; the directory was renamed to 2026-11-22 like earlier archives"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+    {"command": "cairn traceability coverage --root . --json --policy cairn-policy/generated/cairn-policy.json", "exit": 1, "requirements": 2144, "referenced": 2111, "missing": 33, "dangling": 9, "note": "identical missing and dangling sets to base 203296d4 (2138 requirements, 33 missing, 9 dangling kiln.implementation.authority.* from other in-flight changes); every new requirement and scenario is referenced"}
+  ],
+  "environment": "nix develop shell with TMPDIR=/var/tmp/k84s, empty RUSTC_WRAPPER, CARGO_BUILD_JOBS=8 and a dedicated target directory; node from the host for the Node tests",
+  "non_claims": [
+    "Every slots document is a deterministic capture from Lattice's fixture preparation and qualification ports; no live Lattice store, worker, session or qualification was observed",
+    "The qualification references in the captures are fixture evidence",
+    "Kiln does not bind a Cairn unit to the workflow definition its work needs (#83); the section lists every workflow definition in the inventory",
+    "Every authenticated viewer and operator admitted to the inventory sees the same section; capability-scoped observers (#69/#70/#75/#76/#79) are not implemented",
+    "No browser review: the page is covered by the Node UI tests only"
+  ]
+}

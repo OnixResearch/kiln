@@ -1,4 +1,4 @@
-# An inventory kind outside agents, workers, compute, serving and policy.
+# An inventory kind outside agents, workers, compute, serving, policy and workflow_revisions.
 (import "../inventory-profile.ncl") {
   principal = "operator",
   sources = [

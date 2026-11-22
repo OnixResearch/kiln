@@ -8,6 +8,8 @@ each producer. The change packages are
 `.cairn/archive/2026-11-20-consume-inventory-producer-observations/` (intake),
 `.cairn/archive/2026-11-20-consume-lattice-inventory-v2/` (Lattice v2 reader)
 and `.cairn/archive/2026-11-21-consume-lattice-inventory-v3/` (Lattice v3 reader).
+Workflow revision slots are read by the change
+`.cairn/archive/2026-11-22-show-workflow-revisions-in-cairn-workspace/`.
 
 Everything here is read-only. Collection does not reserve, dispatch, load
 models, route requests or contact a provider. All committed producer inputs are
@@ -20,6 +22,7 @@ remain with [Kiln #49](https://github.com/OnixResearch/kiln/issues/49).
 |---|---|---|---|
 | Agent definitions | `lattice.worker-inventory.v3` → `profile` (`lattice.worker-profile-facts.v3`) | `kiln_adapter_lattice::worker_inventory` | Lattice `ed51aee2` (`docs/worker-inventory.md`, `docs/agent-revisions.md`) |
 | Worker instances | `lattice.worker-inventory.v3` → `instance` (`lattice.worker-instance-observation.v3`) | `kiln_adapter_lattice::worker_inventory` | as above |
+| Workflow revisions | `lattice.workflow-agent-revision-slots.v1` (the `outcome.workflow_slots` member of `lattice agent-revision inspect`) | `kiln_adapter_lattice::workflow_revision_slots` | Lattice `7fb6dc47` (`docs/agent-revisions.md`, `crates/lattice-core/src/agent_revision/workflow/publication.rs`) |
 | Compute | `lattice.compute-allocation-observation.v1` (Lattice's consumer DTO over the Aspen/Molten #42 `compute-capacity-allocation-v2`, `-readback-v1` and `-offer-v2` records) | `kiln_adapter_lattice::compute_inventory` | Lattice main `1bdacb35` |
 | Models / serving | `animus.serving-availability-snapshot.v1` | `kiln_adapter_animus` | Animus main `4071c65e` |
 
@@ -220,6 +223,53 @@ Kiln also refuses these v3 inputs:
 | An instance whose definition identity differs from its profile's | `lattice_instance_definition_mismatch` |
 | An instance whose profile revision differs from its profile's | `lattice_instance_profile_mismatch` |
 
+### Workflow revision slots
+
+A `kind: workflow_revisions` source with contract
+`lattice.workflow-agent-revision-slots.v1` maps each document to one fact keyed
+by the workflow-agent definition. Identical repeats collapse; two different
+documents for one definition are refused with
+`lattice_workflow_definition_conflict`.
+
+| v2 fact | From Lattice |
+|---|---|
+| `revisions` | each revision the slots name, once, strictly ascending: `revision`; `workflow` (`compiler_revision`, `compiler_artifact` from `compiler_artifact_identity`, `plan`, `graph`, `selection`, `obligations`, `policy` from the `*_identity` fields); `worker` (`definition` as a reference into the agents join source, `revision`, `bundle` from `bundle_identity`) |
+| `desired`, `last_usable` | the entry's revision, or none |
+| `selected_for_new_sessions` | the bundle's revision, `rollout_generation`, `kind` (`promotion` or `rollback`) and `qualification` from `qualification_ref` |
+| `pinned` | sessions counted per revision, status (`live` or `closed`) and `is_blocked` |
+
+The pairing `name`, the worker's `definition_name` and every `session` are
+validated and not projected. Lattice projects no guidance, context, source or
+per-obligation identity, and any such field is refused as an unknown field.
+Kiln refuses:
+
+| Input | Refusal |
+|---|---|
+| More than 256 KiB | `lattice_workflow_slots_byte_bound` |
+| Another schema label | `lattice_workflow_slots_unsupported_schema` |
+| Not JSON, unknown or missing fields, out-of-vocabulary kinds or statuses | `lattice_workflow_slots_malformed` |
+| A definition that is not `blake3:` plus 64 lowercase hex | `lattice_workflow_definition_invalid` |
+| A name outside Lattice's token | `lattice_workflow_name_invalid` |
+| A revision that is not 64 lowercase hex | `lattice_workflow_revision_invalid` |
+| A plan or cohort identity that is not `b3:` plus 64 hex, a graph that is not `blake3:` plus 64 hex, or a compiler outside Kiln's public tokens | `lattice_workflow_identity_invalid` |
+| A malformed worker definition, name, revision or bundle | `lattice_workflow_worker_invalid` |
+| Rollout generation 0, or a qualification that is not `blake3:` plus 64 hex | `lattice_workflow_selection_invalid` |
+| More than 1024 pins | `lattice_workflow_pin_bound` |
+| Sessions that are not strictly ascending tokens | `lattice_workflow_pin_invalid` |
+| A closed pin that is not blocked | `lattice_workflow_pin_inconsistent` |
+| Revisions pairing with two worker definitions (the workflow-agent definition frames its worker definition) | `lattice_workflow_worker_binding_mismatch` |
+| One revision with two bindings (a revision frames its binding) | `lattice_workflow_revision_conflict` |
+
+Workflow revisions are display-only: no readiness decision reads them. A slots
+document that cannot be read, exceeds a byte bound or is refused therefore
+makes only its own source unavailable, with the refusal code as its reason;
+the collection and every other source keep their facts. A manifest defect
+(path, contract, an unavailable source with documents) still refuses the
+collection. Admission requires public tokens, at most 64 revisions and 1024
+pinned sessions per fact, every named revision listed and every listed
+revision named. Snapshots without workflow revisions keep their encoding and
+identity.
+
 ### Compute allocations
 
 Each non-released allocation becomes one compute fact keyed by its allocation
@@ -302,7 +352,7 @@ and owner.
 ## Cairn workspace consumer
 
 Lattice #24 and #25 also name the Cairn workspace (#84) as a consumer. The
-Cairn change detail (`kiln.cairn-workspace-detail.v3`) carries an `agents`
+Cairn change detail (`kiln.cairn-workspace-detail.v4`) carries an `agents`
 section that `kiln_web_service::cairn_workspace::agents` computes from the same
 admitted, principal-checked inventory projection, never from the Lattice
 documents. It shows each definition's desired, prepared, qualified and
@@ -311,19 +361,26 @@ owner, `unmanaged` or `unpublished`; its task-family references with evidence
 class and provenance, where only `live` counts as live; its declared
 capability; each worker's pinned revision against the selection, its pin and
 blocked state; and every wait reason with its owner. Workflow revisions are a
-separate slot, `unpublished` with owner `lattice#25`, until Lattice publishes
-them. The section copies no session, workspace, execution or grant reference,
-model-service binding, full qualification record, preparation failure or other
-work's attempt. The operator guide's **Agents and revisions** describes the
-page. The change package is
-`.cairn/archive/2026-11-21-show-agent-revisions-in-cairn-workspace/`.
+separate slot with their own source state, read from the `workflow_revisions`
+facts: each slot `recorded` with its workflow revision, identities and paired
+worker revision (compared with the revision the inventory projects for that
+worker definition), `not_recorded` or `unknown`, and pins counted per revision
+with status, blocked state and whether they match the selection. No configured
+workflow source reads `not_configured`; a configured source that was not
+observed reads `unavailable` with its refusal code. The section copies no
+session, workspace, execution or grant reference, model-service binding, full
+qualification record, preparation failure, other work's attempt, or workflow
+name, guidance, context or source identity. The operator guide's **Agents and
+revisions** describes the page. The change packages are
+`.cairn/archive/2026-11-21-show-agent-revisions-in-cairn-workspace/` and
+`.cairn/archive/2026-11-22-show-workflow-revisions-in-cairn-workspace/`.
 
 ## Consumer contract for producers
 
 | Producer | Kiln reads today | Kiln needs before a producer fact can be ready |
 |---|---|---|
 | Lattice #24 | `lattice.worker-inventory.v3`: definition identity apart from the profile revision; profile revision, adapter, outputs, routes, compute requirement; declared, qualified, unavailable or unknown task families and tools; definition-scoped wait reasons; instance incarnation, attempt, fence, binding, allocation id, served-route service ids, lifecycle, single-shot liveness with cause and retained generation, instance wait reasons | an observed liveness or idle signal for a reusable runtime (Lattice owns none today, so workers are never idle); definition authority for admission; a definition-name field if inventory v2 adds one |
-| Lattice #25 | desired, prepared, qualified and selected revision slots, unmanaged, owned unknown or recorded, with rollout generation; capability qualifications; each instance's pin with status and blocked state; `revision_not_admitted` | a published revocation fact for a revision, so that Kiln does not infer it from empty qualifications; selected and pinned workflow revisions for the Cairn workspace |
+| Lattice #25 | desired, prepared, qualified and selected revision slots, unmanaged, owned unknown or recorded, with rollout generation; capability qualifications; each instance's pin with status and blocked state; `revision_not_admitted`; `lattice.workflow-agent-revision-slots.v1` desired, last usable, selected and pinned workflow revisions with their workflow and worker identities | a published revocation fact for a revision, so that Kiln does not infer it from empty qualifications; live collection of slots documents from a Lattice store (Kiln #49) |
 | Lattice #6 | instance `attempt_id`, `fence`, `work_id`; `dispatch_outcome_unknown` and `cancellation_unobserved` reasons | an observed attempt outcome and cancellation, so that these reasons can clear |
 | Aspen/Molten #42 | allocation, readback and offer facts through Lattice's DTO | pool capacity, allocatable and reserved amounts per accounting authority, and free offers that are not yet allocated |
 | Animus #17/#18 | snapshot readiness, capacity evidence, placement reference; Lattice's serving reasons on workers (`animus#17`); attachment identities, evidence class and provenance through Lattice's capability qualifications, and `qualification_unbound` on definitions (`animus#18`) | routing eligibility for a policy, artifact cache state, and live-provenance qualification with its subject, corpus, protocol and verified contracts |
@@ -335,7 +392,11 @@ page. The change package is
   `fixtures/inventory/producers/lattice/` are verbatim v3 captures.
   `provenance.json` records the Lattice commit (`ed51aee2`), the capture
   command and each file's BLAKE3 hash, and
-  an adapter test checks the hashes.
+  an adapter test checks the hashes. The files under
+  `fixtures/inventory/producers/lattice-workflows/` are verbatim captures of
+  `lattice.workflow-agent-revision-slots.v1` from Lattice `7fb6dc47`, produced
+  with Lattice's fixture ports; their `provenance.json` records how and each
+  file's BLAKE3 hash, and an adapter test checks the hashes.
 - A qualification reference is evidence, never authority. The captured
   attachment has `fixture` provenance; no live producer has qualified a Lattice
   revision.

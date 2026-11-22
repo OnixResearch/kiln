@@ -1168,13 +1168,13 @@ const cairn = context.window.KilnCairn;
 const CAIRN_REPOSITORY = "ab".repeat(32);
 const LANE_KEYS = ["attention", "awaiting", "ready", "in_progress", "verified", "integrated", "recorded"];
 const laneCounts = (lane = "awaiting") => Object.fromEntries(LANE_KEYS.map((key) => [key, Number(key === lane)]));
-const unpublishedWorkflowSlot = () => ({ state: "unpublished", value: null, owner: "lattice#25" });
+const cairnWorkflows = (extra = {}) => ({ source: "not_configured", reason: null, sources: [], definitions: [], ...extra });
 const cairnAgents = (extra = {}) => ({
   source: "not_configured", reason: null, inventory_identity: null, evaluated_at_ms: null, synthetic: null, sources: [],
-  workflow_revisions: { selected_for_new_sessions: unpublishedWorkflowSlot(), pinned: unpublishedWorkflowSlot() }, definitions: [], workers: [], ...extra,
+  workflow_revisions: cairnWorkflows(), definitions: [], workers: [], ...extra,
 });
 const cairnDetail = (change, extra = {}) => ({
-  schema: "kiln.cairn-workspace-detail.v3", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
+  schema: "kiln.cairn-workspace-detail.v4", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
   snapshot: { work_recorded: true, attempts_recorded: true, campaigns_read: 0, campaigns_truncated: false, lifecycle_truncated: false },
   overview: { units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: 0, blockers: 0, open_decisions: 0, lane: "awaiting", lanes: laneCounts() },
   units: [{ native_id: `${change}/unit-of-${change}`, unit: `unit-of-${change}`, lane: "awaiting", sources: ["campaign_selection"], current_work: [], superseded_work: [], attempts: [],
@@ -1202,7 +1202,8 @@ test("the URL preserves exact Cairn selection, filters and unit, and detail must
   const selected = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" });
   assert.equal(cairn.admitDetail(cairnDetail("wanted"), selected).change, "wanted");
   for (const crossed of [cairnDetail("other"), cairnDetail("wanted", { repository_identity: "cd".repeat(32) }), cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v1" }),
-    cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v2" }), cairnDetail("wanted", { agents: undefined }), cairnDetail("wanted", { agents: cairnAgents({ source: "empty" }) }),
+    cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v2" }), cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v3" }),
+    cairnDetail("wanted", { agents: undefined }), cairnDetail("wanted", { agents: cairnAgents({ source: "empty" }) }),
     cairnDetail("wanted", { overview: { units: 1 } }), cairnDetail("wanted", { units: null }), null]) {
     assert.throws(() => cairn.admitDetail(crossed, selected), /No other change was substituted/);
   }
@@ -1691,6 +1692,34 @@ const agentWorker = (id, extra = {}) => ({
   pinned_revision: AGENT_REVISION, selection: "matches_selected", work: "other_work", attempt: null, fence: null, wait_reasons: [],
   pin: { state: "recorded", owner: null, qualification: AGENT_QUALIFICATION, rollout_generation: 2, identity: `blake3:${"9e".repeat(32)}`, status: "live", blocked: false }, ...extra,
 });
+// Workflow revisions as the projection words them: identities, the paired worker revision, counted pins.
+const WORKFLOW_REVISION = "c3".repeat(32);
+const OLD_WORKFLOW_REVISION = "d4".repeat(32);
+const workflowRevision = (revision, worker, observed, extra = {}) => ({
+  revision,
+  workflow: { compiler_revision: "lattice.workflow-intent-compiler.v1", compiler_artifact: `b3:${"e5".repeat(32)}`, plan: `b3:${"f6".repeat(32)}`,
+    graph: `blake3:${"a7".repeat(32)}`, selection: `b3:${"b8".repeat(32)}`, obligations: `b3:${"c9".repeat(32)}`, policy: `b3:${"da".repeat(32)}` },
+  worker: { definition: { source: "lattice-agents", id: "definition-a" }, revision: worker, bundle: `blake3:${"eb".repeat(32)}`, observed }, ...extra,
+});
+const workflowSlot = (state, revision = null) => ({ state, revision });
+const workflowDefinition = (extra = {}) => ({
+  reference: { source: "lattice-workflows", id: `blake3:${"fc".repeat(32)}` }, observation: "current",
+  desired: workflowSlot("recorded", workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision")),
+  last_usable: workflowSlot("not_recorded"),
+  selected_for_new_sessions: workflowSlot("recorded", workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision")),
+  rollout_generation: 2, selection_kind: "promotion", qualification: `blake3:${"0d".repeat(32)}`, pinned_state: "recorded",
+  pinned: [
+    { revision: workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision"), status: "live", blocked: false, sessions: 2, selection: "matches_selected" },
+    // Fields the projection never defines are never drawn, even when a bad response carries them.
+    { revision: workflowRevision(OLD_WORKFLOW_REVISION, AGENT_REVISION, "profile_revision", { guidance_identity: "restricted-guidance", context_identity: "restricted-context" }),
+      status: "closed", blocked: true, sessions: 1, selection: "differs_from_selected", session: "restricted-session", name: "restricted-name" },
+  ],
+  ...extra,
+});
+const admittedWorkflows = (extra = {}) => cairnWorkflows({
+  source: "admitted", sources: [{ source: "lattice-workflows", producer: "lattice", kind: "workflow_revisions", state: "current", reason: null }],
+  definitions: [workflowDefinition()], ...extra,
+});
 const admittedAgents = (extra = {}) => cairnAgents({
   source: "admitted", inventory_identity: "d".repeat(64), evaluated_at_ms: 1_795_237_895_000, synthetic: true,
   sources: [{ source: "lattice-agents", producer: "lattice", kind: "agents", state: "current", reason: null }],
@@ -1698,6 +1727,8 @@ const admittedAgents = (extra = {}) => cairnAgents({
     agentDefinition("definition-a"),
     agentDefinition("definition-unmanaged", { management: "unmanaged", desired: agentSlot("unmanaged"), prepared: agentSlot("unmanaged"), qualified: agentSlot("unmanaged"),
       selected_for_new_sessions: agentSlot("unmanaged"), rollout_generation: null, task_families: [], task_families_state: "unknown", wait_reasons: [], workers: 0 }),
+    agentDefinition("definition-unpublished", { management: "unpublished", desired: agentSlot("unpublished"), prepared: agentSlot("unpublished"), qualified: agentSlot("unpublished"),
+      selected_for_new_sessions: agentSlot("unpublished"), rollout_generation: null, task_families: [], task_families_state: "unknown", wait_reasons: [], workers: 0 }),
   ],
   workers: [
     agentWorker("worker-on-change", { work: "this_change", attempt: "e".repeat(64), fence: 7 }),
@@ -1707,6 +1738,7 @@ const admittedAgents = (extra = {}) => cairnAgents({
       attempt: "restricted-other-attempt", fence: 3, session: "restricted-session", workspace: "/home/restricted/workspace", command: "restricted command", prompt: "restricted prompt" }),
     agentWorker("worker-unknown-pin", { pin: { state: "unknown", owner: "lattice#25", qualification: null, rollout_generation: null, identity: null, status: null, blocked: null }, selection: "no_selection" }),
   ],
+  workflow_revisions: admittedWorkflows(),
   ...extra,
 });
 async function drawAgents(agents) {
@@ -1743,7 +1775,12 @@ test("revision slots keep five distinct meanings and fixture evidence never read
   assert.equal(cairn.familyProvenance(family("fixture", true)).label, "Fixture evidence, not live");
   assert.equal(cairn.familyProvenance({}).label, "Unqualified");
   assert.equal(cairn.admitAgents(cairnAgents()), true);
-  for (const malformed of [null, cairnAgents({ source: "empty" }), cairnAgents({ definitions: null }), cairnAgents({ workflow_revisions: null })]) assert.equal(cairn.admitAgents(malformed), false);
+  for (const malformed of [null, cairnAgents({ source: "empty" }), cairnAgents({ definitions: null }), cairnAgents({ workflow_revisions: null }),
+    cairnAgents({ workflow_revisions: cairnWorkflows({ source: "unpublished" }) }), cairnAgents({ workflow_revisions: cairnWorkflows({ definitions: null }) })]) {
+    assert.equal(cairn.admitAgents(malformed), false);
+  }
+  assert.equal(new Set([...cairn.workerPairings.values()].map((entry) => entry.label)).size, 3);
+  assert.ok([...cairn.workerPairings.values()].every((entry) => entry.tone !== "good"));
 });
 
 // r[verify kiln.cairn.workspace.agents]
@@ -1754,8 +1791,17 @@ test("the change page shows workflow revisions apart from selected and pinned wo
   assert.ok(section, "the agents section is drawn");
   const text = section.textContent;
   assert.match(text, /Workflow revisions/);
-  const workflow = section.querySelectorAll("dl")[0];
-  assert.match(workflow.textContent, /Not published.*Owner lattice#25.*Not published.*Owner lattice#25/s);
+  const workflow = section.querySelectorAll(".cairn-workflow");
+  assert.equal(workflow.length, 1, "one workflow definition card");
+  const card = workflow[0].textContent;
+  assert.match(card, /Desired.*Recorded.*Pairs with another worker revision/s);
+  assert.match(card, /Last usable.*None recorded/s);
+  assert.match(card, /Selected by.*Promotion/s);
+  assert.match(card, /2 sessions.*Live session.*Pinned to the selected revision/s);
+  assert.match(card, /1 session.*Session closed.*Pinned to another revision.*Pin blocked.*Pairs with the projected worker revision/s);
+  for (const label of ["Plan", "Graph", "Compiler artifact", "Cairn selection", "Cairn obligations", "Policy", "Worker revision", "Worker bundle"]) assert.match(card, new RegExp(label));
+  assert.equal(section.querySelectorAll(".cairn-agent-worker").filter((node) => /Workflow/.test(node.textContent)).length, 0, "workflow revisions stay out of worker revisions");
+  assert.match(text, /lattice-workflows \(workflow_revisions\): Current/);
   assert.match(text, /Agent definitions/);
   assert.match(text, /Worker revisions/);
   const slots = section.querySelectorAll(".cairn-slot").map((node) => node.dataset.slotState);
@@ -1780,7 +1826,7 @@ test("the change page shows workflow revisions apart from selected and pinned wo
 test("an unconfigured or unavailable inventory is named and never drawn as an empty one", async () => {
   const unconfigured = await drawAgents(cairnAgents());
   assert.match(unconfigured.textContent, /No resource inventory is configured.*not proof that none exist/s);
-  assert.match(unconfigured.textContent, /Workflow revisions.*Owner lattice#25/s);
+  assert.match(unconfigured.textContent, /Agent, worker and workflow revisions are not known here/);
   assert.doesNotMatch(unconfigured.textContent, /Agent definitions|lists no agent definition/);
   const refused = await drawAgents(cairnAgents({ source: "unavailable", reason: "inventory_principal_denied" }));
   assert.match(refused.textContent, /unavailable \(inventory_principal_denied\).*nothing was substituted/s);
@@ -1789,4 +1835,23 @@ test("an unconfigured or unavailable inventory is named and never drawn as an em
   assert.match(empty.textContent, /lists no agent definition/);
   assert.match(empty.textContent, /A definition is not a running worker/);
   assert.doesNotMatch(empty.textContent, /Synthetic inventory/);
+});
+
+// r[verify kiln.cairn.workspace.agents.scenario.workflow_source]
+test("missing or refused workflow revisions are named and leave agent and worker revisions drawn", async () => {
+  const unconfigured = await drawAgents(admittedAgents({ workflow_revisions: cairnWorkflows() }));
+  assert.match(unconfigured.textContent, /No workflow revision source is configured.*not proof that none exist/s);
+  assert.equal(unconfigured.querySelectorAll(".cairn-workflow").length, 0);
+  assert.equal(unconfigured.querySelectorAll(".cairn-agent").length, 3);
+  assert.equal(unconfigured.querySelectorAll(".cairn-agent-worker").length, 3);
+  const refused = await drawAgents(admittedAgents({ workflow_revisions: cairnWorkflows({ source: "unavailable", reason: "lattice_workflow_slots_unsupported_schema",
+    sources: [{ source: "lattice-workflows", producer: "lattice", kind: "workflow_revisions", state: "unavailable", reason: "lattice_workflow_slots_unsupported_schema" }] }) }));
+  assert.match(refused.textContent, /Workflow revisions are unavailable \(lattice_workflow_slots_unsupported_schema\).*agent and worker revisions are unaffected/s);
+  assert.equal(refused.querySelectorAll(".cairn-workflow").length, 0);
+  assert.equal(refused.querySelectorAll(".cairn-agent").length, 3);
+  assert.match(refused.textContent, /lattice-workflows \(workflow_revisions\): Unavailable · lattice_workflow_slots_unsupported_schema/);
+  const empty = await drawAgents(admittedAgents({ workflow_revisions: admittedWorkflows({ definitions: [] }) }));
+  assert.match(empty.textContent, /lists no workflow definition/);
+  const unknown = await drawAgents(admittedAgents({ workflow_revisions: admittedWorkflows({ definitions: [workflowDefinition({ desired: workflowSlot("unknown"), pinned_state: "unknown", pinned: [] })] }) }));
+  assert.match(unknown.querySelectorAll(".cairn-workflow")[0].textContent, /Desired.*Unknown.*Pinned sessions.*Unknown/s);
 });

@@ -1162,7 +1162,7 @@ fn the_agents_section_fails_apart_and_binds_the_view_identity() {
     let refused = read(&InventoryObservation::Unavailable(
         "inventory_input_unavailable".into(),
     ));
-    assert_eq!(unconfigured.schema, "kiln.cairn-workspace-detail.v3");
+    assert_eq!(unconfigured.schema, "kiln.cairn-workspace-detail.v4");
     assert_eq!(
         (
             unconfigured.agents.source,
@@ -1175,12 +1175,11 @@ fn the_agents_section_fails_apart_and_binds_the_view_identity() {
         ("unavailable", Some("inventory_input_unavailable"))
     );
     assert_eq!(
-        refused
-            .agents
-            .workflow_revisions
-            .selected_for_new_sessions
-            .state,
-        "unpublished"
+        (
+            refused.agents.workflow_revisions.source,
+            refused.agents.workflow_revisions.reason.as_deref()
+        ),
+        ("unavailable", Some("inventory_input_unavailable"))
     );
     // The canonical facts are the same; only the view identity moves.
     let canonical = |detail: &Detail| {
@@ -1192,5 +1191,79 @@ fn the_agents_section_fails_apart_and_binds_the_view_identity() {
     assert_eq!(
         unconfigured.identity,
         read(&InventoryObservation::NotConfigured).identity
+    );
+}
+
+/// The pilot inventory projection, with the workflow source naming `workflows`.
+fn pilot_inventory(workflows: &str) -> InventoryObservation {
+    let fixtures =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/inventory/producers");
+    let read = || -> Result<_, String> {
+        let mut set = crate::inventory_collection::CollectionSet::load(
+            &fixtures.join("pilot.collection.json"),
+        )?;
+        for collection in set
+            .collections
+            .iter_mut()
+            .filter(|c| c.source == "lattice-workflows")
+        {
+            collection.documents = vec![workflows.to_owned()];
+        }
+        let snapshot = set.collect(&fixtures)?;
+        let profile: kiln_core::inventory::InventoryProfile = serde_json::from_slice(
+            &std::fs::read(fixtures.join("profile.json")).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        kiln_core::inventory::project_inventory(&profile, &snapshot, None, 1_795_237_895_000)
+            .map_err(str::to_owned)
+    };
+    InventoryObservation::Admitted(Box::new(
+        read().unwrap_or_else(|error| unreachable!("{error}")),
+    ))
+}
+
+#[test]
+// r[verify kiln.cairn.workspace.agents.scenario.workflow]
+// r[verify kiln.cairn.workspace.agents.scenario.workflow_source]
+fn workflow_revisions_render_in_the_detail_and_fail_apart() {
+    let fixture = fixture();
+    let read = |inventory: &InventoryObservation| {
+        detail(&fixture.snapshot, &key(REPOSITORY, CHANGE), inventory)
+            .unwrap_or_else(|code| unreachable!("{code}"))
+            .unwrap_or_else(|| unreachable!("{CHANGE} is named"))
+    };
+    let rendered = read(&pilot_inventory(
+        "lattice-workflows/workflow-4-second-revision.json",
+    ));
+    let workflows = &rendered.agents.workflow_revisions;
+    assert_eq!(workflows.source, "admitted");
+    let [workflow] = workflows.definitions.as_slice() else {
+        unreachable!("one workflow definition")
+    };
+    assert_eq!(workflow.selected_for_new_sessions.state, "recorded");
+    assert_eq!(workflow.pinned.len(), 2);
+
+    let missing = read(&pilot_inventory("lattice-workflows/missing.json"));
+    assert_eq!(
+        (
+            missing.agents.workflow_revisions.source,
+            missing.agents.workflow_revisions.reason.as_deref()
+        ),
+        (
+            "unavailable",
+            Some("inventory_collection_document_unavailable")
+        )
+    );
+    assert_eq!(missing.agents.source, "admitted");
+    assert_eq!(missing.agents.definitions, rendered.agents.definitions);
+    assert_eq!(missing.agents.workers, rendered.agents.workers);
+    let canonical = |detail: &Detail| {
+        serde_json::to_value((&detail.units, &detail.memberships, &detail.blockers))
+            .unwrap_or_else(|error| unreachable!("{error}"))
+    };
+    assert_eq!(canonical(&missing), canonical(&rendered));
+    assert_ne!(
+        missing.identity, rendered.identity,
+        "the view identity binds the workflow revisions it shows"
     );
 }

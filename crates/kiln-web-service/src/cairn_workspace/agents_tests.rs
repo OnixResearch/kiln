@@ -294,16 +294,29 @@ fn selected_and_pinned_revisions_stay_separate_with_blocked_pins() -> TestResult
             .any(|w| w.definition.id == UNDECLARED_DEFINITION)
     );
 
-    // Workflow revisions are their own slot that no producer publishes.
+    // Workflow revisions are their own slot, apart from worker revisions.
     for revisions in [&promoted, &revoked, &unselected] {
-        let owner = Some("lattice#25".to_owned());
-        assert_eq!(
-            revisions.workflow_revisions.selected_for_new_sessions,
-            Slot::new("unpublished", None, owner.clone())
-        );
-        assert_eq!(
-            revisions.workflow_revisions.pinned,
-            Slot::new("unpublished", None, owner)
+        let workflows = &revisions.workflow_revisions;
+        assert_eq!(workflows.source, "admitted");
+        let [workflow] = workflows.definitions.as_slice() else {
+            return Err("one workflow definition".into());
+        };
+        let selected = workflow
+            .selected_for_new_sessions
+            .revision
+            .as_ref()
+            .ok_or("selected workflow revision")?;
+        assert!(
+            revisions
+                .definitions
+                .iter()
+                .all(|d| d.selected_for_new_sessions.value.as_deref()
+                    != Some(selected.revision.as_str()))
+                && revisions
+                    .workers
+                    .iter()
+                    .all(|w| w.pinned_revision != selected.revision),
+            "a workflow revision is never read as a worker revision"
         );
     }
     Ok(())
@@ -519,9 +532,13 @@ fn unconfigured_refused_and_stale_inventory_keep_their_meaning() -> TestResult {
         assert!(section.definitions.is_empty() && section.workers.is_empty());
         assert!(section.sources.is_empty() && section.inventory_identity.is_none());
         assert_eq!(
-            section.workflow_revisions.pinned.owner.as_deref(),
-            Some("lattice#25")
+            (
+                section.workflow_revisions.source,
+                section.workflow_revisions.reason.as_deref()
+            ),
+            (section.source, section.reason.as_deref())
         );
+        assert!(section.workflow_revisions.definitions.is_empty());
     }
 
     // The admitted section names its inventory and only agents and workers sources.

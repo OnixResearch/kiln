@@ -19,7 +19,7 @@ let PublicToken =
 in
 let Kind =
   std.contract.from_predicate (fun value =>
-    std.array.elem value ["agents", "workers", "compute", "serving", "policy"]
+    std.array.elem value ["agents", "workers", "compute", "serving", "policy", "workflow_revisions"]
   )
 in
 let Source = {

@@ -669,12 +669,18 @@ mod tests {
         );
         assert_eq!(planning.pointer("/units/0/attempts/1"), None);
         // The agents section reads the synthetic inventory beside the change
-        // and keeps workflow revisions apart, owned by Lattice #25.
+        // and keeps the captured Lattice workflow revisions apart.
         assert_eq!(inventory_reads.get(), 1);
         assert_eq!(planning.pointer("/agents/source"), Some(&json!("admitted")));
         assert_eq!(
-            planning.pointer("/agents/workflow_revisions/selected_for_new_sessions"),
-            Some(&json!({"state": "unpublished", "value": null, "owner": "lattice#25"}))
+            planning.pointer("/agents/workflow_revisions/source"),
+            Some(&json!("admitted"))
+        );
+        assert_eq!(
+            planning.pointer(
+                "/agents/workflow_revisions/definitions/0/selected_for_new_sessions/state"
+            ),
+            Some(&json!("recorded"))
         );
         assert_eq!(
             planning.pointer("/agents/definitions/0/selected_for_new_sessions/state"),
@@ -682,6 +688,9 @@ mod tests {
         );
         let text = planning.to_string();
         assert!(!text.contains("worker-a-session") && !text.contains("worker-a-workspace"));
+        for withheld in ["session-a", "session-b", "verify-change", "definition_name"] {
+            assert!(!text.contains(withheld), "{withheld} leaked");
+        }
         // An inventory refusal leaves the canonical change readable.
         let refused = cairn(
             Some(&database),

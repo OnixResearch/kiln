@@ -85,6 +85,23 @@
         "animus/snapshot-cpu-worker-remote.json",
         "animus/snapshot-serving-states.json"
       ]
+    },
+    {
+      "source": "lattice-workflows",
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "kind": "workflow_revisions",
+      "contract": "lattice.workflow-agent-revision-slots.v1",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": null,
+      "documents": [
+        "lattice-workflows/workflow-4-second-revision.json"
+      ]
     }
   ]
 }

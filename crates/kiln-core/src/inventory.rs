@@ -31,6 +31,8 @@ pub enum InventoryKind {
     Compute,
     Serving,
     Policy,
+    /// Workflow revision slots: compiled workflows paired with worker revisions.
+    WorkflowRevisions,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -428,6 +430,10 @@ pub struct InventorySnapshot {
     pub admissions: Vec<AdmissionFact>,
     pub policies: Vec<PolicyFact>,
     pub attempts: Vec<AttemptBinding>,
+    /// Workflow revision slots. Omitted when empty, so earlier snapshots keep
+    /// their identity.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub workflow_revisions: Vec<WorkflowRevisionSlots>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -821,6 +827,12 @@ fn metas(snapshot: &InventorySnapshot) -> impl Iterator<Item = (&FactMeta, Inven
                 .iter()
                 .map(|v| (&v.meta, InventoryKind::Policy)),
         )
+        .chain(
+            snapshot
+                .workflow_revisions
+                .iter()
+                .map(|v| (&v.meta, InventoryKind::WorkflowRevisions)),
+        )
 }
 
 pub fn admit_snapshot(
@@ -1089,6 +1101,9 @@ pub fn admit_snapshot(
                 exact(&[*amount])?;
             }
         }
+    }
+    for slots in &snapshot.workflow_revisions {
+        workflow::admit_workflow_revisions(slots)?;
     }
     let mut attempts = BTreeSet::new();
     for attempt in &snapshot.attempts {
@@ -1920,6 +1935,9 @@ pub fn project_inventory(
     snapshot
         .policies
         .sort_by(|a, b| a.meta.reference.cmp(&b.meta.reference));
+    snapshot
+        .workflow_revisions
+        .sort_by(|a, b| a.meta.reference.cmp(&b.meta.reference));
     snapshot.attempts.sort_by(|a, b| {
         (&a.work_version, &a.attempt, a.fence).cmp(&(&b.work_version, &b.attempt, b.fence))
     });
@@ -2102,6 +2120,13 @@ fn explain_admitted_attempt(
 #[path = "inventory_compose.rs"]
 mod compose;
 pub use compose::{InventoryFragment, InventoryJoins, compose_snapshot};
+
+#[path = "inventory_workflow.rs"]
+mod workflow;
+pub use workflow::{
+    CompiledWorkflow, MAX_WORKFLOW_PINNED_SESSIONS, MAX_WORKFLOW_REVISIONS, SelectionKind,
+    WorkerPairing, WorkflowPin, WorkflowRevision, WorkflowRevisionSlots, WorkflowSelection,
+};
 
 #[cfg(test)]
 #[path = "inventory_tests.rs"]

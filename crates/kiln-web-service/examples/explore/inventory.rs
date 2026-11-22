@@ -1,7 +1,10 @@
 //! Explicit synthetic/disconnected inventory input for the existing exploration shell.
 //! This module never discovers providers, reserves capacity or looks up canonical work.
 // r[impl kiln.inventory.consumers]
-use kiln_core::inventory::{InventoryProjection, WorkNeeds, WorkNeedsAttachment};
+use kiln_core::inventory::{
+    InventoryJoins, InventoryKind, InventoryProjection, SourceObservation, SourcePolicy, WorkNeeds,
+    WorkNeedsAttachment,
+};
 use kiln_core::types::ContentId;
 use kiln_web_service::cairn_workspace::agents::InventoryObservation;
 use kiln_web_service::engine::ApiResponse;
@@ -12,6 +15,10 @@ use super::{ACTOR, Result, error, json};
 const EVALUATED_AT_MS: u64 = 2000;
 pub const SYNTHETIC_WORK: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const SYNTHETIC_POLICY: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+/// The workflow revision source of this disconnected inventory.
+const WORKFLOW_SOURCE: &str = "workflows";
+/// The source generation the synthetic profile requires of every source.
+const SYNTHETIC_GENERATION: u64 = 7;
 
 pub fn response(method: &str, target: &str) -> Result<ApiResponse> {
     if method != "GET" {
@@ -78,6 +85,7 @@ pub(super) fn projection(selected: bool) -> Result<InventoryProjection> {
     for model in &mut input.snapshot.models {
         model.routing_policy_ref = Some(SYNTHETIC_POLICY.into());
     }
+    add_workflow_revisions(&mut input)?;
     let attachment = if selected {
         Some(WorkNeedsAttachment::new(
             ContentId::from_blake3_hex(SYNTHETIC_WORK)
@@ -91,6 +99,51 @@ pub(super) fn projection(selected: bool) -> Result<InventoryProjection> {
         None
     };
     Ok(input.project(ACTOR, attachment.as_ref(), EVALUATED_AT_MS)?)
+}
+
+/// The Lattice `7fb6dc47` workflow revision slots capture, mapped by Kiln's
+/// own reader into a workflow source in the agents source's window.
+fn add_workflow_revisions(input: &mut InventoryInput) -> Result<()> {
+    let window = input
+        .snapshot
+        .sources
+        .iter()
+        .find(|source| source.source == "agents")
+        .ok_or("The synthetic inventory names no agents source")?;
+    let source = SourceObservation {
+        source: WORKFLOW_SOURCE.into(),
+        producer: "lattice".into(),
+        scope: window.scope.clone(),
+        generation: SYNTHETIC_GENERATION,
+        observed_at_ms: window.observed_at_ms,
+        valid_until_ms: window.valid_until_ms,
+        complete: true,
+        next_page: None,
+        unavailable_reason: None,
+    };
+    let joins = InventoryJoins {
+        agents: "agents".into(),
+        compute: "compute".into(),
+        serving: "serving".into(),
+    };
+    let capture: &[u8] = include_bytes!(
+        "../../../../fixtures/inventory/producers/lattice-workflows/workflow-4-second-revision.json"
+    );
+    let fragment = kiln_adapter_lattice::workflow_revision_slots::map_workflow_revision_slots(
+        &source,
+        &joins,
+        &[capture],
+    )?;
+    input.profile.sources.push(SourcePolicy {
+        source: source.source.clone(),
+        producer: source.producer.clone(),
+        scope: source.scope.clone(),
+        kind: InventoryKind::WorkflowRevisions,
+        minimum_generation: SYNTHETIC_GENERATION,
+    });
+    input.snapshot.sources.push(source);
+    input.snapshot.workflow_revisions = fragment.workflow_revisions;
+    Ok(())
 }
 
 #[cfg(test)]

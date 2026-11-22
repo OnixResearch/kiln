@@ -1,0 +1,89 @@
+{
+  "definition": "blake3:176820ae10f42401cfc32aa5e9cdd755cd55a5e9c1255bee5acd5d75b0aaa842",
+  "desired": {
+    "revision": "555665f511e3244805be21e30e782770151ca46182e74c6c5260bcdff45817ca",
+    "worker": {
+      "bundle_identity": "blake3:fc44ddc7140751d6bda3ee85b05d5f9fca41ca36c676bda2753bb0992656fe29",
+      "definition": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+      "definition_name": "rust-implementer",
+      "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+    },
+    "workflow": {
+      "compiler_artifact_identity": "b3:d1c2da04f74e1b9322141fd35c76e1887f27d63aee89fffd9c6de3e728882188",
+      "compiler_revision": "lattice.workflow-intent-compiler.v1",
+      "graph_identity": "blake3:835d9edf559368f91b79311e53d423e319ede2cc9a24ec6704d4d27be52422b6",
+      "obligations_identity": "b3:b6aa3f62fb543dc584ae8051fc42b14d07b90e9f09d79dd1373746b06f11b16c",
+      "plan_identity": "b3:3fe31d36b99ede22dd956048352efd7a730432d28e547bca5e18d430efd15e09",
+      "policy_identity": "b3:ff096070fb25d5456f50000af78f1c92fda605bdb7bc3d1e7d1cc0091204e61c",
+      "selection_identity": "b3:c92794e2bb3ad140f6abf00af8271a8c4b5601876e65aca428c75a96bc771af7"
+    }
+  },
+  "last_usable": {
+    "revision": "555665f511e3244805be21e30e782770151ca46182e74c6c5260bcdff45817ca",
+    "worker": {
+      "bundle_identity": "blake3:fc44ddc7140751d6bda3ee85b05d5f9fca41ca36c676bda2753bb0992656fe29",
+      "definition": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+      "definition_name": "rust-implementer",
+      "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+    },
+    "workflow": {
+      "compiler_artifact_identity": "b3:d1c2da04f74e1b9322141fd35c76e1887f27d63aee89fffd9c6de3e728882188",
+      "compiler_revision": "lattice.workflow-intent-compiler.v1",
+      "graph_identity": "blake3:835d9edf559368f91b79311e53d423e319ede2cc9a24ec6704d4d27be52422b6",
+      "obligations_identity": "b3:b6aa3f62fb543dc584ae8051fc42b14d07b90e9f09d79dd1373746b06f11b16c",
+      "plan_identity": "b3:3fe31d36b99ede22dd956048352efd7a730432d28e547bca5e18d430efd15e09",
+      "policy_identity": "b3:ff096070fb25d5456f50000af78f1c92fda605bdb7bc3d1e7d1cc0091204e61c",
+      "selection_identity": "b3:c92794e2bb3ad140f6abf00af8271a8c4b5601876e65aca428c75a96bc771af7"
+    }
+  },
+  "name": "verify-change",
+  "pinned": [
+    {
+      "bundle": {
+        "revision": "555665f511e3244805be21e30e782770151ca46182e74c6c5260bcdff45817ca",
+        "worker": {
+          "bundle_identity": "blake3:fc44ddc7140751d6bda3ee85b05d5f9fca41ca36c676bda2753bb0992656fe29",
+          "definition": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+          "definition_name": "rust-implementer",
+          "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+        },
+        "workflow": {
+          "compiler_artifact_identity": "b3:d1c2da04f74e1b9322141fd35c76e1887f27d63aee89fffd9c6de3e728882188",
+          "compiler_revision": "lattice.workflow-intent-compiler.v1",
+          "graph_identity": "blake3:835d9edf559368f91b79311e53d423e319ede2cc9a24ec6704d4d27be52422b6",
+          "obligations_identity": "b3:b6aa3f62fb543dc584ae8051fc42b14d07b90e9f09d79dd1373746b06f11b16c",
+          "plan_identity": "b3:3fe31d36b99ede22dd956048352efd7a730432d28e547bca5e18d430efd15e09",
+          "policy_identity": "b3:ff096070fb25d5456f50000af78f1c92fda605bdb7bc3d1e7d1cc0091204e61c",
+          "selection_identity": "b3:c92794e2bb3ad140f6abf00af8271a8c4b5601876e65aca428c75a96bc771af7"
+        }
+      },
+      "is_blocked": false,
+      "session": "session-a",
+      "status": "live"
+    }
+  ],
+  "schema": "lattice.workflow-agent-revision-slots.v1",
+  "selected_for_new_sessions": {
+    "bundle": {
+      "revision": "555665f511e3244805be21e30e782770151ca46182e74c6c5260bcdff45817ca",
+      "worker": {
+        "bundle_identity": "blake3:fc44ddc7140751d6bda3ee85b05d5f9fca41ca36c676bda2753bb0992656fe29",
+        "definition": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+        "definition_name": "rust-implementer",
+        "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+      },
+      "workflow": {
+        "compiler_artifact_identity": "b3:d1c2da04f74e1b9322141fd35c76e1887f27d63aee89fffd9c6de3e728882188",
+        "compiler_revision": "lattice.workflow-intent-compiler.v1",
+        "graph_identity": "blake3:835d9edf559368f91b79311e53d423e319ede2cc9a24ec6704d4d27be52422b6",
+        "obligations_identity": "b3:b6aa3f62fb543dc584ae8051fc42b14d07b90e9f09d79dd1373746b06f11b16c",
+        "plan_identity": "b3:3fe31d36b99ede22dd956048352efd7a730432d28e547bca5e18d430efd15e09",
+        "policy_identity": "b3:ff096070fb25d5456f50000af78f1c92fda605bdb7bc3d1e7d1cc0091204e61c",
+        "selection_identity": "b3:c92794e2bb3ad140f6abf00af8271a8c4b5601876e65aca428c75a96bc771af7"
+      }
+    },
+    "kind": "promotion",
+    "qualification_ref": "blake3:f003db3c8fddc3611cd75cdcb05108606923e0bc137e99f53a83bfdd5c8fd6d6",
+    "rollout_generation": 1
+  }
+}

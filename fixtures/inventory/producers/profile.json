@@ -40,6 +40,13 @@
       "producer": "lattice",
       "scope": "tenant-pilot",
       "source": "lattice-workers"
+    },
+    {
+      "kind": "workflow_revisions",
+      "minimum_generation": 1,
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "source": "lattice-workflows"
     }
   ]
 }

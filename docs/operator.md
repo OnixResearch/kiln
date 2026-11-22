@@ -5088,10 +5088,10 @@ path described below.
 | Route | Method | Purpose |
 | --- | --- | --- |
 | `/api/implementation/cairn` | GET | `kiln.cairn-workspace-index.v2`: changes with stage lane, unit spread, open decisions, first ranked blocker and counts |
-| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v3`: exact change's units, attempts, dependencies, memberships, decisions, ranked blockers and agent revisions with a BLAKE3 view identity |
+| `/api/implementation/cairn/detail?repository=HEX&change=NAME` | GET | `kiln.cairn-workspace-detail.v4`: exact change's units, attempts, dependencies, memberships, decisions, ranked blockers, agent revisions and workflow revisions with a BLAKE3 view identity |
 
-The console refuses older `v1` index and `v1`/`v2` detail documents rather
-than inferring missing lane or agent facts. Viewers and operators may read both
+The console refuses older `v1` index and `v1` to `v3` detail documents rather
+than inferring missing lane, agent or workflow facts. Viewers and operators may read both
 routes; worker principals
 are refused. The detail admits exactly `repository=HEX&change=NAME`: a
 64-character lowercase hex identity and a percent-encoded change name of at
@@ -5206,8 +5206,25 @@ words on the page:
 | `unpublished` | No producer publishes the fact. |
 
 **Workflow revisions** come first and stay separate from worker revisions.
-Lattice does not publish them yet, so both the selected and the pinned
-workflow revision read `unpublished` with owner `lattice#25`. Each **agent
+They come from the inventory's `workflow_revisions` sources, which Kiln
+collects from Lattice's `lattice.workflow-agent-revision-slots.v1` documents
+(see [inventory producers](inventory-producers.md#workflow-revision-slots)).
+They have their own `source`: `admitted`; `not_configured` when the inventory
+profile names no workflow revision source; or `unavailable` with the source's
+refusal code, such as `lattice_workflow_slots_unsupported_schema` or
+`workflow_revisions_source_missing`. Neither hides the agent and worker
+revisions. Each **workflow definition** shows its desired, last usable and
+selected-for-new-sessions workflow revision as `recorded`, `not_recorded` or
+`unknown`; a recorded selection's rollout generation, kind (promotion or
+rollback) and qualification reference; and its pinned sessions, counted per
+revision with status, **Pin blocked** and whether they are pinned to the
+selected revision. Each workflow revision names the worker revision it pairs
+with and whether that is the revision the inventory projects for the worker
+definition, another revision, or a definition the inventory does not hold. Its
+identities disclosure lists the compiler, compiler artifact, plan, graph,
+Cairn selection, obligations and policy identities and the worker definition,
+revision and bundle. Session identities, names and guidance, context or
+source identities are never shown. Each **agent
 definition** shows its observation state, profile revision, lifecycle
 management, the desired, prepared, qualified and selected-for-new-sessions
 slots, the rollout generation of a recorded selection, declared task families,

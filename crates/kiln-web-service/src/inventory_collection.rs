@@ -7,8 +7,14 @@
 //! composes one snapshot by exact producer-scoped joins. It performs no
 //! discovery, network access or write; a live host shell that collects
 //! authorized observations writes the same manifest and documents.
+//!
+//! Workflow revision slots are display-only: no readiness decision reads
+//! them. A slots document that cannot be read or is refused therefore makes
+//! only its source unavailable, with the refusal code as the source's reason,
+//! and never fails the rest of the collection.
 // r[impl kiln.inventory.collection]
 // r[impl kiln.inventory.collection.scenario.refused]
+// r[impl kiln.inventory.workflow.scenario.isolated]
 use std::fs::File;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
@@ -39,6 +45,8 @@ pub const LATTICE_WORKER_INVENTORY: &str =
 pub const COMPUTE_ALLOCATION_OBSERVATION: &str =
     kiln_adapter_lattice::compute_inventory::COMPUTE_OBSERVATION_SCHEMA;
 pub const ANIMUS_SERVING_SNAPSHOT: &str = kiln_adapter_animus::SNAPSHOT_SCHEMA;
+pub const LATTICE_WORKFLOW_REVISION_SLOTS: &str =
+    kiln_adapter_lattice::workflow_revision_slots::WORKFLOW_REVISION_SLOTS_SCHEMA;
 
 /// One source's collection: the Kiln-side window and the retained documents.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -115,6 +123,19 @@ fn source_observation(collection: &SourceCollection) -> SourceObservation {
     }
 }
 
+/// A display-only source whose refusal leaves the rest of the collection intact.
+fn is_isolated(collection: &SourceCollection) -> bool {
+    collection.kind == InventoryKind::WorkflowRevisions
+        && collection.contract == LATTICE_WORKFLOW_REVISION_SLOTS
+}
+
+/// The source unavailable with `reason`, carrying no facts.
+fn unavailable(collection: &SourceCollection, reason: String) -> InventoryFragment {
+    let mut source = source_observation(collection);
+    source.unavailable_reason = Some(reason);
+    InventoryFragment::new(collection.kind, source)
+}
+
 fn fragment(
     collection: &SourceCollection,
     joins: &InventoryJoins,
@@ -144,6 +165,11 @@ fn fragment(
                 joins,
                 collection.provider_logical_now,
                 documents,
+            )
+        }
+        InventoryKind::WorkflowRevisions if contract == LATTICE_WORKFLOW_REVISION_SLOTS => {
+            kiln_adapter_lattice::workflow_revision_slots::map_workflow_revision_slots(
+                &source, joins, documents,
             )
         }
         _ => return Err("inventory_collection_contract_unsupported".into()),
@@ -182,16 +208,29 @@ impl CollectionSet {
             if collection.unavailable_reason.is_some() && !collection.documents.is_empty() {
                 return Err("inventory_collection_unavailable_with_documents".into());
             }
-            let mut bytes = Vec::with_capacity(collection.documents.len());
-            for relative in &collection.documents {
-                bytes.push(read_bounded(
-                    &document_path(base, relative)?,
-                    MAX_PRODUCER_DOCUMENT_BYTES,
-                    "inventory_collection_document_unavailable",
-                )?);
-            }
-            let documents: Vec<&[u8]> = bytes.iter().map(Vec::as_slice).collect();
-            fragments.push(fragment(collection, &self.joins, &documents)?);
+            let paths = collection
+                .documents
+                .iter()
+                .map(|relative| document_path(base, relative))
+                .collect::<Result<Vec<_>, _>>()?;
+            let mapped = paths
+                .iter()
+                .map(|path| {
+                    read_bounded(
+                        path,
+                        MAX_PRODUCER_DOCUMENT_BYTES,
+                        "inventory_collection_document_unavailable",
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .and_then(|bytes| {
+                    let documents: Vec<&[u8]> = bytes.iter().map(Vec::as_slice).collect();
+                    fragment(collection, &self.joins, &documents)
+                });
+            fragments.push(match mapped {
+                Err(reason) if is_isolated(collection) => unavailable(collection, reason),
+                other => other?,
+            });
         }
         compose_snapshot(&self.principal, self.synthetic, fragments).map_err(str::to_owned)
     }
@@ -265,3 +304,7 @@ impl InventoryObservationPort for ExplicitCollectionPort {
 #[cfg(test)]
 #[path = "inventory_collection_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "inventory_collection_workflow_tests.rs"]
+mod workflow_tests;

@@ -29,7 +29,7 @@ use serde::Serialize;
 use crate::inventory::campaign_projection::repository_identity;
 
 pub const INDEX_SCHEMA: &str = "kiln.cairn-workspace-index.v2";
-pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v3";
+pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v4";
 /// Changes one index lists before reporting truncation.
 pub const MAX_INDEX_CHANGES: usize = 512;
 /// Error code of a retained record the projection cannot identify.
