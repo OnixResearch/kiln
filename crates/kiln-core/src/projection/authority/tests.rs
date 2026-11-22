@@ -816,7 +816,8 @@ fn capability_sets_confirm_but_never_extend_admitted_grants() {
 
     // A capability observed under any other context confirms nothing.
     type Rekey = fn(&mut CapabilityContext);
-    let rekeys: [Rekey; 6] = [
+    let rekeys: [Rekey; 7] = [
+        |c| c.audience = "did:key:z6MkOther".into(),
         |c| c.repository = digest("other-repository"),
         |c| {
             c.snapshot = SnapshotRule::Ref {
@@ -918,8 +919,8 @@ fn fake_port_confirms_only_capabilities_of_the_current_context() {
     );
 
     // A grant issued under an older generation confirms nothing, nor do raw
-    // capabilities of another repository or generation; one of the exact
-    // current context does.
+    // capabilities of another audience, repository or generation; one of the
+    // exact current context does.
     let mut port = FakeVerifiedSourceAuthority::default();
     port.grant(&agent.audience, fake(repository.clone(), GENERATION - 1));
     assert_eq!(
@@ -927,17 +928,20 @@ fn fake_port_confirms_only_capabilities_of_the_current_context() {
         SourceDenialReason::ResourceOutOfScope
     );
     let context = CapabilityContext {
+        audience: agent.audience.clone(),
         repository: repository.clone(),
         snapshot: exact.clone(),
         view_binding: main.view_binding.clone(),
         generation: GENERATION,
         revocation_generation: current.revocation_generation,
     };
+    let mut other_audience = context.clone();
+    other_audience.audience = "did:key:z6MkSharer".into();
     let mut other_repository = context.clone();
     other_repository.repository = digest("other-repository");
     let mut stale = context.clone();
     stale.generation = GENERATION - 1;
-    for raw in [other_repository, stale] {
+    for raw in [other_audience, other_repository, stale] {
         for capability in SessionCapability::under(&raw, &agent.grants) {
             port.report_raw(&agent.audience, capability);
         }

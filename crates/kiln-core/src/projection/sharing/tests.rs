@@ -308,11 +308,12 @@ fn expanding_a_saved_view_does_not_expand_shared_access() {
         destination_prefix: "crates/app/docs".into(),
     });
     let expanded = ok(admit_definition(&expanded));
-    let trusted = corpus.trusted_with(&expanded, &corpus.facts());
+    let facts = corpus.facts();
     for ceiling in [
         plan.ceiling().clone(),
         ViewCeiling::from_definition(&expanded),
     ] {
+        let trusted = corpus.enumerate(&expanded, &facts, &child, &ceiling);
         let view = ok(restrict(&trusted, &child, &ceiling, &key(), now));
         let shown: Vec<&str> = view
             .entries()

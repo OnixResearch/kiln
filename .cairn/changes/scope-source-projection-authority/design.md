@@ -22,13 +22,13 @@ A holder never receives the trusted manifest. What a holder sees depends only on
 
 ### Decision: filter by origin before anything is shaped
 
-**Choice:** `restrict(view, scope, ceiling, key, now)` walks manifest entries in order and keeps an entry only when its native origin lies in the ceiling and a current grant lets the holder discover or read it. Generated entries and dependency identities, which have no native path, are disclosed only to a full-source holder. Truncation, paging and coverage are computed over the kept entries only.
+**Choice:** the shell enumerates the source over the holder's `ScopedSelection`, the ceiling intersected with the paths its current grants let it discover or read (the root only for full source), and wraps the result in a `ScopedEnumeration` recording that selection. `restrict(enumeration, scope, ceiling, key, now)` refuses an enumeration of any other selection as stale, then walks manifest entries in order and keeps an entry only when its native origin lies in the ceiling and a current grant lets the holder discover or read it. Generated entries and dependency identities, which have no native path, are disclosed only to a full-source holder. Truncation, paging and coverage are computed over the kept entries only; a truncated holder-scoped enumeration reports truncated coverage and unknown lookups.
 
 **Rationale:** a post-filter over an unrestricted result leaks through counts, ordering and errors; judging aliases by origin stops a layout edit from granting access.
 
 ### Decision: keyed handles over a view binding
 
-**Choice:** `ViewBinding` hashes repository, revision, definition, manifest, ceiling, audience, effective scope and both generations. Handles, the view reference and cursor tags are `blake3::Hasher::new_keyed` over that identity and the entry; the shell holds the key. Every page, lookup and resolution first checks the binding against the holder's current scope.
+**Choice:** `ViewBinding` hashes repository, revision, definition, manifest, ceiling, audience, effective scope and both generations; its identity keys caches and stale checks. Handles, the view reference and cursor tags are `blake3::Hasher::new_keyed` over a separate keying identity of holder-visible data (audience, effective scope, ceiling, definition and visible content) and the entry; the shell holds the key. Every page, lookup and resolution first checks the binding against the holder's current scope.
 
 **Rationale:** an unkeyed hash of a known path or object would be forgeable. Binding scope and generations means a narrower holder, a revocation or a new generation can never reuse a broader cursor or cache.
 
@@ -66,5 +66,5 @@ A holder never receives the trusted manifest. What a holder sees depends only on
 
 - The restricted view is computed per request; caching is the caller's, keyed by the binding identity.
 - Dependency names come from the holder's definition and are shown; their identities are not, except to full source.
-- `VisibleCoverage::Unavailable` reveals that the source enumeration was truncated, which is a fact about the snapshot, not about hidden entries.
+- Truncation reflects only the holder-scoped enumeration, which a real shell must request from the source adapter over the scoped selection; Kiln checks that the enumeration claims that selection and holds nothing outside it, but cannot see entries an adapter silently dropped.
 - No general timing side-channel guarantee is claimed.

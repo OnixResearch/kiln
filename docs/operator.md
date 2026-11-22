@@ -2450,20 +2450,33 @@ into an equivalent definition labeled `monorepo_project_scope.v1`; its
 
 <!-- r[related kiln.source.projection.disclosure.restricted] -->
 **Capability-scoped views.** A holder never receives the trusted manifest.
-`kiln_core::projection::disclosure::restrict` derives an `AudienceView` from
-it under the holder's current `EffectiveSourceScope` and the view's frozen
-`ViewCeiling`: an entry stays only when its native origin lies in the ceiling
-and a current grant lets the holder discover or read it, and only then are
-entries counted, paged or turned into coverage. Aliases are judged by their
-origin. The source-view vocabulary, `kiln.source-authority-coverage.v1`, has
-eight operations (discover, read, history, prepare, modify, create, delegate,
+The shell enumerates the source over the holder's `ScopedSelection` (the
+view ceiling intersected with the paths its current grants let it discover
+or read, and the repository root only for a full-source holder) and wraps the
+result in a `ScopedEnumeration`, so whether an enumeration is truncated never
+depends on entries the holder may not see.
+`kiln_core::projection::disclosure::restrict` refuses an enumeration made
+over any other selection as stale, then derives an `AudienceView` under the
+holder's current `EffectiveSourceScope` and the view's frozen `ViewCeiling`:
+an entry stays only when its native origin lies in the ceiling and a current
+grant lets the holder discover or read it, and only then are entries counted,
+paged or turned into coverage. Coverage is complete only when every
+authorized entry is listed, and otherwise truncated after the entries listed;
+a probe of an unlisted discoverable path is unknown when the holder-scoped
+enumeration was truncated. Aliases are judged by their origin. The
+source-view vocabulary, `kiln.source-authority-coverage.v1`, has eight
+operations (discover, read, history, prepare, modify, create, delegate,
 result) and none implies another; path scope is compared per component, so a
-grant for `crates/app` never covers `crates/apple`. Handles and cursors are
-BLAKE3 hashes keyed by a shell-held key over a view binding of source,
-definition, manifest, ceiling, audience, scope and generations, and every use
-rechecks the holder's current scope. A scope holds only what the port
-admitted request by request; a session's raw capability set confirms those
-grants but never adds one. A missing, forbidden or stale object
+grant for `crates/app` never covers `crates/apple`. Handles, cursors and the
+view reference are BLAKE3 hashes keyed by a shell-held key over a keying
+identity of holder-visible data only (audience, scope, ceiling, definition
+and visible content). The view binding's identity, which also covers the
+trusted manifest and the generations, keys caches and stale checks only, and
+every use rechecks the holder's current scope. A scope holds only what the
+port admitted request by request; a session's raw capability set confirms
+those grants, only when observed for the same audience, repository, snapshot,
+view binding and generations, but never adds one. A missing, forbidden or
+stale object
 returns one `{"error":"unavailable"}` shape. Cairn context is disclosed
 through `.cairn/changes/<id>/**` path authority; a hidden prerequisite is an
 opaque handle and status, and a `RestrictedContext` can never stand in for a

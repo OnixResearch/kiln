@@ -1,16 +1,21 @@
 //! Audience-restricted views over a trusted projection.
 //!
-//! [`AdmittedPartialView`] is the trusted resolver's view: it holds the
-//! complete manifest with every origin. A holder never receives it. [`restrict`]
-//! filters it under the holder's [`EffectiveSourceScope`] and a frozen
-//! [`ViewCeiling`] *before* anything is counted, paged, grouped or reported,
-//! so the effective view is `selection ∩ ceiling ∩ snapshot ∩ current grant`.
+//! The trusted resolver's view holds a manifest with every origin; a holder
+//! never receives it. A shell enumerates the source over one holder's
+//! [`ScopedSelection`] (the ceiling intersected with what its current grants
+//! let it discover or read) and wraps the result in a [`ScopedEnumeration`],
+//! so the size and truncation of the enumeration never depend on entries the
+//! holder may not see. [`restrict`] then filters it under the holder's
+//! [`EffectiveSourceScope`] and a frozen [`ViewCeiling`] *before* anything is
+//! counted, paged, grouped or reported, so the effective view is
+//! `selection ∩ ceiling ∩ snapshot ∩ current grant`.
 //!
 //! Handles and cursors are BLAKE3 hashes keyed by a [`HandleKey`] the shell
-//! holds, over the [`ViewBinding`] identity. Knowing a native digest, an
-//! equal-byte file or an alias forges nothing, a handle from another binding
-//! resolves nothing, and every use rechecks the binding against the current
-//! scope. Missing and forbidden objects share one [`PublicUnavailable`] shape.
+//! holds, over a keying identity of holder-visible data only. Knowing a
+//! native digest, an equal-byte file or an alias forges nothing, a handle
+//! from another view resolves nothing, and every use rechecks the
+//! [`ViewBinding`] against the current scope. Missing and forbidden objects
+//! share one [`PublicUnavailable`] shape.
 //!
 //! Cairn context is disclosed through `.cairn/changes/<id>/**` path authority.
 //! A [`RestrictedContext`] is a presentation, never a complete lifecycle
@@ -62,8 +67,8 @@ use serde::{Deserialize, Serialize};
 use super::authority::{EffectiveSourceScope, PathScope, SourceViewOperation, valid_identifier};
 use super::{
     AdmittedDefinition, AdmittedPartialView, Coverage, DependencyStatus, EntryKind, EntryOrigin,
-    GLOB_CHARS, ManifestEntry, ProjectionProfile, ResolvedProjectionManifest, update_bool,
-    update_external,
+    GLOB_CHARS, ManifestEntry, ProjectionFacts, ProjectionProfile, ResolvedProjectionManifest,
+    update_bool, update_external,
 };
 use crate::monorepo::{finish, update_field, update_usize};
 use crate::paths;
@@ -73,6 +78,7 @@ pub const VIEW_BINDING_SCHEMA: &str = "kiln.source-view-binding.v1";
 pub const VIEW_PRESENTATION_SCHEMA: &str = "kiln.source-view-presentation.v1";
 pub const RESTRICTED_CONTEXT_SCHEMA: &str = "kiln.restricted-context.v1";
 const VIEW_CEILING_SCHEMA: &str = "kiln.source-view-ceiling.v1";
+const SCOPED_SELECTION_SCHEMA: &str = "kiln.source-view-scoped-selection.v1";
 const VISIBLE_CONTENT_SCHEMA: &str = "kiln.source-view-visible-content.v1";
 const VIEW_KEYING_SCHEMA: &str = "kiln.source-view-keying.v1";
 const CAIRN_OBSERVATION_SCHEMA: &str = "kiln.cairn-observation.v1";
@@ -314,6 +320,11 @@ pub enum DisclosureRefusal {
     SnapshotMismatch,
     /// The scope grants neither discovery nor reading anywhere.
     NotAuthorized,
+    /// The enumeration was made over another selection than the holder's
+    /// current scoped selection.
+    Stale,
+    /// An enumeration holds an entry outside the selection it claims.
+    OutsideSelection,
 }
 
 impl DisclosureRefusal {
@@ -372,15 +383,7 @@ impl ViewCeiling {
                 subtree,
             });
         }
-        let paths: BTreeSet<PathScope> = candidates
-            .iter()
-            .filter(|path| {
-                !candidates
-                    .iter()
-                    .any(|other| other != *path && other.contains(path))
-            })
-            .cloned()
-            .collect();
+        let paths = outermost(candidates);
         let operations = profile_operations(definition.profile());
         let mut hasher = blake3::Hasher::new();
         update_field(&mut hasher, "schema", VIEW_CEILING_SCHEMA.as_bytes());
@@ -435,6 +438,170 @@ impl ViewCeiling {
     #[must_use]
     pub fn contains(&self, scope: &PathScope) -> bool {
         self.paths.iter().any(|path| path.contains(scope))
+    }
+}
+
+/// Drop every path another path of the set already contains.
+fn outermost(candidates: BTreeSet<PathScope>) -> BTreeSet<PathScope> {
+    candidates
+        .iter()
+        .filter(|path| {
+            !candidates
+                .iter()
+                .any(|other| other != *path && other.contains(path))
+        })
+        .cloned()
+        .collect()
+}
+
+// r[impl kiln.source.projection.disclosure.unavailable.scenario.scoped]
+/// The part of a view's selection one holder may see: the ceiling's paths
+/// intersected with the paths of current grants that let it discover or
+/// read. It covers the repository root only for a full-source holder. A
+/// shell enumerates the source over this selection, so whether an
+/// enumeration is truncated never depends on entries the holder may not see.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ScopedSelection {
+    paths: BTreeSet<PathScope>,
+    identity: ContentId,
+}
+
+impl ScopedSelection {
+    /// The selection of `scope`'s holder through `ceiling`.
+    #[must_use]
+    pub fn for_holder(scope: &EffectiveSourceScope, ceiling: &ViewCeiling) -> Self {
+        use SourceViewOperation as Op;
+        let mut candidates = BTreeSet::new();
+        for grant in scope.grants() {
+            let discloses = [Op::Discover, Op::ReadContent].iter().any(|operation| {
+                grant.operations.contains(operation) && ceiling.operations.contains(operation)
+            });
+            if !discloses {
+                continue;
+            }
+            // Per-component scopes nest or are disjoint, so an intersection
+            // is the narrower of the two or nothing.
+            for path in &ceiling.paths {
+                if path.contains(&grant.path) {
+                    candidates.insert(grant.path.clone());
+                } else if grant.path.contains(path) {
+                    candidates.insert(path.clone());
+                }
+            }
+        }
+        let paths = outermost(candidates);
+        let mut hasher = blake3::Hasher::new();
+        update_field(&mut hasher, "schema", SCOPED_SELECTION_SCHEMA.as_bytes());
+        update_usize(&mut hasher, "paths", paths.len());
+        for path in &paths {
+            path.update(&mut hasher);
+        }
+        Self {
+            paths,
+            identity: finish(hasher),
+        }
+    }
+
+    #[must_use]
+    pub fn paths(&self) -> &BTreeSet<PathScope> {
+        &self.paths
+    }
+    /// BLAKE3 identity over the selected paths.
+    #[must_use]
+    pub fn identity(&self) -> &ContentId {
+        &self.identity
+    }
+
+    /// Whether the selection is the whole repository, which only a
+    /// full-source holder's is. Generated entries need it.
+    #[must_use]
+    pub fn covers_root(&self) -> bool {
+        self.paths.contains(&PathScope::root())
+    }
+
+    /// Whether a repository path lies in the selection.
+    #[must_use]
+    pub fn covers_path(&self, path: &str) -> bool {
+        self.paths.iter().any(|scope| scope.covers_path(path))
+    }
+
+    /// Keep the facts inside the selection: native entries it covers, and
+    /// generated entries only when it covers the root. A truncated
+    /// enumeration stays truncated. This models over complete facts what a
+    /// real shell gets by asking the source adapter to enumerate over the
+    /// selection.
+    #[must_use]
+    pub fn filter_facts(&self, facts: &ProjectionFacts) -> ProjectionFacts {
+        ProjectionFacts {
+            repository: facts.repository.clone(),
+            exact_revision: facts.exact_revision.clone(),
+            canonical_tree: facts.canonical_tree.clone(),
+            evaluator: facts.evaluator.clone(),
+            adapter: facts.adapter.clone(),
+            source_capabilities: facts.source_capabilities.clone(),
+            coverage: facts.coverage,
+            entries: facts
+                .entries
+                .iter()
+                .filter(|entry| self.covers_path(&entry.path))
+                .cloned()
+                .collect(),
+            dependencies: facts.dependencies.clone(),
+            generated: if self.covers_root() {
+                facts.generated.clone()
+            } else {
+                Vec::new()
+            },
+        }
+    }
+}
+
+/// A trusted view enumerated over one holder's [`ScopedSelection`]. It
+/// records the selection it was made over; [`restrict`] refuses it for a
+/// holder whose current selection differs.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ScopedEnumeration {
+    selection: ContentId,
+    view: AdmittedPartialView,
+}
+
+impl ScopedEnumeration {
+    /// Record that `view` was enumerated over `selection`.
+    ///
+    /// # Errors
+    /// Returns [`DisclosureRefusal::OutsideSelection`] when a native origin
+    /// lies outside the selection, or a generated entry exists although the
+    /// selection does not cover the root.
+    pub fn new(
+        selection: &ScopedSelection,
+        view: AdmittedPartialView,
+    ) -> Result<Self, DisclosureRefusal> {
+        let inside = view
+            .manifest()
+            .entries
+            .iter()
+            .all(|entry| match &entry.origin {
+                EntryOrigin::Native { path, .. } => selection.covers_path(path),
+                EntryOrigin::Generated { .. } => selection.covers_root(),
+            });
+        if !inside {
+            return Err(DisclosureRefusal::OutsideSelection);
+        }
+        Ok(Self {
+            selection: selection.identity.clone(),
+            view,
+        })
+    }
+
+    /// Identity of the selection the enumeration was made over.
+    #[must_use]
+    pub fn selection(&self) -> &ContentId {
+        &self.selection
+    }
+    /// The holder-scoped trusted view, server-side only.
+    #[must_use]
+    pub fn view(&self) -> &AdmittedPartialView {
+        &self.view
     }
 }
 
@@ -582,7 +749,9 @@ impl ViewBinding {
     pub fn revocation_generation(&self) -> u64 {
         self.revocation_generation
     }
-    /// Cache and continuation key of the restricted view.
+    /// Cache and stale-check key of the restricted view. Handles, cursors
+    /// and the view reference are keyed over a separate identity of
+    /// holder-visible data, never over this one.
     #[must_use]
     pub fn identity(&self) -> &ContentId {
         &self.identity
@@ -624,14 +793,16 @@ pub struct VisibleEntry {
 }
 
 // r[impl kiln.source.projection.disclosure.unavailable.scenario.coverage]
-/// Coverage of the holder-visible entries only; it never depends on hidden
-/// entries or on the size of the whole snapshot.
+/// Coverage of the holder-visible entries only. The enumeration behind a
+/// view is made over the holder's [`ScopedSelection`], so coverage never
+/// depends on hidden entries or on the size of the whole snapshot.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum VisibleCoverage {
     /// Every authorized entry is listed.
     Complete,
-    /// Listing stopped at the named bound.
+    /// Listing stopped after `bound` entries: the holder-scoped enumeration
+    /// was truncated, or the view reached its own bound.
     Truncated { bound: usize },
 }
 
@@ -654,11 +825,9 @@ pub enum OriginLookup<'a> {
     Unrequested,
     /// The path is selected and known to be absent.
     Absent,
-    /// The source enumeration was incomplete, so presence is unknown. This
-    /// answers only a probe of a path the holder may discover; the view's
-    /// coverage never reports it.
+    /// The holder-scoped enumeration was truncated, so presence is unknown.
     Unknown,
-    /// Listing stopped at the named bound before the path could be found.
+    /// The view's own bound cut the listing before the path could be found.
     Truncated { bound: usize },
 }
 
@@ -681,7 +850,7 @@ pub struct AudienceView {
     coverage: VisibleCoverage,
     dependencies: Vec<VisibleDependency>,
     trusted: Vec<TrustedSlot>,
-    /// Whether the trusted enumeration was complete; server-side only.
+    /// Whether the holder-scoped enumeration was complete; server-side only.
     enumeration_complete: bool,
 }
 
@@ -722,7 +891,8 @@ impl AudienceView {
     pub fn ceiling(&self) -> &ViewCeiling {
         &self.ceiling
     }
-    /// Opaque reference to this view, keyed over its binding.
+    /// Opaque reference to this view, keyed over its holder-visible keying
+    /// identity.
     #[must_use]
     pub fn reference(&self) -> OpaqueHandle {
         self.reference
@@ -847,10 +1017,11 @@ impl AudienceView {
             .collect();
         Ok(if !found.is_empty() {
             OriginLookup::Entries(found)
+        } else if !self.enumeration_complete {
+            OriginLookup::Unknown
         } else {
             match self.coverage {
                 VisibleCoverage::Truncated { bound } => OriginLookup::Truncated { bound },
-                VisibleCoverage::Complete if !self.enumeration_complete => OriginLookup::Unknown,
                 VisibleCoverage::Complete => OriginLookup::Absent,
             }
         })
@@ -1033,29 +1204,39 @@ fn full_source(
 }
 
 // r[impl kiln.source.projection.disclosure.restricted.scenario.filter_first]
-/// Restrict a trusted view to one holder.
+/// Restrict a holder-scoped enumeration to one holder.
 ///
-/// An entry is visible only when its native origin lies in the ceiling and a
-/// current grant lets the holder discover or read it. Aliases are judged by
-/// their origin, never by their destination. Filtering happens before the
-/// entries are counted, truncated, paged or turned into coverage, so nothing
-/// outside the scope shapes the result.
+/// The enumeration must have been made over the holder's current
+/// [`ScopedSelection`] through `ceiling`. An entry is visible only when its
+/// native origin lies in the ceiling and a current grant lets the holder
+/// discover or read it. Aliases are judged by their origin, never by their
+/// destination. Filtering happens before the entries are counted, truncated,
+/// paged or turned into coverage, so nothing outside the scope shapes the
+/// result.
 ///
 /// # Errors
 /// Returns the internal refusal for an expired scope, another repository or
-/// revision, or a scope without discovery or read anywhere.
+/// revision, a scope without discovery or read anywhere, or an enumeration
+/// made over another selection.
 pub fn restrict(
-    view: &AdmittedPartialView,
+    enumeration: &ScopedEnumeration,
     scope: &EffectiveSourceScope,
     ceiling: &ViewCeiling,
     key: &HandleKey,
     now_unix_s: u64,
 ) -> Result<AudienceView, DisclosureRefusal> {
-    restrict_bounded(view, scope, ceiling, key, now_unix_s, MAX_VISIBLE_ENTRIES)
+    restrict_bounded(
+        enumeration,
+        scope,
+        ceiling,
+        key,
+        now_unix_s,
+        MAX_VISIBLE_ENTRIES,
+    )
 }
 
 fn restrict_bounded(
-    view: &AdmittedPartialView,
+    enumeration: &ScopedEnumeration,
     scope: &EffectiveSourceScope,
     ceiling: &ViewCeiling,
     key: &HandleKey,
@@ -1063,7 +1244,7 @@ fn restrict_bounded(
     bound: usize,
 ) -> Result<AudienceView, DisclosureRefusal> {
     use SourceViewOperation as Op;
-    let manifest = view.manifest();
+    let manifest = enumeration.view.manifest();
     if !scope.live_at(now_unix_s) {
         return Err(DisclosureRefusal::Expired);
     }
@@ -1075,6 +1256,9 @@ fn restrict_bounded(
     }
     if !scope.names(Op::Discover) && !scope.names(Op::ReadContent) {
         return Err(DisclosureRefusal::NotAuthorized);
+    }
+    if &enumeration.selection != ScopedSelection::for_holder(scope, ceiling).identity() {
+        return Err(DisclosureRefusal::Stale);
     }
     let mut binding = ViewBinding::new(manifest, ceiling, scope);
     let writable = manifest.profile == ProjectionProfile::Writable;
@@ -1122,8 +1306,11 @@ fn restrict_bounded(
         }
     }
     let total = displayed.len() + undisplayed.len();
-    let coverage = if total > bound {
-        VisibleCoverage::Truncated { bound }
+    let enumeration_complete = manifest.coverage == Coverage::Complete;
+    let coverage = if total > bound || !enumeration_complete {
+        VisibleCoverage::Truncated {
+            bound: total.min(bound),
+        }
     } else {
         VisibleCoverage::Complete
     };
@@ -1175,7 +1362,7 @@ fn restrict_bounded(
         coverage,
         dependencies,
         trusted,
-        enumeration_complete: manifest.coverage == Coverage::Complete,
+        enumeration_complete,
     })
 }
 
@@ -1443,8 +1630,11 @@ impl RestrictedContext {
     pub fn hidden_prerequisites(&self) -> &[HiddenPrerequisite] {
         &self.hidden_prerequisites
     }
-    /// Identity binding the delivered context to its view binding (audience,
-    /// effective scope, generations) and the exact observation.
+    /// Identity binding the delivered visible items and hidden-prerequisite
+    /// statuses to the view's holder-visible keying identity (audience,
+    /// effective scope, ceiling, definition and visible content). It does not
+    /// bind the exact observation; [`observation`](Self::observation) does,
+    /// server-side.
     #[must_use]
     pub fn identity(&self) -> &ContentId {
         &self.identity

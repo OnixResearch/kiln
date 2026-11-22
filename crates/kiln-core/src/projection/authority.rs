@@ -559,6 +559,8 @@ impl SnapshotRule {
 /// confirms an admitted grant only when every key equals the scope's.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapabilityContext {
+    /// The holder the capability was delegated to.
+    pub audience: String,
     pub repository: ContentId,
     pub snapshot: SnapshotRule,
     pub view_binding: ContentId,
@@ -604,10 +606,10 @@ pub struct EffectiveScopeFacts {
     /// each admitted request, or a grant individually re-admitted for it.
     pub admitted: Vec<SourceGrant>,
     /// The session's raw effective capability set. It only confirms an
-    /// admitted grant, and only when observed for this repository, snapshot,
-    /// view binding and both generations; a grant present here but never
-    /// admitted, such as a sibling the delegation chain rule did not check,
-    /// confers nothing.
+    /// admitted grant, and only when observed for this audience, repository,
+    /// snapshot, view binding and both generations; a grant present here but
+    /// never admitted, such as a sibling the delegation chain rule did not
+    /// check, confers nothing.
     pub capabilities: Vec<SessionCapability>,
     pub not_after_s: u64,
     /// Remaining delegation depth.
@@ -622,6 +624,7 @@ impl EffectiveScopeFacts {
     #[must_use]
     pub fn context(&self) -> CapabilityContext {
         CapabilityContext {
+            audience: self.audience.clone(),
             repository: self.repository.clone(),
             snapshot: self.snapshot.clone(),
             view_binding: self.view_binding.clone(),
@@ -695,8 +698,8 @@ impl EffectiveSourceScope {
         }
         // Effective grants are the admitted ones, each narrowed to the
         // operations a capability observed under this exact context confirms
-        // over its whole path. Capabilities of another repository, snapshot,
-        // view binding or generation confirm nothing.
+        // over its whole path. Capabilities of another audience, repository,
+        // snapshot, view binding or generation confirm nothing.
         let context = facts.context();
         let confirming: Vec<&SourceGrant> = facts
             .capabilities

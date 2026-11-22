@@ -374,7 +374,7 @@ r[kiln.source.projection.disclosure.handles.scenario.narrowing]
 
 ### Requirement: Uniform unavailability and distinct coverage
 
-r[kiln.source.projection.disclosure.unavailable] A missing, forbidden or stale object MUST share one public unavailable shape while the trusted owner keeps the reason. A view's coverage MUST be only complete or truncated at a named bound, computed over the holder-visible entries alone, and MUST NOT depend on hidden entries or reveal global counts. A holder that may discover a path MUST be told whether it is present, unrequested by the definition, known absent, or beyond the named bound; a truncated source enumeration MUST surface only as an unknown answer to such a lookup of a path the holder may discover. Missing and denied dependencies MUST be the same unavailable state.
+r[kiln.source.projection.disclosure.unavailable] A missing, forbidden or stale object MUST share one public unavailable shape while the trusted owner keeps the reason. The trusted enumeration behind a restricted view MUST be made over the holder's scoped selection: the ceiling's paths intersected with the paths its current grants let it discover or read, covering the repository root only for a full-source holder. An enumeration recorded for another selection MUST be refused as stale, and one holding an entry outside its selection MUST be refused. A view's coverage MUST be complete only when every authorized entry is listed, and otherwise truncated at the number of entries listed, whether the holder-scoped enumeration or the view's own bound stopped the listing; it MUST NOT depend on hidden entries or reveal global counts. A holder that may discover a path MUST be told whether it is present, unrequested by the definition, known absent, unknown because the holder-scoped enumeration was truncated, or beyond the view's bound. Missing and denied dependencies MUST be the same unavailable state.
 
 #### Scenario: Missing and forbidden probes look the same
 
@@ -386,9 +386,16 @@ r[kiln.source.projection.disclosure.unavailable.scenario.probe]
 #### Scenario: Coverage states are distinct
 
 r[kiln.source.projection.disclosure.unavailable.scenario.coverage]
-- GIVEN complete, truncated-enumeration and bounded views
+- GIVEN complete, holder-scoped truncated and bounded views
 - WHEN the views are presented and discoverable paths are looked up
-- THEN each view's coverage MUST be complete or truncated over its visible entries only, and present, unrequested, absent, unknown and truncated MUST be distinct lookup results, with unknown only for the truncated enumeration
+- THEN each view's coverage MUST be complete only when every authorized entry is listed and truncated otherwise, and present, unrequested, absent, unknown and truncated MUST be distinct lookup results, with unknown only for a truncated holder-scoped enumeration
+
+#### Scenario: Enumeration is scoped to the holder
+
+r[kiln.source.projection.disclosure.unavailable.scenario.scoped]
+- GIVEN a snapshot where hidden entries would push an enumeration of the whole view selection past the source adapter's bound
+- WHEN the reader's view is enumerated over its scoped selection, or restricted from an enumeration of another selection or one holding entries outside its selection
+- THEN the reader's view MUST be complete with every authorized entry, a truncation of the holder-scoped enumeration MUST surface as truncated coverage and unknown lookups, and the other enumerations MUST be refused
 
 #### Scenario: Denied dependencies are only unavailable
 

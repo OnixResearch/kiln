@@ -14,7 +14,9 @@ use super::authority::{
     SourceAuthority, SourceAuthorityDecision, SourceAuthorityRequest, SourceCurrentness,
     SourceDenialReason, SourceGrant, check_request,
 };
-use super::disclosure::{CairnItem, CairnObservation, HandleKey, ViewCeiling};
+use super::disclosure::{
+    CairnItem, CairnObservation, HandleKey, ScopedEnumeration, ScopedSelection, ViewCeiling,
+};
 use super::sharing::{SharePlan, ShareRequest};
 use super::{
     AdmittedDefinition, AdmittedPartialView, AdmittedRepository, ComponentVersion, Coverage,
@@ -213,11 +215,45 @@ impl Corpus {
         ViewCeiling::from_definition(&self.definition(view))
     }
 
-    pub fn trusted(&self, view: &str) -> AdmittedPartialView {
-        self.trusted_with(&self.definition(view), &self.facts())
+    /// The enumeration of a corpus view, scoped to that view's holder.
+    pub fn trusted(&self, view: &str) -> ScopedEnumeration {
+        self.trusted_with(view, &self.definition(view), &self.facts())
     }
 
+    /// The enumeration of `facts` under `definition`, scoped to the named
+    /// view's holder through the definition's ceiling.
     pub fn trusted_with(
+        &self,
+        view: &str,
+        definition: &AdmittedDefinition,
+        facts: &ProjectionFacts,
+    ) -> ScopedEnumeration {
+        self.enumerate(
+            definition,
+            facts,
+            &self.scope(view),
+            &ViewCeiling::from_definition(definition),
+        )
+    }
+
+    /// The enumeration of `facts` under `definition` over the selection of
+    /// `scope` through `ceiling`, as the source adapter would make it.
+    pub fn enumerate(
+        &self,
+        definition: &AdmittedDefinition,
+        facts: &ProjectionFacts,
+        scope: &EffectiveSourceScope,
+        ceiling: &ViewCeiling,
+    ) -> ScopedEnumeration {
+        let selection = ScopedSelection::for_holder(scope, ceiling);
+        ok(ScopedEnumeration::new(
+            &selection,
+            self.resolved(definition, &selection.filter_facts(facts)),
+        ))
+    }
+
+    /// The unscoped trusted resolution of `facts`; never restricted directly.
+    pub fn resolved(
         &self,
         definition: &AdmittedDefinition,
         facts: &ProjectionFacts,
@@ -407,6 +443,7 @@ impl SourceAuthority for FakeVerifiedSourceAuthority {
             return Err(self.deny(request, SourceDenialReason::Revoked));
         }
         let context = |generation: u64| CapabilityContext {
+            audience: subject.into(),
             repository: grant.repository.clone(),
             snapshot: grant.snapshot.clone(),
             view_binding: request.view_binding.clone(),
