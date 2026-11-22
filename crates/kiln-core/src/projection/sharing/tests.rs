@@ -331,7 +331,7 @@ fn expanding_a_saved_view_does_not_expand_shared_access() {
     }
     // The child may share on only within what it holds, at lower depth.
     let mut grandchild = base_request(&corpus);
-    grandchild.recipient = "did:key:z6MkGrandchild".into();
+    grandchild.recipient = "did:example:grandchild".into();
     grandchild.operations = [Op::Discover].into_iter().collect();
     let expanded_ceiling = ViewCeiling::from_definition(&expanded);
     ok(admit_share(&child, &expanded_ceiling, &grandchild, now));
