@@ -1528,9 +1528,9 @@
                   test "$(sha256sum "$source" | cut -d ' ' -f 1)" = \
                     '8a4fc27aa81ee061310d57fce2df9cc45f3149ddb00bdfab2b816beb0359b13d'
                   test "$executable" = \
-                    '/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul'
+                    '/nix/store/wlm2nasarbcaji3y0v4gz39ckvqdmhgn-pijul-1.0.0-beta.11/bin/pijul'
                   test "$(b3sum --no-names "$executable")" = \
-                    '9b8d58a1ced03ceb73347e4ed4818d17cdbff2de66d9024d4ec9b87327a4f934'
+                    '22cf118c9ccb841a758b9d04a4724cf5e277273a44d47eb7f9d47d2fd43cb182'
                   test "$($executable --version)" = 'pijul 1.0.0-beta.11'
                   tar -xOf "$source" pijul-1.0.0-beta.11/Cargo.lock > producer-Cargo.lock
                   grep -A "$lock_context_lines" -F 'name = "libpijul"' producer-Cargo.lock | \

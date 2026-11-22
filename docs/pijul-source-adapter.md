@@ -15,7 +15,7 @@ The admitted cohort is exact:
 
 The Pijul `1.0.0-beta.11` lock file selects this exact library cohort. Later Pijul releases use `pijul-core`. They are outside this profile.
 
-The Nix fixture producer is `/nix/store/qr2sja5n9r9m0j9q2pyn60cyb6lg3vnp-pijul-1.0.0-beta.11/bin/pijul`. Its BLAKE3 identity is `9b8d58a1ced03ceb73347e4ed4818d17cdbff2de66d9024d4ec9b87327a4f934`.
+The Nix fixture producer is `/nix/store/wlm2nasarbcaji3y0v4gz39ckvqdmhgn-pijul-1.0.0-beta.11/bin/pijul`. Its BLAKE3 identity is `22cf118c9ccb841a758b9d04a4724cf5e277273a44d47eb7f9d47d2fd43cb182`. It is built with the workspace Rust toolchain, so a toolchain change re-pins it.
 
 The recipe applies [`zstd-seekable-sort-sources.patch`](../patches/zstd-seekable-sort-sources.patch) only to the writable Cargo vendor copy. Upstream `zstd-seekable` 0.1.23 enumerates C sources in filesystem order, which changed archive member and executable function order between clean builds of the same recipe. Sorting the existing source paths removes that observed nondeterminism; the immutable crates.io archive and producer library cohort remain unchanged. A fresh local Nix build and `--rebuild` produced identical complete outputs before this executable identity was admitted. This is bounded same-host reproducibility evidence, not a guarantee for every build environment.
 
