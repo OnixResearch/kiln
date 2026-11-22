@@ -140,18 +140,30 @@ refuses:
 - a second proof for one intent;
 - one proof for two intents.
 
-`reconcile(now_s, authority_generation, current)` spans attempt lineages, so
-`current` resolves each intent to the current lineage of its own work unit:
-the shell maps the intent's work unit to its current, active attempt and
-returns `None` when there is none (for example, a cancelled work unit). It
-returns `Issue` only for an unissued intent that is current: same authority
-generation, an exact binding to the resolved lineage (including the fence), no
-revoked ancestor and not expired. Every other unissued intent, including one
-whose work unit resolves to `None`, is `Abandon`. Intents of several current
-attempts are issued in one call. The shell first looks for a token already
+`reconcile(now_ms, authority_generation, attempts, current)` spans attempt
+lineages, so `current` resolves each intent to the current lineage of its own
+work unit: the shell maps the intent's work unit to its current attempt and
+returns `None` when there is none (for example, a cancelled work unit). The
+resolver is not trusted for liveness: `AttemptLedger::current` still returns a
+lease-expired attempt until `expire` runs, so `reconcile` also requires
+`attempts.is_current(intent attempt, intent fence, now_ms)` (active, unexpired
+lease, the work unit's current claim). It returns `Issue` only for an unissued
+intent that is current: same authority generation, an exact binding to the
+resolved lineage (including the fence), a live claim, no revoked ancestor and
+not expired. Every other unissued intent, including one whose work unit
+resolves to `None` or whose lease lapsed before `expire` ran, is `Abandon`.
+`now_ms` is the single host clock; grant lifetimes compare in whole seconds
+of it. Intents of several current attempts are issued in one call. The shell
+first looks for a token already
 minted for an `Issue` intent rather than minting again. Replaying records
 issues nothing. Two grants sharing one reserved account share its #61
 allowance; they cannot multiply it, because #61 enforces the account.
+
+By design, a `FinishActive` predecessor (the attempt left to finish after a
+newer work revision arrives) is still the current, live claim, so its pending
+intents may still `Issue`. That does not let it publish: publication
+authority refuses superseded or replaced attempts independently
+(`authorize_publication`).
 
 ### Owned by S6, not this core
 

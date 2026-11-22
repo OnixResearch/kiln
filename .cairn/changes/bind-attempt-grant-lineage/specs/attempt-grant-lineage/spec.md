@@ -95,11 +95,11 @@ r[kiln.attempt.grant_lineage.attempt.scenario.bound]
 
 ### Requirement: Issuance intents reconcile once
 
-r[kiln.attempt.grant_lineage.issuance] Issuance MUST be journaled as an intent before minting and an issued proof reference after. Folding records MUST perform no effect. Reconciliation MUST resolve each intent to the current attempt lineage of its own work unit and resume an unissued intent under its stored identity only while it matches the current authority generation and binds exactly that resolved lineage; an intent whose work unit has no current attempt MUST be abandoned. It MUST never issue one intent twice or one proof for two intents, and never mint under a revoked ancestor, after expiry, after a generation move or for a replaced or foreign attempt.
+r[kiln.attempt.grant_lineage.issuance] Issuance MUST be journaled as an intent before minting and an issued proof reference after. Folding records MUST perform no effect. Reconciliation MUST resolve each intent to the current attempt lineage of its own work unit and resume an unissued intent under its stored identity only while it matches the current authority generation, binds exactly that resolved lineage, and its attempt holds the current, unexpired claim at its fence in the attempt ledger; an intent whose work unit has no current attempt, or whose lease lapsed even before expiry processing, MUST be abandoned. It MUST never issue one intent twice or one proof for two intents, and never mint under a revoked ancestor, after expiry, after a generation move or for a replaced or foreign attempt.
 
 #### Scenario: A crash resumes the original intent
 
 r[kiln.attempt.grant_lineage.issuance.scenario.recover]
 - GIVEN an intent recorded without an issued proof, including a duplicated intent record
 - WHEN the journal is replayed
-- THEN reconciliation MUST owe exactly one issuance under that intent while it is current and abandon it once the generation or its work unit's lineage moved or the work unit has no current attempt, intents of several current attempts MUST all be issued in one reconciliation, a second proof for one intent MUST be refused, and a fully issued journal MUST owe nothing
+- THEN reconciliation MUST owe exactly one issuance under that intent while it is current and abandon it once the generation or its work unit's lineage moved, the work unit has no current attempt, or the attempt's lease lapsed, intents of several current attempts MUST all be issued in one reconciliation, a second proof for one intent MUST be refused, and a fully issued journal MUST owe nothing

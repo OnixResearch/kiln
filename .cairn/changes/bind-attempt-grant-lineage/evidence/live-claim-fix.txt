@@ -1,0 +1,36 @@
+Live-claim fix on top of c71fc553.
+
+What landed:
+
+- [P3] `GrantIssuanceState::reconcile(now_ms, authority_generation, attempts,
+  current)` takes the `AttemptLedger` and returns `Issue` only when the
+  resolver gives `Some`, `binds` holds, and
+  `attempts.is_current(&grant.attempt, grant.fence, now_ms)` holds (plus the
+  existing generation, revoked-ancestor and expiry rules); otherwise
+  `Abandon`. `now_ms` replaces the separate `now_s` so one host clock drives
+  both the lease and the grant lifetime (`now_ms / MS_PER_SECOND`).
+- Tests now claim real attempts in an `AttemptLedger`. New test
+  `a_lapsed_lease_abandons_before_expire_runs`: an attempt whose lease lapsed
+  but which `expire` has not processed (still active, still the resolver's
+  current attempt) gives `Abandon`, beside a live attempt that gives `Issue`.
+- Doc comment, design and the spec's issuance requirement and scenario
+  updated; design notes that a `FinishActive` predecessor is still the live
+  claim and may issue by design, while `authorize_publication` refuses
+  superseded attempts.
+
+Mutation check: replacing `!attempts.is_current(..)` with a condition that is
+always false made `a_lapsed_lease_abandons_before_expire_runs` FAIL; the line
+was restored (the file's snapshot hash returned to its pre-mutation value).
+
+Checks (store rust-minimal-1.88.0, private target,
+TMPDIR=/var/tmp/agents/kiln-s2, --offline):
+
+$ cargo fmt --all --check                                   exit 0
+$ cargo test -p onix-kiln-core                              exit 0 (lib 523 passed; 1 + 1 + 4 other targets)
+$ cargo test -p kiln-implementer --lib grant_issuance       exit 0 (5 passed)
+$ cargo clippy -p onix-kiln-core -p kiln-implementer -p kiln-adapter-lattice -p kiln-web-service --all-targets -- -D warnings
+                                                            exit 0
+$ cairn validate; cairn gate proposal|design|tasks bind-attempt-grant-lineage
+                                                            exit 0, no issues
+$ cairn traceability coverage --profile kiln-active-development
+                                                            exit 0, 0 dangling, 0 missing kiln.attempt.grant_lineage.*

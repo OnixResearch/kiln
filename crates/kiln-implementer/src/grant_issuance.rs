@@ -13,6 +13,7 @@
 
 use std::collections::BTreeMap;
 
+use kiln_core::implementation::AttemptLedger;
 use kiln_core::implementation::authority::AUTHORITY_DIGEST_BYTES;
 use kiln_core::implementation::grant::{AdmittedGrant, AttemptLineage, MAX_GRANT_LINEAGE};
 use kiln_core::types::{ContentId, CoreResult, Diagnostic};
@@ -22,6 +23,8 @@ use serde::{Deserialize, Serialize};
 pub const GRANT_ISSUANCE_SCHEMA: &str = "kiln.attempt-grant-issuance.v1";
 /// Maximum issuance intents one fold retains.
 pub const MAX_GRANT_ISSUANCE_INTENTS: usize = 4_096;
+/// Host-clock milliseconds per grant-lifetime second.
+const MS_PER_SECOND: u64 = 1_000;
 
 /// One proof reference: BLAKE3 of a compact token, never the token.
 pub type GrantRef = [u8; AUTHORITY_DIGEST_BYTES];
@@ -207,19 +210,27 @@ impl GrantIssuanceState {
     ///
     /// The fold spans attempt lineages, so `current` resolves each intent to
     /// the current lineage of its work unit: the shell maps the intent's work
-    /// unit to its current, active attempt, and returns `None` when the work
-    /// unit has none (for example, cancelled). An unissued intent is issued
-    /// only while it is current: it is abandoned when `current` gives `None`,
-    /// when it does not bind exactly the resolved lineage (including a
-    /// replaced fence), when it is from another authority generation, under a
-    /// revoked ancestor, or past its expiry.
+    /// unit to its current attempt, and returns `None` when the work unit has
+    /// none (for example, cancelled). The resolver alone is not trusted for
+    /// liveness: `attempts` must also report the intent's attempt as current
+    /// at its fence at `now_ms` (active, unexpired lease, the work unit's
+    /// current claim), so a lapsed lease that `expire` has not processed yet
+    /// still abandons. An unissued intent is issued only when all of that
+    /// holds and it binds exactly the resolved lineage; it is abandoned when
+    /// `current` gives `None`, when it does not bind the resolved lineage
+    /// (including a replaced fence), when its attempt is not current, when it
+    /// is from another authority generation, under a revoked ancestor, or past
+    /// its expiry. `now_ms` is the one host clock; grant lifetimes compare in
+    /// whole seconds of it.
     #[must_use]
     pub fn reconcile<'a>(
         &self,
-        now_s: u64,
+        now_ms: u64,
         authority_generation: u64,
+        attempts: &AttemptLedger,
         current: impl Fn(&AdmittedGrant) -> Option<&'a AttemptLineage>,
     ) -> Vec<GrantIssuanceAction> {
+        let now_s = now_ms / MS_PER_SECOND;
         let mut actions = Vec::new();
         for (intent, state) in &self.intents {
             let ancestor_revoked = self.ancestor_revoked(&state.grant);
@@ -234,7 +245,8 @@ impl GrantIssuanceState {
                 None if ancestor_revoked
                     || now_s >= state.grant.ceiling.not_after_s
                     || state.grant.ceiling.generation != authority_generation
-                    || !current(&state.grant).is_some_and(|lineage| state.grant.binds(lineage)) =>
+                    || !current(&state.grant).is_some_and(|lineage| state.grant.binds(lineage))
+                    || !attempts.is_current(&state.grant.attempt, state.grant.fence, now_ms) =>
                 {
                     actions.push(GrantIssuanceAction::Abandon {
                         intent: intent.clone(),
@@ -281,31 +293,89 @@ mod tests {
     use super::*;
     use kiln_core::implementation::authority::ProtectedOperation;
     use kiln_core::implementation::grant::{
-        AttemptAuthorityBinding, AttemptLineage, AuthorityCeiling, CeilingTerms, ChildGrantRequest,
-        CurrentFacts, DelegationFacts, GrantBudget, RootFacts, RootGrantRequest, admit_child,
-        admit_root,
+        AttemptAuthorityBinding, AuthorityCeiling, CeilingTerms, ChildGrantRequest, CurrentFacts,
+        DelegationFacts, GrantBudget, RootFacts, RootGrantRequest, admit_child, admit_root,
     };
+    use kiln_core::implementation::{
+        AcceptanceObligation, DEFAULT_LEASE_MS, IMPLEMENTATION_WORK_SCHEMA, ImplementationWork,
+        SourceRef, TerminalPolicy, WorkBudget, WorkSourceKind,
+    };
+    use kiln_core::types::ExternalRef;
     use std::collections::BTreeSet;
 
     const NOW: u64 = 100;
+    const NOW_MS: u64 = NOW * MS_PER_SECOND;
     const NOT_AFTER: u64 = 1_000;
     const GENERATION: u64 = 1;
     const COORDINATOR: &str = "did:key:coordinator";
+    const FIRST_ISSUE: u32 = 70;
+    const SECOND_ISSUE: u32 = 71;
 
     fn id(character: char) -> ContentId {
         ContentId::from_blake3_hex(character.to_string().repeat(64))
             .unwrap_or_else(|_| unreachable!())
     }
 
-    fn lineage() -> AttemptLineage {
+    fn work_unit(issue: u32) -> ImplementationWork {
+        let native_id = format!("onix/kiln#{issue}");
+        ImplementationWork {
+            schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+            revision: 1,
+            actor: "operator".to_string(),
+            repository: "onix/kiln".to_string(),
+            project: "kiln".to_string(),
+            base: None,
+            title: format!("Grant issuance work {issue}"),
+            requested_outcome: "implement".to_string(),
+            acceptance: vec![AcceptanceObligation {
+                id: "accepted".to_string(),
+                statement: "verified".to_string(),
+            }],
+            dependencies: Vec::new(),
+            permitted_paths: vec!["crates".to_string()],
+            permitted_effects: BTreeSet::from(["write_source".to_string()]),
+            verification_profile: id('9'),
+            budget: WorkBudget {
+                attempts: 2,
+                minutes_per_attempt: 60,
+            },
+            terminal_policy: TerminalPolicy::VerifiedPullRequest,
+            priority: 1,
+            aliases: vec![SourceRef {
+                kind: WorkSourceKind::GitHubIssue,
+                source: ExternalRef::new("github", "issue", &native_id)
+                    .unwrap_or_else(|_| unreachable!()),
+                native_id,
+                version: id('1'),
+            }],
+        }
+    }
+
+    /// Claim one work unit at time zero and return its current lineage.
+    fn claim(attempts: &mut AttemptLedger, issue: u32, lease_ms: u64) -> AttemptLineage {
+        let work = work_unit(issue);
+        let attempt = attempts
+            .claim(&work, 0, lease_ms)
+            .unwrap_or_else(|_| unreachable!());
         AttemptLineage {
             campaign_revision: None,
-            project: "kiln".to_string(),
-            work: id('1'),
-            work_version: 1,
-            attempt: id('a'),
-            fence: 1,
+            project: work.project,
+            work: attempt.work_identity,
+            work_version: attempt.work_revision,
+            attempt: attempt.identity,
+            fence: attempt.fence,
         }
+    }
+
+    /// A ledger holding one live claim, and that claim's lineage.
+    fn ledger() -> (AttemptLedger, AttemptLineage) {
+        let mut attempts = AttemptLedger::default();
+        let lineage = claim(&mut attempts, FIRST_ISSUE, DEFAULT_LEASE_MS);
+        (attempts, lineage)
+    }
+
+    fn lineage() -> AttemptLineage {
+        ledger().1
     }
 
     fn budget(parent: char, account: char) -> GrantBudget {
@@ -319,7 +389,7 @@ mod tests {
         CeilingTerms {
             audience: "did:web:kiln".to_string(),
             project: "kiln".to_string(),
-            work: Some(id('1')),
+            work: Some(lineage().work),
             operations: BTreeSet::from([ProtectedOperation::Dispatch]),
             not_after_s,
             max_depth,
@@ -424,13 +494,9 @@ mod tests {
     #[test]
     // r[verify kiln.attempt.grant_lineage.issuance] r[verify kiln.attempt.grant_lineage.issuance.scenario.recover]
     fn reconcile_resolves_each_intent_against_its_own_work_unit() {
-        let first_lineage = lineage();
-        let second_lineage = AttemptLineage {
-            work: id('2'),
-            attempt: id('b'),
-            fence: 2,
-            ..lineage()
-        };
+        let mut attempts = AttemptLedger::default();
+        let first_lineage = claim(&mut attempts, FIRST_ISSUE, DEFAULT_LEASE_MS);
+        let second_lineage = claim(&mut attempts, SECOND_ISSUE, DEFAULT_LEASE_MS);
         let first = root_grant_in(COORDINATOR, budget('b', 'd'), &first_lineage);
         let second = root_grant_in(COORDINATOR, budget('b', 'e'), &second_lineage);
         let state = GrantIssuanceState::replay(&[intended(&first), intended(&second)])
@@ -446,12 +512,14 @@ mod tests {
             intent: grant.intent.clone(),
         };
         let reconcile = |units: &BTreeMap<ContentId, AttemptLineage>| {
-            sorted(state.reconcile(NOW, GENERATION, |grant| units.get(&grant.work)))
+            sorted(state.reconcile(NOW_MS, GENERATION, &attempts, |grant| {
+                units.get(&grant.work)
+            }))
         };
 
         let both = BTreeMap::from([
-            (id('1'), first_lineage.clone()),
-            (id('2'), second_lineage.clone()),
+            (first_lineage.work.clone(), first_lineage.clone()),
+            (second_lineage.work.clone(), second_lineage.clone()),
         ]);
         assert_eq!(
             reconcile(&both),
@@ -459,7 +527,7 @@ mod tests {
             "two current attempts are both issued in one call"
         );
 
-        let cancelled = BTreeMap::from([(id('1'), first_lineage.clone())]);
+        let cancelled = BTreeMap::from([(first_lineage.work.clone(), first_lineage.clone())]);
         assert_eq!(
             reconcile(&cancelled),
             sorted(vec![issue(&first), abandon(&second)]),
@@ -467,9 +535,9 @@ mod tests {
         );
 
         let replaced = BTreeMap::from([
-            (id('1'), first_lineage),
+            (first_lineage.work.clone(), first_lineage),
             (
-                id('2'),
+                second_lineage.work.clone(),
                 AttemptLineage {
                     attempt: id('c'),
                     fence: 3,
@@ -486,13 +554,53 @@ mod tests {
 
     #[test]
     // r[verify kiln.attempt.grant_lineage.issuance] r[verify kiln.attempt.grant_lineage.issuance.scenario.recover]
+    fn a_lapsed_lease_abandons_before_expire_runs() {
+        let lapsing_lease_ms = NOW_MS / 2;
+        let mut attempts = AttemptLedger::default();
+        let live = claim(&mut attempts, FIRST_ISSUE, DEFAULT_LEASE_MS);
+        let lapsed = claim(&mut attempts, SECOND_ISSUE, lapsing_lease_ms);
+        let lapsed_attempt = attempts
+            .get(&lapsed.attempt)
+            .unwrap_or_else(|| unreachable!());
+        assert!(
+            lapsed_attempt.phase.is_active() && lapsed_attempt.lease_until_ms <= NOW_MS,
+            "the lease lapsed but `expire` has not run"
+        );
+        let live_grant = root_grant_in(COORDINATOR, budget('b', 'd'), &live);
+        let lapsed_grant = root_grant_in(COORDINATOR, budget('b', 'e'), &lapsed);
+        let state = GrantIssuanceState::replay(&[intended(&live_grant), intended(&lapsed_grant)])
+            .unwrap_or_else(|_| unreachable!());
+        // The resolver still reports the lapsed attempt as its work unit's
+        // current one, as `AttemptLedger::current` does until `expire` runs.
+        let units = BTreeMap::from([
+            (live.work.clone(), live.clone()),
+            (lapsed.work.clone(), lapsed.clone()),
+        ]);
+        let mut actions = state.reconcile(NOW_MS, GENERATION, &attempts, |grant| {
+            units.get(&grant.work)
+        });
+        actions.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
+        let mut expected = vec![
+            GrantIssuanceAction::Issue {
+                intent: live_grant.intent.clone(),
+            },
+            GrantIssuanceAction::Abandon {
+                intent: lapsed_grant.intent.clone(),
+            },
+        ];
+        expected.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
+        assert_eq!(actions, expected);
+    }
+
+    #[test]
+    // r[verify kiln.attempt.grant_lineage.issuance] r[verify kiln.attempt.grant_lineage.issuance.scenario.recover]
     fn a_crash_after_the_intent_resumes_that_intent_and_never_a_second() {
         let root = root_grant();
-        let current = lineage();
+        let (attempts, current) = ledger();
         let crashed = GrantIssuanceState::replay(&[intended(&root), intended(&root)])
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            crashed.reconcile(NOW, GENERATION, |_| Some(&current)),
+            crashed.reconcile(NOW_MS, GENERATION, &attempts, |_| Some(&current)),
             vec![GrantIssuanceAction::Issue {
                 intent: root.intent.clone()
             }],
@@ -503,7 +611,7 @@ mod tests {
             intent: root.intent.clone(),
         }];
         assert_eq!(
-            crashed.reconcile(NOW, GENERATION + 1, |_| Some(&current)),
+            crashed.reconcile(NOW_MS, GENERATION + 1, &attempts, |_| Some(&current)),
             abandoned,
             "an intent from a moved authority generation is never minted"
         );
@@ -511,14 +619,14 @@ mod tests {
         replaced.attempt = id('f');
         replaced.fence = 2;
         assert_eq!(
-            crashed.reconcile(NOW, GENERATION, |_| Some(&replaced)),
+            crashed.reconcile(NOW_MS, GENERATION, &attempts, |_| Some(&replaced)),
             abandoned,
             "an intent for a replaced attempt is never minted"
         );
         let mut other_project = lineage();
         other_project.project = "other".to_string();
         assert_eq!(
-            crashed.reconcile(NOW, GENERATION, |_| Some(&other_project)),
+            crashed.reconcile(NOW_MS, GENERATION, &attempts, |_| Some(&other_project)),
             abandoned,
             "an intent for another lineage is never minted"
         );
@@ -526,7 +634,7 @@ mod tests {
         let records = [intended(&root), issued(&root, 1), issued(&root, 1)];
         let done = GrantIssuanceState::replay(&records).unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            done.reconcile(NOW, GENERATION, |_| Some(&current)),
+            done.reconcile(NOW_MS, GENERATION, &attempts, |_| Some(&current)),
             Vec::new(),
             "replay owes no new grant"
         );
@@ -627,8 +735,8 @@ mod tests {
                 intent: pending_child.intent.clone(),
             },
         ];
-        let current = lineage();
-        let mut actions = state.reconcile(NOW, GENERATION, |_| Some(&current));
+        let (attempts, current) = ledger();
+        let mut actions = state.reconcile(NOW_MS, GENERATION, &attempts, |_| Some(&current));
         actions.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
         expected.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
         assert_eq!(actions, expected);
@@ -641,7 +749,7 @@ mod tests {
             })
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            acknowledged.reconcile(NOW, GENERATION, |_| Some(&current)),
+            acknowledged.reconcile(NOW_MS, GENERATION, &attempts, |_| Some(&current)),
             vec![GrantIssuanceAction::Abandon {
                 intent: pending_child.intent.clone()
             }],
@@ -653,7 +761,9 @@ mod tests {
             GrantIssuanceState::replay(&[intended(&root), issued(&root, 1), intended(&short)])
                 .unwrap_or_else(|_| unreachable!());
         assert_eq!(
-            expiring.reconcile(NOW + 1, GENERATION, |_| Some(&current)),
+            expiring.reconcile((NOW + 1) * MS_PER_SECOND, GENERATION, &attempts, |_| {
+                Some(&current)
+            }),
             vec![GrantIssuanceAction::Abandon {
                 intent: short.intent.clone()
             }],
