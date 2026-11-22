@@ -22,7 +22,7 @@ use std::path::{Component, Path, PathBuf};
 use kiln_core::inventory::{
     InventoryFragment, InventoryJoins, InventoryKind, InventoryProfile, InventorySnapshot,
     MAX_INVENTORY_ITEMS, MAX_INVENTORY_SOURCES, SourceObservation, admit_snapshot,
-    compose_snapshot,
+    compose_snapshot, isolate_workflow_revisions,
 };
 use kiln_provider_api::inventory::{InventoryObservationPort, InventoryReadFailure};
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,8 @@ use crate::inventory::InventoryInput;
 pub const COLLECTION_SET_SCHEMA: &str = "kiln.inventory.collection-set.v1";
 /// Upper bound of one manifest document.
 pub const MAX_COLLECTION_MANIFEST_BYTES: u64 = 262_144;
-/// Upper bound of one producer document; each adapter applies its own tighter bound.
+/// Upper bound of one producer document; each adapter applies its own tighter
+/// bound. Workflow revision slots documents have their own, larger bound.
 pub const MAX_PRODUCER_DOCUMENT_BYTES: u64 = 262_144;
 /// Upper bound of one inventory v2 profile document.
 pub const MAX_PROFILE_BYTES: u64 = 65_536;
@@ -136,6 +137,18 @@ fn unavailable(collection: &SourceCollection, reason: String) -> InventoryFragme
     InventoryFragment::new(collection.kind, source)
 }
 
+/// The read bound of one document of `collection`.
+fn document_bound(collection: &SourceCollection) -> u64 {
+    if is_isolated(collection) {
+        u64::try_from(
+            kiln_adapter_lattice::workflow_revision_slots::MAX_WORKFLOW_REVISION_SLOTS_BYTES,
+        )
+        .unwrap_or(MAX_PRODUCER_DOCUMENT_BYTES)
+    } else {
+        MAX_PRODUCER_DOCUMENT_BYTES
+    }
+}
+
 fn fragment(
     collection: &SourceCollection,
     joins: &InventoryJoins,
@@ -218,7 +231,7 @@ impl CollectionSet {
                 .map(|path| {
                     read_bounded(
                         path,
-                        MAX_PRODUCER_DOCUMENT_BYTES,
+                        document_bound(collection),
                         "inventory_collection_document_unavailable",
                     )
                 })
@@ -254,7 +267,10 @@ pub fn collect_input(manifest: &Path, profile: &Path) -> Result<InventoryInput, 
         "inventory_profile_unavailable",
     )?)
     .map_err(|_| "inventory_profile_invalid")?;
-    let snapshot = collect_snapshot(manifest)?;
+    let mut snapshot = collect_snapshot(manifest)?;
+    // A workflow revision fact admission would refuse, or one past the
+    // profile's item bound, makes only its own source unavailable.
+    isolate_workflow_revisions(&profile, &mut snapshot);
     admit_snapshot(&profile, &snapshot)?;
     Ok(InventoryInput { profile, snapshot })
 }

@@ -1704,15 +1704,18 @@ const workflowRevision = (revision, worker, observed, extra = {}) => ({
 const workflowSlot = (state, revision = null) => ({ state, revision });
 const workflowDefinition = (extra = {}) => ({
   reference: { source: "lattice-workflows", id: `blake3:${"fc".repeat(32)}` }, observation: "current",
-  desired: workflowSlot("recorded", workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision")),
+  revisions: [
+    workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision"),
+    // Fields the projection never defines are never drawn, even when a bad response carries them.
+    workflowRevision(OLD_WORKFLOW_REVISION, AGENT_REVISION, "profile_revision", { guidance_identity: "restricted-guidance", context_identity: "restricted-context" }),
+  ],
+  desired: workflowSlot("recorded", WORKFLOW_REVISION),
   last_usable: workflowSlot("not_recorded"),
-  selected_for_new_sessions: workflowSlot("recorded", workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision")),
+  selected_for_new_sessions: workflowSlot("recorded", WORKFLOW_REVISION),
   rollout_generation: 2, selection_kind: "promotion", qualification: `blake3:${"0d".repeat(32)}`, pinned_state: "recorded",
   pinned: [
-    { revision: workflowRevision(WORKFLOW_REVISION, OTHER_REVISION, "other_revision"), status: "live", blocked: false, sessions: 2, selection: "matches_selected" },
-    // Fields the projection never defines are never drawn, even when a bad response carries them.
-    { revision: workflowRevision(OLD_WORKFLOW_REVISION, AGENT_REVISION, "profile_revision", { guidance_identity: "restricted-guidance", context_identity: "restricted-context" }),
-      status: "closed", blocked: true, sessions: 1, selection: "differs_from_selected", session: "restricted-session", name: "restricted-name" },
+    { revision: WORKFLOW_REVISION, status: "live", blocked: false, sessions: 2, selection: "matches_selected" },
+    { revision: OLD_WORKFLOW_REVISION, status: "closed", blocked: true, sessions: 1, selection: "differs_from_selected", session: "restricted-session", name: "restricted-name" },
   ],
   ...extra,
 });
@@ -1854,4 +1857,18 @@ test("missing or refused workflow revisions are named and leave agent and worker
   assert.match(empty.textContent, /lists no workflow definition/);
   const unknown = await drawAgents(admittedAgents({ workflow_revisions: admittedWorkflows({ definitions: [workflowDefinition({ desired: workflowSlot("unknown"), pinned_state: "unknown", pinned: [] })] }) }));
   assert.match(unknown.querySelectorAll(".cairn-workflow")[0].textContent, /Desired.*Unknown.*Pinned sessions.*Unknown/s);
+});
+
+// r[verify kiln.cairn.workspace.agents.scenario.workflow_source]
+test("a refused workflow source beside an admitted one is named, and an unlisted revision never reads as a match", async () => {
+  const partial = await drawAgents(admittedAgents({ workflow_revisions: admittedWorkflows({ sources: [
+    { source: "lattice-workflows", producer: "lattice", kind: "workflow_revisions", state: "current", reason: null },
+    { source: "lattice-workflows-b", producer: "lattice", kind: "workflow_revisions", state: "unavailable", reason: "lattice_workflow_slots_malformed" },
+  ] }) }));
+  assert.match(partial.textContent, /Some workflow revision sources are not current.*lattice-workflows-b \(workflow_revisions\): Unavailable · lattice_workflow_slots_malformed/s);
+  assert.equal(partial.querySelectorAll(".cairn-workflow").length, 1);
+  const unlisted = await drawAgents(admittedAgents({ workflow_revisions: admittedWorkflows({ definitions: [workflowDefinition({ revisions: [] })] }) }));
+  const card = unlisted.querySelectorAll(".cairn-workflow")[0].textContent;
+  assert.match(card, /Revision not listed/);
+  assert.doesNotMatch(card, /Pairs with/);
 });

@@ -6,16 +6,23 @@
 //! grant or name reaches this model, and pins are counted per revision and
 //! state rather than listed by session.
 // r[impl kiln.inventory.workflow]
-use alloc::collections::BTreeSet;
-use alloc::string::String;
+use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
-use super::{FactMeta, FactRef, MAX_EXACT_NUMBER, PinStatus, reference, token};
+use super::{
+    FactMeta, FactRef, InventoryKind, InventoryProfile, InventorySnapshot, MAX_EXACT_NUMBER,
+    PinStatus, metas, reference, token,
+};
 
-/// Workflow revisions one definition fact may list.
+/// Workflow revisions one definition fact may list: Lattice's
+/// `MAX_CANDIDATES`, the revisions one lifecycle keeps.
 pub const MAX_WORKFLOW_REVISIONS: usize = 64;
 /// Pinned sessions one definition fact may count, in all of its pin groups.
+/// This is Kiln's bound: Lattice's `MAX_SESSIONS` (1024) limits live
+/// sessions at admission, and closed sessions stay pinned in the lifecycle,
+/// so a Lattice document may carry more pins than this and is then refused.
 pub const MAX_WORKFLOW_PINNED_SESSIONS: u64 = 1024;
 
 /// How a producer selected a revision for new sessions.
@@ -170,7 +177,7 @@ fn admit_pins(pins: &[WorkflowPin]) -> Result<(), &'static str> {
 
 /// Admit one fact's slots: bounded public tokens, revisions strictly
 /// ascending, every named revision listed and every listed revision named.
-pub(super) fn admit_workflow_revisions(value: &WorkflowRevisionSlots) -> Result<(), &'static str> {
+pub fn admit_workflow_revisions(value: &WorkflowRevisionSlots) -> Result<(), &'static str> {
     if value.revisions.len() > MAX_WORKFLOW_REVISIONS {
         return Err("inventory_field_bound");
     }
@@ -202,6 +209,51 @@ pub(super) fn admit_workflow_revisions(value: &WorkflowRevisionSlots) -> Result<
         return Err("inventory_workflow_revision_unreferenced");
     }
     Ok(())
+}
+
+// r[impl kiln.inventory.workflow.scenario.isolated]
+/// Make a workflow revision source unavailable instead of letting its facts
+/// fail admission of the whole snapshot: a fact that admission refuses, or
+/// workflow facts that push the snapshot past the profile's item bound. The
+/// source keeps the refusal code as its reason and loses its facts; no other
+/// source changes. Workflow revisions are display-only, so nothing else
+/// depends on them.
+pub fn isolate_workflow_revisions(profile: &InventoryProfile, snapshot: &mut InventorySnapshot) {
+    let mut reasons: BTreeMap<String, &'static str> = BTreeMap::new();
+    for slots in &snapshot.workflow_revisions {
+        if let Err(code) = admit_workflow_revisions(slots) {
+            reasons
+                .entry(slots.meta.reference.source.clone())
+                .or_insert(code);
+        }
+    }
+    let others = metas(snapshot)
+        .filter(|(_, kind)| *kind != InventoryKind::WorkflowRevisions)
+        .count()
+        .saturating_add(snapshot.attempts.len());
+    let admissible: Vec<&str> = snapshot
+        .workflow_revisions
+        .iter()
+        .map(|slots| slots.meta.reference.source.as_str())
+        .filter(|source| !reasons.contains_key(*source))
+        .collect();
+    if others.saturating_add(admissible.len()) > profile.max_items {
+        let bounded: BTreeSet<String> = admissible.into_iter().map(str::to_string).collect();
+        for source in bounded {
+            reasons.entry(source).or_insert("inventory_item_bound");
+        }
+    }
+    if reasons.is_empty() {
+        return;
+    }
+    snapshot
+        .workflow_revisions
+        .retain(|slots| !reasons.contains_key(&slots.meta.reference.source));
+    for source in &mut snapshot.sources {
+        if let Some(code) = reasons.get(&source.source) {
+            source.unavailable_reason = Some((*code).to_string());
+        }
+    }
 }
 
 #[cfg(test)]

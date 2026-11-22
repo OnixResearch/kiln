@@ -1465,40 +1465,43 @@
   }
   // r[impl kiln.cairn.workspace.agents.scenario.workflow] Workflow revisions are their own slot: each names its compiled
   // workflow and the worker revision it pairs with, apart from the agent and worker revisions. Sessions are counted, never named.
-  function workflowRevisionNode(revision) {
+  // A slot or pin names a revision of the definition's `revisions`; an unlisted name reads as not listed, never as a match.
+  function workflowRevisionNode(name, revisions) {
     const wrap = element("span", undefined, "cairn-slot");
-    wrap.append(shortCode(revision?.revision), element("span", "Worker", "small"), shortCode(revision?.worker?.revision),
-      badge(lookup(WORKER_PAIRINGS, revision?.worker?.observed)));
+    const revision = revisions.get(str(name));
+    wrap.append(shortCode(str(name)));
+    if (!revision) wrap.append(badge(word("Revision not listed", "warning", "The projection names a revision it does not list.")));
+    else wrap.append(element("span", "Worker", "small"), shortCode(revision.worker?.revision), badge(lookup(WORKER_PAIRINGS, revision.worker?.observed)));
     return wrap;
   }
-  function workflowSlotNode(slot) {
+  function workflowSlotNode(slot, revisions) {
     const wrap = element("span", undefined, "cairn-slot");
     wrap.dataset.slotState = str(slot?.state) || "absent";
     wrap.append(badge(slotWord(slot)));
-    if (slot?.state === "recorded" && slot.revision && typeof slot.revision === "object") wrap.append(workflowRevisionNode(slot.revision));
+    if (slot?.state === "recorded" && str(slot.revision)) wrap.append(workflowRevisionNode(slot.revision, revisions));
     return wrap;
   }
-  function workflowPinItem(pin) {
+  function workflowPinItem(pin, revisions) {
     const item = element("li", undefined, "cairn-workflow-pin");
     item.dataset.status = str(pin?.status);
     const sessions = count(pin?.sessions);
     item.append(element("span", sessions === null ? "Sessions not recorded" : plural(sessions, "session"), "small"),
       badge(lookup(PIN_STATUSES, pin?.status)), badge(lookup(SELECTIONS, pin?.selection)));
     if (pin?.blocked === true) item.append(badge(word("Pin blocked", "failure", "A further effect under this pin would be refused.")));
-    if (pin?.revision && typeof pin.revision === "object") item.append(workflowRevisionNode(pin.revision));
+    if (str(pin?.revision)) item.append(workflowRevisionNode(pin.revision, revisions));
     return item;
   }
-  // The identities of each distinct revision the slots and pins name, once each.
-  function workflowIdentities(definition) {
-    const revisions = new Map();
-    for (const slot of [definition?.desired, definition?.last_usable, definition?.selected_for_new_sessions]) {
-      if (slot?.state === "recorded" && slot.revision && typeof slot.revision === "object") revisions.set(str(slot.revision.revision), slot.revision);
-    }
-    for (const pin of list(definition?.pinned)) if (pin?.revision && typeof pin.revision === "object") revisions.set(str(pin.revision.revision), pin.revision);
+  // The listed revisions by identity; anything that is not a revision object is ignored.
+  function workflowRevisions(definition) {
+    return new Map(list(definition?.revisions).filter((revision) => revision && typeof revision === "object" && str(revision.revision))
+      .map((revision) => [revision.revision, revision]));
+  }
+  // The identities of each listed revision, once each.
+  function workflowIdentities(revisions) {
     return [...revisions.values()].map((revision) => {
       const workflow = revision.workflow && typeof revision.workflow === "object" ? revision.workflow : {};
       const worker = revision.worker && typeof revision.worker === "object" ? revision.worker : {};
-      return disclosure(`Workflow revision ${short(str(revision.revision))}: identities`, `workflow-revision-${str(revision.revision)}`, facts([
+      return disclosure(`Workflow revision ${short(revision.revision)}: identities`, `workflow-revision-${revision.revision}`, facts([
         ["Workflow revision", copyable(revision.revision, "Workflow revision")],
         ["Compiler", str(workflow.compiler_revision)],
         ["Compiler artifact", shortCode(workflow.compiler_artifact)],
@@ -1518,16 +1521,18 @@
     const title = element("h4", undefined, "cairn-member-title");
     title.append(shortCode(definition?.reference?.id));
     const recorded = definition?.selected_for_new_sessions?.state === "recorded";
+    const revisions = workflowRevisions(definition);
     card.append(title, badges(observationBadge(definition?.observation)), facts([
       ["Source", str(definition?.reference?.source)],
-      ["Desired", workflowSlotNode(definition?.desired)],
-      ["Last usable", workflowSlotNode(definition?.last_usable)],
-      ["Selected for new sessions", workflowSlotNode(definition?.selected_for_new_sessions)],
+      ["Desired", workflowSlotNode(definition?.desired, revisions)],
+      ["Last usable", workflowSlotNode(definition?.last_usable, revisions)],
+      ["Selected for new sessions", workflowSlotNode(definition?.selected_for_new_sessions, revisions)],
       ["Rollout generation", recorded ? count(definition.rollout_generation) : "No recorded selection"],
       ["Selected by", recorded ? lookup(SELECTION_KINDS, definition.selection_kind).label : "No recorded selection"],
       ["Qualification reference", recorded ? shortCode(definition.qualification) : "No recorded selection"],
-      ["Pinned sessions", definition?.pinned_state === "recorded" ? bullets(list(definition.pinned).map(workflowPinItem), "") : badge(slotWord({ state: definition?.pinned_state }))],
-    ]), ...workflowIdentities(definition));
+      ["Pinned sessions", definition?.pinned_state === "recorded"
+        ? bullets(list(definition.pinned).map((pin) => workflowPinItem(pin, revisions)), "") : badge(slotWord({ state: definition?.pinned_state }))],
+    ]), ...workflowIdentities(revisions));
     return card;
   }
   // r[impl kiln.cairn.workspace.agents.scenario.workflow_source] Missing or refused workflow revisions say so with their
@@ -1542,6 +1547,13 @@
       node.dataset.state = workflow.source;
       children.push(node);
       return children;
+    }
+    const failing = list(workflow.sources).filter((source) => source?.state !== "current");
+    if (failing.length) {
+      const node = element("p", `Some workflow revision sources are not current, and their workflow definitions may be missing here: ${failing.map(sourceLine).join("; ")}.`,
+        "warning cairn-workflow-source");
+      node.dataset.state = "partial";
+      children.push(node);
     }
     const cards = element("div", undefined, "cairn-members");
     cards.append(...workflow.definitions.map(workflowCard));

@@ -82,18 +82,19 @@ pub struct WorkflowRevisionView {
 }
 
 /// One workflow revision slot. `state` is `recorded`, `not_recorded` or
-/// `unknown`. No producer names an owner for an unknown workflow slot.
+/// `unknown`; `revision` names an entry of the definition's `revisions`. No
+/// producer names an owner for an unknown workflow slot.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct WorkflowSlotView {
     pub state: &'static str,
-    pub revision: Option<WorkflowRevisionView>,
+    pub revision: Option<String>,
 }
 
 /// Sessions pinned to one workflow revision in one pin state, counted, never
-/// named.
+/// named. `revision` names an entry of the definition's `revisions`.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct WorkflowPinView {
-    pub revision: WorkflowRevisionView,
+    pub revision: String,
     pub status: PinStatus,
     pub blocked: bool,
     pub sessions: u64,
@@ -105,6 +106,8 @@ pub struct WorkflowPinView {
 pub struct WorkflowDefinitionView {
     pub reference: FactRef,
     pub observation: ObservationState,
+    /// Each revision the slots and pins name, once, ascending by revision.
+    pub revisions: Vec<WorkflowRevisionView>,
     pub desired: WorkflowSlotView,
     pub last_usable: WorkflowSlotView,
     pub selected_for_new_sessions: WorkflowSlotView,
@@ -578,29 +581,30 @@ fn workflow_revision(
 /// One workflow slot. An unknown slot wins, then a recorded revision; a
 /// workflow lifecycle is always managed, so an empty slot is `not_recorded`.
 fn workflow_slot(
-    projection: &InventoryProjection,
     slots: &WorkflowRevisionSlots,
     field: &str,
     value: Option<&str>,
 ) -> WorkflowSlotView {
-    let empty = |state| WorkflowSlotView {
-        state,
-        revision: None,
-    };
     if slots
         .meta
         .unknown_fields
         .iter()
         .any(|listed| listed == field)
     {
-        return empty("unknown");
+        return WorkflowSlotView {
+            state: "unknown",
+            revision: None,
+        };
     }
-    match value.and_then(|value| slots.revision(value)) {
+    match value.filter(|value| slots.revision(value).is_some()) {
         Some(revision) => WorkflowSlotView {
             state: "recorded",
-            revision: Some(workflow_revision(projection, revision)),
+            revision: Some(revision.to_owned()),
         },
-        None => empty("not_recorded"),
+        None => WorkflowSlotView {
+            state: "not_recorded",
+            revision: None,
+        },
     }
 }
 
@@ -610,7 +614,6 @@ fn workflow_definition(
 ) -> WorkflowDefinitionView {
     let selection = slots.selected_for_new_sessions.as_ref();
     let selected = workflow_slot(
-        projection,
         slots,
         "selected_for_new_sessions",
         selection.map(|selection| selection.revision.as_str()),
@@ -620,31 +623,29 @@ fn workflow_definition(
     let pinned: Vec<WorkflowPinView> = slots
         .pinned
         .iter()
-        .filter_map(|pin| {
-            let revision = slots.revision(&pin.revision)?;
-            Some(WorkflowPinView {
-                revision: workflow_revision(projection, revision),
-                status: pin.status,
-                blocked: pin.blocked,
-                sessions: pin.sessions,
-                selection: match selection {
-                    None => "no_selection",
-                    Some(selection) if selection.revision == pin.revision => "matches_selected",
-                    Some(_) => "differs_from_selected",
-                },
-            })
+        .filter(|pin| slots.revision(&pin.revision).is_some())
+        .map(|pin| WorkflowPinView {
+            revision: pin.revision.clone(),
+            status: pin.status,
+            blocked: pin.blocked,
+            sessions: pin.sessions,
+            selection: match selection {
+                None => "no_selection",
+                Some(selection) if selection.revision == pin.revision => "matches_selected",
+                Some(_) => "differs_from_selected",
+            },
         })
         .collect();
     WorkflowDefinitionView {
         reference: slots.meta.reference.clone(),
         observation: fact_state(projection, &slots.meta.reference),
-        desired: workflow_slot(projection, slots, "desired", slots.desired.as_deref()),
-        last_usable: workflow_slot(
-            projection,
-            slots,
-            "last_usable",
-            slots.last_usable.as_deref(),
-        ),
+        revisions: slots
+            .revisions
+            .iter()
+            .map(|revision| workflow_revision(projection, revision))
+            .collect(),
+        desired: workflow_slot(slots, "desired", slots.desired.as_deref()),
+        last_usable: workflow_slot(slots, "last_usable", slots.last_usable.as_deref()),
         selected_for_new_sessions: selected,
         rollout_generation: selection
             .filter(|_| recorded)

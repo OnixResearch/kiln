@@ -4,8 +4,8 @@
 //! command dispatcher (`run_command_with_ports` with the fixture ports, as the
 //! agent-revision suites do) and session seam, then reads each state back
 //! with the `lattice agent-revision inspect` binary and writes its
-//! `outcome.workflow_slots` member verbatim to
-//! `$KILN_WORKFLOW_SLOTS_CAPTURE_DIR/<scenario>.json`.
+//! `outcome.workflow_slots` member, re-encoded as pretty JSON (sorted keys,
+//! trailing newline), to `$KILN_WORKFLOW_SLOTS_CAPTURE_DIR/<scenario>.json`.
 //!
 //! Inputs are the synthetic request and intent of
 //! `tests/test_agent_revision_shell.rs`, so the captures are deterministic.

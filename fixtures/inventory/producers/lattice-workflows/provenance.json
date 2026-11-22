@@ -8,7 +8,8 @@
     "crates/lattice-core/src/agent_revision/workflow/publication.rs"
   ],
   "capture_program": "capture_kiln_workflow_slots.rs in the evidence directory of the Kiln change show-workflow-revisions-in-cairn-workspace, added as tests/capture_kiln_workflow_slots.rs to a detached worktree of the Lattice commit and nowhere else",
-  "capture_program_blake3": "1498cefb567b3181eff0423b805a737bde4a655baf69be241f640d524e780d62",
+  "capture_program_blake3": "a5c3d90bb740e96c3c4142001f4cde369f1cece4573324a663bc14dd5fce4976",
+  "capture_program_note": "The captures were produced by the revision hashed 1498cefb567b3181eff0423b805a737bde4a655baf69be241f640d524e780d62; the kept program differs from it only in its header comment, corrected to say the member is re-encoded as pretty JSON",
   "command": "KILN_WORKFLOW_SLOTS_CAPTURE_DIR=$DIR nix develop . --option builders '' -c cargo test --locked --test capture_kiln_workflow_slots -- --test-threads 1",
   "lifecycle": "Lattice's own composition (agent_revision::composite::compose of a compiled lattice::workflow::intent plan with a resolved worker bundle), the desire transition desire-workflow applies after composition, prepare and promote through agent_revision::run_command_with_ports with the FixturePreparation and FixtureQualification ports, and seam::admit / seam::close for two sessions; the inputs are the synthetic request and intent of tests/test_agent_revision_shell.rs",
   "read_back": "the outcome.workflow_slots member of the `lattice agent-revision inspect --store STORE --definition DEFINITION` binary output after each step, re-encoded by serde_json pretty printing (sorted keys, trailing newline)",

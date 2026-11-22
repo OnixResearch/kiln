@@ -19,16 +19,18 @@ use std::collections::btree_map::Entry;
 
 use kiln_core::inventory::{
     CompiledWorkflow, FactMeta, FactRef, InventoryFragment, InventoryJoins, InventoryKind,
-    MAX_INVENTORY_ITEMS, PinStatus, SelectionKind, SourceObservation, WorkerPairing, WorkflowPin,
-    WorkflowRevision, WorkflowRevisionSlots, WorkflowSelection, public_token,
+    MAX_EXACT_NUMBER, MAX_INVENTORY_ITEMS, MAX_WORKFLOW_PINNED_SESSIONS, MAX_WORKFLOW_REVISIONS,
+    PinStatus, SelectionKind, SourceObservation, WorkerPairing, WorkflowPin, WorkflowRevision,
+    WorkflowRevisionSlots, WorkflowSelection, admit_workflow_revisions, public_token,
 };
 use serde::Deserialize;
 
 pub const WORKFLOW_REVISION_SLOTS_SCHEMA: &str = "lattice.workflow-agent-revision-slots.v1";
-/// Upper bound of one slots document: Kiln's bound for one producer document.
-pub const MAX_WORKFLOW_REVISION_SLOTS_BYTES: usize = 262_144;
-/// Lattice keeps at most 1024 sessions per lifecycle (`MAX_SESSIONS`).
-const MAX_PINNED_SESSIONS: usize = 1024;
+/// Upper bound of one slots document. Every pin repeats its revision's full
+/// entry (about 1.1 KB), so 1024 pins need about 1.1 MB; 2 MiB leaves margin
+/// for the bounded revision list. The collection shell reads slots documents
+/// up to this bound, apart from the general producer-document bound.
+pub const MAX_WORKFLOW_REVISION_SLOTS_BYTES: usize = 2_097_152;
 /// Lattice bounds one token to 256 printable bytes (`MAX_TOKEN_BYTES`).
 const MAX_TOKEN_BYTES: usize = 256;
 /// Lattice's `blake3:` references and its `b3:` plan and cohort identities.
@@ -70,14 +72,14 @@ struct EntryDto {
     worker: WorkerDto,
 }
 
-#[derive(Clone, Copy, Deserialize)]
+#[derive(Clone, Copy, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 enum KindDto {
     Promotion,
     Rollback,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct SelectedDto {
     bundle: EntryDto,
@@ -93,7 +95,7 @@ enum StatusDto {
     Closed,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct PinnedDto {
     session: String,
@@ -102,7 +104,7 @@ struct PinnedDto {
     is_blocked: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct SlotsDto {
     schema: String,
@@ -182,7 +184,9 @@ fn entries(slots: &SlotsDto) -> impl Iterator<Item = &EntryDto> {
 }
 
 fn validate_pins(pins: &[PinnedDto]) -> Result<(), &'static str> {
-    if pins.len() > MAX_PINNED_SESSIONS {
+    // Kiln's bound: Lattice limits live sessions at admission, and closed
+    // sessions stay pinned, so a lifecycle may hold more pins than this.
+    if u64::try_from(pins.len()).map_or(true, |count| count > MAX_WORKFLOW_PINNED_SESSIONS) {
         return Err("lattice_workflow_pin_bound");
     }
     let sorted = pins.windows(2).all(|pair| match pair {
@@ -202,8 +206,9 @@ fn validate_pins(pins: &[PinnedDto]) -> Result<(), &'static str> {
     Ok(())
 }
 
-/// Every revision pairs with the definition's one worker definition, and one
-/// revision carries one binding wherever it appears.
+/// Every revision pairs with the definition's one worker definition, one
+/// revision carries one binding wherever it appears, and at most
+/// `MAX_WORKFLOW_REVISIONS` distinct revisions are named.
 fn validate_bindings(slots: &SlotsDto) -> Result<(), &'static str> {
     let mut worker: Option<&str> = None;
     let mut bindings: BTreeMap<&str, &EntryDto> = BTreeMap::new();
@@ -222,6 +227,9 @@ fn validate_bindings(slots: &SlotsDto) -> Result<(), &'static str> {
             Entry::Occupied(slot) if *slot.get() == entry => {}
             Entry::Occupied(_) => return Err("lattice_workflow_revision_conflict"),
         }
+        if bindings.len() > MAX_WORKFLOW_REVISIONS {
+            return Err("lattice_workflow_revision_bound");
+        }
     }
     Ok(())
 }
@@ -234,7 +242,11 @@ fn validate(slots: &SlotsDto) -> Result<(), &'static str> {
         return Err("lattice_workflow_name_invalid");
     }
     if let Some(selected) = &slots.selected_for_new_sessions {
-        if selected.rollout_generation == 0 || !is_reference(&selected.qualification_ref) {
+        let generation = selected.rollout_generation;
+        if generation == 0
+            || generation > MAX_EXACT_NUMBER
+            || !is_reference(&selected.qualification_ref)
+        {
             return Err("lattice_workflow_selection_invalid");
         }
     }
@@ -314,9 +326,13 @@ fn slots_fact(
     source: &SourceObservation,
     joins: &InventoryJoins,
 ) -> WorkflowRevisionSlots {
-    let revisions: BTreeMap<&str, WorkflowRevision> = entries(slots)
-        .map(|entry| (entry.revision.as_str(), revision(entry, joins)))
-        .collect();
+    // One revision view per distinct revision; pins repeat their entries.
+    let mut revisions: BTreeMap<&str, WorkflowRevision> = BTreeMap::new();
+    for entry in entries(slots) {
+        if let Entry::Vacant(slot) = revisions.entry(entry.revision.as_str()) {
+            slot.insert(revision(entry, joins));
+        }
+    }
     WorkflowRevisionSlots {
         meta: FactMeta {
             reference: FactRef {
@@ -349,8 +365,10 @@ fn slots_fact(
 }
 
 /// Map one source's slots documents: one fact per workflow-agent definition.
-/// Identical repeats collapse; two different documents for one definition
-/// are refused.
+/// Repeats with equal decoded documents collapse; two
+/// documents for one definition that differ in any field, sessions and names
+/// included, are refused. Each fact must pass core admission, so a document
+/// this reader admits can never fail admission of the whole snapshot.
 pub fn map_workflow_revision_slots(
     source: &SourceObservation,
     joins: &InventoryJoins,
@@ -360,19 +378,23 @@ pub fn map_workflow_revision_slots(
     if documents.len() > MAX_INVENTORY_ITEMS {
         return Err("lattice_workflow_slots_document_bound");
     }
-    let mut facts: BTreeMap<String, WorkflowRevisionSlots> = BTreeMap::new();
+    let mut decoded: BTreeMap<String, SlotsDto> = BTreeMap::new();
     for document in documents {
-        let fact = slots_fact(&decode(document)?, source, joins);
-        match facts.entry(fact.meta.reference.id.clone()) {
+        let slots = decode(document)?;
+        match decoded.entry(slots.definition.clone()) {
             Entry::Vacant(slot) => {
-                slot.insert(fact);
+                slot.insert(slots);
             }
-            Entry::Occupied(slot) if *slot.get() == fact => {}
+            Entry::Occupied(slot) if *slot.get() == slots => {}
             Entry::Occupied(_) => return Err("lattice_workflow_definition_conflict"),
         }
     }
     let mut fragment = InventoryFragment::new(InventoryKind::WorkflowRevisions, source.clone());
-    fragment.workflow_revisions = facts.into_values().collect();
+    for slots in decoded.values() {
+        let fact = slots_fact(slots, source, joins);
+        admit_workflow_revisions(&fact)?;
+        fragment.workflow_revisions.push(fact);
+    }
     Ok(fragment)
 }
 

@@ -304,18 +304,17 @@ fn selected_and_pinned_revisions_stay_separate_with_blocked_pins() -> TestResult
         let selected = workflow
             .selected_for_new_sessions
             .revision
-            .as_ref()
+            .as_deref()
             .ok_or("selected workflow revision")?;
         assert!(
             revisions
                 .definitions
                 .iter()
-                .all(|d| d.selected_for_new_sessions.value.as_deref()
-                    != Some(selected.revision.as_str()))
+                .all(|d| d.selected_for_new_sessions.value.as_deref() != Some(selected))
                 && revisions
                     .workers
                     .iter()
-                    .all(|w| w.pinned_revision != selected.revision),
+                    .all(|w| w.pinned_revision != selected),
             "a workflow revision is never read as a worker revision"
         );
     }

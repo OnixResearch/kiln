@@ -87,6 +87,18 @@ fn only(section: &AgentRevisions) -> TestResult<&WorkflowDefinitionView> {
     }
 }
 
+/// The revision view a slot or pin names.
+fn listed<'a>(
+    workflow: &'a WorkflowDefinitionView,
+    revision: &str,
+) -> TestResult<&'a super::WorkflowRevisionView> {
+    workflow
+        .revisions
+        .iter()
+        .find(|listed| listed.revision == revision)
+        .ok_or_else(|| format!("revision {revision} is not listed"))
+}
+
 fn capture(name: &str) -> String {
     format!("lattice-workflows/{name}")
 }
@@ -119,8 +131,9 @@ fn workflow_revisions_render_from_the_captured_slots() -> TestResult {
         &workflow.selected_for_new_sessions,
     ] {
         assert_eq!(slot.state, "recorded");
-        let revision = slot.revision.as_ref().ok_or("recorded revision")?;
-        assert_eq!(revision.revision, SECOND);
+        let named = slot.revision.as_deref().ok_or("recorded revision")?;
+        assert_eq!(named, SECOND);
+        let revision = listed(workflow, named)?;
         assert_eq!(revision.workflow.plan, SECOND_PLAN);
         assert_eq!(revision.worker.definition.source, "lattice-agents");
         assert_eq!(revision.worker.definition.id, WORKER_DEFINITION);
@@ -142,7 +155,7 @@ fn workflow_revisions_render_from_the_captured_slots() -> TestResult {
         .iter()
         .map(|pin| {
             (
-                pin.revision.revision.as_str(),
+                pin.revision.as_str(),
                 pin.status,
                 pin.blocked,
                 pin.sessions,
@@ -170,16 +183,14 @@ fn paired_worker_revisions_are_compared_with_the_projected_definition() -> TestR
         Some(&workflows),
     )?)?;
     let workflow = only(&managed)?;
-    let observed: Vec<_> = workflow
+    let observed = workflow
         .pinned
         .iter()
         .map(|pin| {
-            (
-                pin.revision.worker.revision.as_str(),
-                pin.revision.worker.observed,
-            )
+            listed(workflow, &pin.revision)
+                .map(|revision| (revision.worker.revision.as_str(), revision.worker.observed))
         })
-        .collect();
+        .collect::<TestResult<Vec<_>>>()?;
     assert_eq!(
         observed,
         [
@@ -191,11 +202,13 @@ fn paired_worker_revisions_are_compared_with_the_projected_definition() -> TestR
         &["lattice/agent-a-1-dispatched-outcome-unknown.json"],
         Some(&workflows),
     )?)?;
+    let undeclared = only(&undeclared)?;
+    assert_eq!(undeclared.revisions.len(), 2, "each revision listed once");
     assert!(
-        only(&undeclared)?
-            .pinned
+        undeclared
+            .revisions
             .iter()
-            .all(|pin| pin.revision.worker.observed == "definition_not_observed")
+            .all(|revision| revision.worker.observed == "definition_not_observed")
     );
     Ok(())
 }
@@ -209,14 +222,7 @@ fn empty_and_unknown_workflow_slots_keep_their_words() -> TestResult {
     )?)?;
     let workflow = only(&desired)?;
     assert_eq!(workflow.desired.state, "recorded");
-    assert_eq!(
-        workflow
-            .desired
-            .revision
-            .as_ref()
-            .map(|r| r.revision.as_str()),
-        Some(FIRST)
-    );
+    assert_eq!(workflow.desired.revision.as_deref(), Some(FIRST));
     for slot in [&workflow.last_usable, &workflow.selected_for_new_sessions] {
         assert_eq!(
             (slot.state, slot.revision.is_none()),

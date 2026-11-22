@@ -8,7 +8,7 @@
     "repository": "https://github.com/OnixResearch/lattice.git",
     "commit": "7fb6dc473c2cd7ae23282f515c741d398e885fcf",
     "contract": "lattice.workflow-agent-revision-slots.v1",
-    "capture_program": "capture_kiln_workflow_slots.rs (this directory), blake3 1498cefb567b3181eff0423b805a737bde4a655baf69be241f640d524e780d62, added only to a detached worktree of the Lattice commit",
+    "capture_program": "capture_kiln_workflow_slots.rs (this directory), blake3 a5c3d90bb740e96c3c4142001f4cde369f1cece4573324a663bc14dd5fce4976; the captures were produced by the revision hashed 1498cefb567b3181eff0423b805a737bde4a655baf69be241f640d524e780d62, which differs only in its header comment; added only to a detached worktree of the Lattice commit",
     "capture_command": "KILN_WORKFLOW_SLOTS_CAPTURE_DIR=$DIR nix develop . --option builders '' -c cargo test --locked --test capture_kiln_workflow_slots -- --test-threads 1",
     "capture_exit": 0,
     "determinism": "a second capture run produced byte-identical files",
@@ -37,6 +37,39 @@
     {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
     {"command": "cairn traceability coverage --root . --json --policy cairn-policy/generated/cairn-policy.json", "exit": 1, "requirements": 2144, "referenced": 2111, "missing": 33, "dangling": 9, "note": "identical missing and dangling sets to base 203296d4 (2138 requirements, 33 missing, 9 dangling kiln.implementation.authority.* from other in-flight changes); every new requirement and scenario is referenced"}
   ],
+  "review_1": {
+    "reviewed": "787c0352",
+    "review": "history://SlotsReview (hold)",
+    "fixes": [
+      "P2-1: explain_admitted_readiness skips workflow_revisions sources, so a missing, refused or stale slots document never adds provider_observation_unknown; test readiness_explanations_ignore_the_workflow_source compares explanations with the document present, refused and absent",
+      "P2-2: the adapter refuses more than 64 distinct revisions (lattice_workflow_revision_bound) and a rollout generation above MAX_EXACT_NUMBER (lattice_workflow_selection_invalid), and runs core admit_workflow_revisions on every fact; collect_input runs the pure core isolate_workflow_revisions before admission, so workflow facts past the profile's max_items make only their source unavailable (inventory_item_bound); adapter tests and collect_input_isolates_slots_core_would_refuse",
+      "P3-4: slots documents have their own 2 MiB bound in the adapter and the collection shell; pin and byte bounds are documented as Kiln's (Lattice's MAX_SESSIONS limits live sessions only); a 300-pin document of more than 256 KiB is admitted",
+      "Finding 3: kiln.inventory.collection.scenario.refused narrowed to non-workflow sources with a cross-reference, in the synced spec and the archived delta",
+      "Docs name the code operators see for an oversized slots document (inventory_collection_byte_bound)",
+      "slots_fact builds one revision per distinct revision",
+      "Two documents for one definition are compared decoded, before mapping, so documents differing only in sessions or names are refused as lattice_workflow_definition_conflict",
+      "The detail lists each workflow revision once per definition and slots and pins name it by identity; the console resolves the identity and marks an unlisted one",
+      "The section adds a warning line when some workflow sources are not current beside admitted ones",
+      "The capture program's header says the member is re-encoded as pretty JSON; its new hash is recorded beside the hash of the revision that produced the captures"
+    ],
+    "commands": [
+      {"command": "cargo fmt --all -- --check", "exit": 0},
+      {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+      {"command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 101, "passed": 2390, "failed": 1, "ignored": 16, "suites": 194, "note": "the failure is kiln-adapter-swarm --test client post_classifies_accepted_rejected_and_unknown (Unknown vs Rejected, a timing-dependent HTTP client test in an untouched crate); it passed 3 of 3 reruns alone (11 passed each)"},
+      {"command": "cargo test --locked -p onix-kiln-core --lib (within the workspace run)", "exit": 0, "passed": 501},
+      {"command": "cargo test --locked -p kiln-adapter-lattice --lib (within the workspace run)", "exit": 0, "passed": 75},
+      {"command": "cargo test --locked -p kiln-web-service --lib (within the workspace run)", "exit": 0, "passed": 318, "ignored": 2},
+      {"command": "cargo test --locked -p kiln-web-service --example explore", "exit": 0, "passed": 13},
+      {"command": "node --test tests/*.test.mjs", "exit": 0, "passed": 147, "failed": 0},
+      {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "100 positive, 641 negative"},
+      {"command": "nix build path:$PWD#checks.x86_64-linux.octet --option builders '' --no-link -L", "exit": 0, "findings": 0, "warnings": 0, "errors": 0},
+      {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+      {"command": "cairn traceability coverage --root . --json --policy cairn-policy/generated/cairn-policy.json", "exit": 1, "requirements": 2144, "referenced": 2111, "missing": 33, "dangling": 9, "note": "missing and dangling sets identical to 203296d4"},
+      {"command": "gitleaks git --no-banner --log-opts=203296d4..787c0352 .", "exit": 0, "leaks": 0},
+      {"command": "gitleaks dir --no-banner <each changed working-tree path>", "exit": 0, "leaks": 0},
+      {"command": "gitleaks git --no-banner . (whole history)", "exit": 1, "leaks": 1332, "note": "all in history before this change; the change's own commit range has none"}
+    ]
+  },
   "environment": "nix develop shell with TMPDIR=/var/tmp/k84s, empty RUSTC_WRAPPER, CARGO_BUILD_JOBS=8 and a dedicated target directory; node from the host for the Node tests",
   "non_claims": [
     "Every slots document is a deterministic capture from Lattice's fixture preparation and qualification ports; no live Lattice store, worker, session or qualification was observed",

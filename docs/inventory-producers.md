@@ -227,8 +227,9 @@ Kiln also refuses these v3 inputs:
 
 A `kind: workflow_revisions` source with contract
 `lattice.workflow-agent-revision-slots.v1` maps each document to one fact keyed
-by the workflow-agent definition. Identical repeats collapse; two different
-documents for one definition are refused with
+by the workflow-agent definition. Repeats whose decoded documents are equal
+collapse; two documents for one definition that differ in any field, session
+identities and names included, are refused with
 `lattice_workflow_definition_conflict`.
 
 | v2 fact | From Lattice |
@@ -245,7 +246,7 @@ Kiln refuses:
 
 | Input | Refusal |
 |---|---|
-| More than 256 KiB | `lattice_workflow_slots_byte_bound` |
+| More than 2 MiB: through the collection shell, which reads a slots document only up to that bound | `inventory_collection_byte_bound` (the reader itself reports `lattice_workflow_slots_byte_bound` to a direct caller) |
 | Another schema label | `lattice_workflow_slots_unsupported_schema` |
 | Not JSON, unknown or missing fields, out-of-vocabulary kinds or statuses | `lattice_workflow_slots_malformed` |
 | A definition that is not `blake3:` plus 64 lowercase hex | `lattice_workflow_definition_invalid` |
@@ -253,22 +254,33 @@ Kiln refuses:
 | A revision that is not 64 lowercase hex | `lattice_workflow_revision_invalid` |
 | A plan or cohort identity that is not `b3:` plus 64 hex, a graph that is not `blake3:` plus 64 hex, or a compiler outside Kiln's public tokens | `lattice_workflow_identity_invalid` |
 | A malformed worker definition, name, revision or bundle | `lattice_workflow_worker_invalid` |
-| Rollout generation 0, or a qualification that is not `blake3:` plus 64 hex | `lattice_workflow_selection_invalid` |
+| Rollout generation 0 or above 2^53 − 1, or a qualification that is not `blake3:` plus 64 hex | `lattice_workflow_selection_invalid` |
+| More than 64 distinct revisions (Lattice's `MAX_CANDIDATES`) | `lattice_workflow_revision_bound` |
 | More than 1024 pins | `lattice_workflow_pin_bound` |
 | Sessions that are not strictly ascending tokens | `lattice_workflow_pin_invalid` |
 | A closed pin that is not blocked | `lattice_workflow_pin_inconsistent` |
 | Revisions pairing with two worker definitions (the workflow-agent definition frames its worker definition) | `lattice_workflow_worker_binding_mismatch` |
 | One revision with two bindings (a revision frames its binding) | `lattice_workflow_revision_conflict` |
 
-Workflow revisions are display-only: no readiness decision reads them. A slots
-document that cannot be read, exceeds a byte bound or is refused therefore
-makes only its own source unavailable, with the refusal code as its reason;
-the collection and every other source keep their facts. A manifest defect
-(path, contract, an unavailable source with documents) still refuses the
-collection. Admission requires public tokens, at most 64 revisions and 1024
-pinned sessions per fact, every named revision listed and every listed
-revision named. Snapshots without workflow revisions keep their encoding and
-identity.
+Every pin repeats its revision's full entry, about 1.1 KB, so the 2 MiB bound
+admits a little under 2000 pins and the 1024-pin bound is the effective limit.
+Both are Kiln's bounds: Lattice's `MAX_SESSIONS` (1024) limits live sessions at
+admission, but closed sessions stay pinned in the lifecycle, so a long-lived
+Lattice definition can exceed them and then reads `unavailable`.
+
+Every fact the reader produces passes core admission (public tokens, at most
+64 revisions and 1024 pinned sessions per fact, every named revision listed
+and every listed revision named), so an admitted document can never fail the
+whole snapshot. Workflow revisions are display-only: no readiness decision
+reads them, and a workflow source's state never adds a readiness blocker. A
+slots document that cannot be read, exceeds its byte bound or is refused
+therefore makes only its own source unavailable, with the refusal code as its
+reason; the collection and every other source keep their facts. When workflow
+facts would push a snapshot past the profile's `max_items`, `inventory-collect`
+makes their sources unavailable with `inventory_item_bound` instead. A
+manifest defect (path, contract, an unavailable source with documents) still
+refuses the collection. Snapshots without workflow revisions keep their
+encoding and identity.
 
 ### Compute allocations
 

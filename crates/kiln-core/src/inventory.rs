@@ -1397,7 +1397,12 @@ fn explain_admitted_readiness(
         dispatch_authorized: false,
         task_family_qualification: None,
     };
-    for status in statuses {
+    // Workflow revision slots are display-only: no readiness decision reads
+    // them, so their source state never blocks an explanation.
+    for status in statuses
+        .iter()
+        .filter(|status| status.kind != InventoryKind::WorkflowRevisions)
+    {
         if status.state != ObservationState::Current {
             result.blockers.push(blocker(
                 "provider_observation_unknown",
@@ -2126,6 +2131,7 @@ mod workflow;
 pub use workflow::{
     CompiledWorkflow, MAX_WORKFLOW_PINNED_SESSIONS, MAX_WORKFLOW_REVISIONS, SelectionKind,
     WorkerPairing, WorkflowPin, WorkflowRevision, WorkflowRevisionSlots, WorkflowSelection,
+    admit_workflow_revisions, isolate_workflow_revisions,
 };
 
 #[cfg(test)]

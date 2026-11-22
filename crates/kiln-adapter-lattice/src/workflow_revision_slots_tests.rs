@@ -495,3 +495,98 @@ fn malformed_identities_selections_and_pins_are_refused() -> TestResult {
     }
     Ok(())
 }
+
+/// The second capture's live pin entry, pinned by `session` to `revision`.
+/// Another revision gets its own plan identity, so its binding is distinct.
+fn pin_on(revision: &str, session: &str) -> TestResult<Value> {
+    let mut pin = json_of(SECOND)?
+        .pointer("/pinned/1")
+        .cloned()
+        .ok_or("pin template")?;
+    *pin.pointer_mut("/session").ok_or("session")? = json!(session);
+    if revision != SECOND_REVISION {
+        *pin.pointer_mut("/bundle/revision").ok_or("revision")? = json!(revision);
+        *pin.pointer_mut("/bundle/workflow/plan_identity")
+            .ok_or("plan")? = json!(format!("b3:{revision}"));
+    }
+    Ok(pin)
+}
+
+fn with_pins(pins: Vec<Value>) -> TestResult<Vec<u8>> {
+    edited(SECOND, &[("/pinned", Some(Value::Array(pins)))])
+}
+
+#[test]
+fn a_document_past_the_revision_bound_or_with_an_inexact_generation_is_refused() -> TestResult {
+    let distinct = (0..=kiln_core::inventory::MAX_WORKFLOW_REVISIONS)
+        .map(|index| pin_on(&format!("{index:064x}"), &format!("session-{index:04}")))
+        .collect::<TestResult<Vec<_>>>()?;
+    assert_eq!(
+        refusal(&with_pins(distinct)?),
+        Some("lattice_workflow_revision_bound"),
+        "more distinct revisions than core admits"
+    );
+    let within = (0..kiln_core::inventory::MAX_WORKFLOW_REVISIONS - 1)
+        .map(|index| pin_on(&format!("{index:064x}"), &format!("session-{index:04}")))
+        .collect::<TestResult<Vec<_>>>()?;
+    let fact = only(&with_pins(within)?)?;
+    assert_eq!(
+        fact.revisions.len(),
+        kiln_core::inventory::MAX_WORKFLOW_REVISIONS,
+        "the selected revision and 63 pinned ones fill the bound"
+    );
+    let inexact = edited(
+        SECOND,
+        &[(
+            "/selected_for_new_sessions/rollout_generation",
+            Some(json!(kiln_core::inventory::MAX_EXACT_NUMBER + 1)),
+        )],
+    )?;
+    assert_eq!(
+        refusal(&inexact),
+        Some("lattice_workflow_selection_invalid")
+    );
+    Ok(())
+}
+
+#[test]
+fn three_hundred_pins_are_admitted_within_the_slots_bound() -> TestResult {
+    let pins = (0..300)
+        .map(|index| pin_on(SECOND_REVISION, &format!("session-{index:04}")))
+        .collect::<TestResult<Vec<_>>>()?;
+    let document: Value = serde_json::from_slice(&with_pins(pins)?).map_err(|e| e.to_string())?;
+    let bytes = serde_json::to_vec_pretty(&document).map_err(|e| e.to_string())?;
+    assert!(
+        bytes.len() > 262_144,
+        "the general producer-document bound would refuse it"
+    );
+    assert!(bytes.len() <= MAX_WORKFLOW_REVISION_SLOTS_BYTES);
+    let fact = only(&bytes)?;
+    assert_eq!(
+        fact.pinned,
+        vec![WorkflowPin {
+            revision: SECOND_REVISION.into(),
+            status: PinStatus::Live,
+            blocked: false,
+            sessions: 300
+        }]
+    );
+    Ok(())
+}
+
+#[test]
+fn documents_differing_only_in_sessions_or_names_are_refused_as_a_conflict() -> TestResult {
+    for (pointer, value) in [
+        ("/pinned/1/session", json!("session-c")),
+        ("/name", json!("verify-change-2")),
+    ] {
+        let renamed = edited(SECOND, &[(pointer, Some(value))])?;
+        assert!(only(&renamed).is_ok(), "{pointer}: valid on its own");
+        assert_eq!(
+            map(&[SECOND, &renamed]).err(),
+            Some("lattice_workflow_definition_conflict"),
+            "{pointer}"
+        );
+    }
+    Ok(())
+}

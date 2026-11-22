@@ -6,7 +6,8 @@
 use std::path::{Path, PathBuf};
 
 use kiln_core::inventory::{
-    InventoryProfile, InventorySnapshot, ObservationState, project_inventory,
+    InventoryProfile, InventorySnapshot, ObservationState, WorkNeeds, explain_readiness,
+    project_inventory,
 };
 use serde_json::{Value, json};
 
@@ -147,7 +148,10 @@ fn a_refused_slots_document_makes_only_its_source_unavailable() -> TestResult {
     )?;
     std::fs::write(
         base.join("lattice-workflows/oversized.json"),
-        vec![b' '; super::MAX_PRODUCER_DOCUMENT_BYTES as usize + 1],
+        vec![
+            b' ';
+            kiln_adapter_lattice::workflow_revision_slots::MAX_WORKFLOW_REVISION_SLOTS_BYTES + 1
+        ],
     )
     .map_err(|e| e.to_string())?;
     for (document, reason) in [
@@ -221,5 +225,152 @@ fn manifest_defects_of_a_workflow_source_still_refuse_the_collection() -> TestRe
         Some("lattice_inventory_malformed"),
         "only the display-only workflow source is isolated"
     );
+    Ok(())
+}
+
+/// The pilot manifest in `base`, with the workflow source naming `document`
+/// (or dropped for `None`), written beside the fixtures.
+fn manifest_naming(base: &Path, document: Option<&str>) -> TestResult<PathBuf> {
+    let mut set = CollectionSet::load(&base.join(PILOT))?;
+    set.collections
+        .retain(|collection| collection.source != SOURCE || document.is_some());
+    for collection in set.collections.iter_mut().filter(|c| c.source == SOURCE) {
+        collection.documents = document.into_iter().map(str::to_owned).collect();
+    }
+    let path = base.join("workflow-variant.collection.json");
+    std::fs::write(&path, serde_json::to_vec(&set).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
+/// The capture with its pins replaced by `count` live pins on distinct revisions.
+fn distinct_revisions(capture: &Value, count: usize) -> TestResult<Value> {
+    let template = capture
+        .pointer("/pinned/1")
+        .cloned()
+        .ok_or("pin template")?;
+    let mut pins = Vec::with_capacity(count);
+    for index in 0..count {
+        let revision = format!("{index:064x}");
+        let mut pin = template.clone();
+        for (pointer, value) in [
+            ("/session", json!(format!("session-{index:04}"))),
+            ("/bundle/revision", json!(revision)),
+            (
+                "/bundle/workflow/plan_identity",
+                json!(format!("b3:{revision}")),
+            ),
+        ] {
+            *pin.pointer_mut(pointer).ok_or("pin field")? = value;
+        }
+        pins.push(pin);
+    }
+    edited(capture, "/pinned", Value::Array(pins))
+}
+
+#[test]
+// r[verify kiln.inventory.workflow.scenario.isolated]
+fn readiness_explanations_ignore_the_workflow_source() -> TestResult {
+    let scratch = tempfile::tempdir().map_err(|e| e.to_string())?;
+    copy_tree(&fixtures(), scratch.path())?;
+    let base = scratch.path();
+    let capture: Value =
+        serde_json::from_slice(&std::fs::read(base.join(CAPTURE)).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?;
+    let refused = edited(
+        &capture,
+        "/schema",
+        json!("lattice.workflow-agent-revision-slots.v0"),
+    )?;
+    write_json(&base.join("lattice-workflows/refused.json"), &refused)?;
+    let needs: WorkNeeds = serde_json::from_slice(
+        &std::fs::read(base.join("work-needs.json")).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let explain = |document: Option<&str>| -> TestResult<_> {
+        let snapshot = collect_snapshot(&manifest_naming(base, document)?)?;
+        explain_readiness(&profile()?, &snapshot, &needs, NOW_MS).map_err(str::to_owned)
+    };
+    let present = explain(Some(CAPTURE))?;
+    assert!(
+        present
+            .blockers
+            .iter()
+            .all(|blocker| blocker.constraint != SOURCE),
+        "a workflow source never blocks readiness"
+    );
+    assert_eq!(explain(Some("lattice-workflows/refused.json"))?, present);
+    assert_eq!(explain(None)?, present, "a configured but absent source");
+    Ok(())
+}
+
+#[test]
+// r[verify kiln.inventory.workflow.scenario.isolated]
+fn collect_input_isolates_slots_core_would_refuse() -> TestResult {
+    let scratch = tempfile::tempdir().map_err(|e| e.to_string())?;
+    copy_tree(&fixtures(), scratch.path())?;
+    let base = scratch.path();
+    let profile_path = base.join("profile.json");
+    let capture: Value =
+        serde_json::from_slice(&std::fs::read(base.join(CAPTURE)).map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?;
+    write_json(
+        &base.join("lattice-workflows/too-many-revisions.json"),
+        &distinct_revisions(&capture, kiln_core::inventory::MAX_WORKFLOW_REVISIONS + 1)?,
+    )?;
+    write_json(
+        &base.join("lattice-workflows/inexact-generation.json"),
+        &edited(
+            &capture,
+            "/selected_for_new_sessions/rollout_generation",
+            json!(kiln_core::inventory::MAX_EXACT_NUMBER + 1),
+        )?,
+    )?;
+    let good = collect_input(&manifest_naming(base, Some(CAPTURE))?, &profile_path)?;
+    assert_eq!(good.snapshot.workflow_revisions.len(), 1);
+    for (document, reason) in [
+        (
+            "lattice-workflows/too-many-revisions.json",
+            "lattice_workflow_revision_bound",
+        ),
+        (
+            "lattice-workflows/inexact-generation.json",
+            "lattice_workflow_selection_invalid",
+        ),
+    ] {
+        let input = collect_input(&manifest_naming(base, Some(document))?, &profile_path)?;
+        assert_eq!(workflow_reason(&input.snapshot), Some(reason), "{document}");
+        assert_eq!(
+            without_workflows(&input.snapshot),
+            without_workflows(&good.snapshot),
+            "{document}: agents, workers, compute and serving survive"
+        );
+    }
+
+    // The workflow fact is one item past the profile's bound.
+    let rest = without_workflows(&good.snapshot);
+    let items = rest.agents.len()
+        + rest.workers.len()
+        + rest.compute.len()
+        + rest.pools.len()
+        + rest.models.len()
+        + rest.admissions.len()
+        + rest.policies.len()
+        + rest.attempts.len();
+    let mut bounded = profile()?;
+    bounded.max_items = items;
+    let bounded_path = base.join("bounded-profile.json");
+    std::fs::write(
+        &bounded_path,
+        serde_json::to_vec(&bounded).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let input = collect_input(&manifest_naming(base, Some(CAPTURE))?, &bounded_path)?;
+    assert_eq!(
+        workflow_reason(&input.snapshot),
+        Some("inventory_item_bound")
+    );
+    assert!(input.snapshot.workflow_revisions.is_empty());
+    assert_eq!(without_workflows(&input.snapshot), rest);
     Ok(())
 }

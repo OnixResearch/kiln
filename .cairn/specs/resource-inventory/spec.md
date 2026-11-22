@@ -105,9 +105,9 @@ r[kiln.inventory.collection.scenario.hostname]
 #### Scenario: Unsafe manifests refuse
 
 r[kiln.inventory.collection.scenario.refused]
-- GIVEN a manifest with an absolute or parent-relative document path, an unsupported producer contract, an unknown field or an oversized document
+- GIVEN a manifest with an absolute or parent-relative document path, an unsupported producer contract or an unknown field, or an oversized or refused document of any source kind other than workflow revisions
 - WHEN the shell collects it
-- THEN collection MUST fail before projection
+- THEN collection MUST fail before projection; a workflow revision document is handled by `kiln.inventory.workflow.scenario.isolated` instead
 
 ### Requirement: Workflow revision slots
 

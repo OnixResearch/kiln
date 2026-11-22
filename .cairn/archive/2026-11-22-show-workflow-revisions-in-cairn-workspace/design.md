@@ -80,9 +80,10 @@ definition as a reference into the agents join source, `revision` and
 (`revision`, `rollout_generation`, `kind` `promotion` or `rollback`,
 `qualification`) and `pinned` (`revision`, `status`, `blocked`, `sessions`),
 strictly ascending by revision, status and blocked state. Admission requires
-public tokens, at most 64 revisions and 1024 pinned sessions (Lattice's
-`MAX_CANDIDATES` and `MAX_SESSIONS`), every named revision listed and every
-listed revision named.
+public tokens, at most 64 revisions (Lattice's `MAX_CANDIDATES`) and 1024
+pinned sessions (Kiln's bound: Lattice's `MAX_SESSIONS` limits only live
+sessions at admission, and closed sessions stay pinned), every named revision
+listed and every listed revision named.
 
 **Rationale:** a revision appears in several slots; listing it once keeps one
 binding per revision. Counting pins keeps session identities out without
@@ -94,7 +95,7 @@ losing how many sessions a revision serves.
 
 | Input | Refusal |
 |---|---|
-| More than 256 KiB | `lattice_workflow_slots_byte_bound` |
+| More than 2 MiB (1024 pins of about 1.1 KB with margin; the collection shell reads slots documents up to this bound and reports `inventory_collection_byte_bound`) | `lattice_workflow_slots_byte_bound` |
 | Another schema label | `lattice_workflow_slots_unsupported_schema` |
 | Not JSON, unknown or missing fields, out-of-vocabulary kinds or statuses | `lattice_workflow_slots_malformed` |
 | A definition that is not `blake3:` plus 64 hex | `lattice_workflow_definition_invalid` |
@@ -102,15 +103,21 @@ losing how many sessions a revision serves.
 | A revision that is not 64 lowercase hex | `lattice_workflow_revision_invalid` |
 | A plan or cohort identity that is not `b3:` plus 64 hex, a graph that is not `blake3:` plus 64 hex, or a compiler that is not a public token | `lattice_workflow_identity_invalid` |
 | A worker definition or bundle that is not `blake3:` plus 64 hex, a worker revision that is not 64 hex, or a bad worker name | `lattice_workflow_worker_invalid` |
-| Rollout generation 0 or a qualification that is not `blake3:` plus 64 hex | `lattice_workflow_selection_invalid` |
+| Rollout generation 0 or above `MAX_EXACT_NUMBER`, or a qualification that is not `blake3:` plus 64 hex | `lattice_workflow_selection_invalid` |
+| More than 64 distinct revisions | `lattice_workflow_revision_bound` |
 | More than 1024 pins | `lattice_workflow_pin_bound` |
 | Sessions not strictly ascending, or not tokens | `lattice_workflow_pin_invalid` |
 | A closed pin that is not blocked | `lattice_workflow_pin_inconsistent` |
 | Two worker definitions in one document | `lattice_workflow_worker_binding_mismatch` |
 | One revision with two bindings | `lattice_workflow_revision_conflict` |
-| Two different documents for one definition in one source | `lattice_workflow_definition_conflict` |
+| Two documents for one definition in one source whose decoded documents differ in any field, sessions and names included | `lattice_workflow_definition_conflict` |
 
-Names and sessions are validated and dropped. Identical repeats collapse.
+Names and sessions are validated and dropped. Repeats with equal decoded
+documents collapse. Every mapped fact then passes core admission, so an
+admitted document can never fail the whole snapshot, and `inventory-collect`
+makes workflow sources unavailable with `inventory_item_bound` when their
+facts would exceed the profile's `max_items`. A workflow source's state never
+adds a readiness blocker. (Review 1.)
 
 **Rationale:** the definition frames the worker definition and the revision
 frames the binding, so either mismatch is a corrupt or substituted document.

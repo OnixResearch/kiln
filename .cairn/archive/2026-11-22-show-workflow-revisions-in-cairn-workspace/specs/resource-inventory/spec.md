@@ -1,5 +1,32 @@
 # Resource inventory delta
 
+## MODIFIED Requirements
+
+### Requirement: Explicit producer collection
+
+r[kiln.inventory.collection] A collecting shell MUST read only the producer documents a `kiln.inventory.collection-set.v1` manifest names relative to itself, MUST compose them into one v2 snapshot by exact producer-scoped joins and never by host name, and MUST give the CLI, the live API and offline HTML the same projection identity and redaction. Composition MUST perform no discovery, network access or mutation.
+
+#### Scenario: Same projection everywhere
+
+r[kiln.inventory.collection.scenario.parity]
+- GIVEN one collected producer snapshot
+- WHEN the CLI, the live API reader and offline HTML project it
+- THEN they MUST report one projection identity, and the HTML MUST contain no script or remote resource
+
+#### Scenario: Host names never join
+
+r[kiln.inventory.collection.scenario.hostname]
+- GIVEN a host-local worker and a compute allocation on hosts with the same name
+- WHEN the snapshot is composed
+- THEN the worker MUST NOT reference that allocation and its execution MUST remain unknown
+
+#### Scenario: Unsafe manifests refuse
+
+r[kiln.inventory.collection.scenario.refused]
+- GIVEN a manifest with an absolute or parent-relative document path, an unsupported producer contract or an unknown field, or an oversized or refused document of any source kind other than workflow revisions
+- WHEN the shell collects it
+- THEN collection MUST fail before projection; a workflow revision document is handled by `kiln.inventory.workflow.scenario.isolated` instead
+
 ## ADDED Requirements
 
 ### Requirement: Workflow revision slots
