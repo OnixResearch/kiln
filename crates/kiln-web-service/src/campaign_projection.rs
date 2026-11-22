@@ -399,12 +399,11 @@ pub fn project(state: &CampaignState, store_version: u64) -> Result<CampaignProj
             DecisionRequestState::Unissued | DecisionRequestState::Outstanding
         )
     }) {
-        if request.kind == DecisionKind::RequiredReview {
-            if let Some(member) = members.iter_mut().find(|m| m.member == request.member) {
-                if !member.waits.contains(&"required_review") {
-                    member.waits.push("required_review");
-                }
-            }
+        if request.kind == DecisionKind::RequiredReview
+            && let Some(member) = members.iter_mut().find(|m| m.member == request.member)
+            && !member.waits.contains(&"required_review")
+        {
+            member.waits.push("required_review");
         }
     }
     let campaign_identity = identify(state, store_version)?;

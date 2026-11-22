@@ -907,10 +907,9 @@ impl NativeCampaignConsumer {
                     .artifact_digest
                     .as_deref()
                     .and_then(|value| ContentId::from_blake3_hex(value.to_owned()).ok())
+                    && !member.evidence.contains(&identity)
                 {
-                    if !member.evidence.contains(&identity) {
-                        member.evidence.push(identity);
-                    }
+                    member.evidence.push(identity);
                 }
             }
         }

@@ -448,52 +448,49 @@ pub fn verify_candidate(
         } else {
             blocked_observation(next)
         };
-        if let Some(policy) = &profile.proof {
-            if !observation.baseline
-                && observation.status == "passed"
-                && next.id == policy.adapter_check_id
+        if let Some(policy) = &profile.proof
+            && !observation.baseline
+            && observation.status == "passed"
+            && next.id == policy.adapter_check_id
+        {
+            if validate_proof_result(
+                work,
+                attempt,
+                handoff,
+                profile,
+                policy,
+                &observation,
+                &evidence_directory,
+            )
+            .is_err()
             {
-                if validate_proof_result(
-                    work,
-                    attempt,
-                    handoff,
-                    profile,
-                    policy,
-                    &observation,
-                    &evidence_directory,
-                )
-                .is_err()
-                {
-                    observation.status =
-                        if !policy.qualified || policy.backend == ProofBackend::Mm0 {
-                            "unsupported"
-                        } else {
-                            "failed"
-                        }
-                        .into();
+                observation.status = if !policy.qualified || policy.backend == ProofBackend::Mm0 {
+                    "unsupported"
+                } else {
+                    "failed"
                 }
-                let manifest_hash = observation
-                    .artifacts
-                    .iter()
-                    .find(|artifact| artifact.path == policy.manifest_artifact)
-                    .map(|artifact| artifact.hash.as_str())
-                    .ok_or("proof manifest artifact absent from retained observation")?;
-                observation.execution_receipt_hash = digest(
-                    &serde_json::to_vec(&json!({
-                        "execution": observation.execution_receipt_hash,
-                        "profile": profile.identity()?,
-                        "manifest": manifest_hash,
-                        "status": observation.status.as_str(),
-                    }))
-                    .map_err(text)?,
-                );
-                fs::write(
-                    evidence_directory
-                        .join(format!("candidate-{}/receipt.json", observation.check_id)),
-                    serde_json::to_vec_pretty(&observation).map_err(text)?,
-                )
-                .map_err(text)?;
+                .into();
             }
+            let manifest_hash = observation
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.path == policy.manifest_artifact)
+                .map(|artifact| artifact.hash.as_str())
+                .ok_or("proof manifest artifact absent from retained observation")?;
+            observation.execution_receipt_hash = digest(
+                &serde_json::to_vec(&json!({
+                    "execution": observation.execution_receipt_hash,
+                    "profile": profile.identity()?,
+                    "manifest": manifest_hash,
+                    "status": observation.status.as_str(),
+                }))
+                .map_err(text)?,
+            );
+            fs::write(
+                evidence_directory.join(format!("candidate-{}/receipt.json", observation.check_id)),
+                serde_json::to_vec_pretty(&observation).map_err(text)?,
+            )
+            .map_err(text)?;
         }
         pending.remove(next.id.as_str());
         observations.push(observation);

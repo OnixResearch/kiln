@@ -1454,14 +1454,14 @@ fn layout_conflicts(
     let mut keys: BTreeMap<String, &str> = BTreeMap::new();
     for destination in placement.entries.keys() {
         let key = fold(destination);
-        if let Some(previous) = keys.insert(key.clone(), destination.as_str()) {
-            if previous != destination.as_str() {
-                findings.push(
-                    "case_fold_collision",
-                    format!("destinations.{}", shown(&key)),
-                    "two destinations differ only by case on a case-insensitive target",
-                );
-            }
+        if let Some(previous) = keys.insert(key.clone(), destination.as_str())
+            && previous != destination.as_str()
+        {
+            findings.push(
+                "case_fold_collision",
+                format!("destinations.{}", shown(&key)),
+                "two destinations differ only by case on a case-insensitive target",
+            );
         }
     }
     for key in keys.keys() {
@@ -1516,14 +1516,14 @@ fn bind_dependencies(
                 field,
                 "one dependency has several facts",
             );
-        } else if let DependencyStatus::Present { identity } = &fact.status {
-            if identity.validate().is_err() {
-                findings.push(
-                    "invalid_dependency_identity",
-                    field,
-                    "a present dependency needs a BLAKE3 identity",
-                );
-            }
+        } else if let DependencyStatus::Present { identity } = &fact.status
+            && identity.validate().is_err()
+        {
+            findings.push(
+                "invalid_dependency_identity",
+                field,
+                "a present dependency needs a BLAKE3 identity",
+            );
         }
     }
     declared
@@ -1975,21 +1975,19 @@ pub fn verify_manifest(
             object,
             origin_identity: claimed,
         } = &entry.origin
-        {
-            if origin_identity(
+            && origin_identity(
                 &manifest.repository,
                 &manifest.exact_revision,
                 path,
                 object,
                 entry.kind,
             ) != *claimed
-            {
-                findings.push(
-                    "origin_identity_mismatch",
-                    format!("entries.{}", shown(&entry.destination)),
-                    "an origin identity does not match its fields",
-                );
-            }
+        {
+            findings.push(
+                "origin_identity_mismatch",
+                format!("entries.{}", shown(&entry.destination)),
+                "an origin identity does not match its fields",
+            );
         }
     }
     if content_identity(&manifest.entries, &manifest.dependencies) != manifest.content_identity {

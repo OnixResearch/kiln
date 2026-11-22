@@ -337,32 +337,29 @@ impl PatchProfile {
         {
             return Err("patch journal profile/source/run substitution".into());
         }
-        if let Some(approval) = &journal.approval {
-            if approval.source_commit != journal.binding.oid
-                || !self.approvers.contains(&approval.actor_id)
-            {
-                return Err("patch approval substitution".into());
-            }
+        if let Some(approval) = &journal.approval
+            && (approval.source_commit != journal.binding.oid
+                || !self.approvers.contains(&approval.actor_id))
+        {
+            return Err("patch approval substitution".into());
         }
         if !journal.trusted && journal.approval.is_none() && journal.state != PatchState::Blocked {
             return Err("untrusted journal bypasses approval".into());
         }
-        if let Some(request) = &journal.request {
-            if *request != execution_input(self, journal)?
+        if let Some(request) = &journal.request
+            && (*request != execution_input(self, journal)?
                 || journal
                     .source_tree
                     .as_ref()
-                    .is_none_or(|tree| ContentId::from_blake3_hex(tree).is_err())
-            {
-                return Err("patch execution request or source snapshot substitution".into());
-            }
+                    .is_none_or(|tree| ContentId::from_blake3_hex(tree).is_err()))
+        {
+            return Err("patch execution request or source snapshot substitution".into());
         }
-        if let Some(JobDispatch::Written(job)) = &journal.job {
-            if job.revision.native_id.as_str() != journal.binding.oid
-                || job.run_id != journal.run_id
-            {
-                return Err("patch job result names another exact revision".into());
-            }
+        if let Some(JobDispatch::Written(job)) = &journal.job
+            && (job.revision.native_id.as_str() != journal.binding.oid
+                || job.run_id != journal.run_id)
+        {
+            return Err("patch job result names another exact revision".into());
         }
         Ok(())
     }

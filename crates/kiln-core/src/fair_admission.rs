@@ -111,16 +111,15 @@ impl AdmissionPolicy {
                 "invalid or duplicate group limits",
             ));
         }
-        if let FairnessStrategy::WeightedScalar { weights } = &self.strategy {
-            if weights.is_empty()
+        if let FairnessStrategy::WeightedScalar { weights } = &self.strategy
+            && (weights.is_empty()
                 || weights.len() > MAX_DIMENSIONS
-                || weights.values().any(|weight| *weight == 0)
-            {
-                return Err(err(
-                    "admission_weights",
-                    "weights must be finite and positive",
-                ));
-            }
+                || weights.values().any(|weight| *weight == 0))
+        {
+            return Err(err(
+                "admission_weights",
+                "weights must be finite and positive",
+            ));
         }
         if let Some(serving) = &self.serving {
             serving.validate(self)?;

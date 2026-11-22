@@ -477,10 +477,9 @@ fn zone_offset_seconds(zone: &str) -> Option<i64> {
         _ => {
             let (sign, digits) = if let Some(digits) = zone.strip_prefix('+') {
                 (1_i64, digits)
-            } else if let Some(digits) = zone.strip_prefix('-') {
-                (-1_i64, digits)
             } else {
-                return None;
+                let digits = zone.strip_prefix('-')?;
+                (-1_i64, digits)
             };
             if digits.len() != 4 || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
                 return None;
@@ -541,7 +540,7 @@ fn days_since_epoch(year: u64, month: u64, day: u64) -> Option<u64> {
 }
 
 const fn leap(year: u64) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
 }
 
 fn admit_field(value: &str, maximum: usize) -> bool {
@@ -705,7 +704,12 @@ mod tests {
         };
         let legacy_claim = claim_article("CLAIM OnixResearch/kiln crates kiln-core");
         assert!(matches!(
-            evaluate_overlap(&[legacy_claim.clone()], author, &legacy, 1_000_500),
+            evaluate_overlap(
+                core::slice::from_ref(&legacy_claim),
+                author,
+                &legacy,
+                1_000_500
+            ),
             OverlapDecision::Deferred { .. }
         ));
         assert_eq!(
@@ -733,7 +737,7 @@ mod tests {
         );
         assert_eq!(
             evaluate_overlap(
-                &[claim.clone()],
+                core::slice::from_ref(&claim),
                 author,
                 &scope(),
                 1_000_000 + STALE_CLAIM_MS + 1
@@ -818,7 +822,7 @@ mod tests {
         );
         assert_eq!(
             evaluate_overlap(
-                &[claim.clone()],
+                core::slice::from_ref(&claim),
                 author,
                 &scope(),
                 1_000_000 + STALE_CLAIM_MS + 1

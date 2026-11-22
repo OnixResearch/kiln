@@ -83,15 +83,13 @@ impl PeerIdentity {
         {
             return outcome.clone();
         }
-        let outcome = match self.whois(address) {
-            Ok(node) => self
-                .peers
-                .get(&normalize(&node))
-                .cloned()
-                .ok_or_else(|| format!("tailnet node {node} is not a configured peer")),
-            // A failed lookup is not cached: the next request asks again.
-            Err(error) => return Err(error),
-        };
+        // A failed lookup is not cached: the next request asks again.
+        let node = self.whois(address)?;
+        let outcome = self
+            .peers
+            .get(&normalize(&node))
+            .cloned()
+            .ok_or_else(|| format!("tailnet node {node} is not a configured peer"));
         if let Ok(mut cache) = self.cache.lock() {
             if cache.len() >= MAX_WHOIS_CACHE_ENTRIES {
                 cache.retain(|_, (expires, _)| *expires > now_ms);

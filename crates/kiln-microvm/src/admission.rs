@@ -65,10 +65,10 @@ pub fn admit_machine(policy: &MachinePolicy<'_>, host: &HostBounds) -> Result<()
     if !(MIN_SOURCE_IMAGE_MIB..=MAX_SOURCE_IMAGE_MIB).contains(&policy.source_image_mib) {
         return Err("microVM source image size outside reviewed bound".into());
     }
-    if let Some(slots) = policy.warm_slots {
-        if slots == 0 || slots > MAX_WARM_SLOTS || slots > host.maximum_concurrent {
-            return Err("warm pool slots outside reviewed bound".into());
-        }
+    if let Some(slots) = policy.warm_slots
+        && (slots == 0 || slots > MAX_WARM_SLOTS || slots > host.maximum_concurrent)
+    {
+        return Err("warm pool slots outside reviewed bound".into());
     }
     if !policy.guest_shell.starts_with('/')
         || policy.guest_shell.len() > MAX_GUEST_PATH_BYTES

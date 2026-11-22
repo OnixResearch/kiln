@@ -192,14 +192,14 @@ pub fn admit(
                 )
             })?
             .map(|path| path.to_absolute_path());
-        if let Some(declared_path) = &declared_path {
-            if declared_path != expected_path {
-                return Err(diagnostic(
-                    "nix_derivation_output_path_mismatch",
-                    "nix.derivation.outputs",
-                    "expected output path differs from the derivation declaration",
-                ));
-            }
+        if let Some(declared_path) = &declared_path
+            && declared_path != expected_path
+        {
+            return Err(diagnostic(
+                "nix_derivation_output_path_mismatch",
+                "nix.derivation.outputs",
+                "expected output path differs from the derivation declaration",
+            ));
         }
         let needle = needle(expected_path).ok_or_else(|| {
             diagnostic(

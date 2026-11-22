@@ -126,18 +126,18 @@ impl Engine {
                 },
                 response.status,
             )?;
-            if write && response.status < 400 && target == "/api/runs" {
-                if let Some(id) = serde_json::from_slice::<serde_json::Value>(&response.body)
+            if write
+                && response.status < 400
+                && target == "/api/runs"
+                && let Some(id) = serde_json::from_slice::<serde_json::Value>(&response.body)
                     .ok()
                     .and_then(|v| v.get("id").and_then(|id| id.as_str()).map(str::to_owned))
-                {
-                    if self.state.runs.contains_key(&id) {
-                        if let Some(audit) = self.state.audit.last_mut() {
-                            audit.run_id = Some(id);
-                        }
-                        self.persist()?;
-                    }
+                && self.state.runs.contains_key(&id)
+            {
+                if let Some(audit) = self.state.audit.last_mut() {
+                    audit.run_id = Some(id);
                 }
+                self.persist()?;
             }
         }
         let maximum = if response.content_type == "application/octet-stream" {

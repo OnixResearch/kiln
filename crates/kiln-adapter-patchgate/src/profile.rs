@@ -244,13 +244,13 @@ pub(crate) fn validate_profile(profile: &PatchgateProfile) -> PortResult<()> {
             "Native configuration source, path and SHA-256 evidence are inconsistent",
         ));
     }
-    if let Some(policy) = &profile.native.policy {
-        if policy.path != values.policy_path || !sha256(&policy.sha256) {
-            return Err(domain(
-                "patchgate_policy",
-                "Native policy path and SHA-256 must match the trusted configuration",
-            ));
-        }
+    if let Some(policy) = &profile.native.policy
+        && (policy.path != values.policy_path || !sha256(&policy.sha256))
+    {
+        return Err(domain(
+            "patchgate_policy",
+            "Native policy path and SHA-256 must match the trusted configuration",
+        ));
     }
     for (name, value) in &profile.environment {
         if name.is_empty() || name.contains(['=', '\0']) || value.contains('\0') {

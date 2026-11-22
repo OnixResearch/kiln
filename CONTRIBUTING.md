@@ -25,7 +25,7 @@ Enter the development shell from the repository root:
 nix develop path:$PWD
 ```
 
-The workspace pins Rust `1.88.0` in `rust-toolchain.toml`, with the `clippy` and
+The workspace pins Rust `1.97.1` in `rust-toolchain.toml`, with the `clippy` and
 `rustfmt` components and the `wasm32-unknown-unknown` target. Build the
 workspace from source.
 

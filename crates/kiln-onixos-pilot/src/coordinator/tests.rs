@@ -113,7 +113,10 @@ fn fixture() -> Result<(PilotProfile, SignedRequest, WorkerResult)> {
         metadata_identity: None,
         cache: CacheAdvisory::NotBuilt,
     };
-    let tasks = core(map_task_proposals(&profile.discovery_plan, &[job.clone()]))?;
+    let tasks = core(map_task_proposals(
+        &profile.discovery_plan,
+        std::slice::from_ref(&job),
+    ))?;
     let completion = DiscoveryCompletionFacts {
         stream_complete: true,
         stream_valid: true,
@@ -130,7 +133,7 @@ fn fixture() -> Result<(PilotProfile, SignedRequest, WorkerResult)> {
     let observation_identity = compute_discovery_observation_identity(
         &profile.discovery_plan,
         DiscoveryTerminal::Complete,
-        &[job.clone()],
+        std::slice::from_ref(&job),
         &[],
         &tasks,
         completion,

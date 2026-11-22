@@ -262,10 +262,8 @@ fn advisory_approvals_never_change_any_checklist_item() {
                                     cases += 1;
                                     let mut facts = facts(policy(ownership, minimum), true);
                                     let mut state = setup(&mut facts);
-                                    if !changed_files {
-                                        if let Some(source) = facts.source.as_mut() {
-                                            source.changed_files = None;
-                                        }
+                                    if !changed_files && let Some(source) = facts.source.as_mut() {
+                                        source.changed_files = None;
                                     }
                                     if let Some(value) = bob {
                                         vote(&mut state, &mut facts, "bob", value);
@@ -518,10 +516,10 @@ fn owners_authors_and_closed_changes_cannot_advise() {
     // An author of any revision (for example a provider-completed revision
     // authored by another principal) is an author of the change.
     upload(&mut state, &mut facts, OWNER);
-    if let Some(change) = state.changes.get_mut("c") {
-        if let Some(first) = change.revisions.first_mut() {
-            first.author = "frank".into();
-        }
+    if let Some(change) = state.changes.get_mut("c")
+        && let Some(first) = change.revisions.first_mut()
+    {
+        first.author = "frank".into();
     }
     rejected(
         advise(&mut state, &mut facts, "frank", true),

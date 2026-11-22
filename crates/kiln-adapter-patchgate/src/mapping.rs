@@ -451,8 +451,8 @@ fn validate_record(
             "Native record reports an execution error, not a completed review decision",
         )));
     }
-    if let Some(provenance) = &record.provenance {
-        if provenance.verifiers.schema_version != 1
+    if let Some(provenance) = &record.provenance
+        && (provenance.verifiers.schema_version != 1
             || provenance.verifiers.patchgate.is_empty()
             || provenance.verifiers.pijul.is_empty()
             || provenance.requests.iter().any(|request| {
@@ -463,26 +463,24 @@ fn validate_record(
                     || request.revision_verified
                     || !sha256(&request.prompt_sha256)
                     || !sha256(&request.schema_sha256)
-            })
-        {
-            return Err(domain(
-                "patchgate_provenance",
-                "Native provenance is incomplete or claims unsupported model revision verification",
-            ));
-        }
+            }))
+    {
+        return Err(domain(
+            "patchgate_provenance",
+            "Native provenance is incomplete or claims unsupported model revision verification",
+        ));
     }
-    if let Some(configuration) = &record.configuration {
-        if canonical_identity(configuration, profile.limits.max_report_bytes)?
+    if let Some(configuration) = &record.configuration
+        && canonical_identity(configuration, profile.limits.max_report_bytes)?
             != canonical_identity(
                 &profile.native.configuration,
                 profile.limits.max_request_bytes,
             )?
-        {
-            return Err(domain(
-                "patchgate_record_configuration",
-                "Native decision configuration differs from trusted configuration",
-            ));
-        }
+    {
+        return Err(domain(
+            "patchgate_record_configuration",
+            "Native decision configuration differs from trusted configuration",
+        ));
     }
     if let Some(binding) = &record.review {
         validate_record_main(profile, &binding.main)?;

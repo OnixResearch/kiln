@@ -598,10 +598,10 @@ fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
             Err(error) => return fail(&error),
         },
     };
-    if !selection.deferred.is_empty() {
-        if let Ok(json) = serde_json::to_string(&selection.deferred) {
-            eprintln!("{{\"deferred\":{json}}}");
-        }
+    if !selection.deferred.is_empty()
+        && let Ok(json) = serde_json::to_string(&selection.deferred)
+    {
+        eprintln!("{{\"deferred\":{json}}}");
     }
     match selection.attempt {
         Some(attempt) => {

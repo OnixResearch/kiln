@@ -552,13 +552,13 @@ fn read_request(
         } else {
             None
         };
-        if let Some(slot) = slot {
-            if slot.replace(value).is_some() {
-                return Err(http_error(
-                    "github_http_duplicate_header",
-                    "GitHub HTTP critical header occurs more than once",
-                ));
-            }
+        if let Some(slot) = slot
+            && slot.replace(value).is_some()
+        {
+            return Err(http_error(
+                "github_http_duplicate_header",
+                "GitHub HTTP critical header occurs more than once",
+            ));
         }
         if name.eq_ignore_ascii_case("transfer-encoding")
             || name.eq_ignore_ascii_case("expect")

@@ -830,13 +830,12 @@ impl ChangeReviewPort for LocalGitReviewProvider {
                 | ReviewOperation::BuildSpeculativeIntegration {
                     expected_target, ..
                 } = &request.operation
+                    && target_commit != *expected_target
                 {
-                    if target_commit != *expected_target {
-                        return Err(failure(
-                            ReviewErrorKind::TargetMoved,
-                            "exact target changed before submit",
-                        ));
-                    }
+                    return Err(failure(
+                        ReviewErrorKind::TargetMoved,
+                        "exact target changed before submit",
+                    ));
                 }
             }
         }
@@ -860,13 +859,12 @@ impl ChangeReviewPort for LocalGitReviewProvider {
         | ReviewOperation::BuildSpeculativeIntegration {
             expected_target, ..
         } = &request.operation
+            && target(&repo, &request.target_ref)? != oid(expected_target)?
         {
-            if target(&repo, &request.target_ref)? != oid(expected_target)? {
-                return Err(failure(
-                    ReviewErrorKind::TargetMoved,
-                    "exact target changed while constructing integration",
-                ));
-            }
+            return Err(failure(
+                ReviewErrorKind::TargetMoved,
+                "exact target changed while constructing integration",
+            ));
         }
         let sig = signature(&request.signature)?;
         if let ReviewOperation::Submit {
@@ -1043,49 +1041,49 @@ fn comparison_of(
         file.binary = old_facts.1 || new_facts.1;
         if old_facts.2 || new_facts.2 || remaining_lines == 0 || remaining_bytes == 0 {
             file.truncated = true;
-        } else if !file.binary {
-            if let Some(patch) = Patch::from_diff(&diff, position).map_err(storage)? {
-                for h in 0..patch.num_hunks() {
-                    let (header, count) = patch.hunk(h).map_err(storage)?;
-                    let header_bytes = header.header();
-                    if header_bytes.len() > remaining_bytes {
+        } else if !file.binary
+            && let Some(patch) = Patch::from_diff(&diff, position).map_err(storage)?
+        {
+            for h in 0..patch.num_hunks() {
+                let (header, count) = patch.hunk(h).map_err(storage)?;
+                let header_bytes = header.header();
+                if header_bytes.len() > remaining_bytes {
+                    file.truncated = true;
+                    break;
+                }
+                remaining_bytes -= header_bytes.len();
+                let mut hunk = DiffHunk {
+                    old_start: header.old_start(),
+                    old_lines: header.old_lines(),
+                    new_start: header.new_start(),
+                    new_lines: header.new_lines(),
+                    header: String::from_utf8_lossy(header_bytes).into_owned(),
+                    lines: Vec::new(),
+                };
+                for l in 0..count {
+                    let line = patch.line_in_hunk(h, l).map_err(storage)?;
+                    if remaining_lines == 0 || line.content().len() > remaining_bytes {
                         file.truncated = true;
                         break;
                     }
-                    remaining_bytes -= header_bytes.len();
-                    let mut hunk = DiffHunk {
-                        old_start: header.old_start(),
-                        old_lines: header.old_lines(),
-                        new_start: header.new_start(),
-                        new_lines: header.new_lines(),
-                        header: String::from_utf8_lossy(header_bytes).into_owned(),
-                        lines: Vec::new(),
+                    remaining_lines -= 1;
+                    remaining_bytes -= line.content().len();
+                    let kind = match line.origin() {
+                        '+' => DiffLineKind::Addition,
+                        '-' => DiffLineKind::Deletion,
+                        ' ' => DiffLineKind::Context,
+                        _ => DiffLineKind::NoNewline,
                     };
-                    for l in 0..count {
-                        let line = patch.line_in_hunk(h, l).map_err(storage)?;
-                        if remaining_lines == 0 || line.content().len() > remaining_bytes {
-                            file.truncated = true;
-                            break;
-                        }
-                        remaining_lines -= 1;
-                        remaining_bytes -= line.content().len();
-                        let kind = match line.origin() {
-                            '+' => DiffLineKind::Addition,
-                            '-' => DiffLineKind::Deletion,
-                            ' ' => DiffLineKind::Context,
-                            _ => DiffLineKind::NoNewline,
-                        };
-                        hunk.lines.push(DiffLine {
-                            kind,
-                            old_line: line.old_lineno(),
-                            new_line: line.new_lineno(),
-                            text: String::from_utf8_lossy(line.content()).into_owned(),
-                        });
-                    }
-                    file.hunks.push(hunk);
-                    if file.truncated {
-                        break;
-                    }
+                    hunk.lines.push(DiffLine {
+                        kind,
+                        old_line: line.old_lineno(),
+                        new_line: line.new_lineno(),
+                        text: String::from_utf8_lossy(line.content()).into_owned(),
+                    });
+                }
+                file.hunks.push(hunk);
+                if file.truncated {
+                    break;
                 }
             }
         }

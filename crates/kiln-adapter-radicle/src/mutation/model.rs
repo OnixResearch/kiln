@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
 use std::str::FromStr;
 
 use kiln_core::cob::{CobCapability, CobEffectPlan};
@@ -181,8 +180,7 @@ fn admit_mutation_profile_with_executable_policy(
     profile: &RadicleMutationProfile,
     require_production_executable: bool,
 ) -> CoreResult<()> {
-    let production_executable = profile.executable.path
-        == PathBuf::from(PINNED_SECRETSPEC_EXECUTABLE_PATH)
+    let production_executable = profile.executable.path == *PINNED_SECRETSPEC_EXECUTABLE_PATH
         && profile.executable.blake3 == PINNED_SECRETSPEC_EXECUTABLE_BLAKE3;
     let deadlines = profile.deadlines;
     if profile.id.as_str() != MUTATION_PROFILE_ID

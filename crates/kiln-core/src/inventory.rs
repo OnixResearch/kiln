@@ -1031,14 +1031,13 @@ pub fn admit_snapshot(
             {
                 return Err("inventory_accounting_invalid");
             }
-            if let (Some(free), Some(reserved)) = (pool.allocatable, pool.reserved) {
-                if free
+            if let (Some(free), Some(reserved)) = (pool.allocatable, pool.reserved)
+                && free
                     .checked_add(reserved)
                     .and_then(|v| v.checked_add(total))
                     .is_none_or(|v| v > capacity)
-                {
-                    return Err("inventory_accounting_invalid");
-                }
+            {
+                return Err("inventory_accounting_invalid");
             }
         }
     }

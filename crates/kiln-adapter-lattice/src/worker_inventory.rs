@@ -638,14 +638,13 @@ fn ascending<T: Ord>(values: &[T]) -> bool {
 
 /// A declared or qualified set holds 1 to 32 sorted, distinct names.
 fn validate_capability(fact: &FactDto<Vec<String>>) -> Result<(), &'static str> {
-    if let Some(names) = fact.published()? {
-        if names.is_empty()
+    if let Some(names) = fact.published()?
+        && (names.is_empty()
             || names.len() > MAX_CAPABILITY_NAMES
             || !ascending(names)
-            || !names.iter().all(|name| is_name(name))
-        {
-            return Err("lattice_capability_invalid");
-        }
+            || !names.iter().all(|name| is_name(name)))
+    {
+        return Err("lattice_capability_invalid");
     }
     Ok(())
 }

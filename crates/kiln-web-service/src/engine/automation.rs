@@ -267,16 +267,15 @@ fn next_effect(
             Registration::Schedule(_, p) => Some(("schedule", p.id.as_str())),
             Registration::Notification(_, _) => None,
         };
-        if let Some((kind, id)) = source_registration {
-            if let Some(source) = state
+        if let Some((kind, id)) = source_registration
+            && let Some(source) = state
                 .automation
                 .sources
                 .values()
                 .filter(|s| s.status == "reserved" && s.kind == kind && s.registration_id == id)
                 .min_by_key(|s| (s.received_at_ms, &s.id))
-            {
-                return Ok(Some((next, SelectedEffect::Source(source.id.clone()))));
-            }
+        {
+            return Ok(Some((next, SelectedEffect::Source(source.id.clone()))));
         }
         if matches!(&registration, Registration::Trigger(_)) {
             continue;
@@ -989,15 +988,14 @@ impl Engine {
                 ),
                 _ => None,
             };
-            if index > 0 || status == "skipped" || status == "filtered" {
-                if let Some(settings) = self
+            if (index > 0 || status == "skipped" || status == "filtered")
+                && let Some(settings) = self
                     .state
                     .automation
                     .settings
                     .get_mut(&key("trigger", &trigger.id))
-                {
-                    settings.last_status = Some(status.into());
-                }
+            {
+                settings.last_status = Some(status.into());
             }
             self.state.automation.sources.insert(
                 id.clone(),
@@ -1115,10 +1113,9 @@ impl Engine {
                         .find(|trigger| trigger.id == reservation.registration_id)
                 })
                 .is_some_and(|trigger| trigger.supersede_queued)
+            && let Some(new_run) = record.run_id.clone()
         {
-            if let Some(new_run) = record.run_id.clone() {
-                self.supersede_runs(&reservation, &new_run);
-            }
+            self.supersede_runs(&reservation, &new_run);
         }
         self.persist()
     }

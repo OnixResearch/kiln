@@ -660,10 +660,10 @@ pub fn pipeline_view(record: &PipelineRecord) -> Value {
         "createdAt": rfc3339(record.created_at),
         "workflows": workflows,
     });
-    if let Some(source) = &record.source_repo {
-        if *source != record.repo_did {
-            set_field(&mut view, "sourceRepo", json!(source));
-        }
+    if let Some(source) = &record.source_repo
+        && *source != record.repo_did
+    {
+        set_field(&mut view, "sourceRepo", json!(source));
     }
     view
 }

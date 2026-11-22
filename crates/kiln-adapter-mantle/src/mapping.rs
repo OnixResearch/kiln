@@ -648,14 +648,14 @@ fn validate_report_surface(report: &NativeBuildReport) -> PortResult<()> {
             "Mantle native report names an unsupported hermeticity mode",
         ));
     }
-    if let Some(digest) = &report.overlay_plan_blake3 {
-        if !is_blake3_hex(digest) {
-            return Err(domain(
-                "mantle_native_report_digest",
-                "mantle.report.overlay_plan_blake3",
-                "Mantle native report overlay digest is not canonical BLAKE3",
-            ));
-        }
+    if let Some(digest) = &report.overlay_plan_blake3
+        && !is_blake3_hex(digest)
+    {
+        return Err(domain(
+            "mantle_native_report_digest",
+            "mantle.report.overlay_plan_blake3",
+            "Mantle native report overlay digest is not canonical BLAKE3",
+        ));
     }
     Ok(())
 }

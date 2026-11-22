@@ -909,12 +909,11 @@ fn prepare_selected<S: CampaignDriveShell>(
             .observations
             .get(member)
             .is_some_and(|observation| observation.stage == MemberStage::Executing);
-        if executing {
-            if let Some(recovered) =
+        if executing
+            && let Some(recovered) =
                 shell.recover_executing(store, campaign_id, version, &state, member)?
-            {
-                return Ok(CampaignClaim::Bound(recovered));
-            }
+        {
+            return Ok(CampaignClaim::Bound(recovered));
         }
     }
     Ok(CampaignClaim::Bound(version))

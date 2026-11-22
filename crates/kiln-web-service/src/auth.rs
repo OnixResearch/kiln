@@ -63,10 +63,10 @@ impl FeedToken {
     fn matches(&self, candidate: &[u8]) -> bool {
         let fingerprint = file_fingerprint(&self.path);
         let mut cache = self.cache.lock().ok();
-        if let Some(cached) = cache.as_ref().and_then(|cache| cache.as_ref()) {
-            if cached.fingerprint == fingerprint {
-                return cached.verifier.matches(candidate);
-            }
+        if let Some(cached) = cache.as_ref().and_then(|cache| cache.as_ref())
+            && cached.fingerprint == fingerprint
+        {
+            return cached.verifier.matches(candidate);
         }
         match read_token(&self.path).and_then(|secret| TokenVerifier::new(&secret)) {
             Ok(verifier) => {

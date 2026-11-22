@@ -558,13 +558,13 @@ pub fn review(
         .map(|value| self::text(value, "$.image", MAXIMUM_NAME_BYTES))
         .transpose()
         .map_err(qualify)?;
-    if let Some(image) = &image {
-        if !binding.images.contains(image) {
-            return Err(qualify(fail(
-                "$.image",
-                "image is not provided by the reviewed engine binding",
-            )));
-        }
+    if let Some(image) = &image
+        && !binding.images.contains(image)
+    {
+        return Err(qualify(fail(
+            "$.image",
+            "image is not provided by the reviewed engine binding",
+        )));
     }
     let mut notes = Vec::new();
     Ok(ReviewedWorkflow {

@@ -232,10 +232,10 @@ impl NixBuildRuntime for FakeRuntime {
     }
 
     fn read_derivation(&self, path: &Path, _max_bytes: u64) -> PortResult<Vec<u8>> {
-        if path.file_name() == Path::new(DRV_PATH).file_name() {
-            if let Some(bytes) = &self.derivation_bytes {
-                return Ok(bytes.clone());
-            }
+        if path.file_name() == Path::new(DRV_PATH).file_name()
+            && let Some(bytes) = &self.derivation_bytes
+        {
+            return Ok(bytes.clone());
         }
         Err(PortFailure::Domain(Diagnostic::new(
             "fixture_derivation",

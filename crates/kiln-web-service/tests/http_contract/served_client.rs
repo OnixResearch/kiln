@@ -187,10 +187,10 @@ fn request(
         if header_end.is_none() && bytes.len() > HEADER_LIMIT {
             return transport();
         }
-        if let Some(end) = header_end {
-            if end > HEADER_LIMIT || bytes.len() - end > CLIENT_BODY_LIMIT {
-                return transport();
-            }
+        if let Some(end) = header_end
+            && (end > HEADER_LIMIT || bytes.len() - end > CLIENT_BODY_LIMIT)
+        {
+            return transport();
         }
     }
     let Some(end) = header_end else {

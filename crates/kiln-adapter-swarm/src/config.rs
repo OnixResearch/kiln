@@ -103,10 +103,10 @@ impl SwarmConfig {
         {
             return Err("swarm config file must be an absolute path".to_owned());
         }
-        if let Some(server) = &self.server {
-            if !bounded_text(server, MAX_SERVER_BYTES) {
-                return Err("swarm server is invalid".to_owned());
-            }
+        if let Some(server) = &self.server
+            && !bounded_text(server, MAX_SERVER_BYTES)
+        {
+            return Err("swarm server is invalid".to_owned());
         }
         if !group(&self.group) {
             return Err("swarm group is invalid".to_owned());

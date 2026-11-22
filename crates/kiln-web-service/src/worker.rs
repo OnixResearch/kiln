@@ -170,20 +170,21 @@ pub fn run_job(
             Ok::<(), String>(())
         })();
         let mut uploaded = output.ingress.and(reports).and(artifacts);
-        if output.code == 0 && uploaded.is_ok() {
-            if let (Some(config), Some(key)) = (&step.cache, cache_key.as_ref()) {
-                match cache::publish(
-                    &service,
-                    &binding,
-                    &step.node_id,
-                    config,
-                    &source.checkout,
-                    key,
-                    true,
-                ) {
-                    Ok(observation) => cache_observations.push(observation),
-                    Err(error) => uploaded = Err(error),
-                }
+        if output.code == 0
+            && uploaded.is_ok()
+            && let (Some(config), Some(key)) = (&step.cache, cache_key.as_ref())
+        {
+            match cache::publish(
+                &service,
+                &binding,
+                &step.node_id,
+                config,
+                &source.checkout,
+                key,
+                true,
+            ) {
+                Ok(observation) => cache_observations.push(observation),
+                Err(error) => uploaded = Err(error),
             }
         }
         let telemetry = measurement.and_then(|mut measured| {

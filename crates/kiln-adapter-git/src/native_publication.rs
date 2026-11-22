@@ -130,10 +130,10 @@ pub fn push_exact_ref(
         }
     });
     callbacks.push_update_reference(|reference, status| {
-        if reference == destination_ref {
-            if let Some(status) = status {
-                observed_rejection = Some(status.to_owned());
-            }
+        if reference == destination_ref
+            && let Some(status) = status
+        {
+            observed_rejection = Some(status.to_owned());
         }
         Ok(())
     });

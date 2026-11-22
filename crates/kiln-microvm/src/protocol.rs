@@ -224,7 +224,7 @@ pub fn guest_frame(message: GuestMessage) -> GuestFrame {
 
 /// Lowercase hex decoding for the entropy seed.
 pub fn hex_bytes(text: &str) -> Option<Vec<u8>> {
-    if text.len() % 2 != 0 {
+    if !text.len().is_multiple_of(2) {
         return None;
     }
     text.as_bytes()

@@ -43,15 +43,17 @@ pub(crate) fn admit_trigger(p: &TriggerProfile) -> Result<(), String> {
         if branch.is_some() && !p.filter.tags.is_empty() {
             return Err(invalid("tag filters never admit a branch reference"));
         }
-        if let Some(tag) = tag {
-            if !p.filter.tags.is_empty() && !tag_matches(&p.filter.tags, tag) {
-                return Err(invalid("tag filters never admit the bound tag reference"));
-            }
+        if let Some(tag) = tag
+            && !p.filter.tags.is_empty()
+            && !tag_matches(&p.filter.tags, tag)
+        {
+            return Err(invalid("tag filters never admit the bound tag reference"));
         }
-        if let Some(branch) = branch {
-            if !p.filter.branches.is_empty() && !branch_matches(&p.filter.branches, branch) {
-                return Err(invalid("branch filters never admit the bound reference"));
-            }
+        if let Some(branch) = branch
+            && !p.filter.branches.is_empty()
+            && !branch_matches(&p.filter.branches, branch)
+        {
+            return Err(invalid("branch filters never admit the bound reference"));
         }
     }
     if p.pull_request && branch.is_none() {

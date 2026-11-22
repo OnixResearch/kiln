@@ -373,13 +373,13 @@ impl AttemptReport {
 }
 
 fn turns(attempt: &ImplementationAttempt) -> &ModelTurnObservation {
-    if let Some(metrics) = &attempt.metrics {
-        if !matches!(
+    if let Some(metrics) = &attempt.metrics
+        && !matches!(
             metrics.usage.model_turns,
             ModelTurnObservation::Absent { .. }
-        ) {
-            return &metrics.usage.model_turns;
-        }
+        )
+    {
+        return &metrics.usage.model_turns;
     }
     if let Some(worker) = &attempt.worker_observation {
         return &worker.usage.model_turns;

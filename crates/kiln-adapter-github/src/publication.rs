@@ -1188,21 +1188,20 @@ mod tests {
                 if let Some(length) = text
                     .lines()
                     .find_map(|line| line.strip_prefix("Content-Length: "))
+                    && let Ok(length) = length.trim().parse::<usize>()
                 {
-                    if let Ok(length) = length.trim().parse::<usize>() {
-                        let have = request.len().saturating_sub(
-                            request
-                                .windows(4)
-                                .position(|window| window == b"\r\n\r\n")
-                                .map_or(0, |position| position + 4),
-                        );
-                        let mut body = vec![0; length.saturating_sub(have)];
-                        if !body.is_empty() {
-                            stream
-                                .read_exact(&mut body)
-                                .unwrap_or_else(|_| unreachable!());
-                            request.extend_from_slice(&body);
-                        }
+                    let have = request.len().saturating_sub(
+                        request
+                            .windows(4)
+                            .position(|window| window == b"\r\n\r\n")
+                            .map_or(0, |position| position + 4),
+                    );
+                    let mut body = vec![0; length.saturating_sub(have)];
+                    if !body.is_empty() {
+                        stream
+                            .read_exact(&mut body)
+                            .unwrap_or_else(|_| unreachable!());
+                        request.extend_from_slice(&body);
                     }
                 }
                 requests.push(String::from_utf8_lossy(&request).into_owned());

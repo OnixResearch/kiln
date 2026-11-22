@@ -406,17 +406,17 @@ mod tests {
                 .advance(*event)
                 .unwrap_or_else(|error| unreachable!("{error}"));
             trace.push((vm.state, effect));
-            if vm.state == State::Journaled {
-                if let Some(facts) = hold.filter(|f| f.enabled) {
-                    let effect = vm
-                        .advance(Event::Hold(facts))
-                        .unwrap_or_else(|error| unreachable!("{error}"));
-                    trace.push((vm.state, effect));
-                    let effect = vm
-                        .advance(Event::HoldEnded)
-                        .unwrap_or_else(|error| unreachable!("{error}"));
-                    trace.push((vm.state, effect));
-                }
+            if vm.state == State::Journaled
+                && let Some(facts) = hold.filter(|f| f.enabled)
+            {
+                let effect = vm
+                    .advance(Event::Hold(facts))
+                    .unwrap_or_else(|error| unreachable!("{error}"));
+                trace.push((vm.state, effect));
+                let effect = vm
+                    .advance(Event::HoldEnded)
+                    .unwrap_or_else(|error| unreachable!("{error}"));
+                trace.push((vm.state, effect));
             }
         }
         trace

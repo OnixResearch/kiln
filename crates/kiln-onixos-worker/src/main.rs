@@ -75,24 +75,24 @@ fn execute(arguments: &[String]) -> Result<bool, String> {
     {
         return project::execute(arguments);
     }
-    if let [command, path] = arguments {
-        if command == "eval-profile" {
-            let selected: EvalSelection =
-                serde_json::from_slice(&read_bounded(Path::new(path))?).map_err(text)?;
-            let profile = match selected.kind {
-                EvaluatorKind::Onix => {
-                    NixEvalProfile::onix(selected.runtime, selected.limits, selected.source_binding)
-                }
-                EvaluatorKind::Stock => NixEvalProfile::pinned(
-                    ProviderProfileId::new("nix-eval-jobs-v1").map_err(text)?,
-                    selected.runtime,
-                    selected.limits,
-                ),
+    if let [command, path] = arguments
+        && command == "eval-profile"
+    {
+        let selected: EvalSelection =
+            serde_json::from_slice(&read_bounded(Path::new(path))?).map_err(text)?;
+        let profile = match selected.kind {
+            EvaluatorKind::Onix => {
+                NixEvalProfile::onix(selected.runtime, selected.limits, selected.source_binding)
             }
-            .map_err(text)?;
-            println!("{}", serde_json::to_string(&profile).map_err(text)?);
-            return Ok(true);
+            EvaluatorKind::Stock => NixEvalProfile::pinned(
+                ProviderProfileId::new("nix-eval-jobs-v1").map_err(text)?,
+                selected.runtime,
+                selected.limits,
+            ),
         }
+        .map_err(text)?;
+        println!("{}", serde_json::to_string(&profile).map_err(text)?);
+        return Ok(true);
     }
     let [command, path, identity] = arguments else {
         return Err("usage: kiln-onixos-worker eval-profile SELECTION_JSON | run|release JOB_JSON JOB_BLAKE3".to_string());

@@ -157,7 +157,7 @@ pub fn admit_profile(profile: &MantleProfile) -> PortResult<()> {
             "Mantle profile differs from the pinned contract cohort",
         ));
     }
-    if profile.runtime.executable_path != PathBuf::from(PINNED_MANTLE_EXECUTABLE_PATH)
+    if profile.runtime.executable_path != *PINNED_MANTLE_EXECUTABLE_PATH
         || profile.runtime.executable_identity.as_str() != PINNED_MANTLE_EXECUTABLE_BLAKE3
         || profile.required_non_claims
             != REQUIRED_NON_CLAIMS

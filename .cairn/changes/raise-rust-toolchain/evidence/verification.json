@@ -1,0 +1,59 @@
+{
+  "observed_on": "2026-11-22",
+  "decision": "Owner decision O2: raise the pinned workspace compiler to Rust 1.97.1 so a later change can adopt durable-authority-state (Rust 1.96) with its redb adapter.",
+  "source_parent_revision": "911960de",
+  "ordering": "The proposal, design and tasks gates passed before the toolchain and code changes.",
+  "cargo_environment": {
+    "rustc": "1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "1.97.1 (c980f4866 2026-06-30)",
+    "clippy": "0.1.97 (8bab26f4f6 2026-07-14)",
+    "rustfmt": "1.9.0-stable (8bab26f4f6 2026-07-14)",
+    "wrapper": "nix print-dev-env path:$PWD environment of the default development shell, a private Cargo target and TMPDIR. The herdr inventory bounds PATH to 4096 bytes, so the final runs used a PATH of the toolchain, cc, python3, pkg-config, cmake and the system profile."
+  },
+  "checks": [
+    {"command": "nix develop path:$PWD -c rustc --version", "exit": 0, "result": "rustc 1.97.1"},
+    {"command": "cargo fmt --all --check (rustfmt 1.97.1) on the unchanged parent tree", "exit": 0, "result": "formatting is stable across the rustfmt upgrade"},
+    {"command": "cargo fmt --all --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets --all-features -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 0, "passed": 2436, "failed": 0, "ignored": 16, "result_lines": 197},
+    {"command": "cargo test --locked -p kiln-adapter-jj -p kiln-hosted --all-features --no-fail-fast", "exit": 0, "passed": 161, "failed": 0, "ignored": 1, "note": "feature-gated targets touched by the all-features Clippy fixes"},
+    {"command": "cargo build --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown", "exit": 0},
+    {"command": "cargo clippy --locked -p onix-kiln-core -p kiln-observe-core -p kiln-radicle-source-contract --target wasm32-unknown-unknown -- -D warnings", "exit": 0},
+    {"command": "cargo doc --locked --workspace --no-deps", "exit": 0, "result": "the same nine rustdoc warnings as Rust 1.88.0 on the parent tree; none is new"},
+    {"command": "cargo build --offline --locked --manifest-path tools/http-contract-drift/Cargo.toml", "exit": 0},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative"},
+    {"command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L --option min-free 0", "exit": 0, "result": "both overlay consumer checks report Status: clean, Findings: 0; the two runtime Octet checks were already built and do not consume root sources"},
+    {"command": "nix build path:$PWD#checks.x86_64-linux.format path:$PWD#checks.x86_64-linux.no-std --no-link -L --option min-free 0", "exit": 0, "note": "the first attempt ended when the Nix daemon disconnected; the retry passed"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0},
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 0, "result": "verdict pass"},
+    {"command": "cairn release-readiness --root .", "exit": 0, "result": "verdict fail, identical apart from content hashes to the parent tree"},
+    {"command": "cairn gate proposal|design|tasks raise-rust-toolchain", "exit": 0, "result": "PASS"}
+  ],
+  "first_octet_run": "Before the overlay checks passed --ignore-rust-version, both failed: rustc 1.96.0-nightly is not supported by onix-kiln-core, kiln-provider-api and kiln-codec, which require rustc 1.97.1.",
+  "lint_fixes": {
+    "clippy::collapsible_if": 93,
+    "clippy::cloned_ref_to_slice_refs": 10,
+    "clippy::manual_is_multiple_of": 8,
+    "clippy::cmp_owned": 6,
+    "clippy::unnecessary_sort_by": 4,
+    "clippy::question_mark": 3,
+    "clippy::while_let_loop": 1,
+    "clippy::useless_vec": 1,
+    "clippy::collapsible_match": 1,
+    "clippy::byte_char_slices": 1
+  },
+  "new_rustc_warnings": 0,
+  "allows_added": [],
+  "remaining": [
+    "Rerun nix flake check path:$PWD --no-write-lock-file -L at integration; the shared store's garbage collector blocked further flake builds here.",
+    "Follow-up: move the Tree-sitter 0.26 pins to 0.27, which needed Rust 1.90.",
+    "Follow-up: drop the detect-coding-agent path patch and use registry 0.1.1, which declares Rust 1.91.",
+    "Follow-up: re-evaluate bounded-http (Rust 1.96) for the Celld and webhook shells."
+  ],
+  "non_claims": [
+    "Rust 1.97.1 is the tested compiler, not a proven minimum.",
+    "Separately pinned runtime, browser (1.90.0), fuzz, Octet overlay and vendored workspaces are not requalified by this change.",
+    "Historical evidence and dated records that name Rust 1.88 remain as recorded."
+  ]
+}

@@ -77,7 +77,7 @@ resolver = "3"
 [workspace.package]
 edition = "2024"
 license = "MIT OR Apache-2.0"
-rust-version = "1.88"
+rust-version = "1.97.1"
 version = "0.1.0"
 
 [workspace.dependencies]
@@ -96,7 +96,8 @@ serde_json = "1.0.145"
 # Cargo manifest parsing for build-graph facts; the version the lock already selects.
 toml = { version = "=0.8.23", default-features = false, features = ["parse"] }
 # Syntax highlighting: native C runtime and grammars; the Tree-sitter `wasm`
-# feature stays off. Tree-sitter 0.27 needs Rust 1.90, above the pinned 1.88.
+# feature stays off. Tree-sitter 0.27 needs Rust 1.90, which the 1.97.1 pin
+# satisfies; these exact 0.26 pins stay until a separate dependency upgrade.
 tree-sitter = { version = "=0.26.13", default-features = false, features = ["std"] }
 tree-sitter-highlight = "=0.26.13"
 tree-sitter-bash = "=0.25.1"
@@ -194,8 +195,9 @@ unimplemented = "deny"
 unwrap_used = "deny"
 
 [patch.crates-io]
-# Registry 0.1.1 declares Rust 1.91; the exact source builds on Kiln's 1.88 pin.
-# The only difference is the recorded rust-version in its source record.
+# Registry 0.1.1 declares Rust 1.91. This exact source was patched in for Kiln's
+# former 1.88 pin and differs only in its recorded rust-version; the 1.97.1 pin
+# no longer needs it, and returning to the registry source is a separate change.
 detect-coding-agent = { path = "vendor/detect-coding-agent" }
 
 [patch."ssh://git@github.com/OnixResearch/onix-artifact.git"]

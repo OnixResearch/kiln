@@ -473,7 +473,7 @@ fn deepest_package_owns_a_file_and_root_projects_see_every_package() {
     let inner = affected(
         &projects,
         &changed(&["tools/inner/x.nix"]),
-        &[graph.clone()],
+        core::slice::from_ref(&graph),
     );
     assert_eq!(
         reasons(&inner, "tools"),
@@ -489,7 +489,7 @@ fn deepest_package_owns_a_file_and_root_projects_see_every_package() {
     let tools = affected(
         &projects,
         &changed(&["tools/default.nix"]),
-        &[graph.clone()],
+        core::slice::from_ref(&graph),
     );
     assert_eq!(
         reasons(&tools, "everything"),

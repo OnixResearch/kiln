@@ -204,10 +204,10 @@ pub fn write_feed_token(path: &Path) -> Result<(), String> {
         let _ = std::fs::remove_file(path);
         return Err("feed token sync failed".into());
     }
-    if let Some(parent) = path.parent() {
-        if let Ok(directory) = std::fs::File::open(parent) {
-            let _ = directory.sync_all();
-        }
+    if let Some(parent) = path.parent()
+        && let Ok(directory) = std::fs::File::open(parent)
+    {
+        let _ = directory.sync_all();
     }
     Ok(())
 }
@@ -351,8 +351,8 @@ impl ServiceProfile {
     }
     pub fn admit(&self) -> Result<(), String> {
         let b = &self.bounds;
-        if let Some(feeds) = &self.feeds {
-            if !absolute(&feeds.token_file)
+        if let Some(feeds) = &self.feeds
+            && (!absolute(&feeds.token_file)
                 || feeds.token_file == self.operator_token_file
                 || feeds.token_file == self.worker_token_file
                 || feeds.max_subscriptions == 0
@@ -367,10 +367,9 @@ impl ServiceProfile {
                 || (feeds.refresh_interval_ms != 0
                     && !(crate::feeds::MIN_REFRESH_INTERVAL_MS
                         ..=crate::feeds::MAX_REFRESH_INTERVAL_MS)
-                        .contains(&feeds.refresh_interval_ms))
-            {
-                return Err("invalid repository feed policy".into());
-            }
+                        .contains(&feeds.refresh_interval_ms)))
+        {
+            return Err("invalid repository feed policy".into());
         }
         if self.schema != PROFILE_SCHEMA
             || !identifier(&self.service_id)

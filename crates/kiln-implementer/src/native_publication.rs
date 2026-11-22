@@ -251,17 +251,17 @@ impl Implementer {
         } = selection;
         let (mut reservation, dispatch) =
             self.reserve_native_git_effect(work, identity, fence, plan_identity, kind, review)?;
-        if let Some(observed) = reservation.observed.clone() {
-            if !matches!(observed, NativeGitObservation::Unknown { .. }) {
-                return self.acknowledge_native_git_effect(
-                    work,
-                    identity,
-                    fence,
-                    &reservation,
-                    observed,
-                    review,
-                );
-            }
+        if let Some(observed) = reservation.observed.clone()
+            && !matches!(observed, NativeGitObservation::Unknown { .. })
+        {
+            return self.acknowledge_native_git_effect(
+                work,
+                identity,
+                fence,
+                &reservation,
+                observed,
+                review,
+            );
         }
         if dispatch == NativeGitDispatch::ReconcileOnly && reservation.receipt.is_some() {
             return Ok(reservation);
@@ -493,10 +493,11 @@ impl Implementer {
         {
             return Err("native Git observation differs from durable intent".into());
         }
-        if let Some(old) = &retained.observed {
-            if old != &observed && !matches!(old, NativeGitObservation::Unknown { .. }) {
-                return Err("native Git operation has a conflicting provider observation".into());
-            }
+        if let Some(old) = &retained.observed
+            && old != &observed
+            && !matches!(old, NativeGitObservation::Unknown { .. })
+        {
+            return Err("native Git operation has a conflicting provider observation".into());
         }
         if retained.observed.as_ref() != Some(&observed) {
             validate_native_observation(&retained, &observed)?;

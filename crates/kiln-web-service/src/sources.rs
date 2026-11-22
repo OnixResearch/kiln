@@ -726,12 +726,11 @@ fn git_file(
         "bytes": content.len(),
         "binary": binary,
     });
-    if !binary {
-        if let Ok(text) = std::str::from_utf8(content) {
-            if let Some(object) = response.as_object_mut() {
-                object.insert("text".into(), Value::String(text.to_owned()));
-            }
-        }
+    if !binary
+        && let Ok(text) = std::str::from_utf8(content)
+        && let Some(object) = response.as_object_mut()
+    {
+        object.insert("text".into(), Value::String(text.to_owned()));
     }
     if let Some(object) = response.as_object_mut() {
         object.insert("non_claims".into(), json!(NON_CLAIMS));
@@ -1119,12 +1118,11 @@ fn pijul_file(
         "bytes": content.len(),
         "binary": binary,
     });
-    if !binary {
-        if let Ok(text) = std::str::from_utf8(&content) {
-            if let Some(object) = response.as_object_mut() {
-                object.insert("text".into(), Value::String(text.to_owned()));
-            }
-        }
+    if !binary
+        && let Ok(text) = std::str::from_utf8(&content)
+        && let Some(object) = response.as_object_mut()
+    {
+        object.insert("text".into(), Value::String(text.to_owned()));
     }
     if let Some(object) = response.as_object_mut() {
         object.insert("non_claims".into(), json!(NON_CLAIMS));

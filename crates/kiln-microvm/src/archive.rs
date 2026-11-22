@@ -63,10 +63,10 @@ pub fn plan_archive(
             return Err("duplicate source snapshot path".into());
         }
         previous = Some(&entry.path);
-        if let EntryKind::Symlink { target } = &entry.kind {
-            if target.is_empty() || target.len() > MAX_LINK_BYTES || target.contains('\0') {
-                return Err("source snapshot symlink target rejected".into());
-            }
+        if let EntryKind::Symlink { target } = &entry.kind
+            && (target.is_empty() || target.len() > MAX_LINK_BYTES || target.contains('\0'))
+        {
+            return Err("source snapshot symlink target rejected".into());
         }
         total = total
             .checked_add(entry_bytes(entry))
@@ -434,7 +434,7 @@ mod tests {
         duplicate_stream.extend_from_slice(&bytes);
         assert!(extract_files(&duplicate_stream, &directory, 4, 1024).is_err());
         assert!(extract_files(&[0_u8; 512], &directory, 4, 1024).is_err());
-        for kind in [b'L', b'K', b'x', b'g'] {
+        for kind in *b"LKxg" {
             let mut block = header_bytes;
             *block
                 .get_mut(156)

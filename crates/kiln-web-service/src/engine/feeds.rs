@@ -74,18 +74,18 @@ impl Engine {
                     || subscription.url.to_lowercase().contains(query)
             });
             let mut entries = subscription.entries.clone();
-            if let Some(query) = &needle {
-                if !label_match {
-                    entries.retain(|entry| {
-                        entry.title.to_lowercase().contains(query)
-                            || entry
-                                .summary
-                                .as_deref()
-                                .is_some_and(|summary| summary.to_lowercase().contains(query))
-                    });
-                    if entries.is_empty() {
-                        continue;
-                    }
+            if let Some(query) = &needle
+                && !label_match
+            {
+                entries.retain(|entry| {
+                    entry.title.to_lowercase().contains(query)
+                        || entry
+                            .summary
+                            .as_deref()
+                            .is_some_and(|summary| summary.to_lowercase().contains(query))
+                });
+                if entries.is_empty() {
+                    continue;
                 }
             }
             let mut value =
@@ -168,17 +168,17 @@ impl Engine {
                     "runs": runs,
                     "url": url,
                 });
-                if let Some(token) = token {
-                    if let Some(object) = row.as_object_mut() {
-                        object.insert(
-                            "subscribe_url".into(),
-                            json!(format!("{url}?token={token}")),
-                        );
-                        object.insert(
-                            "rss_subscribe_url".into(),
-                            json!(format!("{url}.rss?token={token}")),
-                        );
-                    }
+                if let Some(token) = token
+                    && let Some(object) = row.as_object_mut()
+                {
+                    object.insert(
+                        "subscribe_url".into(),
+                        json!(format!("{url}?token={token}")),
+                    );
+                    object.insert(
+                        "rss_subscribe_url".into(),
+                        json!(format!("{url}.rss?token={token}")),
+                    );
                 }
                 row
             })
@@ -783,10 +783,9 @@ impl Engine {
         let rest = path.strip_prefix("/feeds/")?;
         let (key, rss) = if let Some(key) = rest.strip_suffix(".xml") {
             (key, false)
-        } else if let Some(key) = rest.strip_suffix(".rss") {
-            (key, true)
         } else {
-            return None;
+            let key = rest.strip_suffix(".rss")?;
+            (key, true)
         };
         if key.len() != 64 || !key.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return None;

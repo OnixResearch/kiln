@@ -700,10 +700,10 @@ fn lcov(text: &str) -> Result<Coverage, String> {
                 let mut parts = value.split(',');
                 let n = uint(parts.next().ok_or("LCOV line missing")?)?;
                 let hits = uint(parts.next().ok_or("LCOV hits missing")?)?;
-                if let Some(checksum) = parts.next() {
-                    if checksum.is_empty() || !checksum.bytes().all(|b| b.is_ascii_hexdigit()) {
-                        return Err("LCOV checksum invalid".into());
-                    }
+                if let Some(checksum) = parts.next()
+                    && (checksum.is_empty() || !checksum.bytes().all(|b| b.is_ascii_hexdigit()))
+                {
+                    return Err("LCOV checksum invalid".into());
                 }
                 if n == 0 || parts.next().is_some() || r.lines.insert(n, hits).is_some() {
                     return Err("LCOV duplicate or invalid line".into());

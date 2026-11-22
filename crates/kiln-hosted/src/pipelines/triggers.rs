@@ -253,10 +253,10 @@ pub fn admit(
         }
         trigger_filter::admit_filter(trigger.kind(), trigger.filter())
             .map_err(|e| fail(&format!("{path}.{}", e.field.as_str()), e.message))?;
-        if let Trigger::Schedule { schedule } = trigger {
-            if !schedules.contains_key(schedule) {
-                return Err(fail(&format!("{path}.schedule"), "unknown schedule entry"));
-            }
+        if let Trigger::Schedule { schedule } = trigger
+            && !schedules.contains_key(schedule)
+        {
+            return Err(fail(&format!("{path}.schedule"), "unknown schedule entry"));
         }
     }
     if schedules.len() > MAX_SCHEDULES {

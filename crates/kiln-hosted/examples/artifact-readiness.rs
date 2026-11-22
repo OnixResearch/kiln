@@ -70,7 +70,7 @@ fn run(request: Request) -> Result<(), String> {
         || workload.files > 512
         || workload.payload_bytes == 0
         || workload.payload_bytes > 262_144
-        || workload.payload_bytes % workload.files != 0
+        || !workload.payload_bytes.is_multiple_of(workload.files)
         || workload.id.is_empty()
         || workload.symlinks != 0
         || workload.fanout != 0

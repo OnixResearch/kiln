@@ -276,19 +276,18 @@ fn completion(profile: &PilotProfile, journal: &PilotJournal) -> Result<Option<C
     for native in &journal.native_observations {
         if let ServiceTransportOutcome::Acknowledged(ack) | ServiceTransportOutcome::Rejected(ack) =
             native
+            && let Some(native_outcome) = ack_outcome(ack)
         {
-            if let Some(native_outcome) = ack_outcome(ack) {
-                let compatible = native_outcome == outcome
-                    || (native_outcome == Outcome::DomainFailure
-                        && matches!(
-                            outcome,
-                            Outcome::ProviderError | Outcome::TimedOut | Outcome::Cancelled
-                        ));
-                if !compatible {
-                    return Err("native host phase conflicts with actual worker outcome".into());
-                }
-                terminal = Some(ack);
+            let compatible = native_outcome == outcome
+                || (native_outcome == Outcome::DomainFailure
+                    && matches!(
+                        outcome,
+                        Outcome::ProviderError | Outcome::TimedOut | Outcome::Cancelled
+                    ));
+            if !compatible {
+                return Err("native host phase conflicts with actual worker outcome".into());
             }
+            terminal = Some(ack);
         }
     }
     let Some(ack) = terminal else {

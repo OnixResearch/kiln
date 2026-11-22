@@ -489,8 +489,7 @@ pub(super) fn refresh(
         if observation.remaining_obligations.is_empty()
             && outcome != "source_moved"
             && observation.enumeration == EnumerationState::Complete
-        {
-            if let Some(old) = prior.filter(|old| {
+            && let Some(old) = prior.filter(|old| {
                 old.work_identity.is_some()
                     && matches!(
                         old.stage,
@@ -500,16 +499,16 @@ pub(super) fn refresh(
                             | MemberStage::Lifecycle
                             | MemberStage::Complete
                     )
-            }) {
-                observation.work_identity = old.work_identity.clone();
-                observation.canonical_work_key = old.canonical_work_key.clone();
-                observation.source_identity = old.source_identity.clone();
-                observation.native_context_identity = old.native_context_identity.clone();
-                observation.stage = old.stage;
-                observation.blockers = old.blockers.clone();
-                if !observation.evidence.contains(&snapshot.context_identity) {
-                    observation.evidence.push(snapshot.context_identity.clone());
-                }
+            })
+        {
+            observation.work_identity = old.work_identity.clone();
+            observation.canonical_work_key = old.canonical_work_key.clone();
+            observation.source_identity = old.source_identity.clone();
+            observation.native_context_identity = old.native_context_identity.clone();
+            observation.stage = old.stage;
+            observation.blockers = old.blockers.clone();
+            if !observation.evidence.contains(&snapshot.context_identity) {
+                observation.evidence.push(snapshot.context_identity.clone());
             }
         }
         let preserve_progress = prior.is_some_and(|prior| {

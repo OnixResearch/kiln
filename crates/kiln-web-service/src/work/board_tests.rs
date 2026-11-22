@@ -185,13 +185,13 @@ fn projection_keeps_empty_columns_and_never_hides_unconfigured_statuses() {
     assert_eq!(view, Some(false));
     // Configure only two columns: the other matching issues stay visible.
     let shared = records.get_mut("view-private");
-    if let Some(record) = shared {
-        if let Some(view) = record.fields.view.as_mut() {
-            view.board = Some(Board {
-                columns: vec!["review".into(), "backlog".into()],
-                lane_by: Default::default(),
-            });
-        }
+    if let Some(record) = shared
+        && let Some(view) = record.fields.view.as_mut()
+    {
+        view.board = Some(Board {
+            columns: vec!["review".into(), "backlog".into()],
+            lane_by: Default::default(),
+        });
     }
     let projection = project(
         &records,

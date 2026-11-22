@@ -1152,7 +1152,7 @@ impl Workspace {
                     && commits.contains(fact.revision.as_str())
             })
             .collect();
-        matched_ci.sort_by(|a, b| b.ordinal.cmp(&a.ordinal));
+        matched_ci.sort_by_key(|fact| std::cmp::Reverse(fact.ordinal));
         let ci_runs_total = matched_ci.len();
         let mut retained: BTreeMap<&str, usize> = BTreeMap::new();
         let ci_runs: Vec<_> = matched_ci

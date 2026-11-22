@@ -7,8 +7,10 @@ enters Kiln core.
 
 The selected helper compiler cohort is Rust **1.97.1** (`8bab26f4f`, stable).
 This is a tested selection, not a claim of the true minimum supported compiler.
-The root workspace retains its own Rust 1.88 cohort. An observed build of
-upstream radicle 0.25.1 with Rust1.88 failed at `cob/identity.rs:506` with E0382
+The root workspace now pins the same Rust 1.97.1 release in its own
+`rust-toolchain.toml`; the helper keeps an explicit selection so it does not
+move with later root pins. An observed build of upstream radicle 0.25.1 with
+Rust 1.88 failed at `cob/identity.rs:506` with E0382
 (the `action @ RevisionAccept | RevisionReject` pattern), before helper code.
 Do not patch upstream or relax its pin to conceal that prerequisite.
 

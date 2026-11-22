@@ -303,11 +303,10 @@ fn read_request(stream: &mut TcpStream, limits: ServerLimits) -> Result<Parsed, 
             "transfer-encoding" => {
                 return Err((411, "Chunked bodies are refused; send Content-Length"));
             }
-            "authorization" => {
-                if authorization.replace(value.to_string()).is_some() {
-                    return Err((400, "Repeated Authorization"));
-                }
+            "authorization" if authorization.is_some() => {
+                return Err((400, "Repeated Authorization"));
             }
+            "authorization" => authorization = Some(value.to_string()),
             _ => {}
         }
     }

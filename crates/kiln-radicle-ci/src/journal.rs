@@ -189,22 +189,20 @@ impl CiJournal {
         for native in &self.native_observations {
             if let ServiceTransportOutcome::Acknowledged(ack)
             | ServiceTransportOutcome::Rejected(ack) = native
+                && let Some(host_outcome) = ack_outcome(ack.decision)
             {
-                if let Some(host_outcome) = ack_outcome(ack.decision) {
-                    if host_outcome != outcome
-                        && !(host_outcome == Outcome::DomainFailure
-                            && matches!(
-                                outcome,
-                                Outcome::ProviderError | Outcome::TimedOut | Outcome::Cancelled
-                            ))
-                    {
-                        return Err(
-                            "native host terminal conflicts with actual source/worker outcome"
-                                .into(),
-                        );
-                    }
-                    receipt = Some(ack.receipt_ref.clone());
+                if host_outcome != outcome
+                    && !(host_outcome == Outcome::DomainFailure
+                        && matches!(
+                            outcome,
+                            Outcome::ProviderError | Outcome::TimedOut | Outcome::Cancelled
+                        ))
+                {
+                    return Err(
+                        "native host terminal conflicts with actual source/worker outcome".into(),
+                    );
                 }
+                receipt = Some(ack.receipt_ref.clone());
             }
         }
         let Some(receipt) = receipt else {

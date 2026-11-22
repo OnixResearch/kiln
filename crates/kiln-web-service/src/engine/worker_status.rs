@@ -173,13 +173,12 @@ fn admit(
             }
         }
         previous => {
-            if let Some(p) = previous {
-                if p.online(now_ms)
+            if let Some(p) = previous
+                && (p.online(now_ms)
                     || heartbeat.session_started_at_ms <= p.heartbeat.session_started_at_ms
-                    || heartbeat.session_started_at_ms <= p.heartbeat.sent_at_ms
-                {
-                    return Err(());
-                }
+                    || heartbeat.session_started_at_ms <= p.heartbeat.sent_at_ms)
+            {
+                return Err(());
             }
         }
     }

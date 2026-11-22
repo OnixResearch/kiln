@@ -567,8 +567,8 @@ fn validate_bound_source(
     {
         return Err("Web workflow source differs from approval binding".into());
     }
-    if let Some(gate) = &request.binding.untrusted {
-        if !gate.may_dispatch()
+    if let Some(gate) = &request.binding.untrusted
+        && (!gate.may_dispatch()
             || gate.superseded_by.is_some()
             || gate.pull_request == 0
             || gate.source_commit != source.exact_revision.native_id.as_str()
@@ -578,10 +578,9 @@ fn validate_bound_source(
                 !a.actor_id.is_empty()
                     && a.actor_id.len() <= 256
                     && !a.actor_id.chars().any(char::is_control)
-            })
-        {
-            return Err("Web exact-commit approval rejected".into());
-        }
+            }))
+    {
+        return Err("Web exact-commit approval rejected".into());
     }
     if request.plan.controls.pause || request.plan.controls.resume {
         return Err("hosted Web pause/resume unsupported".into());

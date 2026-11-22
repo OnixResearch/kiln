@@ -408,13 +408,12 @@ fn validate(value: &Value, schema: &Value, components: &Value) -> Result<(), Str
             return Err(format!("type mismatch: expected {name}"));
         }
     }
-    if let Some(allowed) = schema.get("enum") {
-        if !allowed
+    if let Some(allowed) = schema.get("enum")
+        && !allowed
             .as_array()
             .is_some_and(|allowed| allowed.contains(value))
-        {
-            return Err("enum mismatch".into());
-        }
+    {
+        return Err("enum mismatch".into());
     }
     if let Some(object) = value.as_object() {
         for required in schema
@@ -444,10 +443,10 @@ fn validate(value: &Value, schema: &Value, components: &Value) -> Result<(), Str
         }
     }
     if let Some(items) = value.as_array() {
-        if let Some(max) = schema.get("maxItems").and_then(Value::as_u64) {
-            if items.len() as u64 > max {
-                return Err("too many items".into());
-            }
+        if let Some(max) = schema.get("maxItems").and_then(Value::as_u64)
+            && items.len() as u64 > max
+        {
+            return Err("too many items".into());
         }
         if let Some(item_schema) = schema.get("items") {
             for item in items {

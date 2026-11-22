@@ -642,7 +642,7 @@ impl Service {
             .fleet_state()
             .map_err(|error| store_error(&error))?;
         let mut decisions: Vec<_> = state.decisions.decisions.values().collect();
-        decisions.sort_by(|left, right| right.raised_ms.cmp(&left.raised_ms));
+        decisions.sort_by_key(|decision| std::cmp::Reverse(decision.raised_ms));
         decisions.truncate(MAX_LISTED_DECISIONS);
         Ok(Response::new(200, json!({ "decisions": decisions })))
     }

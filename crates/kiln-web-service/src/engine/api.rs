@@ -324,10 +324,10 @@ impl Engine {
         if path == "/api/automation" {
             return self.automation_route(method, target, body, role);
         }
-        if method == "GET" {
-            if let Some(response) = self.dashboard_route(path, &params)? {
-                return Ok(response);
-            }
+        if method == "GET"
+            && let Some(response) = self.dashboard_route(path, &params)?
+        {
+            return Ok(response);
         }
         if method == "POST" && path == "/api/runs" && params.is_empty() {
             return self.start_run(body);

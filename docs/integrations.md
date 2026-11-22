@@ -84,7 +84,7 @@ The adapter checks DNS results against address-class policy before it loads secr
 
 Bodies bind the run, outcome, policy, endpoint, BLAKE3 identity, and idempotency key. Timeouts after possible acceptance remain `Unknown` unless an idempotent reconciliation contract permits retry.
 
-`bounded-http` revision `db13eb8a0341719e54817ae34451cf310a41033f` was evaluated but not imported. Its minimum Rust version is `1.96.0`; Kiln is pinned to `1.88`.
+`bounded-http` revision `db13eb8a0341719e54817ae34451cf310a41033f` was evaluated but not imported. Its minimum Rust version is `1.96.0`, above Kiln's `1.88` pin at the time. Kiln now pins `1.97.1`; importing it is a separate decision.
 
 ## Radicle CI broker
 

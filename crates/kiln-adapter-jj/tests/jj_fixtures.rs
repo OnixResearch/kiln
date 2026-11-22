@@ -82,7 +82,7 @@ fn refuses_divergent_change_and_divergent_operation_heads_read_only() {
     assert_eq!(
         code(cli::observe_changes(
             &fixture.workspace(),
-            &[change.clone()]
+            std::slice::from_ref(&change)
         )),
         "operation_divergent"
     );
@@ -122,7 +122,10 @@ fn refuses_conflicted_bookmark_and_conflicted_commit() {
     fixture.jj(&["op", "log", "-n1"]);
     let before = fixture.fingerprint();
     assert_eq!(
-        code(cli::observe_changes(&fixture.workspace(), &[left.clone()])),
+        code(cli::observe_changes(
+            &fixture.workspace(),
+            std::slice::from_ref(&left)
+        )),
         "conflicted_bookmark"
     );
     assert_eq!(

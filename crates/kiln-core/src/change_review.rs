@@ -1712,10 +1712,10 @@ fn dependency_valid(
             if id == change.id {
                 return fail("dependency_cycle", "dependency introduces a cycle");
             }
-            if visited.insert(id) {
-                if let Some(node) = state.changes.get(id) {
-                    pending.extend(node.dependencies.iter().map(|edge| edge.change.as_str()));
-                }
+            if visited.insert(id)
+                && let Some(node) = state.changes.get(id)
+            {
+                pending.extend(node.dependencies.iter().map(|edge| edge.change.as_str()));
             }
         }
     }
@@ -2065,37 +2065,36 @@ fn checklist_at(
             detail: detail.into(),
         });
     }
-    if let Some(policy) = policy {
-        if policy
+    if let Some(policy) = policy
+        && policy
             .ownership
             .rules
             .iter()
             .any(|rule| applicable(rule, change))
-        {
-            match ownership_files(change, revision, facts) {
-                Err(error) => items.push(ChecklistItem {
-                    key: "ownership_files".into(),
-                    satisfied: false,
-                    detail: error.message,
-                }),
-                Ok(files) => {
-                    let class = change_class(&policy.ownership, files);
-                    for rule in &policy.ownership.rules {
-                        if !applicable(rule, change) || !rule_matches(rule, files) {
-                            continue;
-                        }
-                        let approved =
-                            change.votes.iter().filter(counts_for_approval).any(|vote| {
-                                vote.value == VoteValue::Approve
-                                    && rule_owners(policy, rule).any(|owner| owner == &vote.actor)
-                            });
-                        let mode = rule
-                            .approval
-                            .get(class)
-                            .copied()
-                            .unwrap_or(OwnershipApprovalMode::OwnerApproval);
-                        let approval_required = mode == OwnershipApprovalMode::OwnerApproval;
-                        items.push(ChecklistItem {
+    {
+        match ownership_files(change, revision, facts) {
+            Err(error) => items.push(ChecklistItem {
+                key: "ownership_files".into(),
+                satisfied: false,
+                detail: error.message,
+            }),
+            Ok(files) => {
+                let class = change_class(&policy.ownership, files);
+                for rule in &policy.ownership.rules {
+                    if !applicable(rule, change) || !rule_matches(rule, files) {
+                        continue;
+                    }
+                    let approved = change.votes.iter().filter(counts_for_approval).any(|vote| {
+                        vote.value == VoteValue::Approve
+                            && rule_owners(policy, rule).any(|owner| owner == &vote.actor)
+                    });
+                    let mode = rule
+                        .approval
+                        .get(class)
+                        .copied()
+                        .unwrap_or(OwnershipApprovalMode::OwnerApproval);
+                    let approval_required = mode == OwnershipApprovalMode::OwnerApproval;
+                    items.push(ChecklistItem {
                             key: alloc::format!("owner:{}", rule.id),
                             satisfied: policy_valid && (!approval_required || approved),
                             detail: alloc::format!(
@@ -2118,23 +2117,22 @@ fn checklist_at(
                                 revision.id
                             ),
                         });
-                        // r[impl kiln.review.evidence.project_ci]
-                        for evidence in &rule.required_evidence {
-                            let scope = if let Some(required) = &facts.ci_required {
-                                required
-                                    .iter()
-                                    .find(|required| required.project == evidence.project)
-                                    .map(|required| Some(required.scope_identity.as_deref()))
-                            } else if evidence.project == change.project {
-                                Some(None)
-                            } else {
-                                None
-                            };
-                            let observed =
-                                scope.and_then(|scope| latest_for(&evidence.project, scope));
-                            let satisfied =
-                                policy_valid && observed.is_some_and(CiFact::satisfies_required);
-                            items.push(ChecklistItem {
+                    // r[impl kiln.review.evidence.project_ci]
+                    for evidence in &rule.required_evidence {
+                        let scope = if let Some(required) = &facts.ci_required {
+                            required
+                                .iter()
+                                .find(|required| required.project == evidence.project)
+                                .map(|required| Some(required.scope_identity.as_deref()))
+                        } else if evidence.project == change.project {
+                            Some(None)
+                        } else {
+                            None
+                        };
+                        let observed = scope.and_then(|scope| latest_for(&evidence.project, scope));
+                        let satisfied =
+                            policy_valid && observed.is_some_and(CiFact::satisfies_required);
+                        items.push(ChecklistItem {
                                 key: alloc::format!(
                                     "evidence:{}:project_ci:{}",
                                     rule.id,
@@ -2146,17 +2144,15 @@ fn checklist_at(
                                     rule.id, evidence.project, ci_commit
                                 ),
                             });
-                        }
-                        if let (Some(source), true) =
-                            (&rule.project, interface_changed(rule, files))
-                        {
-                            for requirement in interface_dependents(policy, facts, source) {
-                                if !policy.require_ci {
-                                    let observed = latest_for(
-                                        &requirement.project,
-                                        Some(requirement.scope_identity.as_deref()),
-                                    );
-                                    items.push(ChecklistItem {
+                    }
+                    if let (Some(source), true) = (&rule.project, interface_changed(rule, files)) {
+                        for requirement in interface_dependents(policy, facts, source) {
+                            if !policy.require_ci {
+                                let observed = latest_for(
+                                    &requirement.project,
+                                    Some(requirement.scope_identity.as_deref()),
+                                );
+                                items.push(ChecklistItem {
                                         key: alloc::format!(
                                             "interface_ci:{}:{}",
                                             rule.id,
@@ -2172,21 +2168,18 @@ fn checklist_at(
                                             ci_commit
                                         ),
                                     });
-                                }
-                                for dependent in policy.ownership.rules.iter().filter(|dependent| {
-                                    dependent.project.as_deref()
-                                        == Some(requirement.project.as_str())
-                                        && applicable(dependent, change)
-                                }) {
-                                    let approved =
-                                        change.votes.iter().filter(counts_for_approval).any(
-                                            |vote| {
-                                                vote.value == VoteValue::Approve
-                                                    && rule_owners(policy, dependent)
-                                                        .any(|owner| owner == &vote.actor)
-                                            },
-                                        );
-                                    items.push(ChecklistItem {
+                            }
+                            for dependent in policy.ownership.rules.iter().filter(|dependent| {
+                                dependent.project.as_deref() == Some(requirement.project.as_str())
+                                    && applicable(dependent, change)
+                            }) {
+                                let approved =
+                                    change.votes.iter().filter(counts_for_approval).any(|vote| {
+                                        vote.value == VoteValue::Approve
+                                            && rule_owners(policy, dependent)
+                                                .any(|owner| owner == &vote.actor)
+                                    });
+                                items.push(ChecklistItem {
                                         key: alloc::format!(
                                             "interface:{}:{}",
                                             rule.id,
@@ -2202,7 +2195,6 @@ fn checklist_at(
                                             revision.id
                                         ),
                                     });
-                                }
                             }
                         }
                     }
@@ -2683,17 +2675,16 @@ pub fn apply(
                     "draft is bound to its author and exact change anchor",
                 );
             }
-            if let Some(thread) = &draft.thread {
-                if !current
+            if let Some(thread) = &draft.thread
+                && !current
                     .threads
                     .iter()
                     .any(|item| &item.id == thread && item.anchor == draft.anchor)
-                {
-                    return fail(
-                        "invalid_thread",
-                        "reply draft anchor must match existing thread",
-                    );
-                }
+            {
+                return fail(
+                    "invalid_thread",
+                    "reply draft anchor must match existing thread",
+                );
             }
             let exists = state
                 .drafts
@@ -2761,17 +2752,16 @@ pub fn apply(
                     return fail("invalid_draft", "draft belongs to a different change");
                 }
                 anchor_valid(current, &draft.anchor, facts)?;
-                if let Some(thread) = &draft.thread {
-                    if !current
+                if let Some(thread) = &draft.thread
+                    && !current
                         .threads
                         .iter()
                         .any(|item| &item.id == thread && item.anchor == draft.anchor)
-                    {
-                        return fail(
-                            "invalid_thread",
-                            "reply draft thread or anchor no longer matches",
-                        );
-                    }
+                {
+                    return fail(
+                        "invalid_thread",
+                        "reply draft thread or anchor no longer matches",
+                    );
                 }
             }
             let drafts = state.drafts.entry(actor.into()).or_default();

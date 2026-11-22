@@ -156,10 +156,11 @@ it must not reuse Cargo's Git cache.
 ### Registry execution transport cohort
 
 `kiln-adapter-iroh` pins registry Iroh `0.95.1` (upstream Rust minimum 1.85)
-under ALPN `kiln.workflow.v1`. Kiln retains Rust 1.88 and the existing imported
-Lattice workflow contract/transport; Iroh does not enter provider-neutral cores.
-Use the committed Cargo-generated lock and `--locked` commands. The signing
-prereleases require their compatible published Iroh lock cohort:
+under ALPN `kiln.workflow.v1`. Kiln keeps its pinned Rust toolchain and the
+existing imported Lattice workflow contract/transport; Iroh does not enter
+provider-neutral cores. Use the committed Cargo-generated lock and `--locked`
+commands. The signing prereleases require their compatible published Iroh lock
+cohort:
 
 | Registry package | Locked version |
 |---|---|
@@ -173,9 +174,9 @@ prereleases require their compatible published Iroh lock cohort:
 Unconstrained resolution selected newer stable packages incompatible with
 Iroh's `ed25519-dalek 3.0.0-pre.1`. The lock was corrected with Cargo, not local
 registry edits or a patched cryptography implementation. Kiln maintainers must
-recheck Rust 1.88 compilation, native peer/unknown-outcome conformance, and the
-workspace gates when changing this cohort. This is compatibility evidence,
-not a cryptographic audit or security guarantee.
+recheck compilation on the pinned Rust toolchain, native peer/unknown-outcome
+conformance, and the workspace gates when changing this cohort. This is
+compatibility evidence, not a cryptographic audit or security guarantee.
 
 ### Unified Git binding (2026-11-15)
 

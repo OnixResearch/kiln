@@ -306,10 +306,11 @@ pub fn admit_url(url: &str, allow_private: bool) -> Result<Url, String> {
         .strip_prefix('[')
         .and_then(|host| host.strip_suffix(']'))
         .unwrap_or(host);
-    if let Ok(ip) = bare.parse::<IpAddr>() {
-        if !allow_private && !globally_routable(ip) {
-            return Err("feed URL host is not a globally routable address".into());
-        }
+    if let Ok(ip) = bare.parse::<IpAddr>()
+        && !allow_private
+        && !globally_routable(ip)
+    {
+        return Err("feed URL host is not a globally routable address".into());
     }
     if parsed.port().is_some() && parsed.port() != Some(443) && !allow_private {
         return Err("feed URL must use the default HTTPS port".into());
@@ -453,10 +454,9 @@ pub fn fetch(url: &str, options: FetchOptions<'_>) -> Result<FetchOutcome, Strin
             .get(CONTENT_LENGTH)
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.parse::<usize>().ok())
+            && length > max_bytes
         {
-            if length > max_bytes {
-                return Err("external feed content length exceeds its bound".into());
-            }
+            return Err("external feed content length exceeds its bound".into());
         }
         let etag = response_validator(&response, ETAG);
         let last_modified = response_validator(&response, LAST_MODIFIED);
@@ -786,7 +786,7 @@ pub struct FeedRun {
 /// Select and render the newest retained runs for one repository.
 #[must_use]
 pub fn repository_items(origin: &str, runs: &mut Vec<FeedRun>, max_items: usize) -> Vec<AtomItem> {
-    runs.sort_by(|left, right| right.ordinal.cmp(&left.ordinal));
+    runs.sort_by_key(|run| std::cmp::Reverse(run.ordinal));
     runs.truncate(max_items);
     runs.iter()
         .map(|run| AtomItem {
@@ -1337,7 +1337,7 @@ mod tests {
             enabled: true,
             entries: Vec::new(),
         };
-        let subscriptions = vec![
+        let subscriptions = [
             subscription("never", None),
             subscription("newer", Some(50)),
             subscription("oldest", Some(10)),

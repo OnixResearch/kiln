@@ -169,13 +169,13 @@ impl WorkflowPort for Port {
             .executions
             .get_mut(effect.as_str())
             .ok_or_else(|| unavailable("Effect not retained"))?;
-        if execution.state == WorkflowState::Running {
-            if let Some(remaining) = &mut execution.remaining {
-                *remaining = remaining.saturating_sub(1);
-                if *remaining == 0 {
-                    execution.state = WorkflowState::Completed;
-                    execution.sequence += 1;
-                }
+        if execution.state == WorkflowState::Running
+            && let Some(remaining) = &mut execution.remaining
+        {
+            *remaining = remaining.saturating_sub(1);
+            if *remaining == 0 {
+                execution.state = WorkflowState::Completed;
+                execution.sequence += 1;
             }
         }
         Ok(observation(execution))

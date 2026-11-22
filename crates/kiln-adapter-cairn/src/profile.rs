@@ -225,7 +225,7 @@ pub fn admit_profile(profile: &CairnProfile) -> PortResult<()> {
     }
     validate_paths(profile)?;
     validate_limits(profile.limits)?;
-    if profile.runtime.executable_path != PathBuf::from(PINNED_CAIRN_EXECUTABLE_PATH)
+    if profile.runtime.executable_path != *PINNED_CAIRN_EXECUTABLE_PATH
         || profile.runtime.executable_identity.as_str() != PINNED_CAIRN_EXECUTABLE_BLAKE3
         || profile.runtime.policy_identity.as_str() != PINNED_CAIRN_POLICY_BLAKE3
         || profile.supported_stages

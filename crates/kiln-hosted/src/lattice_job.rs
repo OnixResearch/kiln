@@ -147,12 +147,11 @@ fn response(value: crate::Response, identity: &str) -> Result<Envelope, String> 
     if !(envelope.web_approval_verified && envelope.source_verified || uncertain) {
         return Err("hosted Lattice observation lacks verified source authority".into());
     }
-    if let Some(result) = &envelope.result {
-        if result.get("attempt_id").and_then(Value::as_str) != Some(envelope.attempt_id.as_str())
-            || result.get("state").and_then(Value::as_str) != Some(envelope.state.as_str())
-        {
-            return Err("hosted Lattice receipt identity mismatch".into());
-        }
+    if let Some(result) = &envelope.result
+        && (result.get("attempt_id").and_then(Value::as_str) != Some(envelope.attempt_id.as_str())
+            || result.get("state").and_then(Value::as_str) != Some(envelope.state.as_str()))
+    {
+        return Err("hosted Lattice receipt identity mismatch".into());
     }
     Ok(envelope)
 }

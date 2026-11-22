@@ -272,9 +272,9 @@ pub fn admit_realize_profile(profile: &MantleRealizeProfile) -> PortResult<()> {
             "Mantle realize profile differs from the pinned contract cohort",
         ));
     }
-    if profile.runtime.executable_path != PathBuf::from(PINNED_REALIZE_MANTLE_EXECUTABLE_PATH)
+    if profile.runtime.executable_path != *PINNED_REALIZE_MANTLE_EXECUTABLE_PATH
         || profile.runtime.executable_identity.as_str() != PINNED_REALIZE_MANTLE_EXECUTABLE_BLAKE3
-        || profile.runtime.store_prefix != PathBuf::from(PINNED_REALIZE_STORE_PREFIX)
+        || profile.runtime.store_prefix != *PINNED_REALIZE_STORE_PREFIX
         || profile.required_non_claims
             != REALIZE_NON_CLAIMS
                 .iter()

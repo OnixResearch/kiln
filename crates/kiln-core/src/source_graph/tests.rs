@@ -710,7 +710,7 @@ fn ambiguous_continuity_mints_new_identities_until_mapped() {
             file: a.clone(),
         }]
     );
-    assert_eq!(record.deleted, [a.clone()]);
+    assert_eq!(record.deleted, core::slice::from_ref(&a));
     assert!(after.entity(&a).is_some_and(Entity::is_deleted));
     assert_eq!(
         after.entity(&c).map(|entity| entity.provenance.clone()),

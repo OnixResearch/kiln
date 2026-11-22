@@ -251,13 +251,12 @@ fn scan(repository: &Repository, namespace: &PublicKey) -> Result<Vec<(String, S
         let reference = reference.map_err(unavailable)?;
         let name = reference.name().map_err(unavailable)?;
         // Bare COB refs cannot be silently ignored if they claim a work type.
-        if let Some(rest) = name.strip_prefix("refs/cobs/") {
-            if rest
+        if let Some(rest) = name.strip_prefix("refs/cobs/")
+            && rest
                 .split_once('/')
                 .is_some_and(|(kind, _)| supported(kind))
-            {
-                return Err(Failure::Conflict);
-            }
+        {
+            return Err(Failure::Conflict);
         }
         let Some(rest) = name.strip_prefix("refs/namespaces/") else {
             continue;
@@ -446,10 +445,10 @@ pub(super) fn execute(
         }
         return Err(Failure::Unavailable);
     }
-    if let Some(current) = current {
-        if command.expected_head.as_deref() != Some(current.head.as_str()) {
-            return Err(Failure::Conflict);
-        }
+    if let Some(current) = current
+        && command.expected_head.as_deref() != Some(current.head.as_str())
+    {
+        return Err(Failure::Conflict);
     }
     let operation = Operation {
         actor: principal.to_owned(),

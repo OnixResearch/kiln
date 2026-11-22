@@ -392,15 +392,15 @@ impl Service {
                 &request.organization,
             )?)
         };
-        if let Some(actor) = &actor {
-            if let Some(project) = request.input.get("project").and_then(Value::as_str) {
-                crate::accounts::require_project(
-                    &self.db,
-                    actor,
-                    project,
-                    &["owner", "admin", "member", "viewer", "billing"],
-                )?;
-            }
+        if let Some(actor) = &actor
+            && let Some(project) = request.input.get("project").and_then(Value::as_str)
+        {
+            crate::accounts::require_project(
+                &self.db,
+                actor,
+                project,
+                &["owner", "admin", "member", "viewer", "billing"],
+            )?;
         }
         // This namespace stays reserved when policies are removed or rotated:
         // a retained Web binding may still refer to its original attempt/source.

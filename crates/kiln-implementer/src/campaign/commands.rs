@@ -241,10 +241,10 @@ fn validate(command: &OperatorCommand) -> Result<(), OperatorFailure> {
     {
         return Err(OperatorFailure::Invalid("campaign_id"));
     }
-    if let OperatorIntent::ResolveDecision { answer, .. } = &command.intent {
-        if answer.is_empty() || answer.len() > MAX_ANSWER_BYTES {
-            return Err(OperatorFailure::Invalid("answer"));
-        }
+    if let OperatorIntent::ResolveDecision { answer, .. } = &command.intent
+        && (answer.is_empty() || answer.len() > MAX_ANSWER_BYTES)
+    {
+        return Err(OperatorFailure::Invalid("answer"));
     }
     Ok(())
 }

@@ -102,10 +102,10 @@ fn replacement(body: &str) -> Option<&str> {
                 return None;
             }
             opening = Some(offset + line.len());
-        } else if marker == "```" {
-            if let Some(start) = opening.take() {
-                result = Some(&body[start..offset]);
-            }
+        } else if marker == "```"
+            && let Some(start) = opening.take()
+        {
+            result = Some(&body[start..offset]);
         }
         offset += line.len();
     }

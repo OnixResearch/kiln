@@ -113,12 +113,13 @@ duplicating events. Read-only requests are timestamp-limited, not consume-once;
 their signed envelope may be reused while it remains inside that window.
 
 The sibling stack-owned `bounded-http` API would supply stronger general
-outbound mechanics and accepts caller-supplied DER roots, but the present
-workspace declares Rust `1.96.0` and `publish = false`, whereas Kiln declares
-Rust `1.88`; its only local remote is `rad://` and no published immutable Cargo
-source is available here. A sibling-path dependency is not durable. The
+outbound mechanics and accepts caller-supplied DER roots, but the evaluated
+workspace declares Rust `1.96.0` and `publish = false`, above Kiln's Rust `1.88`
+pin at the time; its only local remote is `rad://` and no published immutable
+Cargo source is available here. A sibling-path dependency is not durable. The
 Celld-owned shell is therefore isolated instead of changing Kiln's supported
-toolchain or copying the sibling product-neutral implementation.
+toolchain or copying the sibling product-neutral implementation. Kiln now pins
+Rust `1.97.1`; re-evaluating `bounded-http` is separate work.
 
 ## Replay, leases, and migrations
 

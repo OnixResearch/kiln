@@ -27,7 +27,8 @@ entry describes the source tree prepared for the first tagged release.
   without consuming replay twice, and bounded redacted decisions retain no
   capability material. Basalt is imported at `264d248` with recorded UCAN path
   rewrites, UCAN is one snapshot at `417f746`, and a metadata-only
-  `detect-coding-agent` 0.1.1 declaration patch preserves the Rust 1.88 pin.
+  `detect-coding-agent` 0.1.1 declaration patch, added for the former Rust 1.88
+  pin, remains in place.
   (#69; adapter, implementer, policy and denial fixtures)
 - Pure `no_std + alloc` `kiln-core` implements both transitions:
   `state + command -> events + requested effects` and
@@ -737,6 +738,8 @@ entry describes the source tree prepared for the first tagged release.
   package rename. Earlier revisions keep the name `kiln-core`.
 - Retained evidence names `x86_64-linux`. The flake also declares
   `aarch64-linux`; its outputs evaluate but were not built or run.
+- The workspace pins Rust 1.97.1 in `rust-toolchain.toml` and declares
+  `rust-version = "1.97.1"`. That is the tested compiler, not a proven minimum.
 - Protected implementation operations deny until a verified UCAN adapter or an
   explicit local-operator profile is selected. `prepare_publication` and
   `record_integration` take the host time used for currentness. A caller

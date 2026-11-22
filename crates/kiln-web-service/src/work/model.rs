@@ -676,18 +676,17 @@ fn validate_relations(record: &Record, graph: &Graph<'_>, actor: &str) -> Result
         (&fields.cycle, Kind::Cycle, "cycle"),
         (&fields.initiative, Kind::Initiative, "initiative"),
     ] {
-        if let Some(id) = id {
-            if graph.target(record, id, actor)?.kind != kind {
-                return Err(format!("invalid {name} reference kind"));
-            }
+        if let Some(id) = id
+            && graph.target(record, id, actor)?.kind != kind
+        {
+            return Err(format!("invalid {name} reference kind"));
         }
     }
-    if let Some(parent) = &fields.parent {
-        if matches!(record.kind, Kind::Personal | Kind::View)
-            || graph.target(record, parent, actor)?.kind != record.kind
-        {
-            return Err("parent must have the same work kind".into());
-        }
+    if let Some(parent) = &fields.parent
+        && (matches!(record.kind, Kind::Personal | Kind::View)
+            || graph.target(record, parent, actor)?.kind != record.kind)
+    {
+        return Err("parent must have the same work kind".into());
     }
     for blocker in &fields.blocked_by {
         let target = graph.target(record, blocker, actor)?;
@@ -697,15 +696,14 @@ fn validate_relations(record: &Record, graph: &Graph<'_>, actor: &str) -> Result
             return Err("blockers must be work or planning objects".into());
         }
     }
-    if let Some(duplicate) = &fields.duplicate_of {
-        if !matches!(record.kind, Kind::Issue | Kind::Request)
+    if let Some(duplicate) = &fields.duplicate_of
+        && (!matches!(record.kind, Kind::Issue | Kind::Request)
             || !matches!(
                 graph.target(record, duplicate, actor)?.kind,
                 Kind::Issue | Kind::Request
-            )
-        {
-            return Err("duplicate references must link issues or requests".into());
-        }
+            ))
+    {
+        return Err("duplicate references must link issues or requests".into());
     }
     if (fields.status == "duplicate") != fields.duplicate_of.is_some() {
         return Err("duplicate status requires exactly one duplicate target".into());

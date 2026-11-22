@@ -1301,15 +1301,15 @@ fn readback(
         member.stage = MemberStage::Integrated;
         member.recovery = None;
     }
-    if let Some(identity) = &native_integration {
-        if !member.evidence.contains(identity) {
-            member.evidence.push(identity.clone());
-        }
+    if let Some(identity) = &native_integration
+        && !member.evidence.contains(identity)
+    {
+        member.evidence.push(identity.clone());
     }
-    if let Some(identity) = &publication_identity {
-        if !member.evidence.contains(identity) {
-            member.evidence.push(identity.clone());
-        }
+    if let Some(identity) = &publication_identity
+        && !member.evidence.contains(identity)
+    {
+        member.evidence.push(identity.clone());
     }
     if let Some(identity) = &lifecycle_identity {
         member.stage = MemberStage::Complete;

@@ -1624,39 +1624,39 @@ pub fn run_pipeline(
                 }
             }
         }
-        if state == "succeeded" && cleanup && !firecracker {
-            if let (Some(cache), Some(key)) = (&config.cache, &cache_key) {
-                let cache_started = Instant::now();
-                cache_context.now_ms = now_ms
-                    .checked_add(
-                        u64::try_from(started.elapsed().as_millis())
-                            .map_err(|_| "clock overflow")?,
-                    )
-                    .ok_or("clock overflow")?;
-                let published = crate::cache::publish(cache, &cache_context, key);
-                let duration =
-                    u64::try_from(cache_started.elapsed().as_millis()).unwrap_or(u64::MAX);
-                cache_ms = Some(
-                    cache_ms
-                        .unwrap_or(0)
-                        .checked_add(duration)
-                        .ok_or("cache duration overflow")?,
-                );
-                let fields = cache_observation
-                    .as_object_mut()
-                    .ok_or("cache observation is not an object")?;
-                match published {
-                    Ok(observation) => {
-                        fields.insert("publish".into(), json!(observation));
-                    }
-                    Err(error) => {
-                        state = "failed";
-                        cache_outcome = "rejected";
-                        fields.insert(
-                            "publish".into(),
-                            json!({"outcome":"rejected","reason":error}),
-                        );
-                    }
+        if state == "succeeded"
+            && cleanup
+            && !firecracker
+            && let (Some(cache), Some(key)) = (&config.cache, &cache_key)
+        {
+            let cache_started = Instant::now();
+            cache_context.now_ms = now_ms
+                .checked_add(
+                    u64::try_from(started.elapsed().as_millis()).map_err(|_| "clock overflow")?,
+                )
+                .ok_or("clock overflow")?;
+            let published = crate::cache::publish(cache, &cache_context, key);
+            let duration = u64::try_from(cache_started.elapsed().as_millis()).unwrap_or(u64::MAX);
+            cache_ms = Some(
+                cache_ms
+                    .unwrap_or(0)
+                    .checked_add(duration)
+                    .ok_or("cache duration overflow")?,
+            );
+            let fields = cache_observation
+                .as_object_mut()
+                .ok_or("cache observation is not an object")?;
+            match published {
+                Ok(observation) => {
+                    fields.insert("publish".into(), json!(observation));
+                }
+                Err(error) => {
+                    state = "failed";
+                    cache_outcome = "rejected";
+                    fields.insert(
+                        "publish".into(),
+                        json!({"outcome":"rejected","reason":error}),
+                    );
                 }
             }
         }
@@ -1756,7 +1756,7 @@ fn reservation_units(maximum_ms: u64, unit_ms: u64, maximum_units: u64) -> Resul
         return Err("zero price duration".into());
     }
     let units = (maximum_ms / unit_ms)
-        .checked_add(u64::from(maximum_ms % unit_ms != 0))
+        .checked_add(u64::from(!maximum_ms.is_multiple_of(unit_ms)))
         .ok_or("duration rounding overflow")?;
     if units == 0 || units > maximum_units {
         Err("bounded execution exceeds operator or exact price maximum units".into())

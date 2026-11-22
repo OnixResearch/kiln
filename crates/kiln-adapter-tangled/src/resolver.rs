@@ -96,10 +96,10 @@ impl HttpDidResolver {
 impl KeyResolver for HttpDidResolver {
     // r[impl kiln.tangled.auth]
     fn resolve(&mut self, did: &str, now_unix: i64) -> PortResult<IssuerKey> {
-        if let Some((key, fetched)) = self.cache.get(did) {
-            if now_unix.saturating_sub(*fetched) < self.cache_seconds {
-                return Ok(key.clone());
-            }
+        if let Some((key, fetched)) = self.cache.get(did)
+            && now_unix.saturating_sub(*fetched) < self.cache_seconds
+        {
+            return Ok(key.clone());
         }
         let url = self.document_url(did)?;
         let document = self.fetch(&url)?;
@@ -118,15 +118,14 @@ impl KeyResolver for HttpDidResolver {
                     ),
                 },
             )?;
-        if self.cache.len() >= MAXIMUM_CACHED_KEYS {
-            if let Some(oldest) = self
+        if self.cache.len() >= MAXIMUM_CACHED_KEYS
+            && let Some(oldest) = self
                 .cache
                 .iter()
                 .min_by_key(|(_, (_, fetched))| *fetched)
                 .map(|(did, _)| did.clone())
-            {
-                self.cache.remove(&oldest);
-            }
+        {
+            self.cache.remove(&oldest);
         }
         self.cache.insert(did.to_string(), (key.clone(), now_unix));
         Ok(key)

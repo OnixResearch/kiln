@@ -98,10 +98,10 @@ pub fn capture<T>(
     delay: Option<(String, u64)>,
     operation: impl FnOnce() -> T,
 ) -> Result<(T, Vec<Observation>), String> {
-    if let Some((phase, ms)) = &delay {
-        if !PHASES.contains(&phase.as_str()) || *ms > 1_000 {
-            return Err("unknown phase or delay exceeds 1000 ms".into());
-        }
+    if let Some((phase, ms)) = &delay
+        && (!PHASES.contains(&phase.as_str()) || *ms > 1_000)
+    {
+        return Err("unknown phase or delay exceeds 1000 ms".into());
     }
     SCOPE.with(|slot| -> Result<(), String> {
         if slot.borrow().is_some() {

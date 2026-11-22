@@ -384,11 +384,10 @@ fn watch_command(client: &ApiClient, line: &str) -> String {
                 return "renew needs a 64-character lowercase hex claim id".into();
             }
             let mut body = json!({ "fence": fence });
-            if let Some(minutes) = parts.next().and_then(|value| value.parse::<u64>().ok()) {
-                if let Some(object) = body.as_object_mut() {
+            if let Some(minutes) = parts.next().and_then(|value| value.parse::<u64>().ok())
+                && let Some(object) = body.as_object_mut() {
                     object.insert("lease_minutes".into(), json!(minutes));
                 }
-            }
             (
                 "POST",
                 format!("/v1/claims/{identity}/renew"),
@@ -403,11 +402,10 @@ fn watch_command(client: &ApiClient, line: &str) -> String {
                 return "release needs a 64-character lowercase hex claim id".into();
             }
             let mut body = json!({ "fence": fence });
-            if let Some(note) = parts.next().filter(|note| !note.trim().is_empty()) {
-                if let Some(object) = body.as_object_mut() {
+            if let Some(note) = parts.next().filter(|note| !note.trim().is_empty())
+                && let Some(object) = body.as_object_mut() {
                     object.insert("note".into(), json!(note));
                 }
-            }
             (
                 "POST",
                 format!("/v1/claims/{identity}/release"),

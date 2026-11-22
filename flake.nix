@@ -1142,7 +1142,8 @@
             cargo = toolchain;
             rustc = toolchain;
           };
-          # Upstream Radicle 0.25.1's isolated helper cohort; keep core Rust 1.88 unchanged.
+          # Upstream Radicle 0.25.1's isolated helper cohort: the minimal profile of
+          # the same Rust 1.97.1 release that rust-toolchain.toml pins for core.
           radiclePatchToolchain = pkgs.rust-bin.stable."1.97.1".minimal;
           radiclePatchRustPlatform = pkgs.makeRustPlatform {
             cargo = radiclePatchToolchain;
@@ -1287,7 +1288,7 @@
               lockFile = ./Cargo.lock;
             };
             nativeBuildInputs = [
-              pkgs.clippy
+              toolchain
               pkgs.cmake
               pkgs.pkg-config
             ];
@@ -1700,7 +1701,10 @@
                 "kiln-adapter-aspen"
                 "kiln-aspen-extension"
               ];
-              cargoExtraArgs = "--all-targets --all-features";
+              # Octet lints root crates with its own pinned nightly (rustc 1.96),
+              # below the workspace's tested rust-version. That declaration is a
+              # compiler claim for Kiln builds, not a lint-gate requirement.
+              cargoExtraArgs = "--all-targets --all-features --ignore-rust-version";
               cargoLock = ./checks/aspen-runtime-octet/Cargo.lock;
               nativeBuildInputs = [ pkgs.cmake ];
               buildInputs = [ pkgs.zlib ];
@@ -1714,7 +1718,8 @@
               inherit system;
               src = radicleBrokerWireOctetWorkspace;
               packages = [ "kiln-radicle-broker-wire-octet" ];
-              cargoExtraArgs = "--all-targets --all-features";
+              # Root crates under Octet's nightly; see aspen-runtime-octet-deny-all.
+              cargoExtraArgs = "--all-targets --all-features --ignore-rust-version";
               cargoLock = ./checks/radicle-broker-wire-octet/Cargo.lock;
             }).overrideAttrs
               (_previous: {

@@ -662,13 +662,10 @@ fn lcs(
         prefix = prefix.saturating_add(1);
     }
     let mut suffix: usize = 0;
-    loop {
-        let (Some(a_index), Some(b_index)) = (
-            a.len().checked_sub(suffix.saturating_add(1)),
-            b.len().checked_sub(suffix.saturating_add(1)),
-        ) else {
-            break;
-        };
+    while let (Some(a_index), Some(b_index)) = (
+        a.len().checked_sub(suffix.saturating_add(1)),
+        b.len().checked_sub(suffix.saturating_add(1)),
+    ) {
         if a_index < prefix || b_index < prefix {
             break;
         }

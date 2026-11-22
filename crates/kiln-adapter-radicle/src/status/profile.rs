@@ -265,8 +265,7 @@ pub(crate) fn admit_profile_for(
     expected_non_claims: &[&str],
     require_production_executable: bool,
 ) -> PortResult<BTreeSet<String>> {
-    let production_executable = profile.executable.path
-        == PathBuf::from(PINNED_SECRETSPEC_EXECUTABLE_PATH)
+    let production_executable = profile.executable.path == *PINNED_SECRETSPEC_EXECUTABLE_PATH
         && profile.executable.blake3 == PINNED_SECRETSPEC_EXECUTABLE_BLAKE3;
     if profile.id.as_str() != expected_id
         || profile.platform != PINNED_PLATFORM

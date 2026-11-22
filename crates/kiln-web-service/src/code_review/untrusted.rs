@@ -33,7 +33,7 @@ pub(super) fn annotate_checklist(
     if runs.is_empty() {
         return Ok(());
     }
-    runs.sort_by(|a, b| b.ordinal.cmp(&a.ordinal));
+    runs.sort_by_key(|run| std::cmp::Reverse(run.ordinal));
     let runs: Vec<Value> = runs
         .into_iter()
         .take(MAX_CHECKLIST_UNTRUSTED_RUNS)

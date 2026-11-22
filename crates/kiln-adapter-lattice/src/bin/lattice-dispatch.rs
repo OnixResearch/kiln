@@ -107,10 +107,10 @@ fn run() -> Result<(), ()> {
         Ok(implementer) => implementer,
         Err(error) => return fail(&error),
     };
-    if let Some(operator) = flags.get("--local-operator") {
-        if let Err(error) = implementer.select_local_operator(operator.clone()) {
-            return fail(&error);
-        }
+    if let Some(operator) = flags.get("--local-operator")
+        && let Err(error) = implementer.select_local_operator(operator.clone())
+    {
+        return fail(&error);
     }
     let work = match implementer.work() {
         Ok(work) => work,

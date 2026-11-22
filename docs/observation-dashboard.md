@@ -345,7 +345,7 @@ publication transports that file unchanged. Native Kiln builds embed committed
 assets and do not require a browser compiler, sibling checkout or private ratcore.
 
 The isolated `web/dashboard-index/` workspace pins Rust 1.90.0 and wasm32; the
-native workspace stays on Rust 1.88. Browser compilation also pins wasm-bindgen
+native workspace pins Rust 1.97.1. Browser compilation also pins wasm-bindgen
 0.2.121 and esbuild 0.27.2 through the existing Nix cohort. After changing browser
 Rust, the loader or the reviewed source import, regenerate and check assets:
 
