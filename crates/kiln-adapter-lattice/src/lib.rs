@@ -1,6 +1,7 @@
 mod adapter;
 pub mod compute_inventory;
 mod implementation;
+pub mod lineage;
 mod mapping;
 mod profile;
 #[cfg(target_os = "linux")]

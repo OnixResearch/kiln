@@ -1,0 +1,41 @@
+{
+  "change": "emit-lattice-budget-lineage",
+  "date": "2026-11-22",
+  "purpose": "Feed Kiln-emitted request bytes to Lattice's published lineage consumer without a Lattice dependency in Kiln",
+  "lattice": {
+    "repository": "OnixResearch/lattice",
+    "revision": "5a8e1d51c2e36100424b761c4fef65e6cd4c68dc",
+    "files_copied_verbatim_sha256": {
+      "src/implementation_attempt/lineage.rs": "67b1cd8d5fede29e92f1e9b0f209ecd4a622ea3711ad75bb7ed3b0ba1ffc1eb3",
+      "src/implementation_attempt/lineage/wire.rs": "c2c169f057ab60ee39583c5988aa1ec47cdbaddc0b66c5f0fef92ee5511c78b4",
+      "src/implementation_attempt/lineage/tests.rs": "8443cd5e02bb550e6701cd9b417878430218387ad38f806b5634d1b77584e9bf"
+    },
+    "harness": "a throwaway crate outside the Kiln tree with those files and Lattice's two-line is_blake3; it decodes each request's lineage member as lineage::Binding (deny_unknown_fields), then calls validate(), gate(Draws::default(), Draws{model_requests:1,tool_invocations:1}), unaccounted() and identity()"
+  },
+  "command": "cargo run --offline -- fixtures/lattice/kiln-budget-lineage/{admitted-request,dispatched-request,dispatched-nested-request}.json (Rust 1.88.0)",
+  "exit": 0,
+  "results": [
+    {
+      "input": "fixtures/lattice/kiln-budget-lineage/admitted-request.json",
+      "result": "no lineage (request keeps its bytes)"
+    },
+    {
+      "input": "fixtures/lattice/kiln-budget-lineage/dispatched-request.json",
+      "validate": "Ok(())",
+      "gate_first_step": "Ok(())",
+      "unaccounted": ["worker_slots"],
+      "identity": "5cc9246e9f5757f2e92dfd2f6ed797b98a22ab3773ffa635e33e1ea74c04da4e"
+    },
+    {
+      "input": "fixtures/lattice/kiln-budget-lineage/dispatched-nested-request.json",
+      "validate": "Ok(())",
+      "gate_first_step": "Ok(())",
+      "unaccounted": ["gpu-seconds"],
+      "identity": "d076c26f940b9c3745f490f317cba7d6fc08d930d8dc0c149e81219d22674904"
+    }
+  ],
+  "non_claims": [
+    "the full lattice implementation-attempt run was not executed; only Lattice's lineage consumer read the bytes",
+    "the golden fixtures are asserted byte for byte by Kiln's own tests, which produced them from the in-memory ledger"
+  ]
+}

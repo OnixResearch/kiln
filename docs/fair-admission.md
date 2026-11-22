@@ -331,6 +331,86 @@ beyond the bounds. Rust re-admits the export (`LineageProfile::validate`) and
 derives domain-tagged BLAKE3 account identities from names. Exporting a profile
 grants nothing: each transfer still needs a current parent attempt and fence.
 
+### Budget lineage sent to Lattice
+
+<!-- r[impl kiln.admission.lattice_lineage] -->
+`kiln-lattice-dispatch` derives Lattice's `lattice.kiln-budget-lineage.v1`
+(Lattice
+[`5a8e1d51`](https://github.com/OnixResearch/lattice/tree/5a8e1d51c2e36100424b761c4fef65e6cd4c68dc/src/implementation_attempt/lineage.rs))
+from this ledger when it builds the request for a fresh dispatch, after the
+request seal and before the owner-grant gate
+(`crates/kiln-adapter-lattice/src/lineage.rs`). The Lattice type is mapped,
+not linked:
+
+| Lattice field | Kiln source |
+| --- | --- |
+| `root` | `LineageExplanation.root`: the campaign root account |
+| `account` | the queue row's account (`LineageExplanation.account`) |
+| `parent` | that account's `parent`; `null` exactly for the root |
+| `depth` | `LineageExplanation.depth`, at most `MAX_LINEAGE_DEPTH` (8) |
+| `remaining` | the per-dimension sum of the attempt's `committed` reservations (same work, attempt and fence), keyed by the `Alias` names unchanged |
+| `blocker` | always `null`: Kiln refuses a blocked lineage itself |
+| `backpressure` | `ServingExplanation.gate` (`eligible`), or `none` without a worker-request serving owner |
+
+The attempt's remainder is what its committed reservations hold. The
+account's `available` amounts are the quota left for everyone else after that
+debit. They can be zero while the attempt holds its grant, and they belong to
+no attempt. Each held amount must fit the work's budget and the root
+allocation. Every dimension the account tracks must have a positive held
+amount, because an omitted dimension would leave Lattice unbounded in it.
+Lattice charges `model_requests` and `tool_invocations`. Every other
+dimension, such as the host owner's `worker_slots`, is accepted, never drawn,
+and listed by Lattice as unaccounted (`BudgetLineage::unaccounted`).
+
+The lineage is emitted only when the attempt holds a committed reservation.
+Without a policy or a committed reservation, the request keeps its bytes and
+identities. The two routes differ:
+
+- `--worker-request` appends `,"lineage":{…}` after the request's last
+  member, keeping every admitted byte in order. The request seal and the
+  frozen file name `request-<BLAKE3 of the admitted bytes>.json` stay keyed
+  by the admitted request. The frozen file holds the dispatched bytes, the
+  ones Lattice binds its state to, so `recover`, `cancel` and
+  `export-candidate` name it (`worker::dispatched_request_path`).
+  `--recover` never derives the lineage again, because the grants are
+  unknown by then. It requires the frozen file and accepts it only as the
+  admitted bytes, or as them plus exactly one well-formed lineage. A
+  recovery whose frozen file is missing is refused.
+- `--dispatch-plan` (workflow exchange) sends a `lattice.workflow-request`,
+  which has no lineage field and denies unknown fields. It runs the same
+  derivation and refusals before the transport start, but its request bytes
+  never change. Lattice-side lineage enforcement therefore applies only to
+  the worker route.
+
+Kiln never sends a guessed lineage. A `LineageRefusal` with a typed `code`
+stops the dispatch before the owner-grant gate and the transport start:
+
+| Code | Cause |
+| --- | --- |
+| `reservation_unsettled` | a reservation of this attempt is tentative, or unknown after a dispatch intent |
+| `crossed_reservation` | a committed reservation draws from another account than the queue row's |
+| `ledger_inconsistent` | the queue row is missing or claimed by another attempt, the account walk does not reach one root, or a held amount exceeds the work budget or root allocation or uses an untracked dimension |
+| `blocked` | the lineage reports `denied`, `expired`, `cancelled` or `budget_exhausted` |
+| `backpressure` | the serving gate is neither `none` nor `eligible` |
+| `exhausted` | the attempt holds nothing in a dimension its account tracks |
+| `unrepresentable` | an identity is not 64 lowercase hex digits (Kiln admits uppercase and never rewrites it), the dimensions exceed Lattice's bounds, or the request is not one JSON object |
+| `request_names_lineage` | the admitted request already carries `lineage`; only Kiln derives it |
+| `frozen_request_crossed` | on recovery, the frozen request is not the admitted request plus one lineage |
+
+Lattice's own `lineage_blocked` and `lineage_exhausted` refusals are not in
+the settle-before-effect list, so Kiln retains them for reconciliation.
+Lattice can still refuse `lineage_exhausted` when a charged remainder is
+below its first step's reservation, which Kiln does not know.
+
+Tests: `cargo test --locked -p kiln-adapter-lattice --lib lineage` covers
+golden request bytes with and without lineage
+(`fixtures/lattice/kiln-budget-lineage/`), acceptance by Lattice's published
+schema as data (`fixtures/lattice/kiln-budget-lineage/5a8e1d51…/schema.json`,
+which includes Lattice's own accepted and malformed snapshots), both routes,
+and every refusal. The durable worker-route test is
+`the_worker_route_freezes_the_derived_lineage_before_the_grant_gate`. No live
+Lattice worker has consumed an emitted lineage.
+
 ## Effects, restart and cancellation
 
 Preclaim waiting consumes no implementation attempt. After claiming, capacity

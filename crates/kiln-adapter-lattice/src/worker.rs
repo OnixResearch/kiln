@@ -1,8 +1,10 @@
 //! Real bounded transport to the explicitly adopted Lattice implementation CLI.
+use crate::lineage::{self, Route};
 use bounded_exec::{
     CommandSpec, Disposition, EnvironmentMode, ExecutionLimits, Input, OutcomePolicy, RunRequest,
     TerminationScope,
 };
+use kiln_core::fair_admission::ClaimRef;
 use kiln_core::implementation::{
     Enrollment, ImplementationDispatchPlan, TransportLaunch, TransportStart,
 };
@@ -153,11 +155,26 @@ fn lattice_command(
     }
 }
 
+/// The request Lattice receives for `request_id` (the BLAKE3 of the admitted
+/// request bytes): the admitted request, plus Kiln's budget lineage when the
+/// attempt holds an admitted reservation. Lattice binds its state to these
+/// exact bytes, so `recover`, `cancel`, `inspect` and `export-candidate`
+/// must name this file, not the admitted request.
+#[must_use]
+pub fn dispatched_request_path(
+    profile: &WorkerTransportProfile,
+    request_id: &ContentId,
+) -> PathBuf {
+    profile
+        .output_directory
+        .join(format!("request-{}.json", request_id.as_str()))
+}
+
 /// Prepare every launch file before any owner grant is consumed: the private
-/// output directory, the frozen request and, for the first launch, its state
-/// root. Returns the frozen request path. Each step is idempotent, and a
-/// conflicting frozen request is refused rather than replaced. Nothing here
-/// binds the launch: only the transport intent records it.
+/// output directory, the frozen dispatched request and, for the first launch,
+/// its state root. Returns the frozen request path. Each step is idempotent,
+/// and a conflicting frozen request is refused rather than replaced. Nothing
+/// here binds the launch: only the transport intent records it.
 fn prepare_launch_files(
     profile: &WorkerTransportProfile,
     request_id: &ContentId,
@@ -191,7 +208,7 @@ fn prepare_launch_files(
             return Err("worker transport observations require a private output directory".into());
         }
     }
-    let frozen_request = output_dir.join(format!("request-{}.json", request_id.as_str()));
+    let frozen_request = dispatched_request_path(profile, request_id);
     {
         use std::io::Write;
         let mut options = std::fs::OpenOptions::new();
@@ -484,12 +501,49 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             None => Vec::new(),
         }
     };
+    // The request Lattice receives. A fresh run derives the budget lineage
+    // from this ledger snapshot and appends it when the attempt holds an
+    // admitted reservation; an inconsistent lineage is refused here, before
+    // any transport start. Recovery never re-derives: the ledger has since
+    // moved the grants to unknown, so it reuses the request the first launch
+    // froze, which must be the admitted bytes or them plus one lineage.
+    let dispatched: std::borrow::Cow<'_, [u8]> = if recovery {
+        let frozen = match std::fs::read(dispatched_request_path(&profile, &request_id)) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(
+                    "recovery requires the request frozen by the first launch; nothing was started"
+                        .into(),
+                );
+            }
+            Err(error) => return Err(error.to_string()),
+        };
+        lineage::verify_frozen(&request_bytes, &frozen).map_err(|refusal| refusal.to_string())?;
+        std::borrow::Cow::Owned(frozen)
+    } else {
+        let claim = ClaimRef {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+        };
+        lineage::dispatched_request(
+            Route::Worker,
+            &admission,
+            &plan.work_identity,
+            &claim,
+            clock()?,
+            &request_bytes,
+        )
+        .map_err(|refusal| refusal.to_string())?
+    };
+    if dispatched.len() as u64 > MAX_REQUEST_BYTES {
+        return Err("dispatched request exceeds its byte bound; nothing was started".into());
+    }
     // Every fallible filesystem step of the first launch (output directory,
     // frozen request and state root) precedes the owner-grant gate, which moves
     // committed owner reservations to unknown. A failure here leaves the grants
     // committed, so a retry after fixing the cause proceeds.
     let fresh_launch = first_launch(&profile)?;
-    let frozen_request = prepare_launch_files(&profile, &request_id, &request_bytes, !recovery)?;
+    let frozen_request = prepare_launch_files(&profile, &request_id, &dispatched, !recovery)?;
     let output_dir = &profile.output_directory;
     if !recovery {
         // Open item (predates this change): a crash between this gate and

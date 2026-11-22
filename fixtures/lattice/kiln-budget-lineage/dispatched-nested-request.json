@@ -1,0 +1,12 @@
+{
+  "schema": "lattice.implementation-attempt-run.v3",
+  "envelope": {
+    "attempt_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "fence": 1,
+    "work_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "admitted_envelope": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "expires_at_ms": 1800000600000,
+  "network": false,
+  "dispatch_plan": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","lineage":{"schema":"lattice.kiln-budget-lineage.v1","root":"29d39fea986728a18e41f866cb8973d176e30f116eb93b47e05dcf9cadfd135b","account":"2222222222222222222222222222222222222222222222222222222222222222","parent":"29d39fea986728a18e41f866cb8973d176e30f116eb93b47e05dcf9cadfd135b","depth":1,"remaining":{"gpu-seconds":30,"model_requests":4,"tool_invocations":8},"blocker":null,"backpressure":"none"}
+}

@@ -76,6 +76,22 @@ entry describes the source tree prepared for the first tagged release.
   existing policy identities are unchanged. (#61; deterministic core and
   durable-store fixtures with injected owners; no live serving, capacity or
   cross-host qualification)
+- `kiln-lattice-dispatch` sends Lattice's `lattice.kiln-budget-lineage.v1`
+  (Lattice `5a8e1d51`). The lineage is derived from the admission ledger:
+  the campaign root, the work's account, and the attempt's committed owner
+  reservations as its remainder in every tracked dimension. Dimensions
+  Lattice cannot charge are left for it to list as unaccounted. The
+  `--worker-request` route appends the lineage to the frozen request only
+  for an admitted attempt, and keeps every admitted byte. Without admission,
+  requests keep their bytes and identities. Recovery reuses only the frozen
+  request, and campaign export names it. The `--dispatch-plan` exchange
+  route checks the same lineage, but its `lattice.workflow-request` cannot
+  carry it. An unsettled or crossed reservation, an inconsistent ledger, a
+  blocker, backpressure, an exhausted or unrepresentable lineage, or a
+  request that already names one is refused with a typed `LineageRefusal`
+  before the owner-grant gate and transport start. (Lattice #6; golden
+  bytes, Lattice's published schema as data and durable-store fixtures; no
+  live Lattice worker)
 - Default-off, exact-revision session-trace pointer observations freeze locally
   admitted Git notes in the existing review journal. BLAKE3 pointer/note
   identities remain distinct from external IDs and URL hosts; missing,

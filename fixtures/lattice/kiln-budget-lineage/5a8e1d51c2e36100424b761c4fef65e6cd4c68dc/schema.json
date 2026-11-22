@@ -1,0 +1,58 @@
+{
+  "schema": "lattice.kiln-budget-lineage.v1",
+  "source": {
+    "repository": "OnixResearch/lattice",
+    "revision": "5a8e1d51c2e36100424b761c4fef65e6cd4c68dc",
+    "files": [
+      "src/implementation_attempt/lineage.rs",
+      "src/implementation_attempt/lineage/tests.rs",
+      "src/implementation_attempt/cli.rs",
+      "docs/candidate-worker.md"
+    ]
+  },
+  "request_schema": "lattice.implementation-attempt-run.v3",
+  "request_field": "lineage",
+  "fields": ["schema", "root", "account", "parent", "depth", "remaining", "blocker", "backpressure"],
+  "nullable_fields": ["parent", "blocker"],
+  "identity": { "hex_digits": 64, "alphabet": "0123456789abcdef" },
+  "max_depth": 8,
+  "max_dimensions": 16,
+  "max_dimension_name_bytes": 256,
+  "blockers": ["denied", "expired", "cancelled", "budget_exhausted"],
+  "backpressure": ["none", "eligible", "waiting", "overloaded", "stale", "incomplete", "incompatible"],
+  "admitting_backpressure": ["none", "eligible"],
+  "charged_dimensions": ["model_requests", "tool_invocations"],
+  "accepted": [
+    {
+      "schema": "lattice.kiln-budget-lineage.v1",
+      "root": "1111111111111111111111111111111111111111111111111111111111111111",
+      "account": "2222222222222222222222222222222222222222222222222222222222222222",
+      "parent": "1111111111111111111111111111111111111111111111111111111111111111",
+      "depth": 1,
+      "remaining": { "model_requests": 4, "tool_invocations": 8 },
+      "blocker": null,
+      "backpressure": "eligible"
+    },
+    {
+      "schema": "lattice.kiln-budget-lineage.v1",
+      "root": "1111111111111111111111111111111111111111111111111111111111111111",
+      "account": "1111111111111111111111111111111111111111111111111111111111111111",
+      "parent": null,
+      "depth": 0,
+      "remaining": { "gpu-seconds": 5, "model_requests": 4, "tool_invocations": 8 },
+      "blocker": null,
+      "backpressure": "none"
+    }
+  ],
+  "malformed": [
+    { "error": "schema", "change": { "schema": "kiln.lineage" } },
+    { "error": "identity", "change": { "root": "ABC" } },
+    { "error": "identity", "change": { "account": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" } },
+    { "error": "shape", "change": { "parent": null } },
+    { "error": "shape", "change": { "depth": 0 } },
+    { "error": "shape", "change": { "depth": 9 } },
+    { "error": "shape", "change": { "parent": "2222222222222222222222222222222222222222222222222222222222222222" } },
+    { "error": "dimensions", "change": { "remaining": {} } },
+    { "error": "dimensions", "change": { "remaining": { "": 1 } } }
+  ]
+}

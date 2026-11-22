@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "linux")]
 use kiln_adapter_lattice::{
-    UnixWorkflowExchange, admit_implementation_request, dispatch_implementation_request,
+    UnixWorkflowExchange, admit_implementation_request, dispatch_implementation_request, lineage,
     recover_implementation_request,
 };
 #[cfg(target_os = "linux")]
@@ -201,6 +201,24 @@ fn run() -> Result<(), ()> {
             {
                 return fail("dispatch runtime exceeds its parent queue deadline");
             }
+        }
+        // A `lattice.workflow-request` has no lineage field, so this route
+        // never carries one: it derives it with the worker route's function
+        // and refuses an inconsistent lineage before the transport start, and
+        // the request bytes stay exactly as admitted.
+        let claim = kiln_core::fair_admission::ClaimRef {
+            attempt: attempt.identity.clone(),
+            fence: attempt.fence,
+        };
+        if let Err(refusal) = lineage::dispatched_request(
+            lineage::Route::Exchange,
+            &admission,
+            &dispatch.work_identity,
+            &claim,
+            wall_clock_ms(),
+            &request_bytes,
+        ) {
+            return fail(&refusal.to_string());
         }
         let fresh: Vec<kiln_core::fair_admission::EligibilityInput> =
             match flags.get("--admission-observations") {

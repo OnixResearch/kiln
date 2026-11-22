@@ -1,0 +1,26 @@
+{
+  "change": "emit-lattice-budget-lineage",
+  "date": "2026-11-22",
+  "base": "911960de",
+  "scope": "deterministic in-memory and SQLite admission ledgers, golden request bytes and Lattice's published lineage consumer; no live Lattice worker, owner or serving capacity",
+  "toolchain": "nix develop . --option builders '' did not start within 240 s, so the gates ran with Kiln's pinned Rust 1.88.0 from /nix/store/1vib3hspnix88v6bsk2ipfdn4kjq2rg6-rust-minimal-1.88.0 on PATH; the dev-shell gates must be rerun at integration",
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo test --locked -p kiln-adapter-lattice --lib --bins", "exit": 0, "result": "82 + 1 passed (6 lineage tests and the durable worker-route test new)" },
+    { "command": "cargo test --locked -p kiln-adapter-lattice --lib lineage", "exit": 0, "result": "7 passed" },
+    { "command": "cargo clippy --locked -p kiln-adapter-lattice -p kiln-web-service --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked -p kiln-web-service --lib implementation_campaign", "exit": 0, "result": "19 passed" },
+    { "command": "Lattice 5a8e1d51 lineage consumer over the emitted fixtures (evidence/lattice-acceptance.json)", "exit": 0 },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    { "command": "cairn gate proposal|design|tasks emit-lattice-budget-lineage --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "result": "PASS" },
+    { "command": "cairn sync emit-lattice-budget-lineage --execute", "exit": 0, "result": "sync_delta_spec into fair-admission" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2180, referenced 1919, missing 261, dangling 0; before the sync the only dangling IDs were this change's four, and no missing ID is this change's" }
+  ],
+  "not_run": [
+    "workspace-wide cargo test and clippy, Octet, gitleaks and nix flake check (integration owner)"
+  ],
+  "non_claims": [
+    "no live Lattice implementation-attempt run consumed an emitted lineage",
+    "the exchange route does not carry the lineage: lattice.workflow-request has no field for it"
+  ]
+}

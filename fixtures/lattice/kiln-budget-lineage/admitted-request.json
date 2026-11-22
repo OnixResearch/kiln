@@ -1,0 +1,12 @@
+{
+  "schema": "lattice.implementation-attempt-run.v3",
+  "envelope": {
+    "attempt_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "fence": 1,
+    "work_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "admitted_envelope": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "expires_at_ms": 1800000600000,
+  "network": false,
+  "dispatch_plan": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+}

@@ -559,3 +559,73 @@ fn the_gate_loser_of_two_processes_leaves_no_launch() {
     );
     assert_eq!(entries(&root.join("state-y")), 0);
 }
+
+// r[verify kiln.admission.lattice_lineage]
+#[test]
+fn the_worker_route_freezes_the_derived_lineage_before_the_grant_gate() {
+    use crate::lineage::{LineageRefusal, Route, dispatched_request, verify_frozen};
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let root = directory.path();
+    let (mut owner, attempt, _, now) = ready(root);
+    let admitted: &[u8] =
+        b"{\"schema\":\"lattice.implementation-attempt-run.v3\",\"network\":false}\n";
+    let request_id = ContentId::from_blake3_hex(blake3::hash(admitted).to_hex().to_string())
+        .unwrap_or_else(|_| unreachable!());
+    let claim = ClaimRef {
+        attempt: attempt.identity.clone(),
+        fence: attempt.fence,
+    };
+    let send = |owner: &mut Implementer, route: Route| {
+        let ledger = owner
+            .admission_snapshot()
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        dispatched_request(
+            route,
+            &ledger,
+            &attempt.work_identity,
+            &claim,
+            now,
+            admitted,
+        )
+        .map(|bytes| bytes.into_owned())
+    };
+    // The committed grant from the durable store is carried on the worker route.
+    let dispatched =
+        send(&mut owner, Route::Worker).unwrap_or_else(|error| unreachable!("{error}"));
+    let lineage = verify_frozen(admitted, &dispatched)
+        .unwrap_or_else(|error| unreachable!("{error}"))
+        .unwrap_or_else(|| unreachable!("no lineage"));
+    assert_eq!(lineage.account, attempt.work_identity.as_str());
+    assert_eq!((lineage.parent, lineage.depth), (None, 0));
+    assert_eq!(
+        lineage.remaining,
+        BTreeMap::from([("worker_requests".to_owned(), 1)])
+    );
+    // The exchange route checks the same ledger and keeps its bytes.
+    assert_eq!(send(&mut owner, Route::Exchange), Ok(admitted.to_vec()));
+    // The frozen request Lattice reads is the dispatched one, under the
+    // admitted request's identity.
+    let transport = profile(root, "transport", &root.join("state"));
+    let frozen = prepare_launch_files(&transport, &request_id, &dispatched, true)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!(
+        frozen,
+        super::dispatched_request_path(&transport, &request_id)
+    );
+    assert_eq!(std::fs::read(&frozen).ok(), Some(dispatched.clone()));
+    // The gate moves the grant to unknown: both routes now refuse to derive
+    // again, and recovery reuses only the frozen request.
+    let fresh = fresh_observations(&mut owner);
+    owner
+        .admission_before_transport(&attempt.identity, attempt.fence, &fresh, now)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let unsettled = Err(LineageRefusal::ReservationUnsettled {
+        operation: attempt.identity.as_str().to_owned(),
+    });
+    assert_eq!(send(&mut owner, Route::Worker), unsettled);
+    assert_eq!(send(&mut owner, Route::Exchange), unsettled);
+    assert_eq!(
+        verify_frozen(admitted, &dispatched).map(|lineage| lineage.is_some()),
+        Ok(true)
+    );
+}

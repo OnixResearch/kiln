@@ -667,13 +667,20 @@ impl NativeCampaignConsumer {
         let host_receipt = output.join("host-receipt.json");
         let transport: kiln_adapter_lattice::worker::WorkerTransportProfile =
             read_json(&worker.transport_profile)?;
+        // Lattice binds the attempt to the bytes it ran: the dispatched
+        // request, which carries Kiln's budget lineage for an admitted attempt.
+        let request_id = id(blake3::hash(&std::fs::read(&worker.request).map_err(text)?)
+            .to_hex()
+            .as_str())?;
+        let dispatched =
+            kiln_adapter_lattice::worker::dispatched_request_path(&transport, &request_id);
         let raw = run_role(
             &self.profile,
             &self.profile.roles.exporter,
             &self.profile.bound_input_directory,
             &[
                 OsString::from("--request"),
-                worker.request.as_os_str().to_owned(),
+                dispatched.as_os_str().to_owned(),
                 OsString::from("--state"),
                 transport.state_directory.as_os_str().to_owned(),
                 OsString::from("--output-parent"),
