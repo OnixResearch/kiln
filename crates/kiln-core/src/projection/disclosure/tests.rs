@@ -1236,11 +1236,12 @@ fn an_unchecked_sibling_capability_discloses_nothing() {
         };
         port.admit(&request, &profile, &corpus.current(), now)
             .map(|decision| decision.session.unwrap_or_else(|| unreachable!("session")))
+            .map_err(|decision| decision.reason)
     };
     // The sibling itself is never admitted.
     match admit(&mut port, Op::Discover, "crates/secret") {
         Ok(session) => unreachable!("unchecked sibling admitted: {session:?}"),
-        Err(decision) => assert_eq!(decision.reason, SourceDenialReason::ResourceOutOfScope),
+        Err(reason) => assert_eq!(reason, SourceDenialReason::ResourceOutOfScope),
     }
     let mut scopes = Vec::new();
     for (operation, path) in [

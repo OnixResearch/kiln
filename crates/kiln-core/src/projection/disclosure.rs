@@ -1162,7 +1162,7 @@ fn restrict_bounded(
         entry.handle = handle_for(&slot.destination);
     }
     // Read-only-by-handle entries follow every displayed entry, by handle.
-    undisplayed.sort_by(|a, b| a.0.handle.cmp(&b.0.handle));
+    undisplayed.sort_by_key(|(entry, _)| entry.handle);
     let (entries, trusted): (Vec<VisibleEntry>, Vec<TrustedSlot>) =
         displayed.into_iter().chain(undisplayed).take(bound).unzip();
     let reference =
