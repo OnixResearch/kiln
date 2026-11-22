@@ -3,6 +3,7 @@
 // r[impl kiln.inventory.consumers]
 use kiln_core::inventory::{InventoryProjection, WorkNeeds, WorkNeedsAttachment};
 use kiln_core::types::ContentId;
+use kiln_web_service::cairn_workspace::agents::InventoryObservation;
 use kiln_web_service::engine::ApiResponse;
 use kiln_web_service::inventory::InventoryInput;
 
@@ -44,6 +45,16 @@ pub fn response(method: &str, target: &str) -> Result<ApiResponse> {
         ));
     };
     Ok(json(200, serde_json::to_value(projection(selected)?)?))
+}
+
+// r[impl kiln.cairn.workspace.agents.scenario.source]
+/// The synthetic inventory beside a Cairn change detail. A failure stays a
+/// named unavailable inventory and never fails the detail.
+pub(super) fn cairn_observation() -> InventoryObservation {
+    match projection(false) {
+        Ok(projection) => InventoryObservation::Admitted(Box::new(projection)),
+        Err(_) => InventoryObservation::Unavailable("inventory_example_unavailable".into()),
+    }
 }
 
 pub(super) fn projection(selected: bool) -> Result<InventoryProjection> {

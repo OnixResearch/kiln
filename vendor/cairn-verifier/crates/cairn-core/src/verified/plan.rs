@@ -1,6 +1,4 @@
 use crate::verified::artifact_workflow::{WORKFLOW_SPEC_EFFECT_DELTA, WORKFLOW_SPEC_EFFECT_NONE};
-use crate::verified::nominal_identity::ChangeId;
-use crate::verified::repo::{ChangeStatus, TaskCounts};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyncPlan {
@@ -38,12 +36,12 @@ pub enum PlanActionKind {
     ArchiveChange,
 }
 
-pub fn build_sync_plan(change: &ChangeStatus) -> SyncPlan {
+pub fn build_sync_plan(change: &crate::verified::repo::ChangeStatus) -> SyncPlan {
     build_sync_plan_with_dependency_blockers(change, &[])
 }
 
 pub fn build_sync_plan_with_dependency_blockers(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     dependency_blockers: &[String],
 ) -> SyncPlan {
     build_sync_plan_for_effect_with_dependency_blockers(
@@ -54,7 +52,7 @@ pub fn build_sync_plan_with_dependency_blockers(
 }
 
 pub fn build_sync_plan_for_effect_with_dependency_blockers(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     dependency_blockers: &[String],
     spec_effect: &str,
 ) -> SyncPlan {
@@ -92,12 +90,12 @@ pub fn build_sync_plan_for_effect_with_dependency_blockers(
     }
 }
 
-pub fn build_archive_plan(change: &ChangeStatus) -> ArchivePlan {
+pub fn build_archive_plan(change: &crate::verified::repo::ChangeStatus) -> ArchivePlan {
     build_archive_plan_with_dependency_blockers(change, &[])
 }
 
 pub fn build_archive_plan_with_dependency_blockers(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     dependency_blockers: &[String],
 ) -> ArchivePlan {
     build_archive_plan_for_effect_with_dependency_blockers(
@@ -108,7 +106,7 @@ pub fn build_archive_plan_with_dependency_blockers(
 }
 
 pub fn build_archive_plan_for_effect_with_dependency_blockers(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     dependency_blockers: &[String],
     spec_effect: &str,
 ) -> ArchivePlan {
@@ -140,7 +138,7 @@ pub fn build_archive_plan_for_effect_with_dependency_blockers(
 }
 
 fn sync_blockers(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     dependency_blockers: &[String],
     spec_effect: &str,
 ) -> Vec<String> {
@@ -168,7 +166,7 @@ fn sync_blockers(
 }
 
 fn archive_blockers(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     dependency_blockers: &[String],
     spec_effect: &str,
 ) -> Vec<String> {
@@ -181,9 +179,11 @@ fn archive_blockers(
     reasons
 }
 
-fn required_artifact_blockers(change: &ChangeStatus) -> Vec<String> {
+fn required_artifact_blockers(change: &crate::verified::repo::ChangeStatus) -> Vec<String> {
     let mut reasons = Vec::with_capacity(3);
-    if let Err(issue) = ChangeId::parse(&change.name, "plan.change_id") {
+    if let Err(issue) =
+        crate::verified::nominal_identity::ChangeId::parse(&change.name, "plan.change_id")
+    {
         reasons.push(format!("{}: {}", change.name, issue.code));
     }
     if !change.has_proposal {
@@ -195,7 +195,10 @@ fn required_artifact_blockers(change: &ChangeStatus) -> Vec<String> {
     reasons
 }
 
-fn incomplete_tasks_blocker(change: &str, counts: Option<TaskCounts>) -> Option<String> {
+fn incomplete_tasks_blocker(
+    change: &str,
+    counts: Option<crate::verified::repo::TaskCounts>,
+) -> Option<String> {
     let counts = counts?;
     if counts.todo == 0 && counts.in_progress == 0 && counts.unmarked == 0 {
         return None;
@@ -210,15 +213,15 @@ fn incomplete_tasks_blocker(change: &str, counts: Option<TaskCounts>) -> Option<
 mod tests {
     use super::*;
 
-    fn complete_change() -> ChangeStatus {
-        ChangeStatus {
+    fn complete_change() -> crate::verified::repo::ChangeStatus {
+        crate::verified::repo::ChangeStatus {
             name: "demo".to_string(),
             path: "openspec/changes/demo".to_string(),
             has_proposal: true,
             has_design: true,
             has_tasks: true,
             delta_specs: vec!["openspec/changes/demo/specs/demo/spec.md".to_string()],
-            task_counts: Some(TaskCounts {
+            task_counts: Some(crate::verified::repo::TaskCounts {
                 total: 2,
                 done: 2,
                 in_progress: 0,
@@ -271,7 +274,7 @@ mod tests {
     #[test]
     fn blocks_archive_until_tasks_are_complete_and_marked() {
         let mut change = complete_change();
-        change.task_counts = Some(TaskCounts {
+        change.task_counts = Some(crate::verified::repo::TaskCounts {
             total: 2,
             done: 1,
             in_progress: 1,
@@ -305,11 +308,14 @@ mod tests {
         let plan = build_sync_plan_for_effect_with_dependency_blockers(
             &change,
             &[],
-            WORKFLOW_SPEC_EFFECT_NONE,
+            crate::verified::artifact_workflow::WORKFLOW_SPEC_EFFECT_NONE,
         );
         assert!(!plan.blocked);
         assert!(plan.actions.is_empty());
-        assert_eq!(plan.spec_effect, WORKFLOW_SPEC_EFFECT_NONE);
+        assert_eq!(
+            plan.spec_effect,
+            crate::verified::artifact_workflow::WORKFLOW_SPEC_EFFECT_NONE
+        );
     }
 
     #[test]
@@ -318,7 +324,7 @@ mod tests {
         let plan = build_sync_plan_for_effect_with_dependency_blockers(
             &complete_change(),
             &[],
-            WORKFLOW_SPEC_EFFECT_NONE,
+            crate::verified::artifact_workflow::WORKFLOW_SPEC_EFFECT_NONE,
         );
         assert!(plan.blocked);
         assert!(plan.actions.is_empty());

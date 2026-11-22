@@ -1,0 +1,382 @@
+{
+  "bounds": {
+    "max_alternatives": 8,
+    "max_definitions": 8,
+    "max_depth": 12,
+    "max_exceptions": 8,
+    "max_obligations": 128,
+    "max_predicates": 32,
+    "max_temporal_events": 16,
+    "max_text_bytes": 4096
+  },
+  "definitions": [
+    {
+      "action_preconditions": [
+        {
+          "action": "workflow-inspect",
+          "authority": "The native workflow status and policy retain authority for the selected change.",
+          "id": "verify.precondition.status",
+          "required_predicates": [
+            "agent-receipt.verification-contract"
+          ]
+        },
+        {
+          "action": "gate",
+          "authority": "The native Pass | Block gate retains authority; this precondition never replaces it.",
+          "id": "verify.precondition.gate",
+          "required_predicates": [
+            "agent-receipt.verification-contract",
+            "agent-receipt.pass-only"
+          ]
+        }
+      ],
+      "completion": {
+        "id": "verify.completion",
+        "kind": "all_of",
+        "obligations": [
+          {
+            "id": "verify.evidence.contract",
+            "kind": "evidence",
+            "predicate": "agent-receipt.verification-contract"
+          },
+          {
+            "id": "verify.evidence.pass-only",
+            "kind": "evidence",
+            "predicate": "agent-receipt.pass-only"
+          },
+          {
+            "id": "verify.evidence.freshness",
+            "kind": "evidence",
+            "predicate": "agent-receipt.freshness"
+          },
+          {
+            "id": "verify.evidence.authority",
+            "kind": "evidence",
+            "predicate": "agent-receipt.completion-authority"
+          },
+          {
+            "alternatives": [
+              {
+                "id": "receipt-chain",
+                "obligations": [
+                  {
+                    "id": "verify.traceability.contract",
+                    "kind": "evidence",
+                    "predicate": "agent-receipt.verification-contract"
+                  },
+                  {
+                    "id": "verify.traceability.freshness",
+                    "kind": "evidence",
+                    "predicate": "agent-receipt.freshness"
+                  }
+                ]
+              },
+              {
+                "id": "claim-revision",
+                "obligations": [
+                  {
+                    "id": "verify.traceability.claim",
+                    "kind": "evidence",
+                    "predicate": "verification-obligation.claim-revision"
+                  }
+                ]
+              }
+            ],
+            "id": "verify.traceability",
+            "kind": "any_of"
+          },
+          {
+            "condition": "verification-scope.applicable",
+            "id": "verify.conditional.claim",
+            "kind": "applicable",
+            "then": {
+              "id": "verify.conditional.claim.revision",
+              "kind": "evidence",
+              "predicate": "verification-obligation.claim-revision"
+            }
+          }
+        ]
+      },
+      "exceptions": [],
+      "expected_observations": [
+        {
+          "command_class": "receipt-inspect",
+          "description": "inspect current receipt freshness for the selected candidate",
+          "id": "verify.observation.receipt",
+          "predicate": "agent-receipt.freshness"
+        },
+        {
+          "command_class": "traceability",
+          "description": "read the current verification obligation claim revision",
+          "id": "verify.observation.claim",
+          "predicate": "verification-obligation.claim-revision"
+        }
+      ],
+      "id": "verify",
+      "intent_blake3": "a1b776a9b77c138f9a14f8d2e380d48824c9b994bf342cf3f1721a8804514f32",
+      "non_claims": [
+        "guidance and the completion predicate describe one admitted finite definition",
+        "presentation adapters change layout and prose only, never evidence requirements, command classes or authority",
+        "activity counts, checked task boxes and agent success statements are not native evidence",
+        "a finite trace ordering result implies no unbounded safety or liveness",
+        "an accepted policy exception never proves the original unsatisfied condition",
+        "no result here authorizes execution, approval, readiness or a gate verdict"
+      ],
+      "progress_facts": [
+        {
+          "description": "The agent inspected the selected change receipts and traceability output.",
+          "id": "verify.progress.inspected"
+        },
+        {
+          "description": "The agent reported checked evidence and exact blockers.",
+          "id": "verify.progress.reported"
+        }
+      ],
+      "temporal": null,
+      "workflow_id": "verify",
+      "workflow_version": 1
+    },
+    {
+      "action_preconditions": [
+        {
+          "action": "workflow-inspect",
+          "authority": "The native workflow status and policy retain authority for the selected change.",
+          "id": "verify.precondition.status",
+          "required_predicates": [
+            "agent-receipt.verification-contract"
+          ]
+        },
+        {
+          "action": "gate",
+          "authority": "The native Pass | Block gate retains authority; this precondition never replaces it.",
+          "id": "verify.precondition.gate",
+          "required_predicates": [
+            "agent-receipt.verification-contract",
+            "agent-receipt.pass-only"
+          ]
+        }
+      ],
+      "completion": {
+        "id": "verify.bounded.completion",
+        "kind": "all_of",
+        "obligations": [
+          {
+            "id": "verify.completion",
+            "kind": "all_of",
+            "obligations": [
+              {
+                "id": "verify.evidence.contract",
+                "kind": "evidence",
+                "predicate": "agent-receipt.verification-contract"
+              },
+              {
+                "id": "verify.evidence.pass-only",
+                "kind": "evidence",
+                "predicate": "agent-receipt.pass-only"
+              },
+              {
+                "id": "verify.evidence.freshness",
+                "kind": "evidence",
+                "predicate": "agent-receipt.freshness"
+              },
+              {
+                "id": "verify.evidence.authority",
+                "kind": "evidence",
+                "predicate": "agent-receipt.completion-authority"
+              },
+              {
+                "alternatives": [
+                  {
+                    "id": "receipt-chain",
+                    "obligations": [
+                      {
+                        "id": "verify.traceability.contract",
+                        "kind": "evidence",
+                        "predicate": "agent-receipt.verification-contract"
+                      },
+                      {
+                        "id": "verify.traceability.freshness",
+                        "kind": "evidence",
+                        "predicate": "agent-receipt.freshness"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "claim-revision",
+                    "obligations": [
+                      {
+                        "id": "verify.traceability.claim",
+                        "kind": "evidence",
+                        "predicate": "verification-obligation.claim-revision"
+                      }
+                    ]
+                  }
+                ],
+                "id": "verify.traceability",
+                "kind": "any_of"
+              },
+              {
+                "condition": "verification-scope.applicable",
+                "id": "verify.conditional.claim",
+                "kind": "applicable",
+                "then": {
+                  "id": "verify.conditional.claim.revision",
+                  "kind": "evidence",
+                  "predicate": "verification-obligation.claim-revision"
+                }
+              }
+            ]
+          },
+          {
+            "check": "verify.receipt-order",
+            "id": "verify.bounded.ordering",
+            "kind": "temporal"
+          }
+        ]
+      },
+      "exceptions": [
+        {
+          "control": {
+            "description": "Revalidate the freshness obligation inside an isolated sandbox and retain the observation identity.",
+            "evidence_predicate": "exception.sandbox-revalidation",
+            "id": "sandboxed-revalidation"
+          },
+          "exception_id": "policy-exception:verify-freshness",
+          "id": "verify.exception.freshness",
+          "node": "verify.evidence.freshness",
+          "policy_identity": "9f463020b564b252f6322a6f4ecfa8094a28a78ff5bc32e6b9ad1b2e01541542",
+          "request_revision": 3,
+          "scope_rule_id": "allow-fs-write"
+        }
+      ],
+      "expected_observations": [
+        {
+          "command_class": "receipt-inspect",
+          "description": "inspect current receipt freshness for the selected candidate",
+          "id": "verify.observation.receipt",
+          "predicate": "agent-receipt.freshness"
+        },
+        {
+          "command_class": "traceability",
+          "description": "read the current verification obligation claim revision",
+          "id": "verify.observation.claim",
+          "predicate": "verification-obligation.claim-revision"
+        }
+      ],
+      "id": "verify.bounded-exception",
+      "intent_blake3": "ef968625ac8c9ac745d81fbb90c9f76feeaefb904dc9e9c8aa4bd39c8dae77e0",
+      "non_claims": [
+        "guidance and the completion predicate describe one admitted finite definition",
+        "presentation adapters change layout and prose only, never evidence requirements, command classes or authority",
+        "activity counts, checked task boxes and agent success statements are not native evidence",
+        "a finite trace ordering result implies no unbounded safety or liveness",
+        "an accepted policy exception never proves the original unsatisfied condition",
+        "no result here authorizes execution, approval, readiness or a gate verdict"
+      ],
+      "progress_facts": [
+        {
+          "description": "The agent inspected the selected change receipts and traceability output.",
+          "id": "verify.progress.inspected"
+        },
+        {
+          "description": "The agent reported checked evidence and exact blockers.",
+          "id": "verify.progress.reported"
+        }
+      ],
+      "temporal": {
+        "clock": "supplied-u64-epoch.v1",
+        "completeness": "complete",
+        "first_event": "receipt-recorded",
+        "id": "verify.receipt-order",
+        "max_span_epochs": 86400,
+        "observer": "cairn-lifecycle",
+        "second_event": "candidate-frozen",
+        "trace_id": "verify:selected-change"
+      },
+      "workflow_id": "verify",
+      "workflow_version": 1
+    }
+  ],
+  "evidence_predicates": [
+    {
+      "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+      "description": "The repository-owned verification contract is present and independently supplied.",
+      "id": "agent-receipt.verification-contract",
+      "kind": "evidence",
+      "owner": "cairn_core::verified::agent_receipt::authoritative",
+      "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract"
+    },
+    {
+      "accepted_revision_blake3": "34abbfe64cae739b75554f48d89d0e0bc19ca8e55d54cf51a9363ffe84a6f58d",
+      "description": "Exactly one eligible passed result per selected required check; no unknown rows substitute.",
+      "id": "agent-receipt.pass-only",
+      "kind": "evidence",
+      "owner": "cairn_core::verified::agent_receipt::authoritative",
+      "requirement_id": "cairn.supersede.agent_run_receipts.pass_only"
+    },
+    {
+      "accepted_revision_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+      "description": "Every completion-eligible result subject equals the current final subject.",
+      "id": "agent-receipt.freshness",
+      "kind": "evidence",
+      "owner": "cairn_core::verified::agent_receipt::authoritative",
+      "requirement_id": "cairn.supersede.agent_run_receipts.freshness"
+    },
+    {
+      "accepted_revision_blake3": "5427af464b1ebc00db599a9ec90cdee48d0ce7b4a0b2652c6dc1d134bd89451b",
+      "description": "Repository-owned authoritative completion admits the selected candidate.",
+      "id": "agent-receipt.completion-authority",
+      "kind": "evidence",
+      "owner": "cairn_core::verified::agent_receipt::authoritative",
+      "requirement_id": "cairn.supersede.agent_run_receipts.completion_authority"
+    },
+    {
+      "accepted_revision_blake3": "1de40130cc0a88bb88288b16daa621de599b1508511648332e9e23ef11a3b666",
+      "description": "The verification obligation COB claim revision is current for the selected candidate.",
+      "id": "verification-obligation.claim-revision",
+      "kind": "evidence",
+      "owner": "cairn_core::verified::workflow_collaboration",
+      "requirement_id": "cairn.verification_obligation_cob.claim_revision"
+    },
+    {
+      "accepted_revision_blake3": "653914140db582ef1145f36f87c233a9ab57a310f715cadf8a23efa5f5333e5e",
+      "description": "The compensating control revalidated the freshness obligation in an isolated sandbox and retained that observation identity.",
+      "id": "exception.sandbox-revalidation",
+      "kind": "evidence",
+      "owner": "cairn_core::verified::agent_receipt::authoritative",
+      "requirement_id": "cairn.supersede.agent_run_receipts.freshness"
+    },
+    {
+      "accepted_revision_blake3": "cab928f04ff3d61d2ea9e2a2640262e2022dc3ba820d1949fad73d8d6dc977af",
+      "description": "Native observation that the selected candidate is inside the repository contract verification scope.",
+      "id": "verification-scope.applicable",
+      "kind": "applicability",
+      "owner": "cairn_core::verified::agent_receipt::authoritative",
+      "requirement_id": "cairn.supersede.agent_run_receipts.verification_contract"
+    }
+  ],
+  "interpretation": "finite all_of/any_of/conditional applicability over exact native evidence revisions, with declared finite trace ordering and native policy-exception applicability",
+  "non_claims": [
+    "guidance and the completion predicate describe one admitted finite definition",
+    "presentation adapters change layout and prose only, never evidence requirements, command classes or authority",
+    "activity counts, checked task boxes and agent success statements are not native evidence",
+    "a finite trace ordering result implies no unbounded safety or liveness",
+    "an accepted policy exception never proves the original unsatisfied condition",
+    "no result here authorizes execution, approval, readiness or a gate verdict"
+  ],
+  "observation_model": {
+    "clock": "supplied-u64-epoch.v1",
+    "completeness": "declared-finite-trace-interval.v1",
+    "evidence_kinds": [
+      "evidence",
+      "applicability",
+      "progress",
+      "exception",
+      "temporal"
+    ],
+    "id": "cairn.observations.explicit-supplied.v1",
+    "unknown_rule": "missing or partial observations remain unknown and never satisfy an obligation"
+  },
+  "profile": "cairn.workflow-obligation.finite.v1",
+  "schema": "cairn.workflow-obligation-policy.v1"
+}

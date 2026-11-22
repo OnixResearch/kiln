@@ -1,9 +1,3 @@
-use crate::verified::repo::SpecSource;
-
-use super::types::{
-    LifecycleViewIssue, ParsedRequirement, ParsedScenario, ParsedSpec, ParsedTask, ParsedTaskState,
-};
-
 const REQUIREMENT_HEADING_LEVEL: usize = 3;
 const SCENARIO_HEADING_LEVEL: usize = 4;
 const COMPAT_ORDINAL_WIDTH: usize = 8;
@@ -18,8 +12,11 @@ const MARKER_SUFFIX: char = ']';
 const MARKER_EXTENSION_SEPARATOR: char = '+';
 
 pub(super) fn parse_specs(
-    mut sources: Vec<SpecSource>,
-) -> (Vec<ParsedSpec>, Vec<LifecycleViewIssue>) {
+    mut sources: Vec<crate::verified::repo::SpecSource>,
+) -> (
+    Vec<super::types::ParsedSpec>,
+    Vec<super::types::LifecycleViewIssue>,
+) {
     // r[impl cairn.lifecycle_views.semantic_model.markdown]
     sources.sort_by(|left, right| left.path.cmp(&right.path).then(left.id.cmp(&right.id)));
     let mut parsed = Vec::with_capacity(sources.len());
@@ -34,7 +31,10 @@ pub(super) fn parse_tasks(
     change: &str,
     path: &str,
     markdown: &str,
-) -> (Vec<ParsedTask>, Vec<LifecycleViewIssue>) {
+) -> (
+    Vec<super::types::ParsedTask>,
+    Vec<super::types::LifecycleViewIssue>,
+) {
     let mut tasks = Vec::new();
     let mut issues = Vec::new();
     for line in markdown.lines() {
@@ -49,7 +49,7 @@ pub(super) fn parse_tasks(
         );
         let label = body.trim().to_string();
         if label.is_empty() {
-            issues.push(LifecycleViewIssue {
+            issues.push(super::types::LifecycleViewIssue {
                 code: "lifecycle_view.task.empty_label".to_string(),
                 message: "task label must not be empty".to_string(),
                 source: path.to_string(),
@@ -58,7 +58,7 @@ pub(super) fn parse_tasks(
         }
         let marker_scan = scan_markers(trimmed);
         issues.extend(marker_issues(path, &marker_scan.malformed));
-        tasks.push(ParsedTask {
+        tasks.push(super::types::ParsedTask {
             id,
             label,
             state,
@@ -69,7 +69,10 @@ pub(super) fn parse_tasks(
     (tasks, issues)
 }
 
-fn parse_spec(source: &SpecSource, issues: &mut Vec<LifecycleViewIssue>) -> ParsedSpec {
+fn parse_spec(
+    source: &crate::verified::repo::SpecSource,
+    issues: &mut Vec<super::types::LifecycleViewIssue>,
+) -> super::types::ParsedSpec {
     let lines = source.markdown.lines().collect::<Vec<_>>();
     let mut requirements = Vec::new();
     for (index, line) in lines.iter().enumerate() {
@@ -88,7 +91,7 @@ fn parse_spec(source: &SpecSource, issues: &mut Vec<LifecycleViewIssue>) -> Pars
             issues,
         ));
     }
-    ParsedSpec {
+    super::types::ParsedSpec {
         id: format!("spec:{}", source.id),
         label: spec_label(source),
         path: source.path.clone(),
@@ -98,13 +101,13 @@ fn parse_spec(source: &SpecSource, issues: &mut Vec<LifecycleViewIssue>) -> Pars
 }
 
 fn parse_requirement(
-    source: &SpecSource,
+    source: &crate::verified::repo::SpecSource,
     lines: &[&str],
     heading_index: usize,
     heading: &str,
     ordinal: usize,
-    issues: &mut Vec<LifecycleViewIssue>,
-) -> ParsedRequirement {
+    issues: &mut Vec<super::types::LifecycleViewIssue>,
+) -> super::types::ParsedRequirement {
     let block_end = next_heading_at_or_above(
         lines,
         heading_index.saturating_add(1),
@@ -151,7 +154,7 @@ fn parse_requirement(
             issues,
         ));
     }
-    ParsedRequirement {
+    super::types::ParsedRequirement {
         id,
         reference,
         label: heading_label(heading, REQUIREMENT_HEADING_PREFIX),
@@ -160,14 +163,14 @@ fn parse_requirement(
 }
 
 fn parse_scenario(
-    source: &SpecSource,
+    source: &crate::verified::repo::SpecSource,
     lines: &[&str],
     heading_index: usize,
     heading: &str,
     requirement_id: &str,
     ordinal: usize,
-    issues: &mut Vec<LifecycleViewIssue>,
-) -> ParsedScenario {
+    issues: &mut Vec<super::types::LifecycleViewIssue>,
+) -> super::types::ParsedScenario {
     let block_end = next_heading_at_or_above(
         lines,
         heading_index.saturating_add(1),
@@ -188,29 +191,29 @@ fn parse_scenario(
                 width = COMPAT_ORDINAL_WIDTH
             )
         });
-    ParsedScenario {
+    super::types::ParsedScenario {
         id,
         reference,
         label: heading_label(heading, SCENARIO_HEADING_PREFIX),
     }
 }
 
-fn task_line(trimmed: &str) -> Option<(ParsedTaskState, &str)> {
+fn task_line(trimmed: &str) -> Option<(super::types::ParsedTaskState, &str)> {
     if let Some(body) = trimmed.strip_prefix(TASK_TODO_PREFIX) {
-        return Some((ParsedTaskState::Todo, body));
+        return Some((super::types::ParsedTaskState::Todo, body));
     }
     if let Some(body) = trimmed.strip_prefix(TASK_IN_PROGRESS_PREFIX) {
-        return Some((ParsedTaskState::InProgress, body));
+        return Some((super::types::ParsedTaskState::InProgress, body));
     }
     if let Some(body) = trimmed.strip_prefix(TASK_DONE_PREFIX_LOWER) {
-        return Some((ParsedTaskState::Done, body));
+        return Some((super::types::ParsedTaskState::Done, body));
     }
     trimmed
         .strip_prefix(TASK_DONE_PREFIX_UPPER)
-        .map(|body| (ParsedTaskState::Done, body))
+        .map(|body| (super::types::ParsedTaskState::Done, body))
 }
 
-fn spec_label(source: &SpecSource) -> String {
+fn spec_label(source: &crate::verified::repo::SpecSource) -> String {
     source
         .markdown
         .lines()
@@ -337,10 +340,10 @@ fn stable_reference(reference: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'.' | b'-'))
 }
 
-fn marker_issues(source: &str, malformed: &[String]) -> Vec<LifecycleViewIssue> {
+fn marker_issues(source: &str, malformed: &[String]) -> Vec<super::types::LifecycleViewIssue> {
     malformed
         .iter()
-        .map(|marker| LifecycleViewIssue {
+        .map(|marker| super::types::LifecycleViewIssue {
             code: "lifecycle_view.marker.malformed".to_string(),
             message: format!("malformed lifecycle marker: {marker}"),
             source: source.to_string(),

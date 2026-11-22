@@ -1,0 +1,116 @@
+{
+ "schema": "kiln.composed-qualification-record.v1",
+ "change": "settle-lattice-worker-refusals",
+ "issue": 45,
+ "observed_on": "2026-11-21, Linux 6.18.60 x86_64",
+ "tree": "kiln-84 working tree on 8f036b29 with the final-review-2 amendment (the launch is recorded with the transport intent under its own implementation-state kind transport_launches; the attempts document keeps its published shape)",
+ "scope": "Kiln's kiln-lattice-dispatch --worker-request transport against the real Lattice db64cd65 binary, every worker the pinned OMP in bubblewrap reaching only a local HTTP 400 endpoint (endpoint.py). No model, provider, forge or remote was contacted. The live scenario was not run.",
+ "harness": {
+  "origin": "Lattice db64cd65 .cairn/changes/execute-admitted-implementation-attempt/evidence/composed-qualification/",
+  "directory": "composed-qualification/",
+  "files": {
+   "harness-main.rs.txt": {"blake3": "6aeace301d29c2c3a113a8a4e3d54f6176446194f28efa5bad110f34c205dad0", "change": "begin-transport records the launch (--lattice, --lattice-blake3, --state) through Implementer::begin_dispatch_transport, as worker::run does for a first launch, and prints the recorded launch"},
+   "harness-Cargo.toml": {"blake3": "577618c3722ab4210dfc250d650e8461e3f7757bc7ac5ed0871631aa96354daf", "change": "only the Kiln path dependencies point at the kiln-84 tree"},
+   "endpoint.py": {"blake3": "74f29ad0155f07720157d79a511054de85ef369adcaeb1cd727d5216f6d376f6", "change": "identical to the Lattice evidence"},
+   "qualify.sh": {"blake3": "bf8999c00a34c58d1202b5fb9d67c07d4a3b9e6f3e7e303135d8fac2f084a2a2", "change": "attempt() prepares twice to bind dispatch_plan; refusals adds kiln-unplanned and stale-fence-replay; lost_before_start creates the state root and records the launch through the real begin-transport path (no binding file); new scenarios crossed, substituted_dispatched, moved_root (a lost acknowledgement followed by a state-root change) and pregate_rejected; the lost-during-run, moved-root and pregate-rejected output directories are named lost-run, moved and pregate so the broker socket path stays under 108 bytes below the /var/tmp output root"},
+   "summarize.py": {"blake3": "aed8232464b934687225e541c9d09f57c313198f02c83e690be4e31f41113623", "change": "kiln_attempt also reports workflow, failure and cause"},
+   "summary.json": {"blake3": "2fe23f02c2561be350d0621e21f43e26654f7b045c79b307696a566203578f04", "change": "output of summarize.py for the final-review-2 run (pregate_rejected, lost_before_start, moved_root)"}
+  }
+ },
+ "pins": {
+  "lattice": {
+   "source": "OnixResearch/lattice db64cd654e52cf6579643e6e96ad92bda2b3d61a (clean checkout)",
+   "build": "cargo build --release --locked -p lattice in the Lattice dev shell with empty RUSTC_WRAPPER, then nix store add-path; GC root k45f-requal/lattice-gcroot",
+   "path": "/nix/store/185y79mjf7gg6aqw4l1szzpr7xyga795-lattice-db64cd65/bin/lattice",
+   "blake3": "db786b08de68f7ff7046ac87f789551d7449675f6aad94863c988d0f88a41765"
+  },
+  "kiln_lattice_dispatch": {"build": "cargo build --locked -p kiln-adapter-lattice --bin kiln-lattice-dispatch on the amended kiln-84 tree", "blake3": "c2f8b91b4735eb779c0197c2d177c510a997492c1c815036b7a52e5779d86a54"},
+  "k45_harness": {"blake3": "e26c646ac8801a15bedf840e6c9c9a2a7932d567c9cdb8fcecdcfdaa4fb9c5a9"},
+  "omp": {
+   "path": "/nix/store/ii3yn9v4cj6dg87b9kkzycjzxplgf93d-omp-18.18.7/bin/omp",
+   "blake3": "7ee769b6a4161b9d50410b31be252133fedb459e4441c6da4c92f3733a8d135f",
+   "rebuilt": "Host auto-GC collected the pinned store path during this session. It was rebuilt from its recorded flake with nix build --impure --expr '(builtins.getFlake \"/nix/store/fkpjmb6zwp6g6ylwi6k9ab3ljv51dm1i-source\").packages.x86_64-linux.omp' --builders '' (derivation /nix/store/vw62xh08s0xmiw0dywr7fyf8s757893j-omp-18.18.7.drv, GC root k45f-requal/omp-gcroot). The rebuild produced the same store path, and bin/omp has the pinned BLAKE3 7ee769b6… exactly. Its NAR hash is sha256-RqaxKOflK4mc9aSRolXe9r1z/nJkBdEsFSKBfQeWaoQ=; no NAR hash was recorded with the pin, so only the store path and executable BLAKE3 are compared."
+  },
+  "bubblewrap": {"path": "/nix/store/gr9l6ql3wg70idpqlqhnfdx81hak22c8-bubblewrap-0.11.0/bin/bwrap", "blake3": "cd5be4481cfe2e79bbf4183ef9122dd15c3ce379594b67121a4b540ac920864e"},
+  "socat": {"path": "/nix/store/k562gy1wa1rwyhlp6ma2cp37zlc0mspl-socat-1.8.1.3/bin/socat1", "blake3": "b8e3a6f91077c9cf3a65265e260b969edbdbb99ebcdbb190340df4fa99676f04"},
+  "worker_shell": {"path": "/nix/store/v8sa6r6q037ihghxfbwzjj4p59v2x0pv-bash-5.3p9/bin/bash", "blake3": "e2129fd97d773dec8d2702df5f415030332c9e309ed8c9e50fdd9cbbc2b61bae"},
+  "pins_note": "OMP, bubblewrap, socat and shell bytes equal the pins in Lattice's composed-qualification.json; all are held by GC roots in k45f-requal/"
+ },
+ "commands": {
+  "environment": "TMPDIR=/var/tmp/onix-round-20261121/kiln45 (/tmp was full) LATTICE=<lattice pin> KILN=$W/kiln-45f-target/debug/kiln-lattice-dispatch HARNESS=$W/kiln-45f-target/debug/k45-harness OMP BWRAP SOCAT WORKER_SHELL=<pins> OUT=/var/tmp/onix-round-20261121/kiln45/q (W=/home/brittonr/.cargo-target/producer-work)",
+  "qualify": "qualify.sh pregate_rejected lost_before_start moved_root (final-review-2 run); the earlier final-review run on 8f036b29 ran qualify.sh moved_root lost_before_start lost_during_run refusals crossed pregate_rejected with exit 0",
+  "summary": "summarize.py /var/tmp/onix-round-20261121/kiln45/q",
+  "exits": {"qualify": 0, "summarize": 0},
+  "retained_output": "$W/k45f-requal/out (copy of the output root, not committed); qualify.log blake3 035239a1592a4e8f5c88b9f6d440d51c18711427034c7de13656a6f8768d1af0",
+  "stored_kinds": "In every rerun database the attempts document has exactly the published keys (attempts, consumed, current, dispatch_plans, dispatch_started, fence_counter, resolved_unknown); pregate and moved hold their launch under transport_launches (pregate: profile B's root, moved: root A); lost-before-start's launch was removed with its settled intent.",
+  "not_rerun": "lost_during_run, refusals and crossed were last run on 8f036b29 (results below); run, substituted_dispatched and cancel were last run on an earlier review tree (dispatch blake3 ee77a645…): run dispatch 0, duplicate 0, kiln-substituted 2, lattice-substituted 1, lattice-duplicate 0; substituted-dispatched retained dispatched:true on dispatch and recover; cancel 0."
+ },
+ "scenarios": {
+  "pregate-rejected": {
+   "directory": "pregate",
+   "exits": {"gate-refused-a": 2, "launch-b": 0, "recover-under-a": 0},
+   "endpoint_requests": 1,
+   "state_root_a_entries": 0,
+   "lattice_stdout": {"recover-under-a": "the retained execution observation of launch B (result.disposition failed), not a closure"},
+   "kiln_attempt": {"phase": "executing", "workflow": "recorded"},
+   "observed": "Under profile A (output A, root A) without a fresh owner observation, Kiln prepared output A and root A and the owner-grant gate refused (admission: missing fresh provider offer); nothing was recorded. Under profile B (output B, root B) with the observation, Kiln recorded launch B with the transport intent and Lattice ran in B. The retry under profile A recovered with B's recorded launch, reconciled B's execution without a second endpoint request, and root A stayed empty."
+  },
+  "moved-root": {
+   "directory": "moved",
+   "exits": {"dispatch": 137, "recover-moved": 0, "recover-moved-replay": 0},
+   "endpoint_requests": 1,
+   "state_root_b": "absent",
+   "lattice_stdout": {"recover-moved": "the retained execution observation (result.disposition failed), not a closure"},
+   "kiln_attempt": {"phase": "executing", "workflow": "recorded"},
+   "observed": "Kiln's acknowledgement was lost while Lattice ran the first launch under root A (SIGKILL of kiln-lattice-dispatch after the worker reached the endpoint). The profile then named root B. Kiln recovered with the launch recorded in the transport intent (root A), reconciled the retained execution with no second endpoint request, and never created root B; the replay reconciled the same execution."
+  },
+  "lost-before-start": {
+   "exits": {"recover": 0, "recover-replay": 2},
+   "endpoint_requests": 0,
+   "begin_transport": "previously_started false; launch_recorded names the Lattice pin and the scenario's state root",
+   "lattice_stdout": {"recover": "status not_started_closed_by_recovery"},
+   "kiln_attempt": {"phase": "failed", "failure": "infrastructure", "cause": "lattice_closed_before_execution", "workflow": null},
+   "observed": "The transport intent recorded the launch; recovery ran in the recorded root, and its exact closure record was settled as no execution; the replay is refused before transport."
+  },
+  "lost-during-run": {
+   "directory": "lost-run",
+   "exits": {"dispatch": 137, "recover": 0, "recover-replay": 0},
+   "endpoint_requests": 1,
+   "kiln_attempt": {"phase": "executing", "workflow": "recorded"},
+   "observed": "SIGKILL of the controller; recovery with the recorded launch reconciles the retained result without re-execution."
+  },
+  "refusals": {
+   "exits": {"kiln-crossed-fence": 2, "kiln-unplanned": 2, "lattice-higher": 1, "lattice-crossed": 1, "stale-fence": 2, "stale-fence-replay": 0},
+   "endpoint_requests": 0,
+   "lattice_stdout": {"stale-fence": "{reason: stale_fence, dispatched: false} from run", "stale-fence-replay": "status not_started_closed_by_recovery from recover in the recorded root"},
+   "kiln_attempt": {"phase": "failed", "failure": "infrastructure", "cause": "lattice_closed_before_execution", "workflow": null},
+   "observed": "stale_fence is not settled; the dispatch keeps the attempt with its transport intent. The replay recovers with the recorded launch; Lattice finds no intent there and exclusively closes the attempt, and Kiln records that closure as no execution. kiln-crossed-fence is refused at claim authorization and kiln-unplanned before plan reservation, both before any durable step."
+  },
+  "crossed": {
+   "exits": {"lattice-other": 1, "crossed-attempt": 2, "crossed-replay": 2},
+   "endpoint_requests": 0,
+   "lattice_stdout": {"crossed-attempt": "{reason: crossed_attempt, dispatched: false} from run"},
+   "kiln_attempt": {"phase": "failed", "failure": "infrastructure", "cause": "lattice_refused_before_effect:crossed_attempt", "workflow": null},
+   "observed": "A run refusal of a reason the reviewer verified settles, clearing the intent and its launch; the replay is refused by Kiln before transport."
+  }
+ },
+ "comparison_with_lattice_evidence": {
+  "baseline": "Lattice db64cd65 composed-qualification.json (Kiln 70c8f217)",
+  "changed": [
+   "refusals: stale_fence stays retained on dispatch; recovery with the recorded launch then closes the attempt and Kiln settles it as no execution (before: retained with an unreconciled intent)",
+   "lost-before-start: the recovered closure is no execution (before: reconciled as an execution); the replay is refused",
+   "worker requests carry dispatch_plan; observations echo it"
+  ],
+  "added": ["refusals.kiln-unplanned", "refusals.stale-fence-replay", "crossed", "moved-root", "pregate-rejected"],
+  "unchanged": "lost-during-run exits and endpoint request count"
+ },
+ "non_claims": [
+  "No model was called; every worker reached only the local HTTP 400 endpoint, so no candidate was produced",
+  "The credential pass-through was exercised by unit tests and a real child process, not by this composed run; every broker here declares credential:null",
+  "The recorded state root is assumed durable; losing or replacing it in place voids the no-start evidence of a closure recovered from it",
+  "The two-process gate race is covered by worker::preparation_tests::the_gate_loser_of_two_processes_leaves_no_launch, not by this composed run",
+  "A crash between the owner-grant gate and the transport intent (a window that predates this change) is not exercised and remains open",
+  "The Lattice binary is a local release build of the published commit added to the Nix store, not a Nix-built package",
+  "The live scenario, Kiln #49 deployment and Kiln #46 independent acceptance remain separate"
+ ]
+}

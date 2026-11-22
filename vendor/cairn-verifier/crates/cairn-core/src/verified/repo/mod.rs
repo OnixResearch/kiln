@@ -13,7 +13,7 @@ mod types;
 pub use changes::{
     build_change_detail, build_change_list, build_change_status, filter_changes_by_metadata,
 };
-pub use metadata::validate_change_metadata_policy;
+pub use metadata::{parse_change_metadata, validate_change_metadata_policy};
 pub use specs::{build_spec_detail, build_spec_list, spec_title};
 pub use status::build_repo_status;
 pub use tasks::count_tasks;

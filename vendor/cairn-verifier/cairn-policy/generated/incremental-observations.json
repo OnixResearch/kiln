@@ -1,0 +1,23 @@
+{
+  "bounds": {
+    "default_page_bytes": 65536,
+    "default_page_entries": 32,
+    "max_context_selectors": 64,
+    "max_cursor_bytes": 4096,
+    "max_entries": 65536,
+    "max_entry_bytes": 524288,
+    "max_observation_bytes": 16777216,
+    "max_page_bytes": 4194304,
+    "max_page_entries": 512,
+    "max_prior_bytes": 16777216,
+    "max_selector_bytes": 4096
+  },
+  "ordering_version": "lexicographic-identity-byte-order.v1",
+  "required_non_claims": [
+    "an observation identity binds admitted inputs; it does not prove source truth, secrecy, authenticity, or future mutation authority",
+    "repeated bounded reads do not establish an atomic filesystem snapshot",
+    "a cached or saved observation does not replace fresh mutation preflight, evidence checks, or lifecycle gates",
+    "page cursors are deterministic continuation data, not authentication tokens"
+  ],
+  "schema": "cairn.incremental-observations-policy.v1"
+}

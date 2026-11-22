@@ -1,47 +1,39 @@
-use crate::AuthenticatedEvidenceReport;
-
-use super::{
-    push_classification, valid_blake3, CairnArtifactAuthCompatibilityClassification,
-    CairnArtifactAuthCompatibilityDimension, CairnArtifactAuthCompatibilityDisposition,
-    CairnArtifactAuthReport,
-};
-
 pub(super) fn classify_preimages(
     legacy: &str,
     standalone: Option<&str>,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let Some(standalone) = standalone else {
-        push_classification(
+        super::push_classification(
             output,
-            CairnArtifactAuthCompatibilityDimension::Preimage,
+            super::CairnArtifactAuthCompatibilityDimension::Preimage,
             "artifact_auth.compatibility.preimage.missing",
             Some(legacy),
             None,
-            CairnArtifactAuthCompatibilityDisposition::Blocking,
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking,
         );
         return;
     };
-    let is_pair_valid = valid_blake3(legacy) && valid_blake3(standalone);
+    let is_pair_valid = super::valid_blake3(legacy) && super::valid_blake3(standalone);
     let (code, disposition) = if !is_pair_valid {
         (
             "artifact_auth.compatibility.preimage.malformed",
-            CairnArtifactAuthCompatibilityDisposition::Blocking,
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking,
         )
     } else if legacy == standalone {
         (
             "artifact_auth.compatibility.preimage.domain_not_distinct",
-            CairnArtifactAuthCompatibilityDisposition::Blocking,
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking,
         )
     } else {
         (
             "artifact_auth.compatibility.preimage.schema_mapped",
-            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped,
+            super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped,
         )
     };
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Preimage,
+        super::CairnArtifactAuthCompatibilityDimension::Preimage,
         code,
         Some(legacy),
         Some(standalone),
@@ -51,9 +43,9 @@ pub(super) fn classify_preimages(
 
 pub(super) fn classify_identities(
     standalone_preimage: Option<&str>,
-    legacy: &AuthenticatedEvidenceReport,
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    legacy: &crate::AuthenticatedEvidenceReport,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     classify_equal_identity(
         "artifact_auth.compatibility.identity.subject",
@@ -79,9 +71,9 @@ pub(super) fn classify_identities(
 }
 
 pub(super) fn classify_decisions(
-    legacy: &AuthenticatedEvidenceReport,
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    legacy: &crate::AuthenticatedEvidenceReport,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let is_report_pair_well_formed = legacy.passed == legacy.issues.is_empty()
         && standalone.decision_passed == standalone.issues.is_empty();
@@ -91,9 +83,9 @@ pub(super) fn classify_decisions(
             .issues
             .iter()
             .any(|issue| shared_rejection_context(&issue.code));
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Decision,
+        super::CairnArtifactAuthCompatibilityDimension::Decision,
         "artifact_auth.compatibility.decision.outcome",
         Some(if legacy.passed { "passed" } else { "rejected" }),
         Some(if standalone.decision_passed {
@@ -102,9 +94,9 @@ pub(super) fn classify_decisions(
             "rejected"
         }),
         if is_report_pair_well_formed && is_decision_equal && is_rejection_context_explained {
-            CairnArtifactAuthCompatibilityDisposition::Equal
+            super::CairnArtifactAuthCompatibilityDisposition::Equal
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
 }
@@ -125,16 +117,16 @@ fn classify_equal_identity(
     code: &str,
     legacy: &str,
     standalone: &str,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let disposition = if legacy == standalone {
-        CairnArtifactAuthCompatibilityDisposition::Equal
+        super::CairnArtifactAuthCompatibilityDisposition::Equal
     } else {
-        CairnArtifactAuthCompatibilityDisposition::Blocking
+        super::CairnArtifactAuthCompatibilityDisposition::Blocking
     };
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Identity,
+        super::CairnArtifactAuthCompatibilityDimension::Identity,
         code,
         Some(legacy),
         Some(standalone),
@@ -143,62 +135,65 @@ fn classify_equal_identity(
 }
 
 fn classify_key_encoding(
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let legacy = &standalone.legacy_public_key_blake3;
     let raw = &standalone.standalone_public_key_blake3;
-    let is_valid_and_distinct = valid_blake3(legacy) && valid_blake3(raw) && legacy != raw;
-    push_classification(
+    let is_valid_and_distinct =
+        super::valid_blake3(legacy) && super::valid_blake3(raw) && legacy != raw;
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Identity,
+        super::CairnArtifactAuthCompatibilityDimension::Identity,
         "artifact_auth.compatibility.identity.public_key_encoding_mapped",
         Some(legacy),
         Some(raw),
         if is_valid_and_distinct {
-            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+            super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
 }
 
 fn classify_authentication_identity(
-    legacy: &AuthenticatedEvidenceReport,
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    legacy: &crate::AuthenticatedEvidenceReport,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let is_authentication_identity_valid =
         match (&legacy.authentication_hash, &standalone.authentication_hash) {
-            (Some(left), Some(right)) => valid_blake3(left) && valid_blake3(right) && left != right,
+            (Some(left), Some(right)) => {
+                super::valid_blake3(left) && super::valid_blake3(right) && left != right
+            }
             (None, None) => !legacy.passed && !standalone.decision_passed,
             _ => false,
         };
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Identity,
+        super::CairnArtifactAuthCompatibilityDimension::Identity,
         "artifact_auth.compatibility.identity.decision_schema_mapped",
         legacy.authentication_hash.as_deref(),
         standalone.authentication_hash.as_deref(),
         if is_authentication_identity_valid {
-            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+            super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
 }
 
 fn classify_standalone_identity_set(
     standalone_preimage: Option<&str>,
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     let is_statement_match = standalone_preimage
         .zip(standalone.standalone_statement_blake3.as_deref())
-        .is_some_and(|(expected, actual)| expected == actual && valid_blake3(actual));
-    let is_decision_identity_set_valid = valid_blake3(&standalone.standalone_policy_blake3)
-        && valid_blake3(&standalone.standalone_scope_blake3)
-        && valid_blake3(&standalone.standalone_decision_blake3);
+        .is_some_and(|(expected, actual)| expected == actual && super::valid_blake3(actual));
+    let is_decision_identity_set_valid = super::valid_blake3(&standalone.standalone_policy_blake3)
+        && super::valid_blake3(&standalone.standalone_scope_blake3)
+        && super::valid_blake3(&standalone.standalone_decision_blake3);
     let is_verified_key_set_valid = if standalone.decision_passed {
         standalone.standalone_verified_key_blake3
             == vec![standalone.standalone_public_key_blake3.clone()]
@@ -206,18 +201,18 @@ fn classify_standalone_identity_set(
         standalone
             .standalone_verified_key_blake3
             .iter()
-            .all(|identity| valid_blake3(identity))
+            .all(|identity| super::valid_blake3(identity))
     };
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Identity,
+        super::CairnArtifactAuthCompatibilityDimension::Identity,
         "artifact_auth.compatibility.identity.standalone_set",
         None,
         standalone.standalone_statement_blake3.as_deref(),
         if is_statement_match && is_decision_identity_set_valid && is_verified_key_set_valid {
-            CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+            super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
         } else {
-            CairnArtifactAuthCompatibilityDisposition::Blocking
+            super::CairnArtifactAuthCompatibilityDisposition::Blocking
         },
     );
 }

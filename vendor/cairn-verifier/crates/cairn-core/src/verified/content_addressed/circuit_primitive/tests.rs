@@ -1,5 +1,4 @@
 // r[verify electrical_circuit_primitive_receipts.circuit_primitive_core_split.behavior_preserved.focused_checks]
-use serde_json::{json, Value};
 
 use super::*;
 
@@ -7,8 +6,8 @@ fn hash_placeholder() -> String {
     "0".repeat(64)
 }
 
-fn base_receipt(display_root: &str) -> Value {
-    json!({
+fn base_receipt(display_root: &str) -> serde_json::Value {
+    serde_json::json!({
         "schema": CIRCUIT_PRIMITIVE_SCHEMA_V1,
         "graph_hash": hash_placeholder(),
         "normalization": {
@@ -67,9 +66,9 @@ fn base_receipt(display_root: &str) -> Value {
     })
 }
 
-fn with_current_hash(mut receipt: Value) -> Value {
+fn with_current_hash(mut receipt: serde_json::Value) -> serde_json::Value {
     let hash = circuit_primitive_graph_hash(&receipt);
-    receipt["graph_hash"] = Value::String(hash);
+    receipt["graph_hash"] = serde_json::Value::String(hash);
     receipt
 }
 
@@ -111,7 +110,7 @@ fn rejects_missing_terminal_binding() {
 #[test]
 fn rejects_safety_non_claim_overclaim() {
     let mut receipt = base_receipt("/workspace/one");
-    receipt["non_claims"] = json!(["no_simulation_correctness"]);
+    receipt["non_claims"] = serde_json::json!(["no_simulation_correctness"]);
     let receipt = with_current_hash(receipt);
     let report = validate_circuit_primitive_receipt(&receipt);
     assert!(!report.valid);

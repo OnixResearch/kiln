@@ -42,9 +42,10 @@ standalone runtimes and optional Octet gates have the acquisition boundary below
 | Import | Exact producer revision | Consumed scope | Source record |
 |---|---|---|---|
 | Lattice | `70496e67c7fd4a8b05914161a8e09de2759bebc8` | MIT workflow contract and Unix transport | [`vendor/lattice.source.json`](../vendor/lattice.source.json) |
-| Cairn | `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f` | `MIT OR Apache-2.0` gate contract, authoritative `cairn-core` completion evaluator and pinned producer fixtures | Gate/fixtures: [`vendor/cairn.source.json`](../vendor/cairn.source.json); evaluator: [`vendor/cairn-verifier.source.json`](../vendor/cairn-verifier.source.json) |
+| Cairn | Gate contract and fixtures `15f00875562025e7ea7e0d1f4af24d1a2e2ac06f`; `cairn-core` `8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0` | `MIT OR Apache-2.0` gate contract and pinned producer fixtures; `cairn-core` authoritative completion evaluator, `cairn.selected-work.v1` admission and workflow-obligation export with its generated policies | Gate/fixtures: [`vendor/cairn.source.json`](../vendor/cairn.source.json); `cairn-core`: [`vendor/cairn-verifier.source.json`](../vendor/cairn-verifier.source.json) |
+| Cairn's Kiln core | `5d99f4e9bb954743443e340baece31256b4c53f1` | The historical `MIT OR Apache-2.0` `kiln-core` that `cairn-core` pins as a Git dependency; no Kiln crate imports it | [`vendor/cairn-kiln-core.source.json`](../vendor/cairn-kiln-core.source.json) |
 | Valence | `220307a371e7bc4e3309447b09447d0fe6c4db5f` | MPL-2.0 `valence-core` | [`vendor/valence.source.json`](../vendor/valence.source.json) |
-| Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
+| Artifact | `e41340bec587b6d049b5cc518ec7db925dde84be` | Transitive `MIT OR Apache-2.0` `artifact-auth-core` and `artifact-auth-ed25519` | [`vendor/artifact.source.json`](../vendor/artifact.source.json) |
 | Bounded Exec | `29dac88ecded94457572db3fdfaaaab95fa91525` | AGPL-3.0-or-later shell and core | [`vendor/bounded-exec.source.json`](../vendor/bounded-exec.source.json) |
 | Mantle | `d75158b00b080535f2ffea12430665ca3d57ea82` | Build-contract producer fixtures and Nickel contract only | [`vendor/mantle.source.json`](../vendor/mantle.source.json) |
 | UCAN | `417f74662b9de2de3bdabe93ad5db996e1bd2861` | AGPL-3.0-or-later root shell and `ucan-nostr`; MPL-2.0 `ucan-core` and `verified-logic` snapshot | [`vendor/ucan.source.json`](../vendor/ucan.source.json) |
@@ -104,6 +105,8 @@ operator may supply any local Git object store containing the recorded commit:
 ```console
 scripts/import-pinned-source.sh lattice "$LATTICE_SOURCE"
 scripts/import-pinned-source.sh cairn "$CAIRN_SOURCE"
+scripts/import-pinned-source.sh cairn-verifier "$CAIRN_SOURCE"
+scripts/import-pinned-source.sh cairn-kiln-core "$KILN_SOURCE"
 scripts/import-pinned-source.sh valence "$VALENCE_SOURCE"
 scripts/import-pinned-source.sh artifact "$ARTIFACT_SOURCE"
 scripts/import-pinned-source.sh bounded-exec "$BOUNDED_EXEC_SOURCE"
@@ -434,6 +437,38 @@ Do not substitute stock, `PATH`, an unpinned plugin or impure evaluation when
 selected sources/artifacts are unavailable. Changes require producer review,
 Nix-generated lock updates where applicable, remeasured pins/provenance and the
 owning checks, not hand-edited lock files or fallback sources.
+
+### Lattice worker guest cohort
+
+The x86_64-linux `lattice-worker-guest` package takes its Lattice executable
+and the `examples/workflows/log-triage.ncl` definition from
+[`runtime/lattice-worker-cohort/`](../runtime/lattice-worker-cohort/). That
+subflake has one input and a Nix-generated lock that keeps Lattice's own
+producer pins and follows edges, so the guest reuses the exact Lattice package
+and does not rebuild it against Kiln's nixpkgs.
+
+| Source | Exact revision | NAR identity |
+|---|---|---|
+| Lattice (`OnixResearch/lattice`) | `661499d282c2e79ebefbd0f9b35beb5f8d7795cd` | `sha256-6Et39KfsaVP+7Oo+/eodDN2r0qz87s/wXC5ZncbYINY=` |
+
+The root flake loads the cohort lazily through `builtins.getFlake` with subflake
+NAR identity `sha256-sItviAZF4DbExmPtXf9pkm33zfCyP1WpFsZGgKH31Cc=`. Only the
+worker guest package selects it. Normal workspace builds, development shells
+and per-job microVM guests do not. `nix flake check` evaluates the package and
+therefore needs the cohort's sources. It is independent of the Lattice
+workflow-contract import (`70496e67…`) in the build-source table: the guest
+executes the Lattice binary and imports none of its Rust crates.
+
+To move the pin:
+
+1. Edit the revision in `runtime/lattice-worker-cohort/flake.nix`.
+2. Run `nix flake lock path:$PWD/runtime/lattice-worker-cohort`.
+3. Run `nix hash path runtime/lattice-worker-cohort` and update the root NAR
+   identity.
+4. Rebuild the guest and rerun its KVM qualification.
+
+The rebuild computes a new environment identity, so attempts admitted against
+the old manifest are refused.
 
 ## Maturity and non-claims
 

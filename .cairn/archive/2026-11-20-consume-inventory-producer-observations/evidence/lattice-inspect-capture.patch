@@ -1,0 +1,91 @@
+diff --git a/src/implementation_attempt/cli/binding/tests/serving.rs b/src/implementation_attempt/cli/binding/tests/serving.rs
+index 7c309124..55314ac0 100644
+--- a/src/implementation_attempt/cli/binding/tests/serving.rs
++++ b/src/implementation_attempt/cli/binding/tests/serving.rs
+@@ -152,3 +152,22 @@ fn inspect_reports_the_injected_ports_latest_snapshot_readiness_and_freshness()
+         super::super::super::inspect::project(&served.request_path, &served.state, &mut silent).expect("inventory");
+     assert_eq!(output["instance"]["model_readiness"]["routes"][0]["snapshot"]["reading"], "unavailable");
+ }
++
++#[test]
++fn capture_kiln_served_inventory_fixtures() {
++    let Some(dir) = std::env::var_os("KILN_CAPTURE_DIR") else { return };
++    let dir = std::path::PathBuf::from(dir);
++    let served = served();
++    let mut port = crate::execution_binding::serving::FixtureOwner::new(
++        vec![ready_snapshot(&served.request.omp.model_broker.model)],
++        vec![],
++        vec![],
++    );
++    let output =
++        super::super::super::inspect::project(&served.request_path, &served.state, &mut port).expect("inventory");
++    std::fs::write(dir.join("host-local-served-ready.json"), serde_json::to_vec_pretty(&output).expect("json")).expect("write");
++    let mut silent = crate::execution_binding::serving::FixtureOwner::default();
++    let output =
++        super::super::super::inspect::project(&served.request_path, &served.state, &mut silent).expect("inventory");
++    std::fs::write(dir.join("host-local-served-unavailable.json"), serde_json::to_vec_pretty(&output).expect("json")).expect("write");
++}
+diff --git a/src/implementation_attempt/cli/inspect/tests.rs b/src/implementation_attempt/cli/inspect/tests.rs
+index 0e56d8c3..a681d387 100644
+--- a/src/implementation_attempt/cli/inspect/tests.rs
++++ b/src/implementation_attempt/cli/inspect/tests.rs
+@@ -146,3 +146,59 @@ fn missing_or_unreadable_state_never_becomes_a_guessed_instance() {
+     std::fs::write(retained.directory.join(super::super::binding::ADMITTED_FILE), b"{").expect("corrupt binding");
+     assert!(project(&retained.request_path, &retained.state).is_err(), "unreadable binding");
+ }
++
++fn retained_from(fixture_name: &str, has_intent: bool) -> Retained {
++    let root = tempfile::tempdir().expect("scratch");
++    let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
++        .join("tests/fixtures/execution-binding/observations/positive")
++        .join(fixture_name);
++    let observation =
++        lattice_core::execution_binding::validation::decode_observation(&std::fs::read(fixture).expect("fixture"))
++            .expect("valid fixture");
++    let request = super::super::tests::request(
++        &observation.allocation.attempt_id,
++        lattice_core::execution_binding::request::ComputeRequirement::ProviderExecution { direct_accelerator: None },
++        lattice_core::execution_binding::request::ComputeDeclaration::ProviderAllocation {
++            allocation_id: observation.allocation.id.clone(),
++            host_id: observation.allocation.host_id.clone(),
++            consumer_id: observation.allocation.consumer_id.clone(),
++            owner_generation: observation.allocation.owner_generation,
++        },
++    );
++    let bytes = serde_json::to_vec(&request).expect("request bytes");
++    let request_path = root.path().join("request.json");
++    std::fs::write(&request_path, &bytes).expect("request");
++    let state = root.path().join("state");
++    super::super::artifacts::private_directory(&state).expect("state");
++    let directory = super::super::artifacts::directory(&state, &request);
++    super::super::artifacts::private_directory(&directory).expect("attempt directory");
++    let mut port = crate::execution_binding::FixtureComputePort::new(vec![Ok(
++        crate::execution_binding::AllocationReply::Observed(Box::new(observation)),
++    )]);
++    let bound = super::super::binding::admit_and_persist(&request, &directory, &mut port).expect("binding");
++    let identity = blake3::hash(&bytes).to_hex().to_string();
++    if has_intent {
++        super::super::artifacts::write_once(&directory.join("intent.json"), identity.as_bytes()).expect("intent");
++    }
++    Retained { _root: root, request_path, state, directory, identity, binding_identity: bound.binding_identity }
++}
++
++#[test]
++fn capture_kiln_inventory_fixtures() {
++    let Some(dir) = std::env::var_os("KILN_CAPTURE_DIR") else { return };
++    let dir = std::path::PathBuf::from(dir);
++    let write = |name: &str, value: &serde_json::Value| {
++        std::fs::write(dir.join(name), serde_json::to_vec_pretty(value).expect("json")).expect("write");
++    };
++    let terminal = retained(true);
++    publish(&terminal, crate::candidate::CandidateDisposition::Failed);
++    write("agent-a-1-terminal-failed.json", &project(&terminal.request_path, &terminal.state).expect("inventory"));
++    let admitted = retained(false);
++    write("agent-a-1-admitted-not-dispatched.json", &project(&admitted.request_path, &admitted.state).expect("inventory"));
++    let dispatched = retained(true);
++    write("agent-a-1-dispatched-outcome-unknown.json", &project(&dispatched.request_path, &dispatched.state).expect("inventory"));
++    let empty = dispatched.state.with_file_name("empty-state");
++    write("profile-without-instance.json", &project(&dispatched.request_path, &empty).expect("inventory"));
++    let second = retained_from("agent-a-2-active.json", true);
++    write("agent-a-2-dispatched-outcome-unknown.json", &project(&second.request_path, &second.state).expect("inventory"));
++}

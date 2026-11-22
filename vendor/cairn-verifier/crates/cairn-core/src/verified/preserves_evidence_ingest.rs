@@ -1,6 +1,3 @@
-use super::evidence::{blake3_hex, canonical_preserves_bytes};
-use serde_json::Value;
-
 pub const PRESERVES_EVIDENCE_INGEST_SCHEMA_V1: &str = "cairn.preserves-evidence-ingest.v1";
 pub const PRESERVES_EVIDENCE_OPAQUE_SCHEMA_V1: &str = "preserves.evidence-envelope.opaque.v1";
 pub const PRESERVES_EVIDENCE_ADAPTER_SCHEMA_V1: &str = "preserves.evidence-envelope.adapter.v1";
@@ -183,10 +180,10 @@ pub fn default_preserves_evidence_non_claims() -> Vec<String> {
 pub fn measure_preserves_evidence_envelope_bytes(
     envelope_path: &str,
     source_bytes: &[u8],
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<PreservesEvidenceEnvelopeMeasurement, PreservesEvidenceIngestIssue> {
     // r[impl cairn.preserves_evidence_ingest.validation]
-    let canonical_bytes = canonical_preserves_bytes(value).map_err(|error| {
+    let canonical_bytes = super::evidence::canonical_preserves_bytes(value).map_err(|error| {
         preserves_evidence_issue(
             PRESERVES_EVIDENCE_ISSUE_MEASUREMENT_ERROR,
             FIELD_CANONICAL_DIGEST,
@@ -195,7 +192,7 @@ pub fn measure_preserves_evidence_envelope_bytes(
     })?;
     Ok(PreservesEvidenceEnvelopeMeasurement {
         envelope_path: envelope_path.to_string(),
-        canonical_digest: blake3_hex(&canonical_bytes),
+        canonical_digest: super::evidence::blake3_hex(&canonical_bytes),
         canonical_bytes: source_bytes == canonical_bytes,
     })
 }
@@ -471,14 +468,13 @@ fn sort_preserves_evidence_issues(issues: &mut [PreservesEvidenceIngestIssue]) {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
 
     use super::*;
 
     const ENVELOPE_PATH: &str = "evidence/preserves/function-address.preserves";
 
-    fn envelope_value() -> Value {
-        json!({
+    fn envelope_value() -> serde_json::Value {
+        serde_json::json!({
             "schema": PRESERVES_EVIDENCE_OPAQUE_SCHEMA_V1,
             "producer_repo": "kamacite",
             "evidence_role": PRESERVES_EVIDENCE_ROLE_OPAQUE,
@@ -510,7 +506,8 @@ mod tests {
 
     fn valid_input() -> PreservesEvidenceIngestInput {
         let value = envelope_value();
-        let source_bytes = canonical_preserves_bytes(&value).expect("canonical Preserves bytes");
+        let source_bytes = super::super::evidence::canonical_preserves_bytes(&value)
+            .expect("canonical Preserves bytes");
         let measurement =
             measure_preserves_evidence_envelope_bytes(ENVELOPE_PATH, &source_bytes, &value)
                 .expect("measurement succeeds");

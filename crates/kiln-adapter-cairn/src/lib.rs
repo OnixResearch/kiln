@@ -8,6 +8,7 @@ mod machine;
 mod mapping;
 mod profile;
 mod runtime;
+pub mod selected_work;
 
 pub use adapter::CairnAdapter;
 pub use profile::*;

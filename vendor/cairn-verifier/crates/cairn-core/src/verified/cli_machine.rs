@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use thiserror::Error;
 
 // r[impl cairn.cli_machine_contract.envelope]
@@ -40,7 +38,9 @@ pub const CLI_MACHINE_REQUIRED_DIAGNOSTIC_CODES: &[&str] = &[
     CLI_MACHINE_DIAGNOSTIC_INTERNAL_ERROR,
 ];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum MachineExitClass {
     Success,
@@ -87,7 +87,9 @@ pub const CLI_MACHINE_EXIT_CLASSES: &[MachineExitClass] = &[
     MachineExitClass::InternalError,
 ];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum MachineDiagnosticSeverity {
     Error,
@@ -189,11 +191,16 @@ impl MachineFailureKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MachineOutcome {
-    CommandResult { result: Value, process_status: u8 },
-    ControlledFailure { failures: Vec<MachineFailureKind> },
+    CommandResult {
+        result: serde_json::Value,
+        process_status: u8,
+    },
+    ControlledFailure {
+        failures: Vec<MachineFailureKind>,
+    },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MachineDiagnostic {
     pub code: String,
     pub severity: MachineDiagnosticSeverity,
@@ -203,13 +210,13 @@ pub struct MachineDiagnostic {
     pub fix: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MachineEnvelope {
     pub schema_version: String,
     pub ok: bool,
     pub command: String,
     pub exit_class: MachineExitClass,
-    pub result: Option<Value>,
+    pub result: Option<serde_json::Value>,
     pub diagnostics: Vec<MachineDiagnostic>,
     pub non_claims: Vec<String>,
 }

@@ -1,8 +1,8 @@
 {
   "source_repository": "ssh://git@github.com/OnixResearch/cairn.git",
-  "source_commit": "15f00875562025e7ea7e0d1f4af24d1a2e2ac06f",
+  "source_commit": "8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0",
   "full_archive_format": "git archive --format=tar <source_commit>",
-  "full_archive_blake3": "d1772cba5a4c70c7648a5977fbe67ea8344eeaeeb6e2ad8ab7391f7667c651c3",
+  "full_archive_blake3": "6a7aaed93ae645d26c99cc12a1053f51ed7433451f609a005841a81525fb6b78",
   "archive_format": "git archive --format=tar <source_commit> -- <archive_paths...>",
   "archive_paths": [
     "Cargo.toml",
@@ -12,14 +12,15 @@
     "LICENSES",
     "license-policy.tsv",
     "docs/licensing.md",
+    "cairn-policy/generated",
     "crates/cairn-core"
   ],
-  "archive_blake3": "068e403844cbbd718e4ced8d0848b84cbfc7eff66d601a8a85b5231f747f5e3d",
+  "archive_blake3": "867504a36da1ba047bdaef11f5b9dfb58b2abfb9d728a6d64b59be477aec56c0",
   "importer": "scripts/import-pinned-source.sh",
   "package_licenses": {
     "cairn-core": "MIT OR Apache-2.0"
   },
-  "scope": "Selected immutable cairn-core authoritative completion implementation at the same producer revision as the separately consumed gate contract. Kiln calls the producer evaluator rather than recreating its semantics. The existing gate and fixture import remains current and unchanged.",
+  "scope": "Selected immutable cairn-core: the authoritative completion evaluator, the cairn.selected-work.v1 snapshot DTO and portable admission, and the workflow-obligation export consumed by kiln-adapter-cairn. The separately consumed gate contract and producer fixtures in vendor/cairn stay at their own revision. Its transitive artifact-auth and kiln-core Git dependencies resolve to the verified vendor/artifact and vendor/cairn-kiln-core imports through root manifest patches.",
   "nonclaims": "The evaluator checks supplied trusted-execution evidence; importing it does not execute checks, create evidence, grant authority, publish source, or establish release eligibility.",
   "manifest_normalization": "Absent workspace members are pruned from the retained root manifest so Cargo resolves only selected packages.",
   "formatter_scope": "Tree-local rustfmt.toml disables host formatting of immutable producer source."

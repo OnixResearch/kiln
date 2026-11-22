@@ -1,22 +1,20 @@
-use super::{SpecDetail, SpecList, SpecSource, SpecSummary};
-
-pub fn build_spec_list(sources: Vec<SpecSource>) -> SpecList {
+pub fn build_spec_list(sources: Vec<super::SpecSource>) -> super::SpecList {
     // r[impl cairn.supersede.read_parity.spec_list]
     let mut specs = sources
         .into_iter()
-        .map(|source| SpecSummary {
+        .map(|source| super::SpecSummary {
             id: source.id,
             path: source.path,
             title: spec_title(&source.markdown),
         })
         .collect::<Vec<_>>();
     specs.sort_by(|left, right| left.id.cmp(&right.id));
-    SpecList { specs }
+    super::SpecList { specs }
 }
 
-pub fn build_spec_detail(source: SpecSource) -> SpecDetail {
+pub fn build_spec_detail(source: super::SpecSource) -> super::SpecDetail {
     // r[impl cairn.supersede.read_parity.spec_show]
-    SpecDetail {
+    super::SpecDetail {
         id: source.id,
         path: source.path,
         title: spec_title(&source.markdown),

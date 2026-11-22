@@ -396,12 +396,24 @@ fn restored_unknown_reconciles_without_process_redispatch() {
 
 #[test]
 fn bounded_runtime_hashes_exact_file_and_rejects_missing_executable() {
+    // Hash a fixed file rather than this test binary, whose debug size grows with
+    // the workspace and already exceeds the 256 MiB executable bound.
     let runtime = BoundedCairnRuntime;
-    let executable = std::env::current_exe().unwrap_or_else(|_| unreachable!());
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let executable = directory.path().join("kiln-cairn");
+    let script = b"#!/bin/sh\nexit 0\n";
+    std::fs::write(&executable, script).unwrap_or_else(|_| unreachable!());
     let first = runtime.executable_identity(&executable, MAX_EXECUTABLE_BYTES);
     let second = runtime.executable_identity(&executable, MAX_EXECUTABLE_BYTES);
     assert!(first.is_ok());
     assert_eq!(first, second);
+    let exact_bound = u64::try_from(script.len()).unwrap_or_else(|_| unreachable!());
+    assert_eq!(runtime.executable_identity(&executable, exact_bound), first);
+    assert!(
+        runtime
+            .executable_identity(&executable, exact_bound - 1)
+            .is_err()
+    );
     assert!(
         runtime
             .executable_identity(Path::new("/missing/kiln-cairn"), MAX_EXECUTABLE_BYTES)

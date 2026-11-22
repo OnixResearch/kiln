@@ -1,0 +1,256 @@
+{
+  "instance": {
+    "allocation_liveness": {
+      "owner": "kiln#49",
+      "support": "unknown"
+    },
+    "attempt_id": "attempt-managed-admitted",
+    "binding_identity": "blake3:1bd2d91e2cdd9e8e523fecc83264e72fd462f504e9b733328ae65aa422073cf9",
+    "cancellation": "not_requested",
+    "compute": {
+      "compute_kind": "host_local"
+    },
+    "definition_identity": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+    "fence": 8,
+    "host_reachability": {
+      "owner": "kiln#49",
+      "support": "unknown"
+    },
+    "incarnation": "67ddba14175b781ca612549422264ffb58d834bde9839e7e097edebc3b211ac4",
+    "lifecycle": {
+      "state": "admitted_not_dispatched"
+    },
+    "liveness": {
+      "observed_at_epoch_ms": 1795237881909,
+      "retained_generation": 1,
+      "runtime": "single_shot",
+      "state": "not_started",
+      "unknown_cause": null
+    },
+    "model_readiness": {
+      "state": "no_serving_port"
+    },
+    "model_routes": {
+      "kind": "routes",
+      "routes": [
+        {
+          "name": "primary",
+          "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+        }
+      ]
+    },
+    "observed_at_epoch_ms": 1795237881909,
+    "pinned": {
+      "support": "recorded",
+      "value": {
+        "is_blocked": false,
+        "pin_identity": "blake3:736315c3d03cc5cc9aa67ac4567d008a537b455177749f2c0dbf21d39fcace56",
+        "qualification_ref": "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc",
+        "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+        "rollout_generation": 1,
+        "status": "live"
+      }
+    },
+    "profile_revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+    "schema": "lattice.worker-instance-observation.v3",
+    "source": "lattice.implementation-attempt-state.v1",
+    "state_digest": "blake3:c4ecc28517a2a2830fedc68057400bc4458336ee2b80a95e778c85932e6b3124",
+    "wait_reasons": [
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "awaiting_dispatch",
+        "owner": "kiln#45",
+        "subject": {
+          "field": "lifecycle",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "host_reachability_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "host_reachability",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "allocation_liveness_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "allocation_liveness",
+          "kind": "fact"
+        }
+      }
+    ],
+    "work_id": "work-24"
+  },
+  "model_requests": "unknown",
+  "profile": {
+    "adapter": {
+      "support": "declared",
+      "value": "omp-jsonl"
+    },
+    "capability_qualifications": [
+      {
+        "evidence_class": "task_family_evaluation",
+        "provenance": "fixture",
+        "qualification_ref": "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc",
+        "task_family": "rust-implementation"
+      }
+    ],
+    "checkpoint": {
+      "support": "unavailable",
+      "value": null
+    },
+    "compute": {
+      "support": "declared",
+      "value": {
+        "kind": "host_local"
+      }
+    },
+    "cpu_millis": {
+      "support": "unknown",
+      "value": null
+    },
+    "deadline_secs": {
+      "support": "declared",
+      "value": 60
+    },
+    "definition": {
+      "basis": "declared",
+      "identity": "blake3:367783379a41fd2e834f26af4e7504906c1f3967bd9f21bba979441a1f0789c1",
+      "name": "rust-implementer"
+    },
+    "executable_identity": {
+      "support": "declared",
+      "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "inputs": {
+      "support": "declared",
+      "value": "workspace-snapshot"
+    },
+    "isolation": {
+      "support": "declared",
+      "value": "required-sandbox"
+    },
+    "max_output_bytes": {
+      "support": "declared",
+      "value": 4096
+    },
+    "memory_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "model_routes": {
+      "support": "declared",
+      "value": {
+        "kind": "routes",
+        "routes": [
+          {
+            "name": "primary",
+            "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+          }
+        ]
+      }
+    },
+    "network": {
+      "support": "declared",
+      "value": "attempt-local-model-broker"
+    },
+    "outputs": {
+      "support": "declared",
+      "value": "candidate-receipt"
+    },
+    "owner": "implementation_attempt",
+    "protocol_revision": {
+      "support": "declared",
+      "value": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906"
+    },
+    "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+    "revisions": {
+      "desired": {
+        "support": "recorded",
+        "value": {
+          "generation": 1,
+          "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+        }
+      },
+      "prepared": {
+        "support": "recorded",
+        "value": [
+          "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46"
+        ]
+      },
+      "qualified": {
+        "support": "recorded",
+        "value": [
+          {
+            "evidence_class": "task_family_evaluation",
+            "is_revoked": false,
+            "provenance": "fixture",
+            "qualification_ref": "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc",
+            "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+            "task_family": "rust-implementation"
+          }
+        ]
+      },
+      "selected_for_new_sessions": {
+        "support": "recorded",
+        "value": {
+          "kind": "promotion",
+          "qualification_ref": "blake3:f87cdbc0556abfd2bcf7bdd9d26e89b722a57bf5b6b1a81d0ea73fc5c1c41fcc",
+          "revision": "96737fddb3dd1ef86fb1916f1731aa65ca70455506f4a08c984ce04380349f46",
+          "rollout_generation": 1
+        }
+      }
+    },
+    "schema": "lattice.worker-profile-facts.v3",
+    "serving_readiness": {
+      "state": "no_serving_port"
+    },
+    "sessions": {
+      "support": "declared",
+      "value": "single-shot-no-session"
+    },
+    "storage_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "task_families": {
+      "support": "qualified",
+      "value": [
+        "rust-implementation"
+      ]
+    },
+    "tools": {
+      "support": "declared",
+      "value": [
+        "edit",
+        "read",
+        "write"
+      ]
+    },
+    "wait_reasons": [
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      }
+    ],
+    "workspace": {
+      "support": "declared",
+      "value": "admitted-read-write-paths"
+    }
+  },
+  "schema": "lattice.worker-inventory.v3"
+}

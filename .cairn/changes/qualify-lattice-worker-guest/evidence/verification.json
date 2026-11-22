@@ -1,0 +1,72 @@
+{
+  "observed_on": "2026-11-19",
+  "issues": [
+    "https://github.com/OnixResearch/kiln/issues/51",
+    "https://github.com/OnixResearch/kiln/issues/52",
+    "https://github.com/OnixResearch/kiln/issues/53",
+    "https://github.com/OnixResearch/kiln/issues/54",
+    "https://github.com/OnixResearch/kiln/issues/55"
+  ],
+  "source_parent_revision": "3cdb0ce3",
+  "scope": "Milestone M1 only: Lattice worker guest packaging, pure attempt admission, journalled single dispatch and the single-host retained lifecycle on real KVM. M2-M5 are planned in milestones.md and not exercised.",
+  "fixture_evidence": {
+    "kiln-microvm lattice_worker unit tests": "10 passed: exact admission, canonical identities, eleven crossed-identity/expired-deadline refusals on host and guest, other-environment refusal, independent attempt identities, manifest device/resource/object refusals, authority-profile injection refusal, blank-workspace probe, frame bounds and report tail",
+    "kiln-hosted microvm::lattice_worker unit tests": "6 passed: journal-once without resend, lost report and crash-after-intent reconciliation, crossed report not adopted, refusal before journal for non-running/stale/crossed/wrong-image, workspace creation once in a private directory, manifest object re-hash refusal"
+  },
+  "kvm_evidence": {
+    "label": "exercised locally on one KVM host; test-only single-host reservation",
+    "command": "PATH=<e2fsprogs-bin>/bin:/run/current-system/sw/bin:$PATH KILN_MICROVM_REQUIRED=1 KILN_LATTICE_WORKER_GUEST=/tmp/klw-guest cargo test --locked -p kiln-hosted --test lattice_worker -- --nocapture",
+    "result": "1 passed, 0 failed (287.79 s, unoptimized test build)",
+    "host": {"kernel": "linux 6.18.60", "arch": "x86_64", "kvm": "/dev/kvm present", "manager": "systemd user manager (degraded)"},
+    "guest_package": {
+      "nix_build": "nix build --builders '' path:$PWD#lattice-worker-guest",
+      "manifest_schema": "kiln.lattice-worker-guest.v1",
+      "image_identity": "b2d6912eef3eef1b68aaa80b225261daaa5925507b1f02c6e4903d7503b75db4",
+      "environment_identity": "f607e53e129ee41c5f5c13217994ebac4dddb3e14b9fb2019b9991a50012400b",
+      "kernel": {"path": "/nix/store/banrncybk21whqw5m9l6302r8j00m009-kiln-microvm-vmlinux", "blake3": "82b233c0997f2fa73413cc5a536b5380734e2225dc3adcf3fcb9bf1aa52d6ede", "version": "6.18.60"},
+      "initrd": {"path": "/nix/store/f6r3q75ii5vgriy8ybzfppsx5cqdjmnr-kiln-lattice-worker-initrd/initrd", "blake3": "ca8fdf0aa1964af8afdec6bf9ca09fd32426a4a5c7d0177842145b2acc40de05", "bytes": 102541824},
+      "vmm": {"path": "/nix/store/pn7pp97wzvnp2awss31j5gna11a89n8q-cloud-hypervisor-54.0/bin/cloud-hypervisor", "blake3": "7993f3f7efe6c5bad3310867ac73ab41cf2a052d4412cae060b3e03844e13e8d", "version": "cloud-hypervisor v54.0.0"},
+      "lattice": {"revision": "661499d282c2e79ebefbd0f9b35beb5f8d7795cd", "package": "/nix/store/k99bx2knvy4bf93q6p0jilcf9fh0k7jq-lattice-0.1.0"},
+      "workflows": ["log-triage", "workspace-journal"]
+    },
+    "observations": {
+      "host_admission": "crossed environment and wrong image refused before any workspace or VM effect",
+      "cold_start": "two concurrent sessions: vm.create with workspace image_type Raw, boot, pause; Paused adopted only from vm.info with observed confinement; then Resume adopted Running",
+      "guest_refusal": "crossed workflow definition sent directly to guest B returned Refused lattice_worker_workflow_mismatch; B then accepted its admitted dispatch",
+      "attempt_a": {"workflow": "log-triage", "guest_identity": "78a0de6e9248099def16fc1510641dd5", "lattice_run": {"status": "succeeded", "node_count": 3, "completed": 3, "failures": 0, "exit_code": 0}},
+      "attempt_b": {"workflow": "workspace-journal", "guest_identity": "bc6734d2d70dbd754d6da8eb93cdb8b3", "lattice_run": {"status": "succeeded", "node_count": 3, "completed": 3, "failures": 0, "exit_code": 0}},
+      "isolation": "distinct guest identities; B's journal (read with debugfs after retirement) contains B's identity and not A's; A's /kiln/report.json equals the dispatch report",
+      "stale_owner": "pause with a later placement generation and with a foreign host refused before host effect",
+      "controller_restart": "new SQLite connection: repeated dispatch returned the recorded report and opened no listener",
+      "retirement": "pause, paired snapshot, retire with observed cleanup; occupied=0; cold start of the retired session refused",
+      "restore": "reopen_retired_checkpoint, restore paused, resume Running with confinement observed; restored guest reported the same attempt over a fresh vsock connection",
+      "workspace_reuse": "fresh guest C given a copy of A's used workspace refused with lattice_worker_workspace_used",
+      "timings_note": "cold create/boot/pause about 16 s and restore about 49 s in an unoptimized test build that re-hashes the 100 MiB initramfs and 768 MiB memory snapshot; not performance evidence"
+    }
+  },
+  "gates": [
+    {"command": "cargo fmt --all --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast (clean PATH)", "exit": 0, "counts": "2183 passed, 0 failed, 14 ignored; the KVM test skips without KILN_LATTICE_WORKER_GUEST"},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "counts": "95 positive, 625 negative"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0},
+    {"command": "cairn traceability coverage --root . --policy cairn-policy/generated/cairn-policy.json --json", "exit": 1, "note": "only the 3 pre-existing dangling kiln.implementation.authority.coverage* references; no lattice-worker reference is dangling or missing"},
+    {"command": "cairn release-readiness --root .", "exit": 0, "note": "valid=false only from the pre-existing traceability_coverage check, identical at 3cdb0ce3"},
+    {"command": "nix build path:$PWD#checks.x86_64-linux.octet --no-link -L", "exit": 0, "counts": "octet consumer checks clean, 0 findings"},
+    {"command": "nix flake check path:$PWD --no-write-lock-file -L", "exit": 1, "note": "stops at checks.x86_64-linux.package: kiln-fleet tests/dispatch.rs needs git, which the package nativeCheckInputs (python3 only) does not provide; kiln-fleet, kiln-adapter-herdr and the package derivation inputs are unchanged from 3cdb0ce3, and the same test fails identically outside Nix with git removed from PATH"},
+    {"command": "nix flake check --no-build path:$PWD --no-write-lock-file", "exit": 0, "note": "all outputs, including packages.x86_64-linux.lattice-worker-guest, evaluate"},
+    {"command": "nix build --keep-going <every other checks.x86_64-linux attribute>", "exit": 1, "counts": "40 of 47 checks realized; the 7 unrealized (package, tests, boundaries, runtime-independence, bombadil, dashboard-publication, release-evidence) are the same failing kiln-0.1.0 derivation or depend on it"},
+    {"command": "nix build path:$PWD#packages.x86_64-linux.microvm-guest-ch (drv comparison)", "exit": 0, "note": "after the guest-kernel helper extraction, vmlinux and module derivations are identical to 3cdb0ce3; only the guest agent changes because the crate source changed"}
+  ],
+  "pre_existing_failures": [
+    "cairn traceability coverage: 3 dangling references kiln.implementation.authority.coverage* from the unsynced bind-implementation-authority change; identical at baseline 3cdb0ce3; release-readiness fails only on that check at baseline and after this change",
+    "kiln-fleet tests/dispatch.rs fails with 'herdr environment PATH is invalid' when the inherited PATH exceeds its bound; passes with a clean PATH; unrelated to this change"
+  ],
+  "non_claims": [
+    "No placement ownership, distributed authority, volume or external-effect fencing: the KVM test uses a test-only reservation and the production retained consumer still refuses.",
+    "No cross-host relocation, Iroh/Aspen channel, live migration, compatibility matrix or host drain was run (#53-#55).",
+    "No onix-core service, GC-root, credential or static-guest integration.",
+    "Headless `lattice run` is not the Lattice #10 attempt envelope or the #11 reconnecting workflow-exchange gateway.",
+    "One host, one CH build and one guest manifest; not production or hostile-isolation qualification."
+  ]
+}

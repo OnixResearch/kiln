@@ -1,0 +1,36 @@
+{
+  "max_blockers": 512,
+  "max_observation_bytes": 16777216,
+  "max_target_bytes": 4096,
+  "rules": [
+    {
+      "code": "artifact.incomplete",
+      "kind": "artifact_repair"
+    },
+    {
+      "code": "cairn.workflow.profile.review",
+      "kind": "evidence_refresh"
+    },
+    {
+      "code": "dependency.blocked",
+      "kind": "dependency_wait"
+    },
+    {
+      "code": "verification_result.missing",
+      "kind": "evidence_refresh"
+    },
+    {
+      "code": "verification_result.subject_stale",
+      "kind": "evidence_refresh"
+    },
+    {
+      "code": "probe.saved_evidence.invalid",
+      "kind": "evidence_refresh"
+    },
+    {
+      "code": "verification_contract.subject_stale",
+      "kind": "evidence_refresh"
+    }
+  ],
+  "schema": "cairn.readiness.v1"
+}

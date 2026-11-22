@@ -1,8 +1,6 @@
 // r[impl cairn.nominal_evidence_identities.receipt_chains]
 // r[verify cairn.nominal_evidence_identities.receipt_chains.validation]
 
-use serde_json::Value;
-
 mod authoritative;
 mod common;
 mod constants;
@@ -42,7 +40,7 @@ use verification::verification_issues;
 // r[impl cli_maintainability.agent_receipt_core_modules.behavior_preserved.repository_checks]
 
 // r[impl cairn.supersede.agent_run_receipts.completion_gate]
-pub fn evaluate_agent_run_completion(receipt: &Value) -> AgentRunGateReport {
+pub fn evaluate_agent_run_completion(receipt: &serde_json::Value) -> AgentRunGateReport {
     let issues = agent_run_receipt_issues(receipt);
     let is_valid = issues.is_empty();
     let verdict = if is_valid { "PASS" } else { "FAIL" }.to_string();
@@ -55,7 +53,7 @@ pub fn evaluate_agent_run_completion(receipt: &Value) -> AgentRunGateReport {
     }
 }
 
-pub fn agent_run_receipt_issues(receipt: &Value) -> Vec<AgentRunGateIssue> {
+pub fn agent_run_receipt_issues(receipt: &serde_json::Value) -> Vec<AgentRunGateIssue> {
     let mut issues = Vec::with_capacity(8);
     let Some(object) = receipt.as_object() else {
         return vec![issue(
@@ -74,11 +72,7 @@ pub fn agent_run_receipt_issues(receipt: &Value) -> Vec<AgentRunGateIssue> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
 
-    use crate::verified::nominal_identity::ReceiptDigestRole;
-
-    use super::common::is_digest;
     use super::*;
 
     #[test]
@@ -90,14 +84,19 @@ mod tests {
             agent_run_receipt_hash(&first),
             agent_run_receipt_hash(&second)
         );
-        let hash = first.get("receipt_hash").and_then(Value::as_str).unwrap();
-        assert!(is_digest::<ReceiptDigestRole>(hash));
+        let hash = first
+            .get("receipt_hash")
+            .and_then(serde_json::Value::as_str)
+            .unwrap();
+        assert!(super::common::is_digest::<
+            crate::verified::nominal_identity::ReceiptDigestRole,
+        >(hash));
     }
 
     #[test]
     // r[verify cairn.determinism.preserves_receipt_consumer.golden_fixture]
     fn agent_run_preserves_hash_matches_positive_fixture_golden() {
-        let fixture: Value = serde_json::from_str(include_str!(
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
             "../../../../../fixtures/agent-receipts/positive.json"
         ))
         .expect("checked-in positive agent-run fixture parses");
@@ -105,20 +104,20 @@ mod tests {
             .expect("checked-in positive fixture Preserves hash");
         assert_eq!(
             hash,
-            "f6b07870c0e4fdb8e56d88d6738792aed51a9b5c1368bf9e8c9fc0031e181d1b"
+            "c3d8892ccd37f98ce1f4da14b0384a7f6e22ef4a75d82aaf76847ac74544e450"
         );
     }
 
     #[test]
     // r[verify cairn.determinism.preserves_receipt_consumer.stable_hashing]
     fn agent_run_preserves_hash_ignores_object_key_order() {
-        let left = json!({
+        let left = serde_json::json!({
             "schema_version": AGENT_RUN_RECEIPT_SCHEMA_VERSION,
             "task_id": "fixture-agent-run-success",
             "agent_identity": {"wrapper": "cairn-fixture", "model": "captured-model"},
             "receipt_hash": "ignored",
         });
-        let right = json!({
+        let right = serde_json::json!({
             "receipt_hash": "ignored",
             "agent_identity": {"model": "captured-model", "wrapper": "cairn-fixture"},
             "task_id": "fixture-agent-run-success",
@@ -136,7 +135,7 @@ mod tests {
     // r[verify cairn.determinism.preserves_receipt_consumer.validation]
     fn agent_run_preserves_hash_changes_when_fixture_content_changes() {
         let mut changed = positive_agent_run_fixture();
-        changed["task_id"] = Value::String("different-task".to_string());
+        changed["task_id"] = serde_json::Value::String("different-task".to_string());
 
         assert_ne!(
             agent_run_preserves_receipt_hash(&positive_agent_run_fixture())
@@ -162,9 +161,9 @@ mod tests {
     #[test]
     fn completion_gate_fails_missing_side_effect_plan() {
         let mut receipt = positive_agent_run_fixture();
-        receipt["plan_hash"] = Value::String(String::new());
+        receipt["plan_hash"] = serde_json::Value::String(String::new());
         let hash = agent_run_receipt_hash(&receipt);
-        receipt["receipt_hash"] = Value::String(hash);
+        receipt["receipt_hash"] = serde_json::Value::String(hash);
         let report = evaluate_agent_run_completion(&receipt);
         assert!(!report.valid);
         assert!(report
@@ -176,12 +175,12 @@ mod tests {
     #[test]
     fn completion_gate_fails_uncaptured_nondeterminism() {
         let mut receipt = positive_agent_run_fixture();
-        receipt["nondeterminism_manifest"] = json!({
+        receipt["nondeterminism_manifest"] = serde_json::json!({
             "captured": [],
             "forbidden_uncaptured": [{"class": "network"}]
         });
         let hash = agent_run_receipt_hash(&receipt);
-        receipt["receipt_hash"] = Value::String(hash);
+        receipt["receipt_hash"] = serde_json::Value::String(hash);
         let report = evaluate_agent_run_completion(&receipt);
         assert!(!report.valid);
         assert!(report
@@ -193,9 +192,9 @@ mod tests {
     #[test]
     fn completion_gate_fails_mutation_outside_no_mutation_plan() {
         let mut receipt = positive_agent_run_fixture();
-        receipt["plan_hash"] = Value::String(NO_MUTATION_PLAN_HASH.to_string());
+        receipt["plan_hash"] = serde_json::Value::String(NO_MUTATION_PLAN_HASH.to_string());
         let hash = agent_run_receipt_hash(&receipt);
-        receipt["receipt_hash"] = Value::String(hash);
+        receipt["receipt_hash"] = serde_json::Value::String(hash);
         let report = evaluate_agent_run_completion(&receipt);
         assert!(!report.valid);
         assert!(report

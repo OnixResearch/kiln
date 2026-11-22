@@ -1,0 +1,39 @@
+{
+  "schema": "kiln.fixture-provenance.v1",
+  "producer": "lattice",
+  "contract": "lattice.worker-inventory.v3",
+  "lattice_commit": "ed51aee274d7f4ffe8cb390fbcb313bb0c91e6d1",
+  "lattice_base": "9a74e7ef1da4e0ca7610dce0db039b3825a7154d",
+  "lattice_commit_note": "Captured from the final Lattice integration tree; the published Lattice commit ed51aee2 carries the same inventory code (its tree differs from the captured one only in a vendored Animus test literal and its pins). The captured documents are bound by their BLAKE3 hashes, not by the commit.",
+  "schema_documents": [
+    "docs/worker-inventory.md",
+    "docs/agent-revisions.md"
+  ],
+  "command": "LATTICE_INVENTORY_CAPTURE_DIR=$DIR cargo test --locked -p lattice --lib -- capture_ --test-threads 1",
+  "copied": "verbatim",
+  "synthetic": true,
+  "varying_fields": [
+    "instance.observed_at_epoch_ms",
+    "instance.liveness.observed_at_epoch_ms",
+    "instance.incarnation (managed scenarios)",
+    "instance.state_digest (managed scenarios)"
+  ],
+  "blake3": {
+    "agent-a-1-admitted-not-dispatched.json": "726824c6d2a689a51df5188e2a015d784e2ba3ba134bf9a68865b360a063f873",
+    "agent-a-1-declared-capability-dispatched.json": "5941c4e08b75bcf6bcf50d77d5524cf1840c6d5a4399ecba414e9e0584f1da74",
+    "agent-a-1-dispatched-outcome-unknown.json": "03018e0572ee56a54a74dc0a877bb9d2aa58ed10a7b15994d4919ac31b687a2b",
+    "agent-a-1-terminal-failed.json": "e791839b7e8ab4d8c80ac3369e85157427f9090cedbe40fcca4cbcb9c4e37985",
+    "agent-a-2-dispatched-outcome-unknown.json": "060b9cdb3e3c5d8fa184fb26ced7fbdbca82aacfd54fc9e5686c17d9cd0c0d10",
+    "host-local-served-ready.json": "288929fc28d533ac007c215b464806d33c43f4d8a82e45f345528abe581d9d5d",
+    "host-local-served-unavailable.json": "bd3f9afd9fa40941cc0641e5f018d6fe8dae68b60a3513fffdd966b213864fac",
+    "managed-1-desired.json": "d583a58b3ab6432c777d44be168845ef21ce22979796d2fcb99e10dc03146840",
+    "managed-2-prepared.json": "d91eb241487dff0a91736d556aa84c6d5a5f09f817e141b038b198ff230136ab",
+    "managed-3-promoted.json": "68849bc3251d1307d031a89a7af94f82d65caa7e566ccfa5c9e3508b86d96f98",
+    "managed-4-admitted-session-live.json": "b616cd91fa4c35a9335b78e962ec0d60ceeb6439e8caf64a48fc524c67253207",
+    "managed-5-terminal-pin-released.json": "5ed1d96299e049efc6dcdd89861d8651a9f516579f3397e6593366527546bd66",
+    "managed-6-revoked-live-session.json": "18b3b996afed75bb7746f6970ec32aa4fbbf3b39715d6c5f1323302b8c693ac1",
+    "managed-6-revoked-terminal.json": "d8dde7e519a7b8553246edef6626d0e2c83884d729e677db8aaf2d5193c1c853",
+    "managed-7-refused-after-revocation.json": "efbb8f5d41ed0881718cf074adaf402488917f7d33bdccccca22678ef75185f6",
+    "profile-without-instance.json": "25d8a903edb3443b8a1c105c3eb29be3c06b328e2384fa069650946d3ee8aae6"
+  }
+}

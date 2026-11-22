@@ -1,0 +1,22 @@
+{
+  "bounds": {
+    "max_assumptions": 128,
+    "max_branches": 512,
+    "max_claims": 256,
+    "max_depth": 16,
+    "max_events": 256,
+    "max_evidence": 512,
+    "max_obligations": 256,
+    "max_premises": 8
+  },
+  "change_kinds": [
+    "evidence_stale",
+    "evidence_withdrawn",
+    "assumption_withdrawn",
+    "evidence_admitted",
+    "claim_revised",
+    "policy_changed",
+    "context_changed"
+  ],
+  "schema": "cairn.support-maintenance-policy.v1"
+}

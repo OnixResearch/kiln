@@ -1,0 +1,7 @@
+{
+  "default_bytes": 16384,
+  "default_entries": 16,
+  "max_bytes": 16384,
+  "max_detail_bytes": 262144,
+  "max_entries": 16
+}

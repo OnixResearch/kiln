@@ -10,6 +10,7 @@ mod markdown;
 mod references;
 mod spec;
 mod substance;
+mod targeted_context;
 mod task_ordering;
 
 pub use changes::{change_issues, validate_changes, validate_changes_with_archives};
@@ -26,6 +27,10 @@ pub use substance::{
     evaluate_lifecycle_substance, lifecycle_substance_issues, ArtifactSubstanceInventory,
     LifecycleSubstanceReport,
 };
+pub use targeted_context::{
+    select_context, ContextReadBounds, ContextReference, ContextSelection, ContextSelectionStatus,
+    ContextSelector, ContextSpan,
+};
 pub use task_ordering::{
     build_task_ordering_graph, TaskOrderingEdge, TaskOrderingGraph, TaskOrderingIssue,
     TaskOrderingNode, TaskOrderingState, TASK_ORDER_ISSUE_CYCLE, TASK_ORDER_ISSUE_ID_DUPLICATE,
@@ -37,60 +42,41 @@ pub use task_ordering::{
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
 
     use super::*;
-    use crate::verified::function_address_gates::{
-        FunctionAddressPolicy, FUNCTION_ADDRESS_BOUNDARY, FUNCTION_ADDRESS_CLAIM_SCOPE_LIFECYCLE,
-        FUNCTION_ADDRESS_MODE_DISABLED,
-    };
-    use crate::verified::policy::{
-        parse_policy_json, ArtifactSubstancePolicy, ExemptionMarkerPolicy, Policy, ReceiptSchema,
-        SteelOrchestrationPolicy, TaskMarker, TraceabilityPolicy,
-    };
-    use crate::verified::repo::{ChangeStatus, SpecSource, TaskCounts};
-    use crate::verified::runtime_evidence::{
-        RuntimeEvidencePolicy, CAPTURE_ORIGIN_BOUNDARY, CAPTURE_ORIGIN_INGESTED,
-        CAPTURE_ORIGIN_UNKNOWN, CAPTURE_ORIGIN_WRAPPER_ASSERTED, DEFAULT_RUNTIME_SUMMARY_MAX_BYTES,
-        RUNTIME_HASH_ALGORITHM_BLAKE3,
-    };
-    use crate::verified::stack_provenance::{
-        StackProvenancePolicy, STACK_PROVENANCE_BOUNDARY, STACK_PROVENANCE_CLAIM_SCOPE_LIFECYCLE,
-        STACK_PROVENANCE_MODE_DISABLED,
-    };
 
-    fn policy(enabled: bool, strictness: &str) -> Policy {
-        let generated_policy = parse_policy_json(include_str!(
+    fn policy(enabled: bool, strictness: &str) -> crate::verified::policy::Policy {
+        let generated_policy = crate::verified::policy::parse_policy_json(include_str!(
             "../../../../../cairn-policy/generated/cairn-policy.json"
         ))
         .expect("generated policy");
-        Policy {
+        crate::verified::policy::Policy {
             name: "test".to_string(),
             version: 1,
             task_markers_enabled: enabled,
             task_marker_strictness: strictness.to_string(),
             task_marker_tokens: vec![
-                TaskMarker {
+                crate::verified::policy::TaskMarker {
                     id: "parallel".to_string(),
                     token: "[parallel]".to_string(),
                     kind: "literal".to_string(),
                 },
-                TaskMarker {
+                crate::verified::policy::TaskMarker {
                     id: "serial".to_string(),
                     token: "[serial]".to_string(),
                     kind: "literal".to_string(),
                 },
-                TaskMarker {
+                crate::verified::policy::TaskMarker {
                     id: "depends".to_string(),
                     token: "[depends:".to_string(),
                     kind: "prefix".to_string(),
                 },
-                TaskMarker {
+                crate::verified::policy::TaskMarker {
                     id: "task".to_string(),
                     token: "[task:<id>]".to_string(),
                     kind: "task-id-prefix".to_string(),
                 },
-                TaskMarker {
+                crate::verified::policy::TaskMarker {
                     id: "after".to_string(),
                     token: "[after:<task-id>]".to_string(),
                     kind: "task-predecessor-prefix".to_string(),
@@ -111,7 +97,7 @@ mod tests {
             agent_guidance_policy: generated_policy.agent_guidance_policy,
             developer_loop_policy: generated_policy.developer_loop_policy,
             generated_agent_workflow_policy: generated_policy.generated_agent_workflow_policy,
-            artifact_substance_policy: ArtifactSubstancePolicy {
+            artifact_substance_policy: crate::verified::policy::ArtifactSubstancePolicy {
                 proposal_minimum_substantive_lines: 1,
                 design_minimum_substantive_lines: 1,
                 minimum_requirement_blocks: 1,
@@ -130,7 +116,7 @@ mod tests {
             archive_require_gate: true,
             migrate_require_manifest: true,
             require_receipt_hashes: true,
-            receipt_schemas: vec![ReceiptSchema {
+            receipt_schemas: vec![crate::verified::policy::ReceiptSchema {
                 command: "gate".to_string(),
                 top_level_keys: vec!["verdict".to_string()],
                 action_keys: Vec::new(),
@@ -141,7 +127,7 @@ mod tests {
                 ],
                 hash_fields: vec!["receipt_hash".to_string()],
             }],
-            exemption_marker_policy: ExemptionMarkerPolicy {
+            exemption_marker_policy: crate::verified::policy::ExemptionMarkerPolicy {
                 required_fields: vec![
                     "reason".to_string(),
                     "owner".to_string(),
@@ -158,56 +144,56 @@ mod tests {
                 "blocked".to_string(),
                 "deferred".to_string(),
             ],
-            steel_orchestration_policy: SteelOrchestrationPolicy {
+            steel_orchestration_policy: crate::verified::policy::SteelOrchestrationPolicy {
                 enabled: false,
                 profiles: Vec::new(),
             },
-            traceability_policy: TraceabilityPolicy {
+            traceability_policy: crate::verified::policy::TraceabilityPolicy {
                 default_profile: "cairn-default".to_string(),
                 profiles: Vec::new(),
             },
-            stack_provenance_policy: StackProvenancePolicy {
-                mode: STACK_PROVENANCE_MODE_DISABLED.to_string(),
-                allowed_claim_scopes: vec![STACK_PROVENANCE_CLAIM_SCOPE_LIFECYCLE.to_string()],
+            stack_provenance_policy: crate::verified::stack_provenance::StackProvenancePolicy {
+                mode: crate::verified::stack_provenance::STACK_PROVENANCE_MODE_DISABLED.to_string(),
+                allowed_claim_scopes: vec![crate::verified::stack_provenance::STACK_PROVENANCE_CLAIM_SCOPE_LIFECYCLE.to_string()],
                 accepted_valence_policy_hashes: Vec::new(),
-                required_boundary: STACK_PROVENANCE_BOUNDARY.to_string(),
+                required_boundary: crate::verified::stack_provenance::STACK_PROVENANCE_BOUNDARY.to_string(),
             },
-            function_address_policy: FunctionAddressPolicy {
-                mode: FUNCTION_ADDRESS_MODE_DISABLED.to_string(),
-                allowed_claim_scopes: vec![FUNCTION_ADDRESS_CLAIM_SCOPE_LIFECYCLE.to_string()],
+            function_address_policy: crate::verified::function_address_gates::FunctionAddressPolicy {
+                mode: crate::verified::function_address_gates::FUNCTION_ADDRESS_MODE_DISABLED.to_string(),
+                allowed_claim_scopes: vec![crate::verified::function_address_gates::FUNCTION_ADDRESS_CLAIM_SCOPE_LIFECYCLE.to_string()],
                 accepted_valence_policy_hashes: Vec::new(),
                 required_roles: vec!["function-address-evidence-sidecar".to_string()],
                 required_schemas: vec!["valence.function-address-evidence.v1".to_string()],
-                required_boundary: FUNCTION_ADDRESS_BOUNDARY.to_string(),
+                required_boundary: crate::verified::function_address_gates::FUNCTION_ADDRESS_BOUNDARY.to_string(),
             },
-            runtime_evidence_policy: RuntimeEvidencePolicy {
+            runtime_evidence_policy: crate::verified::runtime_evidence::RuntimeEvidencePolicy {
                 allowed_capture_origins: vec![
-                    CAPTURE_ORIGIN_BOUNDARY.to_string(),
-                    CAPTURE_ORIGIN_INGESTED.to_string(),
-                    CAPTURE_ORIGIN_WRAPPER_ASSERTED.to_string(),
-                    CAPTURE_ORIGIN_UNKNOWN.to_string(),
+                    crate::verified::runtime_evidence::CAPTURE_ORIGIN_BOUNDARY.to_string(),
+                    crate::verified::runtime_evidence::CAPTURE_ORIGIN_INGESTED.to_string(),
+                    crate::verified::runtime_evidence::CAPTURE_ORIGIN_WRAPPER_ASSERTED.to_string(),
+                    crate::verified::runtime_evidence::CAPTURE_ORIGIN_UNKNOWN.to_string(),
                 ],
-                allowed_hash_algorithms: vec![RUNTIME_HASH_ALGORITHM_BLAKE3.to_string()],
-                max_summary_bytes: DEFAULT_RUNTIME_SUMMARY_MAX_BYTES,
+                allowed_hash_algorithms: vec![crate::verified::runtime_evidence::RUNTIME_HASH_ALGORITHM_BLAKE3.to_string()],
+                max_summary_bytes: crate::verified::runtime_evidence::DEFAULT_RUNTIME_SUMMARY_MAX_BYTES,
                 forbidden_summary_fragments: Vec::new(),
                 aggregation_profiles: Vec::new(),
             },
             nominal_identity_policy: generated_policy.nominal_identity_policy,
             lifecycle_store_policy: generated_policy.lifecycle_store_policy,
             policy_schema_compatibility: None,
-            raw: json!({}),
+            raw: serde_json::json!({}),
         }
     }
 
-    fn change() -> ChangeStatus {
-        ChangeStatus {
+    fn change() -> crate::verified::repo::ChangeStatus {
+        crate::verified::repo::ChangeStatus {
             name: "demo".to_string(),
             path: "openspec/changes/demo".to_string(),
             has_proposal: true,
             has_design: false,
             has_tasks: true,
             delta_specs: Vec::new(),
-            task_counts: Some(TaskCounts {
+            task_counts: Some(crate::verified::repo::TaskCounts {
                 total: 2,
                 done: 0,
                 in_progress: 0,
@@ -241,7 +227,7 @@ mod tests {
     #[test]
     fn rejects_unmarked_tasks_only_when_strict_markers_are_enabled() {
         let mut change = change();
-        change.task_counts = Some(TaskCounts {
+        change.task_counts = Some(crate::verified::repo::TaskCounts {
             total: 1,
             done: 0,
             in_progress: 0,
@@ -376,7 +362,7 @@ mod tests {
 
     #[test]
     fn accepts_ears_style_requirement_and_scenario_structure() {
-        let source = SpecSource {
+        let source = crate::verified::repo::SpecSource {
             id: "demo".to_string(),
             path: "openspec/specs/demo/spec.md".to_string(),
             markdown: "### Requirement: Demo\nr[demo] The system MUST do the thing.\n\n#### Scenario: Happy path\n- GIVEN a precondition\n- WHEN an action happens\n- THEN an outcome occurs\n".to_string(),
@@ -386,7 +372,7 @@ mod tests {
 
     #[test]
     fn rejects_weak_requirements_and_incomplete_scenarios() {
-        let source = SpecSource {
+        let source = crate::verified::repo::SpecSource {
             id: "demo".to_string(),
             path: "openspec/specs/demo/spec.md".to_string(),
             markdown: "### Requirement: Demo\nThis feature works.\n\n#### Scenario: Missing when\n- GIVEN a precondition\n- THEN an outcome occurs\n".to_string(),
@@ -405,7 +391,7 @@ mod tests {
         // r[verify cairn.lifecycle_validation.spec_substance]
         // r[verify cairn.lifecycle_validation.tests]
         // r[verify cairn.lifecycle_validation.tests.positive]
-        let source = SpecSource {
+        let source = crate::verified::repo::SpecSource {
             id: "demo".to_string(),
             path: "spec.md".to_string(),
             markdown: include_str!("../../../../../fixtures/lifecycle-substance/positive-spec.md")
@@ -457,7 +443,7 @@ mod tests {
         ];
         let substance_policy = policy(true, "strict").artifact_substance_policy;
         for (id, markdown) in fixtures {
-            let source = SpecSource {
+            let source = crate::verified::repo::SpecSource {
                 id: id.to_string(),
                 path: format!("{id}.md"),
                 markdown: markdown.to_string(),
@@ -479,7 +465,7 @@ mod tests {
         let mut vacuous_change = change();
         vacuous_change.has_design = true;
         vacuous_change.delta_specs = vec!["spec.md".to_string()];
-        vacuous_change.task_counts = Some(TaskCounts {
+        vacuous_change.task_counts = Some(crate::verified::repo::TaskCounts {
             total: 1,
             done: 1,
             in_progress: 0,
@@ -535,7 +521,7 @@ mod tests {
         let mut blocked_change = change();
         blocked_change.has_design = true;
         blocked_change.delta_specs = vec!["spec.md".to_string()];
-        blocked_change.task_counts = Some(TaskCounts {
+        blocked_change.task_counts = Some(crate::verified::repo::TaskCounts {
             total: 1,
             done: 1,
             in_progress: 0,

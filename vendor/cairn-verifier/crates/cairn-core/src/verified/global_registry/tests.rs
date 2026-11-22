@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 use super::*;
 
 const HASH_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -250,7 +248,7 @@ fn conflicts_dangling_edges_reserved_tags_and_claim_promotion_fail_closed() {
         .issues
         .iter()
         .map(|row| row.code.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     assert!(codes.contains("registry.record_conflict"));
     assert!(codes.contains("registry.edge_unresolved_endpoint"));
     assert!(codes.contains("registry.edge_self_reference"));
@@ -264,8 +262,8 @@ fn conflicts_dangling_edges_reserved_tags_and_claim_promotion_fail_closed() {
 fn portable_snapshot_verification_rejects_tampering() {
     let original = snapshot();
     assert!(verify_global_registry_snapshot(&original, &policy()).valid);
-    let mut tampered: Value = serde_json::to_value(original).unwrap();
-    tampered["nodes"][0]["content_hash"] = Value::String(HASH_B.to_string());
+    let mut tampered: serde_json::Value = serde_json::to_value(original).unwrap();
+    tampered["nodes"][0]["content_hash"] = serde_json::Value::String(HASH_B.to_string());
     let tampered: GlobalRegistrySnapshot = serde_json::from_value(tampered).unwrap();
     let report = verify_global_registry_snapshot(&tampered, &policy());
     assert!(!report.valid);

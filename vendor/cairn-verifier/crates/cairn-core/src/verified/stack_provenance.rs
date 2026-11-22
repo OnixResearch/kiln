@@ -1,9 +1,4 @@
-use serde_json::{json, Value};
-
-use super::nominal_identity::{
-    ArtifactDigestRole, BinaryDigestRole, Blake3Digest, DigestRoleMarker, GraphDigestRole,
-    PolicyDigestRole, ReceiptDigestRole, SidecarDigestRole, RAW_BLAKE3_PROFILE,
-};
+use serde_json::json;
 
 pub const STACK_PROVENANCE_MODE_DISABLED: &str = "disabled";
 pub const STACK_PROVENANCE_MODE_OPTIONAL: &str = "optional";
@@ -36,8 +31,8 @@ pub struct StackProvenancePolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StackProvenanceEvidence {
-    pub valence_receipt: Option<Value>,
-    pub graph_summary: Option<Value>,
+    pub valence_receipt: Option<serde_json::Value>,
+    pub graph_summary: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,7 +53,7 @@ pub struct StackProvenanceReadiness {
     pub issues: Vec<StackProvenanceIssue>,
     pub valence_receipt_hash: Option<String>,
     pub claim_scope: Option<String>,
-    pub graph_summary: Option<Value>,
+    pub graph_summary: Option<serde_json::Value>,
     pub boundary: String,
 }
 
@@ -69,12 +64,12 @@ struct StackProvenanceReadinessParts {
     issues: Vec<StackProvenanceIssue>,
     valence_receipt_hash: Option<String>,
     claim_scope: Option<String>,
-    graph_summary: Option<Value>,
+    graph_summary: Option<serde_json::Value>,
 }
 
 impl StackProvenanceReadiness {
     #[must_use]
-    pub fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> serde_json::Value {
         json!({
             "name": STACK_PROVENANCE_CHECK_NAME,
             "mode": self.mode,
@@ -93,7 +88,7 @@ impl StackProvenanceReadiness {
 
 impl StackProvenanceIssue {
     #[must_use]
-    pub fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> serde_json::Value {
         json!({
             "code": self.code,
             "field_path": self.field_path,
@@ -166,7 +161,7 @@ pub fn evaluate_stack_provenance(
     let claim_scope = receipt
         .get("mantle_linkage")
         .and_then(|linkage| linkage.get("claim_scope"))
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(str::to_string);
 
     validate_valence_receipt(policy, receipt, &mut issues);
@@ -219,12 +214,12 @@ fn stack_provenance_readiness(
 
 fn validate_valence_receipt(
     policy: &StackProvenancePolicy,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<StackProvenanceIssue>,
 ) {
-    if receipt.get("valid").and_then(Value::as_bool) != Some(true)
+    if receipt.get("valid").and_then(serde_json::Value::as_bool) != Some(true)
         || !matches!(
-            receipt.get("verdict").and_then(Value::as_str),
+            receipt.get("verdict").and_then(serde_json::Value::as_str),
             Some("pass" | "PASS")
         )
     {
@@ -236,7 +231,8 @@ fn validate_valence_receipt(
         ));
     }
     match receipt_string(receipt, "receipt_hash") {
-        Some(hash) if admit_digest::<ReceiptDigestRole>(&hash).is_some() => {}
+        Some(hash)
+            if admit_digest::<super::nominal_identity::ReceiptDigestRole>(&hash).is_some() => {}
         _ => issues.push(stack_issue(
             "stack_provenance.valence_receipt_hash_invalid",
             "valence_receipt.receipt_hash",
@@ -248,13 +244,13 @@ fn validate_valence_receipt(
     if policy.accepted_valence_policy_hashes.is_empty() {
         return;
     }
-    let observed_policy = admit_digest::<PolicyDigestRole>(&policy_hash);
+    let observed_policy = admit_digest::<super::nominal_identity::PolicyDigestRole>(&policy_hash);
     let policy_is_accepted = observed_policy.as_ref().is_some_and(|observed| {
         policy
             .accepted_valence_policy_hashes
             .iter()
             .any(|accepted| {
-                admit_digest::<PolicyDigestRole>(accepted)
+                admit_digest::<super::nominal_identity::PolicyDigestRole>(accepted)
                     .is_some_and(|candidate| candidate.as_hex() == observed.as_hex())
             })
     });
@@ -274,7 +270,7 @@ fn validate_valence_receipt(
 
 fn validate_mantle_linkage(
     policy: &StackProvenancePolicy,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<StackProvenanceIssue>,
 ) {
     let Some(linkage) = receipt.get("mantle_linkage") else {
@@ -288,7 +284,7 @@ fn validate_mantle_linkage(
     };
     let claim_scope = linkage
         .get("claim_scope")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if !policy
         .allowed_claim_scopes
@@ -306,12 +302,23 @@ fn validate_mantle_linkage(
             },
         ));
     }
-    validate_linkage_digest::<SidecarDigestRole>(linkage, "sidecar_digest", issues);
-    validate_linkage_digest::<BinaryDigestRole>(linkage, "binary_identity_hash", issues);
+    validate_linkage_digest::<super::nominal_identity::SidecarDigestRole>(
+        linkage,
+        "sidecar_digest",
+        issues,
+    );
+    validate_linkage_digest::<super::nominal_identity::BinaryDigestRole>(
+        linkage,
+        "binary_identity_hash",
+        issues,
+    );
 }
 
-fn validate_artifact_hashes(receipt: &Value, issues: &mut Vec<StackProvenanceIssue>) {
-    let Some(artifacts) = receipt.get("artifacts").and_then(Value::as_array) else {
+fn validate_artifact_hashes(receipt: &serde_json::Value, issues: &mut Vec<StackProvenanceIssue>) {
+    let Some(artifacts) = receipt
+        .get("artifacts")
+        .and_then(serde_json::Value::as_array)
+    else {
         issues.push(stack_issue(
             "stack_provenance.artifacts_missing",
             "artifacts",
@@ -331,14 +338,14 @@ fn validate_artifact_hashes(receipt: &Value, issues: &mut Vec<StackProvenanceIss
     for artifact in artifacts {
         let declared = artifact
             .get("declared_hash")
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .unwrap_or_default();
         let observed = artifact
             .get("observed_hash")
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .unwrap_or_default();
-        let declared_digest = admit_digest::<ArtifactDigestRole>(declared);
-        let observed_digest = admit_digest::<ArtifactDigestRole>(observed);
+        let declared_digest = admit_digest::<super::nominal_identity::ArtifactDigestRole>(declared);
+        let observed_digest = admit_digest::<super::nominal_identity::ArtifactDigestRole>(observed);
         let matches = matches!(
             (declared_digest, observed_digest),
             (Some(declared), Some(observed)) if declared.as_hex() == observed.as_hex()
@@ -348,7 +355,7 @@ fn validate_artifact_hashes(receipt: &Value, issues: &mut Vec<StackProvenanceIss
                 "stack_provenance.artifact_digest_mismatch",
                 artifact
                     .get("path")
-                    .and_then(Value::as_str)
+                    .and_then(serde_json::Value::as_str)
                     .unwrap_or("artifacts"),
                 "matching declared and observed BLAKE3 artifact hashes",
                 "mismatch",
@@ -357,7 +364,10 @@ fn validate_artifact_hashes(receipt: &Value, issues: &mut Vec<StackProvenanceIss
     }
 }
 
-fn validate_verification_role_summary(receipt: &Value, issues: &mut Vec<StackProvenanceIssue>) {
+fn validate_verification_role_summary(
+    receipt: &serde_json::Value,
+    issues: &mut Vec<StackProvenanceIssue>,
+) {
     let Some(summary) = receipt.get("verification_role_summary") else {
         issues.push(stack_issue(
             "stack_provenance.verification_role_summary_missing",
@@ -367,8 +377,12 @@ fn validate_verification_role_summary(receipt: &Value, issues: &mut Vec<StackPro
         ));
         return;
     };
-    let property_count = summary.get("property_count").and_then(Value::as_u64);
-    let verified_count = summary.get("verified_count").and_then(Value::as_u64);
+    let property_count = summary
+        .get("property_count")
+        .and_then(serde_json::Value::as_u64);
+    let verified_count = summary
+        .get("verified_count")
+        .and_then(serde_json::Value::as_u64);
     if property_count.is_none() || verified_count.is_none() || property_count != verified_count {
         issues.push(stack_issue(
             "stack_provenance.manual_review_counted_verified",
@@ -381,12 +395,12 @@ fn validate_verification_role_summary(receipt: &Value, issues: &mut Vec<StackPro
 
 fn validate_boundary(
     policy: &StackProvenancePolicy,
-    receipt: &Value,
+    receipt: &serde_json::Value,
     issues: &mut Vec<StackProvenanceIssue>,
 ) {
     let boundary = receipt
         .get("non_claim_boundary")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if boundary != policy.required_boundary {
         issues.push(stack_issue(
@@ -403,13 +417,17 @@ fn validate_boundary(
 }
 
 fn validate_graph_summary(
-    graph: Option<&Value>,
+    graph: Option<&serde_json::Value>,
     issues: &mut Vec<StackProvenanceIssue>,
-) -> Option<Value> {
+) -> Option<serde_json::Value> {
     let graph = graph?;
     let mut valid = true;
     for field in GRAPH_U64_FIELDS {
-        if graph.get(*field).and_then(Value::as_u64).is_none() {
+        if graph
+            .get(*field)
+            .and_then(serde_json::Value::as_u64)
+            .is_none()
+        {
             issues.push(stack_issue(
                 "stack_provenance.graph_summary_malformed",
                 &format!("graph_summary.{field}"),
@@ -421,9 +439,9 @@ fn validate_graph_summary(
     }
     let report_hash = graph
         .get("report_hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
-    if admit_digest::<GraphDigestRole>(report_hash).is_none() {
+    if admit_digest::<super::nominal_identity::GraphDigestRole>(report_hash).is_none() {
         issues.push(stack_issue(
             "stack_provenance.graph_summary_malformed",
             "graph_summary.report_hash",
@@ -439,14 +457,14 @@ fn validate_graph_summary(
     valid.then(|| graph.clone())
 }
 
-fn validate_linkage_digest<Role: DigestRoleMarker>(
-    linkage: &Value,
+fn validate_linkage_digest<Role: super::nominal_identity::DigestRoleMarker>(
+    linkage: &serde_json::Value,
     field: &str,
     issues: &mut Vec<StackProvenanceIssue>,
 ) {
     let value = linkage
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     if admit_digest::<Role>(value).is_some() {
         return;
@@ -463,9 +481,15 @@ fn validate_linkage_digest<Role: DigestRoleMarker>(
     ));
 }
 
-fn admit_digest<Role: DigestRoleMarker>(value: &str) -> Option<Blake3Digest<Role>> {
-    Blake3Digest::<Role>::parse_compatible(value, RAW_BLAKE3_PROFILE, "stack_provenance.digest")
-        .ok()
+fn admit_digest<Role: super::nominal_identity::DigestRoleMarker>(
+    value: &str,
+) -> Option<super::nominal_identity::Blake3Digest<Role>> {
+    super::nominal_identity::Blake3Digest::<Role>::parse_compatible(
+        value,
+        super::nominal_identity::RAW_BLAKE3_PROFILE,
+        "stack_provenance.digest",
+    )
+    .ok()
 }
 
 fn stack_issue(code: &str, field_path: &str, expected: &str, actual: &str) -> StackProvenanceIssue {
@@ -477,10 +501,10 @@ fn stack_issue(code: &str, field_path: &str, expected: &str, actual: &str) -> St
     }
 }
 
-fn receipt_string(receipt: &Value, field: &str) -> Option<String> {
+fn receipt_string(receipt: &serde_json::Value, field: &str) -> Option<String> {
     receipt
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(str::to_string)
 }
 
@@ -537,15 +561,18 @@ mod tests {
         }
     }
 
-    fn receipt(text: &str) -> Value {
+    fn receipt(text: &str) -> serde_json::Value {
         serde_json::from_str(text).expect("stack provenance fixture parses")
     }
 
-    fn graph(text: &str) -> Value {
+    fn graph(text: &str) -> serde_json::Value {
         serde_json::from_str(text).expect("graph summary fixture parses")
     }
 
-    fn evidence(receipt: Option<Value>, graph_summary: Option<Value>) -> StackProvenanceEvidence {
+    fn evidence(
+        receipt: Option<serde_json::Value>,
+        graph_summary: Option<serde_json::Value>,
+    ) -> StackProvenanceEvidence {
         StackProvenanceEvidence {
             valence_receipt: receipt,
             graph_summary,

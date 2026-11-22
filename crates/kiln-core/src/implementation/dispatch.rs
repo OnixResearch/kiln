@@ -560,6 +560,202 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.lattice_cli.scenario.refusal] r[verify kiln.implementation.lattice_cli.scenario.closed]
+    fn only_a_started_transport_without_execution_settles_before_effect() {
+        use crate::implementation::{AttemptPhase, FailureClass};
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let dispatch = plan(&work, &attempt);
+        let digest = ledger
+            .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)
+            .unwrap_or_else(|error| unreachable!("{error:?}"))
+            .plan;
+        let settle = |ledger: &mut AttemptLedger, fence: u64, cause: &str| {
+            ledger.settle_dispatch_without_execution(&attempt.identity, fence, 3, cause)
+        };
+        // No transport intent: nothing was sent, so nothing settles.
+        assert_eq!(
+            settle(&mut ledger, attempt.fence, "refused").map_err(|error| error.code),
+            Err("implementation_settlement_binding".to_string())
+        );
+        ledger
+            .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(
+            !ledger
+                .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &digest)
+                .unwrap_or_else(|error| unreachable!("{error:?}"))
+        );
+        assert!(settle(&mut ledger, attempt.fence + 1, "refused").is_err());
+        assert!(settle(&mut ledger, attempt.fence, "").is_err());
+        assert!(ledger.dispatch_requires_recovery(&attempt.identity));
+        settle(
+            &mut ledger,
+            attempt.fence,
+            "lattice_refused_before_effect:crossed_attempt",
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let settled = ledger
+            .get(&attempt.identity)
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(settled.phase, AttemptPhase::Failed);
+        assert_eq!(settled.failure, Some(FailureClass::Infrastructure));
+        assert_eq!(settled.workflow, None);
+        assert_eq!(
+            settled.cause.as_deref(),
+            Some("lattice_refused_before_effect:crossed_attempt")
+        );
+        assert!(!ledger.dispatch_requires_recovery(&attempt.identity));
+        assert_eq!(ledger.unresolved().count(), 0);
+        // Terminal: neither a repeated settlement nor a new transport is admitted.
+        assert!(settle(&mut ledger, attempt.fence, "refused").is_err());
+        assert!(
+            ledger
+                .begin_dispatch_transport(&attempt.identity, attempt.fence, 4, &digest)
+                .is_err()
+        );
+        // No unknown outcome blocks the next attempt of the same work.
+        let next = ledger
+            .claim(&work, 5, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(next.fence > attempt.fence);
+
+        // A recorded execution can never be settled as no execution.
+        let mut executed = AttemptLedger::default();
+        let attempt = executed
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let dispatch = plan(&work, &attempt);
+        let digest = executed
+            .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)
+            .unwrap_or_else(|error| unreachable!("{error:?}"))
+            .plan;
+        executed
+            .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        executed
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &digest)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        executed
+            .reconcile_dispatch(
+                &attempt.identity,
+                attempt.fence,
+                3,
+                &ExternalRef::new("lattice", "implementation-attempt", "one")
+                    .unwrap_or_else(|_| unreachable!()),
+            )
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert!(
+            executed
+                .settle_dispatch_without_execution(&attempt.identity, attempt.fence, 4, "closed")
+                .is_err()
+        );
+        assert_eq!(
+            executed.get(&attempt.identity).map(|attempt| attempt.phase),
+            Some(AttemptPhase::Executing)
+        );
+        assert!(executed.dispatch_requires_recovery(&attempt.identity));
+    }
+
+    #[test]
+    // r[verify kiln.implementation.lattice_cli.scenario.bound_root]
+    fn transport_launches_record_once_and_recall_only_for_an_existing_intent() {
+        use crate::implementation::{TransportLaunch, TransportLaunches, TransportStart};
+        let launch = |root: &str| TransportLaunch {
+            lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+            executable_blake3: content('b'),
+            state_directory: root.into(),
+        };
+        let attempt = content('a');
+        let mut launches = TransportLaunches::default();
+        // A fresh intent records its launch.
+        assert_eq!(
+            launches.start(&attempt, false, Some(&launch("/var/lib/lattice/b"))),
+            Ok(TransportStart::Fresh)
+        );
+        // A later caller under another profile recovers with the recorded
+        // launch, which is never overwritten.
+        assert_eq!(
+            launches.start(&attempt, true, Some(&launch("/var/lib/lattice/a"))),
+            Ok(TransportStart::Recover(Some(launch("/var/lib/lattice/b"))))
+        );
+        // A fresh intent never replaces a different record.
+        assert!(
+            launches
+                .start(&attempt, false, Some(&launch("/var/lib/lattice/a")))
+                .is_err()
+        );
+        assert_eq!(
+            launches.recall(&attempt),
+            Some(launch("/var/lib/lattice/b"))
+        );
+        // A legacy intent (no record) recovers with none and gains none.
+        let legacy = content('c');
+        assert_eq!(
+            launches.start(&legacy, true, Some(&launch("/var/lib/lattice/a"))),
+            Ok(TransportStart::Recover(None))
+        );
+        assert_eq!(launches.recall(&legacy), None);
+        // Settlement removes the record; the encoding is strict.
+        launches.remove(&attempt);
+        assert_eq!(launches.recall(&attempt), None);
+        let encoded = serde_json::to_value(&launches).unwrap_or_else(|_| unreachable!());
+        let reloaded: TransportLaunches =
+            serde_json::from_value(encoded).unwrap_or_else(|_| unreachable!());
+        assert_eq!(reloaded, launches);
+        assert!(serde_json::from_str::<TransportLaunches>(r#"{"launches":{},"extra":1}"#).is_err());
+    }
+
+    #[test]
+    // r[verify kiln.implementation.lattice_cli.scenario.bound_root]
+    fn the_attempt_ledger_keeps_its_published_document_shape() {
+        let work = work();
+        let mut ledger = AttemptLedger::default();
+        let attempt = ledger
+            .claim(&work, 0, DEFAULT_LEASE_MS)
+            .unwrap_or_else(|_| unreachable!());
+        let digest = ledger
+            .reserve_dispatch_plan(
+                &work,
+                &attempt.identity,
+                attempt.fence,
+                1,
+                &plan(&work, &attempt),
+            )
+            .unwrap_or_else(|error| unreachable!("{error:?}"))
+            .plan;
+        ledger
+            .bind_dispatch_request(&work, &attempt.identity, attempt.fence, 2, &content('a'))
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        ledger
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 3, &digest)
+            .unwrap_or_else(|error| unreachable!("{error:?}"));
+        let encoded = serde_json::to_value(&ledger).unwrap_or_else(|_| unreachable!());
+        let keys: BTreeSet<&str> = encoded
+            .as_object()
+            .unwrap_or_else(|| unreachable!())
+            .keys()
+            .map(String::as_str)
+            .collect();
+        // The fields of `AttemptLedger` as published at 339116f6.
+        assert_eq!(
+            keys,
+            BTreeSet::from([
+                "fence_counter",
+                "attempts",
+                "current",
+                "consumed",
+                "resolved_unknown",
+                "dispatch_started",
+                "dispatch_plans",
+            ])
+        );
+    }
+
+    #[test]
     // r[verify kiln.implementation.dispatch_plan.scenario.refused] r[verify kiln.implementation.dispatch_base.scenario.required]
     fn refuses_broader_or_mismatched_plans() {
         let work = work();

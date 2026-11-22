@@ -63,11 +63,11 @@ fn init_op() -> (PolicyExceptionOperation, PolicyExceptionState) {
         exception_id: "pe-1".to_string(),
         workspace_id: format!("git_oid:{}", "c".repeat(40) + &"d".repeat(24)),
         request: request(),
-        requesters: BTreeSet::from([REQUESTER.to_string()]),
-        reviewers: BTreeSet::from([REVIEWER.to_string()]),
-        approvers: BTreeSet::from([APPROVER.to_string()]),
-        revokers: BTreeSet::from([REVOKER.to_string()]),
-        observers: BTreeSet::from([OBSERVER.to_string()]),
+        requesters: std::collections::BTreeSet::from([REQUESTER.to_string()]),
+        reviewers: std::collections::BTreeSet::from([REVIEWER.to_string()]),
+        approvers: std::collections::BTreeSet::from([APPROVER.to_string()]),
+        revokers: std::collections::BTreeSet::from([REVOKER.to_string()]),
+        observers: std::collections::BTreeSet::from([OBSERVER.to_string()]),
     };
     let op = PolicyExceptionOperation {
         id: "init".to_string(),

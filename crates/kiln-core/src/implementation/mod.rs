@@ -22,6 +22,7 @@ pub mod native_git;
 pub mod plan_review;
 pub mod proof_evidence;
 pub mod publication;
+pub mod selected_work;
 pub mod stack;
 pub mod swarm;
 pub mod verification;

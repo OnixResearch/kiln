@@ -1,0 +1,33 @@
+{
+  "assurances": [
+    "reviewed",
+    "bounded_check"
+  ],
+  "bounds": {
+    "max_alternatives": 32,
+    "max_assumptions": 128,
+    "max_decompositions": 64,
+    "max_dependencies": 256,
+    "max_depth": 16,
+    "max_evidence": 1024,
+    "max_guarantee_cases": 64,
+    "max_obligations": 512,
+    "max_requirements": 256
+  },
+  "feasibility_methods": [
+    "finite-enumeration-exhaustive.v1",
+    "reviewed-argument.v1"
+  ],
+  "proof_checkers": [],
+  "relations": [
+    "ordering_archive",
+    "verified_specification",
+    "verified_candidate",
+    "candidate_input",
+    "integrated_revision",
+    "lifecycle",
+    "semantic"
+  ],
+  "root_assumptions": [],
+  "schema": "cairn.refinement-policy.v1"
+}

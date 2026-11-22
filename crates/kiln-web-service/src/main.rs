@@ -36,6 +36,11 @@ fn main() {
         Some("inventory") => projection_result(kiln_web_service::inventory::run_cli_args(
             &arguments.collect::<Vec<_>>(),
         )),
+        Some("inventory-collect") => projection_result(
+            kiln_web_service::inventory_collection::run_collect_cli_args(
+                &arguments.collect::<Vec<_>>(),
+            ),
+        ),
         Some("campaign-projection") => projection_result(
             kiln_web_service::inventory::run_campaign_cli_args(&arguments.collect::<Vec<_>>()),
         ),
@@ -77,6 +82,7 @@ fn usage() -> i32 {
     );
     eprintln!("       kiln-web-service verify-implementation --help");
     eprintln!("       kiln-web-service inventory INPUT PRINCIPAL NOW_MS [json|html]");
+    eprintln!("       kiln-web-service inventory-collect MANIFEST PROFILE");
     eprintln!(
         "       kiln-web-service campaign-projection DATABASE CAMPAIGN_ID [json|html] [--inventory INPUT PRINCIPAL NOW_MS]"
     );

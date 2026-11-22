@@ -1,0 +1,10 @@
+{
+  "added_obligations": [],
+  "base_plan_identity": "b3:ef734317f2d8e2f5c799ec99f7b8cf794fdd04d07615de01d8e86afd56e98370",
+  "changed_obligations": [],
+  "disposition": "owner_readmission_required",
+  "proposed_plan_identity": "b3:ba422d110cb3032a30efafe2fac8ce7899c5ee12c5d0b71118880e282a602fa2",
+  "removed_obligations": [
+    "kiln.authoritative-completion"
+  ]
+}

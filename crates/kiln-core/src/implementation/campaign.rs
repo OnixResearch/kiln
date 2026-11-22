@@ -10,6 +10,10 @@ use alloc::{
 };
 use serde::{Deserialize, Serialize};
 
+use super::selected_work::{
+    AttemptSnapshotContract, HoldReason, IntakeProfile, SelectedWorkHistory,
+    SelectedWorkObservation, SelectedWorkTransition, TypedReadiness, typed_readiness,
+};
 use crate::types::{ContentId, CoreResult, Diagnostic};
 
 pub const CAMPAIGN_SCHEMA: &str = "kiln.implementation-campaign.v1";
@@ -407,6 +411,10 @@ pub struct CampaignState {
     pub attempt_contexts: BTreeMap<ContentId, BTreeMap<ContentId, RetainedAttemptContext>>,
     pub impacts: Vec<ImpactObservation>,
     pub budget: Option<CampaignBudgetObservation>,
+    /// Typed selected-work history per member key; absent for members on the
+    /// legacy compatibility intake.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub selected_work: BTreeMap<String, SelectedWorkHistory>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -552,6 +560,77 @@ impl CampaignContract {
     }
 }
 
+impl MemberObservation {
+    /// Under the typed intake, a pre-attempt member's stage, blockers and
+    /// enumeration follow the admitted snapshot's native readiness rather
+    /// than the legacy projections. Artifact authoring or repair the legacy
+    /// reader selected may stand only while the snapshot itself holds a
+    /// planning phase; implementation is selectable only when the snapshot
+    /// is ready. In-flight members and the legacy intake are unchanged.
+    // r[impl kiln.selected_work.stages]
+    pub fn apply_intake_readiness(
+        &mut self,
+        intake: IntakeProfile,
+        typed: &SelectedWorkObservation,
+    ) {
+        if intake != IntakeProfile::TypedSnapshotV1
+            || !matches!(
+                self.stage,
+                MemberStage::Missing
+                    | MemberStage::Selected
+                    | MemberStage::Planning
+                    | MemberStage::Blocked
+                    | MemberStage::Ready
+            )
+        {
+            return;
+        }
+        let legacy_artifact = matches!(self.stage, MemberStage::Selected | MemberStage::Planning);
+        let hold = |member: &mut Self, blockers: Vec<String>| {
+            member.stage = MemberStage::Blocked;
+            member.blockers = blockers;
+        };
+        match typed_readiness(typed) {
+            TypedReadiness::Ready if legacy_artifact => hold(
+                self,
+                Vec::from(["selected_work.planning_passes_legacy_artifact_work_superseded".into()]),
+            ),
+            TypedReadiness::Ready if self.work_identity.is_none() => {
+                hold(
+                    self,
+                    Vec::from(["selected_work.ready_without_canonical_work".into()]),
+                );
+            }
+            TypedReadiness::Ready => {
+                self.stage = MemberStage::Ready;
+                self.blockers.clear();
+                self.enumeration = EnumerationState::Complete;
+            }
+            TypedReadiness::CompletionOnly => {
+                self.enumeration = EnumerationState::Complete;
+                if legacy_artifact || self.stage == MemberStage::Ready {
+                    hold(
+                        self,
+                        Vec::from(["selected_work.no_implementation_remaining".into()]),
+                    );
+                }
+            }
+            TypedReadiness::Held { reason, blockers } => {
+                self.enumeration = match reason {
+                    HoldReason::Unobserved | HoldReason::Unavailable => {
+                        EnumerationState::NotObserved
+                    }
+                    HoldReason::IncompleteEnumeration => EnumerationState::IncompleteLimit,
+                    _ => EnumerationState::Complete,
+                };
+                if !(legacy_artifact && reason == HoldReason::PhaseBlocked) {
+                    hold(self, blockers);
+                }
+            }
+        }
+    }
+}
+
 impl CampaignState {
     pub fn start(contract: CampaignContract) -> CoreResult<Self> {
         contract.validate()?;
@@ -568,6 +647,7 @@ impl CampaignState {
             attempt_contexts: BTreeMap::new(),
             impacts: Vec::new(),
             budget: None,
+            selected_work: BTreeMap::new(),
         })
     }
     pub fn revise(&self, next: CampaignContract, explicit_supersession: bool) -> CoreResult<Self> {
@@ -591,10 +671,77 @@ impl CampaignState {
         state.attempt_contexts = self.attempt_contexts.clone();
         state.impacts = self.impacts.clone();
         state.budget = self.budget.clone();
+        state.selected_work = self.selected_work.clone();
         Ok(state)
     }
     pub fn observe(&mut self, observation: MemberObservation) -> CoreResult<()> {
         self.observe_source(observation, false)
+    }
+
+    /// Record one member's typed selected-work read. A bound attempt contract
+    /// is never rewritten; a changed cohort returns its refresh or replan.
+    // r[impl kiln.selected_work.attempts]
+    pub fn observe_selected_work(
+        &mut self,
+        member: &str,
+        intake: IntakeProfile,
+        observation: SelectedWorkObservation,
+    ) -> CoreResult<Option<SelectedWorkTransition>> {
+        if !self
+            .contract
+            .members
+            .iter()
+            .any(|binding| selector_key(&binding.selector) == member)
+        {
+            return Err(refusal(
+                "campaign_selected_work_member",
+                "selected_work.member",
+                "selected work names a member outside the frozen selection",
+            ));
+        }
+        let mut history = self
+            .selected_work
+            .get(member)
+            .cloned()
+            .unwrap_or_else(|| SelectedWorkHistory::new(intake));
+        if history.intake != intake {
+            return Err(refusal(
+                "campaign_selected_work_intake",
+                "selected_work.intake",
+                "a member's intake profile changes only through campaign revision",
+            ));
+        }
+        let transition = history.observe(observation)?;
+        self.selected_work.insert(member.to_string(), history);
+        Ok(transition)
+    }
+
+    /// Retain the exact snapshot and guidance supplied to the member's
+    /// current attempt.
+    pub fn bind_selected_work_attempt(
+        &mut self,
+        member: &str,
+        contract: AttemptSnapshotContract,
+    ) -> CoreResult<()> {
+        let scope = refusal(
+            "campaign_selected_work_attempt_scope",
+            "selected_work.contract",
+            "contract does not bind the member's retained attempt and work version",
+        );
+        let Some(observation) = self.observations.get(member) else {
+            return Err(scope);
+        };
+        if observation.attempt_identity.as_ref() != Some(&contract.attempt)
+            || observation.work_identity.as_ref() != Some(&contract.work)
+        {
+            return Err(scope);
+        }
+        let Some(mut history) = self.selected_work.get(member).cloned() else {
+            return Err(scope);
+        };
+        history.bind(contract)?;
+        self.selected_work.insert(member.to_string(), history);
+        Ok(())
     }
 
     pub fn observe_successor(

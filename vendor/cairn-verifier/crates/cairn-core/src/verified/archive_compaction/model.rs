@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 pub const COMPACTION_PLAN_SCHEMA_V1: &str = "cairn.archive-compaction-plan.v1";
 pub const COMPACTION_PACK_SCHEMA_V1: &str = "cairn.archive-pack.v1";
 pub const COMPACTION_POINTER_SCHEMA_V1: &str = "cairn.archive-pointer.v1";
@@ -23,14 +21,14 @@ pub struct ArchiveInput {
     pub files: Vec<ArchiveFileInput>,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize)]
 pub struct CompactionIssue {
     pub code: String,
     pub path: String,
     pub message: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArchiveManifestEntry {
     pub archive_id: String,
     pub path: String,
@@ -39,20 +37,20 @@ pub struct ArchiveManifestEntry {
     pub content_hash: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArchiveManifest {
     pub archive_id: String,
     pub entries: Vec<ArchiveManifestEntry>,
     pub archive_root: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PackObjectDescriptor {
     pub content_hash: String,
     pub byte_length: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PackManifest {
     pub schema_version: String,
     pub archives: Vec<ArchiveManifest>,
@@ -61,7 +59,7 @@ pub struct PackManifest {
     pub pack_root: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArchivePointer {
     pub schema_version: String,
     pub archive_id: String,
@@ -71,14 +69,14 @@ pub struct ArchivePointer {
     pub lossiness: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct MutationAction {
     pub kind: String,
     pub path: String,
     pub content_hash: Option<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompactionPlan {
     pub schema_version: String,
     pub profile: String,
@@ -101,7 +99,7 @@ pub struct CompactionPlan {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompactionReceipt {
     pub schema_version: String,
     pub sequence: u64,
@@ -121,7 +119,7 @@ pub struct CompactionReceipt {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompactionLedgerEntry {
     pub sequence: u64,
     pub receipt_path: String,
@@ -129,7 +127,7 @@ pub struct CompactionLedgerEntry {
     pub chain_hash: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompactionLedger {
     pub schema_version: String,
     pub policy_hash: String,
@@ -145,14 +143,14 @@ pub struct PackObjectInput {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UnpackFile {
     pub path: String,
     pub byte_length: u64,
     pub content_hash: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct UnpackPlan {
     pub schema_version: String,
     pub archive_id: String,
@@ -163,7 +161,7 @@ pub struct UnpackPlan {
     pub plan_hash: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CompactionVerificationReceipt {
     pub schema_version: String,
     pub valid: bool,

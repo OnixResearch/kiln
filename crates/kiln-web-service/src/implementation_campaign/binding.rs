@@ -152,19 +152,94 @@ pub(super) fn bind(
             gid: profile.roles.worker.gid,
             arguments: vec!["implementation-attempt".into(), "prepare".into()],
         };
-        run_role(
+        // The plan digest frames the native worker profile, and the request
+        // must carry that digest. A first preparation yields the profile; the
+        // profile revision does not frame `dispatch_plan`, so the second
+        // preparation of the planned seed keeps it.
+        let probe_path = profile
+            .bound_input_directory
+            .join(format!("{prefix}.profile.json"));
+        if !exists(&probe_path)? {
+            prepare_native(profile, &native_prepare, &seed_path, &probe_path)?;
+        }
+        bind_native_profile(&mut plan, &read_json(&probe_path)?)?;
+        let digest =
+            kiln_core::implementation::admit_dispatch_plan(work, attempt, &plan).map_err(show)?;
+        let planned_seed_path = profile
+            .bound_input_directory
+            .join(format!("{prefix}.planned-seed.json"));
+        write_private_idempotently(
+            &planned_seed_path,
+            &serde_json::to_vec(&planned_seed(read_json(&seed_path)?, &digest)?).map_err(text)?,
+        )?;
+        prepare_native(
             profile,
             &native_prepare,
-            &profile.bound_input_directory,
-            &[
-                OsString::from("--request"),
-                seed_path.as_os_str().to_owned(),
-                OsString::from("--output"),
-                worker.request.as_os_str().to_owned(),
-            ],
+            &planned_seed_path,
+            &worker.request,
         )?;
     }
     let prepared: serde_json::Value = read_json(&worker.request)?;
+    bind_native_profile(&mut plan, &prepared)?;
+    let digest =
+        kiln_core::implementation::admit_dispatch_plan(work, attempt, &plan).map_err(show)?;
+    if !binds_plan(&prepared, &digest) {
+        return Err("prepared request does not bind its exact dispatch plan".into());
+    }
+    write_private_idempotently(
+        &worker.dispatch_plan,
+        &serde_json::to_vec(&plan).map_err(text)?,
+    )?;
+    validate_retained(work, attempt, &worker, effect)?;
+    Ok(worker)
+}
+
+/// The seed with Kiln's dispatch-plan identity, for the second preparation.
+// r[impl kiln.implementation.lattice_cli.scenario.plan]
+fn planned_seed(
+    mut seed: serde_json::Value,
+    plan: &kiln_core::types::ContentId,
+) -> Result<serde_json::Value, String> {
+    seed.as_object_mut()
+        .ok_or("worker seed is not an object")?
+        .insert("dispatch_plan".into(), serde_json::json!(plan.as_str()));
+    Ok(seed)
+}
+
+/// Whether prepared request bytes carry the exact dispatch-plan identity.
+fn binds_plan(request: &serde_json::Value, plan: &kiln_core::types::ContentId) -> bool {
+    request
+        .get("dispatch_plan")
+        .and_then(serde_json::Value::as_str)
+        == Some(plan.as_str())
+}
+
+/// Run the selected Lattice program's non-dispatching preparation once.
+fn prepare_native(
+    profile: &ImplementationCampaignDriveProfile,
+    program: &RoleProgram,
+    seed: &Path,
+    output: &Path,
+) -> Result<(), String> {
+    run_role(
+        profile,
+        program,
+        &profile.bound_input_directory,
+        &[
+            OsString::from("--request"),
+            seed.as_os_str().to_owned(),
+            OsString::from("--output"),
+            output.as_os_str().to_owned(),
+        ],
+    )?;
+    Ok(())
+}
+
+/// Bind the native worker profile a preparation computed into the plan.
+fn bind_native_profile(
+    plan: &mut ImplementationDispatchPlan,
+    prepared: &serde_json::Value,
+) -> Result<(), String> {
     let native_profile = prepared
         .pointer("/envelope/worker_profile")
         .and_then(serde_json::Value::as_str)
@@ -173,13 +248,7 @@ pub(super) fn bind(
         .as_mut()
         .ok_or("prepared plan lost explicit execution bindings")?
         .native_request_profile = Some(id(native_profile)?);
-    kiln_core::implementation::admit_dispatch_plan(work, attempt, &plan).map_err(show)?;
-    write_private_idempotently(
-        &worker.dispatch_plan,
-        &serde_json::to_vec(&plan).map_err(text)?,
-    )?;
-    validate_retained(work, attempt, &worker, effect)?;
-    Ok(worker)
+    Ok(())
 }
 
 fn bound_plan(
@@ -403,6 +472,7 @@ fn validate_retained(
             .pointer("/envelope/fence")
             .and_then(serde_json::Value::as_u64)
             != Some(attempt.fence)
+        || !binds_plan(&request, &plan_id)
     {
         return Err("retained native request is crossed with its actual prepared plan".into());
     }
@@ -424,5 +494,44 @@ fn exists(path: &Path) -> Result<bool, String> {
         Ok(_) => Err("campaign binding path is not an ordinary file".into()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
         Err(error) => Err(text(error)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{binds_plan, planned_seed};
+    use kiln_core::types::ContentId;
+
+    fn plan(character: char) -> ContentId {
+        ContentId::from_blake3_hex(character.to_string().repeat(64))
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    // r[verify kiln.implementation.lattice_cli.scenario.plan]
+    #[test]
+    fn the_planned_seed_and_prepared_request_carry_the_exact_plan() {
+        let seed = serde_json::json!({"schema": "lattice.implementation-attempt-run.v3", "network": false});
+        let planned = planned_seed(seed.clone(), &plan('d')).unwrap_or_else(|_| unreachable!());
+        assert!(binds_plan(&planned, &plan('d')));
+        assert!(!binds_plan(&planned, &plan('e')));
+        assert!(!binds_plan(&seed, &plan('d')));
+        // Every other seed field is unchanged.
+        let mut without = planned;
+        if let Some(fields) = without.as_object_mut() {
+            fields.remove("dispatch_plan");
+        }
+        assert_eq!(without, seed);
+        // A replanned seed replaces, never duplicates, the identity.
+        let replanned = planned_seed(
+            planned_seed(seed, &plan('d')).unwrap_or_else(|_| unreachable!()),
+            &plan('e'),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(binds_plan(&replanned, &plan('e')));
+        assert!(planned_seed(serde_json::json!([]), &plan('d')).is_err());
+        assert!(!binds_plan(
+            &serde_json::json!({"dispatch_plan": 1}),
+            &plan('d')
+        ));
     }
 }

@@ -28,6 +28,7 @@ kiln-adapter-git.workspace = true
 kiln-adapter-github = { path = "../kiln-adapter-github" }
 kiln-adapter-http-observe.workspace = true
 kiln-adapter-jj.workspace = true
+kiln-adapter-animus.workspace = true
 kiln-adapter-lattice.workspace = true
 kiln-adapter-swarm = { path = "../kiln-adapter-swarm" }
 kiln-adapter-webhook.workspace = true

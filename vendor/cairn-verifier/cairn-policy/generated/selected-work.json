@@ -1,0 +1,8 @@
+{
+  "max_artifacts": 512,
+  "max_context_entries": 512,
+  "max_observation_bytes": 67108864,
+  "max_references": 4096,
+  "max_units": 512,
+  "schema": "cairn.selected-work.v1"
+}

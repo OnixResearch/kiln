@@ -1,4 +1,5 @@
 # r[impl kiln.admission.bounded]
+# r[impl kiln.admission.profiles]
 # Exporting this contract does not enable admission. The operator must explicitly
 # configure the selected durable implementation store with the exported policy.
 let Integer = fun minimum maximum =>
@@ -45,6 +46,14 @@ let Group = {
   max_active | Integer 1 4096,
 }
 in
+# Optional serving-owner snapshot gate for worker requests. A snapshot is
+# evidence for waiting only; the owner's request grant still decides dispatch.
+# Absent keeps the existing request path and policy identity.
+let Serving = {
+  max_snapshot_age_ms | Integer 1 9007199254740991,
+  capacity_rule | std.contract.from_predicate (fun x => std.array.elem x ["known_required", "owner_admission_decides"]),
+}
+in
 fun input =>
   let s =
     input
@@ -61,6 +70,7 @@ fun input =>
         weights | PositiveMap,
         shares | PositiveMap,
         group_limits | Array Group | std.contract.from_predicate (fun x => std.array.length x <= 4096),
+        serving | Serving | optional,
       }
   in
   let Checked =
@@ -83,6 +93,10 @@ fun input =>
           []
           x.group_limits
       ) == std.array.length x.group_limits
+      && (
+        !(std.record.has_field "serving" x)
+        || x.serving.max_snapshot_age_ms <= x.max_wait_ms
+      )
     )
   in
   let checked = s | Checked in
@@ -104,3 +118,14 @@ fun input =>
       else
         { WeightedScalar = { weights = checked.weights } },
   }
+  & (
+    if std.record.has_field "serving" checked then
+      {
+        serving = {
+          max_snapshot_age_ms = checked.serving.max_snapshot_age_ms,
+          capacity_rule = checked.serving.capacity_rule,
+        }
+      }
+    else
+      {}
+  )

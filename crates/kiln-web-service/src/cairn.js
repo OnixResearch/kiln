@@ -5,7 +5,7 @@
 // campaign answer path exactly where the campaign inbox lists it. Displayed reasons are never parsed into decisions.
 (() => {
   const INDEX_SCHEMA = "kiln.cairn-workspace-index.v2";
-  const DETAIL_SCHEMA = "kiln.cairn-workspace-detail.v2";
+  const DETAIL_SCHEMA = "kiln.cairn-workspace-detail.v3";
   const INDEX_ROUTE = "/api/implementation/cairn";
   const DETAIL_ROUTE = "/api/implementation/cairn/detail";
   const HEX = /^[a-f0-9]{64}$/;
@@ -148,6 +148,55 @@
     ["native_lifecycle_complete", "Native lifecycle complete"],
   ]);
   const LIFECYCLE_ACTIONS = vocabulary([["observe_reviewed_sync", "Reviewed sync"], ["observe_reviewed_archive", "Reviewed archive"]]);
+  // r[impl kiln.cairn.workspace.agents.scenario.slots] Revision facts of definitions, worker pins and workflow revisions
+  // share one vocabulary. Unmanaged, unknown (with its owner), recorded, none recorded and not published never share words.
+  const SLOT_STATES = vocabulary([
+    ["recorded", "Recorded", "info", "The producer recorded this revision fact."],
+    ["not_recorded", "None recorded", "", "The lifecycle manages this definition and records no value for its projected revision."],
+    ["unknown", "Unknown", "warning", "The producer manages this fact but does not know it yet. Its owner can resolve it."],
+    ["unmanaged", "Unmanaged", "", "No producer revision lifecycle governs this. It is neither unknown nor unqualified."],
+    ["unpublished", "Not published", "warning", "No producer publishes this fact yet."],
+  ]);
+  const MANAGEMENT = vocabulary([
+    ["managed", "Managed lifecycle", "info", "A producer revision lifecycle governs this definition."],
+    ["unmanaged", "Unmanaged lifecycle", "", "No producer revision lifecycle governs this definition."],
+    ["unpublished", "Lifecycle not published", "warning", "The producer does not say whether a revision lifecycle governs this definition."],
+  ]);
+  // r[impl kiln.cairn.workspace.agents.scenario.provenance] Fixture evidence never reads as live and never takes a good tone.
+  const PROVENANCE = vocabulary([
+    ["live", "Live evidence", "good", "A live qualification reference for this revision. It is evidence, never dispatch authority."],
+    ["fixture", "Fixture evidence, not live", "warning", "A fixture qualification reference. It never counts as live evidence."],
+    ["unqualified", "Unqualified", "", "No current qualification reference names this task family for this revision."],
+  ]);
+  const CAPABILITIES = vocabulary([
+    ["declared", "Declared", ""],
+    ["none", "None", "", "The producer states that none is available."],
+    ["unknown", "Unknown", "warning", "The producer does not publish this capability. It is not unsupported."],
+  ]);
+  // r[impl kiln.cairn.workspace.agents.scenario.selection] Selected and pinned revisions stay separate facts.
+  const SELECTIONS = vocabulary([
+    ["matches_selected", "Pinned to the selected revision", "info", "The session's pin equals the revision selected for new sessions."],
+    ["differs_from_selected", "Pinned to another revision", "warning", "New sessions select another revision; this session keeps its own pin."],
+    ["no_selection", "No selection recorded", "", "The definition records no revision selected for new sessions."],
+    ["definition_not_observed", "Definition not observed", "warning", "The worker's definition is not in this inventory."],
+  ]);
+  const WORK_BINDINGS = vocabulary([
+    ["this_change", "On this change", "info", "Its attempt and fence equal an attempt of this change."],
+    ["other_work", "Other work", "", "Its attempt belongs to other work; the identity is withheld here."],
+    ["no_attempt", "No attempt", "", "The worker names no attempt."],
+  ]);
+  const PIN_STATUSES = vocabulary([["live", "Live session"], ["closed", "Session closed"], ["released", "Pin released"]]);
+  const OBSERVATIONS = vocabulary([
+    ["current", "Current"], ["stale", "Stale", "warning", "Observed before the freshness window. Not current."], ["missing", "Missing", "warning"],
+    ["future", "From the future", "warning"], ["incomplete", "Incomplete", "warning"], ["out_of_order", "Out of order", "warning"],
+    ["unavailable", "Unavailable", "warning"], ["unknown", "Partly unknown", "warning", "The fact lists fields its producer does not publish, or its source state is unknown. It is not current evidence of every field."],
+  ]);
+  const LIFECYCLES = vocabulary([
+    ["configured", "Configured"], ["starting", "Starting", "info"], ["healthy", "Healthy", "info"], ["idle", "Idle", "info"], ["reserved", "Reserved", "info"],
+    ["executing", "Executing", "info"], ["stopped", "Stopped"], ["unavailable", "Unavailable", "warning"], ["unknown", "Lifecycle unknown", "warning"],
+  ]);
+  const PERMISSIONS = vocabulary([["allowed", "Allowed"], ["denied", "Denied", "warning"], ["revoked", "Revoked", "failure"], ["unknown", "Unknown", "warning"]]);
+  const AGENT_SOURCES = ["admitted", "not_configured", "unavailable"];
 
   // The words for a recorded value. A value Kiln does not know is quoted, never read as success.
   function lookup(table, value) {
@@ -284,10 +333,34 @@
     if (value?.schema !== DETAIL_SCHEMA || !HEX.test(value.identity) || value.repository_identity !== route.repository
       || value.change !== route.change || !Array.isArray(value.units) || !Array.isArray(value.memberships)
       || !Array.isArray(value.decisions) || !Array.isArray(value.blockers) || typeof value.overview !== "object" || value.overview === null
-      || !["units", "current_work", "attempts", "active_attempts", "campaigns", "blockers", "open_decisions"].every((key) => count(value.overview[key]) !== null)) {
+      || !["units", "current_work", "attempts", "active_attempts", "campaigns", "blockers", "open_decisions"].every((key) => count(value.overview[key]) !== null)
+      || !admitAgents(value.agents)) {
       throw new Error("The service returned a different or malformed Cairn change. No other change was substituted.");
     }
     return value;
+  }
+  // r[impl kiln.cairn.workspace.agents.scenario.source] The agents section must name its inventory source, so an
+  // unconfigured or unavailable inventory is never drawn as an empty one.
+  function admitAgents(value) {
+    return typeof value === "object" && value !== null && AGENT_SOURCES.includes(value.source)
+      && Array.isArray(value.definitions) && Array.isArray(value.workers)
+      && typeof value.workflow_revisions === "object" && value.workflow_revisions !== null;
+  }
+  function slotWord(slot) { return lookup(SLOT_STATES, slot?.state); }
+  // One revision fact in words: its state, then its value, or the owner of an unknown or unpublished fact.
+  function slotText(slot) {
+    const entry = slotWord(slot);
+    if (slot?.state === "recorded") return `${entry.label}: ${str(slot.value) || "value not recorded"}`;
+    if (slot?.state === "unknown" || slot?.state === "unpublished") return `${entry.label} · ${str(slot.owner) ? `owner ${slot.owner}` : "no owner named"}`;
+    return entry.label;
+  }
+  // A task family reads live only when its reference has live provenance and counts as live; fixture stays fixture.
+  function familyProvenance(family) {
+    const qualification = family?.qualification;
+    if (!qualification || typeof qualification !== "object") return lookup(PROVENANCE, "unqualified");
+    if (qualification.provenance === "live" && qualification.counts_as_live === true) return lookup(PROVENANCE, "live");
+    if (qualification.provenance === "fixture") return lookup(PROVENANCE, "fixture");
+    return lookup(PROVENANCE, `${str(qualification.provenance) || "unrecorded"} provenance`);
   }
   // r[impl kiln.cairn.workspace.scenario.dependencies] The dependency graph of one change: its units, the prerequisites
   // and dependents they name (in this or another change, or work that is not current), layered by dependency depth.
@@ -1298,6 +1371,120 @@
     grid.append(...detail.memberships.map(membershipCard));
     return section("Campaigns", "cairn-campaigns-title", grid);
   }
+  // r[impl kiln.cairn.workspace.agents] Agent revisions, capability and wait reasons beside the change, from the resource
+  // inventory admitted for this principal. Only fields the projection defines are drawn; anything else is ignored.
+  function slotNode(slot) {
+    const wrap = element("span", undefined, "cairn-slot");
+    wrap.dataset.slotState = str(slot?.state) || "absent";
+    wrap.append(badge(slotWord(slot)));
+    if (slot?.state === "recorded") wrap.append(shortCode(slot.value));
+    else if (slot?.state === "unknown" || slot?.state === "unpublished") wrap.append(element("span", str(slot.owner) ? `Owner ${slot.owner}` : "No owner named", "small cairn-owner"));
+    return wrap;
+  }
+  function waitItems(waits) {
+    return list(waits).map((wait) => `${str(wait?.code) || "code not recorded"} · ${str(wait?.subject) || "subject not recorded"} · owner ${str(wait?.owner) || "not named"}`);
+  }
+  function capabilityText(value) {
+    const names = strings(value?.names);
+    return value?.state === "declared" && names.length ? names.join(", ") : lookup(CAPABILITIES, value?.state).label;
+  }
+  function familyItem(family) {
+    const item = element("li", undefined, "cairn-family");
+    item.dataset.provenance = str(family?.qualification?.provenance) || "none";
+    item.append(element("code", str(family?.task_family) || "family not recorded"), badge(familyProvenance(family)));
+    if (family?.declared === false) item.append(badge(word("Not declared", "warning", "Qualified, but the definition does not declare this task family.")));
+    const qualification = family?.qualification;
+    if (qualification && typeof qualification === "object") item.append(shortCode(qualification.reference), element("span", str(qualification.evidence_class), "small"));
+    return item;
+  }
+  function observationBadge(value) {
+    return value === "current" ? null : badge(lookup(OBSERVATIONS, value), "Observation");
+  }
+  function definitionCard(definition) {
+    const card = element("article", undefined, "cairn-member cairn-agent");
+    const title = element("h4", undefined, "cairn-member-title");
+    title.append(shortCode(definition?.reference?.id));
+    const families = list(definition?.task_families);
+    card.append(title, badges(badge(lookup(MANAGEMENT, definition?.management)), observationBadge(definition?.observation)), facts([
+      ["Source", str(definition?.reference?.source)],
+      ["Profile revision", shortCode(definition?.profile_revision)],
+      ["Desired", slotNode(definition?.desired)],
+      ["Prepared", slotNode(definition?.prepared)],
+      ["Qualified", slotNode(definition?.qualified)],
+      ["Selected for new sessions", slotNode(definition?.selected_for_new_sessions)],
+      ["Rollout generation", count(definition?.rollout_generation) ?? "No recorded selection"],
+      ["Task families and qualification", families.length ? bullets(families.map(familyItem), "") : lookup(CAPABILITIES, definition?.task_families_state).label],
+      ["Tools", capabilityText(definition?.tools)],
+      ["Harnesses", capabilityText(definition?.harnesses)],
+      ["Output contracts", capabilityText(definition?.output_contracts)],
+      ["Models", capabilityText(definition?.models)],
+      ["Authority", lookup(PERMISSIONS, definition?.authority).label],
+      ["Workers in this inventory", count(definition?.workers) ?? "Not recorded"],
+      ["Wait reasons (code · subject · owner)", bullets(waitItems(definition?.wait_reasons), "None")],
+    ]));
+    return card;
+  }
+  function pinNode(pin) {
+    if (pin?.state !== "recorded") return slotNode(pin);
+    const wrap = element("span", undefined, "cairn-slot");
+    wrap.dataset.slotState = "recorded";
+    wrap.append(badge(lookup(PIN_STATUSES, pin.status)), element("span", "Qualification", "small"), shortCode(pin.qualification),
+      element("span", `Rollout generation ${count(pin.rollout_generation) ?? "not recorded"}`, "small"), element("span", "Pin", "small"), shortCode(pin.identity));
+    return wrap;
+  }
+  function workerCard(worker) {
+    const card = element("article", undefined, "cairn-member cairn-agent-worker");
+    card.dataset.work = str(worker?.work);
+    const pin = worker?.pin && typeof worker.pin === "object" ? worker.pin : {};
+    const title = element("h4", undefined, "cairn-member-title");
+    title.append(shortCode(worker?.reference?.id));
+    const rows = [
+      ["Definition", shortCode(worker?.definition?.id)],
+      ["Lifecycle", lookup(LIFECYCLES, worker?.lifecycle).label],
+      ["Pinned revision", shortCode(worker?.pinned_revision)],
+      ["Pin", pinNode(pin)],
+    ];
+    if (worker?.work === "this_change") rows.push(["Attempt on this change", shortCode(worker.attempt)], ["Fence", count(worker.fence) ?? "Not recorded"]);
+    rows.push(["Wait reasons (code · subject · owner)", bullets(waitItems(worker?.wait_reasons), "None")]);
+    card.append(title, badges(badge(lookup(WORK_BINDINGS, worker?.work)), badge(lookup(SELECTIONS, worker?.selection)), badge(slotWord(pin), "Pin"),
+      pin.blocked === true ? badge(word("Pin blocked", "failure", "A further effect or export by this session would be refused.")) : null,
+      observationBadge(worker?.observation)), facts(rows));
+    return card;
+  }
+  function agentsSection(detail) {
+    const agents = detail.agents;
+    const workflow = agents.workflow_revisions;
+    const children = [
+      element("p", "Read-only revision, capability and wait facts from the resource inventory admitted for you. They are evidence, never dispatch, selection or promotion authority.", "small"),
+      element("h4", "Workflow revisions", "cairn-subhead"),
+      facts([["Selected for new sessions", slotNode(workflow.selected_for_new_sessions)], ["Pinned", slotNode(workflow.pinned)]]),
+    ];
+    if (agents.source !== "admitted") {
+      const note = agents.source === "not_configured"
+        ? "No resource inventory is configured for this service. Agent and worker revisions are not known here; this is not proof that none exist."
+        : `The resource inventory is unavailable (${str(agents.reason) || "reason not recorded"}). Agent and worker revisions are not shown, and nothing was substituted.`;
+      const node = element("p", note, "warning cairn-agents-source");
+      node.dataset.state = agents.source;
+      children.push(node);
+      return section("Agents and revisions", "cairn-agents-title", ...children);
+    }
+    if (agents.synthetic === true) children.push(element("p", "Synthetic inventory: fixture observations, not a live fleet.", "warning cairn-agents-source"));
+    children.push(element("h4", "Agent definitions", "cairn-subhead"));
+    const definitions = element("div", undefined, "cairn-members");
+    definitions.append(...list(agents.definitions).map(definitionCard));
+    children.push(agents.definitions.length ? definitions : element("p", "This inventory lists no agent definition.", "small"));
+    children.push(element("h4", "Worker revisions", "cairn-subhead"));
+    const workers = element("div", undefined, "cairn-members");
+    workers.append(...list(agents.workers).map(workerCard));
+    children.push(agents.workers.length ? workers : element("p", "This inventory lists no worker instance. A definition is not a running worker.", "small"));
+    const sources = list(agents.sources).map((source) => `${str(source?.source)} (${str(source?.kind)}): ${lookup(OBSERVATIONS, source?.state).label}${str(source?.reason) ? ` · ${source.reason}` : ""}`);
+    children.push(disclosure("Inventory sources and identity", "agents-sources", facts([
+      ["Inventory identity", copyable(agents.inventory_identity, "Inventory identity")],
+      ["Evaluated", when(agents.evaluated_at_ms)],
+      ["Agents and workers sources", bullets(sources, "None listed")],
+    ])));
+    return section("Agents and revisions", "cairn-agents-title", ...children);
+  }
   function legend() {
     const node = element("dl", undefined, "facts cairn-legend");
     const lanes = element("dd");
@@ -1401,7 +1588,7 @@
     } else {
       const value = detail.value;
       const current = generation;
-      sheet.append(changeHeader(value), fleetSection(value), nextSteps(value, current), unitsSection(value, route), graphSection(value), campaignsSection(value), aboutSection(value));
+      sheet.append(changeHeader(value), fleetSection(value), nextSteps(value, current), unitsSection(value, route), graphSection(value), campaignsSection(value), agentsSection(value), aboutSection(value));
       page.append(sheet);
     }
     if (rows.length || model.index.error) page.append(disclosure(rows.length ? `Browse ${plural(rows.length, "change")}` : "Browse changes", "browse", registerPanel(route, rows, model.index, true)));
@@ -1519,5 +1706,6 @@
   window.KilnCairn = Object.freeze({
     load, clear,
     facets: FACETS, lanes: LANES, facet, lane, binding, condition, normalizeRoute, filterPatch, detailPath, indexRows, matches, filterCounts, neighbors, admitDetail, dependencyGraph,
+    slotStates: SLOT_STATES, provenance: PROVENANCE, selections: SELECTIONS, slotText, familyProvenance, admitAgents,
   });
 })();

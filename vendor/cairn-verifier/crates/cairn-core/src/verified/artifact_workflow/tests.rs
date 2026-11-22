@@ -233,6 +233,89 @@ fn invalid_graphs_fail_with_stable_diagnostics() {
 }
 
 #[test]
+fn outcome_machine_profile_is_required_by_runtime_policy_admission() {
+    // r[verify cairn.outcome_machine_profile.selection]
+    // r[verify cairn.outcome_machine_profile.verification]
+    let profile_ids = [
+        "spec-driven",
+        "assurance",
+        "no-spec-delta",
+        "outcome-machine",
+    ];
+    let mut schemas = profile_ids
+        .iter()
+        .map(|profile_id| {
+            let mut profile = schema();
+            profile.id = (*profile_id).to_string();
+            profile
+        })
+        .collect::<Vec<_>>();
+    let outcome_machine = schemas
+        .iter_mut()
+        .find(|profile| profile.id == "outcome-machine")
+        .expect("outcome-machine profile");
+    let mut review_artifact = artifact(
+        "outcome-machine",
+        "outcome-machine.json",
+        &["proposal"],
+        WORKFLOW_ADMISSION_OUTCOME_MACHINE,
+    );
+    review_artifact.stage = "design".to_string();
+    review_artifact.apply_prerequisites = vec!["gate:proposal".to_string()];
+    outcome_machine.artifacts.push(review_artifact);
+    for dependent_id in ["design", "tasks"] {
+        outcome_machine
+            .artifacts
+            .iter_mut()
+            .find(|artifact| artifact.id == dependent_id)
+            .expect("dependent artifact")
+            .requires
+            .push("outcome-machine".to_string());
+    }
+    let registry = WorkflowProfileRegistryPolicy {
+        default_profile: "spec-driven".to_string(),
+        allowed_profiles: profile_ids.map(ToOwned::to_owned).to_vec(),
+        required_profiles_by_effect: Vec::new(),
+        forbidden_selection_sources: [
+            "user-global",
+            "environment",
+            "agent-prompt",
+            "remote-package",
+        ]
+        .map(ToOwned::to_owned)
+        .to_vec(),
+    };
+    admit_workflow_profile_registry(&registry, &schemas).expect("complete registry admits");
+
+    let missing_outcome_machine = schemas
+        .iter()
+        .filter(|profile| profile.id != "outcome-machine")
+        .cloned()
+        .collect::<Vec<_>>();
+    let error = admit_workflow_profile_registry(&registry, &missing_outcome_machine)
+        .expect_err("missing outcome-machine profile fails");
+    assert_eq!(error.code, WORKFLOW_ISSUE_PROFILE_REGISTRY);
+    assert!(error.message.contains("outcome-machine"));
+
+    let mut malformed = schemas;
+    let review_artifact = malformed
+        .iter_mut()
+        .find(|profile| profile.id == "outcome-machine")
+        .and_then(|profile| {
+            profile
+                .artifacts
+                .iter_mut()
+                .find(|artifact| artifact.id == "outcome-machine")
+        })
+        .expect("outcome-machine review artifact");
+    review_artifact.stage = "tasks".to_string();
+    let error = admit_workflow_profile_registry(&registry, &malformed)
+        .expect_err("malformed outcome-machine profile fails");
+    assert_eq!(error.code, WORKFLOW_ISSUE_PROFILE_REGISTRY);
+    assert!(error.message.contains("design-stage"));
+}
+
+#[test]
 fn unknown_and_inconsistent_observations_fail_closed() {
     // r[verify cairn.artifact_workflow_contract.instructions.unknown]
     let schema = schema();

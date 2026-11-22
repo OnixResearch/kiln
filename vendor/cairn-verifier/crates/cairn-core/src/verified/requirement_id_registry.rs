@@ -1,9 +1,3 @@
-use std::collections::BTreeMap;
-
-use serde_json::Value;
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const REQUIREMENT_ID_REGISTRY_SCHEMA_V1: &str = "cairn.requirement-id-registry.v1";
 pub const REQUIREMENT_ID_REGISTRY_BOUNDARY: &str = "requirement ID registry resolution proves ownership and linkage only; it does not prove requirement satisfaction, implementation correctness, test coverage, or release eligibility";
 
@@ -109,14 +103,16 @@ struct AliasResolution {
 }
 
 #[must_use]
-pub fn validate_requirement_id_registry_value(value: &Value) -> RequirementIdRegistryReport {
+pub fn validate_requirement_id_registry_value(
+    value: &serde_json::Value,
+) -> RequirementIdRegistryReport {
     match parse_requirement_id_registry_input(value) {
         Ok((registry, references, registry_hash)) => {
             validate_requirement_id_registry(&registry, &references, registry_hash)
         }
         Err(issue) => RequirementIdRegistryReport {
             valid: false,
-            registry_hash: canonical_json_hash(value),
+            registry_hash: crate::verified::evidence::canonical_json_hash(value),
             row_count: EMPTY_COUNT,
             checked_reference_count: EMPTY_COUNT,
             dangling_reference_count: EMPTY_COUNT,
@@ -170,7 +166,9 @@ pub fn validate_requirement_id_registry(
 }
 
 #[must_use]
-pub fn requirement_id_registry_issues_json(report: &RequirementIdRegistryReport) -> Vec<Value> {
+pub fn requirement_id_registry_issues_json(
+    report: &RequirementIdRegistryReport,
+) -> Vec<serde_json::Value> {
     report
         .issues
         .iter()
@@ -351,8 +349,8 @@ fn validate_non_claims(
 fn build_resolver(
     registry: &RequirementIdRegistry,
     issues: &mut Vec<RequirementIdRegistryIssue>,
-) -> BTreeMap<String, AliasResolution> {
-    let mut resolver = BTreeMap::new();
+) -> std::collections::BTreeMap<String, AliasResolution> {
+    let mut resolver = std::collections::BTreeMap::new();
     for (row_index, row) in registry.rows.iter().enumerate() {
         insert_resolution(
             &mut resolver,
@@ -383,7 +381,7 @@ fn build_resolver(
 }
 
 fn insert_resolution(
-    resolver: &mut BTreeMap<String, AliasResolution>,
+    resolver: &mut std::collections::BTreeMap<String, AliasResolution>,
     id: &str,
     resolution: AliasResolution,
     duplicate_code: &str,
@@ -405,7 +403,7 @@ fn insert_resolution(
 
 fn validate_reference(
     registry: &RequirementIdRegistry,
-    resolver: &BTreeMap<String, AliasResolution>,
+    resolver: &std::collections::BTreeMap<String, AliasResolution>,
     reference: &RequirementReference,
     index: usize,
     dangling_reference_count: &mut usize,
@@ -511,17 +509,19 @@ fn validate_reference_consumer(
 }
 
 fn parse_requirement_id_registry_input(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<(RequirementIdRegistry, Vec<RequirementReference>, String), RequirementIdRegistryIssue>
 {
     let registry_value = object_field(value, FIELD_REGISTRY)?;
-    let registry_hash = canonical_json_hash(registry_value);
+    let registry_hash = crate::verified::evidence::canonical_json_hash(registry_value);
     let registry = parse_registry(registry_value)?;
     let references = parse_references(array_field(value, FIELD_REFERENCES)?)?;
     Ok((registry, references, registry_hash))
 }
 
-fn parse_registry(value: &Value) -> Result<RequirementIdRegistry, RequirementIdRegistryIssue> {
+fn parse_registry(
+    value: &serde_json::Value,
+) -> Result<RequirementIdRegistry, RequirementIdRegistryIssue> {
     Ok(RequirementIdRegistry {
         schema_version: string_field(value, FIELD_SCHEMA_VERSION)?,
         boundary: string_field(value, FIELD_BOUNDARY)?,
@@ -530,7 +530,9 @@ fn parse_registry(value: &Value) -> Result<RequirementIdRegistry, RequirementIdR
     })
 }
 
-fn parse_rows(values: &[Value]) -> Result<Vec<RequirementRegistryRow>, RequirementIdRegistryIssue> {
+fn parse_rows(
+    values: &[serde_json::Value],
+) -> Result<Vec<RequirementRegistryRow>, RequirementIdRegistryIssue> {
     values
         .iter()
         .enumerate()
@@ -553,7 +555,9 @@ fn parse_rows(values: &[Value]) -> Result<Vec<RequirementRegistryRow>, Requireme
         .collect()
 }
 
-fn parse_aliases(values: &[Value]) -> Result<Vec<RequirementIdAlias>, RequirementIdRegistryIssue> {
+fn parse_aliases(
+    values: &[serde_json::Value],
+) -> Result<Vec<RequirementIdAlias>, RequirementIdRegistryIssue> {
     values
         .iter()
         .map(|value| {
@@ -567,7 +571,7 @@ fn parse_aliases(values: &[Value]) -> Result<Vec<RequirementIdAlias>, Requiremen
 }
 
 fn parse_references(
-    values: &[Value],
+    values: &[serde_json::Value],
 ) -> Result<Vec<RequirementReference>, RequirementIdRegistryIssue> {
     values
         .iter()
@@ -582,9 +586,9 @@ fn parse_references(
 }
 
 fn object_field<'a>(
-    value: &'a Value,
+    value: &'a serde_json::Value,
     field: &str,
-) -> Result<&'a Value, RequirementIdRegistryIssue> {
+) -> Result<&'a serde_json::Value, RequirementIdRegistryIssue> {
     value
         .get(field)
         .filter(|item| item.is_object())
@@ -597,12 +601,12 @@ fn object_field<'a>(
 }
 
 fn array_field<'a>(
-    value: &'a Value,
+    value: &'a serde_json::Value,
     field: &str,
-) -> Result<&'a [Value], RequirementIdRegistryIssue> {
+) -> Result<&'a [serde_json::Value], RequirementIdRegistryIssue> {
     value
         .get(field)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .map(Vec::as_slice)
         .ok_or_else(|| {
             input_issue(
@@ -612,24 +616,27 @@ fn array_field<'a>(
         })
 }
 
-fn string_field(value: &Value, field: &str) -> Result<String, RequirementIdRegistryIssue> {
+fn string_field(
+    value: &serde_json::Value,
+    field: &str,
+) -> Result<String, RequirementIdRegistryIssue> {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(ToOwned::to_owned)
         .ok_or_else(|| input_issue(field, &format!("input field `{field}` must be a string")))
 }
 
-fn optional_string_field(value: &Value, field: &str) -> String {
+fn optional_string_field(value: &serde_json::Value, field: &str) -> String {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default()
         .to_string()
 }
 
 fn string_array_field(
-    value: &Value,
+    value: &serde_json::Value,
     field: &str,
 ) -> Result<Vec<String>, RequirementIdRegistryIssue> {
     array_field(value, field)?
@@ -668,7 +675,6 @@ fn push_issue(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
 
     use super::*;
 
@@ -801,7 +807,7 @@ mod tests {
     fn value_parser_and_fixture_matrix_cover_success_and_failure() {
         // r[verify cairn.requirement_id_registry.final_validation]
         // r[verify cairn.requirement_id_registry.final_validation.fixtures]
-        let valid = json!({
+        let valid = serde_json::json!({
             "registry": {
                 "schema_version": REQUIREMENT_ID_REGISTRY_SCHEMA_V1,
                 "boundary": REQUIREMENT_ID_REGISTRY_BOUNDARY,
@@ -826,7 +832,7 @@ mod tests {
             valid_report.issues
         );
 
-        let invalid = json!({
+        let invalid = serde_json::json!({
             "registry": {
                 "schema_version": REQUIREMENT_ID_REGISTRY_SCHEMA_V1,
                 "boundary": REQUIREMENT_ID_REGISTRY_BOUNDARY,

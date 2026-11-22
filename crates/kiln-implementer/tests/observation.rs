@@ -28,6 +28,7 @@ fn policy() -> AdmissionPolicy {
         strategy: FairnessStrategy::DominantShare,
         shares: BTreeMap::from([(Alias::new("tenant").unwrap_or_else(|_| unreachable!()), 1)]),
         group_limits: vec![],
+        serving: None,
     }
 }
 fn work() -> ImplementationWork {

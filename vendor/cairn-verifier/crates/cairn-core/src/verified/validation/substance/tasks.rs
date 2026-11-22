@@ -1,11 +1,3 @@
-use super::{
-    dependency::{
-        configured_marker, marker_prefix, observe_marker, valid_lifecycle_id, MarkerObservation,
-    },
-    placeholder_line, remove_prefixed_marker, substantive_line_count, ArtifactSubstanceInventory,
-    REQUIREMENT_MARKER_PREFIX, REQUIREMENT_MARKER_SUFFIX,
-};
-
 const TASKS_ARTIFACT_KIND: &str = "tasks";
 const TASK_TODO_PREFIX: &str = "- [ ]";
 const TASK_DONE_PREFIX_LOWER: &str = "- [x]";
@@ -24,17 +16,17 @@ pub(super) fn task_inventory(
     snapshot: &super::super::gates::GateSnapshot,
     tasks: &super::super::gates::GateArtifact,
     policy: &crate::verified::policy::Policy,
-) -> (ArtifactSubstanceInventory, Vec<String>) {
+) -> (super::ArtifactSubstanceInventory, Vec<String>) {
     let known_references = known_delta_references(snapshot);
-    let mut inventory = ArtifactSubstanceInventory::text(
+    let mut inventory = super::ArtifactSubstanceInventory::text(
         TASKS_ARTIFACT_KIND,
         &tasks.path,
-        substantive_line_count(&tasks.markdown, &policy.artifact_substance_policy),
+        super::substantive_line_count(&tasks.markdown, &policy.artifact_substance_policy),
     );
     let line_count = tasks.markdown.lines().count();
     let issue_capacity = line_count.saturating_mul(MAX_TASK_ISSUES_PER_LINE);
     let mut issues = Vec::with_capacity(issue_capacity);
-    let dependency_marker = configured_marker(policy);
+    let dependency_marker = super::dependency::configured_marker(policy);
     if dependency_marker.is_none() {
         issues.push(format!(
             "{}: lifecycle_validation.dependency_marker_shape.policy: configured dependency marker `{}` is absent from task marker policy",
@@ -63,7 +55,7 @@ fn observe_task_lines(
     known_references: &std::collections::BTreeSet<String>,
     dependency_marker: Option<&crate::verified::policy::TaskMarker>,
     policy: &crate::verified::policy::Policy,
-    inventory: &mut ArtifactSubstanceInventory,
+    inventory: &mut super::ArtifactSubstanceInventory,
     issues: &mut Vec<String>,
 ) {
     let mut is_fenced = false;
@@ -98,7 +90,7 @@ fn observe_task_line(
     known_references: &std::collections::BTreeSet<String>,
     dependency_marker: Option<&crate::verified::policy::TaskMarker>,
     policy: &crate::verified::policy::Policy,
-    inventory: &mut ArtifactSubstanceInventory,
+    inventory: &mut super::ArtifactSubstanceInventory,
     issues: &mut Vec<String>,
 ) {
     let Some((state, label)) = task_state_and_label(line) else {
@@ -106,12 +98,12 @@ fn observe_task_line(
     };
     observe_task_state(state, inventory);
     let dependency = dependency_marker.map_or_else(
-        || MarkerObservation {
+        || super::dependency::MarkerObservation {
             is_present: false,
             is_valid: false,
             diagnostics: Vec::new(),
         },
-        |marker| observe_marker(line, marker, policy),
+        |marker| super::dependency::observe_marker(line, marker, policy),
     );
     inventory.malformed_dependency_markers += dependency.diagnostics.len();
     issues.extend(dependency.diagnostics.into_iter().map(|diagnostic| {
@@ -125,7 +117,7 @@ fn observe_task_line(
         .any(|reference| known_references.contains(reference));
     let semantic_label = task_semantic_label(label, policy);
     let has_substantive_label = !semantic_label.is_empty()
-        && !placeholder_line(
+        && !super::placeholder_line(
             &semantic_label,
             &policy.artifact_substance_policy.placeholder_tokens,
         );
@@ -136,7 +128,7 @@ fn observe_task_line(
     }
 }
 
-fn observe_task_state(state: TaskState, inventory: &mut ArtifactSubstanceInventory) {
+fn observe_task_state(state: TaskState, inventory: &mut super::ArtifactSubstanceInventory) {
     inventory.checkbox_tasks += 1;
     match state {
         TaskState::Done => inventory.task_done += 1,
@@ -169,7 +161,7 @@ fn add_task_row_issues(
 fn add_minimum_issue(
     path: &str,
     policy: &crate::verified::policy::Policy,
-    inventory: &ArtifactSubstanceInventory,
+    inventory: &super::ArtifactSubstanceInventory,
     issues: &mut Vec<String>,
 ) {
     if inventory.substantive_tasks >= policy.artifact_substance_policy.minimum_substantive_tasks {
@@ -200,12 +192,15 @@ fn task_semantic_label(label: &str, policy: &crate::verified::policy::Policy) ->
     let mut semantic = label.to_string();
     for marker in &policy.task_marker_tokens {
         if marker.kind == "prefix" || marker.kind.ends_with("-prefix") {
-            remove_prefixed_marker(&mut semantic, marker_prefix(&marker.token));
+            super::remove_prefixed_marker(
+                &mut semantic,
+                super::dependency::marker_prefix(&marker.token),
+            );
         } else {
             semantic = semantic.replace(&marker.token, " ");
         }
     }
-    remove_prefixed_marker(&mut semantic, REQUIREMENT_MARKER_PREFIX);
+    super::remove_prefixed_marker(&mut semantic, super::REQUIREMENT_MARKER_PREFIX);
     semantic
         .trim_matches(|character: char| character.is_whitespace() || matches!(character, '-' | ':'))
         .to_string()
@@ -224,19 +219,19 @@ fn known_delta_references(
 }
 
 fn requirement_markers(markdown: &str) -> Vec<String> {
-    let marker_capacity = markdown.matches(REQUIREMENT_MARKER_PREFIX).count();
+    let marker_capacity = markdown.matches(super::REQUIREMENT_MARKER_PREFIX).count();
     let mut markers = Vec::with_capacity(marker_capacity);
     let mut rest = markdown;
-    while let Some(start) = rest.find(REQUIREMENT_MARKER_PREFIX) {
-        let after_prefix = &rest[start + REQUIREMENT_MARKER_PREFIX.len()..];
-        let Some(end) = after_prefix.find(REQUIREMENT_MARKER_SUFFIX) else {
+    while let Some(start) = rest.find(super::REQUIREMENT_MARKER_PREFIX) {
+        let after_prefix = &rest[start + super::REQUIREMENT_MARKER_PREFIX.len()..];
+        let Some(end) = after_prefix.find(super::REQUIREMENT_MARKER_SUFFIX) else {
             break;
         };
         let candidate = after_prefix[..end].trim();
-        if valid_lifecycle_id(candidate) {
+        if super::dependency::valid_lifecycle_id(candidate) {
             markers.push(candidate.to_string());
         }
-        rest = &after_prefix[end + REQUIREMENT_MARKER_SUFFIX.len_utf8()..];
+        rest = &after_prefix[end + super::REQUIREMENT_MARKER_SUFFIX.len_utf8()..];
     }
     markers
 }

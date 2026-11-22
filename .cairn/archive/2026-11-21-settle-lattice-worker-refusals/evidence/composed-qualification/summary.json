@@ -1,0 +1,268 @@
+{
+ "lost-before-start": {
+  "calls": {
+   "recover": {
+    "exit": 0,
+    "stderr": "",
+    "stdout": [
+     {
+      "accepted": false,
+      "envelope_attempt": "d92c099bf4058d2f15c1506d9b6dbc76960958e1e8ded042b89ab7560a6a1a5d",
+      "envelope_fence": 1,
+      "integrated": false,
+      "request_identity": "9df807b27df0eef305f280f839eafcb6c125b541c5f1382c5e3523e6a49de8fb",
+      "result": null,
+      "schema": "lattice.implementation-attempt-observation.v1",
+      "status": "not_started_closed_by_recovery"
+     }
+    ]
+   },
+   "recover-replay": {
+    "exit": 2,
+    "stderr": "kiln-lattice-dispatch: implementation_fence_stale: attempt does not own the current unexpired claim",
+    "stdout": []
+   }
+  },
+  "endpoint_requests": 0,
+  "kiln_attempt": {
+   "cause": "lattice_closed_before_execution",
+   "dispatch": {
+    "effect_id": "dispatch-e82c4bf1f8108a9df2ca88e37b88a12e3bffabad0adabf3712936bc327252ecb",
+    "idempotency_key": {
+     "contract_version": 1,
+     "native_id": "e82c4bf1f8108a9df2ca88e37b88a12e3bffabad0adabf3712936bc327252ecb",
+     "native_kind": "implementation-dispatch",
+     "provider_namespace": "kiln"
+    },
+    "plan": "75fad86115eebf7c711bdfc78122be8e97613eb94a3ca2e386ddcc9d89a6f393",
+    "provider_profile": "scripted-local-omp",
+    "reserved_at_ms": 1795290250056,
+    "schema": "kiln.implementation-dispatch.v1"
+   },
+   "dispatch_request_binding": {
+    "attempt": "d92c099bf4058d2f15c1506d9b6dbc76960958e1e8ded042b89ab7560a6a1a5d",
+    "fence": 1,
+    "plan": "75fad86115eebf7c711bdfc78122be8e97613eb94a3ca2e386ddcc9d89a6f393",
+    "request_digest": "10063004b40a2f5049db1bad0cbcb6a19b0132345cea7a4e55d441d8dd2c1ac1",
+    "schema": "kiln.implementation-dispatch-request-binding.v1",
+    "seal": "16298b734450b809a198df8a0c8c620181da08cbef7c0deba23305de4c6b8562"
+   },
+   "execution": null,
+   "failure": "infrastructure",
+   "fence": 1,
+   "phase": "failed",
+   "workflow": null
+  },
+  "lattice_state_files": [
+   "ffefc00a80336204c54f21fda9e83b8314d97f66888cb9e109d287fe91bfaec3/intent.json 88"
+  ],
+  "omp_observation": null,
+  "prepared_worker_profile": "407563f43665bae45c745123abce8be019cee3432abccbe33cfb0af556857ef5"
+ },
+ "moved": {
+  "calls": {
+   "dispatch": {
+    "exit": 137,
+    "stderr": "",
+    "stdout": []
+   },
+   "recover-moved": {
+    "exit": 0,
+    "stderr": "",
+    "stdout": [
+     {
+      "accepted": false,
+      "envelope_attempt": "13fb81826d8f3829598d2ba6757fef196fedd632d9a016ecfbb1a63b1bb03487",
+      "envelope_fence": 1,
+      "execution_binding": "blake3:370999cb2f0ecd148f14d75397838780e989e97056d7db19fb4c1a5ba31df805",
+      "integrated": false,
+      "request_identity": "fb5bf3731ae9833cfd4020d4831314854e85b2ce0e6bb0b9c584d511fc8dde7a",
+      "result": {
+       "disposition": "failed",
+       "receipt": null,
+       "stdout_blake3": "5744c50db1e98d929421e7456b031959247a68aab07f7a8c32276ea65f356ebd"
+      },
+      "schema": "lattice.implementation-attempt-observation.v1"
+     }
+    ]
+   },
+   "recover-moved-replay": {
+    "exit": 0,
+    "stderr": "",
+    "stdout": [
+     {
+      "accepted": false,
+      "envelope_attempt": "13fb81826d8f3829598d2ba6757fef196fedd632d9a016ecfbb1a63b1bb03487",
+      "envelope_fence": 1,
+      "execution_binding": "blake3:370999cb2f0ecd148f14d75397838780e989e97056d7db19fb4c1a5ba31df805",
+      "integrated": false,
+      "request_identity": "fb5bf3731ae9833cfd4020d4831314854e85b2ce0e6bb0b9c584d511fc8dde7a",
+      "result": {
+       "disposition": "failed",
+       "receipt": null,
+       "stdout_blake3": "5744c50db1e98d929421e7456b031959247a68aab07f7a8c32276ea65f356ebd"
+      },
+      "schema": "lattice.implementation-attempt-observation.v1"
+     }
+    ]
+   }
+  },
+  "endpoint_requests": 1,
+  "kiln_attempt": {
+   "cause": null,
+   "dispatch": {
+    "effect_id": "dispatch-f290c17595d1571c5b347d5538c88f6b971f0487885b4bac98b4d9b878048069",
+    "idempotency_key": {
+     "contract_version": 1,
+     "native_id": "f290c17595d1571c5b347d5538c88f6b971f0487885b4bac98b4d9b878048069",
+     "native_kind": "implementation-dispatch",
+     "provider_namespace": "kiln"
+    },
+    "plan": "1af91b1a28589e4a3d0640ceae6d4c3cfc3c70ea3a8b2e800ff2d5a194f61d52",
+    "provider_profile": "scripted-local-omp",
+    "reserved_at_ms": 1795290260759,
+    "schema": "kiln.implementation-dispatch.v1"
+   },
+   "dispatch_request_binding": {
+    "attempt": "13fb81826d8f3829598d2ba6757fef196fedd632d9a016ecfbb1a63b1bb03487",
+    "fence": 1,
+    "plan": "1af91b1a28589e4a3d0640ceae6d4c3cfc3c70ea3a8b2e800ff2d5a194f61d52",
+    "request_digest": "9037d866a96c8996f325386cf5a6eb1368f90bba495c95701370596f75dad06f",
+    "schema": "kiln.implementation-dispatch-request-binding.v1",
+    "seal": "724f1914825e40eb95f0c1b545371ecbe6cfbaf09320f209d92a0985aafab3bb"
+   },
+   "execution": null,
+   "failure": null,
+   "fence": 1,
+   "phase": "executing",
+   "workflow": {
+    "contract_version": 1,
+    "native_id": "9037d866a96c8996f325386cf5a6eb1368f90bba495c95701370596f75dad06f",
+    "native_kind": "implementation-attempt",
+    "provider_namespace": "lattice"
+   }
+  },
+  "lattice_state_files": [
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/candidate.redb 548864",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/execution-binding.json 780",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/intent.json 64",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/omp-observation.json 250",
+   "11c78a95ae4a1887a97c26b51e515de2cb9920fa61b6c24ad3b066c83918b67a/raw-events.jsonl 3247",
+   "works/238ab30578d5a0b7612ac9d8fde9c513be7d4fd976e0b3a1ba9dddfdb8b4fe87/00000000000000000001 64"
+  ],
+  "omp_observation": {
+   "Ok": {
+    "event_count": 8,
+    "raw_events_blake3": "5744c50db1e98d929421e7456b031959247a68aab07f7a8c32276ea65f356ebd",
+    "schema": "lattice.omp-jsonl-observation.v1",
+    "session_id": "01a1ffa3-670c-77c7-9298-48fa235fe369",
+    "terminal": "failed",
+    "usage_complete": false
+   }
+  },
+  "prepared_worker_profile": "92326aa18627fc9486fdb14f6aadee542dea2bd819c435aee25be590434d6987"
+ },
+ "pregate": {
+  "calls": {
+   "gate-refused-a": {
+    "exit": 2,
+    "stderr": "kiln-lattice-dispatch: admission: missing fresh provider offer",
+    "stdout": []
+   },
+   "launch-b": {
+    "exit": 0,
+    "stderr": "",
+    "stdout": [
+     {
+      "accepted": false,
+      "envelope_attempt": "e08871b37da73e8bc6bdb6d8cbb3803f0c1cddba488077cf55fe0bec1d8f240a",
+      "envelope_fence": 1,
+      "execution_binding": "blake3:2a232ff3382920f4063cf80d514967257507ce3903ba8456b59b0372704c60db",
+      "integrated": false,
+      "request_identity": "cb73d73771168518c8d0fea99b318335c2c5b4c60efe508f993d216b42b9a316",
+      "result": {
+       "disposition": "failed",
+       "receipt": null,
+       "stdout_blake3": "8392ee8131586e92b313b5b237857393f6a9c890acf5924b634a0261ee181603"
+      },
+      "schema": "lattice.implementation-attempt-observation.v1"
+     }
+    ]
+   },
+   "recover-under-a": {
+    "exit": 0,
+    "stderr": "",
+    "stdout": [
+     {
+      "accepted": false,
+      "envelope_attempt": "e08871b37da73e8bc6bdb6d8cbb3803f0c1cddba488077cf55fe0bec1d8f240a",
+      "envelope_fence": 1,
+      "execution_binding": "blake3:2a232ff3382920f4063cf80d514967257507ce3903ba8456b59b0372704c60db",
+      "integrated": false,
+      "request_identity": "cb73d73771168518c8d0fea99b318335c2c5b4c60efe508f993d216b42b9a316",
+      "result": {
+       "disposition": "failed",
+       "receipt": null,
+       "stdout_blake3": "8392ee8131586e92b313b5b237857393f6a9c890acf5924b634a0261ee181603"
+      },
+      "schema": "lattice.implementation-attempt-observation.v1"
+     }
+    ]
+   }
+  },
+  "endpoint_requests": 1,
+  "kiln_attempt": {
+   "cause": null,
+   "dispatch": {
+    "effect_id": "dispatch-ba830e5c94b7271725920c893e784df61ace9944aa0cc1d16ab1ddf56e29790f",
+    "idempotency_key": {
+     "contract_version": 1,
+     "native_id": "ba830e5c94b7271725920c893e784df61ace9944aa0cc1d16ab1ddf56e29790f",
+     "native_kind": "implementation-dispatch",
+     "provider_namespace": "kiln"
+    },
+    "plan": "2875cb6ec4c18b53f7ef4c28f4ab5ebb9ca9706ab31c23423228a2c8de6285fd",
+    "provider_profile": "scripted-local-omp",
+    "reserved_at_ms": 1795290238216,
+    "schema": "kiln.implementation-dispatch.v1"
+   },
+   "dispatch_request_binding": {
+    "attempt": "e08871b37da73e8bc6bdb6d8cbb3803f0c1cddba488077cf55fe0bec1d8f240a",
+    "fence": 1,
+    "plan": "2875cb6ec4c18b53f7ef4c28f4ab5ebb9ca9706ab31c23423228a2c8de6285fd",
+    "request_digest": "4f5ab9e84fd28a64a64dfb31d6ccea99ee02f512b097f373bc2023563763f77d",
+    "schema": "kiln.implementation-dispatch-request-binding.v1",
+    "seal": "a382fc0c85924b9e50662dad8755f828c56e8c0605c4dee9d6a66dec9a2111e4"
+   },
+   "execution": null,
+   "failure": null,
+   "fence": 1,
+   "phase": "executing",
+   "workflow": {
+    "contract_version": 1,
+    "native_id": "4f5ab9e84fd28a64a64dfb31d6ccea99ee02f512b097f373bc2023563763f77d",
+    "native_kind": "implementation-attempt",
+    "provider_namespace": "lattice"
+   }
+  },
+  "lattice_state_files": [
+   "3a6e3338336ce5be9cf22962c724b6c0e797d3de11297b43f6c2dbaf2381d808/candidate.redb 548864",
+   "3a6e3338336ce5be9cf22962c724b6c0e797d3de11297b43f6c2dbaf2381d808/execution-binding.json 780",
+   "3a6e3338336ce5be9cf22962c724b6c0e797d3de11297b43f6c2dbaf2381d808/intent.json 64",
+   "3a6e3338336ce5be9cf22962c724b6c0e797d3de11297b43f6c2dbaf2381d808/omp-observation.json 250",
+   "3a6e3338336ce5be9cf22962c724b6c0e797d3de11297b43f6c2dbaf2381d808/raw-events.jsonl 3247",
+   "works/4306916d4b9832eeebccc14c1a3076fcc849102511370be35cb9c7e9d470ea9f/00000000000000000001 64"
+  ],
+  "omp_observation": {
+   "Ok": {
+    "event_count": 8,
+    "raw_events_blake3": "8392ee8131586e92b313b5b237857393f6a9c890acf5924b634a0261ee181603",
+    "schema": "lattice.omp-jsonl-observation.v1",
+    "session_id": "01a1ffa3-1d08-70c4-8b87-27cd445c4499",
+    "terminal": "failed",
+    "usage_complete": false
+   }
+  },
+  "prepared_worker_profile": "5265dcf6558e7e3c145e7ba5e5b02370195f65826e3b5975cbc25e37205586ff"
+ }
+}

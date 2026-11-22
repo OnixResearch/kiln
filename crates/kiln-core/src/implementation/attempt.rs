@@ -196,6 +196,98 @@ pub struct AttemptLedger {
     dispatch_plans: BTreeMap<String, super::ImplementationDispatchPlan>,
 }
 
+/// The exact provider program and state root of an attempt's first launch.
+///
+/// Recorded in the same transaction as the transport intent, so the launch
+/// that won the intent is the only one recovery may use.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransportLaunch {
+    pub lattice_program: String,
+    pub executable_blake3: ContentId,
+    pub state_directory: String,
+}
+
+/// What persisting the transport intent established.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TransportStart {
+    /// This call persisted the intent (and its launch, when given).
+    Fresh,
+    /// An intent already existed: recovery is mandatory and must use the
+    /// recorded launch, which is `None` for an intent persisted before
+    /// launches were recorded or without one.
+    Recover(Option<TransportLaunch>),
+}
+
+impl TransportStart {
+    #[must_use]
+    pub const fn is_recovery(&self) -> bool {
+        matches!(self, Self::Recover(_))
+    }
+}
+
+/// Recorded first launches, kept apart from [`AttemptLedger`] so that a
+/// binary which reads and re-saves the attempt ledger without knowing about
+/// launches can never erase one.
+///
+/// A record is consulted only while its attempt's transport intent exists, so
+/// a record left behind after another writer cleared the intent is inert.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransportLaunches {
+    #[serde(default)]
+    launches: BTreeMap<String, TransportLaunch>,
+}
+
+impl TransportLaunches {
+    /// Combine the attempt ledger's transport-intent transition with the
+    /// launch record: a fresh intent records `launch`, never overwriting a
+    /// different record; an existing intent recalls its recorded launch.
+    ///
+    /// # Errors
+    /// Refuses a fresh intent for which a different launch is already
+    /// recorded, so the enclosing transaction rolls back.
+    // r[impl kiln.implementation.lattice_cli.scenario.bound_root]
+    pub fn start(
+        &mut self,
+        identity: &ContentId,
+        previously_started: bool,
+        launch: Option<&TransportLaunch>,
+    ) -> CoreResult<TransportStart> {
+        if previously_started {
+            return Ok(TransportStart::Recover(self.recall(identity)));
+        }
+        if let Some(launch) = launch {
+            match self.launches.get(identity.as_str()) {
+                Some(recorded) if recorded != launch => {
+                    return Err(refusal(
+                        "implementation_transport_launch_conflict",
+                        "dispatch.launch",
+                        "a different launch is already recorded for this attempt",
+                    ));
+                }
+                Some(_) => {}
+                None => {
+                    self.launches
+                        .insert(identity.as_str().to_string(), launch.clone());
+                }
+            }
+        }
+        Ok(TransportStart::Fresh)
+    }
+
+    /// The launch recorded for this attempt, if any.
+    #[must_use]
+    pub fn recall(&self, identity: &ContentId) -> Option<TransportLaunch> {
+        self.launches.get(identity.as_str()).cloned()
+    }
+
+    /// Remove the record when the attempt's transport intent is settled.
+    pub fn remove(&mut self, identity: &ContentId) {
+        self.launches.remove(identity.as_str());
+    }
+}
+
 impl AttemptLedger {
     pub fn attempts(&self) -> impl Iterator<Item = &ImplementationAttempt> {
         self.attempts.values()
@@ -1318,6 +1410,45 @@ impl AttemptLedger {
         })?;
         binding.validate_for(identity, fence, plan, &binding.request_digest)?;
         Ok(!self.dispatch_started.insert(identity.as_str().to_string()))
+    }
+
+    /// End an attempt whose provider states that no worker effect of it can
+    /// have started, such as a typed before-effect refusal or a recovery that
+    /// closed the attempt before execution.
+    ///
+    /// Only a current claimed attempt with its reservation, a persisted
+    /// transport intent and no recorded workflow qualifies. The attempt fails
+    /// as infrastructure, never unknown, and its transport intent is cleared,
+    /// so nothing remains to reconcile and the attempt cannot dispatch again.
+    // r[impl kiln.implementation.lattice_cli.scenario.refusal] r[impl kiln.implementation.lattice_cli.scenario.closed]
+    pub fn settle_dispatch_without_execution(
+        &mut self,
+        identity: &ContentId,
+        fence: u64,
+        now_ms: u64,
+        cause: &str,
+    ) -> CoreResult<()> {
+        self.require_phase(identity, fence, now_ms, &[AttemptPhase::Claimed])?;
+        let cause = bounded_cause(cause)?;
+        let started = self.dispatch_started.contains(identity.as_str());
+        let canonical_key = {
+            let attempt = self.attempt_mut(identity)?;
+            if attempt.dispatch.is_none() || attempt.workflow.is_some() || !started {
+                return Err(refusal(
+                    "implementation_settlement_binding",
+                    "attempt.dispatch",
+                    "only a reserved, started transport with no recorded execution settles without execution",
+                ));
+            }
+            attempt.phase = AttemptPhase::Failed;
+            attempt.ended_at_ms = Some(now_ms);
+            attempt.failure = Some(FailureClass::Infrastructure);
+            attempt.cause = Some(cause);
+            attempt.canonical_key.clone()
+        };
+        self.dispatch_started.remove(identity.as_str());
+        self.clear_current(&canonical_key);
+        Ok(())
     }
 
     /// Retain an independently observed provider termination after an unknown

@@ -1,0 +1,20 @@
+{
+  "bounds": {
+    "max_assumptions": 256,
+    "max_changes": 32,
+    "max_compositions": 32,
+    "max_conditions": 128,
+    "max_depth": 32,
+    "max_domain_values": 64,
+    "max_evidence": 512,
+    "max_guarantees": 256,
+    "max_interfaces": 256,
+    "max_invalidations": 256,
+    "max_invariants": 256,
+    "max_revisions": 128,
+    "max_steps": 2000000,
+    "max_unknown": 32,
+    "max_worlds": 262144
+  },
+  "schema": "cairn.concurrent-change-footprints-policy.v1"
+}

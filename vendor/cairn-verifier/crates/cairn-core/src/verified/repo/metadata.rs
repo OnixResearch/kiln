@@ -2,28 +2,23 @@ use crate::verified::change_dependencies::{
     DEPENDENCY_ISSUE_EMPTY_ID, DEPENDENCY_ISSUE_INVALID_ID, DEPENDENCY_ISSUE_INVALID_ITEM,
     DEPENDENCY_ISSUE_INVALID_TYPE,
 };
-use crate::verified::{
-    cross_repo_dependencies::parse_cross_repo_dependencies, lifecycle::validate_change_name,
-};
 
-use super::{ChangeMetadata, ChangeStatus};
-
-pub(super) fn parse_change_metadata(
+pub fn parse_change_metadata(
     change_name: &str,
     metadata_json: Option<&str>,
-) -> (ChangeMetadata, Vec<String>) {
+) -> (super::ChangeMetadata, Vec<String>) {
     let Some(metadata_json) = metadata_json else {
-        return (ChangeMetadata::default(), Vec::new());
+        return (super::ChangeMetadata::default(), Vec::new());
     };
     let Ok(value) = serde_json::from_str::<serde_json::Value>(metadata_json) else {
         return (
-            ChangeMetadata::default(),
+            super::ChangeMetadata::default(),
             vec![format!("{change_name}: metadata.json is not valid JSON")],
         );
     };
     let Some(object) = value.as_object() else {
         return (
-            ChangeMetadata::default(),
+            super::ChangeMetadata::default(),
             vec![format!(
                 "{change_name}: metadata.json must contain an object"
             )],
@@ -48,7 +43,9 @@ pub(super) fn parse_change_metadata(
     let status = status.0;
     let depends_on = parse_dependency_metadata(object.get("depends_on"), change_name, &mut issues);
     let (cross_repo_dependencies, cross_repo_issues) =
-        parse_cross_repo_dependencies(object.get("cross_repo_dependencies"));
+        crate::verified::cross_repo_dependencies::parse_cross_repo_dependencies(
+            object.get("cross_repo_dependencies"),
+        );
     issues.extend(
         cross_repo_issues
             .into_iter()
@@ -64,7 +61,7 @@ pub(super) fn parse_change_metadata(
         sorted_groups.dedup();
     }
     (
-        ChangeMetadata {
+        super::ChangeMetadata {
             groups: sorted_groups,
             target_date,
             status,
@@ -111,7 +108,7 @@ fn parse_dependency_metadata(
             ));
             continue;
         }
-        if let Err(error) = validate_change_name(dependency) {
+        if let Err(error) = crate::verified::lifecycle::validate_change_name(dependency) {
             issues.push(format!(
                 "{change_name}: {DEPENDENCY_ISSUE_INVALID_ID}: invalid dependency id {dependency}: {error}"
             ));
@@ -152,7 +149,7 @@ fn is_yyyy_mm_dd(value: &str) -> bool {
 }
 
 pub fn validate_change_metadata_policy(
-    change: &ChangeStatus,
+    change: &super::ChangeStatus,
     allowed_groups: &[String],
     group_prefixes: &[String],
     allowed_statuses: &[String],

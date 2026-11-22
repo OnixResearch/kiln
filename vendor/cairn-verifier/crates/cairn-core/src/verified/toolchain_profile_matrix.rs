@@ -1,9 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde_json::Value;
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const TOOLCHAIN_PROFILE_MATRIX_SCHEMA_V1: &str = "cairn.toolchain-profile-matrix.v1";
 pub const TOOLCHAIN_PROFILE_MATRIX_BOUNDARY: &str = "toolchain profile matrix validation proves declaration completeness only; it does not prove command success, release eligibility, proof soundness, or compatibility without separate execution receipts";
 
@@ -74,12 +68,14 @@ pub struct ToolchainProfileReport {
 }
 
 #[must_use]
-pub fn validate_toolchain_profile_matrix_value(value: &Value) -> ToolchainProfileReport {
+pub fn validate_toolchain_profile_matrix_value(
+    value: &serde_json::Value,
+) -> ToolchainProfileReport {
     match parse_toolchain_profile_matrix_input(value) {
         Ok((matrix, matrix_hash)) => validate_toolchain_profile_matrix(&matrix, matrix_hash),
         Err(issue) => ToolchainProfileReport {
             valid: false,
-            matrix_hash: canonical_json_hash(value),
+            matrix_hash: crate::verified::evidence::canonical_json_hash(value),
             profile_count: EMPTY_COUNT,
             invalid_profile_count: EMPTY_COUNT,
             issues: vec![issue],
@@ -113,8 +109,8 @@ pub fn validate_toolchain_profile_matrix(
             "matrix must contain at least one profile",
         );
     }
-    let mut seen_profiles = BTreeSet::new();
-    let mut invalid_profile_indexes = BTreeSet::new();
+    let mut seen_profiles = std::collections::BTreeSet::new();
+    let mut invalid_profile_indexes = std::collections::BTreeSet::new();
     for (index, profile) in matrix.profiles.iter().enumerate() {
         let before = issues.len();
         validate_profile(index, profile, &mut seen_profiles, &mut issues);
@@ -139,7 +135,7 @@ pub fn validate_toolchain_profile_matrix(
 }
 
 #[must_use]
-pub fn toolchain_profile_issues_json(report: &ToolchainProfileReport) -> Vec<Value> {
+pub fn toolchain_profile_issues_json(report: &ToolchainProfileReport) -> Vec<serde_json::Value> {
     report
         .issues
         .iter()
@@ -156,7 +152,7 @@ pub fn toolchain_profile_issues_json(report: &ToolchainProfileReport) -> Vec<Val
 fn validate_profile(
     index: usize,
     profile: &ToolchainProfileRow,
-    seen_profiles: &mut BTreeSet<String>,
+    seen_profiles: &mut std::collections::BTreeSet<String>,
     issues: &mut Vec<ToolchainProfileIssue>,
 ) {
     let path = format!("{FIELD_PROFILES}[{index}]");
@@ -270,10 +266,10 @@ fn validate_non_claims(
 }
 
 fn parse_toolchain_profile_matrix_input(
-    value: &Value,
+    value: &serde_json::Value,
 ) -> Result<(ToolchainProfileMatrix, String), ToolchainProfileIssue> {
     let matrix_value = object_field(value, FIELD_MATRIX)?;
-    let matrix_hash = canonical_json_hash(matrix_value);
+    let matrix_hash = crate::verified::evidence::canonical_json_hash(matrix_value);
     let matrix = ToolchainProfileMatrix {
         schema_version: string_field(matrix_value, FIELD_SCHEMA_VERSION)?,
         profiles: parse_profiles(array_field(matrix_value, FIELD_PROFILES)?)?,
@@ -282,7 +278,9 @@ fn parse_toolchain_profile_matrix_input(
     Ok((matrix, matrix_hash))
 }
 
-fn parse_profiles(values: &[Value]) -> Result<Vec<ToolchainProfileRow>, ToolchainProfileIssue> {
+fn parse_profiles(
+    values: &[serde_json::Value],
+) -> Result<Vec<ToolchainProfileRow>, ToolchainProfileIssue> {
     values
         .iter()
         .map(|value| {
@@ -299,7 +297,10 @@ fn parse_profiles(values: &[Value]) -> Result<Vec<ToolchainProfileRow>, Toolchai
         .collect()
 }
 
-fn object_field<'a>(value: &'a Value, field: &str) -> Result<&'a Value, ToolchainProfileIssue> {
+fn object_field<'a>(
+    value: &'a serde_json::Value,
+    field: &str,
+) -> Result<&'a serde_json::Value, ToolchainProfileIssue> {
     value
         .get(field)
         .filter(|item| item.is_object())
@@ -311,10 +312,13 @@ fn object_field<'a>(value: &'a Value, field: &str) -> Result<&'a Value, Toolchai
         })
 }
 
-fn array_field<'a>(value: &'a Value, field: &str) -> Result<&'a [Value], ToolchainProfileIssue> {
+fn array_field<'a>(
+    value: &'a serde_json::Value,
+    field: &str,
+) -> Result<&'a [serde_json::Value], ToolchainProfileIssue> {
     value
         .get(field)
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .map(Vec::as_slice)
         .ok_or_else(|| {
             input_issue(
@@ -324,15 +328,18 @@ fn array_field<'a>(value: &'a Value, field: &str) -> Result<&'a [Value], Toolcha
         })
 }
 
-fn string_field(value: &Value, field: &str) -> Result<String, ToolchainProfileIssue> {
+fn string_field(value: &serde_json::Value, field: &str) -> Result<String, ToolchainProfileIssue> {
     value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .map(ToOwned::to_owned)
         .ok_or_else(|| input_issue(field, &format!("input field `{field}` must be a string")))
 }
 
-fn string_array_field(value: &Value, field: &str) -> Result<Vec<String>, ToolchainProfileIssue> {
+fn string_array_field(
+    value: &serde_json::Value,
+    field: &str,
+) -> Result<Vec<String>, ToolchainProfileIssue> {
     array_field(value, field)?
         .iter()
         .map(|item| {
@@ -369,7 +376,6 @@ fn push_issue(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
 
     use super::*;
 
@@ -469,7 +475,7 @@ mod tests {
     fn value_parser_and_fixture_matrix_cover_success_and_failure() {
         // r[verify cairn.toolchain_profile_matrix.final_validation]
         // r[verify cairn.toolchain_profile_matrix.final_validation.fixtures]
-        let value = json!({
+        let value = serde_json::json!({
             "matrix": {
                 "schema_version": TOOLCHAIN_PROFILE_MATRIX_SCHEMA_V1,
                 "non_claims": REQUIRED_NON_CLAIMS,
@@ -492,7 +498,7 @@ mod tests {
             valid_report.issues
         );
 
-        let invalid = json!({
+        let invalid = serde_json::json!({
             "matrix": {
                 "schema_version": TOOLCHAIN_PROFILE_MATRIX_SCHEMA_V1,
                 "non_claims": REQUIRED_NON_CLAIMS,

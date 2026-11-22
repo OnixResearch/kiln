@@ -29,7 +29,7 @@ use serde::Serialize;
 use crate::inventory::campaign_projection::repository_identity;
 
 pub const INDEX_SCHEMA: &str = "kiln.cairn-workspace-index.v2";
-pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v2";
+pub const DETAIL_SCHEMA: &str = "kiln.cairn-workspace-detail.v3";
 /// Changes one index lists before reporting truncation.
 pub const MAX_INDEX_CHANGES: usize = 512;
 /// Error code of a retained record the projection cannot identify.
@@ -522,6 +522,9 @@ pub struct Detail {
     pub memberships: Vec<MembershipView>,
     pub decisions: Vec<DecisionView>,
     pub blockers: Vec<Blocker>,
+    /// Agent revisions, capability and wait reasons from the resource
+    /// inventory, with their own source state.
+    pub agents: agents::AgentRevisions,
     pub non_claims: [&'static str; 4],
 }
 
@@ -1158,6 +1161,7 @@ fn project(
     facts: &ChangeFacts<'_>,
     snapshot: &CanonicalSnapshot,
     context: &Context<'_>,
+    inventory: &agents::InventoryObservation,
 ) -> Result<Detail, &'static str> {
     let units = units(key, facts, context)?;
     let memberships: Vec<MembershipView> = facts
@@ -1167,6 +1171,11 @@ fn project(
         .collect();
     let blockers = blockers(&units, &memberships);
     let attempts = units.iter().flat_map(|unit| &unit.attempts);
+    let attempt_keys: BTreeSet<(&str, u64)> = attempts
+        .clone()
+        .map(|attempt| (attempt.identity.as_str(), attempt.fence))
+        .collect();
+    let agents = agents::project(inventory, &attempt_keys);
     let campaigns: BTreeSet<&str> = facts
         .members
         .iter()
@@ -1209,6 +1218,7 @@ fn project(
         memberships,
         decisions,
         blockers,
+        agents,
         non_claims: NON_CLAIMS,
     })
 }
@@ -1216,16 +1226,19 @@ fn project(
 // r[impl kiln.cairn.workspace]
 // r[impl kiln.cairn.workspace.scenario.identity]
 // r[impl kiln.cairn.workspace.scenario.visibility]
-/// The detail of one change, or `None` when nothing names it.
+// r[impl kiln.cairn.workspace.agents.scenario.source]
+/// The detail of one change, or `None` when nothing names it. The view
+/// identity binds the inventory observation the agents section came from.
 pub fn detail(
     snapshot: &CanonicalSnapshot,
     key: &CairnKey,
+    inventory: &agents::InventoryObservation,
 ) -> Result<Option<Detail>, &'static str> {
     let catalog = catalog(snapshot);
     let Some(facts) = catalog.get(key) else {
         return Ok(None);
     };
-    let mut detail = project(key, facts, snapshot, &Context::new(snapshot)?)?;
+    let mut detail = project(key, facts, snapshot, &Context::new(snapshot)?, inventory)?;
     let bytes = serde_json::to_vec(&detail).map_err(|_| "cairn_workspace_encoding_invalid")?;
     detail.identity = blake3::hash(&bytes).to_hex().to_string();
     Ok(Some(detail))
@@ -1241,7 +1254,14 @@ fn index_bounded(snapshot: &CanonicalSnapshot, max_changes: usize) -> Result<Ind
     let context = Context::new(snapshot)?;
     let mut changes = Vec::with_capacity(catalog.len().min(max_changes));
     for (key, facts) in catalog.iter().take(max_changes) {
-        let detail = project(key, facts, snapshot, &context)?;
+        // The index carries no agents section.
+        let detail = project(
+            key,
+            facts,
+            snapshot,
+            &context,
+            &agents::InventoryObservation::NotConfigured,
+        )?;
         changes.push(IndexEntry {
             campaigns: detail
                 .memberships
@@ -1274,6 +1294,8 @@ fn index_bounded(snapshot: &CanonicalSnapshot, max_changes: usize) -> Result<Ind
     })
 }
 
+#[path = "cairn_workspace/agents.rs"]
+pub mod agents;
 #[path = "cairn_workspace/http.rs"]
 pub mod http;
 

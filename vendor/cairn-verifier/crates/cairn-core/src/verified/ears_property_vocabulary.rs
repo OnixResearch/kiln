@@ -13,8 +13,6 @@
 //! translating a requirement is not the same as proving it. A witness becomes
 //! a proof property only when its response resolves to a vocabulary predicate.
 
-use serde_json::Value;
-
 /// The c-earchin vocabulary: pure-boolean predicates that cairn knows how to
 /// turn into checkable properties.
 ///
@@ -68,7 +66,7 @@ pub struct EarsVocabularyReport {
 impl EarsVocabularyReport {
     /// Render the report as a JSON object.
     #[must_use]
-    pub fn to_json(&self) -> Value {
+    pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "total": self.total,
             "resolved_count": self.resolved_count,

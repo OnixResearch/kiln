@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "crates/artifact-auth-core",
+  "crates/artifact-auth-ed25519",
 ]
 
 [workspace.package]

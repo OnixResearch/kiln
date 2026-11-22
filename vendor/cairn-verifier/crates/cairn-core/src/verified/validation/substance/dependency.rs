@@ -1,5 +1,3 @@
-use super::REQUIREMENT_MARKER_SUFFIX;
-
 const DEPENDENCY_TARGET_CLASS_LIFECYCLE_ID: &str = "lifecycle-id";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +30,7 @@ pub(super) fn observe_marker(
     while let Some(start) = rest.find(prefix) {
         is_present = true;
         let after_prefix = &rest[start + prefix.len()..];
-        let Some(end) = after_prefix.find(REQUIREMENT_MARKER_SUFFIX) else {
+        let Some(end) = after_prefix.find(super::REQUIREMENT_MARKER_SUFFIX) else {
             diagnostics.push(format!(
                 "unclosed dependency marker beginning with `{prefix}`"
             ));
@@ -40,7 +38,7 @@ pub(super) fn observe_marker(
         };
         let target = after_prefix[..end].trim();
         observe_target(target, policy, &mut is_valid, &mut diagnostics);
-        rest = &after_prefix[end + REQUIREMENT_MARKER_SUFFIX.len_utf8()..];
+        rest = &after_prefix[end + super::REQUIREMENT_MARKER_SUFFIX.len_utf8()..];
     }
     MarkerObservation {
         is_present,

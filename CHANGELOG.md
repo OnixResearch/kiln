@@ -49,6 +49,19 @@ entry describes the source tree prepared for the first tagged release.
   Existing verification/publication authority and first metric receipts remain
   unchanged; current OMP JSONL events are not model turns. (#90; deterministic
   core, durable store, adapter and operator CLI fixtures)
+- Opt-in serving backpressure and recursive budget lineage for fair
+  admission. A provider-neutral serving-owner snapshot (the Animus #17
+  availability shape) holds worker-request work before claim and before each
+  request as `overloaded`, `stale`, `waiting`, `incomplete` or `incompatible`;
+  a snapshot never reserves, replaces the owner grant or refunds. Lineage
+  revocation and cancelled or expired parent attempts block new descendant
+  queueing, requests, transfers and dispatch without refunds, and a
+  conservation-checked lineage view keeps available, tentative, held, unknown,
+  settled and rejected usage apart. Serving policy and recursive budget
+  profiles are typed Nickel with checked committed exports. Defaults and
+  existing policy identities are unchanged. (#61; deterministic core and
+  durable-store fixtures with injected owners; no live serving, capacity or
+  cross-host qualification)
 - Default-off, exact-revision session-trace pointer observations freeze locally
   admitted Git notes in the existing review journal. BLAKE3 pointer/note
   identities remain distinct from external IDs and URL hosts; missing,
@@ -297,6 +310,43 @@ entry describes the source tree prepared for the first tagged release.
   explicit-file JSON/HTML consumers share exact-work explanations, freshness,
   rollout/qualification and reservation-versus-usage semantics. Existing worker
   v1 continues to describe configured project admission slots, not machines.
+- Inventory v2 producer collection (Kiln #60). `kiln-adapter-lattice` maps
+  Lattice `lattice.worker-inventory.v3` profiles to definitions keyed by their
+  definition identity and retained instances to workers, never idle or healthy.
+  v1 and v2 documents are refused as unsupported; v2 revisions were
+  per-attempt, because they framed the task prompt and base snapshot, and are
+  never compared with v3's stabilized revisions. Declared task families and
+  tools are known capability, unavailable capability is a known negative, and
+  undeclared capability stays unknown. The Lattice #25 revision lifecycle maps
+  onto the definition's revisions (desired, prepared, qualified, selected for
+  new sessions, rollout generation) and each worker's revision pin, with
+  `unmanaged`, owned `unknown` and `recorded` kept distinct. A definition is
+  projected at its selected revision while workers pinned to older revisions
+  stay visible; two selected revisions or any other contradictory lifecycle
+  fact is refused. Task-family qualifications keep their Animus #18 reference,
+  evidence class and provenance; the readiness explanation shows the needed
+  family's current reference and never counts `fixture` evidence as live, and
+  a blocked pin blocks its worker. Single-shot liveness maps to the worker
+  lifecycle, and retained generation orders repeated observations. Lattice wait
+  reasons keep their exact code, subject and owner on definitions and workers,
+  and a managed revision fact Lattice leaves unknown keeps its slot owner.
+  They appear as owned explanation blockers through a provider-neutral core
+  `WaitReason`; the new core revision, qualification and pin fields are omitted
+  when empty, so earlier snapshots keep their identity.
+  The adapter also maps
+  `lattice.compute-allocation-observation.v1` (Aspen/Molten #42 records) into
+  allocation facts and authority-keyed pools: a shared deployment or pool is
+  counted once, and capacity stays unknown. New `kiln-adapter-animus` maps
+  `animus.serving-availability-snapshot.v1` services with distinct loading,
+  ready and saturated states, request capacity only from serving-owner slots or
+  provider request quotas, withheld endpoints and no fictitious hosted
+  accelerator. Pure
+  `compose_snapshot` joins sources by exact producer identities, never host
+  names. `kiln-web-service inventory-collect` reads an explicit
+  `kiln.inventory.collection-set.v1` manifest. Unpublished producer facts are
+  listed as unknown. (fixture-tested with verbatim Lattice v3 `inspect`
+  captures of the Lattice #25 integration tree, including a fixture-provenance
+  Animus #18 attachment, and Animus fixtures at 4071c65e; no live provider)
 - Exact artifact-preview admission and review actions, with native complete
   runtime-closure/NAR/signature verification and a separately hosted disposable
   TryNix Linux engine. Engine-only rehearsal never invents a canonical CI build;
@@ -368,6 +418,16 @@ entry describes the source tree prepared for the first tagged release.
   paired local checkpoints, exact handoff/fencing receipts and bounded direct
   Iroh migration transport. Missing provider compatibility remains unsupported;
   no live or two-host migration qualification follows from local contracts.
+- Pinned Lattice worker guest (`lattice-worker-guest`): the reviewed kernel, an
+  immutable initramfs with Lattice `661499d2` and admitted workflows, Cloud
+  Hypervisor 54.0 and a `kiln.lattice-worker-guest.v1` manifest. Pure host and
+  guest attempt admission, per-attempt workspace, guest identity and effect
+  authority, and a dispatch that is journalled once and never resent. One
+  host ran two concurrent Lattice workflows inside guests through the retained
+  shell, with cold boot, pause, paired snapshot, retirement, restore and
+  continuation. (#51/#52; exercised locally on one KVM host with a test-only
+  reservation; no placement ownership, fencing, cross-host or live-migration
+  qualification)
 - Real hosted/Nix artifact-readiness measurement with exact cohorts, separate
   elapsed/CPU observations, cold/warm controls, retained failures and independent
   matched-cell analysis. An insufficient baseline cannot recommend a speedup.
@@ -393,6 +453,32 @@ entry describes the source tree prepared for the first tagged release.
 - Opt-in bounded queues, reservation-time fairness accounting, parent budgets,
   exact owner grants and conservative unknown-effect reconciliation. Physical
   deployment and worker-request resource dimensions remain separate.
+- The Lattice implementation CLI transport (Kiln #45) consumes Lattice
+  `db64cd65`'s coordinator contract. Prepared requests carry the reserved
+  `dispatch_plan` (the campaign prepares twice, since the plan frames the
+  native worker profile), and a missing or different plan is refused before
+  transport intent. `run` receives exactly the one `env` variable the request's
+  `omp.model_broker.credential` names, refused right after claim authorization
+  and before plan reservation when missing, malformed, non-`env` or reserved;
+  `recover` and `cancel` receive none. The first `run`'s transport intent
+  records its Lattice program and state root (`TransportLaunch`) in the same
+  transaction, under its own implementation-state kind `transport_launches`
+  so older binaries re-saving `attempts` cannot erase it; it is never
+  overwritten, and `recover` uses only that recorded
+  launch; an intent without one, a missing recorded root or a changed program
+  keeps the unknown outcome without invoking Lattice. Only a `run` refusal that is exactly
+  Lattice's `lattice.implementation-attempt-refusal.v1` record for the attempt,
+  with `dispatched:false` and reason `crossed_attempt`,
+  `profile_revision_superseded`, `revision_not_admitted` or `revision_blocked`,
+  ends it as an infrastructure failure with nothing to reconcile, and a bound
+  recovery's exact `not_started_closed_by_recovery` record is recorded as no
+  execution; `stale_fence`, every `recover` refusal and every contradictory
+  record stay for reconciliation. `config/implementation-worker.ncl` and
+  campaign binding admit only transport v2 (the direct worker runtime keeps its
+  v1 branch), and the local fixture and runbook use request v3 with
+  `network:false` and the brokered model route. Breaking for prepared requests
+  without `dispatch_plan`. (workspace tests; composed local qualification with
+  the real Lattice binary and a local HTTP 400 endpoint, no model call)
 - Native-consumer qualification campaigns and frozen positive/negative controls,
   plus an opt-in onix-core deployment/guest composition. Actual model routes,
   isolation/grants, immutable executables, canonical writer access and approved
@@ -403,6 +489,19 @@ entry describes the source tree prepared for the first tagged release.
   unknown candidate/policy/verification evidence cannot complete a campaign;
   pause/cancel closes new decisions and work, repository writers remain bounded,
   and independent eligible work can progress past a blocked member.
+- Typed Cairn `cairn.selected-work.v1` intake (Kiln #83) from `cairn-core`
+  `8f6cd0b373962ca8c370e00ef20dfbf0c398e0d0`: producer admission
+  and mapping into provider-neutral core facts, immutable per-attempt snapshot
+  contracts with refresh/replan transitions, one obligation projection for worker
+  context, campaign inspection and the UI, obligation completion over canonical
+  checks and authoritative completion, a restricted display that cannot be
+  resubmitted, and Lattice `lattice.workflow-intent.v1` normalization with
+  compiled-plan admission and proposal refusal. Under `typed_snapshot_v1`,
+  pre-attempt member stages follow the admitted snapshot's native phase
+  readiness, stable blockers, units and dependencies; an unavailable or
+  incomplete snapshot never makes a member ready. The legacy reader stays
+  authoritative only under the explicit `legacy_readiness_compatibility`
+  intake. (fixture-tested; no live campaign)
 - Selected campaigns claim and reattach through the canonical scoped admission
   transaction, bind actual parent-account ancestry and exact retained decision
   projections, and require the named canonical checks. Native source observation
@@ -451,6 +550,20 @@ entry describes the source tree prepared for the first tagged release.
   conflict behavior. The disposable explorer has A→B, historical C and
   completion-only D without provider execution. (#84; synthetic local rehearsal,
   not a live campaign, worker or lifecycle completion claim)
+- The Cairn change detail (`kiln.cairn-workspace-detail.v3`) gains an **Agents
+  and revisions** section from the admitted resource inventory, never from
+  producer documents: each definition's desired, prepared, qualified and
+  selected revisions as `recorded`, `not_recorded`, `unknown` with its owner,
+  `unmanaged` or `unpublished`; task-family qualification references with
+  evidence class and provenance, where `fixture` never reads as live; declared
+  capability; each worker's pinned revision against the selection, its pin and
+  blocked state; and owner-attributed wait reasons. Workflow revisions are a
+  separate slot, unpublished with owner `lattice#25`. Sessions, workspaces,
+  execution and grant references, model-service bindings, full qualification
+  records, preparation failures and other work's attempts are never copied. An
+  unconfigured or refused inventory is named and never fails the detail; the
+  console refuses `v2` details. (#84 for Lattice #24 and #25; projection tests
+  over the Lattice v3 fixtures, route and Node UI tests; no live provider)
 - Adopt already implemented work for a freshly selected completion-only Cairn
   change instead of blocking it. Every required native unit needs current
   canonical work whose latest attempt is verified with exactly one passing

@@ -147,6 +147,34 @@ impl CampaignStore {
             Ok(state)
         })
     }
+    /// Record one member's typed selected-work read without rewriting its
+    /// bound attempt contract.
+    pub fn observe_selected_work(
+        &mut self,
+        campaign_id: &str,
+        expected_version: u64,
+        member: &str,
+        intake: kiln_core::implementation::selected_work::IntakeProfile,
+        observation: kiln_core::implementation::selected_work::SelectedWorkObservation,
+    ) -> Result<CampaignState, String> {
+        self.mutate(campaign_id, expected_version, |mut state| {
+            state.observe_selected_work(member, intake, observation)?;
+            Ok(state)
+        })
+    }
+    /// Retain the exact snapshot and guidance supplied to a member's attempt.
+    pub fn bind_selected_work_attempt(
+        &mut self,
+        campaign_id: &str,
+        expected_version: u64,
+        member: &str,
+        contract: kiln_core::implementation::selected_work::AttemptSnapshotContract,
+    ) -> Result<CampaignState, String> {
+        self.mutate(campaign_id, expected_version, |mut state| {
+            state.bind_selected_work_attempt(member, contract)?;
+            Ok(state)
+        })
+    }
     /// Add durable decision demand under the shared parent-budget scope. Excess
     /// demand remains unissued rather than multiplying the outstanding bound.
     pub fn add_decision(

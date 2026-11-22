@@ -1,0 +1,35 @@
+{
+  "change": "consume-lattice-inventory-v2",
+  "issue": 60,
+  "date": "2026-11-20",
+  "base": "4371dec083d446106bcc03ef01d6fe2d41850164",
+  "approval": "owner-approved Lattice v2 cutover, 2026-11-20",
+  "producer": {
+    "lattice": "9a74e7ef1da4e0ca7610dce0db039b3825a7154d (published on Lattice main; full flake check passed)",
+    "captures": "fixtures/inventory/producers/lattice/ (verbatim; BLAKE3 in provenance.json)"
+  },
+  "gates_before_code": [
+    {"stage": "proposal", "verdict": "PASS", "receipt_hash": "89ee312ed9a05d8871db77008a84090d6c0c18583ed2c11ce8af8c3e3413fcec"},
+    {"stage": "design", "verdict": "PASS", "receipt_hash": "4e0243f776b84556c2bbf29e797a67281f26819d2c9d8954d33d60a86ca2ddac"},
+    {"stage": "tasks", "verdict": "PASS", "receipt_hash": "980680a4c0f1397f7fe4d4a8293e9b9c47258a511e91a43ce983528ce1c2d92b"}
+  ],
+  "sync": {"command": "cairn sync consume-lattice-inventory-v2 --root . --policy cairn-policy/generated/cairn-policy.json --execute", "destination": ".cairn/specs/resource-inventory/spec.md", "receipt_hash": "1a6bfe11010ebb1ca28f68c027dbdca20aa727ea9c44d148182ee7b980789ddd"},
+  "commands": [
+    {"command": "cargo fmt -- --check", "exit": 0},
+    {"command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0},
+    {"command": "cargo test --locked --workspace --no-fail-fast", "exit": 0, "passed": 2251, "failed": 0, "ignored": 14},
+    {"command": "node --test tests/inventory-ui.test.mjs tests/console-inventory.test.mjs", "exit": 0, "passed": 22},
+    {"command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "98 positive, 635 negative"},
+    {"command": "cairn validate --root . --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "valid": true},
+    {"command": "cairn traceability coverage --json --policy cairn-policy/generated/cairn-policy.json", "exit": 1, "missing": [], "dangling": ["kiln.implementation.authority.coverage", "kiln.implementation.authority.coverage.scenario.complete", "kiln.implementation.authority.coverage.scenario.unmapped"]},
+    {"command": "nix build --builders '' --option min-free 0 --no-link -L path:$PWD#checks.x86_64-linux.octet", "exit": 0, "findings": 0, "errors": 0}
+  ],
+  "environment": "nix develop shell with TMPDIR=/tmp, empty RUSTC_WRAPPER, CARGO_BUILD_JOBS=6 and a short PATH including mold and pkg-config",
+  "non_claims": [
+    "All producer inputs are deterministic fixtures or captures; manifests set synthetic: true",
+    "No live provider, fleet, serving or capacity qualification; that stays with Kiln #49",
+    "No producer-derived combination is observed eligible; revisions (Lattice #25), qualification (Animus #18), authority, pool capacity (#42), routing permission, policy and an idle worker remain unpublished",
+    "Declared task families and tools are operator statements, not qualification or a grant",
+    "No reservation, dispatch, routing or model load is performed"
+  ]
+}

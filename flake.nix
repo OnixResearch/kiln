@@ -54,6 +54,11 @@
       octetInput =
         assert runtimeBuildCohort.inputs.nixpkgs.rev == nixpkgs.rev;
         runtimeBuildCohort.inputs.octet;
+      # Lattice worker guest only: the exact Lattice producer package and its
+      # own lock, loaded lazily from a content-addressed subflake.
+      latticeWorkerCohort = builtins.getFlake (
+        builtins.unsafeDiscardStringContext "path:${./runtime/lattice-worker-cohort}?narHash=sha256-sItviAZF4DbExmPtXf9pkm33zfCyP1WpFsZGgKH31Cc="
+      );
       kamacite-build-support = runtimeBuildCohort.inputs.kamacite-build-support;
       cairnGateSource = ./vendor/cairn;
       cairnGateRevision =
@@ -217,7 +222,12 @@
             pkgs.cmake
             pkgs.pkg-config
           ];
-          nativeCheckInputs = [ pkgs.python3 ];
+          # The workspace tests include kiln-fleet's dispatch tests, which
+          # create and clone fixture Git repositories.
+          nativeCheckInputs = [
+            pkgs.python3
+            pkgs.git
+          ];
           buildInputs = [
             pkgs.zlib
             pkgs.openssl
@@ -381,19 +391,13 @@
             mainProgram = "kiln-fleet";
           };
         });
-      # Hosted Firecracker backend guest: the pinned nixpkgs (NixOS) kernel, a
-      # makeInitrdNG initramfs rootfs and the guest agent. Not a full NixOS system.
-      # r[impl kiln.hosted.microvm.protocol]
-      # r[impl kiln.hosted.microvm.escape]
-      # r[impl kiln.hosted.microvm.escape.scenario.suite]
-      microvmGuestFor =
-        system: vmm:
+      # Reviewed guest kernel shared by every Kiln microVM guest image: the
+      # pinned guest nixpkgs kernel, its stripped vmlinux and a plain-module
+      # closure for an explicit root module list.
+      guestKernelFor =
+        system:
         let
           pkgs = import guest-nixpkgs { inherit system; };
-          vmmPackage = if vmm == "firecracker" then pkgs.firecracker else pkgs.cloud-hypervisor;
-          vmmBinary = "${vmmPackage}/bin/${
-            if vmm == "firecracker" then "firecracker" else "cloud-hypervisor"
-          }";
           # r[impl kiln.hosted.guest.kernel.fixed]
           # Issue #28's fixed-series admission table, not independent CVE proof.
           fixedKernelMinimums = {
@@ -417,6 +421,51 @@
             assert pkgs.lib.assertMsg guestKernelFixed
               "Kiln guest kernel ${guestKernel.version} is below the reviewed issue #28 fixed-series threshold";
             guestKernel;
+        in
+        {
+          inherit pkgs kernel;
+          vmlinux = pkgs.runCommand "kiln-microvm-vmlinux" { } ''
+            ${pkgs.binutils-unwrapped}/bin/strip --strip-all -o "$out" ${kernel.dev}/vmlinux
+          '';
+          # Busybox modprobe loads plain modules; decompress and re-index here.
+          modulesFor =
+            name: rootModules:
+            let
+              modulesClosure = pkgs.makeModulesClosure {
+                kernel = kernel.modules;
+                firmware = kernel.modules;
+                inherit rootModules;
+                allowMissing = false;
+              };
+            in
+            pkgs.runCommand name
+              {
+                nativeBuildInputs = [
+                  pkgs.xz
+                  pkgs.kmod
+                ];
+              }
+              ''
+                mkdir -p "$out/lib"
+                cp -r --no-preserve=mode ${modulesClosure}/lib/modules "$out/lib/"
+                find "$out/lib/modules" -name '*.ko.xz' -exec xz -d {} +
+                depmod -b "$out" ${kernel.modDirVersion}
+              '';
+        };
+      # Hosted Firecracker backend guest: the pinned nixpkgs (NixOS) kernel, a
+      # makeInitrdNG initramfs rootfs and the guest agent. Not a full NixOS system.
+      # r[impl kiln.hosted.microvm.protocol]
+      # r[impl kiln.hosted.microvm.escape]
+      # r[impl kiln.hosted.microvm.escape.scenario.suite]
+      microvmGuestFor =
+        system: vmm:
+        let
+          guestKernel = guestKernelFor system;
+          inherit (guestKernel) pkgs kernel vmlinux;
+          vmmPackage = if vmm == "firecracker" then pkgs.firecracker else pkgs.cloud-hypervisor;
+          vmmBinary = "${vmmPackage}/bin/${
+            if vmm == "firecracker" then "firecracker" else "cloud-hypervisor"
+          }";
           agent = (packageFor system).overrideAttrs (_: {
             pname = "kiln-microvm-guest-agent";
             cargoBuildFlags = [
@@ -437,30 +486,7 @@
             "virtio_rng"
             "vmgenid"
           ];
-          modulesClosure = pkgs.makeModulesClosure {
-            kernel = kernel.modules;
-            firmware = kernel.modules;
-            inherit rootModules;
-            allowMissing = false;
-          };
-          # Busybox modprobe loads plain modules; decompress and re-index here.
-          modules =
-            pkgs.runCommand "kiln-microvm-guest-modules"
-              {
-                nativeBuildInputs = [
-                  pkgs.xz
-                  pkgs.kmod
-                ];
-              }
-              ''
-                mkdir -p "$out/lib"
-                cp -r --no-preserve=mode ${modulesClosure}/lib/modules "$out/lib/"
-                find "$out/lib/modules" -name '*.ko.xz' -exec xz -d {} +
-                depmod -b "$out" ${kernel.modDirVersion}
-              '';
-          vmlinux = pkgs.runCommand "kiln-microvm-vmlinux" { } ''
-            ${pkgs.binutils-unwrapped}/bin/strip --strip-all -o "$out" ${kernel.dev}/vmlinux
-          '';
+          modules = guestKernel.modulesFor "kiln-microvm-guest-modules" rootModules;
           # Modules load before kernel.modules_disabled; every namespace kind is
           # disabled; the agent becomes PID 1 and runs steps as uid/gid 1000.
           init = pkgs.writeScript "kiln-microvm-init" ''
@@ -541,6 +567,187 @@
             cat > "$out/manifest.json" <<EOF
             {"schema":"kiln.microvm.guest-image.v2","kernel_version":"${kernel.version}","vmm":{"kind":"${vmm}","version":"${vmmPackage.version}","binary":$(entry ${vmmBinary})},$vmm_entry,"guest_shell":"/bin/bash","kernel":$(entry ${vmlinux}),"initrd":$(entry "$(readlink -f ${initrd}/initrd)")}
             EOF
+          '';
+      # r[impl kiln.lattice.worker.guest] r[impl kiln.lattice.worker.guest.scenario.identity]
+      # Pinned Lattice worker guest (Kiln #51 M1): the reviewed guest kernel, an
+      # immutable initramfs with the exact Lattice executable, admitted workflow
+      # definitions and the Kiln guest shell, the pinned Cloud Hypervisor and a
+      # `kiln.lattice-worker-guest.v1` manifest. Workspace, Lattice state, guest
+      # identity and effect authority are per attempt and never in the image.
+      latticeWorkerGuestFor =
+        system:
+        let
+          guestKernel = guestKernelFor system;
+          inherit (guestKernel) pkgs kernel vmlinux;
+          inherit (latticeWorkerCohort) lattice;
+          latticeBinary = "${lattice}/bin/lattice";
+          vmmBinary = "${pkgs.cloud-hypervisor}/bin/cloud-hypervisor";
+          guestShell = (packageFor system).overrideAttrs (_: {
+            pname = "kiln-lattice-worker-guest";
+            cargoBuildFlags = [
+              "-p"
+              "kiln-microvm"
+              "--bin"
+              "kiln-lattice-worker-guest"
+            ];
+            cargoTestFlags = [
+              "-p"
+              "kiln-microvm"
+            ];
+          });
+          guestShellBinary = "${guestShell}/bin/kiln-lattice-worker-guest";
+          workflowNames = [
+            "log-triage"
+            "workspace-journal"
+          ];
+          workflows = pkgs.runCommand "kiln-lattice-worker-workflows" { } ''
+            mkdir -p "$out"
+            cp ${latticeWorkerCohort.source}/examples/workflows/log-triage.ncl "$out/log-triage.ncl"
+            cp ${./fixtures/lattice-worker/workspace-journal.ncl} "$out/workspace-journal.ncl"
+          '';
+          # The pinned Lattice binary reports each workflow's exact effect
+          # requirements; the guest re-inspects and refuses any difference.
+          environment =
+            pkgs.runCommand "kiln-lattice-worker-environment"
+              {
+                nativeBuildInputs = [
+                  pkgs.b3sum
+                  pkgs.jq
+                ];
+              }
+              ''
+                export HOME="$TMPDIR/home"
+                mkdir -p "$HOME"
+                printf '{ data_dir = "%s", effect_authority = "%s", default_timeout_secs = 60, shell = "sh" }\n' \
+                  "$TMPDIR/state" "$TMPDIR/absent.ncl" > "$TMPDIR/config.ncl"
+                echo '{}' > workflows.json
+                for name in ${pkgs.lib.concatStringsSep " " workflowNames}; do
+                  ${latticeBinary} --config "$TMPDIR/config.ncl" import "${workflows}/$name.ncl" > /dev/null
+                  ${latticeBinary} --config "$TMPDIR/config.ncl" authority inspect "$name" > "$name.requirements.json"
+                  jq --arg name "$name" \
+                    --arg definition "$(b3sum --no-names "${workflows}/$name.ncl")" \
+                    --slurpfile requirements "$name.requirements.json" \
+                    '.[$name] = {definition: $definition, requirements: $requirements[0]}' \
+                    workflows.json > next.json
+                  mv next.json workflows.json
+                done
+                mkdir -p "$out"
+                jq -n \
+                  --arg revision ${latticeWorkerCohort.revision} \
+                  --arg lattice "$(b3sum --no-names ${latticeBinary})" \
+                  --arg shell "$(b3sum --no-names ${guestShellBinary})" \
+                  --arg busybox "$(b3sum --no-names ${pkgs.busybox}/bin/busybox)" \
+                  --slurpfile workflows workflows.json \
+                  '{schema: "kiln.lattice-worker-environment.v1", architecture: "x86_64",
+                    lattice: {revision: $revision, binary: $lattice}, guest_shell: $shell,
+                    busybox: $busybox, workflows: $workflows[0]}' > "$out/environment.json"
+                ${guestShellBinary} environment-identity "$out/environment.json" > "$out/identity"
+              '';
+          rootModules = [
+            "virtio_pci"
+            "virtio_blk"
+            "vmw_vsock_virtio_transport"
+            "virtio_rng"
+            "vmgenid"
+            "ext4"
+          ];
+          modules = guestKernel.modulesFor "kiln-lattice-worker-modules" rootModules;
+          # Same hardening as the per-job guest: modules load before
+          # kernel.modules_disabled and every namespace kind is disabled. The
+          # guest shell runs as PID 1's child and Lattice as uid/gid 1000.
+          init = pkgs.writeScript "kiln-lattice-worker-init" ''
+            #!/bin/busybox sh
+            set -eu
+            /bin/busybox mkdir -p /proc /sys /dev /tmp /workspace
+            /bin/busybox mount -t proc -o nosuid,nodev,noexec proc /proc
+            /bin/busybox --install -s /bin
+            mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+            mount -t devtmpfs -o nosuid,noexec devtmpfs /dev
+            for module in ${pkgs.lib.concatStringsSep " " rootModules}; do
+              modprobe "$module"
+            done
+            echo 1 > /proc/sys/kernel/modules_disabled
+            for kind in user mnt pid net ipc uts cgroup time; do
+              echo 0 > "/proc/sys/user/max_''${kind}_namespaces"
+            done
+            echo 1 > /proc/sys/kernel/dmesg_restrict
+            echo 2 > /proc/sys/kernel/kptr_restrict
+            mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp
+            exec /bin/kiln-lattice-worker-guest serve
+          '';
+          initrdContents = [
+            {
+              source = init;
+              target = "/init";
+            }
+            {
+              source = "${pkgs.busybox}/bin/busybox";
+              target = "/bin/busybox";
+            }
+            {
+              source = guestShellBinary;
+              target = "/bin/kiln-lattice-worker-guest";
+            }
+            {
+              source = latticeBinary;
+              target = "/bin/lattice";
+            }
+            {
+              source = "${environment}/environment.json";
+              target = "/etc/kiln/lattice-worker-environment.json";
+            }
+            {
+              source = "${modules}/lib/modules";
+              target = "/lib/modules";
+            }
+          ]
+          ++ map (name: {
+            source = "${workflows}/${name}.ncl";
+            target = "/etc/lattice/workflows/${name}.ncl";
+          }) workflowNames;
+          initrd = pkgs.makeInitrdNG {
+            name = "kiln-lattice-worker-initrd";
+            compressor = "cat";
+            contents = initrdContents;
+          };
+          # Bounded guest resources; the initramfs carries the Lattice closure.
+          vcpus = 1;
+          memoryMib = 768;
+          workspaceMib = 64;
+        in
+        pkgs.runCommand "kiln-lattice-worker-guest"
+          {
+            nativeBuildInputs = [
+              pkgs.b3sum
+              pkgs.jq
+            ];
+            meta.description = "Pinned Lattice worker guest: kernel, immutable initramfs, Cloud Hypervisor and manifest";
+          }
+          ''
+            mkdir -p "$out"
+            ln -s ${vmlinux} "$out/vmlinux"
+            ln -s ${initrd}/initrd "$out/initrd"
+            ln -s ${vmmBinary} "$out/cloud-hypervisor"
+            ln -s ${environment}/environment.json "$out/environment.json"
+            version="$(${vmmBinary} --version)"
+            object() {
+              jq -n --arg path "$1" --arg blake3 "$(b3sum --no-names "$1")" '{path: $path, blake3: $blake3}'
+            }
+            jq -n \
+              --argjson kernel "$(object ${vmlinux})" \
+              --argjson initrd "$(object "$(readlink -f ${initrd}/initrd)")" \
+              --argjson binary "$(object ${vmmBinary})" \
+              --arg version "$version" \
+              --slurpfile environment ${environment}/environment.json \
+              --arg identity "$(cat ${environment}/identity)" \
+              '{schema: "kiln.lattice-worker-guest.v1", architecture: "x86_64",
+                kernel: $kernel, initrd: $initrd,
+                vmm: {kind: "cloud-hypervisor", version: $version, binary: $binary},
+                environment: $environment[0], environment_identity: $identity,
+                devices: {workspace_disk: "virtio-blk-raw", vsock_port: 10241, network: "none"},
+                resources: {vcpus: ${toString vcpus}, memory_mib: ${toString memoryMib},
+                  workspace_mib: ${toString workspaceMib}}}' > "$out/manifest.json"
+            echo "${kernel.version}" > "$out/kernel-version"
           '';
       # r[impl kiln.hosted.microvm.guest_surface]
       # Measure the pinned guest kernel's compiled-in driver surface against the
@@ -804,6 +1011,7 @@
         # The Firecracker guest's CPU template and module set are x86_64-only.
         // nixpkgs.lib.optionalAttrs (system == "x86_64-linux") {
           microvm-guest = microvmGuestFor system "firecracker";
+          lattice-worker-guest = latticeWorkerGuestFor system;
           microvm-guest-ch = microvmGuestFor system "cloud-hypervisor";
           microvm-guest-surface = microvmGuestSurfaceFor system "firecracker";
           unikernel-guest = (unikernelFor system).guest;
@@ -1808,6 +2016,13 @@
                 exit 1
               fi
             done
+            # r[impl kiln.implementation.lattice_cli.scenario.config] r[verify kiln.implementation.lattice_cli.scenario.config]
+            nickel typecheck config/implementation-worker.ncl
+            nickel export config/fixtures/implementation-worker-positive.ncl >/dev/null
+            if nickel export config/fixtures/negative-implementation-worker-transport-v1.ncl >/dev/null 2>&1; then
+              echo "negative implementation worker transport fixture passed" >&2
+              exit 1
+            fi
             nickel typecheck config/gitea-contracts.ncl
             nickel typecheck config/gitea-ci.ncl
             nickel typecheck config/gitea-job.ncl

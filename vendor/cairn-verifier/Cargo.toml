@@ -8,22 +8,29 @@ resolver = "2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/onixresearch/cairn"
-version = "0.1.0"
+version = "0.2.1"
 
 [workspace.dependencies]
-artifact-auth-core = { git = "ssh://git@github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", default-features = false }
-artifact-auth-ed25519 = { git = "ssh://git@github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", default-features = false }
+artifact-auth-core = { git = "https://github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", default-features = false }
+artifact-auth-ed25519 = { git = "https://github.com/OnixResearch/onix-artifact.git", rev = "e41340bec587b6d049b5cc518ec7db925dde84be", default-features = false }
 blake3 = "1.5"
+bounded-exec = { git = "https://github.com/OnixResearch/bounded-exec.git", rev = "29dac88ecded94457572db3fdfaaaab95fa91525" }
 bounded-tree-core = { path = "vendor/bounded-tree-core" }
 bounded-tree-cap = { path = "vendor/bounded-tree-cap" }
+cap-root-core = { git = "https://github.com/OnixResearch/cap-root.git", rev = "b1911e42295887c399e17cad29ce298c2847f59d" }
+cap-fs-ext = "=4.0.2"
 cap-std = "4.0.2"
 crossterm = "0.28"
+durable-file-publication = { git = "https://github.com/OnixResearch/durable-file-publication.git", rev = "6d5510ddb33860bf47a49b63085105c7ff88f4d5" }
 ed25519-dalek = "2.2"
-git-ref-format-core = "0.6.0"
+englishc = { git = "https://github.com/Aaryan-Kapoor/english-rs", rev = "336ed696eec73e5b9858c5d7952b54c8e93b9df9" }
 git2 = { version = "0.20.4", features = ["vendored-libgit2"], default-features = false }
 iddqd = "0.4.5"
+kiln-core = { git = "https://github.com/OnixResearch/kiln.git", rev = "5d99f4e9bb954743443e340baece31256b4c53f1" }
+mantle-build-contract = { git = "https://github.com/OnixResearch/mantle.git", rev = "0bbab77e23ab95caa4e4184b9945cfaa5c8040e2" }
 nickel-export-core = { git = "https://github.com/OnixResearch/nickel-export", rev = "257fafc1c746f1faf156207043a4c826bfb16d49" }
 nonempty = "0.9"
+onix-radicle-cob-git-store = { path = "vendor/radicle-cob-git-store" }
 preserves = "4.996.0"
 radicle-cob = { version = "0.20.0", features = ["git2"] }
 radicle-crypto = { version = "0.17.0", features = ["ssh"] }
@@ -35,6 +42,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2"
 
-[workspace.metadata.slotcar]
+[workspace.metadata.octet]
 default_scope = ["--workspace"]
 cargo_check_args = ["--all-targets"]

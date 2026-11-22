@@ -1,0 +1,90 @@
+{
+  "schema": "kiln.inventory.collection-set.v1",
+  "principal": "operator",
+  "synthetic": true,
+  "joins": {
+    "agents": "lattice-agents",
+    "compute": "aspen-compute",
+    "serving": "animus-serving"
+  },
+  "collections": [
+    {
+      "source": "lattice-agents",
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "kind": "agents",
+      "contract": "lattice.worker-inventory.v3",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": null,
+      "documents": [
+        "lattice/agent-a-1-dispatched-outcome-unknown.json",
+        "lattice/agent-a-2-dispatched-outcome-unknown.json",
+        "lattice/profile-without-instance.json"
+      ]
+    },
+    {
+      "source": "lattice-workers",
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "kind": "workers",
+      "contract": "lattice.worker-inventory.v3",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": null,
+      "documents": [
+        "lattice/agent-a-1-dispatched-outcome-unknown.json",
+        "lattice/agent-a-2-dispatched-outcome-unknown.json",
+        "lattice/host-local-served-ready.json",
+        "lattice/profile-without-instance.json"
+      ]
+    },
+    {
+      "source": "aspen-compute",
+      "producer": "aspen",
+      "scope": "tenant-pilot",
+      "kind": "compute",
+      "contract": "lattice.compute-allocation-observation.v1",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": null,
+      "documents": [
+        "compute/agent-a-1-active.json",
+        "compute/agent-a-2-active.json",
+        "compute/device-active.json",
+        "compute/serving-b-deployment.json",
+        "compute/serving-a-local-deployment.json"
+      ]
+    },
+    {
+      "source": "animus-serving",
+      "producer": "animus",
+      "scope": "tenant-pilot",
+      "kind": "serving",
+      "contract": "animus.serving-availability-snapshot.v1",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": 120,
+      "documents": [
+        "animus/snapshot-cpu-worker-remote.json",
+        "animus/snapshot-serving-states.json"
+      ]
+    }
+  ]
+}

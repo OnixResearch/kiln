@@ -215,13 +215,15 @@ fn run() -> Result<(), ()> {
             return fail(&error);
         }
     }
+    // The workflow-exchange route has no CLI program or state root to record.
     let recover = match implementer.begin_dispatch_transport(
         &attempt.identity,
         attempt.fence,
         wall_clock_ms(),
         &reservation.plan,
+        None,
     ) {
-        Ok(previously_started) => recover || previously_started,
+        Ok(start) => recover || start.is_recovery(),
         Err(error) => return fail(&error),
     };
     let accepted = if recover {

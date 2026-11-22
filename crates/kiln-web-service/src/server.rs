@@ -855,6 +855,7 @@ fn route(request: Request, context: &Context<'_>) -> ApiResponse {
                 &request.method,
                 &request.target,
                 principal.role,
+                &|| inventory_api::cairn_observation(context, &principal),
             );
         }
         if crate::campaign_controls::ROUTES.contains(&path) {

@@ -1,0 +1,269 @@
+{
+  "instance": {
+    "allocation_liveness": {
+      "owner": "kiln#49",
+      "support": "unknown"
+    },
+    "attempt_id": "attempt-agent-a-1",
+    "binding_identity": "blake3:dddb49f158bb2687676e9830636fe089ca3b70329912247ec8f3d0aa5691d228",
+    "cancellation": "not_requested",
+    "compute": {
+      "admission_sequence": 1,
+      "allocation_id": "agent-a-1",
+      "charge_at": 20,
+      "charge_cursor": 2,
+      "claims": [
+        {
+          "pool_id": "host-a-memory",
+          "quantity": 40
+        }
+      ],
+      "compute_kind": "provider_allocation",
+      "consumer_id": "agent-1",
+      "enforcement_at_bind": "logical-fence-only",
+      "granularity": "alias",
+      "kind": "execution",
+      "owner_generation": 1,
+      "placement": {
+        "device_incarnation": "synthetic-device-generation-1",
+        "host_id": "host-a",
+        "host_incarnation": "synthetic-host-generation-1",
+        "topology_generation": 1
+      },
+      "port_id": "synthetic-fixture-port",
+      "shared_serving_ref": "serving-b",
+      "view_id": "host-a-agent-execution"
+    },
+    "definition_identity": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6",
+    "fence": 7,
+    "host_reachability": {
+      "owner": "kiln#49",
+      "support": "unknown"
+    },
+    "incarnation": "2f74708b20711289544cfabb2933c25f65e1422d7a2c5f6fc8678e93ffc63504",
+    "lifecycle": {
+      "state": "dispatch_recorded_outcome_unknown"
+    },
+    "liveness": {
+      "observed_at_epoch_ms": 1795237881836,
+      "retained_generation": 2,
+      "runtime": "single_shot",
+      "state": "unknown",
+      "unknown_cause": "unobserved"
+    },
+    "model_readiness": {
+      "state": "no_serving_port"
+    },
+    "model_routes": {
+      "kind": "routes",
+      "routes": [
+        {
+          "name": "primary",
+          "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+        }
+      ]
+    },
+    "observed_at_epoch_ms": 1795237881836,
+    "pinned": {
+      "support": "unmanaged"
+    },
+    "profile_revision": "7a2e02cbb387e5e5744d4a63084238c2b6cb58d8572ad048fadcd38887ec1258",
+    "schema": "lattice.worker-instance-observation.v3",
+    "source": "lattice.implementation-attempt-state.v1",
+    "state_digest": "blake3:25d669aa276c003fe12bf5df8f674878b1506647d107aa59a8b427f2b9df11bc",
+    "wait_reasons": [
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "dispatch_outcome_unknown",
+        "owner": "lattice#6",
+        "subject": {
+          "field": "lifecycle",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "liveness_unobserved",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "liveness",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "host_reachability_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "host_reachability",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "allocation_liveness_unknown",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "allocation_liveness",
+          "kind": "fact"
+        }
+      }
+    ],
+    "work_id": "work-24"
+  },
+  "model_requests": "unknown",
+  "profile": {
+    "adapter": {
+      "support": "declared",
+      "value": "omp-jsonl"
+    },
+    "capability_qualifications": [],
+    "checkpoint": {
+      "support": "unavailable",
+      "value": null
+    },
+    "compute": {
+      "support": "declared",
+      "value": {
+        "direct_accelerator": null,
+        "kind": "provider_execution"
+      }
+    },
+    "cpu_millis": {
+      "support": "unknown",
+      "value": null
+    },
+    "deadline_secs": {
+      "support": "declared",
+      "value": 60
+    },
+    "definition": {
+      "basis": "owner_default",
+      "identity": "blake3:c2edbc9f0aa03386b1e8d4eb900e2b10db1083ed568ed934c53e923a2e23a8b6",
+      "name": "omp-attempt-worker"
+    },
+    "executable_identity": {
+      "support": "declared",
+      "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    "inputs": {
+      "support": "declared",
+      "value": "workspace-snapshot"
+    },
+    "isolation": {
+      "support": "declared",
+      "value": "required-sandbox"
+    },
+    "max_output_bytes": {
+      "support": "declared",
+      "value": 4096
+    },
+    "memory_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "model_routes": {
+      "support": "declared",
+      "value": {
+        "kind": "routes",
+        "routes": [
+          {
+            "name": "primary",
+            "route_identity": "blake3:de3129027952ff48140d442f8ddde339fe681735501958ce08665b3d5c748ec5"
+          }
+        ]
+      }
+    },
+    "network": {
+      "support": "declared",
+      "value": "attempt-local-model-broker"
+    },
+    "outputs": {
+      "support": "declared",
+      "value": "candidate-receipt"
+    },
+    "owner": "implementation_attempt",
+    "protocol_revision": {
+      "support": "declared",
+      "value": "e325ffc73ab86e03bdd20a91b77d8e2b3964c906"
+    },
+    "revision": "7a2e02cbb387e5e5744d4a63084238c2b6cb58d8572ad048fadcd38887ec1258",
+    "revisions": {
+      "desired": {
+        "support": "unmanaged"
+      },
+      "prepared": {
+        "support": "unmanaged"
+      },
+      "qualified": {
+        "support": "unmanaged"
+      },
+      "selected_for_new_sessions": {
+        "support": "unmanaged"
+      }
+    },
+    "schema": "lattice.worker-profile-facts.v3",
+    "serving_readiness": {
+      "state": "no_serving_port"
+    },
+    "sessions": {
+      "support": "declared",
+      "value": "single-shot-no-session"
+    },
+    "storage_bytes": {
+      "support": "unknown",
+      "value": null
+    },
+    "task_families": {
+      "support": "unknown",
+      "value": null
+    },
+    "tools": {
+      "support": "unknown",
+      "value": null
+    },
+    "wait_reasons": [
+      {
+        "code": "capability_undeclared",
+        "owner": "configuration",
+        "subject": {
+          "field": "task_families",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "capability_undeclared",
+        "owner": "configuration",
+        "subject": {
+          "field": "tools",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "qualification_unbound",
+        "owner": "animus#18",
+        "subject": {
+          "field": "capability_qualifications",
+          "kind": "fact"
+        }
+      },
+      {
+        "code": "serving_port_absent",
+        "owner": "kiln#49",
+        "subject": {
+          "field": "serving_readiness",
+          "kind": "fact"
+        }
+      }
+    ],
+    "workspace": {
+      "support": "declared",
+      "value": "admitted-read-write-paths"
+    }
+  },
+  "schema": "lattice.worker-inventory.v3"
+}

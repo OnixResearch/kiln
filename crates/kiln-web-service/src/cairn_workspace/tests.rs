@@ -1,3 +1,4 @@
+use super::agents::InventoryObservation;
 use super::*;
 use kiln_core::implementation::campaign::{
     CAMPAIGN_SCHEMA, CampaignContract, Freshness, MemberObservation, PendingEffect, WorkflowProfile,
@@ -341,9 +342,13 @@ fn key(repository: &str, change: &str) -> CairnKey {
 }
 
 fn detail_in(fixture: &Fixture, repository: &str, change: &str) -> Detail {
-    detail(&fixture.snapshot, &key(repository, change))
-        .unwrap_or_else(|code| unreachable!("{code}"))
-        .unwrap_or_else(|| unreachable!("{change} is named"))
+    detail(
+        &fixture.snapshot,
+        &key(repository, change),
+        &InventoryObservation::NotConfigured,
+    )
+    .unwrap_or_else(|code| unreachable!("{code}"))
+    .unwrap_or_else(|| unreachable!("{change} is named"))
 }
 
 fn read_detail(fixture: &Fixture, change: &str) -> Detail {
@@ -459,9 +464,13 @@ fn every_source_resolves_one_cairn_identity() {
     assert_eq!(detail.identity.len(), 64);
     assert_eq!(detail.identity, read_detail(&fixture, CHANGE).identity);
     assert!(
-        super::detail(&fixture.snapshot, &key(REPOSITORY, "absent"))
-            .unwrap_or_else(|code| unreachable!("{code}"))
-            .is_none()
+        super::detail(
+            &fixture.snapshot,
+            &key(REPOSITORY, "absent"),
+            &InventoryObservation::NotConfigured,
+        )
+        .unwrap_or_else(|code| unreachable!("{code}"))
+        .is_none()
     );
 }
 
@@ -1065,9 +1074,13 @@ fn dependents_name_current_work_waiting_on_a_unit_across_changes() {
         work: Some(ledger),
         ..CanonicalSnapshot::default()
     };
-    let crossed = super::detail(&snapshot, &key(REPOSITORY, CHANGE))
-        .unwrap_or_else(|code| unreachable!("{code}"))
-        .unwrap_or_else(|| unreachable!("chg is named"));
+    let crossed = super::detail(
+        &snapshot,
+        &key(REPOSITORY, CHANGE),
+        &InventoryObservation::NotConfigured,
+    )
+    .unwrap_or_else(|code| unreachable!("{code}"))
+    .unwrap_or_else(|| unreachable!("chg is named"));
     let names: Vec<&str> = crossed
         .units
         .iter()
@@ -1118,9 +1131,13 @@ fn open_decisions_count_unissued_and_outstanding_requests_only() {
         );
     }
     let read = |change: &str| {
-        detail(&snapshot, &key(REPOSITORY, change))
-            .unwrap_or_else(|code| unreachable!("{code}"))
-            .unwrap_or_else(|| unreachable!("{change} is named"))
+        detail(
+            &snapshot,
+            &key(REPOSITORY, change),
+            &InventoryObservation::NotConfigured,
+        )
+        .unwrap_or_else(|code| unreachable!("{code}"))
+        .unwrap_or_else(|| unreachable!("{change} is named"))
     };
     let selected = read(CHANGE);
     assert_eq!(
@@ -1129,4 +1146,51 @@ fn open_decisions_count_unissued_and_outstanding_requests_only() {
     );
     assert_eq!(read("other").overview.open_decisions, 1);
     assert_eq!(read_detail(&fixture, CHANGE).overview.open_decisions, 0);
+}
+
+#[test]
+// r[verify kiln.cairn.workspace.agents]
+// r[verify kiln.cairn.workspace.agents.scenario.source]
+fn the_agents_section_fails_apart_and_binds_the_view_identity() {
+    let fixture = fixture();
+    let read = |inventory: &InventoryObservation| {
+        detail(&fixture.snapshot, &key(REPOSITORY, CHANGE), inventory)
+            .unwrap_or_else(|code| unreachable!("{code}"))
+            .unwrap_or_else(|| unreachable!("{CHANGE} is named"))
+    };
+    let unconfigured = read(&InventoryObservation::NotConfigured);
+    let refused = read(&InventoryObservation::Unavailable(
+        "inventory_input_unavailable".into(),
+    ));
+    assert_eq!(unconfigured.schema, "kiln.cairn-workspace-detail.v3");
+    assert_eq!(
+        (
+            unconfigured.agents.source,
+            unconfigured.agents.reason.as_deref()
+        ),
+        ("not_configured", None)
+    );
+    assert_eq!(
+        (refused.agents.source, refused.agents.reason.as_deref()),
+        ("unavailable", Some("inventory_input_unavailable"))
+    );
+    assert_eq!(
+        refused
+            .agents
+            .workflow_revisions
+            .selected_for_new_sessions
+            .state,
+        "unpublished"
+    );
+    // The canonical facts are the same; only the view identity moves.
+    let canonical = |detail: &Detail| {
+        serde_json::to_value((&detail.units, &detail.memberships, &detail.blockers))
+            .unwrap_or_else(|error| unreachable!("{error}"))
+    };
+    assert_eq!(canonical(&unconfigured), canonical(&refused));
+    assert_ne!(unconfigured.identity, refused.identity);
+    assert_eq!(
+        unconfigured.identity,
+        read(&InventoryObservation::NotConfigured).identity
+    );
 }

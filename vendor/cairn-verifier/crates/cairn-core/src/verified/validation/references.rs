@@ -1,12 +1,8 @@
-use crate::verified::policy::Policy;
-
-use super::gates::{gate_issue, GateArtifact, GateIssue, GateSnapshot, GateStage};
-
 pub(super) fn reference_hygiene_issues(
-    snapshot: &GateSnapshot,
-    stage: GateStage,
-    policy: &Policy,
-) -> Vec<GateIssue> {
+    snapshot: &super::gates::GateSnapshot,
+    stage: super::gates::GateStage,
+    policy: &crate::verified::policy::Policy,
+) -> Vec<super::gates::GateIssue> {
     if snapshot.delta_specs.is_empty() {
         return Vec::new();
     }
@@ -15,12 +11,15 @@ pub(super) fn reference_hygiene_issues(
     if let Some(artifact) = &snapshot.proposal {
         artifacts.push(artifact);
     }
-    if matches!(stage, GateStage::Design | GateStage::Tasks) {
+    if matches!(
+        stage,
+        super::gates::GateStage::Design | super::gates::GateStage::Tasks
+    ) {
         if let Some(artifact) = &snapshot.design {
             artifacts.push(artifact);
         }
     }
-    if matches!(stage, GateStage::Tasks) {
+    if matches!(stage, super::gates::GateStage::Tasks) {
         if let Some(artifact) = &snapshot.tasks {
             artifacts.push(artifact);
         }
@@ -30,7 +29,7 @@ pub(super) fn reference_hygiene_issues(
         issues.extend(unknown_reference_issues(artifact, &known, policy));
         issues.extend(malformed_exemption_issues(artifact, policy));
     }
-    if matches!(stage, GateStage::Tasks) {
+    if matches!(stage, super::gates::GateStage::Tasks) {
         if let Some(tasks) = &snapshot.tasks {
             issues.extend(unlinked_task_issues(tasks, &known, policy));
         }
@@ -38,7 +37,7 @@ pub(super) fn reference_hygiene_issues(
     issues
 }
 
-fn known_delta_references(delta_specs: &[GateArtifact]) -> Vec<String> {
+fn known_delta_references(delta_specs: &[super::gates::GateArtifact]) -> Vec<String> {
     let marker_bound = delta_specs
         .iter()
         .map(|artifact| reference_marker_bound(&artifact.markdown))
@@ -53,15 +52,15 @@ fn known_delta_references(delta_specs: &[GateArtifact]) -> Vec<String> {
 }
 
 fn unknown_reference_issues(
-    artifact: &GateArtifact,
+    artifact: &super::gates::GateArtifact,
     known: &[String],
-    policy: &Policy,
-) -> Vec<GateIssue> {
+    policy: &crate::verified::policy::Policy,
+) -> Vec<super::gates::GateIssue> {
     reference_markers(&artifact.markdown)
         .into_iter()
         .filter(|reference| !is_external_trace_reference(reference) && !known.contains(reference))
         .map(|reference| {
-            gate_issue(
+            super::gates::gate_issue(
                 format!(
                     "{}: unknown requirement reference r[{reference}]",
                     artifact.path
@@ -72,14 +71,17 @@ fn unknown_reference_issues(
         .collect()
 }
 
-fn malformed_exemption_issues(artifact: &GateArtifact, policy: &Policy) -> Vec<GateIssue> {
+fn malformed_exemption_issues(
+    artifact: &super::gates::GateArtifact,
+    policy: &crate::verified::policy::Policy,
+) -> Vec<super::gates::GateIssue> {
     let mut issues = Vec::with_capacity(artifact.markdown.lines().count());
     for (line_number, line) in artifact.markdown.lines().enumerate() {
         for marker in exemption_markers(line) {
             if exemption_marker_is_valid(marker, policy) {
                 continue;
             }
-            issues.push(gate_issue(
+            issues.push(super::gates::gate_issue(
                 format!(
                     "{}:{}: malformed gate exemption; expected gate-exempt[{}]",
                     artifact.path,
@@ -109,7 +111,7 @@ fn exemption_markers(line: &str) -> Vec<&str> {
     markers
 }
 
-fn exemption_marker_is_valid(marker: &str, policy: &Policy) -> bool {
+fn exemption_marker_is_valid(marker: &str, policy: &crate::verified::policy::Policy) -> bool {
     let fields = marker_fields(marker);
     if !policy
         .exemption_marker_policy
@@ -151,7 +153,7 @@ fn is_iso_date(value: &str) -> bool {
         && bytes[8..].iter().all(u8::is_ascii_digit)
 }
 
-fn exemption_marker_hint(policy: &Policy) -> String {
+fn exemption_marker_hint(policy: &crate::verified::policy::Policy) -> String {
     policy
         .exemption_marker_policy
         .required_fields
@@ -162,10 +164,10 @@ fn exemption_marker_hint(policy: &Policy) -> String {
 }
 
 fn unlinked_task_issues(
-    artifact: &GateArtifact,
+    artifact: &super::gates::GateArtifact,
     known: &[String],
-    policy: &Policy,
-) -> Vec<GateIssue> {
+    policy: &crate::verified::policy::Policy,
+) -> Vec<super::gates::GateIssue> {
     let mut issues = Vec::with_capacity(artifact.markdown.lines().count());
     for (line_number, line) in artifact.markdown.lines().enumerate() {
         let trimmed = line.trim_start();
@@ -176,7 +178,7 @@ fn unlinked_task_issues(
         if refs.iter().any(|reference| known.contains(reference)) {
             continue;
         }
-        issues.push(gate_issue(
+        issues.push(super::gates::gate_issue(
             format!(
                 "{}:{}: task missing known requirement reference",
                 artifact.path,
@@ -195,7 +197,7 @@ fn is_checkbox_task(trimmed: &str) -> bool {
         || trimmed.starts_with("- [~]")
 }
 
-fn has_valid_dependency_marker(trimmed: &str, policy: &Policy) -> bool {
+fn has_valid_dependency_marker(trimmed: &str, policy: &crate::verified::policy::Policy) -> bool {
     policy.task_marker_tokens.iter().any(|marker| {
         if marker.id != policy.artifact_substance_policy.dependency_marker_id {
             return false;

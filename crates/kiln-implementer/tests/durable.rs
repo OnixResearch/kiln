@@ -980,7 +980,11 @@ fn racing_callbacks(
     let binding =
         store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"race request")?;
     assert_eq!(binding.plan, plan);
-    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
+    assert!(
+        !store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan, None)?
+            .is_recovery()
+    );
     store.start_execution(
         &attempt.identity,
         attempt.fence,
@@ -1372,7 +1376,11 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
         1,
         b"exact request bytes",
     )?;
-    assert!(!store.begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan)?);
+    assert!(
+        !store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan, None)?
+            .is_recovery()
+    );
     drop(store);
     let mut store = open(&path);
     assert!(
@@ -1386,7 +1394,11 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
             )
             .is_err()
     );
-    assert!(store.begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan)?);
+    assert!(
+        store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 2, &plan, None)?
+            .is_recovery()
+    );
     store.recover(LEASE)?;
     assert!(store.claim_next(LEASE, LEASE)?.is_none());
     assert_eq!(store.recover(LEASE)?.active, vec![attempt.identity.clone()]);
@@ -1417,6 +1429,201 @@ fn possible_dispatch_requires_recovery_and_unknown_retry_is_fenced()
             .authorize_current(&attempt.identity, attempt.fence, LEASE)
             .is_err()
     );
+    Ok(())
+}
+
+// r[verify kiln.implementation.lattice_cli.scenario.bound_root]
+#[test]
+fn an_older_attempt_writer_cannot_erase_a_recorded_launch() -> Result<(), Box<dyn std::error::Error>>
+{
+    use kiln_core::implementation::{
+        AttemptLedger, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace,
+        ImplementationDispatchPlan, TransportLaunch, TransportStart, WorkspaceIsolation,
+    };
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"request")?;
+    let launch = |root: &str| TransportLaunch {
+        lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+        executable_blake3: content('b'),
+        state_directory: root.into(),
+    };
+    assert_eq!(
+        store.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            1,
+            &plan,
+            Some(&launch("/var/lib/lattice/a"))
+        )?,
+        TransportStart::Fresh
+    );
+    drop(store);
+    // An older binary reads the `attempts` document with the published
+    // `AttemptLedger` and saves it back. The document has exactly the
+    // published shape, so the round trip is byte-identical, and it carries no
+    // launch to lose.
+    {
+        let connection = rusqlite::Connection::open(&path)?;
+        let (version, bytes): (i64, Vec<u8>) = connection.query_row(
+            "SELECT version, bytes FROM implementation_state WHERE kind = 'attempts'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+        let published: AttemptLedger = serde_json::from_slice(&bytes)?;
+        let resaved = serde_json::to_vec(&published)?;
+        assert_eq!(resaved, bytes);
+        assert!(!String::from_utf8(bytes)?.contains("launch"));
+        connection.execute(
+            "UPDATE implementation_state SET version = ?1, bytes = ?2 WHERE kind = 'attempts'",
+            rusqlite::params![version + 1, resaved],
+        )?;
+    }
+    let mut store = open(&path);
+    // Ordinary attempt-only saves leave launch records untouched too.
+    store.renew(&attempt.identity, attempt.fence, 2, LEASE)?;
+    assert!(store.dispatch_requires_recovery(&attempt.identity)?);
+    // A new dispatcher under another profile still recovers with the recorded
+    // launch.
+    assert_eq!(
+        store.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            3,
+            &plan,
+            Some(&launch("/var/lib/lattice/b"))
+        )?,
+        TransportStart::Recover(Some(launch("/var/lib/lattice/a")))
+    );
+    Ok(())
+}
+
+// r[verify kiln.implementation.lattice_cli.scenario.refusal]
+#[test]
+fn before_effect_settlement_survives_restart_without_reconciliation()
+-> Result<(), Box<dyn std::error::Error>> {
+    use kiln_core::implementation::{
+        AttemptPhase, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, FailureClass,
+        ImplementationDispatchPlan, WorkspaceIsolation,
+    };
+    let directory = tempfile::tempdir()?;
+    let path = directory.path().join("implementation.db");
+    let mut store = open(&path);
+    let mut work = work();
+    work.base =
+        Some(ExternalRef::new("git", "commit", &"a".repeat(40)).map_err(|error| error.message)?);
+    store.admit(&work, None)?;
+    let attempt = store.claim_next(0, LEASE)?.ok_or("missing attempt")?;
+    let dispatch = ImplementationDispatchPlan {
+        schema: DISPATCH_PLAN_SCHEMA.into(),
+        work_identity: attempt.work_identity.clone(),
+        work_revision: work.revision,
+        attempt_identity: attempt.identity.clone(),
+        fence: attempt.fence,
+        repository: work.repository.clone(),
+        base: work.base.clone(),
+        workspace: DispatchWorkspace {
+            identity: content('e'),
+            isolation: WorkspaceIsolation::IsolatedSnapshot,
+            network: false,
+            credentials: false,
+            projection: None,
+        },
+        provider_profile: provider(),
+        permitted_paths: work.permitted_paths.clone(),
+        permitted_effects: work.permitted_effects.clone(),
+        controls: DispatchControls {
+            cancel: true,
+            pause: false,
+            resume: false,
+        },
+        deadline_minutes: 1,
+        token_budget: 1000,
+        invocation_budget: 1,
+        expected_output: content('f'),
+        execution: None,
+    };
+    let plan = store
+        .reserve_dispatch_plan(&work, &attempt.identity, attempt.fence, 1, &dispatch)?
+        .plan;
+    store.bind_campaign_request(&work, &attempt.identity, attempt.fence, 1, b"request")?;
+    assert!(
+        store
+            .settle_dispatch_without_execution(&attempt.identity, attempt.fence, 1, "refused")
+            .is_err()
+    );
+    let launch = kiln_core::implementation::TransportLaunch {
+        lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
+        executable_blake3: content('b'),
+        state_directory: "/var/lib/lattice/a".into(),
+    };
+    assert!(
+        !store
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 1, &plan, Some(&launch))?
+            .is_recovery()
+    );
+    drop(store);
+    let mut store = open(&path);
+    // The launch survives restart with its intent.
+    assert_eq!(store.dispatch_launch(&attempt.identity)?, Some(launch));
+    store.settle_dispatch_without_execution(
+        &attempt.identity,
+        attempt.fence,
+        2,
+        "lattice_refused_before_effect:crossed_attempt",
+    )?;
+    drop(store);
+    let mut store = open(&path);
+    let settled = store.attempt(&attempt.identity)?.ok_or("missing attempt")?;
+    assert_eq!(settled.phase, AttemptPhase::Failed);
+    assert_eq!(settled.failure, Some(FailureClass::Infrastructure));
+    assert_eq!(settled.workflow, None);
+    assert!(!store.dispatch_requires_recovery(&attempt.identity)?);
+    // Settlement cleared the launch with the intent, across restart.
+    assert_eq!(store.dispatch_launch(&attempt.identity)?, None);
+    assert!(store.recover(LEASE)?.active.is_empty());
+    let next = store
+        .claim_next(LEASE, LEASE)?
+        .ok_or("settled attempt must not block a replacement")?;
+    assert!(next.fence > attempt.fence);
     Ok(())
 }
 

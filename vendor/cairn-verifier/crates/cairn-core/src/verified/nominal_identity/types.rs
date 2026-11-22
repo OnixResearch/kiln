@@ -1,8 +1,3 @@
-use std::marker::PhantomData;
-
-use serde::Deserialize;
-use serde::Serialize;
-
 const BLAKE3_HEX_LENGTH: usize = 64;
 const SHA256_HEX_LENGTH: usize = 64;
 const GIT_OID_SHA1_HEX_LENGTH: usize = 40;
@@ -12,7 +7,7 @@ const DOMAIN_SEPARATOR: char = ':';
 const B3_PREFIX: &str = "b3:";
 const BLAKE3_PREFIX: &str = "blake3:";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum DigestSpelling {
     RawHex,
@@ -215,7 +210,7 @@ digest_role!(LedgerDigestRole, "ledger-digest");
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DomainId<Role: DomainRoleMarker> {
     value: String,
-    role: PhantomData<fn() -> Role>,
+    role: std::marker::PhantomData<fn() -> Role>,
 }
 
 impl<Role: DomainRoleMarker> DomainId<Role> {
@@ -223,7 +218,7 @@ impl<Role: DomainRoleMarker> DomainId<Role> {
         validate_domain_id::<Role>(value, field)?;
         Ok(Self {
             value: value.to_owned(),
-            role: PhantomData,
+            role: std::marker::PhantomData,
         })
     }
 
@@ -236,7 +231,7 @@ impl<Role: DomainRoleMarker> DomainId<Role> {
     pub fn as_ref(&self) -> DomainIdRef<'_, Role> {
         DomainIdRef {
             value: &self.value,
-            role: PhantomData,
+            role: std::marker::PhantomData,
         }
     }
 }
@@ -244,7 +239,7 @@ impl<Role: DomainRoleMarker> DomainId<Role> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct DomainIdRef<'a, Role: DomainRoleMarker> {
     value: &'a str,
-    role: PhantomData<fn() -> Role>,
+    role: std::marker::PhantomData<fn() -> Role>,
 }
 
 impl<'a, Role: DomainRoleMarker> DomainIdRef<'a, Role> {
@@ -252,7 +247,7 @@ impl<'a, Role: DomainRoleMarker> DomainIdRef<'a, Role> {
         validate_domain_id::<Role>(value, field)?;
         Ok(Self {
             value,
-            role: PhantomData,
+            role: std::marker::PhantomData,
         })
     }
 
@@ -265,7 +260,7 @@ impl<'a, Role: DomainRoleMarker> DomainIdRef<'a, Role> {
     pub fn to_owned_id(self) -> DomainId<Role> {
         DomainId {
             value: self.value.to_owned(),
-            role: PhantomData,
+            role: std::marker::PhantomData,
         }
     }
 }
@@ -405,7 +400,7 @@ fn validate_domain_id<Role: DomainRoleMarker>(
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Blake3Digest<Role: DigestRoleMarker> {
     normalized_hex: String,
-    role: PhantomData<fn() -> Role>,
+    role: std::marker::PhantomData<fn() -> Role>,
 }
 
 impl<Role: DigestRoleMarker> Blake3Digest<Role> {
@@ -417,7 +412,7 @@ impl<Role: DigestRoleMarker> Blake3Digest<Role> {
         let (_, normalized_hex) = parse_blake3_parts(value, profile, field, false)?;
         Ok(Self {
             normalized_hex: normalized_hex.to_owned(),
-            role: PhantomData,
+            role: std::marker::PhantomData,
         })
     }
 
@@ -429,7 +424,7 @@ impl<Role: DigestRoleMarker> Blake3Digest<Role> {
         let (_, normalized_hex) = parse_blake3_parts(value, profile, field, true)?;
         Ok(Self {
             normalized_hex: normalized_hex.to_ascii_lowercase(),
-            role: PhantomData,
+            role: std::marker::PhantomData,
         })
     }
 
@@ -442,7 +437,7 @@ impl<Role: DigestRoleMarker> Blake3Digest<Role> {
     pub fn as_ref(&self) -> Blake3DigestRef<'_, Role> {
         Blake3DigestRef {
             normalized_hex: &self.normalized_hex,
-            role: PhantomData,
+            role: std::marker::PhantomData,
         }
     }
 }
@@ -450,7 +445,7 @@ impl<Role: DigestRoleMarker> Blake3Digest<Role> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Blake3DigestRef<'a, Role: DigestRoleMarker> {
     normalized_hex: &'a str,
-    role: PhantomData<fn() -> Role>,
+    role: std::marker::PhantomData<fn() -> Role>,
 }
 
 impl<'a, Role: DigestRoleMarker> Blake3DigestRef<'a, Role> {
@@ -462,7 +457,7 @@ impl<'a, Role: DigestRoleMarker> Blake3DigestRef<'a, Role> {
         let (_, normalized_hex) = parse_blake3_parts(value, profile, field, false)?;
         Ok(Self {
             normalized_hex,
-            role: PhantomData,
+            role: std::marker::PhantomData,
         })
     }
 
@@ -480,7 +475,7 @@ impl<'a, Role: DigestRoleMarker> Blake3DigestRef<'a, Role> {
     pub fn to_owned_digest(self) -> Blake3Digest<Role> {
         Blake3Digest {
             normalized_hex: self.normalized_hex.to_owned(),
-            role: PhantomData,
+            role: std::marker::PhantomData,
         }
     }
 }
@@ -524,7 +519,9 @@ fn profile_allows_spelling(profile: DigestProfile, spelling: DigestSpelling) -> 
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum ImportedDigestAlgorithm {
     Sha256,
@@ -560,7 +557,7 @@ impl ImportedDigestRoleMarker for GitOidSha1DigestRole {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ImportedDigest<Role: ImportedDigestRoleMarker> {
     normalized_hex: String,
-    role: PhantomData<fn() -> Role>,
+    role: std::marker::PhantomData<fn() -> Role>,
 }
 
 impl<Role: ImportedDigestRoleMarker> ImportedDigest<Role> {
@@ -580,7 +577,7 @@ impl<Role: ImportedDigestRoleMarker> ImportedDigest<Role> {
         }
         Ok(Self {
             normalized_hex: value.to_owned(),
-            role: PhantomData,
+            role: std::marker::PhantomData,
         })
     }
 

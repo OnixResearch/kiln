@@ -1,0 +1,46 @@
+{
+  "schema": "kiln.inventory.collection-set.v1",
+  "principal": "operator",
+  "synthetic": true,
+  "joins": {
+    "agents": "lattice-agents",
+    "compute": "aspen-compute",
+    "serving": "animus-serving"
+  },
+  "collections": [
+    {
+      "source": "lattice-agents",
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "kind": "agents",
+      "contract": "lattice.worker-inventory.v3",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": null,
+      "documents": [
+        "lattice/profile-without-instance.json"
+      ]
+    },
+    {
+      "source": "lattice-workers",
+      "producer": "lattice",
+      "scope": "tenant-pilot",
+      "kind": "workers",
+      "contract": "lattice.worker-inventory.v3",
+      "generation": 1,
+      "observed_at_ms": 1795237890000,
+      "valid_until_ms": 1795237950000,
+      "complete": true,
+      "next_page": null,
+      "unavailable_reason": null,
+      "provider_logical_now": null,
+      "documents": [
+        "lattice/profile-without-instance.json"
+      ]
+    }
+  ]
+}

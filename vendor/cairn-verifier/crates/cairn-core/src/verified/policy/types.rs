@@ -1,21 +1,3 @@
-use serde_json::Value;
-
-use super::document_collaboration::DocumentCollaborationPolicy;
-use super::PolicySchemaCompatibilityMetadata;
-
-use crate::verified::{
-    agent_guidance::AgentGuidancePolicy,
-    artifact_workflow::{WorkflowProfileRegistryPolicy, WorkflowSchemaPolicy},
-    cli_machine::MachineContractPolicy,
-    developer_loop::DeveloperLoopPolicy,
-    function_address_gates::FunctionAddressPolicy,
-    generated_agent_workflow::GeneratedAgentWorkflowPolicy,
-    nominal_identity::NominalIdentityPolicy,
-    runtime_evidence::RuntimeEvidencePolicy,
-    stack_provenance::StackProvenancePolicy,
-    traceability::TraceabilityProfile,
-};
-
 pub const SUPPORTED_POLICY_VERSION: u64 = 1;
 pub const TASK_IDENTITY_MARKER_ID: &str = "task";
 pub const TASK_PREDECESSOR_MARKER_ID: &str = "after";
@@ -32,13 +14,14 @@ pub struct Policy {
     pub gate_finding_scope: String,
     pub gate_finding_promoted: String,
     pub artifact_substance_policy: ArtifactSubstancePolicy,
-    pub workflow_schemas: Vec<WorkflowSchemaPolicy>,
-    pub workflow_profile_policy: WorkflowProfileRegistryPolicy,
-    pub agent_guidance_policy: AgentGuidancePolicy,
-    pub developer_loop_policy: DeveloperLoopPolicy,
-    pub generated_agent_workflow_policy: GeneratedAgentWorkflowPolicy,
-    pub machine_contract_policy: MachineContractPolicy,
-    pub document_collaboration_policy: DocumentCollaborationPolicy,
+    pub workflow_schemas: Vec<crate::verified::artifact_workflow::WorkflowSchemaPolicy>,
+    pub workflow_profile_policy: crate::verified::artifact_workflow::WorkflowProfileRegistryPolicy,
+    pub agent_guidance_policy: crate::verified::agent_guidance::Policy,
+    pub developer_loop_policy: crate::verified::developer_loop::DeveloperLoopPolicy,
+    pub generated_agent_workflow_policy:
+        crate::verified::generated_agent_workflow::GeneratedAgentWorkflowPolicy,
+    pub machine_contract_policy: crate::verified::cli_machine::MachineContractPolicy,
+    pub document_collaboration_policy: super::document_collaboration::DocumentCollaborationPolicy,
     pub sync_require_gate: bool,
     pub archive_require_gate: bool,
     pub migrate_require_manifest: bool,
@@ -50,13 +33,13 @@ pub struct Policy {
     pub change_metadata_statuses: Vec<String>,
     pub steel_orchestration_policy: SteelOrchestrationPolicy,
     pub traceability_policy: TraceabilityPolicy,
-    pub stack_provenance_policy: StackProvenancePolicy,
-    pub function_address_policy: FunctionAddressPolicy,
-    pub runtime_evidence_policy: RuntimeEvidencePolicy,
-    pub nominal_identity_policy: NominalIdentityPolicy,
+    pub stack_provenance_policy: crate::verified::stack_provenance::StackProvenancePolicy,
+    pub function_address_policy: crate::verified::function_address_gates::FunctionAddressPolicy,
+    pub runtime_evidence_policy: crate::verified::runtime_evidence::RuntimeEvidencePolicy,
+    pub nominal_identity_policy: crate::verified::nominal_identity::NominalIdentityPolicy,
     pub lifecycle_store_policy: LifecycleStorePolicy,
-    pub policy_schema_compatibility: Option<PolicySchemaCompatibilityMetadata>,
-    pub raw: Value,
+    pub policy_schema_compatibility: Option<super::PolicySchemaCompatibilityMetadata>,
+    pub raw: serde_json::Value,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -198,7 +181,7 @@ pub struct SteelOrchestrationProfile {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TraceabilityPolicy {
     pub default_profile: String,
-    pub profiles: Vec<TraceabilityProfile>,
+    pub profiles: Vec<crate::verified::traceability::TraceabilityProfile>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

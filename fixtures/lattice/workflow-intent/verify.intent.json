@@ -1,0 +1,176 @@
+{
+  "schema": "lattice.workflow-intent.v1",
+  "cohort": {
+    "producer_identity": "b3:0e1a43483793d8feceee76b685ee6102715f794f77a65dba652d901afca88147",
+    "selection_identity": "b3:9f0d616d6a8c508b2c70d13059026486d708d61777eccc071196e4792d7b9943",
+    "obligations_identity": "b3:7ef7a574dea88a03dda2e0c1f6fa3e412082159c3d6142748dc04864f5a670cd",
+    "profile_identity": "b3:0000000000000000000000000000000000000000000000000000000000000004",
+    "context_identity": "b3:0fc67d3d6a1315e8ee87392ec745e3ff3d0fb848e4bbad517366ac33b54918fb",
+    "source_identity": "b3:109c8ec45a98a7a1df5848c73c7d198edf15ce45ee8ff1699442bef7bfe60326",
+    "policy_identity": "b3:0000000000000000000000000000000000000000000000000000000000000003",
+    "dependency_identity": "b3:25a78c4686effdbd529ba8f6ef8beda5ddadfa313cba1f0dc63733fb55546d6c"
+  },
+  "coverage": "complete",
+  "unsupported_fields": [],
+  "obligations": [
+    {
+      "id": "kiln.authoritative-completion",
+      "obligation_identity": "b3:fa404489b6f039aca6ad671220cb275a202eae83b4c359a9eb282aeef41e78d6",
+      "guidance_identity": "b3:7b68ed96821c5d3b6e71f5e056e8f79483cfd55390a41aaa9f4bedb7ee62efc3",
+      "remaining_condition_identity": "b3:c660620e80719a10ff6f5adaefb84f43067a36794bc159a25288dd89a5e94ed4",
+      "operation_class": "completion_only",
+      "action_identity": "b3:c7476d573c93b0333b49eb7ac8c547577361cc9a4f6c0814736d98639e952377",
+      "prerequisites": [
+        "verify.conditional.claim.revision",
+        "verify.evidence.authority",
+        "verify.evidence.contract",
+        "verify.evidence.freshness",
+        "verify.evidence.pass-only",
+        "verify.traceability.contract",
+        "verify.traceability.freshness"
+      ],
+      "required_observations": [
+        {
+          "id": "kiln.authoritative-completion",
+          "schema": "cairn.authoritative-completion.v1",
+          "predicate_identity": "b3:12b3cc379d69947d29b93071cb88ceb196c43268165f13a9db63fd6d698aa47c"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.conditional.claim.revision",
+      "obligation_identity": "b3:648869f571e645571075f014b9fb337184e6f672f6897a4c02095d1ab50c12dc",
+      "guidance_identity": "b3:f5db63a0e4f5e992fec4374d73762889b18791b3da24d2b3fd3fe0d36dae3ccc",
+      "remaining_condition_identity": "b3:ec2b630d4ef5a7b3b5f791f72a6fffaaac7a40bc3232e799a6d087da0450a571",
+      "operation_class": "named_check",
+      "action_identity": "b3:1a56588c7c2a852231f25de7a2fce721fd8604682faf861144bfedf2f05fb335",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "verification-obligation.claim-revision",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:5fb5ba9d27bb4642debff45e51a8bc4787ef9c4ff78f1b885aab2399647e4b6b"
+        },
+        {
+          "id": "verification-scope.applicable",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:06855d32b0a5ef9108ca395da6775cceaf7ec0ae0124b39d0bdd2f31cf0c605f"
+        }
+      ],
+      "precondition_identity": "b3:b2435dc7e7da47da561bcd0780d72493dcade3ccc2fb70a309698ce1560556f3",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.evidence.authority",
+      "obligation_identity": "b3:97c010ceab6b6b67c366e27816dd5adf9eab310aa1d09a197279489e5278b99d",
+      "guidance_identity": "b3:3c698e3001866dc81f976e32da3430e176345556480a3589a2047591a7e0dc88",
+      "remaining_condition_identity": "b3:0b5b4da7e2adce987fc6f042df062249afd0cbe521778d8945b18c0e56e6f041",
+      "operation_class": "named_check",
+      "action_identity": "b3:f0cea6b22393a07cd365be8aa66e957d18d1e24e0a77c0818356ae6f02bdc8ac",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "agent-receipt.completion-authority",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:49f4149735ad199632956cab441373705df7b4e0ed0383fbd509cf7ea39a8fa7"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.evidence.contract",
+      "obligation_identity": "b3:5d13dec456f40a35f322217e2c5c86feccb1f1cb97f2000949825d94fb68d652",
+      "guidance_identity": "b3:e5dfe3b05d68a3dcc5ece852c7e8afe56b51bf23edd5dba1cef52ec7fa33605e",
+      "remaining_condition_identity": "b3:bf0adcb3297b31db9a963ea11348d19f5760a4ecc88848d52d4213c19f65f787",
+      "operation_class": "named_check",
+      "action_identity": "b3:5a6f11e74d26f3159196e8f61050cf1a663be4c8c31e7c81be3d4fd2596a66d4",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "agent-receipt.verification-contract",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:0fd4a3f8dd1a51bb76c442773856cae837fc218074efdf312a361dea4c62e72f"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.evidence.freshness",
+      "obligation_identity": "b3:8df5d6b06ce30768c722ea98e5bebf23faa053242f0a1babb8b88bd27a23e07a",
+      "guidance_identity": "b3:44c3118259a1347d804e9b275d6b35de447516b7d41cb342663509ca284056d9",
+      "remaining_condition_identity": "b3:c918e8483f60596ca7cf3a0510679a339e696dad0abb7470f94742cfddafe96f",
+      "operation_class": "named_check",
+      "action_identity": "b3:694e0fa49987053125885e8059dd01013325717a91256314bbc2f083b86dc39b",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "agent-receipt.freshness",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:65dc0ed719eec9172cd343f16b5a60c289fb0de13367b651dc53a43b3cb53972"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.evidence.pass-only",
+      "obligation_identity": "b3:94191ec2d683cf984926c326931544f0765cc7dc2e852b97909ab337038f70c1",
+      "guidance_identity": "b3:1686b7ab4df574334f207d776e70592c5f0e535416b23761fb46b6dab733d022",
+      "remaining_condition_identity": "b3:3767dd555d7db18c657d2300f7d00144bb971c3c2c1096e49159f19ae46119db",
+      "operation_class": "named_check",
+      "action_identity": "b3:e601b032a37a2a29c7718a4394d1ad22d7898dd9dbb9977a15dbb8cb283aa07f",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "agent-receipt.pass-only",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:4563ac87a421f1b6e0babae8cfe0b81f5225fd358f4dc512fe4eff41501503bd"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.traceability.contract",
+      "obligation_identity": "b3:093d833f5f8770237b33e77092b5dadc48dca433e33566c4608c9651a4bf660a",
+      "guidance_identity": "b3:131f02adaed5587c8985fc92e3855a36027dd887d86b629f9bc8d63968cea202",
+      "remaining_condition_identity": "b3:507f509d167848ecc263e974668d019648c061b3af93fc7509a2c967ac32e877",
+      "operation_class": "named_check",
+      "action_identity": "b3:2dd47b6e769db6e32d1b37ebc8e39e0983753ebd3bd33d9664f285279d86701b",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "agent-receipt.verification-contract",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:0fd4a3f8dd1a51bb76c442773856cae837fc218074efdf312a361dea4c62e72f"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    },
+    {
+      "id": "verify.traceability.freshness",
+      "obligation_identity": "b3:11d69fd3f7fde75548006d449de3b02870ff4904c9f723242dab199486a47936",
+      "guidance_identity": "b3:c46305c9b6a657ffe76540701a04ac8411a68522cf89c3ff446369c0c93b2c50",
+      "remaining_condition_identity": "b3:a656c654588bad80ba715259279e456740e365d200bdf68d5340c557c20d6ce2",
+      "operation_class": "named_check",
+      "action_identity": "b3:b8dbbf8b403cabf15c873d9989096b8cbaa12208fd49f7da9e1603a17328a474",
+      "prerequisites": [],
+      "required_observations": [
+        {
+          "id": "agent-receipt.freshness",
+          "schema": "cairn.workflow-obligation-evidence-reference.v1",
+          "predicate_identity": "b3:65dc0ed719eec9172cd343f16b5a60c289fb0de13367b651dc53a43b3cb53972"
+        }
+      ],
+      "precondition_identity": "b3:863d3b4ba66f02d896115c9b1172485e5226b36741030c8ae5bd8ed06a4747c1",
+      "required_capabilities": []
+    }
+  ],
+  "alternatives": [],
+  "selected_alternative": null
+}

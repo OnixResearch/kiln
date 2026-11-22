@@ -1,25 +1,17 @@
-use serde_json::{Map, Value};
-
-use crate::verified::evidence::{canonical_json_hash, canonical_preserves_hash};
-use crate::verified::nominal_identity::{Blake3Digest, ReceiptDigestRole, RAW_BLAKE3_PROFILE};
-
-use super::common::issue;
-use super::types::AgentRunGateIssue;
-
 // r[impl cairn.supersede.agent_run_receipts.schema]
 // r[impl cairn.supersede.agent_run_receipts.schema.bounded_content]
-pub fn agent_run_receipt_hash(receipt: &Value) -> String {
+pub fn agent_run_receipt_hash(receipt: &serde_json::Value) -> String {
     let canonical = receipt_without_self_referential_hashes(receipt);
-    canonical_json_hash(&canonical)
+    crate::verified::evidence::canonical_json_hash(&canonical)
 }
 
 // r[impl cairn.determinism.preserves_receipt_consumer.agent_run_internal_hash]
-pub fn agent_run_preserves_receipt_hash(receipt: &Value) -> Result<String, String> {
+pub fn agent_run_preserves_receipt_hash(receipt: &serde_json::Value) -> Result<String, String> {
     let canonical = receipt_without_self_referential_hashes(receipt);
-    canonical_preserves_hash(&canonical)
+    crate::verified::evidence::canonical_preserves_hash(&canonical)
 }
 
-fn receipt_without_self_referential_hashes(receipt: &Value) -> Value {
+fn receipt_without_self_referential_hashes(receipt: &serde_json::Value) -> serde_json::Value {
     let mut canonical = receipt.clone();
     if let Some(object) = canonical.as_object_mut() {
         object.remove("receipt_hash");
@@ -30,21 +22,28 @@ fn receipt_without_self_referential_hashes(receipt: &Value) -> Value {
 }
 
 pub(super) fn receipt_hash_issues(
-    receipt: &Value,
-    object: &Map<String, Value>,
-) -> Vec<AgentRunGateIssue> {
-    let Some(stated_hash) = object.get("receipt_hash").and_then(Value::as_str) else {
+    receipt: &serde_json::Value,
+    object: &serde_json::Map<String, serde_json::Value>,
+) -> Vec<super::types::AgentRunGateIssue> {
+    let Some(stated_hash) = object
+        .get("receipt_hash")
+        .and_then(serde_json::Value::as_str)
+    else {
         return Vec::new();
     };
     let expected_hash = agent_run_receipt_hash(receipt);
-    let stated = Blake3Digest::<ReceiptDigestRole>::parse_compatible(
+    let stated = crate::verified::nominal_identity::Blake3Digest::<
+        crate::verified::nominal_identity::ReceiptDigestRole,
+    >::parse_compatible(
         stated_hash,
-        RAW_BLAKE3_PROFILE,
+        crate::verified::nominal_identity::RAW_BLAKE3_PROFILE,
         "agent_receipt.receipt_hash",
     );
-    let expected = Blake3Digest::<ReceiptDigestRole>::parse(
+    let expected = crate::verified::nominal_identity::Blake3Digest::<
+        crate::verified::nominal_identity::ReceiptDigestRole,
+    >::parse(
         &expected_hash,
-        RAW_BLAKE3_PROFILE,
+        crate::verified::nominal_identity::RAW_BLAKE3_PROFILE,
         "agent_receipt.expected_receipt_hash",
     );
     let matches = matches!(
@@ -54,7 +53,7 @@ pub(super) fn receipt_hash_issues(
     if matches {
         Vec::new()
     } else {
-        vec![issue(
+        vec![super::common::issue(
             "receipt.hash_mismatch",
             "receipt_hash must equal the BLAKE3 hash of canonical receipt content with receipt_hash excluded",
         )]

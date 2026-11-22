@@ -9,11 +9,6 @@ mod guidance;
 mod registry;
 mod report;
 
-use serde_json::Value;
-
-use super::common::require_string;
-use super::SemanticReviewReport;
-
 pub const REVIEW_METRICS_REGRESSION_SCHEMA_V1: &str =
     "cairn.semantic-review.metrics-regression-registry.v1";
 pub const REVIEW_METRICS_FIXTURE_COVERAGE_SCHEMA_V1: &str =
@@ -23,10 +18,10 @@ pub const REVIEW_METRICS_GUIDANCE_SYNC_SCHEMA_V1: &str =
 pub const REVIEW_METRICS_EVIDENCE_BOUNDARY_SCHEMA_V1: &str =
     "cairn.semantic-review.metrics-regression-evidence-boundary.v1";
 
-pub fn validate_review_metrics_registry(value: &Value) -> SemanticReviewReport {
+pub fn validate_review_metrics_registry(value: &serde_json::Value) -> super::SemanticReviewReport {
     // r[impl cairn.semantic_review.review_metrics_regression_rail.registry_binds_surfaces]
     let mut issues = Vec::new();
-    require_string(
+    super::common::require_string(
         value,
         "schema_version",
         REVIEW_METRICS_REGRESSION_SCHEMA_V1,
@@ -37,12 +32,12 @@ pub fn validate_review_metrics_registry(value: &Value) -> SemanticReviewReport {
 }
 
 pub fn validate_review_metrics_fixture_pairs(
-    registry: &Value,
-    fixture_coverage: &Value,
-) -> SemanticReviewReport {
+    registry: &serde_json::Value,
+    fixture_coverage: &serde_json::Value,
+) -> super::SemanticReviewReport {
     // r[impl cairn.semantic_review.review_metrics_regression_rail.fixture_pair_enforcement]
     let mut issues = validate_review_metrics_registry(registry).issues;
-    require_string(
+    super::common::require_string(
         fixture_coverage,
         "schema_version",
         REVIEW_METRICS_FIXTURE_COVERAGE_SCHEMA_V1,
@@ -54,12 +49,12 @@ pub fn validate_review_metrics_fixture_pairs(
 }
 
 pub fn validate_review_metrics_guidance_sync(
-    registry: &Value,
-    sync_surfaces: &Value,
-) -> SemanticReviewReport {
+    registry: &serde_json::Value,
+    sync_surfaces: &serde_json::Value,
+) -> super::SemanticReviewReport {
     // r[impl cairn.semantic_review.review_metrics_regression_rail.guidance_task_sync]
     let mut issues = validate_review_metrics_registry(registry).issues;
-    require_string(
+    super::common::require_string(
         sync_surfaces,
         "schema_version",
         REVIEW_METRICS_GUIDANCE_SYNC_SCHEMA_V1,
@@ -71,12 +66,12 @@ pub fn validate_review_metrics_guidance_sync(
 }
 
 pub fn validate_review_metrics_evidence_boundary(
-    registry: &Value,
-    evidence: &Value,
-) -> SemanticReviewReport {
+    registry: &serde_json::Value,
+    evidence: &serde_json::Value,
+) -> super::SemanticReviewReport {
     // r[impl cairn.semantic_review.review_metrics_regression_rail.secret_free_evidence]
     let mut issues = validate_review_metrics_registry(registry).issues;
-    require_string(
+    super::common::require_string(
         evidence,
         "schema_version",
         REVIEW_METRICS_EVIDENCE_BOUNDARY_SCHEMA_V1,

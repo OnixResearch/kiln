@@ -1,22 +1,15 @@
 // r[impl cairn.semantic_review.metrics_regression_split.focused_helpers]
-use std::collections::BTreeSet;
-
-use serde_json::Value;
-
-use super::super::common::push_issue;
-use super::super::SemanticReviewIssue;
-use super::common::non_empty_string;
 
 pub(super) struct GuidanceSyncSurfaces {
-    guidance_diagnostics: BTreeSet<String>,
-    guidance_anchors: BTreeSet<String>,
-    task_requirements: BTreeSet<String>,
-    spec_requirements: BTreeSet<String>,
+    guidance_diagnostics: std::collections::BTreeSet<String>,
+    guidance_anchors: std::collections::BTreeSet<String>,
+    task_requirements: std::collections::BTreeSet<String>,
+    spec_requirements: std::collections::BTreeSet<String>,
 }
 
 pub(super) fn guidance_sync_surfaces(
-    sync_surfaces: &Value,
-    issues: &mut Vec<SemanticReviewIssue>,
+    sync_surfaces: &serde_json::Value,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) -> GuidanceSyncSurfaces {
     let guidance_diagnostics = string_set_from_entries(
         sync_surfaces,
@@ -59,11 +52,14 @@ pub(super) fn guidance_sync_surfaces(
 }
 
 pub(super) fn validate_guidance_sync(
-    registry: &Value,
+    registry: &serde_json::Value,
     sync: &GuidanceSyncSurfaces,
-    issues: &mut Vec<SemanticReviewIssue>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
-    let Some(categories) = registry.get("categories").and_then(Value::as_array) else {
+    let Some(categories) = registry
+        .get("categories")
+        .and_then(serde_json::Value::as_array)
+    else {
         return;
     };
     for (index, category) in categories.iter().enumerate() {
@@ -80,17 +76,17 @@ pub(super) fn validate_guidance_sync(
 }
 
 fn validate_category_guidance_sync(
-    category: &Value,
+    category: &serde_json::Value,
     index: usize,
-    guidance_diagnostics: &BTreeSet<String>,
-    guidance_anchors: &BTreeSet<String>,
-    task_requirements: &BTreeSet<String>,
-    spec_requirements: &BTreeSet<String>,
-    issues: &mut Vec<SemanticReviewIssue>,
+    guidance_diagnostics: &std::collections::BTreeSet<String>,
+    guidance_anchors: &std::collections::BTreeSet<String>,
+    task_requirements: &std::collections::BTreeSet<String>,
+    spec_requirements: &std::collections::BTreeSet<String>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
-    if let Some(diagnostic_code) = non_empty_string(category, "diagnostic_code") {
+    if let Some(diagnostic_code) = super::common::non_empty_string(category, "diagnostic_code") {
         if !guidance_diagnostics.contains(diagnostic_code) {
-            push_issue(
+            super::super::common::push_issue(
                 issues,
                 "guidance_missing_diagnostic",
                 &format!("categories[{index}].diagnostic_code"),
@@ -98,9 +94,9 @@ fn validate_category_guidance_sync(
             );
         }
     }
-    if let Some(guidance_anchor) = non_empty_string(category, "guidance_anchor") {
+    if let Some(guidance_anchor) = super::common::non_empty_string(category, "guidance_anchor") {
         if !guidance_anchors.contains(guidance_anchor) {
-            push_issue(
+            super::super::common::push_issue(
                 issues,
                 "guidance_missing_anchor",
                 &format!("categories[{index}].guidance_anchor"),
@@ -108,9 +104,9 @@ fn validate_category_guidance_sync(
             );
         }
     }
-    if let Some(requirement_id) = non_empty_string(category, "requirement_id") {
+    if let Some(requirement_id) = super::common::non_empty_string(category, "requirement_id") {
         if !task_requirements.contains(requirement_id) {
-            push_issue(
+            super::super::common::push_issue(
                 issues,
                 "task_missing_requirement_ref",
                 &format!("categories[{index}].requirement_id"),
@@ -118,7 +114,7 @@ fn validate_category_guidance_sync(
             );
         }
         if !spec_requirements.contains(requirement_id) {
-            push_issue(
+            super::super::common::push_issue(
                 issues,
                 "spec_missing_requirement_ref",
                 &format!("categories[{index}].requirement_id"),
@@ -129,20 +125,20 @@ fn validate_category_guidance_sync(
 }
 
 fn string_set_from_entries(
-    value: &Value,
+    value: &serde_json::Value,
     array_field: &str,
     values_field: &str,
     missing_code: &str,
     missing_message: &str,
-    issues: &mut Vec<SemanticReviewIssue>,
-) -> BTreeSet<String> {
-    let mut values = BTreeSet::new();
-    let Some(entries) = value.get(array_field).and_then(Value::as_array) else {
-        push_issue(issues, missing_code, array_field, missing_message);
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
+) -> std::collections::BTreeSet<String> {
+    let mut values = std::collections::BTreeSet::new();
+    let Some(entries) = value.get(array_field).and_then(serde_json::Value::as_array) else {
+        super::super::common::push_issue(issues, missing_code, array_field, missing_message);
         return values;
     };
     if entries.is_empty() {
-        push_issue(issues, missing_code, array_field, missing_message);
+        super::super::common::push_issue(issues, missing_code, array_field, missing_message);
         return values;
     }
     for (entry_index, entry) in entries.iter().enumerate() {
@@ -159,28 +155,28 @@ fn string_set_from_entries(
 }
 
 fn string_set_from_scalar_entries(
-    value: &Value,
+    value: &serde_json::Value,
     array_field: &str,
     scalar_field: &str,
     missing_code: &str,
     missing_message: &str,
-    issues: &mut Vec<SemanticReviewIssue>,
-) -> BTreeSet<String> {
-    let mut values = BTreeSet::new();
-    let Some(entries) = value.get(array_field).and_then(Value::as_array) else {
-        push_issue(issues, missing_code, array_field, missing_message);
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
+) -> std::collections::BTreeSet<String> {
+    let mut values = std::collections::BTreeSet::new();
+    let Some(entries) = value.get(array_field).and_then(serde_json::Value::as_array) else {
+        super::super::common::push_issue(issues, missing_code, array_field, missing_message);
         return values;
     };
     if entries.is_empty() {
-        push_issue(issues, missing_code, array_field, missing_message);
+        super::super::common::push_issue(issues, missing_code, array_field, missing_message);
         return values;
     }
     for (entry_index, entry) in entries.iter().enumerate() {
-        match entry.get(scalar_field).and_then(Value::as_str) {
+        match entry.get(scalar_field).and_then(serde_json::Value::as_str) {
             Some(text) if !text.trim().is_empty() => {
                 values.insert(text.to_string());
             }
-            Some(_) | None => push_issue(
+            Some(_) | None => super::super::common::push_issue(
                 issues,
                 "invalid_guidance_sync",
                 &format!("{array_field}[{entry_index}].{scalar_field}"),
@@ -192,15 +188,18 @@ fn string_set_from_scalar_entries(
 }
 
 fn collect_entry_strings(
-    entry: &Value,
+    entry: &serde_json::Value,
     entry_index: usize,
     array_field: &str,
     values_field: &str,
-    values: &mut BTreeSet<String>,
-    issues: &mut Vec<SemanticReviewIssue>,
+    values: &mut std::collections::BTreeSet<String>,
+    issues: &mut Vec<super::super::SemanticReviewIssue>,
 ) {
-    let Some(strings) = entry.get(values_field).and_then(Value::as_array) else {
-        push_issue(
+    let Some(strings) = entry
+        .get(values_field)
+        .and_then(serde_json::Value::as_array)
+    else {
+        super::super::common::push_issue(
             issues,
             "invalid_guidance_sync",
             &format!("{array_field}[{entry_index}].{values_field}"),
@@ -209,7 +208,7 @@ fn collect_entry_strings(
         return;
     };
     if strings.is_empty() {
-        push_issue(
+        super::super::common::push_issue(
             issues,
             "invalid_guidance_sync",
             &format!("{array_field}[{entry_index}].{values_field}"),
@@ -222,7 +221,7 @@ fn collect_entry_strings(
             Some(text) if !text.trim().is_empty() => {
                 values.insert(text.to_string());
             }
-            Some(_) | None => push_issue(
+            Some(_) | None => super::super::common::push_issue(
                 issues,
                 "invalid_guidance_sync",
                 &format!("{array_field}[{entry_index}].{values_field}[{value_index}]"),

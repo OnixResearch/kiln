@@ -173,6 +173,7 @@ fn native_policy() -> AdmissionPolicy {
         strategy: FairnessStrategy::DominantShare,
         shares: BTreeMap::from([(Alias::new("native").unwrap_or_else(|_| unreachable!()), 1)]),
         group_limits: vec![],
+        serving: None,
     }
 }
 

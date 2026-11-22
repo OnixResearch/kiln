@@ -1,11 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use crate::verified::{
-    dag::topological_order,
-    lifecycle::validate_change_name,
-    repo::{ChangeMetadata, ChangeStatus},
-};
-
 pub const DEPENDENCY_ISSUE_DUPLICATE: &str = "change_dependency.duplicate_dependency";
 pub const DEPENDENCY_ISSUE_UNKNOWN: &str = "change_dependency.unknown_dependency";
 pub const DEPENDENCY_ISSUE_SELF: &str = "change_dependency.self_dependency";
@@ -96,16 +88,16 @@ pub struct ChangeDependencyIssue {
 }
 
 struct GraphBuildContext {
-    known_set: BTreeSet<String>,
-    active_set: BTreeSet<String>,
-    archived_set: BTreeSet<String>,
-    nodes: BTreeMap<String, ChangeDependencyNode>,
+    known_set: std::collections::BTreeSet<String>,
+    active_set: std::collections::BTreeSet<String>,
+    archived_set: std::collections::BTreeSet<String>,
+    nodes: std::collections::BTreeMap<String, ChangeDependencyNode>,
     edges: Vec<ChangeDependencyEdge>,
     topological_edges: Vec<(String, String)>,
     issues: Vec<ChangeDependencyIssue>,
 }
 
-pub fn normalized_change_dependencies(change: &ChangeStatus) -> Vec<String> {
+pub fn normalized_change_dependencies(change: &crate::verified::repo::ChangeStatus) -> Vec<String> {
     let mut dependencies = change.metadata.depends_on.clone();
     dependencies.sort();
     dependencies.dedup();
@@ -113,7 +105,7 @@ pub fn normalized_change_dependencies(change: &ChangeStatus) -> Vec<String> {
 }
 
 pub fn plan_change_dependency_edit(
-    changes: &[ChangeStatus],
+    changes: &[crate::verified::repo::ChangeStatus],
     archived_changes: &[String],
     change_name: &str,
     dependency: &str,
@@ -151,7 +143,7 @@ pub fn plan_change_dependency_edit(
             message: metadata_issue.clone(),
         });
     }
-    if let Err(error) = validate_change_name(dependency) {
+    if let Err(error) = crate::verified::lifecycle::validate_change_name(dependency) {
         issues.push(ChangeDependencyIssue {
             change: change_name.to_string(),
             code: DEPENDENCY_ISSUE_INVALID_ID.to_string(),
@@ -260,13 +252,13 @@ pub fn plan_change_dependency_edit(
 }
 
 pub fn change_metadata_with_dependencies(
-    change: &ChangeStatus,
+    change: &crate::verified::repo::ChangeStatus,
     depends_on: Vec<String>,
-) -> ChangeMetadata {
+) -> crate::verified::repo::ChangeMetadata {
     let mut dependencies = depends_on;
     dependencies.sort();
     dependencies.dedup();
-    ChangeMetadata {
+    crate::verified::repo::ChangeMetadata {
         groups: change.metadata.groups.clone(),
         target_date: change.metadata.target_date.clone(),
         status: change.metadata.status.clone(),
@@ -275,7 +267,9 @@ pub fn change_metadata_with_dependencies(
     }
 }
 
-pub fn render_change_metadata_json(metadata: &ChangeMetadata) -> Result<String, serde_json::Error> {
+pub fn render_change_metadata_json(
+    metadata: &crate::verified::repo::ChangeMetadata,
+) -> Result<String, serde_json::Error> {
     // r[impl cairn.change_dependency_graph.authoring_cli]
     let mut object = serde_json::Map::new();
     if !metadata.groups.is_empty() {
@@ -392,15 +386,15 @@ fn dependency_edit_plan(
 }
 
 fn known_change_names_for_status(
-    changes: &[ChangeStatus],
+    changes: &[crate::verified::repo::ChangeStatus],
     archived_changes: &[String],
-) -> BTreeSet<String> {
+) -> std::collections::BTreeSet<String> {
     let active_set = sorted_active_names(changes)
         .into_iter()
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let archived_set = sorted_archived_names(archived_changes)
         .into_iter()
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     known_change_names(&active_set, &archived_set)
 }
 
@@ -422,10 +416,10 @@ fn apply_dependency_edit(
 }
 
 fn changes_with_dependency_update(
-    changes: &[ChangeStatus],
+    changes: &[crate::verified::repo::ChangeStatus],
     change_name: &str,
     dependencies: &[String],
-) -> Vec<ChangeStatus> {
+) -> Vec<crate::verified::repo::ChangeStatus> {
     changes
         .iter()
         .map(|change| {
@@ -439,7 +433,7 @@ fn changes_with_dependency_update(
 }
 
 fn graph_render_names(graph: &ChangeDependencyGraph) -> Vec<String> {
-    let mut names = BTreeSet::new();
+    let mut names = std::collections::BTreeSet::new();
     for node in &graph.nodes {
         names.insert(node.name.clone());
     }
@@ -450,7 +444,7 @@ fn graph_render_names(graph: &ChangeDependencyGraph) -> Vec<String> {
     names.into_iter().collect()
 }
 
-fn graph_node_ids(names: &[String]) -> BTreeMap<String, String> {
+fn graph_node_ids(names: &[String]) -> std::collections::BTreeMap<String, String> {
     names
         .iter()
         .enumerate()
@@ -480,17 +474,20 @@ fn render_lines(lines: Vec<String>) -> String {
 }
 
 pub fn build_change_dependency_graph(
-    changes: &[ChangeStatus],
+    changes: &[crate::verified::repo::ChangeStatus],
     archived_changes: &[String],
 ) -> ChangeDependencyGraph {
     // r[impl cairn.change_dependency_graph.graph_validation]
     // r[impl cairn.change_dependency_graph.trellis_primitives]
     // r[impl cairn.change_dependency_graph.trellis_primitives.portable]
     let active_names = sorted_active_names(changes);
-    let active_set = active_names.iter().cloned().collect::<BTreeSet<_>>();
+    let active_set = active_names
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
     let archived_set = sorted_archived_names(archived_changes)
         .into_iter()
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let known_set = known_change_names(&active_set, &archived_set);
     let mut context = GraphBuildContext {
         known_set,
@@ -518,7 +515,8 @@ pub fn build_change_dependency_graph(
             .then(left.dependency.cmp(&right.dependency))
     });
 
-    let topological = topological_order(&active_names, &context.topological_edges);
+    let topological =
+        crate::verified::dag::topological_order(&active_names, &context.topological_edges);
     for cyclic_node in &topological.blocked_nodes {
         context.issues.push(ChangeDependencyIssue {
             change: cyclic_node.clone(),
@@ -582,7 +580,7 @@ fn change_dependency_issue_message(issue: &ChangeDependencyIssue) -> String {
     format!("{}: {}: {}", issue.change, issue.code, issue.message)
 }
 
-fn sorted_active_names(changes: &[ChangeStatus]) -> Vec<String> {
+fn sorted_active_names(changes: &[crate::verified::repo::ChangeStatus]) -> Vec<String> {
     let mut names = changes
         .iter()
         .map(|change| change.name.clone())
@@ -600,15 +598,17 @@ fn sorted_archived_names(archived_changes: &[String]) -> Vec<String> {
 }
 
 fn known_change_names(
-    active_set: &BTreeSet<String>,
-    archived_set: &BTreeSet<String>,
-) -> BTreeSet<String> {
+    active_set: &std::collections::BTreeSet<String>,
+    archived_set: &std::collections::BTreeSet<String>,
+) -> std::collections::BTreeSet<String> {
     let mut known = active_set.clone();
     known.extend(archived_set.iter().cloned());
     known
 }
 
-fn initial_nodes(active_names: &[String]) -> BTreeMap<String, ChangeDependencyNode> {
+fn initial_nodes(
+    active_names: &[String],
+) -> std::collections::BTreeMap<String, ChangeDependencyNode> {
     active_names
         .iter()
         .map(|name| {
@@ -627,7 +627,9 @@ fn initial_nodes(active_names: &[String]) -> BTreeMap<String, ChangeDependencyNo
         .collect()
 }
 
-fn sorted_changes(changes: &[ChangeStatus]) -> Vec<&ChangeStatus> {
+fn sorted_changes(
+    changes: &[crate::verified::repo::ChangeStatus],
+) -> Vec<&crate::verified::repo::ChangeStatus> {
     let mut sorted = changes.iter().collect::<Vec<_>>();
     sorted.sort_by(|left, right| left.name.cmp(&right.name));
     sorted
@@ -645,8 +647,8 @@ fn unique_dependencies(
     issues: &mut Vec<ChangeDependencyIssue>,
 ) -> Vec<String> {
     let mut unique = Vec::new();
-    let mut seen = BTreeSet::new();
-    let mut duplicates = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut duplicates = std::collections::BTreeSet::new();
     for dependency in sorted_dependencies {
         if !seen.insert(dependency.clone()) {
             duplicates.insert(dependency.clone());
@@ -710,7 +712,7 @@ fn record_dependency_edge(change_name: &str, dependency: &str, context: &mut Gra
     }
 }
 
-fn sort_node_fields(nodes: &mut BTreeMap<String, ChangeDependencyNode>) {
+fn sort_node_fields(nodes: &mut std::collections::BTreeMap<String, ChangeDependencyNode>) {
     for node in nodes.values_mut() {
         node.dependencies.sort();
         node.dependencies.dedup();
@@ -724,13 +726,13 @@ fn sort_node_fields(nodes: &mut BTreeMap<String, ChangeDependencyNode>) {
 }
 
 fn mark_dependency_readiness(
-    nodes: &mut BTreeMap<String, ChangeDependencyNode>,
+    nodes: &mut std::collections::BTreeMap<String, ChangeDependencyNode>,
     issues: &[ChangeDependencyIssue],
 ) {
     let issue_changes = issues
         .iter()
         .map(|issue| issue.change.clone())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     for node in nodes.values_mut() {
         node.dependency_ready = node.blocked_by.is_empty() && !issue_changes.contains(&node.name);
     }
@@ -745,24 +747,23 @@ impl ChangeDependencyGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::verified::repo::{ChangeMetadata, TaskCounts};
 
-    fn change(name: &str, depends_on: &[&str]) -> ChangeStatus {
-        ChangeStatus {
+    fn change(name: &str, depends_on: &[&str]) -> crate::verified::repo::ChangeStatus {
+        crate::verified::repo::ChangeStatus {
             name: name.to_string(),
             path: format!(".cairn/changes/{name}"),
             has_proposal: true,
             has_design: true,
             has_tasks: true,
             delta_specs: vec![format!(".cairn/changes/{name}/specs/demo/spec.md")],
-            task_counts: Some(TaskCounts {
+            task_counts: Some(crate::verified::repo::TaskCounts {
                 total: TASK_TOTAL,
                 done: TASK_TOTAL,
                 in_progress: 0,
                 todo: 0,
                 unmarked: 0,
             }),
-            metadata: ChangeMetadata {
+            metadata: crate::verified::repo::ChangeMetadata {
                 groups: Vec::new(),
                 target_date: None,
                 status: None,

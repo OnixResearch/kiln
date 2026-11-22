@@ -1,17 +1,10 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use super::evidence::canonical_json_hash;
-
 pub const POLICY_EXCEPTION_SCHEMA_V1: &str = "cairn.policy-exception.v1";
 pub const POLICY_EXCEPTION_COB_TYPE_NAME: &str = "xyz.onixresearch.policy-exception";
 pub const POLICY_EXCEPTION_PORTABLE_SCHEMA_V1: &str = "cairn.policy-exception-portable.v1";
 const BLAKE3_HEX_LENGTH: usize = 64;
 
 // r[impl cairn.policy_exception_cob.scope]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PolicyScope {
     pub rule_ids: Vec<String>,
@@ -19,7 +12,7 @@ pub struct PolicyScope {
 }
 
 // r[impl cairn.policy_exception_cob.approval]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExceptionRequest {
     pub policy_identity: String,
@@ -30,7 +23,7 @@ pub struct ExceptionRequest {
 }
 
 // r[impl cairn.policy_exception_cob.validity]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ValidityObservation {
     pub id: String,
@@ -40,7 +33,7 @@ pub struct ValidityObservation {
 }
 
 // r[impl cairn.policy_exception_cob.approval]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExceptionFinding {
     pub id: String,
@@ -48,7 +41,7 @@ pub struct ExceptionFinding {
     pub description: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PolicyExceptionState {
     pub schema: String,
@@ -57,20 +50,20 @@ pub struct PolicyExceptionState {
     pub workspace_id: String,
     pub request: ExceptionRequest,
     pub request_revision: u64,
-    pub requesters: BTreeSet<String>,
-    pub reviewers: BTreeSet<String>,
-    pub approvers: BTreeSet<String>,
-    pub revokers: BTreeSet<String>,
-    pub observers: BTreeSet<String>,
-    pub findings: BTreeMap<String, ExceptionFinding>,
+    pub requesters: std::collections::BTreeSet<String>,
+    pub reviewers: std::collections::BTreeSet<String>,
+    pub approvers: std::collections::BTreeSet<String>,
+    pub revokers: std::collections::BTreeSet<String>,
+    pub observers: std::collections::BTreeSet<String>,
+    pub findings: std::collections::BTreeMap<String, ExceptionFinding>,
     pub approvals: Vec<String>,
-    pub observations: BTreeMap<String, ValidityObservation>,
+    pub observations: std::collections::BTreeMap<String, ValidityObservation>,
     pub lifecycle: String,
     pub predecessor: Option<String>,
-    pub operations: BTreeSet<String>,
+    pub operations: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PolicyExceptionInit {
     pub schema: String,
@@ -78,14 +71,14 @@ pub struct PolicyExceptionInit {
     pub exception_id: String,
     pub workspace_id: String,
     pub request: ExceptionRequest,
-    pub requesters: BTreeSet<String>,
-    pub reviewers: BTreeSet<String>,
-    pub approvers: BTreeSet<String>,
-    pub revokers: BTreeSet<String>,
-    pub observers: BTreeSet<String>,
+    pub requesters: std::collections::BTreeSet<String>,
+    pub reviewers: std::collections::BTreeSet<String>,
+    pub approvers: std::collections::BTreeSet<String>,
+    pub revokers: std::collections::BTreeSet<String>,
+    pub observers: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PolicyExceptionAction {
     Init { state: Box<PolicyExceptionInit> },
@@ -285,7 +278,7 @@ pub fn validate_scope(scope: &PolicyScope) -> Result<(), PolicyExceptionError> {
 }
 
 pub fn exception_request_root(request: &ExceptionRequest) -> Result<String, PolicyExceptionError> {
-    Ok(canonical_json_hash(&json!({
+    Ok(super::evidence::canonical_json_hash(&serde_json::json!({
         "policy": request.policy_identity,
         "scope": request.scope,
         "rationale": request.rationale,
@@ -324,12 +317,12 @@ pub fn initialize_exception(
         approvers: state.approvers.clone(),
         revokers: state.revokers.clone(),
         observers: state.observers.clone(),
-        findings: BTreeMap::new(),
+        findings: std::collections::BTreeMap::new(),
         approvals: Vec::new(),
-        observations: BTreeMap::new(),
+        observations: std::collections::BTreeMap::new(),
         lifecycle: "requested".to_string(),
         predecessor: None,
-        operations: BTreeSet::from([operation.id]),
+        operations: std::collections::BTreeSet::from([operation.id]),
     })
 }
 
@@ -590,13 +583,15 @@ impl PolicyExceptionState {
 }
 
 pub fn exception_state_hash(state: &PolicyExceptionState) -> Result<String, PolicyExceptionError> {
-    Ok(canonical_json_hash(&json!(state)))
+    Ok(super::evidence::canonical_json_hash(&serde_json::json!(
+        state
+    )))
 }
 
 pub fn exception_content_root(
     state: &PolicyExceptionState,
 ) -> Result<String, PolicyExceptionError> {
-    Ok(canonical_json_hash(&json!({
+    Ok(super::evidence::canonical_json_hash(&serde_json::json!({
         "kind": state.kind,
         "exception_id": state.exception_id,
         "request": state.request,
@@ -613,28 +608,38 @@ pub fn exception_content_root(
 pub fn serialize_exception_portable(
     state: &PolicyExceptionState,
 ) -> Result<String, PolicyExceptionError> {
-    let mut value = json!({
+    let mut value = serde_json::json!({
         "schema": POLICY_EXCEPTION_PORTABLE_SCHEMA_V1,
         "backend": "portable",
         "state": state,
     });
-    value["state_identity"] = json!(exception_state_hash(state)?);
-    value["content_identity"] = json!(exception_content_root(state)?);
-    value["portable_identity"] = json!(portable_identity(&value));
+    value["state_identity"] = serde_json::json!(exception_state_hash(state)?);
+    value["content_identity"] = serde_json::json!(exception_content_root(state)?);
+    value["portable_identity"] = serde_json::json!(portable_identity(&value));
     serde_json::to_string(&value).map_err(exception_json_error)
 }
 
 pub fn parse_exception_portable(text: &str) -> Result<PolicyExceptionState, PolicyExceptionError> {
-    let value: Value = serde_json::from_str(text).map_err(exception_json_error)?;
-    if value.get("schema").and_then(Value::as_str) != Some(POLICY_EXCEPTION_PORTABLE_SCHEMA_V1) {
+    let value: serde_json::Value = serde_json::from_str(text).map_err(exception_json_error)?;
+    if value.get("schema").and_then(serde_json::Value::as_str)
+        != Some(POLICY_EXCEPTION_PORTABLE_SCHEMA_V1)
+    {
         return Err(PolicyExceptionError::PortableTamper {
             field: "schema".to_string(),
         });
     }
-    let state: PolicyExceptionState =
-        serde_json::from_value(value.get("state").cloned().unwrap_or(Value::Null))
-            .map_err(exception_json_error)?;
-    if value.get("state_identity").and_then(Value::as_str) != Some(&exception_state_hash(&state)?) {
+    let state: PolicyExceptionState = serde_json::from_value(
+        value
+            .get("state")
+            .cloned()
+            .unwrap_or(serde_json::Value::Null),
+    )
+    .map_err(exception_json_error)?;
+    if value
+        .get("state_identity")
+        .and_then(serde_json::Value::as_str)
+        != Some(&exception_state_hash(&state)?)
+    {
         return Err(PolicyExceptionError::PortableTamper {
             field: "state_identity".to_string(),
         });
@@ -642,12 +647,12 @@ pub fn parse_exception_portable(text: &str) -> Result<PolicyExceptionState, Poli
     Ok(state)
 }
 
-fn portable_identity(value: &Value) -> String {
+fn portable_identity(value: &serde_json::Value) -> String {
     let mut material = value.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove("portable_identity");
     }
-    canonical_json_hash(&material)
+    super::evidence::canonical_json_hash(&material)
 }
 
 fn exception_json_error<E: std::fmt::Display>(error: E) -> PolicyExceptionError {

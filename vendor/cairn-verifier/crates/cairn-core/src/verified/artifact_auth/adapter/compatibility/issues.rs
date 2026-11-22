@@ -1,24 +1,16 @@
-use crate::AuthenticatedEvidenceReport;
-
-use super::{
-    push_classification, CairnArtifactAuthCompatibilityClassification,
-    CairnArtifactAuthCompatibilityDimension, CairnArtifactAuthCompatibilityDisposition,
-    CairnArtifactAuthReport,
-};
-
 pub(super) fn classify_issues(
-    legacy: &AuthenticatedEvidenceReport,
-    standalone: &CairnArtifactAuthReport,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    legacy: &crate::AuthenticatedEvidenceReport,
+    standalone: &super::CairnArtifactAuthReport,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     if legacy.issues.is_empty() && standalone.issues.is_empty() {
-        push_classification(
+        super::push_classification(
             output,
-            CairnArtifactAuthCompatibilityDimension::Issue,
+            super::CairnArtifactAuthCompatibilityDimension::Issue,
             "artifact_auth.compatibility.issue.none",
             None,
             None,
-            CairnArtifactAuthCompatibilityDisposition::Equal,
+            super::CairnArtifactAuthCompatibilityDisposition::Equal,
         );
         return;
     }
@@ -33,10 +25,10 @@ pub(super) fn classify_issues(
 }
 
 fn classify_legacy_issues<'a>(
-    legacy: &'a AuthenticatedEvidenceReport,
+    legacy: &'a crate::AuthenticatedEvidenceReport,
     standalone_codes: &[&'a str],
     matched_standalone: &mut Vec<&'a str>,
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     for issue in &legacy.issues {
         if let Some(mapped) = mapped_standalone_issue(&issue.code) {
@@ -49,9 +41,9 @@ fn classify_legacy_issues<'a>(
                 &issue.code,
                 is_matched.then_some(mapped),
                 if is_matched {
-                    CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+                    super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
                 } else {
-                    CairnArtifactAuthCompatibilityDisposition::Blocking
+                    super::CairnArtifactAuthCompatibilityDisposition::Blocking
                 },
             );
         } else {
@@ -61,9 +53,9 @@ fn classify_legacy_issues<'a>(
                 &issue.code,
                 None,
                 if is_retained {
-                    CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+                    super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
                 } else {
-                    CairnArtifactAuthCompatibilityDisposition::Blocking
+                    super::CairnArtifactAuthCompatibilityDisposition::Blocking
                 },
             );
         }
@@ -71,10 +63,10 @@ fn classify_legacy_issues<'a>(
 }
 
 fn classify_standalone_issues(
-    standalone: &CairnArtifactAuthReport,
+    standalone: &super::CairnArtifactAuthReport,
     standalone_codes: &[&str],
     matched_standalone: &[&str],
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
 ) {
     for issue in &standalone.issues {
         if matched_standalone.contains(&issue.code.as_str()) {
@@ -86,9 +78,9 @@ fn classify_standalone_issues(
             "artifact_auth.compatibility.issue.no_legacy_equivalent",
             Some(&issue.code),
             if is_enriched {
-                CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
+                super::CairnArtifactAuthCompatibilityDisposition::IntentionallyMapped
             } else {
-                CairnArtifactAuthCompatibilityDisposition::Blocking
+                super::CairnArtifactAuthCompatibilityDisposition::Blocking
             },
         );
     }
@@ -126,14 +118,14 @@ fn standalone_enriched_issue(code: &str, all_codes: &[&str]) -> bool {
 }
 
 fn push_issue_classification(
-    output: &mut Vec<CairnArtifactAuthCompatibilityClassification>,
+    output: &mut Vec<super::CairnArtifactAuthCompatibilityClassification>,
     legacy: &str,
     standalone: Option<&str>,
-    disposition: CairnArtifactAuthCompatibilityDisposition,
+    disposition: super::CairnArtifactAuthCompatibilityDisposition,
 ) {
-    push_classification(
+    super::push_classification(
         output,
-        CairnArtifactAuthCompatibilityDimension::Issue,
+        super::CairnArtifactAuthCompatibilityDimension::Issue,
         "artifact_auth.compatibility.issue.mapping",
         Some(legacy),
         standalone,

@@ -1,0 +1,28 @@
+{
+  "admitted_profiles": [
+    "legacy",
+    "structured-summary"
+  ],
+  "default_profile": "legacy",
+  "fallback": "summary omitted (budget exceeded); complete detail in structuredContent",
+  "gate_verdicts": [
+    "PASS",
+    "FAIL"
+  ],
+  "implementation_outcomes": [
+    "ready",
+    "blocked",
+    "incomplete_limit",
+    "completion_only",
+    "empty"
+  ],
+  "max_issue_count": 9999,
+  "max_summary_bytes": 256,
+  "readiness_states": [
+    "ready",
+    "blocked",
+    "unavailable",
+    "not_applicable"
+  ],
+  "schema": "cairn.mcp-response-profile.v1"
+}

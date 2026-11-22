@@ -1,9 +1,7 @@
-use crate::verified::lifecycle::{layout_name, LifecycleLayout};
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DoctorSnapshot {
     pub root: String,
-    pub selected_layout: LifecycleLayout,
+    pub selected_layout: crate::verified::lifecycle::LifecycleLayout,
     pub native_layout_present: bool,
     pub legacy_layout_present: bool,
     pub specs_dir_present: bool,
@@ -56,7 +54,7 @@ pub fn build_doctor_report(snapshot: DoctorSnapshot) -> DoctorReport {
         .all(|check| check.status != DoctorCheckStatus::Fail);
     DoctorReport {
         root: snapshot.root,
-        layout: layout_name(snapshot.selected_layout).to_string(),
+        layout: crate::verified::lifecycle::layout_name(snapshot.selected_layout).to_string(),
         valid: is_valid,
         spec_count: snapshot.spec_count,
         change_count: snapshot.change_count,
@@ -72,14 +70,17 @@ fn layout_check(snapshot: &DoctorSnapshot) -> DoctorCheck {
             DoctorCheckStatus::Warn,
             format!(
                 "selected {} layout; legacy and native roots are both present",
-                layout_name(snapshot.selected_layout)
+                crate::verified::lifecycle::layout_name(snapshot.selected_layout)
             ),
         );
     }
     doctor_check(
         "layout_selection",
         DoctorCheckStatus::Ok,
-        format!("selected {} layout", layout_name(snapshot.selected_layout)),
+        format!(
+            "selected {} layout",
+            crate::verified::lifecycle::layout_name(snapshot.selected_layout)
+        ),
     )
 }
 
@@ -176,7 +177,7 @@ mod tests {
     fn healthy_snapshot() -> DoctorSnapshot {
         DoctorSnapshot {
             root: "fixture".to_string(),
-            selected_layout: LifecycleLayout::LegacyOpenSpec,
+            selected_layout: crate::verified::lifecycle::LifecycleLayout::LegacyOpenSpec,
             native_layout_present: false,
             legacy_layout_present: true,
             specs_dir_present: true,

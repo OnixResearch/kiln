@@ -12,6 +12,17 @@ use alloc::{
 };
 use serde::{Deserialize, Serialize};
 
+mod lineage;
+mod serving;
+pub use lineage::{
+    LineageAccountProfile, LineageExplanation, LineageProfile, LineageRootProfile, LineageUsage,
+    MAX_LINEAGE_DEPTH,
+};
+pub use serving::{
+    ServingAdmissionPolicy, ServingCapacityRule, ServingExplanation, ServingObservation,
+    ServingOrigin, ServingReadiness,
+};
+
 pub const ADMISSION_VERSION: u16 = 1;
 pub const MAX_RECORDS: usize = 4096;
 pub const MAX_DIMENSIONS: usize = 16;
@@ -51,6 +62,10 @@ pub struct AdmissionPolicy {
     /// Explicit comparable campaign shares. Queue renaming cannot change these.
     pub shares: BTreeMap<Alias, u64>,
     pub group_limits: Vec<QueueGroupLimit>,
+    /// Opt-in serving-owner snapshot gate for worker requests. Absent keeps
+    /// the existing request path and policy identity unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub serving: Option<ServingAdmissionPolicy>,
 }
 impl AdmissionPolicy {
     pub fn validate(&self) -> CoreResult<()> {
@@ -100,6 +115,9 @@ impl AdmissionPolicy {
                 ));
             }
         }
+        if let Some(serving) = &self.serving {
+            serving.validate(self)?;
+        }
         Ok(())
     }
     pub fn identity(&self) -> CoreResult<ContentId> {
@@ -142,6 +160,9 @@ impl AdmissionPolicy {
             }
         }
         hash_amounts(&mut hasher, &self.shares);
+        if let Some(serving) = &self.serving {
+            serving.hash(&mut hasher);
+        }
         ContentId::from_blake3_hex(hasher.finalize().to_hex().to_string())
     }
 }
@@ -172,6 +193,8 @@ pub enum AdmissionReason {
     Incompatible,
     Stale,
     ConcurrencyFull,
+    /// The serving owner's aggregate scope reports no slot and a full queue.
+    Overloaded,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -196,6 +219,10 @@ pub struct AdmissionExplanation {
     pub held: Amounts,
     pub measured: Amounts,
     pub observation_at_ms: Option<u64>,
+    #[serde(default)]
+    pub lineage: Option<LineageExplanation>,
+    #[serde(default)]
+    pub serving: Option<ServingExplanation>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -241,7 +268,7 @@ pub struct BudgetAccount {
     pub consumed: Amounts,
     pub children: u32,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ChargeKind {
     PhysicalDeployment,
@@ -334,6 +361,12 @@ pub struct AdmissionLedger {
     pub eligibility: BTreeMap<ContentId, EligibilityInput>,
     pub observations: BTreeMap<Alias, UsageObservation>,
     pub next_order: u64,
+    /// Latest serving-owner snapshot per owner aggregate scope; evidence only.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub serving: BTreeMap<ContentId, ServingObservation>,
+    /// Revoked lineage accounts; revocation never refunds outstanding usage.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub revoked: BTreeSet<ContentId>,
 }
 impl AdmissionLedger {
     pub fn configure(&mut self, policy: AdmissionPolicy) -> CoreResult<ContentId> {
@@ -416,6 +449,15 @@ impl AdmissionLedger {
             } else {
                 Err(err("admission_child_conflict", "child identity reused"))
             };
+        }
+        if let Some(blocker) = self.lineage_blocker(parent, None)? {
+            return Err(err(
+                "admission_lineage_blocked",
+                match blocker {
+                    AdmissionReason::Denied => "parent lineage budget is revoked",
+                    _ => "parent lineage is cancelled or expired",
+                },
+            ));
         }
         let source = self
             .accounts
@@ -540,6 +582,10 @@ impl AdmissionLedger {
         }
         if now_ms >= item.deadline_ms {
             return Ok(AdmissionReason::Expired);
+        }
+        // A revoked, cancelled or expired lineage cannot queue new descendants.
+        if let Some(blocker) = self.lineage_blocker(&item.account, Some(now_ms))? {
+            return Ok(blocker);
         }
         self.next_order = self
             .next_order
@@ -775,6 +821,26 @@ impl AdmissionLedger {
         work_scope: Option<&ContentId>,
     ) -> CoreResult<Option<ContentId>> {
         let policy = self.policy()?.clone();
+        // Computed before mutation: lineage blockers per account and the
+        // provider-level serving gate (None when the serving policy is off).
+        let mut blockers = BTreeMap::new();
+        let mut gates = BTreeMap::new();
+        for item in self.items.values() {
+            if !blockers.contains_key(&item.account) {
+                blockers.insert(
+                    item.account.clone(),
+                    self.lineage_blocker(&item.account, Some(now_ms))?,
+                );
+            }
+            for (owner, kind) in &item.required_owners {
+                if *kind == ChargeKind::WorkerRequest
+                    && !gates.contains_key(owner)
+                    && let Some(gate) = self.provider_serving_gate(owner, now_ms)
+                {
+                    gates.insert(owner.clone(), gate);
+                }
+            }
+        }
         let mut eligible = Vec::new();
         for (id, item) in &mut self.items {
             if !matches!(
@@ -784,6 +850,14 @@ impl AdmissionLedger {
                 continue;
             }
             if item.reason == AdmissionReason::CancellationRequested {
+                continue;
+            }
+            // Lineage blockers precede the fully-reserved skip so explanations
+            // show them; the item's own deadline still expires it below.
+            if now_ms < item.deadline_ms
+                && let Some(Some(blocker)) = blockers.get(&item.account)
+            {
+                item.reason = *blocker;
                 continue;
             }
             if item.phase == AdmissionPhase::Reserved
@@ -848,6 +922,32 @@ impl AdmissionLedger {
             });
             if !budget_available {
                 item.reason = AdmissionReason::BudgetExhausted;
+                continue;
+            }
+            // Serving backpressure applies before claim and before each new
+            // request; an owner operation already retained is not re-gated.
+            let serving_block = item
+                .required_owners
+                .iter()
+                .filter(|(owner, kind)| {
+                    **kind == ChargeKind::WorkerRequest
+                        && !self.reservations.values().any(|r| {
+                            r.work_version == *id
+                                && &r.provider == *owner
+                                && matches!(
+                                    r.state,
+                                    ReservationState::Tentative
+                                        | ReservationState::Committed
+                                        | ReservationState::Unknown
+                                )
+                        })
+                })
+                .filter_map(|(owner, _)| gates.get(owner))
+                .find(|gate| **gate != AdmissionReason::Eligible);
+            if input.reason == AdmissionReason::Eligible
+                && let Some(gate) = serving_block
+            {
+                item.reason = *gate;
                 continue;
             }
             if input.reason == AdmissionReason::Eligible
@@ -1029,6 +1129,25 @@ impl AdmissionLedger {
             return Err(err(
                 "admission_serving_scope",
                 "worker requests require explicit finite owner-aggregate serving bounds",
+            ));
+        }
+        if self
+            .lineage_blocker(&reservation.account, Some(now_ms))?
+            .is_some()
+        {
+            return Err(err(
+                "admission_lineage_blocked",
+                "revoked, cancelled or expired lineage cannot request owner capacity",
+            ));
+        }
+        if reservation.kind == ChargeKind::WorkerRequest
+            && self
+                .request_serving_gate(&reservation, now_ms)
+                .is_some_and(|gate| gate != AdmissionReason::Eligible)
+        {
+            return Err(err(
+                "admission_serving_backpressure",
+                "serving owner snapshot is stale, missing, not ready or overloaded",
             ));
         }
         let item = self
@@ -1250,6 +1369,15 @@ impl AdmissionLedger {
             .items
             .get(&reservation.work_version)
             .ok_or_else(|| err("admission_work", "work missing"))?;
+        if self
+            .lineage_blocker(&reservation.account, Some(now_ms))?
+            .is_some()
+        {
+            return Err(err(
+                "admission_lineage_blocked",
+                "revoked, cancelled or expired lineage cannot dispatch",
+            ));
+        }
         if reservation.state != ReservationState::Committed
             || &reservation.claim != claim
             || reservation.generation != generation
@@ -1513,7 +1641,8 @@ impl AdmissionLedger {
         }
         Ok(())
     }
-    pub fn explanation(&self, work: &ContentId) -> CoreResult<AdmissionExplanation> {
+    /// Display-only explanation at `now_ms`; it grants and refreshes nothing.
+    pub fn explanation(&self, work: &ContentId, now_ms: u64) -> CoreResult<AdmissionExplanation> {
         let item = self
             .items
             .get(work)
@@ -1567,6 +1696,8 @@ impl AdmissionLedger {
                 })
                 .unwrap_or_default(),
             observation_at_ms: observation.map(|o| o.usage.observed_at),
+            lineage: Some(self.lineage_explanation(&item.account, now_ms)?),
+            serving: self.serving_explanation(item, now_ms),
         })
     }
 }

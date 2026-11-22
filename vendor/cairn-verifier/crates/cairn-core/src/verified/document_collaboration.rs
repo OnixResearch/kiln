@@ -21,7 +21,7 @@ pub const DOCUMENT_ROLE_APPROVER: &str = "approver";
 const BLAKE3_HEX_LENGTH: usize = 64;
 
 // r[impl cairn.document_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DocumentKind {
     Rfd,
@@ -63,7 +63,7 @@ impl TryFrom<&str> for DocumentKind {
 }
 
 // r[impl cairn.document_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DocumentRole {
     Author,
@@ -86,7 +86,7 @@ impl DocumentRole {
 }
 
 // r[impl cairn.document_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DiscussionRecord {
     pub id: String,
@@ -96,7 +96,7 @@ pub struct DiscussionRecord {
 }
 
 // r[impl cairn.document_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DocumentLink {
     pub id: String,
@@ -107,7 +107,7 @@ pub struct DocumentLink {
 }
 
 // r[impl cairn.rfd_cob.identity]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PublicationNumber {
     pub number: u64,
@@ -118,7 +118,7 @@ pub struct PublicationNumber {
 }
 
 // r[impl cairn.document_collaboration.semantic_core]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DocumentState {
     pub schema: String,
@@ -127,35 +127,35 @@ pub struct DocumentState {
     pub workspace_id: String,
     pub base_revision: String,
     pub policy_hash: String,
-    pub authors: BTreeSet<String>,
-    pub participants: BTreeSet<String>,
-    pub reviewers: BTreeSet<String>,
-    pub approvers: BTreeSet<String>,
-    pub publishers: BTreeSet<String>,
-    pub artifacts: BTreeMap<String, DocumentRevisionSet>,
-    pub links: BTreeMap<String, DocumentLink>,
-    pub discussion: BTreeMap<String, DiscussionRecord>,
+    pub authors: std::collections::BTreeSet<String>,
+    pub participants: std::collections::BTreeSet<String>,
+    pub reviewers: std::collections::BTreeSet<String>,
+    pub approvers: std::collections::BTreeSet<String>,
+    pub publishers: std::collections::BTreeSet<String>,
+    pub artifacts: std::collections::BTreeMap<String, DocumentRevisionSet>,
+    pub links: std::collections::BTreeMap<String, DocumentLink>,
+    pub discussion: std::collections::BTreeMap<String, DiscussionRecord>,
     pub lifecycle: DocumentLifecycleRecord,
-    pub evidence: BTreeMap<String, String>,
+    pub evidence: std::collections::BTreeMap<String, String>,
     pub publication: Option<PublicationNumber>,
-    pub operations: BTreeSet<String>,
+    pub operations: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct DocumentRevisionSet {
-    pub revisions: BTreeMap<String, String>,
-    pub supersedes: BTreeMap<String, BTreeSet<String>>,
+    pub revisions: std::collections::BTreeMap<String, String>,
+    pub supersedes: std::collections::BTreeMap<String, std::collections::BTreeSet<String>>,
 }
 
 impl DocumentRevisionSet {
-    pub fn head_ids(&self) -> BTreeSet<String> {
+    pub fn head_ids(&self) -> std::collections::BTreeSet<String> {
         let superseded = self
             .supersedes
             .values()
             .flatten()
             .cloned()
-            .collect::<BTreeSet<_>>();
+            .collect::<std::collections::BTreeSet<_>>();
         self.revisions
             .keys()
             .filter(|id| !superseded.contains(*id))
@@ -167,7 +167,7 @@ impl DocumentRevisionSet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DocumentLifecycleStatus {
     Draft,
@@ -179,16 +179,16 @@ pub enum DocumentLifecycleStatus {
     Superseded,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DocumentLifecycleRecord {
     pub status: DocumentLifecycleStatus,
     pub subject_root: String,
     #[serde(default)]
-    pub basis: BTreeSet<String>,
+    pub basis: std::collections::BTreeSet<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum DocumentAction {
     Init {
@@ -197,29 +197,29 @@ pub enum DocumentAction {
     SetArtifact {
         artifact: String,
         content: Option<String>,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
     AddDiscussion {
         record: DiscussionRecord,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
     AddLink {
         link: DocumentLink,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
     SetLifecycle {
         status: DocumentLifecycleStatus,
         subject_root: String,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
     SetPublication {
         publication: PublicationNumber,
-        basis: BTreeSet<String>,
+        basis: std::collections::BTreeSet<String>,
     },
 }
 
 // r[impl cairn.rfd_cob.profile.root]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DocumentInit {
     pub schema: String,
@@ -228,12 +228,12 @@ pub struct DocumentInit {
     pub workspace_id: String,
     pub base_revision: String,
     pub policy_hash: String,
-    pub authors: BTreeSet<String>,
-    pub participants: BTreeSet<String>,
-    pub reviewers: BTreeSet<String>,
-    pub approvers: BTreeSet<String>,
-    pub publishers: BTreeSet<String>,
-    pub artifacts: BTreeMap<String, String>,
+    pub authors: std::collections::BTreeSet<String>,
+    pub participants: std::collections::BTreeSet<String>,
+    pub reviewers: std::collections::BTreeSet<String>,
+    pub approvers: std::collections::BTreeSet<String>,
+    pub publishers: std::collections::BTreeSet<String>,
+    pub artifacts: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

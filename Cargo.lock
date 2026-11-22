@@ -229,6 +229,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "artifact-auth-ed25519"
+version = "0.1.0"
+dependencies = [
+ "artifact-auth-core",
+ "blake3",
+ "ed25519-dalek 2.2.0",
+]
+
+[[package]]
 name = "ascii"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -600,11 +609,13 @@ checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cairn-core"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "artifact-auth-core",
+ "artifact-auth-ed25519",
  "blake3",
  "iddqd",
+ "kiln-core",
  "preserves 4.996.0",
  "serde",
  "serde_json",
@@ -2984,6 +2995,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-adapter-animus"
+version = "0.1.0"
+dependencies = [
+ "onix-kiln-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kiln-adapter-aspen"
 version = "0.1.0"
 dependencies = [
@@ -3474,6 +3494,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "kiln-core"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "serde",
+]
+
+[[package]]
 name = "kiln-dashboard"
 version = "0.1.0"
 dependencies = [
@@ -3739,6 +3767,7 @@ dependencies = [
  "git2",
  "hmac 0.12.1",
  "jiff",
+ "kiln-adapter-animus",
  "kiln-adapter-cairn",
  "kiln-adapter-git",
  "kiln-adapter-github",

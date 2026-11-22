@@ -1,6 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistrySourceRecord {
     pub source_id: String,
     pub family: String,
@@ -14,7 +12,7 @@ pub struct RegistrySourceRecord {
     pub record_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistryNode {
     pub stable_id: String,
     pub kind: String,
@@ -29,7 +27,7 @@ pub struct RegistryNode {
     pub record_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistryTagAssignment {
     pub assignment_id: String,
     pub subject_id: String,
@@ -44,7 +42,7 @@ pub struct RegistryTagAssignment {
     pub record_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistryEdge {
     pub stable_id: String,
     pub kind: String,
@@ -59,7 +57,7 @@ pub struct RegistryEdge {
     pub record_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistryAdapterMetadata {
     pub adapter_id: String,
     pub adapter_kind: String,
@@ -70,7 +68,7 @@ pub struct RegistryAdapterMetadata {
     pub record_families: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct GlobalRegistrySnapshot {
     pub schema: String,
     pub scope_id: String,
@@ -90,7 +88,7 @@ pub struct GlobalRegistrySnapshot {
     pub snapshot_hash: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 pub struct RegistryCandidateRecords {
     #[serde(default)]
     pub sources: Vec<RegistrySourceRecord>,
@@ -104,7 +102,7 @@ pub struct RegistryCandidateRecords {
     pub adapters: Vec<RegistryAdapterMetadata>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct RegistryIssue {
     pub code: String,
     pub record_kind: String,
@@ -115,7 +113,7 @@ pub struct RegistryIssue {
     pub message: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct RegistrySnapshotReport {
     pub valid: bool,
     pub verdict: String,
@@ -126,7 +124,7 @@ pub struct RegistrySnapshotReport {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistryCorePolicy {
     #[serde(default)]
     pub reserved_tag_namespaces: Vec<String>,
@@ -136,7 +134,7 @@ pub struct RegistryCorePolicy {
     pub required_non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RegistryGraphProfile {
     pub id: String,
     #[serde(default)]
@@ -146,7 +144,7 @@ pub struct RegistryGraphProfile {
     pub require_dag: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RegistryGraphDirection {
     Ancestors,
@@ -154,7 +152,7 @@ pub enum RegistryGraphDirection {
     Both,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct RegistryGraphReport {
     pub valid: bool,
     pub verdict: String,
@@ -171,7 +169,7 @@ pub struct RegistryGraphReport {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct RegistryQueryReport {
     pub valid: bool,
     pub verdict: String,

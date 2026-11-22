@@ -165,6 +165,12 @@ button.cairn-subject { min-height: 0; padding: 0; color: var(--foreground); text
 .cairn-member-title { font: 700 var(--text-md)/1.35 var(--mono); overflow-wrap: anywhere; }
 .cairn-hold { font-size: var(--text-xs); }
 
+/* Agents and revisions: revision slots, provenance and pins, each a state badge with its value or owner. */
+.cairn-slot { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; }
+.cairn-owner { overflow-wrap: anywhere; }
+.cairn-family { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.cairn-agents-source { margin: 0; }
+
 /* Disclosures: exact identities, decision facts, the legend and Browse changes. */
 .cairn-disclosure { min-width: 0; border-top: 1px solid var(--border); }
 .cairn-disclosure > summary { min-height: max(var(--control-height), 2.75rem); padding-block: var(--space-2); color: var(--foreground); font-weight: 600; }

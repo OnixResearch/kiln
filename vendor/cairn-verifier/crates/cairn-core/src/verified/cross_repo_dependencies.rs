@@ -1,9 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde_json::{json, Value};
-
-use crate::canonical_json_hash;
-
 pub const CROSS_REPO_DEPENDENCY_SCHEMA_V1: &str = "cairn.cross-repo-dependency.v1";
 pub const CROSS_REPO_RECEIPT_SCHEMA_V1: &str = "cairn.cross-repo-dependency-receipt.v1";
 pub const CROSS_REPO_NON_CLAIM_LINKAGE: &str =
@@ -122,8 +116,8 @@ pub struct CrossRepoDependencyReport {
 
 impl CrossRepoDependencyReport {
     #[must_use]
-    pub fn to_json(&self) -> Value {
-        json!({
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
             "schema": CROSS_REPO_RECEIPT_SCHEMA_V1,
             "dependency_count": self.dependency_count,
             "satisfied_count": self.satisfied_count,
@@ -140,8 +134,8 @@ impl CrossRepoDependencyReport {
 }
 
 #[must_use]
-pub fn cross_repo_dependency_contract() -> Value {
-    json!({
+pub fn cross_repo_dependency_contract() -> serde_json::Value {
+    serde_json::json!({
         "schema": CROSS_REPO_DEPENDENCY_SCHEMA_V1,
         "supported_receipt_kinds": SUPPORTED_RECEIPT_KINDS,
         "passing_status": PASS_STATUS,
@@ -179,7 +173,7 @@ pub fn build_radicle_issue_receipt(
         status: PASS_STATUS.to_string(),
         policy_hash: None,
         subject_hash: Some(observation.subject_hash.clone()),
-        receipt_hash: canonical_json_hash(&json!({
+        receipt_hash: crate::canonical_json_hash(&serde_json::json!({
             "repo": observation.repo,
             "issue_id": observation.issue_id,
             "object_id": observation.object_id,
@@ -192,8 +186,8 @@ pub fn build_radicle_issue_receipt(
 }
 
 #[must_use]
-pub fn radicle_issue_receipt_contract() -> Value {
-    json!({
+pub fn radicle_issue_receipt_contract() -> serde_json::Value {
+    serde_json::json!({
         "schema": RADICLE_ISSUE_RECEIPT_SCHEMA_V1,
         "receipt_kind": RADICLE_ISSUE_RECEIPT_KIND,
         "passing_status": PASS_STATUS,
@@ -232,7 +226,7 @@ pub fn evaluate_cross_repo_dependencies(
     });
 
     let mut rows = Vec::with_capacity(sorted_dependencies.len());
-    let mut seen_ids = BTreeSet::new();
+    let mut seen_ids = std::collections::BTreeSet::new();
     for dependency in &sorted_dependencies {
         if !seen_ids.insert(dependency.id.clone()) {
             rows.push(blocked_row(
@@ -253,14 +247,14 @@ pub fn evaluate_cross_repo_dependencies(
     }
     let satisfied_count = rows.iter().filter(|row| row.satisfied).count();
     let blocked_count = rows.len().saturating_sub(satisfied_count);
-    let input_material = json!({
+    let input_material = serde_json::json!({
         "schema": CROSS_REPO_DEPENDENCY_SCHEMA_V1,
         "dependencies": dependencies_json(&sorted_dependencies),
         "evidence": evidence_json(&sorted_evidence),
         "policy_hash": policy_hash,
     });
-    let input_hash = canonical_json_hash(&input_material);
-    let receipt_material = json!({
+    let input_hash = crate::canonical_json_hash(&input_material);
+    let receipt_material = serde_json::json!({
         "schema": CROSS_REPO_RECEIPT_SCHEMA_V1,
         "dependency_count": rows.len(),
         "satisfied_count": satisfied_count,
@@ -270,7 +264,7 @@ pub fn evaluate_cross_repo_dependencies(
         "policy_hash": policy_hash,
         "non_claims": default_non_claims(),
     });
-    let receipt_hash = canonical_json_hash(&receipt_material);
+    let receipt_hash = crate::canonical_json_hash(&receipt_material);
     CrossRepoDependencyReport {
         dependency_count: rows.len(),
         satisfied_count,
@@ -596,7 +590,7 @@ fn diagnostic(
     actual: Option<String>,
     artifact_ref: Option<String>,
 ) -> CrossRepoDependencyDiagnostic {
-    let diagnostic_id = canonical_json_hash(&json!({
+    let diagnostic_id = crate::canonical_json_hash(&serde_json::json!({
         "dependency_id": dependency.id,
         "code": code,
         "status": status,
@@ -624,10 +618,10 @@ fn diagnostic(
     }
 }
 
-fn dependencies_json(rows: &[CrossRepoDependency]) -> Vec<Value> {
+fn dependencies_json(rows: &[CrossRepoDependency]) -> Vec<serde_json::Value> {
     rows.iter()
         .map(|row| {
-            json!({
+            serde_json::json!({
                 "id": row.id,
                 "repo": row.repo,
                 "change": row.change,
@@ -642,10 +636,10 @@ fn dependencies_json(rows: &[CrossRepoDependency]) -> Vec<Value> {
         .collect()
 }
 
-fn evidence_json(rows: &[CrossRepoReceiptSummary]) -> Vec<Value> {
+fn evidence_json(rows: &[CrossRepoReceiptSummary]) -> Vec<serde_json::Value> {
     rows.iter()
         .map(|row| {
-            json!({
+            serde_json::json!({
                 "repo": row.repo,
                 "change": row.change,
                 "receipt_kind": row.receipt_kind,
@@ -660,10 +654,10 @@ fn evidence_json(rows: &[CrossRepoReceiptSummary]) -> Vec<Value> {
         .collect()
 }
 
-fn rows_json(rows: &[CrossRepoDependencyRowResult]) -> Vec<Value> {
+fn rows_json(rows: &[CrossRepoDependencyRowResult]) -> Vec<serde_json::Value> {
     rows.iter()
         .map(|row| {
-            json!({
+            serde_json::json!({
                 "dependency_id": row.dependency_id,
                 "repo": row.repo,
                 "change": row.change,
@@ -677,8 +671,8 @@ fn rows_json(rows: &[CrossRepoDependencyRowResult]) -> Vec<Value> {
         .collect()
 }
 
-fn diagnostic_json(diagnostic: &CrossRepoDependencyDiagnostic) -> Value {
-    json!({
+fn diagnostic_json(diagnostic: &CrossRepoDependencyDiagnostic) -> serde_json::Value {
+    serde_json::json!({
         "diagnostic_id": diagnostic.diagnostic_id,
         "code": diagnostic.code,
         "dependency_id": diagnostic.dependency_id,
@@ -749,7 +743,7 @@ fn default_non_claims() -> Vec<String> {
 
 #[must_use]
 pub fn parse_cross_repo_dependencies(
-    value: Option<&Value>,
+    value: Option<&serde_json::Value>,
 ) -> (Vec<CrossRepoDependency>, Vec<String>) {
     let Some(value) = value else {
         return (Vec::new(), Vec::new());
@@ -772,14 +766,14 @@ pub fn parse_cross_repo_dependencies(
     (dependencies, issues)
 }
 
-fn parse_dependency_row(value: &Value) -> Result<CrossRepoDependency, &'static str> {
+fn parse_dependency_row(value: &serde_json::Value) -> Result<CrossRepoDependency, &'static str> {
     let object = value
         .as_object()
         .ok_or("cross_repo_dependency.metadata.row_invalid")?;
     let required = |field: &str| {
         object
             .get(field)
-            .and_then(Value::as_str)
+            .and_then(serde_json::Value::as_str)
             .map(str::to_string)
             .ok_or("cross_repo_dependency.metadata.field_missing")
     };
@@ -796,7 +790,7 @@ fn parse_dependency_row(value: &Value) -> Result<CrossRepoDependency, &'static s
     };
     let non_claims = object
         .get("non_claims")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .ok_or("cross_repo_dependency.metadata.non_claims_invalid")?
         .iter()
         .map(|value| {
@@ -844,8 +838,8 @@ pub fn dependency_blocker_messages(report: &CrossRepoDependencyReport) -> Vec<St
 #[must_use]
 pub fn summaries_by_identity(
     evidence: &[CrossRepoReceiptSummary],
-) -> BTreeMap<(String, String, String), Vec<CrossRepoReceiptSummary>> {
-    let mut grouped = BTreeMap::new();
+) -> std::collections::BTreeMap<(String, String, String), Vec<CrossRepoReceiptSummary>> {
+    let mut grouped = std::collections::BTreeMap::new();
     for summary in evidence {
         grouped
             .entry((
@@ -1002,11 +996,11 @@ mod tests {
 
     #[test]
     fn parsing_rejects_malformed_rows_without_panicking() {
-        let malformed = json!([{"id":"demo"}, "not-an-object"]);
+        let malformed = serde_json::json!([{"id":"demo"}, "not-an-object"]);
         let (rows, issues) = parse_cross_repo_dependencies(Some(&malformed));
         assert!(rows.is_empty());
         assert_eq!(issues.len(), 2);
-        let (rows, issues) = parse_cross_repo_dependencies(Some(&json!({})));
+        let (rows, issues) = parse_cross_repo_dependencies(Some(&serde_json::json!({})));
         assert!(rows.is_empty());
         assert_eq!(issues, ["cross_repo_dependency.metadata.invalid_type"]);
     }
@@ -1034,7 +1028,7 @@ mod tests {
         assert_eq!(contract["receipt_kind"], RADICLE_ISSUE_RECEIPT_KIND);
         assert!(contract["non_claims"]
             .as_array()
-            .map(|claims| claims.contains(&json!(RADICLE_ISSUE_NON_CLAIM_AUTHORITY)))
+            .map(|claims| claims.contains(&serde_json::json!(RADICLE_ISSUE_NON_CLAIM_AUTHORITY)))
             .unwrap_or(false));
 
         let observation = RadicleIssueObservation {

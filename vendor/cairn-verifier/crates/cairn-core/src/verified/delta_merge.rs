@@ -1,9 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
-use serde::Serialize;
-
-use super::evidence::blake3_hex;
-
 const ACCEPTED_REQUIREMENTS_HEADING: &str = "## Requirements";
 const ADDED_REQUIREMENTS_HEADING: &str = "## ADDED Requirements";
 const MODIFIED_REQUIREMENTS_HEADING: &str = "## MODIFIED Requirements";
@@ -13,7 +7,7 @@ const SCENARIO_HEADING_PREFIX: &str = "#### Scenario:";
 const REQUIREMENT_ID_PREFIX: &str = "r[";
 const REQUIREMENT_ID_SUFFIX: char = ']';
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DeltaOperationKind {
     Added,
@@ -31,7 +25,7 @@ impl DeltaOperationKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DeltaOperationState {
     Applied,
@@ -47,7 +41,7 @@ impl DeltaOperationState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct DeltaOperation {
     pub kind: DeltaOperationKind,
     pub requirement_id: String,
@@ -57,14 +51,14 @@ pub struct DeltaOperation {
     pub block: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct DeltaOperationOutcome {
     pub kind: DeltaOperationKind,
     pub requirement_id: String,
     pub state: DeltaOperationState,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
 pub struct DeltaMergeDiagnostic {
     pub code: String,
     pub message: String,
@@ -116,8 +110,8 @@ pub fn merge_delta_spec(accepted: Option<&str>, delta: &str, spec_id: &str) -> D
         .filter(|text| !text.trim().is_empty())
         .map(ToOwned::to_owned)
         .unwrap_or_else(|| empty_accepted_spec(spec_id));
-    let accepted_hash = blake3_hex(base.as_bytes());
-    let delta_hash = blake3_hex(delta.as_bytes());
+    let accepted_hash = super::evidence::blake3_hex(base.as_bytes());
+    let delta_hash = super::evidence::blake3_hex(delta.as_bytes());
 
     let (operations, mut diagnostics) = parse_delta_operations(delta);
     let accepted_document = parse_accepted_document(&base, &mut diagnostics);
@@ -142,7 +136,7 @@ pub fn merge_delta_spec(accepted: Option<&str>, delta: &str, spec_id: &str) -> D
     }
     let changed = !blocked && computed_markdown != base;
     let markdown = if blocked { base } else { computed_markdown };
-    let result_hash = blake3_hex(markdown.as_bytes());
+    let result_hash = super::evidence::blake3_hex(markdown.as_bytes());
     let added_blocks = operations
         .iter()
         .filter(|operation| operation.kind != DeltaOperationKind::Removed)
@@ -206,7 +200,7 @@ fn extract_delta_sections(
 ) -> Vec<DeltaSection> {
     let mut sections = Vec::new();
     let mut current: Option<DeltaSection> = None;
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     let mut fenced = false;
 
     for line in delta.lines() {
@@ -342,7 +336,7 @@ fn operation_from_block(
         kind,
         requirement_id: ids[0].clone(),
         heading,
-        block_hash: blake3_hex(block.as_bytes()),
+        block_hash: super::evidence::blake3_hex(block.as_bytes()),
         block: block.to_string(),
     })
 }
@@ -378,7 +372,7 @@ fn parse_accepted_document(
     };
     let (preamble, raw_blocks) = accepted_requirement_blocks(&requirements);
     let mut blocks = Vec::new();
-    let mut locations = BTreeMap::<String, Vec<String>>::new();
+    let mut locations = std::collections::BTreeMap::<String, Vec<String>>::new();
 
     for block in raw_blocks {
         let heading = block.lines().next().unwrap_or_default().trim().to_string();
@@ -519,7 +513,7 @@ fn diagnose_duplicate_operation_ids(
     operations: &[DeltaOperation],
     diagnostics: &mut Vec<DeltaMergeDiagnostic>,
 ) {
-    let mut locations = BTreeMap::<&str, Vec<String>>::new();
+    let mut locations = std::collections::BTreeMap::<&str, Vec<String>>::new();
     for operation in operations {
         locations
             .entry(&operation.requirement_id)

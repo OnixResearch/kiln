@@ -1,5 +1,3 @@
-use serde_json::Value;
-
 pub const STEEL_ORCHESTRATION_RECEIPT_SCHEMA_V1: &str = "cairn.steel-orchestration-receipt.v1";
 pub const STEEL_ACTION_ENVELOPE_SCHEMA_V1: &str = "cairn.steel-action-envelope.v1";
 
@@ -17,7 +15,7 @@ pub struct SteelActionIssue {
 }
 
 pub fn validate_steel_action_envelope(
-    envelope: &Value,
+    envelope: &serde_json::Value,
     allowed_host_functions: &[String],
 ) -> SteelActionValidationReport {
     let mut issues = Vec::new();
@@ -31,7 +29,10 @@ pub fn validate_steel_action_envelope(
     require_nonempty_string(envelope, "profile_id", &mut issues);
     require_nonempty_string(envelope, "script_hash", &mut issues);
 
-    match envelope.get("actions").and_then(Value::as_array) {
+    match envelope
+        .get("actions")
+        .and_then(serde_json::Value::as_array)
+    {
         Some(actions) if actions.is_empty() => issues.push(issue(
             "empty_actions",
             "actions",
@@ -56,14 +57,17 @@ pub fn validate_steel_action_envelope(
 }
 
 fn validate_action(
-    action: &Value,
+    action: &serde_json::Value,
     index: usize,
     allowed_host_functions: &[String],
     issues: &mut Vec<SteelActionIssue>,
 ) {
     let prefix = format!("actions[{index}]");
     require_nonempty_string(action, "id", issues);
-    let Some(host_function) = action.get("host_function").and_then(Value::as_str) else {
+    let Some(host_function) = action
+        .get("host_function")
+        .and_then(serde_json::Value::as_str)
+    else {
         issues.push(issue(
             "missing_host_function",
             format!("{prefix}.host_function"),
@@ -83,7 +87,7 @@ fn validate_action(
         ));
     }
 
-    if !matches!(action.get("args"), Some(Value::Object(_))) {
+    if !matches!(action.get("args"), Some(serde_json::Value::Object(_))) {
         issues.push(issue(
             "invalid_args",
             format!("{prefix}.args"),
@@ -93,12 +97,12 @@ fn validate_action(
 }
 
 fn expect_string(
-    value: &Value,
+    value: &serde_json::Value,
     field: &'static str,
     expected: &'static str,
     issues: &mut Vec<SteelActionIssue>,
 ) {
-    match value.get(field).and_then(Value::as_str) {
+    match value.get(field).and_then(serde_json::Value::as_str) {
         Some(actual) if actual == expected => {}
         Some(_) => issues.push(issue(
             "invalid_string",
@@ -109,8 +113,12 @@ fn expect_string(
     }
 }
 
-fn require_nonempty_string(value: &Value, field: &'static str, issues: &mut Vec<SteelActionIssue>) {
-    match value.get(field).and_then(Value::as_str) {
+fn require_nonempty_string(
+    value: &serde_json::Value,
+    field: &'static str,
+    issues: &mut Vec<SteelActionIssue>,
+) {
+    match value.get(field).and_then(serde_json::Value::as_str) {
         Some(text) if !text.is_empty() => {}
         Some(_) => issues.push(issue("empty_string", field, "field must not be empty")),
         None => issues.push(issue("missing_string", field, "field must be present")),

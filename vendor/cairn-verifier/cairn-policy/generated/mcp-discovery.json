@@ -1,0 +1,430 @@
+{
+  "limits": {
+    "cursor_bytes": 256,
+    "descriptor_bytes": 65536,
+    "page_bytes": 131072,
+    "page_entries": 8,
+    "tool_name_bytes": 128
+  },
+  "profiles": [
+    {
+      "name": "full",
+      "required_routes": [
+        "cairn_doctor",
+        "cairn_gate_context",
+        "cairn_sync_plan",
+        "cairn_archive_plan",
+        "cairn_migrate_plan"
+      ],
+      "tools": [
+        {
+          "name": "cairn_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_list_content",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_read_spec",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_show",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_workflow_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_workflow_instructions",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_doctor",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_graph",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_agent_receipt_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_agent_completion_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_readiness",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_verification_impact",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_adoption_report",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_drain_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_implementation_ready",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_sync_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_archive_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_migrate_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context_read",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_observe",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_selected_work",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_init",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_change_create",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_sync_execute",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_archive_execute",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_migrate_execute",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_tool_describe",
+          "requires_mutations": false
+        }
+      ]
+    },
+    {
+      "name": "inspect",
+      "required_routes": [
+        "cairn_doctor",
+        "cairn_gate_context",
+        "cairn_workflow_instructions"
+      ],
+      "tools": [
+        {
+          "name": "cairn_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_list_content",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_read_spec",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_show",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_workflow_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_workflow_instructions",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_doctor",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_graph",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_readiness",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_implementation_ready",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_tool_describe",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context_read",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_observe",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_selected_work",
+          "requires_mutations": false
+        }
+      ]
+    },
+    {
+      "name": "author",
+      "required_routes": [
+        "cairn_doctor",
+        "cairn_gate_context",
+        "cairn_workflow_instructions",
+        "cairn_sync_plan",
+        "cairn_archive_plan",
+        "cairn_migrate_plan"
+      ],
+      "tools": [
+        {
+          "name": "cairn_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_list_content",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_read_spec",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_show",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_workflow_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_workflow_instructions",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_doctor",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_graph",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_readiness",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_implementation_ready",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_tool_describe",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context_read",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_observe",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_selected_work",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_sync_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_archive_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_migrate_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_init",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_change_create",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_sync_execute",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_archive_execute",
+          "requires_mutations": true
+        },
+        {
+          "name": "cairn_migrate_execute",
+          "requires_mutations": true
+        }
+      ]
+    },
+    {
+      "name": "verify",
+      "required_routes": [
+        "cairn_doctor",
+        "cairn_gate_context",
+        "cairn_sync_plan",
+        "cairn_archive_plan"
+      ],
+      "tools": [
+        {
+          "name": "cairn_status",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_read_spec",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_show",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_doctor",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_gate_context",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_change_graph",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_agent_receipt_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_agent_completion_validate",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_readiness",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_verification_impact",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_adoption_report",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_drain_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_implementation_ready",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_selected_work",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_sync_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_archive_plan",
+          "requires_mutations": false
+        },
+        {
+          "name": "cairn_tool_describe",
+          "requires_mutations": false
+        }
+      ]
+    }
+  ],
+  "schema_version": "cairn.mcp-discovery.v1"
+}

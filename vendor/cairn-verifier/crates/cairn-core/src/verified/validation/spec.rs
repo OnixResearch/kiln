@@ -1,11 +1,3 @@
-use std::collections::BTreeSet;
-
-use crate::verified::{policy::ArtifactSubstancePolicy, repo::SpecSource};
-
-use super::markdown::{
-    has_requirement_strength, has_scenario_clause, markdown_heading, next_heading_at_or_above,
-};
-
 const REQUIREMENT_HEADING_PREFIX: &str = "Requirement:";
 const SCENARIO_HEADING_PREFIX: &str = "Scenario:";
 const REQUIREMENT_HEADING_LEVEL: usize = 3;
@@ -21,7 +13,7 @@ pub struct SpecSubstanceInventory {
     pub scenario_blocks: usize,
 }
 
-pub fn validate_spec_sources(sources: &[SpecSource]) -> Vec<String> {
+pub fn validate_spec_sources(sources: &[crate::verified::repo::SpecSource]) -> Vec<String> {
     let mut ordered = sources.to_vec();
     ordered.sort_by(|left, right| left.path.cmp(&right.path).then(left.id.cmp(&right.id)));
     let mut issues = Vec::with_capacity(ordered.len().saturating_mul(2));
@@ -32,8 +24,8 @@ pub fn validate_spec_sources(sources: &[SpecSource]) -> Vec<String> {
 }
 
 pub fn validate_spec_sources_with_policy(
-    sources: &[SpecSource],
-    policy: &ArtifactSubstancePolicy,
+    sources: &[crate::verified::repo::SpecSource],
+    policy: &crate::verified::policy::ArtifactSubstancePolicy,
 ) -> Vec<String> {
     let mut ordered = sources.to_vec();
     ordered.sort_by(|left, right| left.path.cmp(&right.path).then(left.id.cmp(&right.id)));
@@ -45,7 +37,7 @@ pub fn validate_spec_sources_with_policy(
     issues
 }
 
-pub fn validate_spec_source(source: &SpecSource) -> Vec<String> {
+pub fn validate_spec_source(source: &crate::verified::repo::SpecSource) -> Vec<String> {
     // Compatibility validator retained for callers that do not have reviewed
     // policy. Product validation and mutation surfaces use the policy-aware API.
     // r[impl cairn.supersede.validate_ears] r[impl cairn.supersede.validate_ears.accept]
@@ -55,7 +47,7 @@ pub fn validate_spec_source(source: &SpecSource) -> Vec<String> {
     let lines = source.markdown.lines().collect::<Vec<_>>();
     let mut issues = Vec::with_capacity(lines.len().saturating_div(REQUIREMENT_HEADING_LEVEL));
     for (index, line) in lines.iter().enumerate() {
-        let Some((level, heading)) = markdown_heading(line) else {
+        let Some((level, heading)) = super::markdown::markdown_heading(line) else {
             continue;
         };
         if level == REQUIREMENT_HEADING_LEVEL && heading.starts_with(REQUIREMENT_HEADING_PREFIX) {
@@ -71,8 +63,8 @@ pub fn validate_spec_source(source: &SpecSource) -> Vec<String> {
 }
 
 pub fn validate_spec_source_with_policy(
-    source: &SpecSource,
-    policy: &ArtifactSubstancePolicy,
+    source: &crate::verified::repo::SpecSource,
+    policy: &crate::verified::policy::ArtifactSubstancePolicy,
 ) -> (SpecSubstanceInventory, Vec<String>) {
     // r[impl cairn.lifecycle_validation.spec_substance]
     // r[impl cairn.lifecycle_validation.spec_substance.borrowed_strength]
@@ -162,13 +154,13 @@ pub fn validate_spec_source_with_policy(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct VisibleHeading {
-    line_index: usize,
-    level: usize,
-    text: String,
+pub(super) struct VisibleHeading {
+    pub(super) line_index: usize,
+    pub(super) level: usize,
+    pub(super) text: String,
 }
 
-fn visible_heading_inventory(lines: &[&str]) -> Vec<VisibleHeading> {
+pub(super) fn visible_heading_inventory(lines: &[&str]) -> Vec<VisibleHeading> {
     let mut headings = Vec::new();
     let mut fenced = false;
     let mut in_comment = false;
@@ -181,7 +173,7 @@ fn visible_heading_inventory(lines: &[&str]) -> Vec<VisibleHeading> {
         if fenced || visible.trim().is_empty() {
             continue;
         }
-        if let Some((level, text)) = markdown_heading(visible.trim_end()) {
+        if let Some((level, text)) = super::markdown::markdown_heading(visible.trim_end()) {
             headings.push(VisibleHeading {
                 line_index,
                 level,
@@ -192,7 +184,7 @@ fn visible_heading_inventory(lines: &[&str]) -> Vec<VisibleHeading> {
     headings
 }
 
-fn next_visible_heading_at_or_above(
+pub(super) fn next_visible_heading_at_or_above(
     headings: &[VisibleHeading],
     current_line: usize,
     max_level: usize,
@@ -204,7 +196,7 @@ fn next_visible_heading_at_or_above(
         .map_or(default_end, |heading| heading.line_index)
 }
 
-fn requirement_identities(lines: &[&str]) -> Vec<String> {
+pub(super) fn requirement_identities(lines: &[&str]) -> Vec<String> {
     let mut identities = Vec::new();
     let mut fenced = false;
     let mut in_comment = false;
@@ -253,8 +245,10 @@ fn valid_lifecycle_id(candidate: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
 }
 
-pub(super) fn visible_requirement_reference_set(markdown: &str) -> BTreeSet<String> {
-    let mut references = BTreeSet::new();
+pub(super) fn visible_requirement_reference_set(
+    markdown: &str,
+) -> std::collections::BTreeSet<String> {
+    let mut references = std::collections::BTreeSet::new();
     let mut fenced = false;
     let mut in_comment = false;
     for line in markdown.lines() {
@@ -331,13 +325,14 @@ fn contains_word(text: &str, needle: &str) -> bool {
 }
 
 fn validate_requirement_block_compatibility(
-    source: &SpecSource,
+    source: &crate::verified::repo::SpecSource,
     lines: &[&str],
     index: usize,
     heading: &str,
 ) -> Option<String> {
-    let end = next_heading_at_or_above(lines, index + 1, REQUIREMENT_HEADING_LEVEL);
-    if has_requirement_strength(&lines[index + 1..end]) {
+    let end =
+        super::markdown::next_heading_at_or_above(lines, index + 1, REQUIREMENT_HEADING_LEVEL);
+    if super::markdown::has_requirement_strength(&lines[index + 1..end]) {
         return None;
     }
     Some(format!(
@@ -347,17 +342,17 @@ fn validate_requirement_block_compatibility(
 }
 
 fn validate_scenario_block(
-    source: &SpecSource,
+    source: &crate::verified::repo::SpecSource,
     lines: &[&str],
     index: usize,
     heading: &str,
 ) -> Option<String> {
-    let end = next_heading_at_or_above(lines, index + 1, SCENARIO_HEADING_LEVEL);
+    let end = super::markdown::next_heading_at_or_above(lines, index + 1, SCENARIO_HEADING_LEVEL);
     scenario_clause_issue(source, heading, &lines[index + 1..end])
 }
 
 fn validate_visible_scenario_block(
-    source: &SpecSource,
+    source: &crate::verified::repo::SpecSource,
     lines: &[&str],
     headings: &[VisibleHeading],
     heading: &VisibleHeading,
@@ -371,15 +366,19 @@ fn validate_visible_scenario_block(
     scenario_clause_issue(source, &heading.text, &lines[heading.line_index + 1..end])
 }
 
-fn scenario_clause_issue(source: &SpecSource, heading: &str, block: &[&str]) -> Option<String> {
+fn scenario_clause_issue(
+    source: &crate::verified::repo::SpecSource,
+    heading: &str,
+    block: &[&str],
+) -> Option<String> {
     let mut missing = Vec::with_capacity(REQUIREMENT_HEADING_LEVEL);
-    if !has_scenario_clause(block, "GIVEN") {
+    if !super::markdown::has_scenario_clause(block, "GIVEN") {
         missing.push("GIVEN");
     }
-    if !has_scenario_clause(block, "WHEN") {
+    if !super::markdown::has_scenario_clause(block, "WHEN") {
         missing.push("WHEN");
     }
-    if !has_scenario_clause(block, "THEN") {
+    if !super::markdown::has_scenario_clause(block, "THEN") {
         missing.push("THEN");
     }
     if missing.is_empty() {

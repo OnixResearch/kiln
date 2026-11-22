@@ -1168,13 +1168,18 @@ const cairn = context.window.KilnCairn;
 const CAIRN_REPOSITORY = "ab".repeat(32);
 const LANE_KEYS = ["attention", "awaiting", "ready", "in_progress", "verified", "integrated", "recorded"];
 const laneCounts = (lane = "awaiting") => Object.fromEntries(LANE_KEYS.map((key) => [key, Number(key === lane)]));
+const unpublishedWorkflowSlot = () => ({ state: "unpublished", value: null, owner: "lattice#25" });
+const cairnAgents = (extra = {}) => ({
+  source: "not_configured", reason: null, inventory_identity: null, evaluated_at_ms: null, synthetic: null, sources: [],
+  workflow_revisions: { selected_for_new_sessions: unpublishedWorkflowSlot(), pinned: unpublishedWorkflowSlot() }, definitions: [], workers: [], ...extra,
+});
 const cairnDetail = (change, extra = {}) => ({
-  schema: "kiln.cairn-workspace-detail.v2", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
+  schema: "kiln.cairn-workspace-detail.v3", identity: "c".repeat(64), repository_identity: CAIRN_REPOSITORY, change, projects: ["kiln"],
   snapshot: { work_recorded: true, attempts_recorded: true, campaigns_read: 0, campaigns_truncated: false, lifecycle_truncated: false },
   overview: { units: 1, current_work: 0, attempts: 0, active_attempts: 0, campaigns: 0, blockers: 0, open_decisions: 0, lane: "awaiting", lanes: laneCounts() },
   units: [{ native_id: `${change}/unit-of-${change}`, unit: `unit-of-${change}`, lane: "awaiting", sources: ["campaign_selection"], current_work: [], superseded_work: [], attempts: [],
     facets: { readiness: "not_admitted", execution: "not_started", evidence: "none", integration: "not_published", lifecycle: "not_observed" } }],
-  memberships: [], decisions: [], blockers: [], non_claims: ["display is not campaign, work, verification or lifecycle authority"], ...extra,
+  memberships: [], decisions: [], blockers: [], agents: cairnAgents(), non_claims: ["display is not campaign, work, verification or lifecycle authority"], ...extra,
 });
 
 // r[verify kiln.cairn.workspace.scenario.reload]
@@ -1197,6 +1202,7 @@ test("the URL preserves exact Cairn selection, filters and unit, and detail must
   const selected = cairn.normalizeRoute({ cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" });
   assert.equal(cairn.admitDetail(cairnDetail("wanted"), selected).change, "wanted");
   for (const crossed of [cairnDetail("other"), cairnDetail("wanted", { repository_identity: "cd".repeat(32) }), cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v1" }),
+    cairnDetail("wanted", { schema: "kiln.cairn-workspace-detail.v2" }), cairnDetail("wanted", { agents: undefined }), cairnDetail("wanted", { agents: cairnAgents({ source: "empty" }) }),
     cairnDetail("wanted", { overview: { units: 1 } }), cairnDetail("wanted", { units: null }), null]) {
     assert.throws(() => cairn.admitDetail(crossed, selected), /No other change was substituted/);
   }
@@ -1665,4 +1671,122 @@ test("session pointers render as inert, untrusted historical context only", () =
   const next = render({ id: "new-selected-revision", session_traces: { commit: "new-commit", status: "absent" } });
   assert.match(next.textContent, /new-selected-revision/);
   assert.doesNotMatch(next.textContent, /old-selected-revision|old-commit|kiln-pointer-id/);
+});
+
+// Agent revisions in the Cairn workspace (Lattice #24 and #25): the projection's words, drawn on the change page.
+const AGENT_REVISION = "a1".repeat(32);
+const OTHER_REVISION = "b2".repeat(32);
+const AGENT_QUALIFICATION = `blake3:${"f8".repeat(32)}`;
+const agentSlot = (state, value = null, owner = null) => ({ state, value, owner });
+const agentDefinition = (id, extra = {}) => ({
+  reference: { source: "lattice-agents", id }, observation: "current", profile_revision: AGENT_REVISION, management: "managed",
+  desired: agentSlot("recorded", AGENT_REVISION), prepared: agentSlot("unknown", null, "kiln#49"), qualified: agentSlot("not_recorded"),
+  selected_for_new_sessions: agentSlot("recorded", AGENT_REVISION), rollout_generation: 2, task_families_state: "declared",
+  task_families: [{ task_family: "rust-implementation", declared: true, state: "fixture", qualification: { reference: AGENT_QUALIFICATION, evidence_class: "task_family_evaluation", provenance: "fixture", counts_as_live: false } }],
+  tools: { state: "unknown", names: [] }, harnesses: { state: "declared", names: ["omp"] }, output_contracts: { state: "none", names: [] }, models: { state: "unknown", names: [] },
+  authority: "unknown", wait_reasons: [{ code: "revision_fact_unknown", subject: "fact:revisions.prepared", owner: "kiln#49" }], workers: 2, ...extra,
+});
+const agentWorker = (id, extra = {}) => ({
+  reference: { source: "lattice-workers", id }, observation: "current", definition: { source: "lattice-agents", id: "definition-a" }, lifecycle: "executing",
+  pinned_revision: AGENT_REVISION, selection: "matches_selected", work: "other_work", attempt: null, fence: null, wait_reasons: [],
+  pin: { state: "recorded", owner: null, qualification: AGENT_QUALIFICATION, rollout_generation: 2, identity: `blake3:${"9e".repeat(32)}`, status: "live", blocked: false }, ...extra,
+});
+const admittedAgents = (extra = {}) => cairnAgents({
+  source: "admitted", inventory_identity: "d".repeat(64), evaluated_at_ms: 1_795_237_895_000, synthetic: true,
+  sources: [{ source: "lattice-agents", producer: "lattice", kind: "agents", state: "current", reason: null }],
+  definitions: [
+    agentDefinition("definition-a"),
+    agentDefinition("definition-unmanaged", { management: "unmanaged", desired: agentSlot("unmanaged"), prepared: agentSlot("unmanaged"), qualified: agentSlot("unmanaged"),
+      selected_for_new_sessions: agentSlot("unmanaged"), rollout_generation: null, task_families: [], task_families_state: "unknown", wait_reasons: [], workers: 0 }),
+  ],
+  workers: [
+    agentWorker("worker-on-change", { work: "this_change", attempt: "e".repeat(64), fence: 7 }),
+    agentWorker("worker-pinned-old", { pinned_revision: OTHER_REVISION, selection: "differs_from_selected", pin: { ...agentWorker("x").pin, blocked: true },
+      wait_reasons: [{ code: "revision_not_admitted", subject: "fact:revisions", owner: "lattice#25" }],
+      // Fields the projection never defines, and another work's attempt a bad response might carry, are never drawn.
+      attempt: "restricted-other-attempt", fence: 3, session: "restricted-session", workspace: "/home/restricted/workspace", command: "restricted command", prompt: "restricted prompt" }),
+    agentWorker("worker-unknown-pin", { pin: { state: "unknown", owner: "lattice#25", qualification: null, rollout_generation: null, identity: null, status: null, blocked: null }, selection: "no_selection" }),
+  ],
+  ...extra,
+});
+async function drawAgents(agents) {
+  const page = cairnPage();
+  const root = new CairnNode("div");
+  const detail = cairnDetail("wanted", { agents });
+  await page.window.KilnCairn.load(root, { route: { cairn_repository: CAIRN_REPOSITORY, cairn_change: "wanted" }, navigate() {},
+    async api(path) { return path === "/api/implementation/cairn" ? cairnIndex("wanted") : detail; } });
+  const section = root.querySelectorAll(".cairn-section").find((node) => node.getAttribute("aria-labelledby") === "cairn-agents-title");
+  page.window.KilnCairn.clear();
+  return section;
+}
+
+// r[verify kiln.cairn.workspace.agents.scenario.slots]
+// r[verify kiln.cairn.workspace.agents.scenario.provenance]
+test("revision slots keep five distinct meanings and fixture evidence never reads as live", () => {
+  const states = ["recorded", "not_recorded", "unknown", "unmanaged", "unpublished"];
+  const words = states.map((state) => cairn.slotStates.get(state));
+  assert.equal(new Set(words.map((entry) => entry.label)).size, 5);
+  assert.ok(words.every((entry) => entry.tone !== "good"), "no revision fact reads as success");
+  assert.equal(cairn.slotText(agentSlot("unknown", null, "kiln#49")), "Unknown · owner kiln#49");
+  assert.equal(cairn.slotText(agentSlot("unknown")), "Unknown · no owner named");
+  assert.equal(cairn.slotText(agentSlot("unmanaged")), "Unmanaged");
+  assert.equal(cairn.slotText(agentSlot("recorded", AGENT_REVISION)), `Recorded: ${AGENT_REVISION}`);
+  assert.equal(cairn.slotText(agentSlot("unpublished", null, "lattice#25")), "Not published · owner lattice#25");
+  assert.match(cairn.slotText(agentSlot("surprise")), /^Unrecognized/);
+  const family = (provenance, counts_as_live) => ({ qualification: { reference: AGENT_QUALIFICATION, evidence_class: "task_family_evaluation", provenance, counts_as_live } });
+  assert.equal(cairn.familyProvenance(family("live", true)).tone, "good");
+  for (const unproven of [family("fixture", false), family("fixture", true), family("live", false), family("simulated", true), {}]) {
+    const entry = cairn.familyProvenance(unproven);
+    assert.notEqual(entry.tone, "good");
+    assert.doesNotMatch(entry.label, /^Live/);
+  }
+  assert.equal(cairn.familyProvenance(family("fixture", true)).label, "Fixture evidence, not live");
+  assert.equal(cairn.familyProvenance({}).label, "Unqualified");
+  assert.equal(cairn.admitAgents(cairnAgents()), true);
+  for (const malformed of [null, cairnAgents({ source: "empty" }), cairnAgents({ definitions: null }), cairnAgents({ workflow_revisions: null })]) assert.equal(cairn.admitAgents(malformed), false);
+});
+
+// r[verify kiln.cairn.workspace.agents]
+// r[verify kiln.cairn.workspace.agents.scenario.selection]
+// r[verify kiln.cairn.workspace.agents.scenario.redaction]
+test("the change page shows workflow revisions apart from selected and pinned worker revisions without restricted context", async () => {
+  const section = await drawAgents(admittedAgents());
+  assert.ok(section, "the agents section is drawn");
+  const text = section.textContent;
+  assert.match(text, /Workflow revisions/);
+  const workflow = section.querySelectorAll("dl")[0];
+  assert.match(workflow.textContent, /Not published.*Owner lattice#25.*Not published.*Owner lattice#25/s);
+  assert.match(text, /Agent definitions/);
+  assert.match(text, /Worker revisions/);
+  const slots = section.querySelectorAll(".cairn-slot").map((node) => node.dataset.slotState);
+  for (const state of ["recorded", "unknown", "not_recorded", "unmanaged", "unpublished"]) assert.ok(slots.includes(state), state);
+  assert.match(text, /Owner kiln#49/);
+  assert.match(text, /Fixture evidence, not live/);
+  assert.doesNotMatch(text, /Live evidence/);
+  assert.match(text, /revision_fact_unknown · fact:revisions\.prepared · owner kiln#49/);
+  assert.match(text, /revision_not_admitted · fact:revisions · owner lattice#25/);
+  const workers = section.querySelectorAll(".cairn-agent-worker");
+  assert.deepEqual(workers.map((node) => node.dataset.work), ["this_change", "other_work", "other_work"]);
+  assert.match(workers[0].textContent, /On this change.*Pinned to the selected revision/s);
+  assert.match(workers[0].textContent, /Attempt on this change/);
+  assert.match(workers[1].textContent, /Pinned to another revision.*Pin blocked/s);
+  assert.match(workers[2].textContent, /Pin: Unknown.*Owner lattice#25/s);
+  assert.doesNotMatch(workers[1].textContent, /Attempt on this change/);
+  assert.doesNotMatch(text, /restricted/);
+  assert.match(text, /Synthetic inventory: fixture observations, not a live fleet/);
+});
+
+// r[verify kiln.cairn.workspace.agents.scenario.source]
+test("an unconfigured or unavailable inventory is named and never drawn as an empty one", async () => {
+  const unconfigured = await drawAgents(cairnAgents());
+  assert.match(unconfigured.textContent, /No resource inventory is configured.*not proof that none exist/s);
+  assert.match(unconfigured.textContent, /Workflow revisions.*Owner lattice#25/s);
+  assert.doesNotMatch(unconfigured.textContent, /Agent definitions|lists no agent definition/);
+  const refused = await drawAgents(cairnAgents({ source: "unavailable", reason: "inventory_principal_denied" }));
+  assert.match(refused.textContent, /unavailable \(inventory_principal_denied\).*nothing was substituted/s);
+  assert.equal(refused.querySelectorAll(".cairn-agent").length, 0);
+  const empty = await drawAgents(admittedAgents({ definitions: [], workers: [], synthetic: false }));
+  assert.match(empty.textContent, /lists no agent definition/);
+  assert.match(empty.textContent, /A definition is not a running worker/);
+  assert.doesNotMatch(empty.textContent, /Synthetic inventory/);
 });

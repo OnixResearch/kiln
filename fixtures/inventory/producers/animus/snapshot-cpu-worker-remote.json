@@ -1,0 +1,109 @@
+{
+  "schema": "animus.serving-availability-snapshot.v1",
+  "source_id": "host-observer",
+  "source_generation": 1,
+  "sequence": 7,
+  "observed_tick": 100,
+  "valid_until_tick": 160,
+  "services": [
+    {
+      "service_id": "svc-serving-b",
+      "endpoint_identity": "endpoint:serving-b",
+      "deployment_id": "deploy-serving-b",
+      "deployment_generation": 3,
+      "locality": "private-remote",
+      "model": {
+        "model_id": "model-a",
+        "configuration_ref": "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "attestation": "observed"
+      },
+      "readiness": "ready",
+      "capabilities": {
+        "text": "supported",
+        "tools": "supported",
+        "streaming": "supported",
+        "structured_output": "unknown",
+        "developer_role": "unsupported"
+      },
+      "envelope": { "max_context_tokens": 8192, "max_output_tokens": 1024 },
+      "capacity": [
+        {
+          "kind": "request-slots",
+          "unit": "requests",
+          "scope": "deployment",
+          "origin": "serving-owner",
+          "value": 1,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        },
+        {
+          "kind": "kv-cache-tokens",
+          "unit": "tokens",
+          "scope": "deployment",
+          "origin": "serving-owner",
+          "value": 65536,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        },
+        {
+          "kind": "free-memory",
+          "unit": "bytes",
+          "scope": "replica",
+          "origin": "host-probe",
+          "value": 68719476736,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        }
+      ],
+      "admission": "owner-admission",
+      "replica": "replica-1",
+      "resource_consumer_ref": "serving-b",
+      "rollout": null
+    },
+    {
+      "service_id": "svc-hosted",
+      "endpoint_identity": "endpoint:hosted",
+      "deployment_id": "hosted-api",
+      "deployment_generation": 1,
+      "locality": "hosted-remote",
+      "model": {
+        "model_id": "model-h",
+        "configuration_ref": "blake3:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "attestation": "claimed"
+      },
+      "readiness": "ready",
+      "capabilities": {
+        "text": "supported",
+        "tools": "supported",
+        "streaming": "unknown",
+        "structured_output": "unknown",
+        "developer_role": "unknown"
+      },
+      "envelope": { "max_context_tokens": 131072, "max_output_tokens": 8192 },
+      "capacity": [
+        {
+          "kind": "token-quota",
+          "unit": "tokens",
+          "scope": "account",
+          "origin": "provider-api",
+          "value": 100000,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        },
+        {
+          "kind": "request-quota",
+          "unit": "requests",
+          "scope": "account",
+          "origin": "provider-api",
+          "value": null,
+          "observed_tick": 100,
+          "valid_until_tick": 160
+        }
+      ],
+      "admission": "owner-admission",
+      "replica": null,
+      "resource_consumer_ref": null,
+      "rollout": null
+    }
+  ]
+}

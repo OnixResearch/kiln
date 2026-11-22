@@ -1,10 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const DEVELOPER_LOOP_POLICY_SCHEMA_V1: &str = "cairn.developer-loop-policy.v1";
 pub const DEVELOPER_LOOP_PLAN_SCHEMA_V1: &str = "cairn.developer-loop-plan.v1";
 pub const DEVELOPER_LOOP_RECEIPT_SCHEMA_V1: &str = "cairn.developer-loop-receipt.v1";
@@ -12,7 +5,7 @@ pub const DEVELOPER_LOOP_RECEIPT_SCHEMA_V1: &str = "cairn.developer-loop-receipt
 // r[impl cairn.developer_loop_profiles.policy.valid]
 pub const INITIAL_DEVELOPER_LOOP_PROFILE: &str = "cairn-local";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopBounds {
     pub max_profiles: usize,
@@ -26,14 +19,14 @@ pub struct DeveloperLoopBounds {
     pub max_receipt_bytes: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopBudget {
     pub id: String,
     pub max_seconds: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopCheck {
     pub id: String,
@@ -43,14 +36,14 @@ pub struct DeveloperLoopCheck {
     pub expected_status_class: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopCachePolicy {
     pub mode: String,
     pub key_inputs: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopProfile {
     pub id: String,
@@ -68,7 +61,7 @@ pub struct DeveloperLoopProfile {
     pub non_claims: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopPolicy {
     pub schema: String,
@@ -87,7 +80,7 @@ pub struct AdmittedDeveloperLoopPolicy {
     pub policy_identity: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopIssue {
     pub code: String,
@@ -110,7 +103,7 @@ impl std::fmt::Display for DeveloperLoopIssue {
 impl std::error::Error for DeveloperLoopIssue {}
 
 // r[impl cairn.developer_loop_profiles.plan]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopPlanStep {
     pub check_id: String,
@@ -121,7 +114,7 @@ pub struct DeveloperLoopPlanStep {
 }
 
 // r[impl cairn.developer_loop_profiles.plan.read_only]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopPlan {
     pub schema: String,
@@ -138,13 +131,13 @@ pub struct DeveloperLoopPlan {
 }
 
 // r[impl cairn.developer_loop_profiles.receipt]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopReceiptInput {
-    pub receipt: Value,
+    pub receipt: serde_json::Value,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopVerificationSummary {
     pub profile: String,
@@ -167,7 +160,7 @@ pub struct DeveloperLoopVerificationSummary {
     pub verdict: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopResultStatus {
     pub check_id: String,
@@ -175,7 +168,7 @@ pub struct DeveloperLoopResultStatus {
     pub command_identity: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeveloperLoopCacheEvaluation {
     pub mode: String,
@@ -190,7 +183,7 @@ pub struct DeveloperLoopCacheEvaluation {
 pub struct DeveloperLoopCacheKeyInput<'a> {
     pub profile_id: &'a str,
     pub subject_hash: &'a str,
-    pub dependencies: &'a BTreeSet<String>,
+    pub dependencies: &'a std::collections::BTreeSet<String>,
     pub target: &'a str,
     pub toolchain: &'a str,
     pub policy_hash: &'a str,
@@ -202,21 +195,21 @@ pub fn developer_loop_cache_key(input: &DeveloperLoopCacheKeyInput<'_>) -> Strin
     let mut selected = Vec::new();
     for key in input.key_inputs {
         match key.as_str() {
-            "profile" => selected.push(json!(input.profile_id)),
-            "subject" => selected.push(json!(input.subject_hash)),
-            "dependency" => selected.push(json!(input
+            "profile" => selected.push(serde_json::json!(input.profile_id)),
+            "subject" => selected.push(serde_json::json!(input.subject_hash)),
+            "dependency" => selected.push(serde_json::json!(input
                 .dependencies
                 .iter()
                 .cloned()
                 .collect::<Vec<_>>())),
-            "target" => selected.push(json!(input.target)),
-            "toolchain" => selected.push(json!(input.toolchain)),
-            "policy" => selected.push(json!(input.policy_hash)),
-            "checks" => selected.push(json!(input.checks)),
+            "target" => selected.push(serde_json::json!(input.target)),
+            "toolchain" => selected.push(serde_json::json!(input.toolchain)),
+            "policy" => selected.push(serde_json::json!(input.policy_hash)),
+            "checks" => selected.push(serde_json::json!(input.checks)),
             _ => {}
         }
     }
-    canonical_json_hash(&json!(selected))
+    crate::verified::evidence::canonical_json_hash(&serde_json::json!(selected))
 }
 
 // r[impl cairn.developer_loop_profiles.policy.invalid]
@@ -233,7 +226,7 @@ pub fn admit_developer_loop_policy(
             .cmp(&right.field_path)
             .then(left.code.cmp(&right.code))
     });
-    let mut seen = BTreeSet::new();
+    let mut seen = std::collections::BTreeSet::new();
     issues.retain(|issue| seen.insert((issue.code.clone(), issue.field_path.clone())));
 
     let issue_limit = policy.bounds.max_issues.max(1);
@@ -241,7 +234,7 @@ pub fn admit_developer_loop_policy(
     if !issues.is_empty() {
         return Err(issues);
     }
-    let policy_identity = canonical_json_hash(&json!({
+    let policy_identity = crate::verified::evidence::canonical_json_hash(&serde_json::json!({
         "profiles": policy.profiles,
         "budgets": policy.budgets,
         "checks": policy.checks,
@@ -291,7 +284,7 @@ pub fn find_developer_loop_budget<'a>(
 }
 
 pub fn developer_loop_profile_identity(profile: &DeveloperLoopProfile) -> String {
-    canonical_json_hash(&json!(profile))
+    crate::verified::evidence::canonical_json_hash(&serde_json::json!(profile))
 }
 
 // r[impl cairn.developer_loop_profiles.plan]
@@ -345,7 +338,7 @@ pub fn build_developer_loop_plan(
 }
 
 pub fn developer_loop_plan_identity(plan: &DeveloperLoopPlan) -> String {
-    canonical_json_hash(&json!({
+    crate::verified::evidence::canonical_json_hash(&serde_json::json!({
         "schema": plan.schema,
         "profile": plan.profile,
         "target": plan.target,
@@ -375,8 +368,8 @@ pub fn validate_developer_loop_receipt(
     profile_id: &str,
     policy_hash: &str,
     subject_hash: &str,
-    dependencies: &BTreeSet<String>,
-    receipt: &Value,
+    dependencies: &std::collections::BTreeSet<String>,
+    receipt: &serde_json::Value,
 ) -> DeveloperLoopVerificationSummary {
     let mut issues = Vec::new();
     let profile = match find_developer_loop_profile(admitted, profile_id) {
@@ -414,35 +407,37 @@ pub fn validate_developer_loop_receipt(
     let profile_identity = developer_loop_profile_identity(profile);
     let receipt_profile = receipt
         .get("profile")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     let receipt_subject = receipt
         .get("subject_hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     let receipt_policy = receipt
         .get("policy_hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     let receipt_target = receipt
         .get("target")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     let receipt_toolchain = receipt
         .get("toolchain")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     let measurement_class = receipt
         .get("measurement_class")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or("unknown")
         .to_string();
     let observed_duration = receipt
         .get("observed_duration_seconds")
-        .and_then(Value::as_u64)
+        .and_then(serde_json::Value::as_u64)
         .unwrap_or(u64::MAX);
 
-    if receipt.get("schema").and_then(Value::as_str) != Some(DEVELOPER_LOOP_RECEIPT_SCHEMA_V1) {
+    if receipt.get("schema").and_then(serde_json::Value::as_str)
+        != Some(DEVELOPER_LOOP_RECEIPT_SCHEMA_V1)
+    {
         issues.push(issue(
             "developer_loop.receipt.schema",
             "schema",
@@ -521,13 +516,13 @@ pub fn validate_developer_loop_receipt(
     let required_checks = &profile.checks;
     let result_statuses = receipt
         .get("result_statuses")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .cloned()
         .unwrap_or_default()
         .into_iter()
         .filter_map(|value| serde_json::from_value::<DeveloperLoopResultStatus>(value).ok())
         .collect::<Vec<_>>();
-    let mut seen_checks = BTreeSet::new();
+    let mut seen_checks = std::collections::BTreeSet::new();
     for status in &result_statuses {
         seen_checks.insert(status.check_id.clone());
         if !required_checks.contains(&status.check_id) {
@@ -578,7 +573,7 @@ pub fn validate_developer_loop_receipt(
     // posture
     let posture_states = receipt
         .get("posture_states")
-        .and_then(Value::as_array)
+        .and_then(serde_json::Value::as_array)
         .cloned()
         .unwrap_or_default()
         .into_iter()
@@ -591,7 +586,7 @@ pub fn validate_developer_loop_receipt(
     {
         let has_enforcement_evidence = receipt
             .get("enforcement_evidence")
-            .and_then(Value::as_array)
+            .and_then(serde_json::Value::as_array)
             .is_some_and(|values| !values.is_empty());
         if !has_enforcement_evidence {
             issues.push(issue(
@@ -659,13 +654,13 @@ fn evaluate_cache(
     profile: &DeveloperLoopProfile,
     policy_hash: &str,
     subject_hash: &str,
-    dependencies: &BTreeSet<String>,
-    receipt: &Value,
+    dependencies: &std::collections::BTreeSet<String>,
+    receipt: &serde_json::Value,
 ) -> DeveloperLoopCacheEvaluation {
     let mode = profile.cache_policy.mode.clone();
     let claimed = receipt
         .get("cache")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or("unset")
         .to_string();
     let cache_key_inputs = profile.cache_policy.key_inputs.clone();
@@ -681,7 +676,7 @@ fn evaluate_cache(
     });
     let stated_identity = receipt
         .get("cache_key_identity")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
     let mut issues = Vec::new();
     if claimed == "hit" {
@@ -735,23 +730,25 @@ fn evaluate_cache(
     }
 }
 
-fn developer_loop_receipt_hash_valid(receipt: &Value) -> bool {
-    debug_assert_eq!(
-        receipt.get("schema").and_then(Value::as_str),
-        Some(DEVELOPER_LOOP_RECEIPT_SCHEMA_V1)
-    );
+fn developer_loop_receipt_hash_valid(receipt: &serde_json::Value) -> bool {
+    // This is untrusted saved input, not an internal schema invariant.
+    if receipt.get("schema").and_then(serde_json::Value::as_str)
+        != Some(DEVELOPER_LOOP_RECEIPT_SCHEMA_V1)
+    {
+        return false;
+    }
     let mut material = receipt.clone();
     if let Some(object) = material.as_object_mut() {
         object.remove("receipt_hash");
     }
     let stated = receipt
         .get("receipt_hash")
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .unwrap_or_default();
-    stated == canonical_json_hash(&material)
+    stated == crate::verified::evidence::canonical_json_hash(&material)
 }
 
-fn developer_loop_receipt_has_secret(receipt: &Value) -> bool {
+fn developer_loop_receipt_has_secret(receipt: &serde_json::Value) -> bool {
     let text = serde_json::to_string(receipt)
         .unwrap_or_default()
         .to_lowercase();
@@ -827,7 +824,7 @@ fn validate_policy_header(policy: &DeveloperLoopPolicy) -> Vec<DeveloperLoopIssu
 }
 
 fn validate_budgets(policy: &DeveloperLoopPolicy, issues: &mut Vec<DeveloperLoopIssue>) {
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for (index, budget) in policy.budgets.iter().enumerate() {
         let path = format!("budgets[{index}]");
         if !non_empty(&budget.id)
@@ -845,7 +842,7 @@ fn validate_budgets(policy: &DeveloperLoopPolicy, issues: &mut Vec<DeveloperLoop
 }
 
 fn validate_checks(policy: &DeveloperLoopPolicy, issues: &mut Vec<DeveloperLoopIssue>) {
-    let mut ids = BTreeSet::new();
+    let mut ids = std::collections::BTreeSet::new();
     for (index, check) in policy.checks.iter().enumerate() {
         let path = format!("checks[{index}]");
         let argv_valid = !check.argv.is_empty()
@@ -877,13 +874,13 @@ fn validate_profiles(policy: &DeveloperLoopPolicy, issues: &mut Vec<DeveloperLoo
         .budgets
         .iter()
         .map(|budget| budget.id.as_str())
-        .collect::<BTreeSet<_>>();
+        .collect::<std::collections::BTreeSet<_>>();
     let check_ids = policy
         .checks
         .iter()
         .map(|check| check.id.as_str())
-        .collect::<BTreeSet<_>>();
-    let mut ids = BTreeSet::new();
+        .collect::<std::collections::BTreeSet<_>>();
+    let mut ids = std::collections::BTreeSet::new();
     for (index, profile) in policy.profiles.iter().enumerate() {
         let path = format!("profiles[{index}]");
         let mut local_issues = Vec::new();
@@ -908,7 +905,7 @@ fn validate_profiles(policy: &DeveloperLoopPolicy, issues: &mut Vec<DeveloperLoo
             local_issues.push(issue("developer_loop.profile.form", &path, "profile identity, scope, checks, budget, full-gate refs, or non-claims are invalid"));
         }
         // duplicate checks
-        let mut check_set = BTreeSet::new();
+        let mut check_set = std::collections::BTreeSet::new();
         let mut duplicate = false;
         for check in &profile.checks {
             if !check_set.insert(check) {
@@ -1019,7 +1016,6 @@ fn issue_expected(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     const BLAKE3_HEX_LENGTH: usize = 64;
 
@@ -1096,8 +1092,8 @@ mod tests {
         "c".repeat(BLAKE3_HEX_LENGTH)
     }
 
-    fn receipt() -> Value {
-        let mut value = json!({
+    fn receipt() -> serde_json::Value {
+        let mut value = serde_json::json!({
             "schema": DEVELOPER_LOOP_RECEIPT_SCHEMA_V1,
             "profile": INITIAL_DEVELOPER_LOOP_PROFILE,
             "policy_hash": "d".repeat(BLAKE3_HEX_LENGTH),
@@ -1115,8 +1111,8 @@ mod tests {
             "posture_states": ["declared"],
             "full_gate_status": "outstanding",
         });
-        let hash = canonical_json_hash(&value);
-        value["receipt_hash"] = json!(hash);
+        let hash = crate::verified::evidence::canonical_json_hash(&value);
+        value["receipt_hash"] = serde_json::json!(hash);
         value
     }
 
@@ -1144,15 +1140,15 @@ mod tests {
     fn rejects_unsafe_posture_promotion_without_enforcement() {
         let admitted = admitted();
         let mut value = receipt();
-        value["posture_states"] = json!(["externally_enforced"]);
-        let hash = canonical_json_hash(&value);
-        value["receipt_hash"] = json!(hash);
+        value["posture_states"] = serde_json::json!(["externally_enforced"]);
+        let hash = crate::verified::evidence::canonical_json_hash(&value);
+        value["receipt_hash"] = serde_json::json!(hash);
         let summary = validate_developer_loop_receipt(
             &admitted,
             INITIAL_DEVELOPER_LOOP_PROFILE,
             &"d".repeat(BLAKE3_HEX_LENGTH),
             &subject_hash(),
-            &BTreeSet::new(),
+            &std::collections::BTreeSet::new(),
             &value,
         );
         assert!(summary
@@ -1170,7 +1166,7 @@ mod tests {
             INITIAL_DEVELOPER_LOOP_PROFILE,
             &"d".repeat(BLAKE3_HEX_LENGTH),
             &subject_hash(),
-            &BTreeSet::new(),
+            &std::collections::BTreeSet::new(),
             &value,
         );
         assert!(summary.valid, "{:#?}", summary.issues);
@@ -1180,19 +1176,44 @@ mod tests {
     }
 
     #[test]
+    fn foreign_receipts_fail_with_schema_diagnostics_without_panicking() {
+        let admitted = admitted();
+        for value in [
+            serde_json::json!([]),
+            serde_json::json!(null),
+            serde_json::json!("receipt"),
+            serde_json::json!({"schema":"foreign.v1"}),
+        ] {
+            let summary = validate_developer_loop_receipt(
+                &admitted,
+                INITIAL_DEVELOPER_LOOP_PROFILE,
+                &"d".repeat(BLAKE3_HEX_LENGTH),
+                &subject_hash(),
+                &std::collections::BTreeSet::new(),
+                &value,
+            );
+            assert!(!summary.valid);
+            assert!(summary
+                .issues
+                .iter()
+                .any(|issue| issue.code == "developer_loop.receipt.schema"));
+        }
+    }
+
+    #[test]
     fn stale_subject_and_over_budget_fail_with_diagnostics() {
         let admitted = admitted();
         let mut value = receipt();
-        value["subject_hash"] = json!("f".repeat(BLAKE3_HEX_LENGTH));
-        value["observed_duration_seconds"] = json!(9999);
-        let hash = canonical_json_hash(&value);
-        value["receipt_hash"] = json!(hash);
+        value["subject_hash"] = serde_json::json!("f".repeat(BLAKE3_HEX_LENGTH));
+        value["observed_duration_seconds"] = serde_json::json!(9999);
+        let hash = crate::verified::evidence::canonical_json_hash(&value);
+        value["receipt_hash"] = serde_json::json!(hash);
         let summary = validate_developer_loop_receipt(
             &admitted,
             INITIAL_DEVELOPER_LOOP_PROFILE,
             &"d".repeat(BLAKE3_HEX_LENGTH),
             &subject_hash(),
-            &BTreeSet::new(),
+            &std::collections::BTreeSet::new(),
             &value,
         );
         assert!(!summary.valid);
@@ -1211,16 +1232,16 @@ mod tests {
     fn incomplete_cache_hit_is_rejected() {
         let admitted = admitted();
         let mut value = receipt();
-        value["cache"] = json!("hit");
-        value["cache_key_identity"] = json!("g".repeat(BLAKE3_HEX_LENGTH));
-        let hash = canonical_json_hash(&value);
-        value["receipt_hash"] = json!(hash);
+        value["cache"] = serde_json::json!("hit");
+        value["cache_key_identity"] = serde_json::json!("g".repeat(BLAKE3_HEX_LENGTH));
+        let hash = crate::verified::evidence::canonical_json_hash(&value);
+        value["receipt_hash"] = serde_json::json!(hash);
         let summary = validate_developer_loop_receipt(
             &admitted,
             INITIAL_DEVELOPER_LOOP_PROFILE,
             &"d".repeat(BLAKE3_HEX_LENGTH),
             &subject_hash(),
-            &BTreeSet::new(),
+            &std::collections::BTreeSet::new(),
             &value,
         );
         assert!(summary
@@ -1233,15 +1254,15 @@ mod tests {
     fn safe_diagnostics_exclude_secret_content() {
         let admitted = admitted();
         let mut value = receipt();
-        value["diagnostics"] =
-            json!([{"code": "developer_loop.receipt.hash", "message": "raw_prompt secret"}]);
-        value["receipt_hash"] = json!(canonical_json_hash(&value));
+        value["diagnostics"] = serde_json::json!([{"code": "developer_loop.receipt.hash", "message": "raw_prompt secret"}]);
+        value["receipt_hash"] =
+            serde_json::json!(crate::verified::evidence::canonical_json_hash(&value));
         let summary = validate_developer_loop_receipt(
             &admitted,
             INITIAL_DEVELOPER_LOOP_PROFILE,
             &"d".repeat(BLAKE3_HEX_LENGTH),
             &subject_hash(),
-            &BTreeSet::new(),
+            &std::collections::BTreeSet::new(),
             &value,
         );
         assert!(summary

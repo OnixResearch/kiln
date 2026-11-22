@@ -1,5 +1,3 @@
-use crate::{blake3_hex, validate_change_name};
-
 pub const TEMPLATE_POLICY_ID: &str = "cairn-default.developer_experience.templates.v1";
 pub const SCAFFOLD_POLICY_ID: &str = "cairn-default.developer_experience.prompt_scaffold.v1";
 pub const DISCOVERY_POLICY_ID: &str =
@@ -140,7 +138,7 @@ pub fn plan_prompt_scaffold(
     // r[impl cairn.developer_experience.prompt_to_change_scaffold.planner]
     // r[impl cairn.developer_experience.prompt_to_change_scaffold.gate_ready]
     let mut issues = Vec::new();
-    if let Err(issue) = validate_change_name(change) {
+    if let Err(issue) = crate::validate_change_name(change) {
         issues.push(issue);
     }
     let trimmed_request = request.trim();
@@ -149,7 +147,7 @@ pub fn plan_prompt_scaffold(
     }
     let domain = normalize_domain(domain);
     let prefix = format!("cairn.developer_experience.{change}").replace('-', "_");
-    let input_hash = blake3_hex(trimmed_request.as_bytes());
+    let input_hash = crate::blake3_hex(trimmed_request.as_bytes());
     let base = format!(".cairn/changes/{change}");
     let files = if issues.is_empty() {
         vec![
@@ -220,7 +218,7 @@ pub fn plan_reverse_spec_discovery(snapshots: Vec<DiscoverySnapshot>) -> Discove
             });
         }
     }
-    let input_hash = blake3_hex(selected.join("\n").as_bytes());
+    let input_hash = crate::blake3_hex(selected.join("\n").as_bytes());
     DiscoveryPlan {
         valid: issues.is_empty(),
         issues,
@@ -259,7 +257,7 @@ fn build_file_plan(
         .to_string();
         entries.push(FilePlanEntry {
             path: planned.path,
-            content_hash: blake3_hex(planned.content.as_bytes()),
+            content_hash: crate::blake3_hex(planned.content.as_bytes()),
             exists: path_exists,
             action,
         });

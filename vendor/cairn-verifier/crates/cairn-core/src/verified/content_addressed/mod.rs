@@ -29,9 +29,7 @@ pub use name_pointer::{
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
 
-    use super::common::{NO_CORRECTNESS_CLAIM, SOURCE_SCANNER_DEPENDENCIES};
     use super::*;
 
     const SOURCE_TOKEN_IDENTITY: &str = "source-token";
@@ -46,8 +44,8 @@ mod tests {
         "0".repeat(64)
     }
 
-    fn base_receipt(display_root: &str) -> Value {
-        json!({
+    fn base_receipt(display_root: &str) -> serde_json::Value {
+        serde_json::json!({
             "schema": FUNCTION_OBJECT_SCHEMA_V1,
             "object_hash": hash_placeholder(),
             "source_token": {
@@ -69,17 +67,17 @@ mod tests {
             },
             "caveats": {
                 "identity": SOURCE_TOKEN_IDENTITY,
-                "dependency_status": SOURCE_SCANNER_DEPENDENCIES,
+                "dependency_status": super::common::SOURCE_SCANNER_DEPENDENCIES,
                 "macro_status": "source-visible",
                 "effect_status": "unknown",
-                "correctness_claim": NO_CORRECTNESS_CLAIM
+                "correctness_claim": super::common::NO_CORRECTNESS_CLAIM
             }
         })
     }
 
-    fn with_current_hash(mut receipt: Value) -> Value {
+    fn with_current_hash(mut receipt: serde_json::Value) -> serde_json::Value {
         let hash = function_object_hash(&receipt);
-        receipt["object_hash"] = Value::String(hash);
+        receipt["object_hash"] = serde_json::Value::String(hash);
         receipt
     }
 
@@ -102,8 +100,10 @@ mod tests {
     #[test]
     fn rejects_correctness_and_identity_overclaims() {
         let mut receipt = base_receipt("/workspace/one");
-        receipt["caveats"]["identity"] = Value::String("semantic-compiler-identity".to_string());
-        receipt["caveats"]["correctness_claim"] = Value::String("proves-behavior".to_string());
+        receipt["caveats"]["identity"] =
+            serde_json::Value::String("semantic-compiler-identity".to_string());
+        receipt["caveats"]["correctness_claim"] =
+            serde_json::Value::String("proves-behavior".to_string());
         let receipt = with_current_hash(receipt);
         let codes = validate_function_object_receipt(&receipt)
             .issues
@@ -118,8 +118,9 @@ mod tests {
     fn rejects_ambient_entropy_in_hash_material() {
         let mut receipt = base_receipt("/workspace/one");
         receipt["source_token"]["captured_at_timestamp"] =
-            Value::String("2026-05-19T00:00:00Z".to_string());
-        receipt["source_token"]["temp_path"] = Value::String("/tmp/cairn-x/src/lib.rs".to_string());
+            serde_json::Value::String("2026-05-19T00:00:00Z".to_string());
+        receipt["source_token"]["temp_path"] =
+            serde_json::Value::String("/tmp/cairn-x/src/lib.rs".to_string());
         let receipt = with_current_hash(receipt);
         let report = validate_function_object_receipt(&receipt);
         assert!(!report.valid);
@@ -129,8 +130,8 @@ mod tests {
             .any(|issue| issue.code == "function_object.ambient_entropy_in_hash_material"));
     }
 
-    fn base_pointer_receipt() -> Value {
-        json!({
+    fn base_pointer_receipt() -> serde_json::Value {
+        serde_json::json!({
             "schema": NAME_POINTER_SCHEMA_V1,
             "pointer_hash": hash_placeholder(),
             "name": "demo::math::add_one",
@@ -154,7 +155,7 @@ mod tests {
                 "checked_object_hash": "2222222222222222222222222222222222222222222222222222222222222222"
             },
             "caveats": {
-                "dependency_status": SOURCE_SCANNER_DEPENDENCIES,
+                "dependency_status": super::common::SOURCE_SCANNER_DEPENDENCIES,
                 "macro_status": "source-visible",
                 "effect_status": "unknown",
                 "pure_cache_eligible": false
@@ -162,9 +163,9 @@ mod tests {
         })
     }
 
-    fn with_current_pointer_hash(mut receipt: Value) -> Value {
+    fn with_current_pointer_hash(mut receipt: serde_json::Value) -> serde_json::Value {
         let hash = name_pointer_hash(&receipt);
-        receipt["pointer_hash"] = Value::String(hash);
+        receipt["pointer_hash"] = serde_json::Value::String(hash);
         receipt
     }
 
@@ -180,7 +181,7 @@ mod tests {
     #[test]
     fn rejects_pointer_drift_until_update_receipt_exists() {
         let mut receipt = base_pointer_receipt();
-        receipt["drift_check"]["status"] = Value::String("drift".to_string());
+        receipt["drift_check"]["status"] = serde_json::Value::String("drift".to_string());
         let receipt = with_current_pointer_hash(receipt);
         let report = validate_name_pointer_receipt(&receipt);
         assert!(!report.valid);
@@ -193,8 +194,8 @@ mod tests {
     #[test]
     fn rejects_unknown_effect_pure_cache_overclaim() {
         let mut receipt = base_pointer_receipt();
-        receipt["caveats"]["effect_status"] = Value::String("unknown".to_string());
-        receipt["caveats"]["pure_cache_eligible"] = Value::Bool(true);
+        receipt["caveats"]["effect_status"] = serde_json::Value::String("unknown".to_string());
+        receipt["caveats"]["pure_cache_eligible"] = serde_json::Value::Bool(true);
         let receipt = with_current_pointer_hash(receipt);
         let report = validate_name_pointer_receipt(&receipt);
         assert!(!report.valid);
@@ -204,8 +205,8 @@ mod tests {
             .any(|issue| issue.code == "name_pointer.pure_cache_overclaim"));
     }
 
-    fn base_export_bundle_receipt() -> Value {
-        json!({
+    fn base_export_bundle_receipt() -> serde_json::Value {
+        serde_json::json!({
             "schema": EXPORT_BUNDLE_SCHEMA_V1,
             "bundle_hash": hash_placeholder(),
             "objects": [
@@ -260,14 +261,14 @@ mod tests {
             },
             "caveats": {
                 "compiler_ir_status": "toolchain-coupled",
-                "correctness_claim": NO_CORRECTNESS_CLAIM
+                "correctness_claim": super::common::NO_CORRECTNESS_CLAIM
             }
         })
     }
 
-    fn with_current_bundle_hash(mut receipt: Value) -> Value {
+    fn with_current_bundle_hash(mut receipt: serde_json::Value) -> serde_json::Value {
         let hash = export_bundle_hash(&receipt);
-        receipt["bundle_hash"] = Value::String(hash);
+        receipt["bundle_hash"] = serde_json::Value::String(hash);
         receipt
     }
 
@@ -296,7 +297,7 @@ mod tests {
     #[test]
     fn rejects_pointer_to_missing_bundle_object() {
         let mut receipt = base_export_bundle_receipt();
-        receipt["name_pointers"][0]["object_hash"] = Value::String(
+        receipt["name_pointers"][0]["object_hash"] = serde_json::Value::String(
             "9999999999999999999999999999999999999999999999999999999999999999".to_string(),
         );
         let receipt = with_current_bundle_hash(receipt);
@@ -308,8 +309,8 @@ mod tests {
             .any(|issue| issue.code == "export_bundle.unknown_pointer_object"));
     }
 
-    fn base_crunch_pilot_receipt() -> Value {
-        json!({
+    fn base_crunch_pilot_receipt() -> serde_json::Value {
+        serde_json::json!({
             "schema": DOWNSTREAM_PILOT_SCHEMA_V1,
             "pilot_hash": hash_placeholder(),
             "pilot_kind": CRUNCH_PILOT_KIND,
@@ -319,14 +320,14 @@ mod tests {
             "input_evidence_hash": "4444444444444444444444444444444444444444444444444444444444444444",
             "bounded_claim_class": CRUNCH_BOUNDED_CLAIM,
             "non_claims": {
-                "build_correctness": NO_CORRECTNESS_CLAIM,
-                "distributed_execution_correctness": NO_CORRECTNESS_CLAIM
+                "build_correctness": super::common::NO_CORRECTNESS_CLAIM,
+                "distributed_execution_correctness": super::common::NO_CORRECTNESS_CLAIM
             }
         })
     }
 
-    fn base_aspen_pilot_receipt() -> Value {
-        json!({
+    fn base_aspen_pilot_receipt() -> serde_json::Value {
+        serde_json::json!({
             "schema": DOWNSTREAM_PILOT_SCHEMA_V1,
             "pilot_hash": hash_placeholder(),
             "pilot_kind": ASPEN_PILOT_KIND,
@@ -342,15 +343,15 @@ mod tests {
             },
             "bounded_claim_class": ASPEN_BOUNDED_CLAIM,
             "non_claims": {
-                "build_correctness": NO_CORRECTNESS_CLAIM,
-                "distributed_execution_correctness": NO_CORRECTNESS_CLAIM
+                "build_correctness": super::common::NO_CORRECTNESS_CLAIM,
+                "distributed_execution_correctness": super::common::NO_CORRECTNESS_CLAIM
             }
         })
     }
 
-    fn with_current_pilot_hash(mut receipt: Value) -> Value {
+    fn with_current_pilot_hash(mut receipt: serde_json::Value) -> serde_json::Value {
         let hash = downstream_pilot_hash(&receipt);
-        receipt["pilot_hash"] = Value::String(hash);
+        receipt["pilot_hash"] = serde_json::Value::String(hash);
         receipt
     }
 
@@ -375,7 +376,8 @@ mod tests {
     #[test]
     fn rejects_downstream_pilot_correctness_overclaim() {
         let mut receipt = base_crunch_pilot_receipt();
-        receipt["non_claims"]["build_correctness"] = Value::String("proven".to_string());
+        receipt["non_claims"]["build_correctness"] =
+            serde_json::Value::String("proven".to_string());
         let receipt = with_current_pilot_hash(receipt);
         let report = validate_downstream_pilot_receipt(&receipt);
         assert!(!report.valid);

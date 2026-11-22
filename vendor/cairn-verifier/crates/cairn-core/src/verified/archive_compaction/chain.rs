@@ -1,22 +1,11 @@
-use crate::verified::nominal_identity::{ChainDigestRole, LedgerDigestRole, ReceiptDigestRole};
-
-use super::{
-    model::{
-        CompactionIssue, CompactionLedger, CompactionLedgerEntry, CompactionPlan,
-        CompactionReceipt, COMPACTION_LEDGER_SCHEMA_V1, COMPACTION_NON_CLAIM,
-        COMPACTION_RECEIPT_SCHEMA_V1,
-    },
-    plan::{
-        compaction_chain_hash, compaction_genesis_hash, hash_serializable, issue, receipt_path,
-        same_digest, validate_hash,
-    },
-};
-
-pub fn build_compaction_receipt(plan: &CompactionPlan, sequence: u64) -> CompactionReceipt {
+pub fn build_compaction_receipt(
+    plan: &super::model::CompactionPlan,
+    sequence: u64,
+) -> super::model::CompactionReceipt {
     // r[impl cairn.sync_archive.compaction.receipt_chain]
     // r[impl cairn.sync_archive.compaction.receipt_chain.fields]
-    let mut receipt = CompactionReceipt {
-        schema_version: COMPACTION_RECEIPT_SCHEMA_V1.to_string(),
+    let mut receipt = super::model::CompactionReceipt {
+        schema_version: super::model::COMPACTION_RECEIPT_SCHEMA_V1.to_string(),
         sequence,
         profile: plan.profile.clone(),
         lossiness: plan.lossiness.clone(),
@@ -31,24 +20,27 @@ pub fn build_compaction_receipt(plan: &CompactionPlan, sequence: u64) -> Compact
         mutation_manifest_hash: plan.mutation_manifest_hash.clone(),
         receipt_hash: String::new(),
         chain_hash: String::new(),
-        non_claims: vec![COMPACTION_NON_CLAIM.to_string()],
+        non_claims: vec![super::model::COMPACTION_NON_CLAIM.to_string()],
     };
     receipt.receipt_hash = compaction_receipt_hash(&receipt);
-    receipt.chain_hash = compaction_chain_hash(&receipt.prev_chain_hash, &receipt.receipt_hash);
+    receipt.chain_hash =
+        super::plan::compaction_chain_hash(&receipt.prev_chain_hash, &receipt.receipt_hash);
     receipt
 }
 
-pub fn compaction_receipt_hash(receipt: &CompactionReceipt) -> String {
+pub fn compaction_receipt_hash(receipt: &super::model::CompactionReceipt) -> String {
     let mut material = receipt.clone();
     material.receipt_hash.clear();
     material.chain_hash.clear();
-    hash_serializable(&material)
+    super::plan::hash_serializable(&material)
 }
 
-pub fn validate_compaction_receipt(receipt: &CompactionReceipt) -> Vec<CompactionIssue> {
+pub fn validate_compaction_receipt(
+    receipt: &super::model::CompactionReceipt,
+) -> Vec<super::model::CompactionIssue> {
     let mut issues = Vec::new();
-    if receipt.schema_version != COMPACTION_RECEIPT_SCHEMA_V1 {
-        issues.push(issue(
+    if receipt.schema_version != super::model::COMPACTION_RECEIPT_SCHEMA_V1 {
+        issues.push(super::plan::issue(
             "archive_compaction.receipt_schema_unsupported",
             "schema_version",
             "receipt schema must be cairn.archive-compaction-receipt.v1",
@@ -76,29 +68,36 @@ pub fn validate_compaction_receipt(receipt: &CompactionReceipt) -> Vec<Compactio
         ("receipt_hash", receipt.receipt_hash.as_str()),
         ("chain_hash", receipt.chain_hash.as_str()),
     ] {
-        validate_hash(value, path, &mut issues);
+        super::plan::validate_hash(value, path, &mut issues);
     }
     if !receipt
         .non_claims
         .iter()
-        .any(|non_claim| non_claim == COMPACTION_NON_CLAIM)
+        .any(|non_claim| non_claim == super::model::COMPACTION_NON_CLAIM)
     {
-        issues.push(issue(
+        issues.push(super::plan::issue(
             "archive_compaction.non_claim_missing",
             "non_claims",
             "compaction receipt must preserve the local-integrity-only non-claim",
         ));
     }
-    if !same_digest::<ReceiptDigestRole>(&compaction_receipt_hash(receipt), &receipt.receipt_hash) {
-        issues.push(issue(
+    if !super::plan::same_digest::<crate::verified::nominal_identity::ReceiptDigestRole>(
+        &compaction_receipt_hash(receipt),
+        &receipt.receipt_hash,
+    ) {
+        issues.push(super::plan::issue(
             "archive_compaction.receipt_hash_mismatch",
             "receipt_hash",
             "receipt hash must match canonical receipt material",
         ));
     }
-    let expected_chain = compaction_chain_hash(&receipt.prev_chain_hash, &receipt.receipt_hash);
-    if !same_digest::<ChainDigestRole>(&expected_chain, &receipt.chain_hash) {
-        issues.push(issue(
+    let expected_chain =
+        super::plan::compaction_chain_hash(&receipt.prev_chain_hash, &receipt.receipt_hash);
+    if !super::plan::same_digest::<crate::verified::nominal_identity::ChainDigestRole>(
+        &expected_chain,
+        &receipt.chain_hash,
+    ) {
+        issues.push(super::plan::issue(
             "archive_compaction.chain_hash_mismatch",
             "chain_hash",
             "chain hash must bind the previous chain and current receipt hashes",
@@ -110,10 +109,10 @@ pub fn validate_compaction_receipt(receipt: &CompactionReceipt) -> Vec<Compactio
 }
 
 // r[impl cairn.sync_archive.compaction.receipt_chain.genesis]
-pub fn empty_compaction_ledger(policy_hash: &str) -> CompactionLedger {
-    let genesis_chain_hash = compaction_genesis_hash(policy_hash);
-    let mut ledger = CompactionLedger {
-        schema_version: COMPACTION_LEDGER_SCHEMA_V1.to_string(),
+pub fn empty_compaction_ledger(policy_hash: &str) -> super::model::CompactionLedger {
+    let genesis_chain_hash = super::plan::compaction_genesis_hash(policy_hash);
+    let mut ledger = super::model::CompactionLedger {
+        schema_version: super::model::COMPACTION_LEDGER_SCHEMA_V1.to_string(),
         policy_hash: policy_hash.to_string(),
         genesis_chain_hash: genesis_chain_hash.clone(),
         entries: Vec::new(),
@@ -125,10 +124,10 @@ pub fn empty_compaction_ledger(policy_hash: &str) -> CompactionLedger {
 }
 
 pub fn append_compaction_receipt(
-    existing: Option<&CompactionLedger>,
-    existing_receipts: &[CompactionReceipt],
-    receipt: &CompactionReceipt,
-) -> Result<CompactionLedger, Vec<CompactionIssue>> {
+    existing: Option<&super::model::CompactionLedger>,
+    existing_receipts: &[super::model::CompactionReceipt],
+    receipt: &super::model::CompactionReceipt,
+) -> Result<super::model::CompactionLedger, Vec<super::model::CompactionIssue>> {
     let mut ledger = existing
         .cloned()
         .unwrap_or_else(|| empty_compaction_ledger(&receipt.policy_hash));
@@ -137,7 +136,7 @@ pub fn append_compaction_receipt(
     let expected_sequence = match u64::try_from(ledger.entries.len()) {
         Ok(length) => length.saturating_add(1),
         Err(_) => {
-            issues.push(issue(
+            issues.push(super::plan::issue(
                 "archive_compaction.ledger_too_large",
                 "entries",
                 "ledger entry count must fit in u64",
@@ -146,14 +145,17 @@ pub fn append_compaction_receipt(
         }
     };
     if receipt.sequence != expected_sequence {
-        issues.push(issue(
+        issues.push(super::plan::issue(
             "archive_compaction.sequence_mismatch",
             "sequence",
             "receipt sequence must append exactly one ledger entry",
         ));
     }
-    if !same_digest::<ChainDigestRole>(&receipt.prev_chain_hash, &ledger.latest_chain_hash) {
-        issues.push(issue(
+    if !super::plan::same_digest::<crate::verified::nominal_identity::ChainDigestRole>(
+        &receipt.prev_chain_hash,
+        &ledger.latest_chain_hash,
+    ) {
+        issues.push(super::plan::issue(
             "archive_compaction.previous_chain_mismatch",
             "prev_chain_hash",
             "receipt predecessor must match the ledger tip",
@@ -164,9 +166,9 @@ pub fn append_compaction_receipt(
     if !issues.is_empty() {
         return Err(issues);
     }
-    ledger.entries.push(CompactionLedgerEntry {
+    ledger.entries.push(super::model::CompactionLedgerEntry {
         sequence: receipt.sequence,
-        receipt_path: receipt_path(&receipt.pack_root),
+        receipt_path: super::plan::receipt_path(&receipt.pack_root),
         receipt_hash: receipt.receipt_hash.clone(),
         chain_hash: receipt.chain_hash.clone(),
     });
@@ -175,54 +177,57 @@ pub fn append_compaction_receipt(
     Ok(ledger)
 }
 
-pub fn compaction_ledger_hash(ledger: &CompactionLedger) -> String {
+pub fn compaction_ledger_hash(ledger: &super::model::CompactionLedger) -> String {
     let mut material = ledger.clone();
     material.ledger_hash.clear();
-    hash_serializable(&material)
+    super::plan::hash_serializable(&material)
 }
 
 pub fn validate_compaction_ledger(
-    ledger: &CompactionLedger,
-    receipts: &[CompactionReceipt],
-) -> Vec<CompactionIssue> {
+    ledger: &super::model::CompactionLedger,
+    receipts: &[super::model::CompactionReceipt],
+) -> Vec<super::model::CompactionIssue> {
     // r[impl cairn.sync_archive.compaction.receipt_chain]
     // r[impl cairn.sync_archive.compaction.receipt_chain.removed]
     // r[impl cairn.sync_archive.compaction.verify]
     let mut issues = Vec::new();
-    if ledger.schema_version != COMPACTION_LEDGER_SCHEMA_V1 {
-        issues.push(issue(
+    if ledger.schema_version != super::model::COMPACTION_LEDGER_SCHEMA_V1 {
+        issues.push(super::plan::issue(
             "archive_compaction.ledger_schema_unsupported",
             "schema_version",
             "ledger schema must be cairn.archive-compaction-ledger.v1",
         ));
     }
-    validate_hash(&ledger.policy_hash, "policy_hash", &mut issues);
-    validate_hash(
+    super::plan::validate_hash(&ledger.policy_hash, "policy_hash", &mut issues);
+    super::plan::validate_hash(
         &ledger.genesis_chain_hash,
         "genesis_chain_hash",
         &mut issues,
     );
-    validate_hash(&ledger.latest_chain_hash, "latest_chain_hash", &mut issues);
-    validate_hash(&ledger.ledger_hash, "ledger_hash", &mut issues);
-    if !same_digest::<ChainDigestRole>(
-        &compaction_genesis_hash(&ledger.policy_hash),
+    super::plan::validate_hash(&ledger.latest_chain_hash, "latest_chain_hash", &mut issues);
+    super::plan::validate_hash(&ledger.ledger_hash, "ledger_hash", &mut issues);
+    if !super::plan::same_digest::<crate::verified::nominal_identity::ChainDigestRole>(
+        &super::plan::compaction_genesis_hash(&ledger.policy_hash),
         &ledger.genesis_chain_hash,
     ) {
-        issues.push(issue(
+        issues.push(super::plan::issue(
             "archive_compaction.genesis_hash_mismatch",
             "genesis_chain_hash",
             "ledger genesis must be derived from the policy-owned domain and policy hash",
         ));
     }
-    if !same_digest::<LedgerDigestRole>(&compaction_ledger_hash(ledger), &ledger.ledger_hash) {
-        issues.push(issue(
+    if !super::plan::same_digest::<crate::verified::nominal_identity::LedgerDigestRole>(
+        &compaction_ledger_hash(ledger),
+        &ledger.ledger_hash,
+    ) {
+        issues.push(super::plan::issue(
             "archive_compaction.ledger_hash_mismatch",
             "ledger_hash",
             "ledger hash must match canonical ledger material",
         ));
     }
     if !receipts.is_empty() && receipts.len() != ledger.entries.len() {
-        issues.push(issue(
+        issues.push(super::plan::issue(
             "archive_compaction.ledger_receipt_count_mismatch",
             "entries",
             "every ledger entry must have one observed receipt",
@@ -235,18 +240,18 @@ pub fn validate_compaction_ledger(
             Err(_) => 0,
         };
         if entry.sequence != expected_sequence {
-            issues.push(issue(
+            issues.push(super::plan::issue(
                 "archive_compaction.ledger_sequence_mismatch",
                 &format!("entries[{index}].sequence"),
                 "ledger sequences must be contiguous and one-based",
             ));
         }
-        validate_hash(
+        super::plan::validate_hash(
             &entry.receipt_hash,
             &format!("entries[{index}].receipt_hash"),
             &mut issues,
         );
-        validate_hash(
+        super::plan::validate_hash(
             &entry.chain_hash,
             &format!("entries[{index}].chain_hash"),
             &mut issues,
@@ -254,18 +259,27 @@ pub fn validate_compaction_ledger(
         if let Some(receipt) = receipts.get(index) {
             issues.extend(validate_compaction_receipt(receipt));
             if receipt.sequence != entry.sequence
-                || !same_digest::<ReceiptDigestRole>(&receipt.receipt_hash, &entry.receipt_hash)
-                || !same_digest::<ChainDigestRole>(&receipt.chain_hash, &entry.chain_hash)
-                || receipt_path(&receipt.pack_root) != entry.receipt_path
+                || !super::plan::same_digest::<crate::verified::nominal_identity::ReceiptDigestRole>(
+                    &receipt.receipt_hash,
+                    &entry.receipt_hash,
+                )
+                || !super::plan::same_digest::<crate::verified::nominal_identity::ChainDigestRole>(
+                    &receipt.chain_hash,
+                    &entry.chain_hash,
+                )
+                || super::plan::receipt_path(&receipt.pack_root) != entry.receipt_path
             {
-                issues.push(issue(
+                issues.push(super::plan::issue(
                     "archive_compaction.ledger_entry_mismatch",
                     &format!("entries[{index}]"),
                     "ledger entry must bind its exact receipt identity",
                 ));
             }
-            if !same_digest::<ChainDigestRole>(&receipt.prev_chain_hash, expected_prev) {
-                issues.push(issue(
+            if !super::plan::same_digest::<crate::verified::nominal_identity::ChainDigestRole>(
+                &receipt.prev_chain_hash,
+                expected_prev,
+            ) {
+                issues.push(super::plan::issue(
                     "archive_compaction.receipt_predecessor_mismatch",
                     &format!("entries[{index}]"),
                     "receipt predecessor must match the prior ledger chain hash",
@@ -274,8 +288,11 @@ pub fn validate_compaction_ledger(
         }
         expected_prev = &entry.chain_hash;
     }
-    if !same_digest::<ChainDigestRole>(&ledger.latest_chain_hash, expected_prev) {
-        issues.push(issue(
+    if !super::plan::same_digest::<crate::verified::nominal_identity::ChainDigestRole>(
+        &ledger.latest_chain_hash,
+        expected_prev,
+    ) {
+        issues.push(super::plan::issue(
             "archive_compaction.ledger_tip_mismatch",
             "latest_chain_hash",
             "ledger tip must match the final chain entry or genesis",

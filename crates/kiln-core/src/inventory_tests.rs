@@ -701,6 +701,8 @@ fn typed_fair_admission_reasons_keep_work_policy_and_freshness_exact() -> TestRe
         held,
         measured: BTreeMap::new(),
         observation_at_ms: Some(1000),
+        lineage: None,
+        serving: None,
     });
     let result = explain_readiness(&profile, &snapshot, &needs, 2000)?;
     assert!(
@@ -813,5 +815,415 @@ fn warm_service_and_free_capacity_do_not_override_routing_permission() -> TestRe
         &explain_readiness(&profile, &snapshot, &needs, 2000)?,
         "model_policy_denied_or_unknown"
     ));
+    Ok(())
+}
+
+fn reason(code: &str, subject: WaitSubject, owner: &str) -> WaitReason {
+    WaitReason {
+        code: code.into(),
+        subject,
+        owner: owner.into(),
+    }
+}
+fn field(name: &str) -> WaitSubject {
+    WaitSubject::Fact { field: name.into() }
+}
+
+// r[verify kiln.inventory.producers.scenario.wait]
+#[test]
+fn producer_wait_reasons_block_with_exact_code_subject_and_owner() -> TestResult {
+    let (profile, mut snapshot, needs) = cohort()?;
+    let empty = serde_json::to_string(&project_inventory(&profile, &snapshot, Some(&needs), 2000)?)
+        .map_err(|e| format!("{e}"))?;
+    assert!(
+        !empty.contains("wait_reasons") && !empty.contains("\"owner\":"),
+        "facts and blockers without producer reasons keep their encoding"
+    );
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    agent.wait_reasons = vec![reason(
+        "revision_not_admitted",
+        field("revisions"),
+        "lattice#25",
+    )];
+    let agent_ref = agent.meta.reference.clone();
+    let worker = snapshot.workers.first_mut().ok_or("missing worker")?;
+    worker.wait_reasons = vec![
+        reason("liveness_unobserved", field("liveness"), "kiln#49"),
+        reason(
+            "serving_not_ready",
+            WaitSubject::Route {
+                name: "primary".into(),
+            },
+            "animus#17",
+        ),
+    ];
+    let worker_ref = worker.meta.reference.clone();
+    let explanation = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    let owned = |b: &Blocker| {
+        (
+            b.code.clone(),
+            b.subject.clone(),
+            b.constraint.clone(),
+            b.owner.clone(),
+        )
+    };
+    assert!(explanation.blockers.iter().map(owned).any(|b| b
+        == (
+            "revision_not_admitted".into(),
+            Some(agent_ref.clone()),
+            "fact:revisions".into(),
+            Some("lattice#25".into())
+        )));
+    let worker_candidates: Vec<_> = explanation
+        .candidates
+        .iter()
+        .filter(|c| c.worker == worker_ref)
+        .collect();
+    assert!(!worker_candidates.is_empty());
+    for candidate in &worker_candidates {
+        let blockers: Vec<_> = candidate.blockers.iter().map(owned).collect();
+        assert!(blockers.contains(&(
+            "liveness_unobserved".into(),
+            Some(worker_ref.clone()),
+            "fact:liveness".into(),
+            Some("kiln#49".into())
+        )));
+        assert!(blockers.contains(&(
+            "serving_not_ready".into(),
+            Some(worker_ref.clone()),
+            "route:primary".into(),
+            Some("animus#17".into())
+        )));
+        assert!(!candidate.observed_eligible);
+    }
+    assert!(
+        explanation
+            .blockers
+            .iter()
+            .chain(
+                explanation
+                    .candidates
+                    .iter()
+                    .flat_map(|c| c.blockers.iter())
+            )
+            .filter(|b| b.owner.is_some())
+            .all(|b| b.code != "worker_not_idle"),
+        "Kiln's own blockers carry no producer owner"
+    );
+    let projection = project_inventory(&profile, &snapshot, Some(&needs), 2000)?;
+    assert_eq!(
+        projection
+            .snapshot
+            .agents
+            .iter()
+            .find(|a| a.meta.reference == agent_ref)
+            .map(|a| a.wait_reasons.len()),
+        Some(1)
+    );
+    Ok(())
+}
+
+#[test]
+fn wait_reason_admission_refuses_bad_owners_bounds_and_duplicates() -> TestResult {
+    let (profile, snapshot, _) = cohort()?;
+    let with = |reasons: Vec<WaitReason>| {
+        let mut changed = snapshot.clone();
+        if let Some(worker) = changed.workers.first_mut() {
+            worker.wait_reasons = reasons;
+        }
+        admit_snapshot(&profile, &changed)
+    };
+    for valid in ["configuration", "kiln#49", "animus#17"] {
+        assert_eq!(
+            with(vec![reason("awaiting_dispatch", field("lifecycle"), valid)]),
+            Ok(())
+        );
+    }
+    for invalid in [
+        "",
+        "kiln#",
+        "kiln#4x",
+        "#49",
+        "kiln#49#1",
+        "kiln 49",
+        "../kiln",
+    ] {
+        assert_eq!(
+            with(vec![reason(
+                "awaiting_dispatch",
+                field("lifecycle"),
+                invalid
+            )]),
+            Err("inventory_public_identifier_invalid"),
+            "{invalid}"
+        );
+    }
+    for subject in [
+        field(""),
+        field("free text"),
+        WaitSubject::Route {
+            name: "a".repeat(MAX_PUBLIC_TEXT),
+        },
+    ] {
+        assert_eq!(
+            with(vec![reason("serving_not_ready", subject, "animus#17")]),
+            Err("inventory_public_identifier_invalid")
+        );
+    }
+    assert_eq!(
+        with(vec![reason(
+            "free text code",
+            field("lifecycle"),
+            "kiln#45"
+        )]),
+        Err("inventory_public_identifier_invalid")
+    );
+    let one = reason("awaiting_dispatch", field("lifecycle"), "kiln#45");
+    assert_eq!(
+        with(vec![one.clone(), one]),
+        Err("inventory_wait_reason_duplicate")
+    );
+    let bounded: Vec<_> = (0..=MAX_WAIT_REASONS)
+        .map(|i| reason(&format!("code-{i}"), field("lifecycle"), "kiln#45"))
+        .collect();
+    assert_eq!(with(bounded), Err("inventory_field_bound"));
+    Ok(())
+}
+
+// r[verify kiln.inventory.producers.scenario.capability]
+#[test]
+fn unknown_capability_is_never_reported_as_unsupported() -> TestResult {
+    let (profile, mut snapshot, mut needs) = cohort()?;
+    needs.tools.push("missing-tool".into());
+    let known = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    assert!(has(&known, "unsupported_agent_tool"));
+    assert!(!has(&known, "agent_tool_unknown"));
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    agent.task_families.clear();
+    agent.tools.clear();
+    agent.meta.unknown_fields = vec!["task_families".into(), "tools".into()];
+    let unknown = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    for code in ["agent_task_family_unknown", "agent_tool_unknown"] {
+        assert!(has(&unknown, code), "{code}");
+    }
+    for code in ["unsupported_task_family", "unsupported_agent_tool"] {
+        assert!(!has(&unknown, code), "{code}");
+    }
+    assert!(unknown.candidates.iter().all(|c| !c.observed_eligible));
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    agent.meta.unknown_fields.clear();
+    let negative = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    for code in ["unsupported_task_family", "unsupported_agent_tool"] {
+        assert!(
+            has(&negative, code),
+            "a known empty set is a known negative"
+        );
+    }
+    Ok(())
+}
+
+fn fixture_reference() -> TaskFamilyQualification {
+    TaskFamilyQualification {
+        task_family: "rust-fix".into(),
+        reference: "blake3:f87c".into(),
+        evidence_class: "task_family_evaluation".into(),
+        provenance: EvidenceProvenance::Fixture,
+    }
+}
+
+// r[verify kiln.inventory.producers.scenario.qualification]
+#[test]
+fn task_family_qualification_shows_provenance_and_fixture_is_never_live() -> TestResult {
+    let (profile, mut snapshot, needs) = cohort()?;
+    let baseline = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    assert_eq!(baseline.task_family_qualification, None);
+    assert!(baseline.candidates.iter().any(|c| c.observed_eligible));
+    let encoded = serde_json::to_string(&baseline).map_err(|e| format!("{e}"))?;
+    assert!(
+        !encoded.contains("task_family_qualification"),
+        "an explanation without a reference keeps its encoding"
+    );
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    agent.task_family_qualifications = vec![fixture_reference()];
+    let fixture = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    assert_eq!(
+        fixture.task_family_qualification,
+        Some(fixture_reference()),
+        "the current reference is shown with its class and provenance"
+    );
+    let not_live: Vec<_> = fixture
+        .blockers
+        .iter()
+        .filter(|b| b.code == "task_family_qualification_not_live")
+        .collect();
+    assert_eq!(not_live.len(), 1);
+    assert_eq!(
+        not_live
+            .first()
+            .map(|b| (b.constraint.as_str(), b.owner.is_none())),
+        Some(("blake3:f87c", true))
+    );
+    assert!(
+        fixture.candidates.iter().all(|c| !c.observed_eligible),
+        "fixture evidence never makes a combination eligible"
+    );
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    if let Some(q) = agent.task_family_qualifications.first_mut() {
+        q.provenance = EvidenceProvenance::Live;
+    }
+    let live = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    assert!(!has(&live, "task_family_qualification_not_live"));
+    assert!(live.candidates.iter().any(|c| c.observed_eligible));
+    assert_eq!(
+        live.task_family_qualification.map(|q| q.provenance),
+        Some(EvidenceProvenance::Live)
+    );
+    // Another family, another revision or a stale definition shows nothing.
+    let mut other_family = needs.clone();
+    other_family.task_family = "cairn-task".into();
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    agent.task_families.push("cairn-task".into());
+    assert_eq!(
+        explain_readiness(&profile, &snapshot, &other_family, 2000)?.task_family_qualification,
+        None
+    );
+    let mut other_revision = needs.clone();
+    other_revision.profile_revision = "profile-r2".into();
+    assert_eq!(
+        explain_readiness(&profile, &snapshot, &other_revision, 2000)?.task_family_qualification,
+        None
+    );
+    let agent = snapshot.agents.first_mut().ok_or("missing agent")?;
+    agent.meta.valid_until_ms = 1500;
+    let stale = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    assert_eq!(stale.task_family_qualification, None);
+    assert!(has(&stale, "stale_or_unknown_agent"));
+    Ok(())
+}
+
+#[test]
+fn task_family_qualification_admission_refuses_bad_tokens_and_order() -> TestResult {
+    let (profile, snapshot, _) = cohort()?;
+    let with = |values: Vec<TaskFamilyQualification>| {
+        let mut changed = snapshot.clone();
+        if let Some(agent) = changed.agents.first_mut() {
+            agent.task_family_qualifications = values;
+        }
+        admit_snapshot(&profile, &changed)
+    };
+    let mut second = fixture_reference();
+    second.task_family = "z-family".into();
+    assert_eq!(with(vec![fixture_reference(), second.clone()]), Ok(()));
+    assert_eq!(
+        with(vec![second, fixture_reference()]),
+        Err("inventory_task_family_qualification_unordered")
+    );
+    assert_eq!(
+        with(vec![fixture_reference(), fixture_reference()]),
+        Err("inventory_task_family_qualification_unordered"),
+        "one reference per family"
+    );
+    let mut free_text = fixture_reference();
+    free_text.reference = "a reference".into();
+    assert_eq!(
+        with(vec![free_text]),
+        Err("inventory_public_identifier_invalid")
+    );
+    let bounded: Vec<_> = (0..=MAX_REQUIREMENTS)
+        .map(|i| {
+            let mut value = fixture_reference();
+            value.task_family = format!("family-{i:03}");
+            value
+        })
+        .collect();
+    assert_eq!(with(bounded), Err("inventory_field_bound"));
+    Ok(())
+}
+
+// r[verify kiln.inventory.producers.scenario.revisions]
+#[test]
+fn revision_management_and_pins_stay_distinct_and_blocked_pins_block() -> TestResult {
+    let (profile, mut snapshot, needs) = cohort()?;
+    let before = project_inventory(&profile, &snapshot, Some(&needs), 2000)?;
+    let encoded = serde_json::to_string(&before).map_err(|e| format!("{e}"))?;
+    assert!(
+        !encoded.contains("\"management\"") && !encoded.contains("\"pin\""),
+        "facts without management or pins keep their encoding"
+    );
+    let pin = RevisionPin::Recorded {
+        qualification: "blake3:f87c".into(),
+        rollout_generation: 1,
+        identity: "blake3:7363".into(),
+        status: PinStatus::Live,
+        blocked: false,
+    };
+    snapshot
+        .agents
+        .first_mut()
+        .ok_or("missing agent")?
+        .revisions
+        .management = Some(RevisionManagement::Managed);
+    let worker = snapshot.workers.first_mut().ok_or("missing worker")?;
+    let worker_ref = worker.meta.reference.clone();
+    worker.pin = Some(pin);
+    let live = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    assert!(!has(&live, "worker_pin_blocked"));
+    assert!(live.candidates.iter().any(|c| c.observed_eligible));
+    let projected = project_inventory(&profile, &snapshot, Some(&needs), 2000)?;
+    let encoded = serde_json::to_string(&projected.snapshot).map_err(|e| format!("{e}"))?;
+    assert!(encoded.contains("\"management\":\"managed\""));
+    assert!(encoded.contains("\"pin\":{\"state\":\"recorded\""));
+    let decoded: InventorySnapshot = serde_json::from_str(&encoded).map_err(|e| format!("{e}"))?;
+    assert_eq!(decoded, projected.snapshot);
+    let worker = snapshot.workers.first_mut().ok_or("missing worker")?;
+    worker.pin = Some(RevisionPin::Unmanaged {});
+    let unmanaged = serde_json::to_string(&worker.pin).map_err(|e| format!("{e}"))?;
+    assert_eq!(unmanaged, "{\"state\":\"unmanaged\"}");
+    worker.pin = Some(RevisionPin::Recorded {
+        qualification: "blake3:f87c".into(),
+        rollout_generation: 1,
+        identity: "blake3:7363".into(),
+        status: PinStatus::Released,
+        blocked: true,
+    });
+    let blocked = explain_readiness(&profile, &snapshot, &needs, 2000)?;
+    for candidate in blocked.candidates.iter().filter(|c| c.worker == worker_ref) {
+        assert!(!candidate.observed_eligible);
+        assert!(
+            candidate
+                .blockers
+                .iter()
+                .any(|b| b.code == "worker_pin_blocked"
+                    && b.constraint == "blake3:7363"
+                    && b.owner.is_none())
+        );
+    }
+    let worker = snapshot.workers.first_mut().ok_or("missing worker")?;
+    worker.pin = Some(RevisionPin::Recorded {
+        qualification: "free text".into(),
+        rollout_generation: 1,
+        identity: "blake3:7363".into(),
+        status: PinStatus::Live,
+        blocked: false,
+    });
+    assert_eq!(
+        admit_snapshot(&profile, &snapshot),
+        Err("inventory_public_identifier_invalid")
+    );
+    let worker = snapshot.workers.first_mut().ok_or("missing worker")?;
+    worker.pin = Some(RevisionPin::Recorded {
+        qualification: "blake3:f87c".into(),
+        rollout_generation: MAX_EXACT_NUMBER + 1,
+        identity: "blake3:7363".into(),
+        status: PinStatus::Live,
+        blocked: false,
+    });
+    assert_eq!(
+        admit_snapshot(&profile, &snapshot),
+        Err("inventory_number_not_exact")
+    );
+    let malformed =
+        serde_json::from_str::<RevisionPin>("{\"state\":\"unmanaged\",\"owner\":\"x\"}");
+    assert!(malformed.is_err(), "an unmanaged pin carries no fields");
     Ok(())
 }

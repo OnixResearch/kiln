@@ -1,9 +1,3 @@
-use std::collections::BTreeSet;
-
-use serde_json::{json, Value};
-
-use crate::verified::evidence::canonical_json_hash;
-
 pub const STRUCTURED_LIFECYCLE_SCHEMA_V1: &str = "cairn.structured-lifecycle.bundle.v1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,11 +13,13 @@ pub struct StructuredLifecycleReport {
     pub issues: Vec<StructuredLifecycleIssue>,
 }
 
-pub fn structured_lifecycle_bundle_hash(bundle: &Value) -> String {
-    canonical_json_hash(bundle)
+pub fn structured_lifecycle_bundle_hash(bundle: &serde_json::Value) -> String {
+    crate::verified::evidence::canonical_json_hash(bundle)
 }
 
-pub fn validate_structured_lifecycle_bundle(bundle: &Value) -> StructuredLifecycleReport {
+pub fn validate_structured_lifecycle_bundle(
+    bundle: &serde_json::Value,
+) -> StructuredLifecycleReport {
     let mut issues = Vec::new();
     require_schema(bundle, &mut issues);
     validate_specs(bundle.get("specs"), &mut issues);
@@ -36,16 +32,16 @@ pub fn validate_structured_lifecycle_bundle(bundle: &Value) -> StructuredLifecyc
     }
 }
 
-pub fn structured_lifecycle_issue_json(issue: &StructuredLifecycleIssue) -> Value {
-    json!({
+pub fn structured_lifecycle_issue_json(issue: &StructuredLifecycleIssue) -> serde_json::Value {
+    serde_json::json!({
         "code": issue.code,
         "message": issue.message,
         "field_path": issue.field_path,
     })
 }
 
-fn require_schema(bundle: &Value, issues: &mut Vec<StructuredLifecycleIssue>) {
-    match bundle.get("schema").and_then(Value::as_str) {
+fn require_schema(bundle: &serde_json::Value, issues: &mut Vec<StructuredLifecycleIssue>) {
+    match bundle.get("schema").and_then(serde_json::Value::as_str) {
         Some(STRUCTURED_LIFECYCLE_SCHEMA_V1) => {}
         Some(_) => issues.push(issue(
             "structured_lifecycle.schema.unsupported",
@@ -60,8 +56,8 @@ fn require_schema(bundle: &Value, issues: &mut Vec<StructuredLifecycleIssue>) {
     }
 }
 
-fn validate_specs(value: Option<&Value>, issues: &mut Vec<StructuredLifecycleIssue>) {
-    let Some(specs) = value.and_then(Value::as_array) else {
+fn validate_specs(value: Option<&serde_json::Value>, issues: &mut Vec<StructuredLifecycleIssue>) {
+    let Some(specs) = value.and_then(serde_json::Value::as_array) else {
         issues.push(issue(
             "structured_lifecycle.specs.missing",
             "specs must be an array",
@@ -74,11 +70,14 @@ fn validate_specs(value: Option<&Value>, issues: &mut Vec<StructuredLifecycleIss
     }
 }
 
-fn validate_spec(spec: &Value, path: &str, issues: &mut Vec<StructuredLifecycleIssue>) {
+fn validate_spec(spec: &serde_json::Value, path: &str, issues: &mut Vec<StructuredLifecycleIssue>) {
     require_stable_id(spec, "id", &format!("{path}.id"), issues);
     require_non_empty_text(spec, "purpose", &format!("{path}.purpose"), issues);
     let req_path = format!("{path}.requirements");
-    let Some(requirements) = spec.get("requirements").and_then(Value::as_array) else {
+    let Some(requirements) = spec
+        .get("requirements")
+        .and_then(serde_json::Value::as_array)
+    else {
         issues.push(issue(
             "structured_lifecycle.requirements.missing",
             "requirements must be an array",
@@ -103,7 +102,7 @@ fn validate_spec(spec: &Value, path: &str, issues: &mut Vec<StructuredLifecycleI
 }
 
 fn validate_requirement(
-    requirement: &Value,
+    requirement: &serde_json::Value,
     path: &str,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
@@ -120,7 +119,10 @@ fn validate_requirement(
         issues,
     );
     let scenarios_path = format!("{path}.scenarios");
-    let Some(scenarios) = requirement.get("scenarios").and_then(Value::as_array) else {
+    let Some(scenarios) = requirement
+        .get("scenarios")
+        .and_then(serde_json::Value::as_array)
+    else {
         issues.push(issue(
             "structured_lifecycle.scenarios.missing",
             "scenarios must be a non-empty array",
@@ -140,7 +142,11 @@ fn validate_requirement(
     }
 }
 
-fn validate_scenario(scenario: &Value, path: &str, issues: &mut Vec<StructuredLifecycleIssue>) {
+fn validate_scenario(
+    scenario: &serde_json::Value,
+    path: &str,
+    issues: &mut Vec<StructuredLifecycleIssue>,
+) {
     require_stable_id(scenario, "id", &format!("{path}.id"), issues);
     require_non_empty_text_array(scenario, "given", &format!("{path}.given"), issues);
     require_non_empty_text_array(scenario, "when", &format!("{path}.when"), issues);
@@ -148,8 +154,8 @@ fn validate_scenario(scenario: &Value, path: &str, issues: &mut Vec<StructuredLi
 }
 
 fn validate_changes(
-    value: Option<&Value>,
-    requirement_ids: &BTreeSet<String>,
+    value: Option<&serde_json::Value>,
+    requirement_ids: &std::collections::BTreeSet<String>,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
     let Some(changes) = value else {
@@ -174,9 +180,9 @@ fn validate_changes(
 }
 
 fn validate_change(
-    change: &Value,
+    change: &serde_json::Value,
     path: &str,
-    requirement_ids: &BTreeSet<String>,
+    requirement_ids: &std::collections::BTreeSet<String>,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
     require_stable_id(change, "id", &format!("{path}.id"), issues);
@@ -195,9 +201,9 @@ fn validate_change(
 }
 
 fn validate_tasks(
-    value: Option<&Value>,
+    value: Option<&serde_json::Value>,
     path: &str,
-    requirement_ids: &BTreeSet<String>,
+    requirement_ids: &std::collections::BTreeSet<String>,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
     let Some(tasks) = value else {
@@ -226,9 +232,9 @@ fn validate_tasks(
 }
 
 fn validate_probes(
-    value: Option<&Value>,
+    value: Option<&serde_json::Value>,
     path: &str,
-    requirement_ids: &BTreeSet<String>,
+    requirement_ids: &std::collections::BTreeSet<String>,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
     let Some(probes) = value else {
@@ -248,9 +254,9 @@ fn validate_probes(
 }
 
 fn validate_probe(
-    probe: &Value,
+    probe: &serde_json::Value,
     path: &str,
-    requirement_ids: &BTreeSet<String>,
+    requirement_ids: &std::collections::BTreeSet<String>,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
     require_stable_id(probe, "id", &format!("{path}.id"), issues);
@@ -280,17 +286,22 @@ fn validate_probe(
     );
 }
 
-fn collect_requirement_ids(value: Option<&Value>) -> BTreeSet<String> {
-    let mut ids = BTreeSet::new();
-    let Some(specs) = value.and_then(Value::as_array) else {
+fn collect_requirement_ids(
+    value: Option<&serde_json::Value>,
+) -> std::collections::BTreeSet<String> {
+    let mut ids = std::collections::BTreeSet::new();
+    let Some(specs) = value.and_then(serde_json::Value::as_array) else {
         return ids;
     };
     for spec in specs {
-        let Some(requirements) = spec.get("requirements").and_then(Value::as_array) else {
+        let Some(requirements) = spec
+            .get("requirements")
+            .and_then(serde_json::Value::as_array)
+        else {
             continue;
         };
         for requirement in requirements {
-            if let Some(id) = requirement.get("id").and_then(Value::as_str) {
+            if let Some(id) = requirement.get("id").and_then(serde_json::Value::as_str) {
                 ids.insert(id.to_string());
             }
         }
@@ -299,13 +310,13 @@ fn collect_requirement_ids(value: Option<&Value>) -> BTreeSet<String> {
 }
 
 fn validate_requirement_refs(
-    value: &Value,
+    value: &serde_json::Value,
     field: &str,
     path: &str,
-    requirement_ids: &BTreeSet<String>,
+    requirement_ids: &std::collections::BTreeSet<String>,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
-    let Some(refs) = value.get(field).and_then(Value::as_array) else {
+    let Some(refs) = value.get(field).and_then(serde_json::Value::as_array) else {
         return;
     };
     for (index, requirement_ref) in refs.iter().enumerate() {
@@ -322,9 +333,9 @@ fn validate_requirement_refs(
     }
 }
 
-fn validate_global_ids(bundle: &Value, issues: &mut Vec<StructuredLifecycleIssue>) {
-    let mut seen = BTreeSet::new();
-    let mut duplicated = BTreeSet::new();
+fn validate_global_ids(bundle: &serde_json::Value, issues: &mut Vec<StructuredLifecycleIssue>) {
+    let mut seen = std::collections::BTreeSet::new();
+    let mut duplicated = std::collections::BTreeSet::new();
     collect_ids(bundle, &mut |id| {
         if !seen.insert(id.clone()) {
             duplicated.insert(id);
@@ -339,17 +350,17 @@ fn validate_global_ids(bundle: &Value, issues: &mut Vec<StructuredLifecycleIssue
     }
 }
 
-fn collect_ids(value: &Value, push: &mut impl FnMut(String)) {
+fn collect_ids(value: &serde_json::Value, push: &mut impl FnMut(String)) {
     match value {
-        Value::Object(object) => {
-            if let Some(id) = object.get("id").and_then(Value::as_str) {
+        serde_json::Value::Object(object) => {
+            if let Some(id) = object.get("id").and_then(serde_json::Value::as_str) {
                 push(id.to_string());
             }
             for child in object.values() {
                 collect_ids(child, push);
             }
         }
-        Value::Array(items) => {
+        serde_json::Value::Array(items) => {
             for item in items {
                 collect_ids(item, push);
             }
@@ -359,11 +370,11 @@ fn collect_ids(value: &Value, push: &mut impl FnMut(String)) {
 }
 
 fn validate_strength(
-    value: Option<&Value>,
+    value: Option<&serde_json::Value>,
     path: &str,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
-    let Some(strength) = value.and_then(Value::as_str) else {
+    let Some(strength) = value.and_then(serde_json::Value::as_str) else {
         issues.push(issue(
             "structured_lifecycle.strength.missing",
             "strength must be MUST, SHALL, SHOULD, or MAY",
@@ -381,11 +392,11 @@ fn validate_strength(
 }
 
 fn validate_coverage_class(
-    value: Option<&Value>,
+    value: Option<&serde_json::Value>,
     path: &str,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
-    let Some(class) = value.and_then(Value::as_str) else {
+    let Some(class) = value.and_then(serde_json::Value::as_str) else {
         issues.push(issue(
             "structured_lifecycle.coverage_class.missing",
             "coverage_class must be positive, negative, malformed-input, boundary, or regression",
@@ -406,14 +417,14 @@ fn validate_coverage_class(
 }
 
 fn require_non_empty_text(
-    value: &Value,
+    value: &serde_json::Value,
     field: &str,
     path: &str,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
     if value
         .get(field)
-        .and_then(Value::as_str)
+        .and_then(serde_json::Value::as_str)
         .is_none_or(str::is_empty)
     {
         issues.push(issue(
@@ -425,12 +436,12 @@ fn require_non_empty_text(
 }
 
 fn require_stable_id(
-    value: &Value,
+    value: &serde_json::Value,
     field: &str,
     path: &str,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
-    let Some(id) = value.get(field).and_then(Value::as_str) else {
+    let Some(id) = value.get(field).and_then(serde_json::Value::as_str) else {
         issues.push(issue(
             format!("structured_lifecycle.{field}.missing"),
             format!("{field} must be a non-empty string"),
@@ -464,12 +475,12 @@ fn is_stable_id(value: &str) -> bool {
 }
 
 fn require_non_empty_text_array(
-    value: &Value,
+    value: &serde_json::Value,
     field: &str,
     path: &str,
     issues: &mut Vec<StructuredLifecycleIssue>,
 ) {
-    let Some(items) = value.get(field).and_then(Value::as_array) else {
+    let Some(items) = value.get(field).and_then(serde_json::Value::as_array) else {
         issues.push(issue(
             format!("structured_lifecycle.{field}.missing"),
             format!("{field} must be a non-empty string array"),
@@ -506,8 +517,8 @@ fn issue(
 mod tests {
     use super::*;
 
-    fn bundle() -> Value {
-        json!({
+    fn bundle() -> serde_json::Value {
+        serde_json::json!({
             "schema": STRUCTURED_LIFECYCLE_SCHEMA_V1,
             "specs": [{
                 "id": "structured-lifecycle",
@@ -562,7 +573,7 @@ mod tests {
     #[test]
     fn duplicate_ids_fail() {
         let mut bundle = bundle();
-        bundle["changes"][0]["id"] = Value::String("structured-lifecycle".to_string());
+        bundle["changes"][0]["id"] = serde_json::Value::String("structured-lifecycle".to_string());
         let report = validate_structured_lifecycle_bundle(&bundle);
         assert!(!report.valid);
         assert!(report
@@ -574,7 +585,8 @@ mod tests {
     #[test]
     fn malformed_ids_fail() {
         let mut bundle = bundle();
-        bundle["specs"][0]["requirements"][0]["id"] = Value::String("bad id".to_string());
+        bundle["specs"][0]["requirements"][0]["id"] =
+            serde_json::Value::String("bad id".to_string());
         let report = validate_structured_lifecycle_bundle(&bundle);
         assert!(!report.valid);
         assert!(report
@@ -586,7 +598,7 @@ mod tests {
     #[test]
     fn invalid_task_links_fail() {
         let mut bundle = bundle();
-        bundle["changes"][0]["tasks"][0]["covers"] = json!(["missing.requirement"]);
+        bundle["changes"][0]["tasks"][0]["covers"] = serde_json::json!(["missing.requirement"]);
         let report = validate_structured_lifecycle_bundle(&bundle);
         assert!(!report.valid);
         assert!(report
@@ -598,7 +610,8 @@ mod tests {
     #[test]
     fn invalid_probe_requirement_links_fail() {
         let mut bundle = bundle();
-        bundle["changes"][0]["probes"][0]["requirements"] = json!(["missing.requirement"]);
+        bundle["changes"][0]["probes"][0]["requirements"] =
+            serde_json::json!(["missing.requirement"]);
         let report = validate_structured_lifecycle_bundle(&bundle);
         assert!(!report.valid);
         assert!(report

@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use super::*;
 
 fn hash() -> String {
@@ -11,7 +9,7 @@ fn approved_review_receipt_can_have_no_findings() {
     // r[verify semantic_review.split_semantic_review_core.behavior_preserved]
     // r[verify semantic_review.split_semantic_review_core.behavior_preserved.focused_checks]
     // r[verify semantic_review.split_semantic_review_core.behavior_preserved.repository_checks]
-    let value = json!({
+    let value = serde_json::json!({
         "schema_version": REVIEW_RECEIPT_SCHEMA_V1,
         "review_kind": "plan",
         "decision": "approved",
@@ -25,7 +23,7 @@ fn approved_review_receipt_can_have_no_findings() {
 
 #[test]
 fn non_approved_review_requires_categorized_findings() {
-    let value = json!({
+    let value = serde_json::json!({
         "schema_version": REVIEW_RECEIPT_SCHEMA_V1,
         "review_kind": "design",
         "decision": "needs_revision",
@@ -79,7 +77,7 @@ fn review_metrics_regression_split_preserves_public_api_behavior() {
     assert_eq!(report.verdict, "PASS");
     assert!(report.receipt_hash.len() == 64);
 
-    let coverage = json!({
+    let coverage = serde_json::json!({
         "schema_version": REVIEW_METRICS_FIXTURE_COVERAGE_SCHEMA_V1,
         "fixtures": [
             {"path": "fixtures/positive-auto-fix", "valid": true, "diagnostics": []},
@@ -93,7 +91,7 @@ fn review_metrics_regression_split_preserves_public_api_behavior() {
 #[test]
 fn review_metrics_registry_accepts_complete_category_binding() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.registry_binds_surfaces]
-    let registry = json!({
+    let registry = serde_json::json!({
         "schema_version": REVIEW_METRICS_REGRESSION_SCHEMA_V1,
         "categories": [{
             "code": "tasks-auto-fix",
@@ -116,7 +114,7 @@ fn review_metrics_registry_accepts_complete_category_binding() {
 #[test]
 fn review_metrics_registry_rejects_missing_and_duplicate_bindings() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.registry_binds_surfaces]
-    let registry = json!({
+    let registry = serde_json::json!({
         "schema_version": REVIEW_METRICS_REGRESSION_SCHEMA_V1,
         "categories": [
             {
@@ -161,7 +159,7 @@ fn review_metrics_registry_rejects_missing_and_duplicate_bindings() {
 fn review_metrics_fixture_pairs_accept_expected_positive_and_negative_results() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.fixture_pair_enforcement]
     let registry = review_metrics_registry_fixture();
-    let coverage = json!({
+    let coverage = serde_json::json!({
         "schema_version": REVIEW_METRICS_FIXTURE_COVERAGE_SCHEMA_V1,
         "fixtures": [
             {
@@ -185,7 +183,7 @@ fn review_metrics_fixture_pairs_accept_expected_positive_and_negative_results() 
 fn review_metrics_fixture_pairs_reject_drifted_fixture_results() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.fixture_pair_enforcement]
     let registry = review_metrics_registry_fixture();
-    let coverage = json!({
+    let coverage = serde_json::json!({
         "schema_version": REVIEW_METRICS_FIXTURE_COVERAGE_SCHEMA_V1,
         "fixtures": [
             {
@@ -215,7 +213,7 @@ fn review_metrics_fixture_pairs_reject_drifted_fixture_results() {
 fn review_metrics_fixture_pairs_reject_missing_and_passing_negative_results() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.fixture_pair_enforcement]
     let registry = review_metrics_registry_fixture();
-    let coverage = json!({
+    let coverage = serde_json::json!({
         "schema_version": REVIEW_METRICS_FIXTURE_COVERAGE_SCHEMA_V1,
         "fixtures": [{
             "path": "fixtures/negative-auto-fix",
@@ -238,7 +236,7 @@ fn review_metrics_fixture_pairs_reject_missing_and_passing_negative_results() {
 fn review_metrics_guidance_sync_accepts_documented_diagnostic_and_refs() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.guidance_task_sync]
     let registry = review_metrics_registry_fixture();
-    let sync = json!({
+    let sync = serde_json::json!({
         "schema_version": REVIEW_METRICS_GUIDANCE_SYNC_SCHEMA_V1,
         "guidance": [{
             "anchor": "# auto-fix guidance",
@@ -262,7 +260,7 @@ fn review_metrics_guidance_sync_accepts_documented_diagnostic_and_refs() {
 fn review_metrics_guidance_sync_rejects_missing_diagnostic_anchor_and_refs() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.guidance_task_sync]
     let registry = review_metrics_registry_fixture();
-    let sync = json!({
+    let sync = serde_json::json!({
         "schema_version": REVIEW_METRICS_GUIDANCE_SYNC_SCHEMA_V1,
         "guidance": [{
             "anchor": "# other guidance",
@@ -294,7 +292,7 @@ fn review_metrics_guidance_sync_rejects_missing_diagnostic_anchor_and_refs() {
 fn review_metrics_guidance_sync_rejects_invalid_sync_surfaces() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.guidance_task_sync]
     let registry = review_metrics_registry_fixture();
-    let sync = json!({
+    let sync = serde_json::json!({
         "schema_version": REVIEW_METRICS_GUIDANCE_SYNC_SCHEMA_V1,
         "guidance": [{
             "anchor": "",
@@ -318,7 +316,7 @@ fn review_metrics_guidance_sync_rejects_invalid_sync_surfaces() {
 fn review_metrics_evidence_boundary_accepts_sanitized_metadata_and_provenance() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.secret_free_evidence]
     let registry = review_metrics_registry_fixture();
-    let evidence = json!({
+    let evidence = serde_json::json!({
         "schema_version": REVIEW_METRICS_EVIDENCE_BOUNDARY_SCHEMA_V1,
         "evidence": [{
             "ref": "evidence/metrics-snapshot.md",
@@ -346,7 +344,7 @@ fn review_metrics_evidence_boundary_accepts_sanitized_metadata_and_provenance() 
 fn review_metrics_evidence_boundary_rejects_missing_refs_and_metadata_drift() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.secret_free_evidence]
     let registry = review_metrics_registry_fixture();
-    let evidence = json!({
+    let evidence = serde_json::json!({
         "schema_version": REVIEW_METRICS_EVIDENCE_BOUNDARY_SCHEMA_V1,
         "evidence": [{
             "ref": "evidence/other-snapshot.md",
@@ -371,7 +369,7 @@ fn review_metrics_evidence_boundary_rejects_missing_refs_and_metadata_drift() {
 fn review_metrics_evidence_boundary_rejects_secret_bearing_fields_and_text() {
     // r[verify cairn.semantic_review.review_metrics_regression_rail.secret_free_evidence]
     let registry = review_metrics_registry_fixture();
-    let evidence = json!({
+    let evidence = serde_json::json!({
         "schema_version": REVIEW_METRICS_EVIDENCE_BOUNDARY_SCHEMA_V1,
         "evidence": [{
             "ref": "evidence/metrics-snapshot.md",
@@ -397,7 +395,7 @@ fn review_metrics_evidence_boundary_rejects_secret_bearing_fields_and_text() {
 }
 
 fn review_metrics_registry_fixture() -> serde_json::Value {
-    json!({
+    serde_json::json!({
         "schema_version": REVIEW_METRICS_REGRESSION_SCHEMA_V1,
         "categories": [{
             "code": "tasks-auto-fix",
