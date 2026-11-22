@@ -66,7 +66,8 @@ build_export=$(mktemp)
 inventory_export=$(mktemp)
 serving_export=$(mktemp)
 lineage_export=$(mktemp)
-trap 'rm -f "$projection_export" "$load_export" "$cases_export" "$corpus_export" "$build_export" "$inventory_export" "$serving_export" "$lineage_export"' EXIT
+host_owner_export=$(mktemp)
+trap 'rm -f "$projection_export" "$load_export" "$cases_export" "$corpus_export" "$build_export" "$inventory_export" "$serving_export" "$lineage_export" "$host_owner_export"' EXIT
 nickel export --format json config/fixtures/source-projection-positive.ncl >"$projection_export"
 if ! cmp -s "$projection_export" fixtures/source-projection/definition.json; then
   printf 'stale export: regenerate fixtures/source-projection/definition.json from config/fixtures/source-projection-positive.ncl\n' >&2
@@ -108,7 +109,7 @@ if ! cmp -s "$inventory_export" fixtures/inventory/producers/profile.json; then
   exit 1
 fi
 
-# The fair-admission serving and recursive-lineage tests read these committed exports.
+# The fair-admission serving, recursive-lineage and host-owner tests read these committed exports.
 nickel export --format json config/fixtures/fair-admission-serving-positive.ncl >"$serving_export"
 if ! cmp -s "$serving_export" fixtures/fair-admission/serving-policy.json; then
   printf 'stale export: regenerate fixtures/fair-admission/serving-policy.json from config/fixtures/fair-admission-serving-positive.ncl\n' >&2
@@ -117,6 +118,11 @@ fi
 nickel export --format json config/fixtures/fair-admission-lineage-positive.ncl >"$lineage_export"
 if ! cmp -s "$lineage_export" fixtures/fair-admission/recursive-lineage.json; then
   printf 'stale export: regenerate fixtures/fair-admission/recursive-lineage.json from config/fixtures/fair-admission-lineage-positive.ncl\n' >&2
+  exit 1
+fi
+nickel export --format json config/fixtures/fair-admission-host-owner-positive.ncl >"$host_owner_export"
+if ! cmp -s "$host_owner_export" fixtures/fair-admission/host-owner.json; then
+  printf 'stale export: regenerate fixtures/fair-admission/host-owner.json from config/fixtures/fair-admission-host-owner-positive.ncl\n' >&2
   exit 1
 fi
 

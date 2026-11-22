@@ -236,6 +236,7 @@ impl IssuePollTransport for GithubIssuePollClient {
                 state: issue.state,
                 updated_at_ms,
                 actor,
+                labels: issue.labels.into_iter().map(|label| label.name).collect(),
             });
         }
         Ok(IssuePollPage { records, next_page })
@@ -253,6 +254,13 @@ struct RawIssue {
     user: RawUser,
     #[serde(default)]
     pull_request: Option<serde_json::Value>,
+    #[serde(default)]
+    labels: Vec<RawLabel>,
+}
+
+#[derive(Deserialize)]
+struct RawLabel {
+    name: String,
 }
 
 #[derive(Deserialize)]
@@ -437,7 +445,7 @@ mod tests {
     // r[verify kiln.github.poll.transport] r[verify kiln.github.poll.transport.scenario.pages]
     fn authenticated_polling_filters_pull_requests_and_reads_next_page() {
         let body = r#"[
-            {"number":1,"title":"issue","body":"body","state":"open","updated_at":"2026-11-11T10:00:00Z","user":{"login":"operator"}},
+            {"number":1,"title":"issue","body":"body","state":"open","updated_at":"2026-11-11T10:00:00Z","user":{"login":"operator"},"labels":[{"id":7,"name":"kiln-pilot","color":"ffffff"}]},
             {"number":2,"title":"pr","state":"open","updated_at":"2026-11-11T10:01:00Z","user":{"login":"operator"},"pull_request":{}}
         ]"#;
         let (endpoint, handle) = respond(
@@ -458,6 +466,7 @@ mod tests {
         assert_eq!(record.number, 1);
         assert_eq!(record.actor, "operator");
         assert_eq!(record.state, "open");
+        assert_eq!(record.labels, vec!["kiln-pilot".to_string()]);
         let request = handle.join().unwrap_or_else(|_| unreachable!());
         assert!(request.starts_with("GET /repos/octocat/hello-world/issues?"));
         assert!(request.contains("Authorization: Bearer fixture-token"));

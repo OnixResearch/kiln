@@ -50,6 +50,9 @@ This is the supported source/fixture path, not a claim of an exercised live pilo
 
 Human-authored policy remains typed Nickel (`config/implementer-policy.ncl`, `config/implementation-worker.ncl`). Export operator-reviewed inputs before passing JSON to bounded CLI consumers.
 
+<!-- r[impl kiln.implementation.intake_selection] -->
+A GitHub intake policy may carry an explicit `selection` of issue numbers and/or exact label names (`selection = { issues = [1] }` in the Nickel input). Webhook drain and polling then admit an open issue as work only when its number is listed or it carries one of the labels; every other open issue is observed as `unselected` (`PollSummary.unselected`) and never admitted. Closed issues are still observed as closed. Without `selection` every enrolled open issue remains admissible under the repository-wide policy. An empty selection, issue `0`, or a malformed or unbounded label fails before any provider call. Selection never retracts work that was already admitted.
+
 Prepare the verifier profile through its native codec:
 
 ```console
@@ -62,7 +65,9 @@ The output reports the canonical profile identity and `checks_executed:false`. U
 
 Configure opt-in bounded fair admission with `kiln-implementer admission --command-file FILE`; `admission-status` reads its retained ledger. Commands configure policy/accounts, enqueue, select/claim, retain owner reservations/replies and settle observed usage. `--admission-observations FILE` supplies fresh provider facts to actual dispatch. Selection, inventory eligibility, a configured worker and a model deployment are never grants. Unknown usage remains conservatively charged.
 
-`claim` is the existing configured-route compatibility consumer. For the independently bound worker route, use admission's claim command so the queue/account and current attempt are associated. `inspect-work --work ID` returns exact retained work, source versions and native acceptance digest.
+For one explicitly registered host-local owner, the reviewed `config/fair-admission-host-owner.ncl` export drives the native records instead of hand-written commands: `host-owner-admit` (policy, account and queue), `host-owner-observe` (fresh eligibility and usage), `host-owner-reserve --attempt ID --fence N` (the owner-committed reservation dispatch checks) and `host-owner-release --attempt ID --fence N` (settlement only after the attempt is observed terminal). See [the fair-admission guide](fair-admission.md#registered-host-local-owner).
+
+Under an enabled admission policy, `claim` selects and binds through admission's claim command so the queue/account and current attempt are associated; it needs `--local-operator` (or another configured authority). Without a policy, `claim` remains the existing configured-route compatibility consumer. `inspect-work --work ID` returns exact retained work, source versions and native acceptance digest.
 
 ## One real bounded worker attempt
 

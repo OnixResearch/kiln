@@ -163,11 +163,12 @@ Ordinary runs are unchanged. Protected `kiln-independent-verifier-v1` records
 cannot enter Lattice polling/recovery, automatic/manual retry or provider
 controls; fresh attempts require fresh frozen verification through the controller.
 
-For qualification configuration, the native constructor avoids reimplementing
+For qualification configuration, the installed native constructor
+(`kiln-web-service implementation-verification-graph`) avoids reimplementing
 profile or operation identities in another language:
 
 ```console
-cargo run --locked -p kiln-web-service --example implementation_verification_profile -- \
+kiln-web-service implementation-verification-graph \
   --template dedicated-service-template.json \
   --verification-profile frozen-verification-profile.json \
   --project verification-project --output canonical-service-profile.json

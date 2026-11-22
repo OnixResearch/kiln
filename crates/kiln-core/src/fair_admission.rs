@@ -12,8 +12,14 @@ use alloc::{
 };
 use serde::{Deserialize, Serialize};
 
+mod host_owner;
 mod lineage;
 mod serving;
+pub use host_owner::{
+    HostOwnerDecision, HostOwnerLimits, HostOwnerProfile, HostOwnerRegistration,
+    HostOwnerRepository, HostOwnerWorkClass, HostReleasePlan, HostReservationPlan,
+    MAX_HOST_OWNER_PROJECT_BYTES, MAX_HOST_OWNER_REPOSITORY_BYTES,
+};
 pub use lineage::{
     LineageAccountProfile, LineageExplanation, LineageProfile, LineageRootProfile, LineageUsage,
     MAX_LINEAGE_DEPTH,

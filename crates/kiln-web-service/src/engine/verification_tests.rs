@@ -671,5 +671,101 @@ fn forged_verification_provenance_fails_mutable_and_read_only_restore() {
     assert!(Engine::open_with_ports(profile, ports).is_err());
 }
 
+fn frozen_profile(dependent_kind: &str) -> VerificationProfile {
+    let mut profile: VerificationProfile = serde_json::from_value(json!({
+        "schema":"kiln.verification-profile.v1","repository":"enrolled/repository",
+        "toolchain":"a".repeat(64),"environment_identity":"b".repeat(64),"environment":{},
+        "checks":[
+            {"id":"job","kind":"test","program":{"path":"/nix/store/configuration-fixture/bin/check","blake3":"c".repeat(64)},
+                "arguments":[],"prerequisites":[],"acceptance":["case"],"artifacts":["result"],"timeout_ms":1000},
+            {"id":"dependent","kind":dependent_kind,"program":{"path":"/nix/store/configuration-fixture/bin/check","blake3":"c".repeat(64)},
+                "arguments":[],"prerequisites":["job"],"acceptance":["case"],"artifacts":["build-result"],"timeout_ms":1000}
+        ],"reproducer":null,"protected_paths":["requirements"],"allow_already_satisfied":false,
+        "cairn":null
+    })).unwrap_or_else(|error| unreachable!("{error:?}"));
+    profile.toolchain = profile
+        .derived_toolchain_identity()
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    profile.environment_identity = profile
+        .derived_environment_identity()
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    profile
+}
+
+// r[verify kiln.implementation.verification_graph_cli] r[verify kiln.implementation.verification_graph_cli.scenario.constructed] r[verify kiln.implementation.verification_graph_cli.scenario.refused]
+#[test]
+fn dedicated_graph_constructor_builds_every_frozen_check_and_refuses_existing_graphs() {
+    let (_root, engine, _source) = engine();
+    let existing = engine.profile.clone();
+    let mut template = existing.clone();
+    let project = template
+        .projects
+        .first_mut()
+        .unwrap_or_else(|| unreachable!());
+    project.workflow.nodes.clear();
+    project.workflow.edges.clear();
+    let frozen = frozen_profile("build");
+    let built =
+        Engine::construct_implementation_verification_service(template.clone(), &frozen, "fixture")
+            .unwrap_or_else(|error| unreachable!("{error}"));
+    let project = built.projects.first().unwrap_or_else(|| unreachable!());
+    let ids: Vec<_> = project
+        .workflow
+        .nodes
+        .iter()
+        .map(|node| node.id.as_str())
+        .collect();
+    assert_eq!(ids, vec!["dependent", "job"]);
+    assert_eq!(project.workflow.edges.len(), 1);
+    assert!(Engine::validate_implementation_verification_project(&frozen, project).is_ok());
+    // Every other service field is preserved.
+    assert_eq!(built.service_id, template.service_id);
+    assert_eq!(built.bounds.max_runs, template.bounds.max_runs);
+    // A check kind the pinned workflow contract does not admit is refused.
+    assert!(
+        Engine::construct_implementation_verification_service(
+            template.clone(),
+            &frozen_profile("lint"),
+            "fixture"
+        )
+        .is_err()
+    );
+    // An existing graph is never replaced or relabelled.
+    let replaced =
+        Engine::construct_implementation_verification_service(existing, &frozen, "fixture");
+    assert!(replaced.is_err_and(|error| error.contains("refusing to replace")));
+    assert!(
+        Engine::construct_implementation_verification_service(template.clone(), &frozen, "absent")
+            .is_err()
+    );
+    let mut drifted = frozen.clone();
+    drifted.toolchain = content('f');
+    assert!(
+        Engine::construct_implementation_verification_service(
+            template.clone(),
+            &drifted,
+            "fixture"
+        )
+        .is_err()
+    );
+    let mut reserved = frozen_profile("build");
+    for (index, check) in reserved.checks.iter_mut().enumerate() {
+        if index == 0 {
+            check.id = NATIVE_CHECK.into();
+        } else {
+            check.prerequisites = vec![NATIVE_CHECK.into()];
+        }
+    }
+    reserved.toolchain = reserved
+        .derived_toolchain_identity()
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    reserved.environment_identity = reserved
+        .derived_environment_identity()
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+    let collided =
+        Engine::construct_implementation_verification_service(template, &reserved, "fixture");
+    assert!(collided.is_err_and(|error| error.contains("reserved native marker")));
+}
+
 #[path = "verification_outcome_tests.rs"]
 mod outcome_metrics;

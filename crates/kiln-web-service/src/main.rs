@@ -1,4 +1,5 @@
 mod implementation_verification_cli;
+mod implementation_verification_graph_cli;
 
 fn main() {
     // The streaming helper must retain non-UTF-8 reviewed command arguments.
@@ -33,6 +34,9 @@ fn main() {
             ))
         }
         Some("verify-implementation") => implementation_verification_cli::run(arguments),
+        Some("implementation-verification-graph") => {
+            implementation_verification_graph_cli::run(arguments)
+        }
         Some("inventory") => projection_result(kiln_web_service::inventory::run_cli_args(
             &arguments.collect::<Vec<_>>(),
         )),
@@ -81,6 +85,7 @@ fn usage() -> i32 {
         "       serve/check observations: [--inventory <path>] [--implementation-work <database>] [--campaign-controls <profile>] [--artifact-previews <catalog>] [--preview-observations <owned-directory>]"
     );
     eprintln!("       kiln-web-service verify-implementation --help");
+    eprintln!("       kiln-web-service implementation-verification-graph --help");
     eprintln!("       kiln-web-service inventory INPUT PRINCIPAL NOW_MS [json|html]");
     eprintln!("       kiln-web-service inventory-collect MANIFEST PROFILE");
     eprintln!(

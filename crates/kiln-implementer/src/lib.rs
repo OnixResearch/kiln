@@ -15,6 +15,7 @@ pub mod campaign;
 pub mod campaign_consumer;
 pub mod campaign_operator;
 pub mod fleet;
+pub mod host_owner;
 pub mod native_publication;
 pub mod observation;
 pub mod publication_effects;

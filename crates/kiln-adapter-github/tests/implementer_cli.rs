@@ -44,6 +44,7 @@ fn policy() -> ImplementationIssuePolicy {
         },
         terminal_policy: TerminalPolicy::VerifiedPullRequest,
         priority: 1,
+        selection: None,
     }
 }
 
@@ -905,4 +906,157 @@ fn plan_review_commands_gate_the_claim_and_return_feedback() {
             .and_then(serde_json::Value::as_str),
         Some(identity.as_str())
     );
+}
+
+// r[verify kiln.admission.host_owner.scenario.reserve] r[verify kiln.admission.operator_claim] r[verify kiln.admission.operator_claim.scenario.governed]
+#[test]
+fn host_owner_commands_admit_claim_and_reserve_the_sandbox_issue() {
+    use kiln_core::implementation::{
+        IMPLEMENTATION_WORK_SCHEMA, ImplementationWork, SourceRef, WorkSourceKind,
+    };
+    const PROFILE: &str = include_str!("../../../fixtures/fair-admission/host-owner.json");
+    let profile: kiln_core::fair_admission::HostOwnerProfile =
+        serde_json::from_str(PROFILE).unwrap_or_else(|_| unreachable!());
+    let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let database = directory.path().join("work.sqlite");
+    let enrollment_file = directory.path().join("enrollment.json");
+    let profile_file = directory.path().join("host-owner.json");
+    write(&profile_file, PROFILE.as_bytes());
+    let sandbox = "onixresearch/implementer-sandbox";
+    let enrollment = Enrollment {
+        repositories: BTreeSet::from([sandbox.to_string()]),
+        actors: BTreeSet::from(["operator".to_string()]),
+    };
+    write(
+        &enrollment_file,
+        &serde_json::to_vec(&enrollment).unwrap_or_else(|_| unreachable!()),
+    );
+    let work = ImplementationWork {
+        schema: IMPLEMENTATION_WORK_SCHEMA.to_string(),
+        revision: 1,
+        actor: "operator".to_string(),
+        repository: sandbox.to_string(),
+        project: "implementer-sandbox".to_string(),
+        base: None,
+        title: "word count ignores whitespace runs".to_string(),
+        requested_outcome: "fix".to_string(),
+        acceptance: vec![AcceptanceObligation {
+            id: "accepted".to_string(),
+            statement: "verified".to_string(),
+        }],
+        dependencies: Vec::new(),
+        permitted_paths: vec!["src".to_string()],
+        permitted_effects: BTreeSet::from(["write_source".to_string()]),
+        verification_profile: profile
+            .repositories
+            .first()
+            .and_then(|entry| entry.classes.first())
+            .unwrap_or_else(|| unreachable!())
+            .verification_profile
+            .clone(),
+        budget: WorkBudget {
+            attempts: 1,
+            minutes_per_attempt: 20,
+        },
+        terminal_policy: TerminalPolicy::VerifiedPullRequest,
+        priority: 1,
+        aliases: vec![SourceRef {
+            kind: WorkSourceKind::GitHubIssue,
+            source: kiln_core::types::ExternalRef::new(
+                "github",
+                "issue",
+                "onixresearch/implementer-sandbox#1",
+            )
+            .unwrap_or_else(|_| unreachable!()),
+            native_id: "onixresearch/implementer-sandbox#1".to_string(),
+            version: content('1'),
+        }],
+    };
+    let identity = work.identity().unwrap_or_else(|_| unreachable!());
+    Implementer::open(&database, enrollment)
+        .and_then(|mut implementer| implementer.admit(&work, None))
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let profile_path = profile_file.to_str().unwrap_or_else(|| unreachable!());
+    let admitted = json_output(&run_implementer(
+        &["host-owner-admit", "--profile", profile_path],
+        &database,
+        &enrollment_file,
+    ));
+    let text = |value: &serde_json::Value, pointer: &str| -> String {
+        value
+            .pointer(pointer)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_else(|| unreachable!("{pointer} missing in {value}"))
+            .to_string()
+    };
+    assert_eq!(text(&admitted, "/queued/0/work"), identity.as_str());
+    assert_eq!(text(&admitted, "/queued/0/class"), "bug");
+    let observed = json_output(&run_implementer(
+        &["host-owner-observe", "--profile", profile_path],
+        &database,
+        &enrollment_file,
+    ));
+    assert_eq!(text(&observed, "/selected"), identity.as_str());
+    // A governed claim goes through fair admission and needs explicit authority.
+    let unauthorized = Command::new(env!("CARGO_BIN_EXE_kiln-implementer"))
+        .args(["claim", "--database"])
+        .arg(&database)
+        .arg("--enrollment")
+        .arg(&enrollment_file)
+        .output()
+        .unwrap_or_else(|_| unreachable!());
+    assert!(!unauthorized.status.success());
+    let attempt = json_output(&run_implementer(&["claim"], &database, &enrollment_file));
+    assert_eq!(text(&attempt, "/work_identity"), identity.as_str());
+    let attempt_id = text(&attempt, "/identity");
+    let fence = attempt
+        .pointer("/fence")
+        .unwrap_or_else(|| unreachable!())
+        .to_string();
+    let ledger = json_output(&run_implementer(
+        &["admission-status"],
+        &database,
+        &enrollment_file,
+    ));
+    assert_eq!(
+        text(
+            &ledger,
+            &format!("/items/{}/claim/attempt", identity.as_str())
+        ),
+        attempt_id
+    );
+    let reserve = [
+        "host-owner-reserve",
+        "--profile",
+        profile_path,
+        "--attempt",
+        attempt_id.as_str(),
+        "--fence",
+        fence.as_str(),
+    ];
+    let committed = json_output(&run_implementer(&reserve, &database, &enrollment_file));
+    assert_eq!(text(&committed, "/outcome"), "committed");
+    assert_eq!(text(&committed, "/reservation/state"), "committed");
+    let repeated = json_output(&run_implementer(&reserve, &database, &enrollment_file));
+    assert_eq!(text(&repeated, "/outcome"), "retained");
+    assert_eq!(
+        text(&repeated, "/reservation/operation"),
+        text(&committed, "/reservation/operation")
+    );
+    // The slot is held until the attempt is observed terminal.
+    let release = run_implementer(
+        &[
+            "host-owner-release",
+            "--profile",
+            profile_path,
+            "--attempt",
+            attempt_id.as_str(),
+            "--fence",
+            fence.as_str(),
+        ],
+        &database,
+        &enrollment_file,
+    );
+    assert!(!release.status.success());
+    assert!(String::from_utf8_lossy(&release.stderr).contains("host_owner_release_unobserved"));
 }

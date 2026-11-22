@@ -453,6 +453,22 @@ entry describes the source tree prepared for the first tagged release.
 - Opt-in bounded queues, reservation-time fairness accounting, parent budgets,
   exact owner grants and conservative unknown-effect reconciliation. Physical
   deployment and worker-request resource dimensions remain separate.
+- An explicitly registered host-local resource owner for fair admission: a typed
+  Nickel registration (`config/fair-admission-host-owner.ncl`) declares one
+  host's capacity, admitted repositories and work classes and a finite campaign
+  budget, and `kiln-implementer host-owner-admit|observe|reserve|release` derive
+  the policy, account, queue rows, fresh eligibility, the owner-committed
+  reservation the dispatch gate checks and observed-only settlement through the
+  existing ledger and owner port. It reports no remote, provider or serving
+  capacity; replay never duplicates a reservation or resets a budget.
+- Under a configured admission policy, `kiln-implementer claim` selects and
+  binds the queue row through admission, so the queue claim matches the attempt.
+- GitHub intake policies accept an explicit `selection` of issue numbers and/or
+  exact labels; unselected open issues are observed as `unselected` and never
+  admitted by webhook drain or polling.
+- `kiln-web-service implementation-verification-graph` installs the canonical
+  CI graph constructor that was the `implementation_verification_profile`
+  example, with unchanged behaviour.
 - The Lattice implementation CLI transport (Kiln #45) consumes Lattice
   `db64cd65`'s coordinator contract. Prepared requests carry the reserved
   `dispatch_plan` (the campaign prepares twice, since the plan frames the

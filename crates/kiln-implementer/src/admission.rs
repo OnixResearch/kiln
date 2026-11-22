@@ -909,7 +909,7 @@ impl Implementer {
         };
         self.admission_record_port_result(&reservation, result, now_ms)
     }
-    fn admission_record_port_result(
+    pub(crate) fn admission_record_port_result(
         &mut self,
         reservation: &OwnerReservation,
         result: Result<OwnerReply, OwnerPortFailure>,

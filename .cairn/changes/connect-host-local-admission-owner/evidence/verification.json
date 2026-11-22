@@ -1,0 +1,29 @@
+{
+  "change": "connect-host-local-admission-owner",
+  "date": "2026-11-22",
+  "base": "203296d4",
+  "scope": "deterministic fixtures, the real SQLite implementation store and the installed CLIs; no live worker, model, provider or remote effect",
+  "prerequisite_gates_observed_before_product_edits": false,
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked -p onix-kiln-core --lib fair_admission", "exit": 0, "result": "34 passed (8 new host-owner)" },
+    { "command": "cargo test --locked -p kiln-implementer --test admission_host_owner", "exit": 0, "result": "6 passed" },
+    { "command": "cargo test --locked -p kiln-adapter-github --lib", "exit": 0, "result": "106 passed (selection, webhook and HTTP label tests)" },
+    { "command": "cargo test --locked -p kiln-adapter-github --test implementer_cli", "exit": 0, "result": "3 passed (host-owner commands and governed claim)" },
+    { "command": "cargo test --locked -p kiln-web-service --lib dedicated_graph; --test implementation_verification_graph", "exit": 0, "result": "1 + 1 passed" },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "result": "2385 passed, 0 failed, 16 ignored; run before the final test-only clippy index rewrites, which were rerun focused" },
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    { "command": "cairn gate proposal|design|tasks connect-host-local-admission-owner", "exit": 0, "result": "PASS after implementation" },
+    { "command": "cairn sync connect-host-local-admission-owner --execute", "exit": 0, "result": "sync_delta_spec into fair-admission, implementation-work, independent-verification" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2152 (base 2138), referenced 2119 (base 2105); missing 33 and dangling 9, both identical to base 203296d4; no new missing or dangling" },
+    { "command": "nix build --option builders '' --no-link path:$PWD#checks.x86_64-linux.octet", "exit": 0, "result": "Status clean, Findings 0" },
+    { "command": "gitleaks dir over the 54 changed/new files", "exit": 0, "result": "no leaks; whole tree 1326 findings, identical to base" }
+  ],
+  "non_claims": [
+    "no live pilot, worker, model gateway, provider or serving capacity was exercised (Kiln #49)",
+    "the host owner grants only its declared registration; declared capacity is not a host probe",
+    "the onix-core stage units were not changed or run"
+  ]
+}

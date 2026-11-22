@@ -68,6 +68,13 @@ enrollment, changed generation, expired deadlines or crossed claims block actual
 transport. The strong candidate-producing worker route requires explicit policy;
 its workspace/profile/deadline/effect admission remains independent.
 
+<!-- r[impl kiln.admission.operator_claim] -->
+Under an enabled policy, `kiln-implementer claim` selects and binds the queue
+row through the same `claim` admission command, so the queue claim and the
+attempt/fence agree before any owner request. It needs an explicit authority
+(`--local-operator`) and refuses swarm deferral; it never claims around fair
+admission. Without a policy it keeps the existing compatibility claim.
+
 ## Owner authority and backpressure
 
 `AdmissionOwnerPortV1` has reserve, reconcile and cancel operations. The reusable
@@ -138,6 +145,61 @@ the last slot both still need the owner's reply, and only an owner rejection
 refunds. A retained owner operation is decided by the owner, not by a later
 snapshot. Snapshots never refund, never reset a budget and never authorize a
 different model or a new attempt.
+
+## Registered host-local owner
+
+<!-- r[impl kiln.admission.host_owner] -->
+A live dispatch needs a policy, a root account, a queue row, a fresh owner
+eligibility observation and a reservation committed by the resource owner.
+For one explicitly registered host-local owner, Kiln produces all of them from a
+reviewed profile, `config/fair-admission-host-owner.ncl` (positive fixture
+`config/fixtures/fair-admission-host-owner-positive.ncl`, committed export
+`fixtures/fair-admission/host-owner.json`). The profile declares the owner's
+provider identity, host label, registration `generation`, declared `capacity`,
+observation and reservation windows, the finite campaign `quota` and absolute
+`deadline_ms`, the `per_work` reservation and the admitted repositories with
+their work classes. A work class is the exact `project` and frozen
+`verification_profile` an admitted work carries. Exporting the profile grants
+nothing; these commands apply it through the ordinary ledger transitions:
+
+```console
+kiln-implementer host-owner-admit   --database DB --enrollment ENROLL --local-operator OP --profile host-owner.json
+kiln-implementer host-owner-observe --database DB --enrollment ENROLL --local-operator OP --profile host-owner.json
+kiln-implementer claim              --database DB --enrollment ENROLL --local-operator OP --lease-ms N
+kiln-implementer host-owner-reserve --database DB --enrollment ENROLL --local-operator OP --profile host-owner.json --attempt ID --fence N
+kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-operator OP --profile host-owner.json --attempt ID --fence N
+```
+
+- `host-owner-admit` configures the derived policy (dominant share, one
+  campaign share, accounting basis over provider, host and capacity dimension
+  names), roots the campaign account and queues every current ready work whose
+  repository and class are registered, each requiring this owner's `execution`
+  grant. Every registered repository must be enrolled. Other ready work is
+  listed as `refused` and never queued.
+- `host-owner-observe` retains a complete usage observation (measured zero;
+  every retained debit is composed on top, so nothing resets) and one
+  eligibility observation per open queued work, valid for
+  `observation_ttl_ms`, then runs the existing selection. Work that does not
+  fit the free registered capacity is observed as `waiting`.
+- `host-owner-reserve` plans one deterministic operation for the exact queued
+  claim, persists the tentative request through the `request` command and asks
+  the host owner through `AdmissionOwnerPortV1`. The owner decides from the
+  ledger read after the request is durable: every other unreleased reservation
+  of this owner occupies capacity. It refuses unregistered work, a crossed
+  claim, a stale or other-generation observation, a second reservation for the
+  same work and a request beyond capacity. A repeat or a restart returns the
+  retained operation without a new request or debit.
+- `host-owner-release` settles the reservation only after the attempt ledger
+  records the holding attempt terminal, ended and resolved. The slot's budget is
+  consumed, never refunded. Elapsed time, restart and replay release nothing.
+
+The owner's only capacity is its declared registration and its only occupancy
+is the ledger's retained reservations for it. It never reports remote, provider
+or serving capacity; a model gateway or serving owner remains a separate owner
+with its own grant. Bump `generation` when the declared capacity changes:
+observations and grants of another generation are stale, and dispatch refuses
+them. A changed policy or quota is refused by the existing frozen-policy and
+root-account checks, so a registration cannot reset a budget.
 
 ## Accounting and lineage
 

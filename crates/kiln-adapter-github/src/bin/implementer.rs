@@ -50,7 +50,7 @@ fn run() -> Result<(), ()> {
     let mut arguments = std::env::args().skip(1);
     let Some(command) = arguments.next() else {
         return fail(
-            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
+            "usage: kiln-implementer <drain|run|poll|poll-run|status|claim|cancel|renew|reserve|reserve-plan|start|reconcile|recover|reconcile-termination|handoff|capture-candidate|prepare-verification-profile|prepare-needs|attach-needs|needs|inspect-work|inspect-attempt|admission|admission-status|host-owner-admit|host-owner-observe|host-owner-reserve|host-owner-release|campaign|prepare-publication|publish|recover-integration|close-source|source-status|observe-cairn-lifecycle|metrics|metrics-report|plan-review|plan-feedback|plan-review-receipt> --database PATH ...",
         );
     };
     let flags = match parse_flags(arguments.collect()) {
@@ -90,6 +90,9 @@ fn run() -> Result<(), ()> {
         "needs" => show_needs(&flags),
         "admission" => admission_command(&flags),
         "admission-status" => admission_status(&flags),
+        "host-owner-admit" | "host-owner-observe" | "host-owner-reserve" | "host-owner-release" => {
+            host_owner_command(command.as_str(), &flags)
+        }
         "campaign" => campaign_command(&flags),
         "observe-cairn-lifecycle" => observe_cairn_lifecycle(&flags),
         "inspect-work" => inspect_work(&flags),
@@ -430,6 +433,43 @@ fn admission_status(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
 }
 
+// r[impl kiln.admission.host_owner]
+/// Apply one explicitly registered host-local owner stage. `--profile` is the
+/// reviewed Nickel export; reserve and release name one exact attempt/fence.
+fn host_owner_command(command: &str, flags: &BTreeMap<String, String>) -> Result<(), ()> {
+    let result = (|| -> Result<serde_json::Value, String> {
+        let profile: kiln_core::fair_admission::HostOwnerProfile =
+            read_json(&required_path(flags, "--profile")?)?;
+        let mut store = open_implementer(flags)?;
+        let now_ms = wall_clock_ms();
+        let encoded = match command {
+            "host-owner-admit" => serde_json::to_value(store.host_owner_admit(&profile, now_ms)?),
+            "host-owner-observe" => {
+                serde_json::to_value(store.host_owner_observe(&profile, now_ms)?)
+            }
+            "host-owner-reserve" => {
+                let attempt = required_identity(flags, "--attempt")?;
+                let fence = required_positive_u64(flags, "--fence")?;
+                serde_json::to_value(store.host_owner_reserve(&profile, &attempt, fence, now_ms)?)
+            }
+            "host-owner-release" => {
+                let attempt = required_identity(flags, "--attempt")?;
+                let fence = required_positive_u64(flags, "--fence")?;
+                serde_json::to_value(store.host_owner_release(&profile, &attempt, fence, now_ms)?)
+            }
+            _ => return Err("unknown host owner command".into()),
+        };
+        encoded.map_err(|_| "host owner result encoding failed".to_string())
+    })();
+    match result {
+        Ok(value) => {
+            println!("{value}");
+            Ok(())
+        }
+        Err(error) => fail(&error),
+    }
+}
+
 fn recover_attempts(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let result = open_implementer(flags).and_then(|mut store| store.recover(wall_clock_ms()));
     match result {
@@ -496,7 +536,7 @@ fn show_needs(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     }
 }
 
-// r[impl kiln.implementation.operator_claim]
+// r[impl kiln.implementation.operator_claim] r[impl kiln.admission.operator_claim]
 fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
     let mut implementer = match open_implementer(flags) {
         Ok(implementer) => implementer,
@@ -511,6 +551,36 @@ fn claim(flags: &BTreeMap<String, String>) -> Result<(), ()> {
         Ok(swarm) => swarm,
         Err(error) => return fail(&error),
     };
+    // An explicit admission policy governs every claim: select and bind the
+    // queue row in the same transaction, never claim around fair admission.
+    match implementer.admission_snapshot() {
+        Ok(ledger) if ledger.policy.is_some() => {
+            if swarm.is_some() {
+                return fail("an admission-governed claim does not support swarm deferral");
+            }
+            return match implementer.admission_apply(
+                kiln_implementer::admission::AdmissionCommand::Claim {
+                    inputs: Vec::new(),
+                    lease_ms,
+                },
+                now_ms,
+            ) {
+                Ok(kiln_implementer::admission::AdmissionResult::Claimed { attempt }) => {
+                    match serde_json::to_string(&attempt) {
+                        Ok(document) => {
+                            println!("{document}");
+                            Ok(())
+                        }
+                        Err(_) => fail("attempt could not be encoded"),
+                    }
+                }
+                Ok(other) => fail(&format!("admission claim did not claim: {other:?}")),
+                Err(error) => fail(&error),
+            };
+        }
+        Ok(_) => {}
+        Err(error) => return fail(&error),
+    }
     let defer = swarm.as_ref().map(|swarm| swarm.deferral(now_ms));
     if let Some(swarm) = swarm {
         implementer.set_mirror(Some(Box::new(swarm)));

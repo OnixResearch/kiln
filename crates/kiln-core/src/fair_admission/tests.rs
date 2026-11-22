@@ -3,6 +3,7 @@ use super::*;
 use crate::operations::UsageValue;
 use alloc::vec;
 
+mod host_owner;
 mod serving_lineage;
 
 fn id(s: &str) -> ContentId {

@@ -1027,6 +1027,7 @@ fn queued_issue_deliveries_drain_into_admitted_work_once() {
         },
         terminal_policy: TerminalPolicy::VerifiedPullRequest,
         priority: 1,
+        selection: None,
     };
     let enrolled = ["operator".to_string()].into_iter().collect();
     assert_eq!(

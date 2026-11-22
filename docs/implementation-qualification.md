@@ -104,12 +104,12 @@ No installed qualified Lean profile/executable is established by the retained up
 Build/use the owning native constructor; do not relabel an unrelated successful CI profile:
 
 ```console
-cargo run --locked -p kiln-web-service --example implementation_verification_profile -- \
+kiln-web-service implementation-verification-graph \
   --template DEDICATED_EMPTY_GRAPH_SERVICE_PROFILE \
   --verification-profile FROZEN_PROFILE --project ID --output NEW_SERVICE_PROFILE
 ```
 
-This parent-run command was not exercised here. The ordinary ServiceProfile template must have empty nodes/edges for the selected project and explicit real source enrollment, transports, policy, platform, controls and bounds. The constructor refuses any existing graph, derives every frozen check/kind/prerequisite and native Cairn marker/all-check dependency through `Engine::implementation_verification_operation`, and validates with the shared runtime graph validator and `ServiceProfile.admit`. It preserves unrelated fields/projects and emits configuration only (`checks_executed: false`, `effects_executed: false`), never accepted producer data. Freeze the actual output path/BLAKE3 as the verify step's `canonical_profile`.
+This parent-run command was not exercised here against a live repository; `crates/kiln-web-service/tests/implementation_verification_graph.rs` exercises the installed command over a configuration fixture. The ordinary ServiceProfile template must have empty nodes/edges for the selected project and explicit real source enrollment, transports, policy, platform, controls and bounds. The constructor refuses any existing graph, derives every frozen check/kind/prerequisite and native Cairn marker/all-check dependency through `Engine::implementation_verification_operation`, and validates with the shared runtime graph validator and `ServiceProfile.admit`. It preserves unrelated fields/projects, writes a new file without overwriting an existing one and emits configuration only (`checks_executed: false`, `effects_executed: false`), never accepted producer data. Freeze the actual output path/BLAKE3 as the verify step's `canonical_profile`.
 
 Use actual `inspect-work --database DB --enrollment FILE --work ID` metadata for envelope source aliases/versions and native `acceptance_digest`. The strong transport checks these exact values, not merely a shape-correct task/spec digest. Native prepared JSON values are available as `@{document-CAPTURE}`, so requirements/dispatch templates can consume owner-derived records without duplicating a canonical codec.
 

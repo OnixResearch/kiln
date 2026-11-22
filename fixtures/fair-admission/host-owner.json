@@ -1,0 +1,48 @@
+{
+  "campaign": "implementer_pilot",
+  "deadline_ms": 1830297600000,
+  "limits": {
+    "max_active": 1,
+    "max_bytes": 1048576,
+    "max_children": 1,
+    "max_items": 8,
+    "max_observation_age_ms": 900000,
+    "max_retry_after_ms": 60000,
+    "max_wait_ms": 86400000
+  },
+  "owner": {
+    "capacity": {
+      "worker_slots": 1
+    },
+    "generation": 1,
+    "host": "kiln-pilot-guest",
+    "observation_ttl_ms": 600000,
+    "provider": "onix-local-pilot-host",
+    "reservation_ttl_ms": 3600000
+  },
+  "per_work": {
+    "worker_slots": 1
+  },
+  "quota": {
+    "worker_slots": 4
+  },
+  "repositories": [
+    {
+      "classes": [
+        {
+          "name": "bug",
+          "project": "implementer-sandbox",
+          "verification_profile": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "name": "bounded-feature",
+          "project": "implementer-sandbox",
+          "verification_profile": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "repository": "onixresearch/implementer-sandbox"
+    }
+  ],
+  "tenant": "onix_local",
+  "version": 1
+}

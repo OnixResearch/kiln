@@ -26,6 +26,55 @@ const MAX_BODY_BYTES: usize = 1_048_576;
 const MAX_ISSUE_BODY_BYTES: usize = 262_144;
 const MAX_ISSUE_TITLE_BYTES: usize = 512;
 const MAX_ACTOR_BYTES: usize = 128;
+/// Bound on explicitly selected issue numbers and labels in one policy.
+pub const MAX_SELECTION_ENTRIES: usize = 256;
+/// Bound on the labels one observed issue may carry.
+pub const MAX_ISSUE_LABELS: usize = 100;
+/// Bound on one label name.
+pub const MAX_LABEL_BYTES: usize = 256;
+
+/// Explicit per-issue intake selection. An open issue is admitted as work only
+/// when its number is listed or it carries one of the exact label names;
+/// every other open issue is observed as unselected and never admitted.
+// r[impl kiln.implementation.intake_selection]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct IssueSelection {
+    #[serde(default)]
+    pub issues: BTreeSet<u64>,
+    #[serde(default)]
+    pub labels: BTreeSet<String>,
+}
+
+impl IssueSelection {
+    /// Refuse an empty, unbounded or malformed selection before any intake.
+    pub fn validate(&self) -> PortResult<()> {
+        if (self.issues.is_empty() && self.labels.is_empty())
+            || self.issues.len() + self.labels.len() > MAX_SELECTION_ENTRIES
+            || self.issues.contains(&0)
+            || self.labels.iter().any(|label| !valid_label(label))
+        {
+            return Err(domain(
+                "github_issue_selection",
+                "policy.selection",
+                "issue selection must name bounded issue numbers or labels",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Whether this exact issue is selected for admission.
+    #[must_use]
+    pub fn selects(&self, number: u64, labels: &[String]) -> bool {
+        self.issues.contains(&number) || labels.iter().any(|label| self.labels.contains(label))
+    }
+}
+
+pub(crate) fn valid_label(label: &str) -> bool {
+    !label.trim().is_empty()
+        && label.len() <= MAX_LABEL_BYTES
+        && !label.chars().any(char::is_control)
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -45,6 +94,26 @@ pub struct ImplementationIssuePolicy {
     pub budget: WorkBudget,
     pub terminal_policy: TerminalPolicy,
     pub priority: u8,
+    /// Explicit per-issue selection. Absent keeps every enrolled open issue
+    /// admissible under this repository-wide policy.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<IssueSelection>,
+}
+
+impl ImplementationIssuePolicy {
+    /// Whether one open issue is admitted as work under this policy.
+    pub fn selects(&self, number: u64, labels: &[String]) -> PortResult<bool> {
+        match &self.selection {
+            None => Ok(true),
+            Some(selection) => {
+                selection.validate()?;
+                if labels.len() > MAX_ISSUE_LABELS || labels.iter().any(|l| !valid_label(l)) {
+                    return Err(invalid_issue());
+                }
+                Ok(selection.selects(number, labels))
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -53,6 +122,13 @@ pub enum IssueAdmission {
     /// The issue was closed. Cancellation semantics belong to a later
     /// consumer; closing never proves implementation completion.
     Closed {
+        native_id: String,
+        sequence: u64,
+        source_version: ContentId,
+    },
+    /// An open issue outside the policy's explicit selection. It is observed
+    /// and never admitted as work.
+    Unselected {
         native_id: String,
         sequence: u64,
         source_version: ContentId,
@@ -80,6 +156,13 @@ struct Issue {
     body: Option<String>,
     state: String,
     updated_at: String,
+    #[serde(default)]
+    labels: Vec<Label>,
+}
+
+#[derive(Deserialize)]
+struct Label {
+    name: String,
 }
 
 #[derive(Deserialize)]
@@ -105,6 +188,9 @@ pub fn admit_implementation_issue(
     admit_event_policy(&policy.repository)?;
     if let Some(base) = &policy.base {
         base.validate()?;
+    }
+    if let Some(selection) = &policy.selection {
+        selection.validate()?;
     }
     if body.is_empty() || body.len() > MAX_BODY_BYTES {
         return Err(domain(
@@ -198,6 +284,19 @@ pub fn admit_implementation_issue(
     }
     if envelope.issue.state != "open" {
         return Err(invalid_issue());
+    }
+    let labels: Vec<String> = envelope
+        .issue
+        .labels
+        .into_iter()
+        .map(|label| label.name)
+        .collect();
+    if !policy.selects(envelope.issue.number, &labels)? {
+        return Ok(Some(IssueAdmission::Unselected {
+            native_id,
+            sequence,
+            source_version,
+        }));
     }
     Ok(Some(IssueAdmission::Work(Box::new(issue_work(
         policy,
@@ -371,7 +470,7 @@ pub fn drain_issue_queue(
                     .admit(&work, None)
                     .map_err(|error| domain("github_implementation_admission", "work", &error))?;
             }
-            Some(IssueAdmission::Closed { .. }) | None => {}
+            Some(IssueAdmission::Closed { .. } | IssueAdmission::Unselected { .. }) | None => {}
         }
         queue.remove(&delivery.delivery_id).map_err(|_| {
             crate::infrastructure(
@@ -417,6 +516,7 @@ mod tests {
             },
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 7,
+            selection: None,
         }
     }
 
@@ -498,6 +598,69 @@ mod tests {
             Some(WorkSourceKind::GitHubIssue)
         );
         assert!(work.identity().is_ok());
+    }
+
+    // r[verify kiln.implementation.intake_selection.scenario.selected] r[verify kiln.implementation.intake_selection.scenario.refused]
+    #[test]
+    fn webhook_selection_admits_only_selected_issues() {
+        let labelled = serde_json::to_vec(&serde_json::json!({
+            "action": "opened",
+            "repository": {"id": 42, "name": "kiln", "owner": {"login": "OnixResearch"}},
+            "sender": {"login": "operator"},
+            "issue": {
+                "number": 45,
+                "title": "Labelled pilot issue",
+                "state": "open",
+                "updated_at": "2026-11-11T10:00:00Z",
+                "labels": [{"name": "kiln-pilot"}]
+            }
+        }))
+        .unwrap_or_else(|_| unreachable!());
+        let unlabelled = body("opened", "open");
+        let admit = |policy: &ImplementationIssuePolicy, body: &[u8]| {
+            admit_implementation_issue(
+                policy,
+                &actors(),
+                &headers(body, b"secret"),
+                body,
+                b"secret",
+            )
+        };
+        let mut by_number = policy();
+        by_number.selection = Some(IssueSelection {
+            issues: BTreeSet::from([44]),
+            labels: BTreeSet::new(),
+        });
+        assert!(matches!(
+            admit(&by_number, &unlabelled),
+            Ok(Some(IssueAdmission::Work(_)))
+        ));
+        assert!(matches!(
+            admit(&by_number, &labelled),
+            Ok(Some(IssueAdmission::Unselected { .. }))
+        ));
+        let mut by_label = policy();
+        by_label.selection = Some(IssueSelection {
+            issues: BTreeSet::new(),
+            labels: BTreeSet::from(["kiln-pilot".to_string()]),
+        });
+        assert!(matches!(
+            admit(&by_label, &labelled),
+            Ok(Some(IssueAdmission::Work(_)))
+        ));
+        assert!(matches!(
+            admit(&by_label, &unlabelled),
+            Ok(Some(IssueAdmission::Unselected { .. }))
+        ));
+        // Closing an unselected issue is still observed as closed.
+        let closed = body("closed", "closed");
+        assert!(matches!(
+            admit(&by_label, &closed),
+            Ok(Some(IssueAdmission::Closed { .. }))
+        ));
+        let mut empty = policy();
+        empty.selection = Some(IssueSelection::default());
+        assert!(admit(&empty, &unlabelled).is_err());
     }
 
     // r[verify kiln.implementation.issue_intake.scenario.refused]

@@ -68,6 +68,32 @@ let Identifier =
     && !std.string.is_match "[\\x00-\\x1f\\x7f]" value
   )
 in
+# r[impl kiln.implementation.intake_selection]
+# Optional explicit per-issue selection: an open issue becomes work only when
+# its number is listed or it carries one of these exact label names.
+let Selection =
+  std.contract.from_predicate (fun value =>
+    std.is_record value
+    && std.array.all (fun key => key == "issues" || key == "labels") (std.record.fields value)
+    && std.is_array (std.record.get_or "issues" [] value)
+    && std.is_array (std.record.get_or "labels" [] value)
+    && std.array.all
+      (fun n => std.is_number n && n >= 1 && n == std.number.truncate n)
+      (std.record.get_or "issues" [] value)
+    && std.array.all
+      (fun label =>
+        std.is_string label
+        && std.string.trim label != ""
+        && std.string.length label <= 256
+        && !std.string.is_match "[\\x00-\\x1f\\x7f]" label
+      )
+      (std.record.get_or "labels" [] value)
+    && std.array.length (std.record.get_or "issues" [] value)
+    + std.array.length (std.record.get_or "labels" [] value) >= 1
+    && std.array.length (std.record.get_or "issues" [] value)
+    + std.array.length (std.record.get_or "labels" [] value) <= 256
+  )
+in
 fun input =>
   let settings =
     input
@@ -92,6 +118,7 @@ fun input =>
           | std.contract.from_predicate (fun value =>
             std.is_number value && value >= 0 && value <= 255 && value == std.number.truncate value
           ),
+        selection | Selection | optional,
       }
   in
   {
@@ -115,3 +142,14 @@ fun input =>
     terminal_policy = settings.terminal_policy,
     priority = settings.priority,
   }
+  & (
+    if std.record.has_field "selection" settings then
+      {
+        selection = {
+          issues = std.record.get_or "issues" [] settings.selection,
+          labels = std.record.get_or "labels" [] settings.selection,
+        },
+      }
+    else
+      {}
+  )

@@ -56,6 +56,81 @@ impl Engine {
         ))
     }
 
+    // r[impl kiln.implementation.verification_graph_cli]
+    /// Construct the dedicated canonical CI graph for one frozen verification
+    /// profile in an explicitly empty template project. Pure configuration: it
+    /// never replaces an existing graph, executes a check or records evidence.
+    pub fn construct_implementation_verification_service(
+        mut service: crate::profile::ServiceProfile,
+        verification: &VerificationProfile,
+        project_id: &str,
+    ) -> Result<crate::profile::ServiceProfile, String> {
+        if verification.schema != "kiln.verification-profile.v1"
+            || verification.checks.is_empty()
+            || verification.toolchain != verification.derived_toolchain_identity()?
+            || verification.environment_identity != verification.derived_environment_identity()?
+        {
+            return Err("frozen verification profile/schema/cohort is inconsistent".into());
+        }
+        let project = service
+            .projects
+            .iter_mut()
+            .find(|project| project.id == project_id)
+            .ok_or("selected dedicated project is absent from template")?;
+        // Never replace/relabel an existing CI graph with a passing subset. The
+        // operator must explicitly supply a new dedicated construction template.
+        if !project.workflow.nodes.is_empty() || !project.workflow.edges.is_empty() {
+            return Err("refusing to replace an existing CI graph; selected dedicated template nodes/edges must be empty".into());
+        }
+        let mut nodes = Vec::with_capacity(
+            verification.checks.len() + usize::from(verification.cairn.is_some()),
+        );
+        let mut edges = Vec::new();
+        for check in &verification.checks {
+            if check.id == NATIVE_CHECK {
+                return Err("frozen check collides with reserved native marker".into());
+            }
+            nodes.push(serde_json::json!({
+                "id":check.id, "kind":check.kind, "effect_class":"test", "adapter_kind":"local",
+                "operation_identity":Self::implementation_verification_operation(verification, &check.id)?.as_str(),
+            }));
+            edges.extend(
+                check.prerequisites.iter().map(
+                    |prerequisite| serde_json::json!({"source":prerequisite, "target":check.id}),
+                ),
+            );
+        }
+        if verification.cairn.is_some() {
+            nodes.push(serde_json::json!({"id":NATIVE_CHECK,"kind":"cairn-agent-completion-v2","effect_class":"read","adapter_kind":"local",
+                "operation_identity":Self::implementation_verification_operation(verification, NATIVE_CHECK)?.as_str()}));
+            edges.extend(
+                verification
+                    .checks
+                    .iter()
+                    .map(|check| serde_json::json!({"source":check.id,"target":NATIVE_CHECK})),
+            );
+        }
+        let mut workflow =
+            serde_json::to_value(&project.workflow).map_err(|error| error.to_string())?;
+        *workflow.get_mut("nodes").ok_or("workflow nodes missing")? =
+            serde_json::Value::Array(nodes);
+        *workflow.get_mut("edges").ok_or("workflow edges missing")? =
+            serde_json::Value::Array(edges);
+        project.workflow = serde_json::from_value(workflow).map_err(|error| error.to_string())?;
+        project
+            .workflow
+            .nodes
+            .sort_by(|left, right| left.id.cmp(&right.id));
+        project.workflow.edges.sort_by(|left, right| {
+            left.source
+                .cmp(&right.source)
+                .then_with(|| left.target.cmp(&right.target))
+        });
+        Self::validate_implementation_verification_project(verification, project)?;
+        service.admit()?;
+        Ok(service)
+    }
+
     /// Pure configuration admission, not check execution or candidate success.
     /// Used by the dedicated fixture constructor and the same all-check graph
     /// relation that canonical runtime ingestion enforces.

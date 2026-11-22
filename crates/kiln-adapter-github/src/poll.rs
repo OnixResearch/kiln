@@ -14,7 +14,9 @@ use kiln_provider_api::{PortFailure, PortResult};
 use serde::Serialize;
 
 use crate::domain;
-use crate::implementation::{ImplementationIssuePolicy, IssueAdmission, issue_work};
+use crate::implementation::{
+    ImplementationIssuePolicy, IssueAdmission, MAX_ISSUE_LABELS, issue_work, valid_label,
+};
 use crate::infrastructure;
 
 pub const MAX_POLL_PAGES: u32 = 20;
@@ -41,6 +43,8 @@ pub struct IssuePollRecord {
     pub state: String,
     pub updated_at_ms: u64,
     pub actor: String,
+    /// Exact label names the provider reported for the issue.
+    pub labels: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -75,6 +79,9 @@ pub fn poll_implementation_issues(
             "poll.max_pages",
             "polling page bound is zero or exceeds its maximum",
         ));
+    }
+    if let Some(selection) = &policy.selection {
+        selection.validate()?;
     }
     let mut records: BTreeMap<u64, IssuePollRecord> = BTreeMap::new();
     let mut page = 1;
@@ -142,6 +149,13 @@ pub fn poll_implementation_issues(
                 sequence: record.updated_at_ms,
                 source_version,
             });
+        } else if !policy.selects(record.number, &record.labels)? {
+            // r[impl kiln.implementation.intake_selection]
+            admissions.push(IssueAdmission::Unselected {
+                native_id,
+                sequence: record.updated_at_ms,
+                source_version,
+            });
         } else {
             admissions.push(IssueAdmission::Work(Box::new(issue_work(
                 policy,
@@ -189,6 +203,7 @@ pub fn poll_into_implementer(
                 }
             },
             IssueAdmission::Closed { .. } => summary.closed += 1,
+            IssueAdmission::Unselected { .. } => summary.unselected += 1,
         }
     }
     Ok(summary)
@@ -201,6 +216,8 @@ pub struct PollSummary {
     pub superseded: usize,
     pub stale: usize,
     pub closed: usize,
+    /// Open issues outside the policy's explicit selection; never admitted.
+    pub unselected: usize,
 }
 
 fn validate_record(record: &IssuePollRecord, enrolled_actors: &BTreeSet<String>) -> PortResult<()> {
@@ -215,6 +232,8 @@ fn validate_record(record: &IssuePollRecord, enrolled_actors: &BTreeSet<String>)
         || record.actor.is_empty()
         || record.actor.len() > MAX_ACTOR_BYTES
         || record.actor.chars().any(char::is_control)
+        || record.labels.len() > MAX_ISSUE_LABELS
+        || record.labels.iter().any(|label| !valid_label(label))
         || !matches!(record.state.as_str(), "open" | "closed")
         || !enrolled_actors.contains(&record.actor)
     {
@@ -301,6 +320,7 @@ mod tests {
             },
             terminal_policy: TerminalPolicy::VerifiedPullRequest,
             priority: 1,
+            selection: None,
         }
     }
 
@@ -330,6 +350,7 @@ mod tests {
             state: state.to_string(),
             updated_at_ms,
             actor: "operator".to_string(),
+            labels: Vec::new(),
         }
     }
 
@@ -535,5 +556,134 @@ mod tests {
         first.title = "changed".to_string();
         let three = record_identity("onix/kiln", &first).unwrap_or_else(|_| unreachable!());
         assert_ne!(one, three);
+    }
+
+    fn selected(issues: &[u64], labels: &[&str]) -> ImplementationIssuePolicy {
+        let mut policy = policy();
+        policy.selection = Some(crate::implementation::IssueSelection {
+            issues: issues.iter().copied().collect(),
+            labels: labels.iter().map(|label| (*label).to_string()).collect(),
+        });
+        policy
+    }
+
+    fn page(records: Vec<IssuePollRecord>) -> Repeat {
+        Repeat {
+            page: IssuePollPage {
+                records,
+                next_page: None,
+            },
+        }
+    }
+
+    // r[verify kiln.implementation.intake_selection] r[verify kiln.implementation.intake_selection.scenario.selected]
+    #[test]
+    fn selection_admits_exactly_the_listed_issue_and_observes_the_rest() {
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let enrollment = kiln_core::implementation::Enrollment {
+            repositories: BTreeSet::from(["onixresearch/kiln".to_string()]),
+            actors: BTreeSet::from(["operator".to_string()]),
+        };
+        let mut implementer = Implementer::open_with_local_operator(
+            &directory.path().join("work.sqlite"),
+            enrollment.clone(),
+            "test-operator",
+        )
+        .unwrap_or_else(|_| unreachable!());
+        let mut labelled = record(3, 30, "open");
+        labelled.labels = vec!["kiln-pilot".to_string()];
+        let mut transport = page(vec![
+            record(1, 10, "open"),
+            record(2, 20, "open"),
+            labelled,
+            record(4, 40, "closed"),
+        ]);
+        let summary = poll_into_implementer(
+            &selected(&[1], &["kiln-pilot"]),
+            &enrollment.actors,
+            &mut transport,
+            0,
+            1,
+            &mut implementer,
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!(summary.admitted, 2);
+        assert_eq!(summary.unselected, 1);
+        assert_eq!(summary.closed, 1);
+        let ledger = implementer.work().unwrap_or_else(|_| unreachable!());
+        let mut admitted: Vec<_> = ledger
+            .current()
+            .flat_map(|work| work.aliases.iter().map(|alias| alias.native_id.clone()))
+            .collect();
+        admitted.sort();
+        assert_eq!(
+            admitted,
+            vec![
+                "onixresearch/kiln#1".to_string(),
+                "onixresearch/kiln#3".to_string()
+            ]
+        );
+        // Repeated polling keeps observing the unselected issue without admitting it.
+        let again = poll_into_implementer(
+            &selected(&[1], &["kiln-pilot"]),
+            &enrollment.actors,
+            &mut transport,
+            0,
+            1,
+            &mut implementer,
+        )
+        .unwrap_or_else(|error| unreachable!("{error:?}"));
+        assert_eq!((again.admitted, again.unselected), (0, 1));
+    }
+
+    // r[verify kiln.implementation.intake_selection.scenario.refused]
+    #[test]
+    fn selection_refuses_unselected_empty_and_malformed_input() {
+        let enrolled = BTreeSet::from(["operator".to_string()]);
+        let admissions = poll_implementation_issues(
+            &selected(&[2], &[]),
+            &enrolled,
+            &mut page(vec![record(1, 10, "open")]),
+            0,
+            1,
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            admissions.as_slice(),
+            [IssueAdmission::Unselected { native_id, .. }] if native_id == "onixresearch/kiln#1"
+        ));
+        // Label matching is exact; a similar label does not select.
+        let mut similar = record(1, 10, "open");
+        similar.labels = vec!["Kiln-Pilot".to_string()];
+        let admissions = poll_implementation_issues(
+            &selected(&[], &["kiln-pilot"]),
+            &enrolled,
+            &mut page(vec![similar]),
+            0,
+            1,
+        )
+        .unwrap_or_else(|_| unreachable!());
+        assert!(matches!(
+            admissions.as_slice(),
+            [IssueAdmission::Unselected { .. }]
+        ));
+        // An empty selection or issue zero is refused before any provider call.
+        for policy in [selected(&[], &[]), selected(&[0], &[])] {
+            let mut transport = page(vec![record(1, 10, "open")]);
+            assert!(poll_implementation_issues(&policy, &enrolled, &mut transport, 0, 1).is_err());
+        }
+        // An observed record with a malformed label fails closed.
+        let mut malformed = record(1, 10, "open");
+        malformed.labels = vec!["bad\u{0}label".to_string()];
+        assert!(
+            poll_implementation_issues(
+                &selected(&[1], &[]),
+                &enrolled,
+                &mut page(vec![malformed]),
+                0,
+                1,
+            )
+            .is_err()
+        );
     }
 }
