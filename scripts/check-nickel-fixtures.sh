@@ -67,10 +67,18 @@ inventory_export=$(mktemp)
 serving_export=$(mktemp)
 lineage_export=$(mktemp)
 host_owner_export=$(mktemp)
-trap 'rm -f "$projection_export" "$load_export" "$cases_export" "$corpus_export" "$build_export" "$inventory_export" "$serving_export" "$lineage_export" "$host_owner_export"' EXIT
+restricted_export=$(mktemp)
+trap 'rm -f "$projection_export" "$load_export" "$cases_export" "$corpus_export" "$build_export" "$inventory_export" "$serving_export" "$lineage_export" "$host_owner_export" "$restricted_export"' EXIT
 nickel export --format json config/fixtures/source-projection-positive.ncl >"$projection_export"
 if ! cmp -s "$projection_export" fixtures/source-projection/definition.json; then
   printf 'stale export: regenerate fixtures/source-projection/definition.json from config/fixtures/source-projection-positive.ncl\n' >&2
+  exit 1
+fi
+
+# The restricted source-view corpus and its tests read this committed export.
+nickel export --format json config/fixtures/source-projection-restricted-positive.ncl >"$restricted_export"
+if ! cmp -s "$restricted_export" fixtures/source-projection/restricted/corpus.json; then
+  printf 'stale export: regenerate fixtures/source-projection/restricted/corpus.json from config/fixtures/source-projection-restricted-positive.ncl\n' >&2
   exit 1
 fi
 

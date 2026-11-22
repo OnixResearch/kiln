@@ -1,0 +1,40 @@
+Operator guide and focused checks for the last task, on branch s3-guide from
+main 91ad7301 (Kiln Rust 1.97.1 toolchain).
+
+Changes: docs/operator.md "Capability-scoped views" (vocabulary and scope,
+scoped selection and enumeration, filter_facts refusing truncated facts,
+restriction, handles and bindings, uniform public refusals, owner-side
+attribution against a complete whole-ceiling audit, Cairn context, sharing,
+the #110 owner-side gaps, the restricted corpus); the restricted corpus export
+check in scripts/check-nickel-fixtures.sh; a CHANGELOG.md entry.
+
+Toolchain, through `nix develop -c`:
+  rustc 1.97.1 (8bab26f4f 2026-07-14), cargo 1.97.1 (c980f4866 2026-06-30)
+  CARGO_TARGET_DIR=/var/tmp/agents/kiln-s3-guide/target
+  TMPDIR=/var/tmp/agents/kiln-s3-guide/tmp CARGO_BUILD_JOBS=6, under nice -n 10
+
+$ cargo test --locked -p onix-kiln-core
+  -> exit 0; lib 559 passed (43 in projection::{authority, disclosure,
+     sharing, restricted_corpus}), source_graph_prototype 1 passed,
+     doctests 1 + 11 passed (11 compile-fail)
+$ cargo clippy --locked -p onix-kiln-core --all-targets -- -D warnings -> exit 0
+$ cargo clippy --locked -p onix-kiln-core --all-targets --all-features -- -D warnings -> exit 0
+$ cargo fmt --all --check -> exit 0
+$ bash scripts/check-nickel-fixtures.sh
+  -> exit 0, "Nickel fixture gate passed (103 positive, 655 negative)",
+     now including the restricted corpus export equality check
+Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn, the
+binary the 2026-11-22 archive records used, with the Kiln policy explicit
+(P=cairn-policy/generated/cairn-policy.json, policy kiln-default), with the
+task ticked:
+$ cairn gate proposal|design|tasks scope-source-projection-authority --root . --policy "$P"
+  -> exit 0 each, verdict PASS, 0 issues
+$ cairn validate --root . --policy "$P"
+  -> exit 0, 0 issues, 0 change, spec or profile issues, 0 findings
+$ nickel export --format json cairn-policy/development-coverage.ncl > dev-policy.json
+$ cairn traceability coverage --root . --policy dev-policy.json --profile kiln-active-development --json
+  -> exit 0, verdict pass, 2256 requirements, 0 dangling, 0 missing
+$ cairn traceability coverage --root . --policy "$P" --json   # accepted-only (cairn-default)
+  -> exit 0, verdict pass, 2256 requirements, 0 dangling, 0 missing
+The accepted source-projection spec already holds this change's requirements,
+so `cairn sync` has nothing to merge.

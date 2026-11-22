@@ -2459,46 +2459,130 @@ into an equivalent definition labeled `monorepo_project_scope.v1`; its
 `depends_on` and graph kinds stay affected-project facts.
 
 <!-- r[related kiln.source.projection.disclosure.restricted] -->
-**Capability-scoped views.** A holder never receives the trusted manifest.
-The shell enumerates the source over the holder's `ScopedSelection` (the
-view ceiling intersected with the paths its current grants let it discover
-or read, and the repository root only for a full-source holder) and wraps the
-result in a `ScopedEnumeration`, so whether an enumeration is truncated never
-depends on entries the holder may not see.
-`kiln_core::projection::disclosure::restrict` refuses an enumeration made
-over any other selection as stale, then derives an `AudienceView` under the
-holder's current `EffectiveSourceScope` and the view's frozen `ViewCeiling`:
-an entry stays only when its native origin lies in the ceiling and a current
-grant lets the holder discover or read it, and only then are entries counted,
-paged or turned into coverage. Coverage is complete only when every
-authorized entry is listed, and otherwise truncated after the entries listed;
-a probe of an unlisted discoverable path is unknown when the holder-scoped
-enumeration was truncated. Aliases are judged by their origin. The
-source-view vocabulary, `kiln.source-authority-coverage.v1`, has eight
-operations (discover, read, history, prepare, modify, create, delegate,
-result) and none implies another; path scope is compared per component, so a
-grant for `crates/app` never covers `crates/apple`. Handles, cursors and the
-view reference are BLAKE3 hashes keyed by a shell-held key over a keying
-identity of holder-visible data only (audience, scope, ceiling, definition
-and visible content). The view binding's identity, which also covers the
-trusted manifest and the generations, keys caches and stale checks only, and
-every use rechecks the holder's current scope. A scope holds only what the
-port admitted request by request; a session's raw capability set confirms
-those grants, only when observed for the same audience, repository, snapshot,
-view binding and generations, but never adds one. A missing, forbidden or
-stale object returns one `{"error":"unavailable"}` shape; the owner attributes
-a refused probe with `AudienceView::attribute` against a complete audit
-enumeration over `ScopedSelection::whole` of the view's ceiling (for a
-full-source holder, its own enumeration), and the reason never reaches the
-holder. Cairn context is
-disclosed through `.cairn/changes/<id>/**` path authority; a hidden
-prerequisite is an opaque handle whose status reads `unavailable` unless the
-holder may discover its `.cairn/changes/<id>/` change, and a
-`RestrictedContext` can never stand in for a complete observation. Sharing is
-its own operation: `admit_share` derives a
-plan no broader than the sharer's scope and the frozen ceiling, needs
-`delegate`, and never outlives or matches the sharer's depth. The
-local-operator profile is an explicit full-source grant without delegation.
+**Capability-scoped views.** `kiln_core::projection::{authority, disclosure,
+sharing}` decide what one holder may see of a projection. A holder never
+receives the trusted manifest, and a restricted view, context or scope cannot
+be deserialized; each comes only from current authority.
+
+- **Vocabulary and scope.** The source-view vocabulary,
+  `kiln.source-authority-coverage.v1`, has eight operations (discover, read
+  content, read history, prepare workspace, modify source, create source,
+  delegate, retrieve result), each mapped to one `kiln/source/...` ability.
+  None implies another, and submission and publication stay protected
+  implementation operations. Only an authority adapter builds an
+  `EffectiveSourceScope`, from a verified session bound to one exact
+  revision. It holds only the grants the port admitted request by request: a
+  session's raw capability set confirms those grants, only when observed for
+  the same audience, repository, snapshot, view binding and generations, but
+  never adds one. Path scope is compared per component, so a grant for
+  `crates/app` never covers `crates/apple`. The local-operator profile,
+  `LocalSourceAuthority`, is an explicit full-source grant without
+  delegation.
+- **Scoped selection and enumeration.** `ScopedSelection::for_holder` is the
+  view's frozen `ViewCeiling` intersected with the paths the holder's current
+  grants let it discover or read; it covers the repository root only for a
+  full-source holder. The shell asks the source adapter to enumerate over
+  that selection and records the result with `ScopedEnumeration::new`, which
+  refuses a native origin outside the selection and a generated entry when
+  the selection does not cover the root. Whether an enumeration is truncated
+  therefore never depends on entries the holder may not see. Kiln checks the
+  claimed selection and containment only; it cannot see entries an adapter
+  silently dropped.
+- **Truncated facts are enumerated again, never filtered.**
+  `ScopedSelection::filter_facts` narrows complete facts to the selection
+  (generated entries only for a root selection) and refuses truncated facts
+  with `ScopingError::TruncatedInput`: where a wider enumeration stopped
+  depends on hidden entries, so carrying its truncation into a holder's view
+  would let them decide its coverage and its unknown answers. Enumerate the
+  case again over the holder's selection. `ScopingError` has no public form
+  and does not serialize, so it can never be shown to a holder as
+  availability.
+- **Restriction.** `disclosure::restrict` refuses an expired scope, another
+  repository or revision, a scope that names neither discover nor read
+  content, and, as stale, an enumeration recorded for any selection other
+  than the holder's current one. It then keeps an entry only when its native
+  origin lies in the ceiling and a current grant lets the holder discover or
+  read it. Aliases are judged by their origin; generated entries and
+  dependency identities reach only a full-source holder, while dependency
+  names are shown. Only kept entries are counted, paged (at most 256 per
+  page) or turned into coverage, and a view lists at most 4,096 entries.
+  Coverage is complete only when every authorized entry is listed, and
+  otherwise truncated after the entries listed. For a path the holder may
+  discover, `AudienceView::lookup_origin` tells present, unrequested by the
+  definition, absent, unknown (the holder-scoped enumeration was truncated)
+  and truncated (the view's own bound cut it) apart.
+- **Handles and bindings.** Handles, cursors and the view reference are
+  BLAKE3 hashes keyed by a shell-held `HandleKey` over holder-visible data
+  only (audience, scope, ceiling, definition and visible content), so a
+  known digest, an equal-byte file or an alias forges nothing. The
+  `ViewBinding` identity also covers the trusted manifest and the authority
+  and revocation generations; it keys caches and stale checks only. Every
+  page, lookup and handle resolution first rechecks the binding against the
+  holder's current scope, and resolution rechecks the operation over the
+  handle's origin.
+- **Uniform public refusals.** A missing, forbidden or stale object (an
+  `Unavailable` from a lookup, resolution or page) and every
+  `DisclosureRefusal` from `restrict` present one public shape,
+  `{"error":"unavailable"}`. The reason (`Missing`, `Forbidden`,
+  `Truncated`, `Unknown`, `Stale`, or the refusal itself) stays server-side
+  for the owner's audit and never reaches the holder.
+- **Owner-side attribution.** `AudienceView::attribute` attributes a refused
+  probe for the owner only, and only against a complete audit enumeration
+  made over `ScopedSelection::whole` of the view's frozen ceiling. For a
+  holder whose grants cover the whole ceiling, such as a full-source holder,
+  the two selections are equal and its own enumeration is a valid audit. An
+  audit over any other selection, such as another holder's narrower cached
+  view, and a truncated audit get no attribution, since either could report
+  a hidden file as missing; a displayed destination gets none either. Under
+  a valid audit, a destination the audit lacks is `Missing`, one the holder
+  may not discover through the ceiling under a current grant is
+  `Forbidden`, and a discoverable one the listing stopped before is
+  `Truncated` or `Unknown`. A scope that is no longer current, or an audit
+  of another repository, revision or definition or lacking a destination the
+  view lists, is `Stale`.
+- **Cairn context.** `restrict_context` discloses Cairn items through
+  `.cairn/changes/<id>/**` path authority, from an observation of the view's
+  repository at its exact revision; text needs read content. A hidden
+  prerequisite of a visible item is an opaque handle whose status reads
+  `unavailable` unless the holder may discover its `.cairn/changes/<id>/`
+  change, and a `RestrictedContext` can never stand in for a complete
+  observation.
+- **Sharing** is its own operation. `sharing::admit_share` derives a
+  `SharePlan` no broader than the sharer's scope and the frozen ceiling in
+  path, operation, snapshot and lifetime; it needs `delegate` over every
+  shared path, gives the recipient a depth below the sharer's, and binds the
+  ceiling, so expanding a saved view later never expands an existing share.
+  A view reference or handle alone confers nothing. Issuing the delegation
+  is not implemented.
+
+Known owner-side gaps, tracked in
+[#110](https://github.com/OnixResearch/kiln/issues/110), affect only how a
+probe is attributed in the owner's audit; what a holder sees is unchanged:
+
+- The only accepted audit is over the frozen ceiling. When a holder views a
+  newer definition than the one its ceiling came from, a probe of an
+  existing file that the newer definition adds but the ceiling hides is
+  attributed `Missing`, not `Forbidden`.
+- `ScopedEnumeration::new` checks containment only, so a shell that labels a
+  holder's own scoped view as a whole-ceiling audit gets hidden files
+  attributed `Missing`. Only pass an enumeration actually made over
+  `ScopedSelection::whole`.
+- Owner-side audit mismatches (snapshot, definition, or a listed destination
+  missing from the audit) return `Stale`, the same reason as holder
+  staleness, while a wrong selection or a truncated audit returns no
+  attribution.
+
+Until #110 is resolved, a `Missing` attribution does not prove that the
+path does not exist.
+
+The restricted corpus (maintainer, project-reader and agent views, a hidden
+dependency, equal-byte files, an alias and a hidden Cairn prerequisite) is
+authored in `config/fixtures/source-projection-restricted-positive.ncl`
+against the source-authority contracts in
+`config/source-projection-contracts.ncl`. The Rust tests read its committed
+export, `fixtures/source-projection/restricted/corpus.json`, and
+`scripts/check-nickel-fixtures.sh` refuses a stale export.
+
 No route, worker or adapter uses these contracts yet; the source browser and
 Cairn workspace still serve every viewer the same projection, and the Basalt
 source operations are pending.

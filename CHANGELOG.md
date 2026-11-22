@@ -150,6 +150,20 @@ entry describes the source tree prepared for the first tagged release.
   checked for tampering and staleness but never admitted. Monorepo scopes
   convert through a labeled compatibility profile. (#75; unit tests, doctests
   and Nickel fixtures; no consumer or authority wiring yet)
+- Capability-scoped source views: a closed source-view vocabulary
+  (`kiln.source-authority-coverage.v1`, eight operations, none implying
+  another), per-component path scopes holding only port-admitted grants, and
+  audience views restricted from an enumeration over the holder's own scoped
+  selection before anything is counted, paged or reported. Truncated facts
+  are refused for re-enumeration rather than filtered. Handles and cursors are
+  keyed BLAKE3 hashes rechecked against current authority on every use;
+  missing, forbidden and stale objects share one `{"error":"unavailable"}`
+  shape, with the reason attributed owner-side only against a complete
+  whole-ceiling audit. Cairn context follows `.cairn/changes/<id>/**` path
+  authority, and shares are attenuated plans bound to a frozen view ceiling.
+  (#75, #76; unit tests, compile-fail doctests and Nickel fixtures with a
+  restricted corpus; owner-side attribution gaps in #110; no route, worker or
+  adapter wiring yet)
 - Materialize a complete source projection into a verified immutable input
   and private per-attempt writable overlays. A pure plan derives a reusable
   input identity from the manifest and materializer profile and an overlay
