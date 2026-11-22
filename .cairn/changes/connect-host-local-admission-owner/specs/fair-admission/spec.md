@@ -31,6 +31,7 @@ r[kiln.admission.host_owner.scenario.replay]
 - AND release MUST be refused until the attempt is observed terminal, then return a never-dispatched slot without consumption exactly once
 - AND a holder whose transport may have started MUST keep its slot until a termination is reconciled or a candidate or the worker observation from Lattice's complete native result is retained, while a refusal before any effect or a crash before the transport start MUST be released once the attempt is terminal
 - AND an attempt claimed from a host-owner queue row MUST be bound, in the claim's transaction, to require a recorded transport start, so any workflow acknowledgement (`start`, `reconcile` or another workflow write) MUST be refused until the transport start is recorded, while attempts not claimed from a host-owner queue row MUST be unaffected
+- AND a dispatch `--recover` without a persisted transport start MUST be refused before any write, and under a policy rooting a host-owner campaign any claim that bypasses admission MUST be refused in the claim's transaction, while stores without a host-owner root MUST keep every claim path unchanged
 
 ### Requirement: Typed host-owner registration
 

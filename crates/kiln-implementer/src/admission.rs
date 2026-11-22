@@ -8,7 +8,7 @@ use kiln_core::implementation::{AttemptLedger, Eligibility, ImplementationAttemp
 use kiln_core::types::{ContentId, Diagnostic, ProviderProfileId};
 use rusqlite::TransactionBehavior;
 use serde::{Deserialize, Serialize};
-const ADMISSION_KIND: &str = "fair-admission-v1";
+pub(crate) const ADMISSION_KIND: &str = "fair-admission-v1";
 const MAX_STATE_BYTES: usize = 16 * 1024 * 1024;
 // Covers future 64-hex claim identity, u64 fence/order and longer phase/reason
 // spellings without letting post-enqueue metadata growth escape the byte cap.

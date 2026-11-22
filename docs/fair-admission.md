@@ -237,9 +237,20 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   has recorded the start, checked in the same attempt-ledger transaction as the
   workflow write. Only `kiln-lattice-dispatch` (worker request or workflow
   exchange) records that start, after the owner-grant gate and before any spawn
-  or delivery, so neither an out-of-band launch acknowledged later nor an
-  ungranted claim can adopt a worker. Attempts not claimed from a host-owner
-  queue row are unbound, and `start` and `reconcile` are unchanged for them.
+  or delivery. On both routes `--recover` only resumes an already persisted
+  transport start: without one it is refused with "recovery requires prior
+  persisted transport intent" before any write, so a fresh attempt always passes
+  the owner-grant gate. Neither an out-of-band launch acknowledged later nor an
+  ungranted claim can therefore adopt a worker. Attempts not claimed from a
+  host-owner queue row are unbound, and `start` and `reconcile` are unchanged
+  for them.
+
+  **Claims must go through admission.** When the store's admission policy roots
+  a host-owner campaign, every claim that bypasses admission (the library
+  `claim_next` used by `kiln-fleet` and other embedders) is refused with
+  `host_owner_admission_required`, decided in the same immediate transaction as
+  the claim. The operator `claim` command and campaign claims already use
+  admission. Without a host-owner root, every claim path is unchanged.
 
 The owner's only capacity is its declared registration and its only occupancy
 is the ledger's retained reservations for it. It never reports remote, provider

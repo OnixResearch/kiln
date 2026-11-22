@@ -1,0 +1,33 @@
+{
+  "change": "connect-host-local-admission-owner",
+  "review": "review_5 (history://AdmissionReview, verification of 633715d8)",
+  "date": "2026-11-22",
+  "base": "633715d8",
+  "resolved": {
+    "1_exchange_recover": "kiln-lattice-dispatch's workflow-exchange route now decides recovery with exchange_recovery before any write (before the request seal, the owner-grant gate and begin_dispatch_transport): --recover is refused with 'recovery requires prior persisted transport intent' unless dispatch_requires_recovery is already true, mirroring the worker route. A persisted start still drives recovery with or without the flag, and a fresh attempt always passes the owner-grant gate. Test (bin unit test): --recover without a prior start is refused; with a prior start (in-band crash) recovery proceeds; no flag and no start goes through the gate.",
+    "2_claim_gate": {
+      "choice": "Preferred: enforced at the shared claim point.",
+      "rule": "Implementer::claim_next_deferred (the library claim used by claim_next, kiln-fleet and other embedders; the only production AttemptLedger::claim caller outside the admission Claim/ClaimExact step) reads the admission ledger in the same immediate transaction as the claim. When fair_admission::host_owner_governed holds (a configured policy with a domain-tagged host-owner campaign root account) it refuses with host_owner_admission_required before claiming; the expiry it performed rolls back with the refused transaction.",
+      "coverage": "Coverage is decided per store, not per repository: the admission ledger does not retain the registration's repository list, and queue rows exist only for already-admitted work, so a per-repository check would miss covered work not yet queued. A host-owner root therefore governs every claim in that store; the operator claim command and campaign claims already route through admission under any policy.",
+      "why_race_free": "Policy and accounts are read inside the same SQLite immediate transaction that writes the attempt, so no policy or root committed concurrently can be missed.",
+      "unchanged": "Without a host-owner root (no policy, or a policy whose accounts are not host-owner roots) every claim path is unchanged apart from one read of the admission state.",
+      "tests": "unbound claim refused under a host-owner policy with no attempt created (including unregistered work); allowed under a policy without a host-owner root; the admission claim still succeeds and binds the transport start."
+    },
+    "docs": "docs/fair-admission.md and both fair-admission spec copies state the --recover rule and the claim gate."
+  },
+  "open_operational_limits": [
+    "An acknowledged run (recorded workflow) with no reconciled termination, candidate or retained worker observation whose lease expires keeps its slot with no release path in this flow: Kiln #45 lease expiry does not mark it Unknown, so reconcile-termination cannot bind it."
+  ],
+  "commands": [
+    { "command": "cargo fmt --all -- --check", "exit": 0 },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH), first run", "exit": 101, "result": "2401 passed, 3 failed, 16 ignored: kiln-adapter-swarm client post_classifies_accepted_rejected_and_unknown and every_child_runs_with_the_configured_from, kiln-web-service worker::tests::streaming_cancellation_and_deadline_terminate_owned_descendants; subprocess timing tests in untouched code, run concurrently with a contended Nix daemon; both targets pass in isolation (11/11, 16/16)" },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH), rerun", "exit": 0, "result": "2404 passed, 0 failed, 16 ignored" },
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative" },
+    { "command": "nix build --option builders '' path:$PWD#checks.x86_64-linux.octet", "exit": 0, "result": "0 findings" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0 },
+    { "command": "cairn gate proposal|design|tasks connect-host-local-admission-owner", "exit": 0, "result": "PASS" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2152, referenced 2119, missing 33, dangling 9; identical to base 203296d4, none new" },
+    { "command": "gitleaks dir over 55 changed paths since 203296d4", "exit": 0, "result": "no leaks; this evidence file rescanned after writing" }
+  ]
+}

@@ -154,6 +154,17 @@ fn run() -> Result<(), ()> {
     if digest != reservation.plan {
         return fail("dispatch plan differs from the attempt reservation");
     }
+    // Recovery only resumes a persisted transport intent; it never creates one.
+    // Decided before any write, so a refused `--recover` records nothing and a
+    // fresh attempt always passes the owner-grant gate below.
+    let previous = match implementer.dispatch_requires_recovery(&attempt.identity) {
+        Ok(previous) => previous,
+        Err(error) => return fail(&error),
+    };
+    let recover = match exchange_recovery(flags.get("--recover"), previous) {
+        Ok(recover) => recover,
+        Err(error) => return fail(error),
+    };
     let request_binding = match implementer.bind_campaign_request(
         &work,
         &attempt.identity,
@@ -175,13 +186,6 @@ fn run() -> Result<(), ()> {
             Ok(exchange) => exchange,
             Err(error) => return fail(&format!("{error:?}")),
         };
-    let recover = flags
-        .get("--recover")
-        .is_some_and(|value| matches!(value.as_str(), "true" | "1"));
-    let recover = match implementer.dispatch_requires_recovery(&attempt.identity) {
-        Ok(previous) => recover || previous,
-        Err(error) => return fail(&error),
-    };
     if !recover {
         let admission = match implementer.admission_snapshot() {
             Ok(value) => value,
@@ -347,4 +351,42 @@ fn fail(message: &str) -> Result<(), ()> {
 fn main() {
     eprintln!("kiln-lattice-dispatch is supported only on Linux");
     std::process::exit(2);
+}
+
+// r[impl kiln.admission.host_owner]
+/// `--recover` resumes only a persisted transport intent, as the worker route
+/// does: without one it is refused, so a fresh attempt always passes the
+/// owner-grant gate before its transport start is recorded.
+#[cfg(target_os = "linux")]
+fn exchange_recovery(flag: Option<&String>, previous: bool) -> Result<bool, &'static str> {
+    let requested = flag.is_some_and(|value| matches!(value.as_str(), "true" | "1"));
+    if requested && !previous {
+        return Err("recovery requires prior persisted transport intent");
+    }
+    Ok(requested || previous)
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::exchange_recovery;
+
+    // r[verify kiln.admission.host_owner]
+    #[test]
+    fn recover_without_a_persisted_transport_start_is_refused() {
+        let flag = "true".to_string();
+        assert_eq!(
+            exchange_recovery(Some(&flag), false),
+            Err("recovery requires prior persisted transport intent")
+        );
+        // After a real in-band crash the persisted start drives recovery,
+        // with or without the explicit flag.
+        assert_eq!(exchange_recovery(Some(&flag), true), Ok(true));
+        assert_eq!(exchange_recovery(None, true), Ok(true));
+        // A fresh dispatch goes through the owner-grant gate.
+        assert_eq!(exchange_recovery(None, false), Ok(false));
+        assert_eq!(
+            exchange_recovery(Some(&"false".to_string()), false),
+            Ok(false)
+        );
+    }
 }

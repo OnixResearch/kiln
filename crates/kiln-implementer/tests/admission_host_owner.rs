@@ -187,13 +187,41 @@ fn unregistered_repository_is_observed_but_never_queued_or_reserved() {
             .contains("host_owner_unregistered")
     );
     assert!(ok(i.admission_snapshot()).items.is_empty());
-    // A claim taken outside fair admission still gets no host reservation.
-    let attempt = ok(ok(i.claim_next(NOW, LEASE_MS)).ok_or(()));
-    refused(
-        i.host_owner_reserve(&profile, &attempt.identity, attempt.fence, NOW + 1),
-        "host_owner_unregistered",
-    );
+    // Under a host-owner policy no claim may bypass admission, even for
+    // unregistered work; nothing is claimed or reserved.
+    refused(i.claim_next(NOW, LEASE_MS), "host_owner_admission_required");
+    assert!(ok(i.attempts()).attempts().next().is_none());
     assert!(ok(i.admission_snapshot()).reservations.is_empty());
+}
+
+#[test]
+fn claims_bypassing_admission_are_refused_only_under_a_host_owner_policy() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    // A policy without a host-owner root leaves the compatibility claim as it was.
+    let mut plain = open(&dir.path().join("plain.sqlite"));
+    intake(&mut plain, &[&issue]);
+    ok(plain.admission_apply(
+        Cmd::Configure {
+            policy: ok(profile.policy()),
+        },
+        NOW,
+    ));
+    assert!(ok(plain.claim_next(NOW, LEASE_MS)).is_some());
+    // A host-owner root governs every claim: the bypass is refused atomically.
+    let mut i = open(&dir.path().join("work.sqlite"));
+    intake(&mut i, &[&issue]);
+    ok(i.host_owner_admit(&profile, NOW));
+    ok(i.host_owner_observe(&profile, NOW));
+    refused(
+        i.claim_next(NOW + 1, LEASE_MS),
+        "host_owner_admission_required",
+    );
+    assert!(ok(i.attempts()).attempts().next().is_none());
+    // The admission claim is unaffected and binds the transport start.
+    let attempt = claim(&mut i, NOW + 2);
+    assert!(ok(i.attempts()).transport_start_bound(&attempt.identity));
 }
 
 #[test]

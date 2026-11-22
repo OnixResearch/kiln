@@ -802,6 +802,20 @@ pub fn is_host_owner_account(ledger: &AdmissionLedger, account: &ContentId) -> C
         _ => false,
     })
 }
+/// Whether this store's admission policy roots a host-owner campaign. Every
+/// claim must then go through admission so the owner counts it; a claim that
+/// would bypass admission is refused with `host_owner_admission_required`.
+pub fn host_owner_governed(ledger: &AdmissionLedger) -> CoreResult<bool> {
+    if ledger.policy.is_none() {
+        return Ok(false);
+    }
+    for account in ledger.accounts.keys() {
+        if is_host_owner_account(ledger, account)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
 
 fn profile_error(message: &str) -> crate::types::Diagnostic {
     err("host_owner_profile", message)

@@ -502,7 +502,7 @@ impl Implementer {
         lease_ms: u64,
         defer: &dyn Fn(&ImplementationWork) -> Option<String>,
     ) -> Result<ClaimSelection, String> {
-        let selection = self.with_ledgers(|ledger, attempts| {
+        let selection = self.with_claim_ledgers(|ledger, attempts, governed| {
             attempts.expire(now_ms)?;
             let mut deferred = Vec::new();
             for row in ledger.ranked() {
@@ -523,6 +523,15 @@ impl Implementer {
                         .unwrap_or_default();
                     deferred.push((identity, cause));
                     continue;
+                }
+                // r[impl kiln.admission.host_owner]
+                // A host-owner policy counts only claims made through admission.
+                if governed {
+                    return Err(kiln_core::types::Diagnostic::new(
+                        "host_owner_admission_required",
+                        "attempt.claim",
+                        "a host-owner admission policy governs this store; claim through admission",
+                    ));
                 }
                 match attempts.claim(&work, now_ms, lease_ms) {
                     Ok(attempt) => {
@@ -1181,6 +1190,36 @@ impl Implementer {
         let (mut work, work_version) = load::<WorkLedger>(&transaction, WORK_KIND)?;
         let (mut attempts, attempt_version) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
         let result = apply(&mut work, &mut attempts)
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        save(&transaction, WORK_KIND, work_version, &work)?;
+        save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
+        transaction.commit().map_err(text)?;
+        Ok(result)
+    }
+
+    /// `with_ledgers` plus whether a host-owner admission policy governs every
+    /// claim, read in the same immediate transaction that writes the claim.
+    fn with_claim_ledgers<T>(
+        &mut self,
+        apply: impl FnOnce(
+            &mut WorkLedger,
+            &mut AttemptLedger,
+            bool,
+        ) -> Result<T, kiln_core::types::Diagnostic>,
+    ) -> Result<T, String> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (mut work, work_version) = load::<WorkLedger>(&transaction, WORK_KIND)?;
+        let (mut attempts, attempt_version) = load::<AttemptLedger>(&transaction, ATTEMPT_KIND)?;
+        let (admission, _) = load::<kiln_core::fair_admission::AdmissionLedger>(
+            &transaction,
+            admission::ADMISSION_KIND,
+        )?;
+        let governed = kiln_core::fair_admission::host_owner_governed(&admission)
+            .map_err(|error| format!("{}: {}", error.code, error.message))?;
+        let result = apply(&mut work, &mut attempts, governed)
             .map_err(|error| format!("{}: {}", error.code, error.message))?;
         save(&transaction, WORK_KIND, work_version, &work)?;
         save(&transaction, ATTEMPT_KIND, attempt_version, &attempts)?;
