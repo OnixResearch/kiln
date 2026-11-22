@@ -10,4 +10,4 @@
 
 - [x] [serial] Enter the development shell and confirm Rust 1.97.1. r[kiln.toolchain.pin.scenario.shell]
 - [x] [serial] Run fmt, Clippy, workspace tests, wasm32, rustdoc, Nickel, Octet and Cairn gates and record exit statuses. r[kiln.toolchain.gates]
-- [ ] [serial] Rerun `nix flake check path:$PWD --no-write-lock-file -L` at integration; the shared store's collector blocked a full run here. r[kiln.toolchain.gates]
+- [x] [serial] Rerun `nix flake check` at integration: integration head `16e573553c40eda639f3a6956131fe51ab06d824`, all 47 `checks.x86_64-linux`, exit 0 (`evidence/verification.json` `integration_flake_check`). r[kiln.toolchain.gates]

@@ -73,8 +73,16 @@
       "qualified_by": "cargo test -p kiln-web-service --features build-input-fixtures --test build_input_qualification (3 passed) and checks.x86_64-linux.build-input-fixtures"
     }
   ],
+  "integration_flake_check": {
+    "observed_on": "2026-11-22",
+    "head": "16e573553c40eda639f3a6956131fe51ab06d824",
+    "command": "CARGO_BUILD_JOBS=6 nice -n 10 nix flake check -L --option builders '' --option min-free 0",
+    "environment": "git flake of the integration clone with no untracked files (vendor/*/Cargo.lock removed), TMPDIR=/var/tmp/agents/kiln-int2",
+    "checks": 47,
+    "exit": 0,
+    "earlier_failures": "On 9173f49b the same command with --keep-going failed only pijul-cohort and build-input-fixtures; both were re-qualified (fixture_identity_changes)."
+  },
   "remaining": [
-    "Rerun nix flake check path:$PWD --no-write-lock-file -L at integration; the shared store's garbage collector blocked further flake builds here.",
     "Follow-up: move the Tree-sitter 0.26 pins to 0.27, which needed Rust 1.90.",
     "Follow-up: drop the detect-coding-agent path patch and use registry 0.1.1, which declares Rust 1.91.",
     "Follow-up: re-evaluate bounded-http (Rust 1.96) for the Celld and webhook shells."
