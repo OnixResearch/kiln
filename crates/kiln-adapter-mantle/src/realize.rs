@@ -203,6 +203,8 @@ impl MantleRealizeProfile {
         })
     }
 
+    // r[impl kiln.convergence.realize]
+    /// Resolve exactly one realize binding by the plan's own identity.
     fn binding_for(&self, plan: &BuildEffectPlan) -> PortResult<&MantleRealizeBinding> {
         if plan.provider_profile != self.provider.profile_id {
             return Err(domain(
@@ -523,6 +525,7 @@ impl<R: MantleRuntime> MantleRealizeAdapter<R> {
         Ok(())
     }
 
+    // r[impl kiln.mantle.foreign_realize.dispatch]
     fn dispatch_inner(
         &mut self,
         plan: &BuildEffectPlan,
@@ -854,6 +857,7 @@ fn interpret_output<R: MantleRuntime>(
 }
 
 // r[impl kiln.mantle.foreign_realize.completion]
+// r[impl kiln.convergence.realize]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct RealizationReceipt {

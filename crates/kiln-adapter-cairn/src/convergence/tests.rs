@@ -106,6 +106,7 @@ fn admit(value: &mut Value) -> Result<AdmittedConvergenceReceipt, Diagnostic> {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.pilot]
 fn admits_the_retained_pilot_receipt() {
     let bytes = fixture();
     let value = value();
@@ -138,6 +139,7 @@ fn admits_the_retained_pilot_receipt() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.current]
 fn current_and_untargeted_rows_are_not_acceptance_or_work() {
     let mut value = value();
     let admitted = admit(&mut value).unwrap_or_else(|_| unreachable!());
@@ -148,6 +150,7 @@ fn current_and_untargeted_rows_are_not_acceptance_or_work() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.schema]
 fn rejects_unknown_schema() {
     let mut value = value();
     *field_mut(&mut value, "schema_version") = json!("cairn.convergence.v2");
@@ -178,6 +181,7 @@ fn rejects_unknown_status() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.schema]
 fn rejects_unknown_top_level_or_row_field() {
     let mut top = value();
     top.as_object_mut()
@@ -202,6 +206,7 @@ fn rejects_unknown_top_level_or_row_field() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.schema]
 fn rejects_unknown_state_after_identity_holds() {
     let mut value = value();
     *field_mut(row_mut(&mut value, 0), "state") = json!("mystery");
@@ -226,6 +231,7 @@ fn rejects_malformed_json() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.oversized]
 fn rejects_oversized_input_before_parsing() {
     let value = value();
     let binding = binding_from(&value);
@@ -241,6 +247,7 @@ fn rejects_oversized_input_before_parsing() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.identity]
 fn rejects_a_tampered_receipt_identity() {
     let mut value = value();
     let binding = binding_from(&value);
@@ -256,6 +263,7 @@ fn rejects_a_tampered_receipt_identity() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.identity]
 fn rejects_a_stale_declared_binding() {
     let bytes = fixture();
     let value = value();
@@ -307,6 +315,7 @@ fn rejects_a_stale_declared_binding() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.identity]
 fn rejects_a_non_git_receipt_revision() {
     let mut value = value();
     let mut binding = binding_from(&value);
@@ -380,6 +389,7 @@ fn rejects_a_malformed_row_identity_after_identity_holds() {
 }
 
 #[test]
+// r[verify kiln.convergence.intake.scenario.schema]
 fn rejects_an_unknown_bound_field() {
     let mut value = value();
     *field_mut(row_mut(&mut value, 0), "bound") = json!({ "unknown": "fact" });

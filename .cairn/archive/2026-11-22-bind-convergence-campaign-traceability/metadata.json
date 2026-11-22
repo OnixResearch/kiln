@@ -1,0 +1,9 @@
+{
+  "spec_effect": "none",
+  "spec_effect_rationale": "Bind the already accepted convergence-campaign and mantle-foreign-realize-adapter requirements to their implementing functions and verifying tests. No requirement, scenario or stable ID changes; the accepted specs stay byte-identical.",
+  "workflow_profile": {
+    "id": "no-spec-delta",
+    "source": "change_create",
+    "version": 1
+  }
+}

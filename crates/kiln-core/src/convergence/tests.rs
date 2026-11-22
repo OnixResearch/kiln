@@ -1,6 +1,6 @@
 use super::*;
 use crate::domain::Outcome;
-use crate::gating::CandidateChange;
+use crate::gating::{CandidateChange, GateResult, MergePreflight, admit_merge};
 use crate::provider::{ProviderLimits, ProviderRole};
 use crate::types::{
     CandidateId, ContentId, ExternalRef, PipelineRevisionId, PolicyId, ProviderProfileId,
@@ -139,6 +139,7 @@ fn capability() -> CapabilityProfile {
 }
 
 #[test]
+// r[verify kiln.convergence.unsatisfied.scenario.selection]
 fn selects_only_unsatisfied_targeted_rows_in_registry_order() {
     let selection = select_unsatisfied(&mixed_rows()).unwrap_or_else(|_| unreachable!());
     let selected: Vec<_> = selection
@@ -159,6 +160,32 @@ fn selects_only_unsatisfied_targeted_rows_in_registry_order() {
 }
 
 #[test]
+// r[verify kiln.convergence.unsatisfied.scenario.moved]
+fn moved_or_unbound_target_rows_stay_selected() {
+    let mut unbound = row("unbound", EvidenceState::Stale);
+    unbound.contract_id = None;
+    unbound.job_id = None;
+    let mut moved = row("moved", EvidenceState::Unrealized);
+    moved.row_blake3 = content('9');
+    let selection = select_unsatisfied(&[
+        row("bound-current", EvidenceState::Current),
+        unbound.clone(),
+        moved.clone(),
+    ])
+    .unwrap_or_else(|_| unreachable!());
+    assert_eq!(selection.items, vec![unbound, moved]);
+    assert_eq!(
+        selection.exclusions,
+        vec![ExcludedRow {
+            requirement_id: "bound-current".to_string(),
+            state: EvidenceState::Current,
+            reason: ExclusionReason::Current,
+        }]
+    );
+}
+
+#[test]
+// r[verify kiln.convergence.unsatisfied.scenario.selection]
 fn exclusions_retain_their_reason() {
     let selection = select_unsatisfied(&mixed_rows()).unwrap_or_else(|_| unreachable!());
     assert_eq!(
@@ -184,6 +211,7 @@ fn exclusions_retain_their_reason() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.empty]
 fn empty_rows_are_refused() {
     assert_eq!(
         select_unsatisfied(&[]).map(|_| ()),
@@ -241,6 +269,7 @@ fn oversized_requirement_text_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.mint]
 fn mints_one_frozen_revision_from_the_selection() {
     let selection = select_unsatisfied(&mixed_rows()).unwrap_or_else(|_| unreachable!());
     let revision = mint_evidence_campaign(&binding(), &selection)
@@ -270,6 +299,7 @@ fn mints_one_frozen_revision_from_the_selection() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.identity]
 fn repeated_mint_is_identical() {
     let selection = select_unsatisfied(&mixed_rows()).unwrap_or_else(|_| unreachable!());
     let first = mint_evidence_campaign(&binding(), &selection).unwrap_or_else(|_| unreachable!());
@@ -278,6 +308,7 @@ fn repeated_mint_is_identical() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.identity]
 fn moved_candidate_or_row_changes_the_campaign_identity() {
     let selection = select_unsatisfied(&mixed_rows()).unwrap_or_else(|_| unreachable!());
     let base = mint_evidence_campaign(&binding(), &selection)
@@ -303,6 +334,7 @@ fn moved_candidate_or_row_changes_the_campaign_identity() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.identity]
 fn changed_item_order_changes_the_campaign_identity() {
     let selection = select_unsatisfied(&[
         row_with_job("one", EvidenceState::Failed, "job-one"),
@@ -324,6 +356,8 @@ fn changed_item_order_changes_the_campaign_identity() {
 }
 
 #[test]
+// r[verify kiln.convergence.unsatisfied.scenario.satisfied]
+// r[verify kiln.convergence.campaign.scenario.empty]
 fn satisfied_or_empty_selection_mints_none() {
     let satisfied = select_unsatisfied(&[
         row("a", EvidenceState::Current),
@@ -349,6 +383,7 @@ fn a_current_item_cannot_enter_a_campaign() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.empty]
 fn a_duplicate_item_is_refused() {
     let mut selection = select_unsatisfied(&mixed_rows()).unwrap_or_else(|_| unreachable!());
     selection.items.push(
@@ -369,6 +404,7 @@ fn a_duplicate_item_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.job]
 fn a_missing_evidence_job_is_refused() {
     let mut rows = mixed_rows();
     rows.get_mut(2)
@@ -386,6 +422,7 @@ fn a_missing_evidence_job_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.campaign.scenario.identity]
 fn candidate_set_identity_binds_the_existing_candidate_value() {
     let base = candidate_set_identity(&candidate()).unwrap_or_else(|_| unreachable!());
     assert_eq!(
@@ -410,6 +447,7 @@ fn candidate_set_identity_binds_the_existing_candidate_value() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.request]
 fn plans_one_typed_request_per_item() {
     let requests = plan_evidence_builds(&revision(), &build_selection(), &capability())
         .unwrap_or_else(|_| unreachable!());
@@ -430,6 +468,7 @@ fn plans_one_typed_request_per_item() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.request]
 fn requests_are_deterministic_and_lower_to_build_plans() {
     let first = plan_evidence_builds(&revision(), &build_selection(), &capability())
         .unwrap_or_else(|_| unreachable!());
@@ -448,6 +487,7 @@ fn requests_are_deterministic_and_lower_to_build_plans() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.capability]
 fn provider_without_dispatch_is_unsupported() {
     let mut profile = capability();
     profile.operations = BTreeSet::from([Operation::Observe]);
@@ -462,6 +502,7 @@ fn provider_without_dispatch_is_unsupported() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.capability]
 fn another_role_or_profile_is_refused() {
     let mut wrong_role = capability();
     wrong_role.role = ProviderRole::Gate;
@@ -487,6 +528,7 @@ fn another_role_or_profile_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.capability]
 fn a_missing_outcome_class_is_refused() {
     let mut profile = capability();
     profile.outcomes.remove(&Outcome::Unknown);
@@ -501,6 +543,7 @@ fn a_missing_outcome_class_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.realization]
 fn preserve_realization_fails_before_effects() {
     let mut selection = build_selection();
     selection.realization = EvidenceRealization::PreserveCacheOnly;
@@ -515,6 +558,7 @@ fn preserve_realization_fails_before_effects() {
 }
 
 #[test]
+// r[verify kiln.convergence.realize]
 fn preserve_realization_is_admitted_only_with_the_declared_capability() {
     let mut realize_capability = capability();
     realize_capability.operations.insert(Operation::Realize);
@@ -540,6 +584,7 @@ fn preserve_realization_is_admitted_only_with_the_declared_capability() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.realization_mismatch]
 fn build_realization_must_not_select_a_realize_profile() {
     let mut realize_capability = capability();
     realize_capability.operations.insert(Operation::Realize);
@@ -554,6 +599,7 @@ fn build_realization_must_not_select_a_realize_profile() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.plan]
 fn a_missing_plan_is_refused() {
     let mut selection = build_selection();
     selection.plans.remove("job-two");
@@ -568,6 +614,7 @@ fn a_missing_plan_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.plan]
 fn an_unexpected_plan_is_refused() {
     let mut selection = build_selection();
     selection.plans.insert("job-other".to_string(), plan("c"));
@@ -582,6 +629,7 @@ fn an_unexpected_plan_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.plan]
 fn duplicate_empty_and_unsorted_products_are_refused() {
     for products in [
         vec![],
@@ -606,6 +654,7 @@ fn duplicate_empty_and_unsorted_products_are_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.verify.scenario.request]
 fn a_platform_change_changes_the_request_identity() {
     let first = plan_evidence_builds(&revision(), &build_selection(), &capability())
         .unwrap_or_else(|_| unreachable!());
@@ -618,4 +667,48 @@ fn a_platform_change_changes_the_request_identity() {
         leading(&second).idempotency_key
     );
     assert_ne!(leading(&first).effect_id, leading(&second).effect_id);
+}
+
+#[test]
+// r[verify kiln.convergence.nonclaims.scenario.advisory]
+fn complete_record_and_planned_request_grant_no_release() {
+    let campaign = revision();
+    let requests = plan_evidence_builds(&campaign, &build_selection(), &capability())
+        .unwrap_or_else(|_| unreachable!());
+    let attempt = AttemptId::new("attempt-a").unwrap_or_else(|_| unreachable!());
+    for request in &requests {
+        let plan = request
+            .into_build_effect_plan(attempt.clone())
+            .unwrap_or_else(|_| unreachable!());
+        // A campaign record lowers only to a typed build effect. It names no
+        // merge, publication or release consequence.
+        assert_eq!(plan.plan_identity, request.plan_identity);
+        assert_eq!(plan.provider_profile, request.provider_profile);
+    }
+    // Merge admission still needs a passing gate result bound to the candidate
+    // and current approval; the campaign record supplies neither.
+    let candidate = candidate();
+    let gate = GateResult {
+        candidate_id: candidate.id.clone(),
+        policy_id: candidate.policy_id.clone(),
+        passed: true,
+    };
+    let target =
+        ExternalRef::new("source", "revision", "revision-a").unwrap_or_else(|_| unreachable!());
+    let preflight = MergePreflight {
+        candidate_id: candidate.id.clone(),
+        policy_id: candidate.policy_id.clone(),
+        expected_target: target.clone(),
+        observed_target: target,
+        approvals_current: false,
+        provider_capable: true,
+    };
+    assert_eq!(
+        admit_merge(&gate, &candidate, &preflight),
+        Err(Diagnostic::new(
+            "merge_not_admitted",
+            "merge_preflight",
+            "merge approval or provider capability is not current",
+        ))
+    );
 }

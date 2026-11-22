@@ -242,6 +242,8 @@ impl MantleRuntime for FakeRealizeRuntime {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.pilot]
+// r[verify kiln.convergence.realize.scenario.pilot]
 fn pilot_receipt_is_admitted() {
     let profile = profile();
     let plan = plan();
@@ -264,6 +266,7 @@ fn pilot_receipt_is_admitted() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn unknown_and_missing_fields_are_cohort_drift() {
     let mut value: serde_json::Value =
         serde_json::from_slice(PILOT_RECEIPT).unwrap_or_else(|_| unreachable!());
@@ -291,6 +294,7 @@ fn unknown_and_missing_fields_are_cohort_drift() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn wrong_schema_is_refused() {
     let bytes = mutate_receipt(|receipt| receipt.schema = "other-receipt-v1".to_string());
     assert_code(
@@ -300,6 +304,7 @@ fn wrong_schema_is_refused() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn incomplete_status_is_refused() {
     let bytes = mutate_receipt(|receipt| {
         receipt.status = "partial-failure".to_string();
@@ -312,6 +317,7 @@ fn incomplete_status_is_refused() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.recovery.scenario.classes]
 fn failure_envelope_is_a_distinct_failed_observation() {
     let bytes = mutate_receipt(|receipt| {
         receipt.status = "partial-failure".to_string();
@@ -332,6 +338,8 @@ fn failure_envelope_is_a_distinct_failed_observation() {
 }
 
 #[test]
+// r[verify kiln.convergence.realize.scenario.substitution]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn a_tampered_digest_is_refused() {
     let mut receipt: RealizationReceipt =
         serde_json::from_slice(PILOT_RECEIPT).unwrap_or_else(|_| unreachable!());
@@ -344,6 +352,8 @@ fn a_tampered_digest_is_refused() {
 }
 
 #[test]
+// r[verify kiln.convergence.realize.scenario.substitution]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn each_bound_receipt_identity_is_required() {
     for (code, mutate) in [
         (
@@ -380,6 +390,7 @@ fn each_bound_receipt_identity_is_required() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn zero_or_two_roots_are_refused() {
     let bytes = mutate_receipt(|receipt| {
         receipt.selected_root_paths.clear();
@@ -402,6 +413,7 @@ fn zero_or_two_roots_are_refused() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn a_root_outside_the_prefix_is_refused() {
     let bytes = mutate_receipt(|receipt| {
         receipt.selected_root_paths = vec!["/tmp/outside".to_string()];
@@ -413,6 +425,7 @@ fn a_root_outside_the_prefix_is_refused() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.drift]
 fn an_unmapped_or_misplaced_product_is_refused() {
     let mut mapped_plan = plan();
     mapped_plan
@@ -434,6 +447,7 @@ fn an_unmapped_or_misplaced_product_is_refused() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.oversized]
 fn oversized_receipt_is_a_bounded_refusal() {
     let mut profile = profile();
     profile.limits.max_receipt_bytes = 1_024;
@@ -444,6 +458,7 @@ fn oversized_receipt_is_a_bounded_refusal() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.dispatch.scenario.identity]
 fn stale_profile_and_input_identities_stop_before_dispatch() {
     let mut stale = profile();
     stale.runtime.executable_identity = content(&"a".repeat(64));
@@ -474,6 +489,7 @@ fn stale_profile_and_input_identities_stop_before_dispatch() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.dispatch]
 fn profile_or_plan_mismatch_is_refused() {
     let mut wrong_profile = plan();
     wrong_profile.provider_profile =
@@ -493,6 +509,7 @@ fn profile_or_plan_mismatch_is_refused() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.dispatch.scenario.command]
 fn dispatch_runs_the_exact_reviewed_command() {
     let mut adapter = MantleRealizeAdapter::new(profile(), FakeRealizeRuntime::success())
         .unwrap_or_else(|_| unreachable!());
@@ -555,6 +572,7 @@ fn dispatch_runs_the_exact_reviewed_command() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.recovery.scenario.replay]
 fn replayed_dispatch_returns_the_recorded_observation() {
     let mut adapter = MantleRealizeAdapter::new(profile(), FakeRealizeRuntime::success())
         .unwrap_or_else(|_| unreachable!());
@@ -568,6 +586,7 @@ fn replayed_dispatch_returns_the_recorded_observation() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.recovery.scenario.replay]
 fn reconciliation_refuses_a_changed_plan() {
     let mut adapter = MantleRealizeAdapter::new(profile(), FakeRealizeRuntime::success())
         .unwrap_or_else(|_| unreachable!());
@@ -582,6 +601,7 @@ fn reconciliation_refuses_a_changed_plan() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.completion.scenario.oversized]
 fn malformed_receipt_becomes_a_provider_error() {
     let runtime = FakeRealizeRuntime::new(
         MantleProcessOutput::Exited {
@@ -599,6 +619,7 @@ fn malformed_receipt_becomes_a_provider_error() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.recovery.scenario.classes]
 fn timeout_cancellation_and_unknown_keep_their_classes() {
     for (output, expected) in [
         (
@@ -634,6 +655,7 @@ fn timeout_cancellation_and_unknown_keep_their_classes() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.profile.scenario.drift]
 fn profile_admission_refuses_cohort_drift() {
     let mut drifted = profile();
     drifted.revision = "0".repeat(40);
@@ -682,6 +704,7 @@ fn profile_admission_refuses_cohort_drift() {
 }
 
 #[test]
+// r[verify kiln.mantle.foreign_realize.recovery.scenario.replay]
 fn restore_replays_only_the_exact_observation() {
     let mut adapter = MantleRealizeAdapter::new(profile(), FakeRealizeRuntime::success())
         .unwrap_or_else(|_| unreachable!());
@@ -693,4 +716,39 @@ fn restore_replays_only_the_exact_observation() {
     let mut changed = observation;
     changed.outcome = BuildEvaluationOutcome::ProviderError;
     assert!(restored.restore(&plan(), &changed).is_err());
+}
+
+#[test]
+// r[verify kiln.mantle.foreign_realize.profile.scenario.match]
+fn pinned_realize_profile_is_admitted() {
+    let profile = profile();
+    assert!(admit_realize_profile(&profile).is_ok());
+    assert!(profile.provider.operations.contains(&Operation::Realize));
+    assert_eq!(profile.provider.role, ProviderRole::Build);
+    assert_eq!(profile.required_non_claims.len(), REALIZE_NON_CLAIMS.len());
+}
+
+#[test]
+// r[verify kiln.mantle.foreign_realize.nonclaims.scenario.release]
+fn complete_realization_grants_no_release_authority() {
+    let observation = admit_realization_receipt(&profile(), &plan(), &binding(), PILOT_RECEIPT)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(observation.outcome, BuildEvaluationOutcome::Success);
+    assert!(
+        REALIZE_NON_CLAIMS
+            .iter()
+            .any(|claim| claim.contains("release readiness"))
+    );
+    // The observation is only a build evaluation for its exact plan. It
+    // carries no merge, publication or release authority field, so no such
+    // consequence can follow from recording it.
+    assert_eq!(admit_build_evaluation(&plan(), &observation), Ok(()));
+    let value = serde_json::to_value(&observation).unwrap_or_else(|_| unreachable!());
+    let fields = value.as_object().unwrap_or_else(|| unreachable!());
+    for forbidden in ["release", "merge", "publication", "publish", "authorizes"] {
+        assert!(
+            !fields.contains_key(forbidden),
+            "realization observation exposes {forbidden}"
+        );
+    }
 }

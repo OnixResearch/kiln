@@ -447,7 +447,17 @@ pub struct EvidenceBuildRequest {
 }
 
 impl EvidenceBuildRequest {
+    // r[impl kiln.convergence.realize]
+    // r[impl kiln.convergence.nonclaims]
     /// Lower this request to the existing build effect plan.
+    ///
+    /// This is the only effect a convergence record can produce: a typed
+    /// build effect for one exact plan. A receipt, selection, campaign revision
+    /// or request never yields a merge, publication or release consequence;
+    /// Cairn `current`, a Mantle success and a cache hit stay advisory.
+    ///
+    /// A preserve selection lowers to the same effect plan as a build; the
+    /// realize profile then resolves this plan's exact binding.
     pub fn into_build_effect_plan(&self, attempt_id: AttemptId) -> CoreResult<BuildEffectPlan> {
         let plan = BuildEffectPlan {
             effect_id: self.effect_id.clone(),

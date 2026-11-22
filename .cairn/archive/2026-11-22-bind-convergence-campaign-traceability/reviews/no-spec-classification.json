@@ -1,0 +1,16 @@
+{
+  "schema_version": "cairn.semantic-review.review-receipt.v1",
+  "review_kind": "plan",
+  "decision": "approved",
+  "findings": [],
+  "reviewed_inputs": [
+    {"path": "proposal.md", "hash": "74094503f51ff569c9e8dc6645c1570a2a9654a1d7b6ae2797c6c7120162ecfa"},
+    {"path": "design.md", "hash": "5f67f147ad84c7485acbc6d341469e7bf274cf75b97931f06c2c96f23f48fba0"},
+    {"path": "acceptance.md", "hash": "57714a5e61ff240849bdee5fed2b149e6ec8c8733931e8af2d629a6f1165475c"},
+    {"path": "tasks.md", "hash": "38b953359e3513f4e48e691848fae181292d6a3fc337a214dff1dde1bdd45d8e"}
+  ],
+  "reviewer": {
+    "id": "omp-convergence-traceability-plan-review",
+    "source": "agentic"
+  }
+}

@@ -1,0 +1,221 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive bind-convergence-campaign-traceability --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --execute
+{
+  "acceptance_ids": [
+    "bind-convergence-campaign-traceability.gaps",
+    "bind-convergence-campaign-traceability.gates",
+    "bind-convergence-campaign-traceability.markers",
+    "bind-convergence-campaign-traceability.no-spec-change"
+  ],
+  "actions": [
+    {
+      "description": "move active change to archive: bind-convergence-campaign-traceability",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability"
+    }
+  ],
+  "blocked": false,
+  "change": "bind-convergence-campaign-traceability",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "69a6032a47483de1149e27a7a0eeabeea8550e0eade303efd6e27eee0368c384",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "57714a5e61ff240849bdee5fed2b149e6ec8c8733931e8af2d629a6f1165475c",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/acceptance.md"
+        },
+        {
+          "content_hash": "5f67f147ad84c7485acbc6d341469e7bf274cf75b97931f06c2c96f23f48fba0",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/design.md"
+        },
+        {
+          "content_hash": "397658490eb36aa4a5970ea579378d4ac93ddea8dbc6440ed7bc0816c78465a1",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/archive.txt"
+        },
+        {
+          "content_hash": "e7c845504970925c7a61cde5f4a2b1845bc14c68a1892f228d3ebe8bd1259463",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/gates.txt"
+        },
+        {
+          "content_hash": "2dbebfb8357cce85490ca09742ea125b03ffd6762059698e63ca8be71e958bbf",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/release-readiness.txt"
+        },
+        {
+          "content_hash": "776986b3efb37ccc7606aae468f1d63dbfbf14966f2ed43654adad9bde5d4c1d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/rust-checks.txt"
+        },
+        {
+          "content_hash": "f47be12934b0341a62cbc3493341c4299dfc0909bf20ea5ad38c63c7df03f88b",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/sync.txt"
+        },
+        {
+          "content_hash": "22b26117877475cecdc36798de7950da6c5d8ed525cc16bb1ae7e63b507a4826",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/traceability-coverage.txt"
+        },
+        {
+          "content_hash": "167ed23229fa9cda8d4fcc374cea25585e44945942df4f3619573293df7a1fe8",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/traceability.md"
+        },
+        {
+          "content_hash": "efe10efd8f4d9ea87ecc5f14b228f108050e9feeb0cec8122e7c259d4d8b95d8",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/evidence/validate.txt"
+        },
+        {
+          "content_hash": "c582e03de54c3544bcdd855488e49c4431bb8126e37b8c78cf6c3ec2e4aeb2bd",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/metadata.json"
+        },
+        {
+          "content_hash": "74094503f51ff569c9e8dc6645c1570a2a9654a1d7b6ae2797c6c7120162ecfa",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/proposal.md"
+        },
+        {
+          "content_hash": "5f80803c97cf48dfe275bd6437f4775e98b0ba36b7342a12d1240224a44e60dd",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/reviews/no-spec-classification.json"
+        },
+        {
+          "content_hash": "38b953359e3513f4e48e691848fae181292d6a3fc337a214dff1dde1bdd45d8e",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-convergence-campaign-traceability/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability"
+        }
+      ],
+      "manifest_hash": "8c3087b5bd2286895bf3c405015633220bbc7df2564b3dfc1bee81482a35c1d9"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "57714a5e61ff240849bdee5fed2b149e6ec8c8733931e8af2d629a6f1165475c",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/acceptance.md"
+        },
+        {
+          "content_hash": "5f67f147ad84c7485acbc6d341469e7bf274cf75b97931f06c2c96f23f48fba0",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/design.md"
+        },
+        {
+          "content_hash": "397658490eb36aa4a5970ea579378d4ac93ddea8dbc6440ed7bc0816c78465a1",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/archive.txt"
+        },
+        {
+          "content_hash": "e7c845504970925c7a61cde5f4a2b1845bc14c68a1892f228d3ebe8bd1259463",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/gates.txt"
+        },
+        {
+          "content_hash": "2dbebfb8357cce85490ca09742ea125b03ffd6762059698e63ca8be71e958bbf",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/release-readiness.txt"
+        },
+        {
+          "content_hash": "776986b3efb37ccc7606aae468f1d63dbfbf14966f2ed43654adad9bde5d4c1d",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/rust-checks.txt"
+        },
+        {
+          "content_hash": "f47be12934b0341a62cbc3493341c4299dfc0909bf20ea5ad38c63c7df03f88b",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/sync.txt"
+        },
+        {
+          "content_hash": "22b26117877475cecdc36798de7950da6c5d8ed525cc16bb1ae7e63b507a4826",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/traceability-coverage.txt"
+        },
+        {
+          "content_hash": "167ed23229fa9cda8d4fcc374cea25585e44945942df4f3619573293df7a1fe8",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/traceability.md"
+        },
+        {
+          "content_hash": "efe10efd8f4d9ea87ecc5f14b228f108050e9feeb0cec8122e7c259d4d8b95d8",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/evidence/validate.txt"
+        },
+        {
+          "content_hash": "c582e03de54c3544bcdd855488e49c4431bb8126e37b8c78cf6c3ec2e4aeb2bd",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/metadata.json"
+        },
+        {
+          "content_hash": "74094503f51ff569c9e8dc6645c1570a2a9654a1d7b6ae2797c6c7120162ecfa",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/proposal.md"
+        },
+        {
+          "content_hash": "5f80803c97cf48dfe275bd6437f4775e98b0ba36b7342a12d1240224a44e60dd",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/reviews/no-spec-classification.json"
+        },
+        {
+          "content_hash": "38b953359e3513f4e48e691848fae181292d6a3fc337a214dff1dde1bdd45d8e",
+          "exists": true,
+          "path": "./.cairn/changes/bind-convergence-campaign-traceability/tasks.md"
+        }
+      ],
+      "manifest_hash": "0ac28fa6a0ade32ab037aebeeeacd715dfc822f3d1150a13ff27530a2c643a0f"
+    },
+    "kind": "archive",
+    "manifest_hash": "4d31ef633272d4e5eeb546d6a0bd74c192e7a1221e75f707ac25e561a743ce92"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+    "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+    "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+  ],
+  "plan_hash": "db4ab97fcd8c3483d0860508d227c5b24cc45156dfa8bca1387cd4ed00e14c21",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "145e01e316d1ff28009d61da98f9b97780dcbd68deb76ffc8b4e1919edc79889",
+  "reasons": [],
+  "receipt_hash": "ae503524bbb42a63145a7fa8609ed570dcdc58998fc1025fb9410c8a96d9579d",
+  "review_receipt_hashes": [
+    "53860204442665fd0c85c56da0668f7667f05eb536d1050e0611d903d2906467"
+  ],
+  "spec_effect": "none",
+  "workflow_profile": "no-spec-delta",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}

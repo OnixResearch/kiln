@@ -1,0 +1,294 @@
+## cairn gate proposal
+$ cairn gate proposal bind-convergence-campaign-traceability --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
+{
+  "acceptance_ids": [
+    "bind-convergence-campaign-traceability.gaps",
+    "bind-convergence-campaign-traceability.gates",
+    "bind-convergence-campaign-traceability.markers",
+    "bind-convergence-campaign-traceability.no-spec-change"
+  ],
+  "change": "bind-convergence-campaign-traceability",
+  "evidence_summary": {
+    "docs_only": 2,
+    "fixture": 0,
+    "formal": 0,
+    "mode": "advisory",
+    "model": 0,
+    "probe": 0,
+    "property": 0
+  },
+  "input_hash": "f3eeef5c8788d8d0b92f20961eb042e17ed2449c250dae33f8645654cb4c576e",
+  "issues": [],
+  "layout": "cairn",
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+    "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+    "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "policy_selection": {
+    "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+    "installation_receipt": false,
+    "locator": "/home/brittonr/wt/kiln-green-20261122/cairn-policy/generated/cairn-policy.json",
+    "source": "explicit"
+  },
+  "probe_evidence": null,
+  "profile_identity_hash": "145e01e316d1ff28009d61da98f9b97780dcbd68deb76ffc8b4e1919edc79889",
+  "receipt_hash": "d2930d2267772f8fdd52429c1b610602e36680488d4b48da504701325e66bca1",
+  "review_receipt_hashes": [
+    "53860204442665fd0c85c56da0668f7667f05eb536d1050e0611d903d2906467"
+  ],
+  "spec_effect": "none",
+  "stage": "proposal",
+  "substance": [
+    {
+      "checkbox_tasks": 0,
+      "kind": "proposal",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/proposal.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 42,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    }
+  ],
+  "task_ordering": null,
+  "valid": true,
+  "verdict": "PASS",
+  "workflow_profile": "no-spec-delta",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+
+## cairn gate design
+$ cairn gate design bind-convergence-campaign-traceability --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
+{
+  "acceptance_ids": [
+    "bind-convergence-campaign-traceability.gaps",
+    "bind-convergence-campaign-traceability.gates",
+    "bind-convergence-campaign-traceability.markers",
+    "bind-convergence-campaign-traceability.no-spec-change"
+  ],
+  "change": "bind-convergence-campaign-traceability",
+  "evidence_summary": {
+    "docs_only": 2,
+    "fixture": 0,
+    "formal": 0,
+    "mode": "advisory",
+    "model": 0,
+    "probe": 0,
+    "property": 0
+  },
+  "input_hash": "19f7f50d5d60c0e792efb81fb924d774a802d8488586a21cffcf0571e36343d6",
+  "issues": [],
+  "layout": "cairn",
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+    "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+    "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "policy_selection": {
+    "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+    "installation_receipt": false,
+    "locator": "/home/brittonr/wt/kiln-green-20261122/cairn-policy/generated/cairn-policy.json",
+    "source": "explicit"
+  },
+  "probe_evidence": null,
+  "profile_identity_hash": "145e01e316d1ff28009d61da98f9b97780dcbd68deb76ffc8b4e1919edc79889",
+  "receipt_hash": "8997ff3a55983154fed4d24ec59c17e5b2f3000fbf495d2d8b63f4fe29e233dd",
+  "review_receipt_hashes": [
+    "53860204442665fd0c85c56da0668f7667f05eb536d1050e0611d903d2906467"
+  ],
+  "spec_effect": "none",
+  "stage": "design",
+  "substance": [
+    {
+      "checkbox_tasks": 0,
+      "kind": "delta_spec",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/acceptance.md#profile-adapter",
+      "requirement_blocks": 1,
+      "scenario_blocks": 4,
+      "substantive_lines": 16,
+      "substantive_requirement_blocks": 1,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 0,
+      "kind": "design",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/design.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 52,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 0,
+      "kind": "proposal",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/proposal.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 42,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    }
+  ],
+  "task_ordering": null,
+  "valid": true,
+  "verdict": "PASS",
+  "workflow_profile": "no-spec-delta",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+
+## cairn gate tasks
+$ cairn gate tasks bind-convergence-campaign-traceability --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
+{
+  "acceptance_ids": [
+    "bind-convergence-campaign-traceability.gaps",
+    "bind-convergence-campaign-traceability.gates",
+    "bind-convergence-campaign-traceability.markers",
+    "bind-convergence-campaign-traceability.no-spec-change"
+  ],
+  "change": "bind-convergence-campaign-traceability",
+  "evidence_summary": {
+    "docs_only": 2,
+    "fixture": 0,
+    "formal": 0,
+    "mode": "advisory",
+    "model": 0,
+    "probe": 0,
+    "property": 0
+  },
+  "input_hash": "b50975c9ea466b5117cc830a1aac7a03167dfefe982f31c9e3356e96f6083331",
+  "issues": [],
+  "layout": "cairn",
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+    "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+    "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "policy_selection": {
+    "blake3": "27a9f819d45dbe7f296d4cddbb9c5945bbe25924ab59478f48f596f25d9375f7",
+    "installation_receipt": false,
+    "locator": "/home/brittonr/wt/kiln-green-20261122/cairn-policy/generated/cairn-policy.json",
+    "source": "explicit"
+  },
+  "probe_evidence": {
+    "declarations_present": false,
+    "probes": []
+  },
+  "profile_identity_hash": "145e01e316d1ff28009d61da98f9b97780dcbd68deb76ffc8b4e1919edc79889",
+  "receipt_hash": "1f5936cbb955f6a063f6d9286f87aa3651e0c35ac770bc66a4faa8d7e4f49118",
+  "review_receipt_hashes": [
+    "53860204442665fd0c85c56da0668f7667f05eb536d1050e0611d903d2906467"
+  ],
+  "spec_effect": "none",
+  "stage": "tasks",
+  "substance": [
+    {
+      "checkbox_tasks": 0,
+      "kind": "delta_spec",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/acceptance.md#profile-adapter",
+      "requirement_blocks": 1,
+      "scenario_blocks": 4,
+      "substantive_lines": 16,
+      "substantive_requirement_blocks": 1,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 0,
+      "kind": "design",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/design.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 52,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 0,
+      "kind": "proposal",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/proposal.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 42,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 0,
+      "task_done": 0,
+      "task_in_progress": 0,
+      "task_todo": 0
+    },
+    {
+      "checkbox_tasks": 8,
+      "kind": "tasks",
+      "malformed_dependency_markers": 0,
+      "path": "./.cairn/changes/bind-convergence-campaign-traceability/tasks.md",
+      "requirement_blocks": 0,
+      "scenario_blocks": 0,
+      "substantive_lines": 8,
+      "substantive_requirement_blocks": 0,
+      "substantive_tasks": 8,
+      "task_done": 8,
+      "task_in_progress": 0,
+      "task_todo": 0
+    }
+  ],
+  "task_ordering": {
+    "active": false,
+    "edges": [],
+    "issues": [],
+    "nodes": [],
+    "order": [],
+    "ready_tasks": [],
+    "valid": true
+  },
+  "valid": true,
+  "verdict": "PASS",
+  "workflow_profile": "no-spec-delta",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+

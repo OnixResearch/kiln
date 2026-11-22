@@ -1,0 +1,61 @@
+$ cairn sync bind-convergence-campaign-traceability --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --execute
+{
+  "acceptance_ids": [
+    "bind-convergence-campaign-traceability.gaps",
+    "bind-convergence-campaign-traceability.gates",
+    "bind-convergence-campaign-traceability.markers",
+    "bind-convergence-campaign-traceability.no-spec-change"
+  ],
+  "actions": [],
+  "blocked": false,
+  "change": "bind-convergence-campaign-traceability",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [],
+  "dry_run": false,
+  "input_hash": "c4c18deeccf3d6d7793cf392fd28053bb198e2c5734345755fdbe99b1326f61b",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": []
+  },
+  "mutated": false,
+  "mutation_manifest": null,
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts",
+    "no-spec profile conformance does not prove zero behavior effect or semantic correctness",
+    "change-local a[...] acceptance IDs are not accepted r[...] requirements and sync never promotes them"
+  ],
+  "plan_hash": "0f599e88bcc887387ae156c198273d5e47dee9dcbd608f430b0b2480d67716c5",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "145e01e316d1ff28009d61da98f9b97780dcbd68deb76ffc8b4e1919edc79889",
+  "reasons": [],
+  "receipt_hash": "a780d76f5b01eb999c6bdb57cd400b5e6b07d48648e9867e175a14d7c4511e73",
+  "review_receipt_hashes": [
+    "53860204442665fd0c85c56da0668f7667f05eb536d1050e0611d903d2906467"
+  ],
+  "spec_effect": "none",
+  "workflow_profile": "no-spec-delta",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
