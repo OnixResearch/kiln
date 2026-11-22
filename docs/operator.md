@@ -47,6 +47,16 @@ An unconfigured protected operation denies before any effect.
    `cairn preserves-corpus update --path fixtures/preserves-canonicalization/corpus.json --execute`
    after adding or changing a case.
 
+<!-- r[verify kiln.toolchain.pin.scenario.shell] -->
+<!-- r[verify kiln.toolchain.pin.scenario.older] -->
+   The development shell and every root check use the compiler that
+   `rust-toolchain.toml` pins (Rust 1.97.1), and the workspace `rust-version`
+   declares the same release. The [toolchain receipt](../.cairn/archive/2026-11-22-raise-rust-toolchain/evidence/verification.json)
+   retains `nix develop -c rustc --version` reporting 1.97.1, and Cargo refusing
+   the root crates under Octet's older rustc 1.96 nightly until its overlay
+   checks passed `--ignore-rust-version`. That is the tested compiler, not a
+   proven minimum.
+
 Run credential-isolated acquisition separately from a normal operator build: existing Cargo/Nix caches and credential helpers can conceal an inaccessible source input. Use a fresh temporary HOME/source cache with no Git/SSH credentials or global Git configuration, and acquire all direct and transitive sources before claiming the public quick start is reproducible. Consult `LICENSES.md` before combining adapters into a distributed executable.
 
 For release preparation, bind actual command results to the exact validated source payload and retain failures. The original files under `evidence/` are historical publication evidence, not current check receipts. See `hosting-and-recovery.md` for the boundary between local preparation and separately authorized publication.

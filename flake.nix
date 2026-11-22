@@ -1137,6 +1137,9 @@
             inherit system;
             overlays = [ (import rust-overlay) ];
           };
+          # Every root check builds with the pinned file; the workspace rust-version
+          # makes Cargo refuse an older compiler.
+          # r[impl kiln.toolchain.pin] r[related kiln.toolchain.pin.scenario.older]
           toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
           rustPlatform = pkgs.makeRustPlatform {
             cargo = toolchain;
@@ -1280,6 +1283,8 @@
             cargo fmt --all -- --check
             touch "$out"
           '';
+          # Clippy from the pinned toolchain, warnings denied, over every target.
+          # r[verify kiln.toolchain.gates] r[verify kiln.toolchain.gates.scenario.lint]
           clippy = rustPlatform.buildRustPackage {
             pname = "kiln-clippy";
             version = "0.1.0";
@@ -2563,6 +2568,7 @@
             inherit system;
             overlays = [ (import rust-overlay) ];
           };
+          # r[related kiln.toolchain.pin.scenario.shell]
           toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
           browserToolchain = pkgs.rust-bin.fromRustupToolchainFile ./web/dashboard-index/rust-toolchain.toml;
         in

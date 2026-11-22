@@ -1,0 +1,143 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive emit-lattice-budget-lineage --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: emit-lattice-budget-lineage",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage"
+    }
+  ],
+  "blocked": false,
+  "change": "emit-lattice-budget-lineage",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "a489143296362d857e3fc87daf7c662b04a8c6b5d38eaaebb203b29076c46955",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "7ccf82f418762726796771806c16e85648867d051e2556dcee84f64ce60a2046",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/design.md"
+        },
+        {
+          "content_hash": "47de5b0786fd473a2e0f886ccb2769deade7daf39f01f694c00ba99ecb5b97fb",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/evidence/lattice-acceptance.json"
+        },
+        {
+          "content_hash": "5b597690a8d0bf774f8b830232e458ae1de3d98b00fbb0b58170bf1d4855d2ff",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/evidence/verification.json"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/metadata.json"
+        },
+        {
+          "content_hash": "2b6559a0e783484fa762ff80836caef737c6ab85037ea34cc762b4cfbcf7396e",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/proposal.md"
+        },
+        {
+          "content_hash": "f0b0862762a4d1c48024132a1594fa5b6147d24a40a7291e47f6ad288d6a4b0d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/specs/fair-admission/spec.md"
+        },
+        {
+          "content_hash": "a76a94e07b72405fabb6daf7472217f922131b23abb6df20b0567bf0ff37af60",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-emit-lattice-budget-lineage/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage"
+        }
+      ],
+      "manifest_hash": "fc1c429a20fa8703b88a0ffb003f4d851322b1a7811a5f2a2eb18dd450ec23f1"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "7ccf82f418762726796771806c16e85648867d051e2556dcee84f64ce60a2046",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/design.md"
+        },
+        {
+          "content_hash": "47de5b0786fd473a2e0f886ccb2769deade7daf39f01f694c00ba99ecb5b97fb",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/evidence/lattice-acceptance.json"
+        },
+        {
+          "content_hash": "5b597690a8d0bf774f8b830232e458ae1de3d98b00fbb0b58170bf1d4855d2ff",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/evidence/verification.json"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/metadata.json"
+        },
+        {
+          "content_hash": "2b6559a0e783484fa762ff80836caef737c6ab85037ea34cc762b4cfbcf7396e",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/proposal.md"
+        },
+        {
+          "content_hash": "f0b0862762a4d1c48024132a1594fa5b6147d24a40a7291e47f6ad288d6a4b0d",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/specs/fair-admission/spec.md"
+        },
+        {
+          "content_hash": "a76a94e07b72405fabb6daf7472217f922131b23abb6df20b0567bf0ff37af60",
+          "exists": true,
+          "path": "./.cairn/changes/emit-lattice-budget-lineage/tasks.md"
+        }
+      ],
+      "manifest_hash": "4deebd8233005c3c5bcb8853541aa5c65e372c6ab15a2cc6293458b6dc2f6abc"
+    },
+    "kind": "archive",
+    "manifest_hash": "093fc82b58f8e9e51b5f5558a0f3a3da877022d8c2bf714b35ac5187eddfebbc"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "aef690cc72d43da246ed1da8ac9b44fe03aca1d094b2f6513a4a6587ef2aeeda",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "8b2d7465b4c7d04d0052cda95df943950ae5e68f1a3b009debbbb3806d839f90",
+  "reasons": [],
+  "receipt_hash": "271b7de36fddcf98a35a9187136be92def43dbe35037875ad8be013f7bfef314",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0

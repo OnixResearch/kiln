@@ -1,0 +1,108 @@
+$ cairn sync raise-rust-toolchain --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/raise-rust-toolchain/specs/workspace-toolchain/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/raise-rust-toolchain/specs/workspace-toolchain/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "raise-rust-toolchain",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/raise-rust-toolchain/specs/workspace-toolchain/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "90f30058f559e1456e0856e55cdc80a456b3a06f51121a7a3b3d19a45023aa5d",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": false,
+        "accepted_before_hash": "b70b047bfa27718b74a65049aec40f99a3f5268a910f6f95a2b75fef4c3a8b5a",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "5f2050d9524cb0ce53bed8a2a530050ed5fe753c68423767267b4d239e94044c",
+        "destination": ".cairn/specs/workspace-toolchain/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "0877addf74de2d670fe684e33372e9cba7c113f2151cda506f939c4fd9e3ae40",
+        "operations": [
+          {
+            "block_hash": "df0d1e3212a638f4bc5d49df4d24d4b86b66df8ee25bdbe6feabcf82fb7a9cda",
+            "heading": "### Requirement: Tested workspace compiler pin",
+            "kind": "added",
+            "requirement_id": "kiln.toolchain.pin"
+          },
+          {
+            "block_hash": "f5100ee4635cf4ec5158c70a0986b88c2011991fa5950923438274a0cd6b8401",
+            "heading": "### Requirement: Clean gates under the pinned compiler",
+            "kind": "added",
+            "requirement_id": "kiln.toolchain.gates"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.toolchain.pin",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.toolchain.gates",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/raise-rust-toolchain/specs/workspace-toolchain/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "0877addf74de2d670fe684e33372e9cba7c113f2151cda506f939c4fd9e3ae40",
+          "exists": true,
+          "path": "./.cairn/specs/workspace-toolchain/spec.md"
+        }
+      ],
+      "manifest_hash": "e1c9864b054003ad339dbf2d1558974ec5ff5167fe114e2ed4af4c05f8daab1d"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/specs/workspace-toolchain/spec.md"
+        }
+      ],
+      "manifest_hash": "625e27c8e812ce2c5a1f119e6c45932c047d9526f46fa72d6b6aba1100d5aa58"
+    },
+    "kind": "sync",
+    "manifest_hash": "8a23662f047720b119df765aed63f234cf122d405daa6c7c9f0d88a41365b619"
+  },
+  "plan_hash": "689b41b18d6b6d9090562f4951b0b6e7698aeea1d181f0cef6816e94a6147e19",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "reasons": [],
+  "receipt_hash": "07a6e08daa0a216ae5ac7cf98a7ffeaabbc2d6a11ef5506009cec1966b242aa8"
+}
+exit 0

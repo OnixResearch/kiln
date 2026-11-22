@@ -1,0 +1,173 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive bind-attempt-grant-lineage --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: bind-attempt-grant-lineage",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage"
+    }
+  ],
+  "blocked": false,
+  "change": "bind-attempt-grant-lineage",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "1132b2b3f5b9ec239746f7c51cfbe921f474cc41ba7f1e1a77c1091f99ce9be1",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "46a709812cf1119e13fd8034a5d4118f23f231ed5fc172da89bf92347d17d74a",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/design.md"
+        },
+        {
+          "content_hash": "e3d4d133bba7f3014237859e8b5febc8403386925da43f50acee3c3c4ae8071d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/evidence/gates.txt"
+        },
+        {
+          "content_hash": "2da47276335e4bda632bd8ba8c48b8a059ba3f13bed7796e4954805759c3fc40",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/evidence/live-claim-fix.txt"
+        },
+        {
+          "content_hash": "941c9d44e782a3168a6a780ee49ff80a3f9253e17692d2193f811838947f58ed",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/evidence/review-fixes.txt"
+        },
+        {
+          "content_hash": "b0d12bd73db98312fd3f6de62fb0300e1931b0557daa5563d462195203373b7b",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/evidence/rust-checks.txt"
+        },
+        {
+          "content_hash": "a5fbd875dbfc796946966856f704350b9ca3fc011a704a9d9104e9e0d1d8f841",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/evidence/verification-fixes.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/metadata.json"
+        },
+        {
+          "content_hash": "bd90aecb3497fae68efd50f4c40ed524123135bfd93175ac4aff85fb8126c221",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/proposal.md"
+        },
+        {
+          "content_hash": "c209766757d9ff1bce073750c66099f9a19a077002b539d6c73d0d6f09355e0f",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md"
+        },
+        {
+          "content_hash": "a8a20cabc0d2004e5bdd9c47698fe087dd5cc7a83756414f10d7b7a4db18ab89",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-bind-attempt-grant-lineage/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage"
+        }
+      ],
+      "manifest_hash": "b83c2810fd222e4330136c42b4a33cfc30cdb47b06f5cebdba25dfae0b1fe42f"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "46a709812cf1119e13fd8034a5d4118f23f231ed5fc172da89bf92347d17d74a",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/design.md"
+        },
+        {
+          "content_hash": "e3d4d133bba7f3014237859e8b5febc8403386925da43f50acee3c3c4ae8071d",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/evidence/gates.txt"
+        },
+        {
+          "content_hash": "2da47276335e4bda632bd8ba8c48b8a059ba3f13bed7796e4954805759c3fc40",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/evidence/live-claim-fix.txt"
+        },
+        {
+          "content_hash": "941c9d44e782a3168a6a780ee49ff80a3f9253e17692d2193f811838947f58ed",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/evidence/review-fixes.txt"
+        },
+        {
+          "content_hash": "b0d12bd73db98312fd3f6de62fb0300e1931b0557daa5563d462195203373b7b",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/evidence/rust-checks.txt"
+        },
+        {
+          "content_hash": "a5fbd875dbfc796946966856f704350b9ca3fc011a704a9d9104e9e0d1d8f841",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/evidence/verification-fixes.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/metadata.json"
+        },
+        {
+          "content_hash": "bd90aecb3497fae68efd50f4c40ed524123135bfd93175ac4aff85fb8126c221",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/proposal.md"
+        },
+        {
+          "content_hash": "c209766757d9ff1bce073750c66099f9a19a077002b539d6c73d0d6f09355e0f",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md"
+        },
+        {
+          "content_hash": "a8a20cabc0d2004e5bdd9c47698fe087dd5cc7a83756414f10d7b7a4db18ab89",
+          "exists": true,
+          "path": "./.cairn/changes/bind-attempt-grant-lineage/tasks.md"
+        }
+      ],
+      "manifest_hash": "5383ea518c704d11f4bb62a0a17331e1337c5735bfc8e6e14e08fdd2e9421d77"
+    },
+    "kind": "archive",
+    "manifest_hash": "30415bd45589ff1556a5cb650c8b277c2f6c9ac1de81f69e34ae3b07e6b90c82"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "34ab86edafae56b9ee09b837bc090f9edc4a3b33246413fe670ff92b321fe837",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "475a8e7093053feb5fb5817fa816626b8bf0ff30ab86f8a2781b1e5aecf8e320",
+  "reasons": [],
+  "receipt_hash": "01b2b91adfed85556c1788006102e6524c8e45b34a41db1aa08c2e09839d40e4",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0

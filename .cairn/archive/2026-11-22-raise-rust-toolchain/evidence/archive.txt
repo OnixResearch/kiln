@@ -1,0 +1,109 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive raise-rust-toolchain --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "actions": [
+    {
+      "description": "move active change to archive: raise-rust-toolchain",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-raise-rust-toolchain"
+    }
+  ],
+  "blocked": false,
+  "change": "raise-rust-toolchain",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "5a7257cb59d087511da04124ef2a6a5105eecbb67328615575c4e82a1a59c9bc",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "0eb928778002aae0b08db6d9ea94d21f3a27d881c0fe311a44537147a93353ec",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-raise-rust-toolchain/design.md"
+        },
+        {
+          "content_hash": "1a2fab3eb8f92610a3953e3759eb3e2db89bab410339e900f04328827b097401",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-raise-rust-toolchain/evidence/verification.json"
+        },
+        {
+          "content_hash": "6ab6cb390dad7e7e272a37eb7735c82ddac68cad4cb4875682bc8d2b4629c1eb",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-raise-rust-toolchain/proposal.md"
+        },
+        {
+          "content_hash": "5f2050d9524cb0ce53bed8a2a530050ed5fe753c68423767267b4d239e94044c",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-raise-rust-toolchain/specs/workspace-toolchain/spec.md"
+        },
+        {
+          "content_hash": "94294e7bad0077eeedee5619acb2780f206f0dd18e8950f2132951dbed736a9e",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-raise-rust-toolchain/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/raise-rust-toolchain"
+        }
+      ],
+      "manifest_hash": "e65594dbbaa90a510bcb2b884379fb3e458e7110b02990437907163d09dd15ad"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "0eb928778002aae0b08db6d9ea94d21f3a27d881c0fe311a44537147a93353ec",
+          "exists": true,
+          "path": "./.cairn/changes/raise-rust-toolchain/design.md"
+        },
+        {
+          "content_hash": "1a2fab3eb8f92610a3953e3759eb3e2db89bab410339e900f04328827b097401",
+          "exists": true,
+          "path": "./.cairn/changes/raise-rust-toolchain/evidence/verification.json"
+        },
+        {
+          "content_hash": "6ab6cb390dad7e7e272a37eb7735c82ddac68cad4cb4875682bc8d2b4629c1eb",
+          "exists": true,
+          "path": "./.cairn/changes/raise-rust-toolchain/proposal.md"
+        },
+        {
+          "content_hash": "5f2050d9524cb0ce53bed8a2a530050ed5fe753c68423767267b4d239e94044c",
+          "exists": true,
+          "path": "./.cairn/changes/raise-rust-toolchain/specs/workspace-toolchain/spec.md"
+        },
+        {
+          "content_hash": "94294e7bad0077eeedee5619acb2780f206f0dd18e8950f2132951dbed736a9e",
+          "exists": true,
+          "path": "./.cairn/changes/raise-rust-toolchain/tasks.md"
+        }
+      ],
+      "manifest_hash": "9173d6574ffb94f57b7b958bf83718d2685e6cd9a819182c0a768539637a020d"
+    },
+    "kind": "archive",
+    "manifest_hash": "7e4a770bb10733c069470cf04458a0db3668e34ae4ed73deddb66e04662bfdb2"
+  },
+  "plan_hash": "4e42b925160c79bbc092bf674f7e64e8075474034c0a32eca90c8562f3b47db9",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "reasons": [],
+  "receipt_hash": "dab613379c83e202df5c876b9ebbe08dfc823d111934456bcaef8ed657065792"
+}
+exit 0

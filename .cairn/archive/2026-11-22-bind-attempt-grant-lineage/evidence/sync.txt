@@ -1,0 +1,188 @@
+$ cairn sync bind-attempt-grant-lineage --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "bind-attempt-grant-lineage",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "143f57f8d8235fc3d5e46229779df3dd1a1092b66435f4331f66d7d98d474fc9",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": false,
+        "accepted_before_hash": "dc6a2797bedf4358af0759aec208ac1a7e94ca384f1a82063fb0440aa569e2da",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "c209766757d9ff1bce073750c66099f9a19a077002b539d6c73d0d6f09355e0f",
+        "destination": ".cairn/specs/attempt-grant-lineage/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "3e1f95adc18726b88513b0dcdf1df1ba846a8520e19f41530051b81e712b0d67",
+        "operations": [
+          {
+            "block_hash": "438dc2ff5c820b4aefd8552d5983efc617555be1904a04d2fe80eb9fcdb81007",
+            "heading": "### Requirement: Root binding to the current attempt",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.root"
+          },
+          {
+            "block_hash": "8f26cf7043a627ab90da3c02bdf8286c9752fa14280469daa6f3fc96b6635b28",
+            "heading": "### Requirement: Child attenuation",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.attenuation"
+          },
+          {
+            "block_hash": "0e705ef4e1c6d8ed8a3884fa69482af70a5ee0750a07fc684fdcb0adf603dbdb",
+            "heading": "### Requirement: Foreign lineage cannot enter",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.foreign"
+          },
+          {
+            "block_hash": "c73be584ca792598e68c8dccf66c467d97e7bb4b460e1184872b7baa761508c7",
+            "heading": "### Requirement: Budget binding",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.budget"
+          },
+          {
+            "block_hash": "8e8e68641106cadfbaedef76c9ce008b17823d9bde3f46f04b7f3bccae49a131",
+            "heading": "### Requirement: Lineage currentness",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.currentness"
+          },
+          {
+            "block_hash": "7a2d54a97951c9376d5ac6bf992b8c0df5ec0a2e088b1e58d9b6c72d67ff64e8",
+            "heading": "### Requirement: Deterministic identities",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.identity"
+          },
+          {
+            "block_hash": "26adf0576acb7d07235fd1def0ea009e33f085ac18ff2f968bc9221804599642",
+            "heading": "### Requirement: Attempt retains its binding",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.attempt"
+          },
+          {
+            "block_hash": "1e1ec387c7922d1184b5d153955ca3e6ab5862e266b684d4c1dc94769cda1e9b",
+            "heading": "### Requirement: Issuance intents reconcile once",
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.issuance"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.root",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.attenuation",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.foreign",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.budget",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.currentness",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.identity",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.attempt",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.attempt.grant_lineage.issuance",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/bind-attempt-grant-lineage/specs/attempt-grant-lineage/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "3e1f95adc18726b88513b0dcdf1df1ba846a8520e19f41530051b81e712b0d67",
+          "exists": true,
+          "path": "./.cairn/specs/attempt-grant-lineage/spec.md"
+        }
+      ],
+      "manifest_hash": "713459d05a5eb635c06fda7fca15d85f23787f9fb39ca9625a24775f2c34523f"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/specs/attempt-grant-lineage/spec.md"
+        }
+      ],
+      "manifest_hash": "e1b5f812a61bd735b6a5d8aebcbfbbe20b0966a93db48dcafeefaf8d27803b9e"
+    },
+    "kind": "sync",
+    "manifest_hash": "4822f931c3ffb5ded4f7027a238858e8aa19462033130babfb44e404ade8acf9"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "d7dea47ebcd0dd9aa4fd632a05035d04d88616355043e9d6cb17ceb79e2ef431",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "475a8e7093053feb5fb5817fa816626b8bf0ff30ab86f8a2781b1e5aecf8e320",
+  "reasons": [],
+  "receipt_hash": "ccf444c2eb81a83d901d9803d658ae486c163f12a94c68936cb9730305ab92b9",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0

@@ -1,0 +1,111 @@
+$ cairn sync serve-github-dns-helper-entry --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/serve-github-dns-helper-entry/specs/github-ci/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/serve-github-dns-helper-entry/specs/github-ci/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "serve-github-dns-helper-entry",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/serve-github-dns-helper-entry/specs/github-ci/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "d962965ea22865e1a20e7dd3ffc5914d666c313afae72c4008336dd5659249ef",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "1b6e76667bd1173f871f690ae8b30ba50dbe7021c80170a6179cab43a6f189f1",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "24bef5d5348d08be7742888caff161860d3595883d335cd93fe0cbcdbdbf4586",
+        "destination": ".cairn/specs/github-ci/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "01c7df9e10d8d8d5b02cd574bf24ec23dceb4963a6caf7c2996f621e8d620027",
+        "operations": [
+          {
+            "block_hash": "1e3313ec8743e510eb26a4ba78fee1ef6b98de1a3997ab4688fa29fde2beca31",
+            "heading": "### Requirement: DNS helper entry in every client host",
+            "kind": "added",
+            "requirement_id": "kiln.github.dns_helper_entry"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.github.dns_helper_entry",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/serve-github-dns-helper-entry/specs/github-ci/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "01c7df9e10d8d8d5b02cd574bf24ec23dceb4963a6caf7c2996f621e8d620027",
+          "exists": true,
+          "path": "./.cairn/specs/github-ci/spec.md"
+        }
+      ],
+      "manifest_hash": "68674011145da5f0652175aba04a7a7425822b240778af6a74445b666811c821"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "1b6e76667bd1173f871f690ae8b30ba50dbe7021c80170a6179cab43a6f189f1",
+          "exists": true,
+          "path": "./.cairn/specs/github-ci/spec.md"
+        }
+      ],
+      "manifest_hash": "9da5d6286f2c34a13a2de5aced482f351e10d5be0f576f302384959a96d90566"
+    },
+    "kind": "sync",
+    "manifest_hash": "5c853a5caa7a2b59e5511f730b928e5b803bb7c9b6c00deb3694c158574d7e21"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "5a9c0a067d340af9dfa678ae0ab7608b505b41a164a2a20cc079ff19b5d59088",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "159a6b7f1d39e3a87846813ebf59c815c49f5a68bb733bbf69e56bb9656e64c6",
+  "reasons": [],
+  "receipt_hash": "75c6f1101d7e47de6a081b1a711cf6211e03450736f605a0f882c32820257eb6",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0

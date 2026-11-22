@@ -1,0 +1,133 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive check-github-intake-policy --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: check-github-intake-policy",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-check-github-intake-policy"
+    }
+  ],
+  "blocked": false,
+  "change": "check-github-intake-policy",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "befb04e53b2dc746978517347ffd8c08f964f07cf7078d2d2def472c3cf29e0c",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "ebdaf829755434f1999145f3d7a03c9eace677f218ea5a03f96cd4d3a55f7d27",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-check-github-intake-policy/design.md"
+        },
+        {
+          "content_hash": "8eb2f01ccb39553f1b62a2b4a773e4a4f2eca100c4b07ae93e823cf6055446d4",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-check-github-intake-policy/evidence/gates.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-check-github-intake-policy/metadata.json"
+        },
+        {
+          "content_hash": "683080def28c2c9c8c333a3d48d2f3c20915d69ef9e088d211a72a13b4c7d82f",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-check-github-intake-policy/proposal.md"
+        },
+        {
+          "content_hash": "459cb132f50fc7facd66f66cbfec87cbecd89e70fedb6397fc9d6e471bf0ee68",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-check-github-intake-policy/specs/implementation-work/spec.md"
+        },
+        {
+          "content_hash": "78d87818255ef106f800d8f8ca9c996f717097d70c1498dd87ffa5ae71d70432",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-check-github-intake-policy/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/check-github-intake-policy"
+        }
+      ],
+      "manifest_hash": "e90196175fcbe3e3117b3fae4b7dae017116d9d7ddf7b6252e2c3c45d568f247"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "ebdaf829755434f1999145f3d7a03c9eace677f218ea5a03f96cd4d3a55f7d27",
+          "exists": true,
+          "path": "./.cairn/changes/check-github-intake-policy/design.md"
+        },
+        {
+          "content_hash": "8eb2f01ccb39553f1b62a2b4a773e4a4f2eca100c4b07ae93e823cf6055446d4",
+          "exists": true,
+          "path": "./.cairn/changes/check-github-intake-policy/evidence/gates.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/check-github-intake-policy/metadata.json"
+        },
+        {
+          "content_hash": "683080def28c2c9c8c333a3d48d2f3c20915d69ef9e088d211a72a13b4c7d82f",
+          "exists": true,
+          "path": "./.cairn/changes/check-github-intake-policy/proposal.md"
+        },
+        {
+          "content_hash": "459cb132f50fc7facd66f66cbfec87cbecd89e70fedb6397fc9d6e471bf0ee68",
+          "exists": true,
+          "path": "./.cairn/changes/check-github-intake-policy/specs/implementation-work/spec.md"
+        },
+        {
+          "content_hash": "78d87818255ef106f800d8f8ca9c996f717097d70c1498dd87ffa5ae71d70432",
+          "exists": true,
+          "path": "./.cairn/changes/check-github-intake-policy/tasks.md"
+        }
+      ],
+      "manifest_hash": "831b611ee260cc90701207b0ab0b863a2356b8318ecdcec0d82b15e55e9dad05"
+    },
+    "kind": "archive",
+    "manifest_hash": "743ba9d2973c926db3366fc1deab15d9703c5fcd0d7fc33c908c5d7ddec7e3db"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "3f1773b0aa25b6cb6bb0f0fe2fb640a4caea44bb9c2e97d7ef494ece306329f2",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "d8c9a4dc3ab506ffd8b01830d914eb5bee7a13b71e07eab80b05d3a56b2cd320",
+  "reasons": [],
+  "receipt_hash": "9c0c6b5de36913dd9af4c623bf667ee013153bb49f9535668cb39eae018647f9",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0

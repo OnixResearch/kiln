@@ -1,0 +1,133 @@
+$ CAIRN_ARCHIVE_DATE=2026-11-22 cairn archive serve-github-dns-helper-entry --root . --execute  # cairn /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "move active change to archive: serve-github-dns-helper-entry",
+      "kind": "archive_change",
+      "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry"
+    }
+  ],
+  "blocked": false,
+  "change": "serve-github-dns-helper-entry",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "dry_run": false,
+  "input_hash": "6bfb5d9d14e3395f53fa91e0b84ba3b2d649b4a35073262a530536980f956448",
+  "layout": "cairn",
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "5d863e12f5bf0012477a2cbc32be7e15db73f7a14f53ad5c31352fe55651be98",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry/design.md"
+        },
+        {
+          "content_hash": "7c4c1227f825fe62b588316f836b4d291ff06fabf9d446a5f9ffb41e05ce9af5",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry/evidence/gates.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry/metadata.json"
+        },
+        {
+          "content_hash": "581990a9bfb263ab27ea3aad0d89b074725a8dd5d89fa39d468e57de38a43937",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry/proposal.md"
+        },
+        {
+          "content_hash": "24bef5d5348d08be7742888caff161860d3595883d335cd93fe0cbcdbdbf4586",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry/specs/github-ci/spec.md"
+        },
+        {
+          "content_hash": "0d2c73d930ad506076fcfb959955567ce0d709b9531cb7fb87ac2d62ce7e902d",
+          "exists": true,
+          "path": "./.cairn/archive/2026-11-22-serve-github-dns-helper-entry/tasks.md"
+        },
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry"
+        }
+      ],
+      "manifest_hash": "7a43b12bc2225ec8e30c85e89b2201c7e304eff8bcee63851a62aa5af28b808f"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "5d863e12f5bf0012477a2cbc32be7e15db73f7a14f53ad5c31352fe55651be98",
+          "exists": true,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry/design.md"
+        },
+        {
+          "content_hash": "7c4c1227f825fe62b588316f836b4d291ff06fabf9d446a5f9ffb41e05ce9af5",
+          "exists": true,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry/evidence/gates.txt"
+        },
+        {
+          "content_hash": "df8b71bae570eb5accd702e7370a816b8ea9f2e4521254c5d75ea82a9cfcf4db",
+          "exists": true,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry/metadata.json"
+        },
+        {
+          "content_hash": "581990a9bfb263ab27ea3aad0d89b074725a8dd5d89fa39d468e57de38a43937",
+          "exists": true,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry/proposal.md"
+        },
+        {
+          "content_hash": "24bef5d5348d08be7742888caff161860d3595883d335cd93fe0cbcdbdbf4586",
+          "exists": true,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry/specs/github-ci/spec.md"
+        },
+        {
+          "content_hash": "0d2c73d930ad506076fcfb959955567ce0d709b9531cb7fb87ac2d62ce7e902d",
+          "exists": true,
+          "path": "./.cairn/changes/serve-github-dns-helper-entry/tasks.md"
+        }
+      ],
+      "manifest_hash": "3dda29f8187510d0f0d4baae44a9ee0ab533ed2045bc421319d59133459d1ff4"
+    },
+    "kind": "archive",
+    "manifest_hash": "42948a29efba62ff60c51a3e9fd108029f679cc3aaee3c7f9a0dde18e8804385"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "5ae401a17db386867e4c232d6e7e39a5f2e67a31bb0eb2995582279eb7f92d8b",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "159a6b7f1d39e3a87846813ebf59c815c49f5a68bb733bbf69e56bb9656e64c6",
+  "reasons": [],
+  "receipt_hash": "1d55179466e4dbef631090714569811c9291e12e5b12133b7f7c57336db59566",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit 0
