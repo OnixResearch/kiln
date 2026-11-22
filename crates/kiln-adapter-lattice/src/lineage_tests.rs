@@ -4,13 +4,14 @@
 
 use super::{
     Backpressure, Blocker, BudgetLineage, CHARGED_DIMENSIONS, LATTICE_REVISION, LINEAGE_SCHEMA,
-    LineageRefusal, Route, derive, dispatched_request, verify_frozen,
+    LineageRefusal, Route, admitting_gate, derive, dispatched_request, verify_frozen,
 };
 use kiln_core::fair_admission::{
     AdmissionLedger, AdmissionPhase, AdmissionReason, Amounts, BudgetAccount, ChargeKind, ClaimRef,
     HostOwnerProfile, OwnerReply, OwnerReservation, QueueItem, ReservationState,
+    ServingAdmissionPolicy, ServingCapacityRule, ServingExplanation,
 };
-use kiln_core::types::{Alias, ContentId};
+use kiln_core::types::{Alias, ContentId, ProviderProfileId};
 use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -565,9 +566,9 @@ fn an_inconsistent_lineage_is_refused_before_transport() {
     if let Some(item) = overdrawn.items.get_mut(&work()) {
         item.budget = amounts(&[("worker_slots", 0)]);
     }
-    assert!(matches!(
-        worker(&overdrawn),
-        Err(LineageRefusal::LedgerInconsistent { .. })
+    assert!(inconsistent(
+        &derive(&overdrawn, &work(), &claim(), NOW),
+        "exceeds the work budget"
     ));
     // A queue row claimed by another attempt.
     let mut reclaimed = host_owner_reserved();
@@ -662,4 +663,174 @@ fn recovery_reuses_only_the_frozen_admitted_request_plus_a_lineage() {
             "{tampered}"
         );
     }
+}
+
+fn lineage_of(ledger: &AdmissionLedger) -> Result<Option<BudgetLineage>, LineageRefusal> {
+    derive(ledger, &work(), &claim(), NOW)
+}
+
+fn inconsistent(result: &Result<Option<BudgetLineage>, LineageRefusal>, detail: &str) -> bool {
+    matches!(result, Err(LineageRefusal::LedgerInconsistent { detail: found }) if found.contains(detail))
+}
+
+// r[verify kiln.admission.lattice_lineage.scenario.carried]
+#[test]
+fn a_shared_allocation_dimension_the_attempt_does_not_hold_is_omitted() {
+    // As in `shared_model_physical_charge_once_and_per_worker_requests_separate`:
+    // the account also tracks a deployment's `gpu`, which this worker
+    // references through `shared_allocations` and never reserves.
+    let mut profile = profile();
+    profile.quota = amounts(&[("gpu", 1), ("model_requests", 10)]);
+    let root = profile
+        .account_identity()
+        .unwrap_or_else(|_| unreachable!());
+    let held = amounts(&[("model_requests", 3)]);
+    let mut ledger = queued(&profile, &root, held.clone());
+    if let Some(item) = ledger.items.get_mut(&work()) {
+        item.shared_allocations.push(content('5'));
+    }
+    request(&mut ledger, &profile, &root, held);
+    commit(&mut ledger, &profile);
+    let lineage = lineage_of(&ledger)
+        .unwrap_or_else(|error| unreachable!("{error}"))
+        .unwrap_or_else(|| unreachable!("no lineage"));
+    assert_eq!(
+        lineage.remaining,
+        BTreeMap::from([("model_requests".to_owned(), 3)])
+    );
+    assert!(lineage.unaccounted().is_empty());
+    // The exchange route admits it too.
+    let bytes = dispatched_request(Route::Exchange, &ledger, &work(), &claim(), NOW, ADMITTED);
+    assert!(matches!(bytes, Ok(Cow::Borrowed(sent)) if std::ptr::eq(sent, ADMITTED)));
+}
+
+// r[verify kiln.admission.lattice_lineage.scenario.refused]
+#[test]
+fn every_derivation_bound_refuses_an_inconsistent_ledger() {
+    let profile = profile();
+    let root = profile
+        .account_identity()
+        .unwrap_or_else(|_| unreachable!());
+    // A required owner without a committed grant for this attempt.
+    let mut ungranted = host_owner_reserved();
+    let second = ProviderProfileId::new("second-owner").unwrap_or_else(|_| unreachable!());
+    if let Some(item) = ungranted.items.get_mut(&work()) {
+        item.required_owners.insert(second, ChargeKind::Execution);
+    }
+    assert_eq!(
+        lineage_of(&ungranted),
+        Err(LineageRefusal::MissingOwnerGrant {
+            provider: "second-owner".to_owned()
+        })
+    );
+    // A held amount beyond the root allocation.
+    let mut beyond_root = host_owner_reserved();
+    beyond_root
+        .quotas
+        .insert(root.clone(), amounts(&[("worker_slots", 0)]));
+    assert!(inconsistent(
+        &lineage_of(&beyond_root),
+        "exceeds the root allocation"
+    ));
+    // A root without its allocation.
+    let mut unallocated = host_owner_reserved();
+    unallocated.quotas.remove(&root);
+    assert!(inconsistent(
+        &lineage_of(&unallocated),
+        "root allocation is missing"
+    ));
+    // A held dimension the account does not track.
+    let mut untracked = host_owner_reserved();
+    if let Some(reservation) = untracked.reservations.get_mut(&operation()) {
+        reservation.amounts.insert(alias("gpu-seconds"), 1);
+    }
+    assert!(inconsistent(
+        &lineage_of(&untracked),
+        "not tracked by the account"
+    ));
+    // A nested account whose root disappeared.
+    let mut rootless = nested_reserved(&content('2'));
+    rootless.accounts.remove(&root);
+    assert!(inconsistent(
+        &lineage_of(&rootless),
+        "lineage ancestor missing"
+    ));
+    // Held amounts that overflow.
+    let mut overflowing = host_owner_reserved();
+    let mut huge = overflowing
+        .reservations
+        .get(&operation())
+        .cloned()
+        .unwrap_or_else(|| unreachable!());
+    huge.operation = content('6');
+    huge.amounts = amounts(&[("worker_slots", u64::MAX)]);
+    overflowing
+        .reservations
+        .insert(huge.operation.clone(), huge);
+    assert!(inconsistent(&lineage_of(&overflowing), "overflow"));
+}
+
+// r[verify kiln.admission.lattice_lineage.scenario.carried]
+#[test]
+fn the_serving_gate_maps_to_backpressure_and_only_an_admitting_gate_passes() {
+    // A worker-request owner whose grant is retained reads `eligible`.
+    let mut serving = host_owner_reserved();
+    let owner = ProviderProfileId::new("serving-owner").unwrap_or_else(|_| unreachable!());
+    if let Some(policy) = serving.policy.as_mut() {
+        policy.serving = Some(ServingAdmissionPolicy {
+            max_snapshot_age_ms: 1_000,
+            capacity_rule: ServingCapacityRule::OwnerAdmissionDecides,
+        });
+    }
+    if let Some(item) = serving.items.get_mut(&work()) {
+        item.required_owners
+            .insert(owner.clone(), ChargeKind::WorkerRequest);
+        item.budget = amounts(&[("worker_slots", 2)]);
+    }
+    let mut grant = serving
+        .reservations
+        .get(&operation())
+        .cloned()
+        .unwrap_or_else(|| unreachable!());
+    grant.operation = content('7');
+    grant.provider = owner.clone();
+    grant.kind = ChargeKind::WorkerRequest;
+    serving.reservations.insert(grant.operation.clone(), grant);
+    let lineage = lineage_of(&serving)
+        .unwrap_or_else(|error| unreachable!("{error}"))
+        .unwrap_or_else(|| unreachable!("no lineage"));
+    assert_eq!(lineage.backpressure, Backpressure::Eligible);
+    assert_eq!(
+        lineage.remaining,
+        BTreeMap::from([("worker_slots".to_owned(), 2)])
+    );
+    // Every gate that does not admit is refused; non-serving reasons are
+    // never mapped.
+    assert_eq!(admitting_gate(None), Ok(Backpressure::None));
+    for (gate, mapped) in [
+        (AdmissionReason::Waiting, Backpressure::Waiting),
+        (AdmissionReason::Overloaded, Backpressure::Overloaded),
+        (AdmissionReason::Stale, Backpressure::Stale),
+        (AdmissionReason::Incomplete, Backpressure::Incomplete),
+        (AdmissionReason::Incompatible, Backpressure::Incompatible),
+    ] {
+        let explanation = ServingExplanation {
+            provider: owner.clone(),
+            gate,
+            observation: None,
+        };
+        assert_eq!(
+            admitting_gate(Some(&explanation)),
+            Err(LineageRefusal::Backpressure { gate: mapped })
+        );
+    }
+    let unmapped = ServingExplanation {
+        provider: owner,
+        gate: AdmissionReason::Unknown,
+        observation: None,
+    };
+    assert!(matches!(
+        admitting_gate(Some(&unmapped)),
+        Err(LineageRefusal::LedgerInconsistent { .. })
+    ));
 }

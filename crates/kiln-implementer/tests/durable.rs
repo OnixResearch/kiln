@@ -1485,6 +1485,7 @@ fn an_older_attempt_writer_cannot_erase_a_recorded_launch() -> Result<(), Box<dy
         lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
         executable_blake3: content('b'),
         state_directory: root.into(),
+        request: None,
     };
     assert_eq!(
         store.begin_dispatch_transport(
@@ -1594,6 +1595,7 @@ fn before_effect_settlement_survives_restart_without_reconciliation()
         lattice_program: "/nix/store/a-lattice/bin/lattice".into(),
         executable_blake3: content('b'),
         state_directory: "/var/lib/lattice/a".into(),
+        request: None,
     };
     assert!(
         !store

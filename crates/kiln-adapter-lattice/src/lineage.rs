@@ -14,7 +14,8 @@
 //! field mapping.
 
 use kiln_core::fair_admission::{
-    AdmissionLedger, AdmissionReason, ClaimRef, MAX_DIMENSIONS, MAX_LINEAGE_DEPTH, ReservationState,
+    AdmissionLedger, AdmissionReason, ClaimRef, MAX_DIMENSIONS, MAX_LINEAGE_DEPTH,
+    ReservationState, ServingExplanation,
 };
 use kiln_core::types::{ContentId, DEFAULT_MAX_ALIAS_BYTES};
 use serde::{Deserialize, Serialize};
@@ -143,6 +144,9 @@ pub enum LineageRefusal {
     /// A committed reservation of this attempt draws from another account
     /// than the queued work's.
     CrossedReservation { operation: String },
+    /// A required owner of the queued work has no committed grant for this
+    /// attempt, so the remainder would be guessed from part of the grants.
+    MissingOwnerGrant { provider: String },
     /// The ledger cannot be walked from the attempt's reservations to one
     /// root, or its amounts contradict each other.
     LedgerInconsistent { detail: String },
@@ -150,11 +154,13 @@ pub enum LineageRefusal {
     Blocked { blocker: Blocker },
     /// The serving gate is neither `none` nor `eligible`.
     Backpressure { gate: Backpressure },
-    /// The attempt holds nothing in a dimension its account tracks.
+    /// The attempt holds nothing in a dimension Lattice charges that its
+    /// account tracks.
     Exhausted { dimension: String },
     /// The snapshot cannot be expressed in Lattice's schema.
     Unrepresentable { detail: String },
-    /// The frozen request is not the admitted request plus a lineage.
+    /// On recovery, the frozen request is not the recorded sent bytes, or
+    /// not the admitted request plus a lineage.
     FrozenRequestCrossed,
 }
 
@@ -166,6 +172,7 @@ impl LineageRefusal {
             Self::RequestNamesLineage => "request_names_lineage",
             Self::ReservationUnsettled { .. } => "reservation_unsettled",
             Self::CrossedReservation { .. } => "crossed_reservation",
+            Self::MissingOwnerGrant { .. } => "missing_owner_grant",
             Self::LedgerInconsistent { .. } => "ledger_inconsistent",
             Self::Blocked { .. } => "blocked",
             Self::Backpressure { .. } => "backpressure",
@@ -179,13 +186,24 @@ impl LineageRefusal {
 impl std::fmt::Display for LineageRefusal {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let detail = serde_json::to_string(self).unwrap_or_default();
-        write!(
-            formatter,
-            "budget lineage refused before transport ({}): {detail}; nothing was started",
-            self.code()
-        )
+        let code = self.code();
+        if matches!(self, Self::FrozenRequestCrossed) {
+            // Only recovery checks a frozen request, after a transport start.
+            write!(
+                formatter,
+                "budget lineage refused on recovery ({code}): {detail}; {RECOVERY_NOT_INVOKED}"
+            )
+        } else {
+            write!(
+                formatter,
+                "budget lineage refused before transport ({code}): {detail}; nothing was started"
+            )
+        }
     }
 }
+
+/// How a recovery refusal leaves an attempt whose transport start is recorded.
+pub const RECOVERY_NOT_INVOKED: &str = "Lattice was not invoked for recovery; the first launch may have run; retain the unknown outcome and reconcile";
 
 impl std::error::Error for LineageRefusal {}
 
@@ -297,11 +315,24 @@ pub fn derive(
                 .ok_or_else(|| inconsistent("reserved amounts overflow"))?;
         }
     }
+    // As the owner-grant gate does: every required owner has granted, or the
+    // remainder would be read from part of the attempt's grants.
+    if let Some((provider, _)) = item.required_owners.iter().find(|(provider, kind)| {
+        !admitted
+            .iter()
+            .any(|reservation| &reservation.provider == *provider && &reservation.kind == *kind)
+    }) {
+        return Err(LineageRefusal::MissingOwnerGrant {
+            provider: provider.as_str().to_owned(),
+        });
+    }
     let explanation = ledger.explanation(work, now_ms).map_err(|diagnostic| {
         LineageRefusal::LedgerInconsistent {
             detail: format!("{}: {}", diagnostic.code, diagnostic.message),
         }
     })?;
+    // The explanation walks from the queue row's account to its parentless
+    // root, so root, account, parent and depth agree by construction.
     let lineage = explanation
         .lineage
         .ok_or_else(|| inconsistent("queued work has no lineage explanation"))?;
@@ -310,39 +341,25 @@ pub fn derive(
             blocker: blocker(reason)?,
         });
     }
-    let gate = match explanation.serving {
-        None => Backpressure::None,
-        Some(serving) => backpressure(serving.gate)?,
-    };
-    if !matches!(gate, Backpressure::None | Backpressure::Eligible) {
-        return Err(LineageRefusal::Backpressure { gate });
-    }
-    if lineage.account != item.account {
-        return Err(inconsistent("lineage explanation names another account"));
-    }
+    let gate = admitting_gate(explanation.serving.as_ref())?;
     let account = ledger
         .accounts
         .get(&item.account)
-        .ok_or_else(|| inconsistent("work account is missing"))?;
-    let root = ledger
-        .accounts
-        .get(&lineage.root)
-        .filter(|root| root.parent.is_none())
-        .ok_or_else(|| inconsistent("lineage root is missing or not a root"))?;
+        .filter(|account| account.identity == lineage.account)
+        .ok_or_else(|| inconsistent("work account is missing or crossed"))?;
     let quota = ledger
         .quotas
-        .get(&root.identity)
+        .get(&lineage.root)
         .ok_or_else(|| inconsistent("root allocation is missing"))?;
-    if account.parent.is_none() != (lineage.depth == 0)
-        || (lineage.depth == 0) != (account.identity == root.identity)
-    {
-        return Err(inconsistent("account parent, depth and root disagree"));
-    }
-    // Every dimension the account tracks must have a positive remainder for
-    // the attempt: an omitted one would leave Lattice unbounded in it.
+    // Lattice draws only the dimensions it charges; one the account tracks
+    // that the attempt does not hold would leave Lattice unbounded in it.
+    // A dimension Lattice cannot charge bounds nothing in Lattice, so one the
+    // attempt does not hold (a shared allocation's) is simply omitted.
     if let Some(dimension) = account.available.keys().find(|dimension| {
-        held.get(dimension.as_str())
-            .is_none_or(|amount| *amount == 0)
+        CHARGED_DIMENSIONS.contains(&dimension.as_str())
+            && held
+                .get(dimension.as_str())
+                .is_none_or(|amount| *amount == 0)
     }) {
         return Err(LineageRefusal::Exhausted {
             dimension: dimension.as_str().to_owned(),
@@ -359,12 +376,16 @@ pub fn derive(
             .available
             .keys()
             .any(|name| name.as_str() == dimension)
-            || !within(&item.budget)
-            || !within(quota)
         {
             return Err(inconsistent(
-                "reserved amounts exceed the work budget or root allocation, or use an untracked dimension",
+                "a held dimension is not tracked by the account",
             ));
+        }
+        if !within(&item.budget) {
+            return Err(inconsistent("a held amount exceeds the work budget"));
+        }
+        if !within(quota) {
+            return Err(inconsistent("a held amount exceeds the root allocation"));
         }
     }
     let snapshot = BudgetLineage {
@@ -379,6 +400,19 @@ pub fn derive(
     };
     snapshot.validate()?;
     Ok(Some(snapshot))
+}
+
+/// The serving gate as Lattice's `backpressure`, refused unless it admits.
+fn admitting_gate(serving: Option<&ServingExplanation>) -> Result<Backpressure, LineageRefusal> {
+    let gate = match serving {
+        None => Backpressure::None,
+        Some(serving) => backpressure(serving.gate)?,
+    };
+    if matches!(gate, Backpressure::None | Backpressure::Eligible) {
+        Ok(gate)
+    } else {
+        Err(LineageRefusal::Backpressure { gate })
+    }
 }
 
 /// Which `kiln-lattice-dispatch` route builds the request.

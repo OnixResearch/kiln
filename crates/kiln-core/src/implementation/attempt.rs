@@ -208,7 +208,8 @@ pub struct AttemptLedger {
     transport_bound: alloc::collections::BTreeSet<String>,
 }
 
-/// The exact provider program and state root of an attempt's first launch.
+/// The exact provider program and state root of an attempt's first launch,
+/// and the request bytes it sent.
 ///
 /// Recorded in the same transaction as the transport intent, so the launch
 /// that won the intent is the only one recovery may use.
@@ -218,6 +219,20 @@ pub struct TransportLaunch {
     pub lattice_program: String,
     pub executable_blake3: ContentId,
     pub state_directory: String,
+    /// The request file the first launch handed the provider, frozen before
+    /// the transport intent. `None` for a launch recorded before Kiln froze
+    /// the sent bytes under their own digest; such a launch sent the admitted
+    /// request unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request: Option<FrozenRequest>,
+}
+
+/// One frozen request file: its absolute path and the BLAKE3 of its bytes.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FrozenRequest {
+    pub path: String,
+    pub blake3: ContentId,
 }
 
 /// What persisting the transport intent established.

@@ -150,18 +150,58 @@ def process_is_mutating(pid, identity):
         return False
 
 
-def retained_worker_barrier(state_directory, request_digest):
-    """Discover an actual owner-written intent; do not duplicate its path hash."""
+def sent_requests(output_directory, admitted):
+    """Requests Kiln froze for `admitted` before a worker launch.
+
+    Kiln freezes the bytes it sends as `request-<BLAKE3 of those bytes>.json`
+    in the transport output directory: the admitted request, plus its budget
+    lineage when the attempt holds an admitted reservation. Lattice's intent
+    names that digest, never the admitted request's.
+    """
+    found = []
+    for index, path in enumerate(sorted(Path(output_directory).glob("request-*.json"))):
+        if index >= MAX_STEPS:
+            raise ValueError("frozen request scan exceeds bounded qualification cohort")
+        if not path.is_file() or path.stat().st_size > MAX_BYTES:
+            continue
+        try:
+            value = json.loads(path.read_bytes())
+        except ValueError:
+            continue
+        if isinstance(value, dict):
+            value.pop("lineage", None)
+        if value == admitted:
+            found.append(path)
+    return found
+
+
+def retained_worker_barrier(state_directory, request_digests):
+    """Discover an actual owner-written intent for one of the sent requests;
+    do not duplicate its path hash. Returns the native files and the digest."""
     for index, intent in enumerate(Path(state_directory).glob("*/intent.json")):
         if index >= MAX_STEPS:
             raise ValueError("native intent scan exceeds bounded qualification cohort")
-        if intent.stat().st_size != 64 or intent.read_bytes() != request_digest.encode():
+        if intent.stat().st_size != 64:
+            continue
+        digest = intent.read_bytes().decode(errors="replace")
+        if digest not in request_digests:
             continue
         files = {name: intent.parent / filename for name, filename in
                  (("raw_events", "raw-events.jsonl"), ("omp_observation", "omp-observation.json"))}
         if all(path.is_file() and path.stat().st_size <= MAX_BYTES for path in files.values()):
-            return files
+            return files, digest
     return None
+
+
+def retained_intent_digests(state_directory):
+    """Request digests named by Lattice's retained intents in one state root."""
+    digests = set()
+    for index, intent in enumerate(Path(state_directory).glob("*/intent.json")):
+        if index >= MAX_STEPS:
+            raise ValueError("native intent scan exceeds bounded qualification cohort")
+        if intent.stat().st_size == 64:
+            digests.add(intent.read_bytes().decode(errors="replace"))
+    return digests
 
 
 def validate_scenario(scenario):
@@ -392,7 +432,11 @@ class Runner:
                             os.kill(process.pid, signal.SIGSTOP)
                             stopped = True
                         if stopped:
-                            files = retained_worker_barrier(crash["state_directory"], crash["request_blake3"])
+                            # Lattice's intent names the BLAKE3 of the bytes Kiln sent,
+                            # which carry the budget lineage of an admitted attempt.
+                            sent = {self.digest(path) for path in sent_requests(crash["output_directory"], crash["admitted"])}
+                            barrier = retained_worker_barrier(crash["state_directory"], sent)
+                            files, sent_digest = barrier if barrier is not None else (None, None)
                             active = [pid for pid, identity in observed_ids.items() if int(pid) != process.pid and identity is not None and process_is_mutating(int(pid), identity)]
                             if files is not None and not active:
                                 journal = self.ledger(case, crash["database"], label + "-stopped-before-ack")
@@ -400,7 +444,8 @@ class Runner:
                                 if attempt.get("workflow") is not None or attempt["fence"] != crash["fence"]:
                                     raise RuntimeError("native acknowledgement already occurred or fence changed; requested crash window was not demonstrated")
                                 put(directory / "crash-effect-barrier.json", {
-                                    "parent_stopped_before_ack": True, "request_blake3": crash["request_blake3"],
+                                    "parent_stopped_before_ack": True, "request_blake3": sent_digest,
+                                    "admitted_request_blake3": crash["admitted_request_blake3"],
                                     "native_files": {key: {"path": str(path), "blake3": self.digest(path)} for key, path in files.items()},
                                     "observed_incarnations": observed_ids,
                                     "effect_status": "observed_native_worker_material_acknowledgement_unknown_recovery_required"})
@@ -563,7 +608,7 @@ class Runner:
                 request = load(request_path)
                 if str(Path(request["program"]).resolve(strict=True)) != self.programs["omp"] or request["omp"]["executable_blake3"] != self.inputs["programs"]["omp"]["blake3"] or request["omp"]["revision"] != OMP_REVISION:
                     raise Missing(f"{name}: worker request differs from actual adopted OMP executable/revision")
-                put(self.output / name / (label + "-request.json"), request)
+                put(self.output / name / (label + "-admitted-request.json"), request)
             if stage == "lattice-cancel" and (not step.get("cancel_after_seconds") or not step.get("mutation_probe")):
                 raise Missing("cancellation requires an actual signal interval and observed mutation/quiescence probe")
             crash = None
@@ -573,7 +618,8 @@ class Runner:
                 arguments = step["arguments"]
                 transport = load(arguments[arguments.index("--worker-transport-profile") + 1])
                 crash = {"after_seconds": step["crash_after_seconds"], "state_directory": transport["state_directory"],
-                         "request_blake3": self.digest(request_path), "database": arguments[arguments.index("--database") + 1],
+                         "output_directory": transport["output_directory"], "admitted": request,
+                         "admitted_request_blake3": self.digest(request_path), "database": arguments[arguments.index("--database") + 1],
                          "attempt": request["envelope"]["attempt_id"], "fence": request["envelope"]["fence"]}
             if stage == "verify":
                 canonical = step["canonical_profile"]
@@ -590,6 +636,19 @@ class Runner:
                                   cancel_after=step.get("cancel_after_seconds") if stage == "lattice-cancel" else None,
                                   mutation_probe=step.get("mutation_probe") if stage == "lattice-cancel" else None,
                                   crash=crash)
+            if stage in ("lattice-run", "lattice-recover", "lattice-cancel", "lattice-crash"):
+                # The bytes Lattice ran: the frozen sent request a retained intent names.
+                arguments = step["arguments"]
+                transport = load(arguments[arguments.index("--worker-transport-profile") + 1])
+                intents = retained_intent_digests(transport["state_directory"])
+                sent = [(path, self.digest(path)) for path in sent_requests(transport["output_directory"], request)]
+                sent = [(path, digest) for path, digest in sent if digest in intents]
+                if len(sent) > 1:
+                    raise RuntimeError("more than one frozen request has a retained Lattice intent")
+                put(self.output / name / (label + "-request.json"),
+                    {"path": str(sent[0][0]), "blake3": sent[0][1], "request": load(sent[0][0])} if sent
+                    else {"path": None, "blake3": None, "request": None,
+                          "reason": "no retained Lattice intent names a request frozen for this admitted request"})
             if stage in ("lattice-run", "lattice-recover", "lattice-cancel") and step["exit_code"] == 0 and not isinstance(result, dict):
                 raise RuntimeError("native transport did not produce a retained observation object")
             if stage == "lattice-cancel" and (result["result"]["disposition"] != "cancelled" or result["accepted"] or result["integrated"]):

@@ -6,7 +6,7 @@ use bounded_exec::{
 };
 use kiln_core::fair_admission::ClaimRef;
 use kiln_core::implementation::{
-    Enrollment, ImplementationDispatchPlan, TransportLaunch, TransportStart,
+    Enrollment, FrozenRequest, ImplementationDispatchPlan, TransportLaunch, TransportStart,
 };
 use kiln_core::types::{ContentId, ExternalRef};
 use kiln_implementer::Implementer;
@@ -155,30 +155,169 @@ fn lattice_command(
     }
 }
 
-/// The request Lattice receives for `request_id` (the BLAKE3 of the admitted
-/// request bytes): the admitted request, plus Kiln's budget lineage when the
-/// attempt holds an admitted reservation. Lattice binds its state to these
-/// exact bytes, so `recover`, `cancel`, `inspect` and `export-candidate`
-/// must name this file, not the admitted request.
+/// The frozen request file for sent bytes with BLAKE3 `digest`. Without a
+/// lineage the sent bytes are the admitted request, so the name is the one
+/// earlier launches used.
 #[must_use]
-pub fn dispatched_request_path(
+pub fn frozen_request_path(output_directory: &Path, digest: &ContentId) -> PathBuf {
+    output_directory.join(format!("request-{}.json", digest.as_str()))
+}
+
+/// The request file Lattice ran for an attempt: the one its recorded launch
+/// names, or, for a launch recorded before Kiln recorded its sent request,
+/// the admitted request frozen in the profile's output directory. Lattice
+/// binds its state to these exact bytes, so `recover`, `cancel`, `inspect`
+/// and `export-candidate` must name this file, not the admitted request.
+///
+/// # Errors
+/// Only if BLAKE3 hex were not a content identity.
+pub fn sent_request_path(
+    launch: Option<&TransportLaunch>,
     profile: &WorkerTransportProfile,
-    request_id: &ContentId,
-) -> PathBuf {
-    profile
-        .output_directory
-        .join(format!("request-{}.json", request_id.as_str()))
+    admitted: &[u8],
+) -> Result<PathBuf, String> {
+    match launch.and_then(|launch| launch.request.as_ref()) {
+        Some(request) => Ok(PathBuf::from(&request.path)),
+        None => Ok(frozen_request_path(
+            &profile.output_directory,
+            &blake3_identity(admitted)?,
+        )),
+    }
+}
+
+fn blake3_identity(bytes: &[u8]) -> Result<ContentId, String> {
+    ContentId::from_blake3_hex(blake3::hash(bytes).to_hex().to_string())
+        .map_err(|error| format!("{error:?}"))
+}
+
+/// Where a launch's request comes from.
+#[derive(Debug)]
+pub enum RequestSource<'a> {
+    /// A first launch: the budget lineage is derived from this snapshot.
+    Fresh {
+        ledger: &'a kiln_core::fair_admission::AdmissionLedger,
+        work: &'a ContentId,
+        claim: &'a ClaimRef,
+        now_ms: u64,
+    },
+    /// Recovery: the launch that won the transport intent.
+    Recover { launch: &'a TransportLaunch },
+}
+
+/// The exact bytes one launch sends and the file they are frozen in.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LaunchRequest {
+    pub path: PathBuf,
+    pub bytes: Vec<u8>,
+    pub blake3: ContentId,
+}
+
+impl LaunchRequest {
+    /// `bytes` frozen under their own BLAKE3 in `output_directory`.
+    ///
+    /// # Errors
+    /// Only if BLAKE3 hex were not a content identity.
+    pub fn new(output_directory: &Path, bytes: Vec<u8>) -> Result<Self, String> {
+        let blake3 = blake3_identity(&bytes)?;
+        Ok(Self {
+            path: frozen_request_path(output_directory, &blake3),
+            bytes,
+            blake3,
+        })
+    }
+
+    /// The record the transport intent keeps of this request.
+    fn frozen(&self) -> Result<FrozenRequest, String> {
+        Ok(FrozenRequest {
+            path: self
+                .path
+                .to_str()
+                .ok_or("the frozen request path must be UTF-8")?
+                .to_owned(),
+            blake3: self.blake3.clone(),
+        })
+    }
+}
+
+/// Choose the request a launch sends.
+///
+/// A first launch appends the lineage derived from the ledger to the
+/// admitted bytes when the attempt holds an admitted reservation; an
+/// inconsistent lineage is refused before any transport start. Recovery
+/// never derives again: the grants are unknown by then. It reads exactly the
+/// file its recorded launch names, which must still hash to the recorded
+/// BLAKE3 and be the admitted bytes, or them plus one well-formed lineage. A
+/// launch recorded before Kiln recorded its request sent the admitted bytes.
+///
+/// # Errors
+/// A lineage refusal, an oversized request, or on recovery a missing,
+/// changed or crossed frozen file.
+pub fn launch_request(
+    source: RequestSource<'_>,
+    profile: &WorkerTransportProfile,
+    admitted: &[u8],
+) -> Result<LaunchRequest, String> {
+    let request = match source {
+        RequestSource::Fresh {
+            ledger,
+            work,
+            claim,
+            now_ms,
+        } => {
+            let bytes =
+                lineage::dispatched_request(Route::Worker, ledger, work, claim, now_ms, admitted)
+                    .map_err(|refusal| refusal.to_string())?;
+            LaunchRequest::new(&profile.output_directory, bytes.into_owned())?
+        }
+        RequestSource::Recover { launch } => {
+            let Some(recorded) = &launch.request else {
+                return LaunchRequest::new(&profile.output_directory, admitted.to_vec());
+            };
+            let path = PathBuf::from(&recorded.path);
+            let bytes = match read_bounded(&path) {
+                Ok(bytes) => bytes,
+                Err(error) => {
+                    return Err(format!(
+                        "the recorded frozen request {} is unavailable ({error}); {}",
+                        path.display(),
+                        lineage::RECOVERY_NOT_INVOKED
+                    ));
+                }
+            };
+            if blake3_identity(&bytes)? != recorded.blake3 {
+                return Err(lineage::LineageRefusal::FrozenRequestCrossed.to_string());
+            }
+            lineage::verify_frozen(admitted, &bytes).map_err(|refusal| refusal.to_string())?;
+            LaunchRequest {
+                path,
+                bytes,
+                blake3: recorded.blake3.clone(),
+            }
+        }
+    };
+    if request.bytes.len() as u64 > MAX_REQUEST_BYTES {
+        return Err("dispatched request exceeds its byte bound; nothing was started".into());
+    }
+    Ok(request)
+}
+
+/// One ordinary file of at most [`MAX_REQUEST_BYTES`].
+fn read_bounded(path: &Path) -> Result<Vec<u8>, String> {
+    let metadata = std::fs::symlink_metadata(path).map_err(|error| error.to_string())?;
+    if !metadata.is_file() || metadata.len() > MAX_REQUEST_BYTES {
+        return Err("not a bounded ordinary file".into());
+    }
+    std::fs::read(path).map_err(|error| error.to_string())
 }
 
 /// Prepare every launch file before any owner grant is consumed: the private
-/// output directory, the frozen dispatched request and, for the first launch,
-/// its state root. Returns the frozen request path. Each step is idempotent,
-/// and a conflicting frozen request is refused rather than replaced. Nothing
-/// here binds the launch: only the transport intent records it.
+/// output directory, the frozen request and, for the first launch, its state
+/// root. Returns the frozen request path. Each step is idempotent, and a
+/// conflicting frozen request is refused rather than replaced. Nothing here
+/// binds the launch: only the transport intent records it.
 fn prepare_launch_files(
     profile: &WorkerTransportProfile,
-    request_id: &ContentId,
-    request_bytes: &[u8],
+    request: &LaunchRequest,
     first_launch: bool,
 ) -> Result<PathBuf, String> {
     let output_dir = &profile.output_directory;
@@ -208,7 +347,8 @@ fn prepare_launch_files(
             return Err("worker transport observations require a private output directory".into());
         }
     }
-    let frozen_request = dispatched_request_path(profile, request_id);
+    let frozen_request = request.path.clone();
+    let request_bytes = request.bytes.as_slice();
     {
         use std::io::Write;
         let mut options = std::fs::OpenOptions::new();
@@ -255,6 +395,7 @@ fn first_launch(profile: &WorkerTransportProfile) -> Result<TransportLaunch, Str
         lattice_program: text(&profile.lattice_program)?,
         executable_blake3: profile.executable_blake3.clone(),
         state_directory: text(&profile.state_directory)?,
+        request: None,
     })
 }
 
@@ -501,51 +642,42 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             None => Vec::new(),
         }
     };
-    // The request Lattice receives. A fresh run derives the budget lineage
-    // from this ledger snapshot and appends it when the attempt holds an
-    // admitted reservation; an inconsistent lineage is refused here, before
-    // any transport start. Recovery never re-derives: the ledger has since
-    // moved the grants to unknown, so it reuses the request the first launch
-    // froze, which must be the admitted bytes or them plus one lineage.
-    let dispatched: std::borrow::Cow<'_, [u8]> = if recovery {
-        let frozen = match std::fs::read(dispatched_request_path(&profile, &request_id)) {
-            Ok(bytes) => bytes,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return Err(
-                    "recovery requires the request frozen by the first launch; nothing was started"
-                        .into(),
-                );
-            }
-            Err(error) => return Err(error.to_string()),
-        };
-        lineage::verify_frozen(&request_bytes, &frozen).map_err(|refusal| refusal.to_string())?;
-        std::borrow::Cow::Owned(frozen)
+    // The transport intent records the launch, with the exact request it
+    // sends, in the same ledger mutation; an existing intent returns the
+    // launch that won it, never this profile's.
+    let (fresh_request, start) = if recovery {
+        let start = implementer.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            clock()?,
+            &reservation.plan,
+            None,
+        )?;
+        (None, start)
     } else {
+        // A first launch derives the budget lineage from this ledger snapshot
+        // and freezes the bytes it sends under their own BLAKE3, so a retry
+        // whose lineage changed before any transport start writes its own
+        // file. Every fallible filesystem step (output directory, frozen
+        // request and state root) precedes the owner-grant gate, which moves
+        // committed owner reservations to unknown: a failure here leaves the
+        // grants committed, so a retry after fixing the cause proceeds.
         let claim = ClaimRef {
             attempt: attempt.identity.clone(),
             fence: attempt.fence,
         };
-        lineage::dispatched_request(
-            Route::Worker,
-            &admission,
-            &plan.work_identity,
-            &claim,
-            clock()?,
-            &request_bytes,
-        )
-        .map_err(|refusal| refusal.to_string())?
-    };
-    if dispatched.len() as u64 > MAX_REQUEST_BYTES {
-        return Err("dispatched request exceeds its byte bound; nothing was started".into());
-    }
-    // Every fallible filesystem step of the first launch (output directory,
-    // frozen request and state root) precedes the owner-grant gate, which moves
-    // committed owner reservations to unknown. A failure here leaves the grants
-    // committed, so a retry after fixing the cause proceeds.
-    let fresh_launch = first_launch(&profile)?;
-    let frozen_request = prepare_launch_files(&profile, &request_id, &dispatched, !recovery)?;
-    let output_dir = &profile.output_directory;
-    if !recovery {
+        let source = RequestSource::Fresh {
+            ledger: &admission,
+            work: &plan.work_identity,
+            claim: &claim,
+            now_ms: clock()?,
+        };
+        let request = launch_request(source, &profile, &request_bytes)?;
+        let launch = TransportLaunch {
+            request: Some(request.frozen()?),
+            ..first_launch(&profile)?
+        };
+        let path = prepare_launch_files(&profile, &request, true)?;
         // Open item (predates this change): a crash between this gate and
         // `begin_dispatch_transport` leaves unknown grants with no transport
         // intent; neither a fresh run nor recovery can then proceed.
@@ -555,23 +687,30 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
             &fresh,
             clock()?,
         )?;
-    }
-    // The transport intent records this launch in the same ledger mutation; an
-    // existing intent returns the launch that won it, never this profile's.
-    let start = implementer.begin_dispatch_transport(
-        &attempt.identity,
-        attempt.fence,
-        clock()?,
-        &reservation.plan,
-        Some(&fresh_launch),
-    )?;
+        let start = implementer.begin_dispatch_transport(
+            &attempt.identity,
+            attempt.fence,
+            clock()?,
+            &reservation.plan,
+            Some(&launch),
+        )?;
+        (Some(path), start)
+    };
+    let output_dir = &profile.output_directory;
     let recovery = start.is_recovery();
-    let (lattice_program, state_directory) = match start {
-        TransportStart::Fresh => (
+    let (lattice_program, state_directory, frozen_request) = match (start, fresh_request) {
+        (TransportStart::Fresh, Some(path)) => (
             profile.lattice_program.clone(),
             profile.state_directory.clone(),
+            path,
         ),
-        TransportStart::Recover(recorded) => {
+        (TransportStart::Fresh, None) => {
+            return Err(format!(
+                "the ledger started a transport the caller expected to recover; {}",
+                lineage::RECOVERY_NOT_INVOKED
+            ));
+        }
+        (TransportStart::Recover(recorded), _) => {
             // Recovery never starts a worker, so it never receives the credential.
             environment.clear();
             let state_is_directory = recorded
@@ -582,9 +721,18 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                     .is_ok_and(|identity| identity == launch.executable_blake3)
             });
             let recorded = binding::recovery_launch(recorded, state_is_directory, program_matches)?;
+            // The exact bytes the first launch sent, from the recorded file,
+            // never from the current profile's output directory.
+            let request = launch_request(
+                RequestSource::Recover { launch: &recorded },
+                &profile,
+                &request_bytes,
+            )?;
+            let path = prepare_launch_files(&profile, &request, false)?;
             (
                 PathBuf::from(recorded.lattice_program),
                 PathBuf::from(recorded.state_directory),
+                path,
             )
         }
     };

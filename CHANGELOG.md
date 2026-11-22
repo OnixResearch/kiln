@@ -79,19 +79,26 @@ entry describes the source tree prepared for the first tagged release.
 - `kiln-lattice-dispatch` sends Lattice's `lattice.kiln-budget-lineage.v1`
   (Lattice `5a8e1d51`). The lineage is derived from the admission ledger:
   the campaign root, the work's account, and the attempt's committed owner
-  reservations as its remainder in every tracked dimension. Dimensions
-  Lattice cannot charge are left for it to list as unaccounted. The
-  `--worker-request` route appends the lineage to the frozen request only
-  for an admitted attempt, and keeps every admitted byte. Without admission,
-  requests keep their bytes and identities. Recovery reuses only the frozen
-  request, and campaign export names it. The `--dispatch-plan` exchange
+  reservations as its remainder, once every required owner has granted.
+  Every dimension Lattice charges that the account tracks must be held;
+  other dimensions are sent when held, for Lattice to list as unaccounted,
+  and omitted otherwise, as for a shared allocation's `gpu`. The
+  `--worker-request` route appends the lineage only for an admitted
+  attempt, and keeps every admitted byte. Without admission, requests keep
+  their bytes and identities. The sent bytes are frozen under their own
+  BLAKE3, so a retry refused before any transport start is never blocked by
+  an earlier file, and the transport launch record now keeps that file's
+  path and digest. Recovery and campaign export read exactly the recorded
+  file, whatever the profile's output directory. An older binary cannot
+  read such a launch record and fails closed. The `--dispatch-plan` exchange
   route checks the same lineage, but its `lattice.workflow-request` cannot
-  carry it. An unsettled or crossed reservation, an inconsistent ledger, a
-  blocker, backpressure, an exhausted or unrepresentable lineage, or a
-  request that already names one is refused with a typed `LineageRefusal`
-  before the owner-grant gate and transport start. (Lattice #6; golden
-  bytes, Lattice's published schema as data and durable-store fixtures; no
-  live Lattice worker)
+  carry it. An unsettled or crossed reservation, a missing required grant,
+  an inconsistent ledger, a blocker, backpressure, an exhausted or
+  unrepresentable lineage, or a request that already names one is refused
+  with a typed `LineageRefusal` before the owner-grant gate and transport
+  start. The qualification crash barrier finds Lattice's intent by the sent
+  digest. (Lattice #6; golden bytes, Lattice's published schema as data and
+  durable-store fixtures; no live Lattice worker)
 - Default-off, exact-revision session-trace pointer observations freeze locally
   admitted Git notes in the existing review journal. BLAKE3 pointer/note
   identities remain distinct from external IDs and URL hosts; missing,

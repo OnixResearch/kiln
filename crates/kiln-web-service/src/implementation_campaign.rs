@@ -667,22 +667,21 @@ impl NativeCampaignConsumer {
         let host_receipt = output.join("host-receipt.json");
         let transport: kiln_adapter_lattice::worker::WorkerTransportProfile =
             read_json(&worker.transport_profile)?;
-        // Lattice binds the attempt to the bytes it ran: the dispatched
-        // request, which carries Kiln's budget lineage for an admitted attempt.
-        let request_id = id(blake3::hash(&std::fs::read(&worker.request).map_err(text)?)
-            .to_hex()
-            .as_str())?;
-        let dispatched =
-            kiln_adapter_lattice::worker::dispatched_request_path(&transport, &request_id);
+        let launch = kiln_implementer::Implementer::open(
+            &self.profile.implementation_database,
+            read_json(&worker.enrollment)?,
+        )?
+        .dispatch_launch(&attempt.identity)?;
+        let (request, state) = exported_request(launch.as_ref(), &transport, &worker.request)?;
         let raw = run_role(
             &self.profile,
             &self.profile.roles.exporter,
             &self.profile.bound_input_directory,
             &[
                 OsString::from("--request"),
-                dispatched.as_os_str().to_owned(),
+                request.as_os_str().to_owned(),
                 OsString::from("--state"),
-                transport.state_directory.as_os_str().to_owned(),
+                state.as_os_str().to_owned(),
                 OsString::from("--output-parent"),
                 self.profile
                     .candidate_export
@@ -1391,9 +1390,75 @@ fn attach_swarm_mirror(
     Ok(())
 }
 
+/// The request file and state root `export-candidate` names: exactly the
+/// ones the attempt's recorded launch ran, since Lattice binds the attempt to
+/// those bytes (the admitted request plus Kiln's budget lineage for an
+/// admitted attempt). A launch recorded before Kiln recorded its request sent
+/// the admitted bytes, frozen in the profile's output directory.
+fn exported_request(
+    launch: Option<&kiln_core::implementation::TransportLaunch>,
+    transport: &kiln_adapter_lattice::worker::WorkerTransportProfile,
+    admitted: &Path,
+) -> Result<(PathBuf, PathBuf), String> {
+    let request = kiln_adapter_lattice::worker::sent_request_path(
+        launch,
+        transport,
+        &fs::read(admitted).map_err(text)?,
+    )?;
+    let state = launch.map_or_else(
+        || transport.state_directory.clone(),
+        |launch| PathBuf::from(&launch.state_directory),
+    );
+    Ok((request, state))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // r[verify kiln.admission.lattice_lineage.scenario.carried]
+    #[test]
+    fn export_names_the_request_and_root_the_recorded_launch_ran() {
+        use kiln_core::implementation::{FrozenRequest, TransportLaunch};
+        let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+        let admitted = directory.path().join("worker-request.json");
+        fs::write(&admitted, b"{\"schema\":\"x\"}").unwrap_or_else(|_| unreachable!());
+        let digest = blake3::hash(b"{\"schema\":\"x\"}").to_hex().to_string();
+        let transport = kiln_adapter_lattice::worker::WorkerTransportProfile {
+            schema: "kiln.lattice-implementation-cli.v2".into(),
+            lattice_program: "/nix/store/0-lattice/bin/lattice".into(),
+            executable_blake3: id(&"b".repeat(64)).unwrap_or_else(|_| unreachable!()),
+            state_directory: "/current/state".into(),
+            output_directory: "/current/output".into(),
+        };
+        let mut launch = TransportLaunch {
+            lattice_program: "/nix/store/0-lattice/bin/lattice".into(),
+            executable_blake3: id(&"b".repeat(64)).unwrap_or_else(|_| unreachable!()),
+            state_directory: "/recorded/state".into(),
+            request: Some(FrozenRequest {
+                path: "/recorded/output/request-sent.json".into(),
+                blake3: id(&"c".repeat(64)).unwrap_or_else(|_| unreachable!()),
+            }),
+        };
+        assert_eq!(
+            exported_request(Some(&launch), &transport, &admitted),
+            Ok((
+                PathBuf::from("/recorded/output/request-sent.json"),
+                PathBuf::from("/recorded/state")
+            ))
+        );
+        // A launch recorded before its request was: it sent the admitted bytes.
+        launch.request = None;
+        let legacy = PathBuf::from(format!("/current/output/request-{digest}.json"));
+        assert_eq!(
+            exported_request(Some(&launch), &transport, &admitted),
+            Ok((legacy.clone(), PathBuf::from("/recorded/state")))
+        );
+        assert_eq!(
+            exported_request(None, &transport, &admitted),
+            Ok((legacy, PathBuf::from("/current/state")))
+        );
+    }
 
     #[test]
     fn selected_required_checks_need_the_exact_passing_canonical_checks() {

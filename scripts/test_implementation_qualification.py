@@ -103,6 +103,33 @@ class QualificationControls(unittest.TestCase):
         crash["crash_after_seconds"] = 1
         QUALIFICATION.validate_scenario(case)
 
+    def test_crash_barrier_matches_the_sent_request_not_the_admitted_one(self):
+        import hashlib
+        import json
+        admitted = {"schema": "lattice.implementation-attempt-run.v3", "envelope": {"attempt_id": "a", "fence": 1}}
+        sent = dict(admitted, lineage={"schema": "lattice.kiln-budget-lineage.v1"})
+        with tempfile.TemporaryDirectory() as directory:
+            output, state = Path(directory, "output"), Path(directory, "state")
+            output.mkdir()
+            sent_bytes = json.dumps(sent).encode()
+            # Stand-in digests: the barrier compares whatever the caller hashed.
+            sent_digest = hashlib.sha256(sent_bytes).hexdigest()
+            admitted_digest = hashlib.sha256(json.dumps(admitted).encode()).hexdigest()
+            frozen = output / f"request-{sent_digest}.json"
+            frozen.write_bytes(sent_bytes)
+            (output / "request-other.json").write_text(json.dumps(dict(admitted, envelope={"attempt_id": "b", "fence": 1})))
+            self.assertEqual(QUALIFICATION.sent_requests(output, admitted), [frozen])
+            intent = state / "attempt"
+            intent.mkdir(parents=True)
+            (intent / "intent.json").write_text(sent_digest)
+            for name in ("raw-events.jsonl", "omp-observation.json"):
+                (intent / name).write_text("{}")
+            self.assertEqual(QUALIFICATION.retained_intent_digests(state), {sent_digest})
+            self.assertIsNone(QUALIFICATION.retained_worker_barrier(state, {admitted_digest}))
+            files, digest = QUALIFICATION.retained_worker_barrier(state, {sent_digest})
+            self.assertEqual(digest, sent_digest)
+            self.assertEqual(files["raw_events"], intent / "raw-events.jsonl")
+
     def test_remote_effect_in_later_stage_is_rejected_before_any_execution(self):
         case = self.structured_case("bug")
         case["steps"].append({"stage": "publish"})

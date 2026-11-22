@@ -202,23 +202,15 @@ fn run() -> Result<(), ()> {
                 return fail("dispatch runtime exceeds its parent queue deadline");
             }
         }
-        // A `lattice.workflow-request` has no lineage field, so this route
-        // never carries one: it derives it with the worker route's function
-        // and refuses an inconsistent lineage before the transport start, and
-        // the request bytes stay exactly as admitted.
-        let claim = kiln_core::fair_admission::ClaimRef {
-            attempt: attempt.identity.clone(),
-            fence: attempt.fence,
-        };
-        if let Err(refusal) = lineage::dispatched_request(
-            lineage::Route::Exchange,
+        if let Err(error) = exchange_lineage_check(
             &admission,
             &dispatch.work_identity,
-            &claim,
+            &attempt.identity,
+            attempt.fence,
             wall_clock_ms(),
             &request_bytes,
         ) {
-            return fail(&refusal.to_string());
+            return fail(&error);
         }
         let fresh: Vec<kiln_core::fair_admission::EligibilityInput> =
             match flags.get("--admission-observations") {
@@ -384,9 +376,118 @@ fn exchange_recovery(flag: Option<&String>, previous: bool) -> Result<bool, &'st
     Ok(requested || previous)
 }
 
+// r[impl kiln.admission.lattice_lineage.scenario.exchange]
+/// A `lattice.workflow-request` has no lineage field, so this route never
+/// carries one: it derives the lineage with the worker route's function and
+/// refuses an inconsistent one before the transport start, and the request
+/// bytes stay exactly as admitted.
+#[cfg(target_os = "linux")]
+fn exchange_lineage_check(
+    admission: &kiln_core::fair_admission::AdmissionLedger,
+    work: &kiln_core::types::ContentId,
+    attempt: &kiln_core::types::ContentId,
+    fence: u64,
+    now_ms: u64,
+    request_bytes: &[u8],
+) -> Result<(), String> {
+    let claim = kiln_core::fair_admission::ClaimRef {
+        attempt: attempt.clone(),
+        fence,
+    };
+    let sent = lineage::dispatched_request(
+        lineage::Route::Exchange,
+        admission,
+        work,
+        &claim,
+        now_ms,
+        request_bytes,
+    )
+    .map_err(|refusal| refusal.to_string())?;
+    if *sent != *request_bytes {
+        return Err("the exchange route changed its request bytes; nothing was started".into());
+    }
+    Ok(())
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod tests {
-    use super::exchange_recovery;
+    use super::{exchange_lineage_check, exchange_recovery};
+    use kiln_core::fair_admission::{
+        AdmissionLedger, AdmissionPolicy, ChargeKind, ClaimRef, OwnerReservation, ReservationState,
+    };
+    use kiln_core::types::{ContentId, ProviderProfileId};
+
+    fn content(character: char) -> ContentId {
+        ContentId::from_blake3_hex(character.to_string().repeat(64))
+            .unwrap_or_else(|_| unreachable!())
+    }
+
+    // r[verify kiln.admission.lattice_lineage.scenario.exchange]
+    #[test]
+    fn the_exchange_route_checks_the_lineage_and_keeps_its_bytes() {
+        let request = br#"{"schema":"lattice.workflow-request.v1"}"#;
+        // Without admission there is nothing to check.
+        assert_eq!(
+            exchange_lineage_check(
+                &AdmissionLedger::default(),
+                &content('a'),
+                &content('b'),
+                1,
+                1,
+                request
+            ),
+            Ok(())
+        );
+        // An admitted attempt whose owner has not answered is refused.
+        let mut ledger = AdmissionLedger {
+            policy: Some(AdmissionPolicy {
+                version: 1,
+                accounting_basis: content('c'),
+                max_items: 1,
+                max_bytes: 1,
+                max_wait_ms: 1,
+                max_observation_age_ms: 1,
+                max_retry_after_ms: 1,
+                max_children: 1,
+                max_active: 1,
+                strategy: kiln_core::operations::FairnessStrategy::DominantShare,
+                shares: std::collections::BTreeMap::new(),
+                group_limits: Vec::new(),
+                serving: None,
+            }),
+            ..AdmissionLedger::default()
+        };
+        ledger.reservations.insert(
+            content('d'),
+            OwnerReservation {
+                version: 1,
+                operation: content('d'),
+                provider: ProviderProfileId::new("owner").unwrap_or_else(|_| unreachable!()),
+                generation: 1,
+                work_version: content('a'),
+                claim: ClaimRef {
+                    attempt: content('b'),
+                    fence: 1,
+                },
+                account: content('c'),
+                kind: ChargeKind::Execution,
+                subject: content('e'),
+                accounting_basis: content('c'),
+                serving_bounds: None,
+                amounts: std::collections::BTreeMap::new(),
+                expires_at_ms: 2,
+                state: ReservationState::Tentative,
+                receipt: None,
+            },
+        );
+        let refused = exchange_lineage_check(&ledger, &content('a'), &content('b'), 1, 1, request);
+        assert!(
+            refused
+                .as_ref()
+                .is_err_and(|error| error.contains("(reservation_unsettled)")),
+            "{refused:?}"
+        );
+    }
 
     // r[verify kiln.admission.host_owner]
     #[test]

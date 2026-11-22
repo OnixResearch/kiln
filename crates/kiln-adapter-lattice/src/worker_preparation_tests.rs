@@ -1,7 +1,7 @@
 //! The first launch's files are prepared before the owner-grant gate, so a
 //! failed preparation never strands committed owner reservations.
 
-use super::{WorkerTransportProfile, prepare_launch_files};
+use super::{LaunchRequest, WorkerTransportProfile, prepare_launch_files};
 use kiln_core::fair_admission::{
     AdmissionPhase, AdmissionPolicy, AdmissionReason, Amounts, BudgetAccount, ChargeKind, ClaimRef,
     EligibilityInput, OwnerReply, OwnerReservation, QueueItem, ReservationState, ServingBounds,
@@ -10,8 +10,8 @@ use kiln_core::fair_admission::{
 use kiln_core::implementation::{
     AcceptanceObligation, DISPATCH_PLAN_SCHEMA, DispatchControls, DispatchWorkspace, Enrollment,
     IMPLEMENTATION_WORK_SCHEMA, ImplementationAttempt, ImplementationDispatchPlan,
-    ImplementationWork, SourceRef, TerminalPolicy, TransportStart, WorkBudget, WorkSourceKind,
-    WorkspaceIsolation,
+    ImplementationWork, SourceRef, TerminalPolicy, TransportLaunch, TransportStart, WorkBudget,
+    WorkSourceKind, WorkspaceIsolation,
 };
 use kiln_core::operations::{FairnessStrategy, TenantUsage, UsageValue};
 use kiln_core::types::{Alias, ContentId, ExternalRef, ProviderProfileId};
@@ -309,6 +309,11 @@ fn profile(root: &Path, output: &str, state: &Path) -> WorkerTransportProfile {
     }
 }
 
+fn frozen(profile: &WorkerTransportProfile, bytes: &[u8]) -> LaunchRequest {
+    LaunchRequest::new(&profile.output_directory, bytes.to_vec())
+        .unwrap_or_else(|error| unreachable!("{error}"))
+}
+
 /// One claimed attempt with committed owner grants, a reserved plan and a
 /// sealed request, ready for the owner-grant gate and transport intent.
 fn ready(root: &Path) -> (Implementer, ImplementationAttempt, ContentId, u64) {
@@ -388,9 +393,8 @@ fn failed_preparation_leaves_owner_grants_committed_and_a_retry_proceeds() {
     let attempt = committed_attempt(&mut owner, now);
     let committed = grants(&mut owner, &attempt);
     assert_eq!(committed.0, vec![ReservationState::Committed]);
-    let request_id = content('d');
     let prepare = |profile: &WorkerTransportProfile| {
-        prepare_launch_files(profile, &request_id, b"exact request bytes", true)
+        prepare_launch_files(profile, &frozen(profile, b"exact request bytes"), true)
     };
 
     // An unwritable state root: its parent is an ordinary file.
@@ -404,15 +408,12 @@ fn failed_preparation_leaves_owner_grants_committed_and_a_retry_proceeds() {
     std::fs::remove_file(&blocker).unwrap_or_else(|_| unreachable!());
     prepare(&profile(root, "transport", &root_a)).unwrap_or_else(|error| unreachable!("{error}"));
     // Other bytes under the same frozen request identity are refused, not replaced.
-    assert!(
-        prepare_launch_files(
-            &profile(root, "transport", &root_a),
-            &request_id,
-            b"substituted bytes",
-            true
-        )
-        .is_err()
-    );
+    let transport = profile(root, "transport", &root_a);
+    let substituted = LaunchRequest {
+        bytes: b"substituted bytes".to_vec(),
+        ..frozen(&transport, b"exact request bytes")
+    };
+    assert!(prepare_launch_files(&transport, &substituted, true).is_err());
     assert!(root_a.is_dir());
     assert_eq!(grants(&mut owner, &attempt), committed);
 
@@ -441,7 +442,7 @@ fn a_gate_refused_profile_never_directs_recovery() {
     );
     // (1) Profile A without its fresh owner observation: preparation creates
     // root A, the gate refuses, and nothing records a launch.
-    prepare_launch_files(&profile_a, &content('d'), b"request", true)
+    prepare_launch_files(&profile_a, &frozen(&profile_a, b"request"), true)
         .unwrap_or_else(|error| unreachable!("{error}"));
     assert!(
         owner
@@ -456,7 +457,7 @@ fn a_gate_refused_profile_never_directs_recovery() {
     );
     // (2) Profile B with the observation: the gate passes and the transport
     // intent records launch B.
-    prepare_launch_files(&profile_b, &content('d'), b"request", true)
+    prepare_launch_files(&profile_b, &frozen(&profile_b, b"request"), true)
         .unwrap_or_else(|error| unreachable!("{error}"));
     let fresh = fresh_observations(&mut owner);
     owner
@@ -512,7 +513,7 @@ fn the_gate_loser_of_two_processes_leaves_no_launch() {
     let profile_y = profile(root, "output-y", &root.join("state-y"));
     // Both processes prepare their own output directory and root.
     for profile in [&profile_x, &profile_y] {
-        prepare_launch_files(profile, &content('d'), b"request", true)
+        prepare_launch_files(profile, &frozen(profile, b"request"), true)
             .unwrap_or_else(|error| unreachable!("{error}"));
     }
     let fresh = fresh_observations(&mut owner);
@@ -560,72 +561,167 @@ fn the_gate_loser_of_two_processes_leaves_no_launch() {
     assert_eq!(entries(&root.join("state-y")), 0);
 }
 
-// r[verify kiln.admission.lattice_lineage]
+// r[verify kiln.admission.lattice_lineage.scenario.carried]
 #[test]
-fn the_worker_route_freezes_the_derived_lineage_before_the_grant_gate() {
+fn the_worker_route_freezes_its_sent_lineage_request_and_recovers_exactly_it() {
+    use super::{RequestSource, launch_request};
     use crate::lineage::{LineageRefusal, Route, dispatched_request, verify_frozen};
     let directory = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
     let root = directory.path();
-    let (mut owner, attempt, _, now) = ready(root);
+    let (mut owner, attempt, plan, now) = ready(root);
     let admitted: &[u8] =
         b"{\"schema\":\"lattice.implementation-attempt-run.v3\",\"network\":false}\n";
-    let request_id = ContentId::from_blake3_hex(blake3::hash(admitted).to_hex().to_string())
-        .unwrap_or_else(|_| unreachable!());
     let claim = ClaimRef {
         attempt: attempt.identity.clone(),
         fence: attempt.fence,
     };
-    let send = |owner: &mut Implementer, route: Route| {
+    let transport = profile(root, "transport", &root.join("state"));
+    let fresh_request = |owner: &mut Implementer| {
         let ledger = owner
             .admission_snapshot()
             .unwrap_or_else(|error| unreachable!("{error}"));
-        dispatched_request(
-            route,
-            &ledger,
-            &attempt.work_identity,
-            &claim,
-            now,
+        launch_request(
+            RequestSource::Fresh {
+                ledger: &ledger,
+                work: &attempt.work_identity,
+                claim: &claim,
+                now_ms: now,
+            },
+            &transport,
             admitted,
         )
-        .map(|bytes| bytes.into_owned())
     };
-    // The committed grant from the durable store is carried on the worker route.
-    let dispatched =
-        send(&mut owner, Route::Worker).unwrap_or_else(|error| unreachable!("{error}"));
-    let lineage = verify_frozen(admitted, &dispatched)
+
+    // An earlier binary froze the admitted bytes and the gate refused it (no
+    // fresh owner observation): nothing started and the grant stays committed.
+    let earlier = frozen(&transport, admitted);
+    prepare_launch_files(&transport, &earlier, true)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        owner
+            .admission_before_transport(&attempt.identity, attempt.fence, &[], now)
+            .is_err()
+    );
+    // The retry sends another lineage-carrying request under its own digest,
+    // so the earlier file never blocks it.
+    let request = fresh_request(&mut owner).unwrap_or_else(|error| unreachable!("{error}"));
+    assert_ne!(request.path, earlier.path);
+    let lineage = verify_frozen(admitted, &request.bytes)
         .unwrap_or_else(|error| unreachable!("{error}"))
         .unwrap_or_else(|| unreachable!("no lineage"));
     assert_eq!(lineage.account, attempt.work_identity.as_str());
-    assert_eq!((lineage.parent, lineage.depth), (None, 0));
+    assert_eq!((lineage.parent.clone(), lineage.depth), (None, 0));
     assert_eq!(
         lineage.remaining,
         BTreeMap::from([("worker_requests".to_owned(), 1)])
     );
-    // The exchange route checks the same ledger and keeps its bytes.
-    assert_eq!(send(&mut owner, Route::Exchange), Ok(admitted.to_vec()));
-    // The frozen request Lattice reads is the dispatched one, under the
-    // admitted request's identity.
-    let transport = profile(root, "transport", &root.join("state"));
-    let frozen = prepare_launch_files(&transport, &request_id, &dispatched, true)
-        .unwrap_or_else(|error| unreachable!("{error}"));
     assert_eq!(
-        frozen,
-        super::dispatched_request_path(&transport, &request_id)
+        prepare_launch_files(&transport, &request, true),
+        Ok(request.path.clone())
     );
-    assert_eq!(std::fs::read(&frozen).ok(), Some(dispatched.clone()));
-    // The gate moves the grant to unknown: both routes now refuse to derive
-    // again, and recovery reuses only the frozen request.
+    assert_eq!(
+        std::fs::read(&request.path).ok(),
+        Some(request.bytes.clone())
+    );
     let fresh = fresh_observations(&mut owner);
     owner
         .admission_before_transport(&attempt.identity, attempt.fence, &fresh, now)
         .unwrap_or_else(|error| unreachable!("{error}"));
-    let unsettled = Err(LineageRefusal::ReservationUnsettled {
-        operation: attempt.identity.as_str().to_owned(),
-    });
-    assert_eq!(send(&mut owner, Route::Worker), unsettled);
-    assert_eq!(send(&mut owner, Route::Exchange), unsettled);
+    let launch = TransportLaunch {
+        request: Some(
+            request
+                .frozen()
+                .unwrap_or_else(|error| unreachable!("{error}")),
+        ),
+        ..super::first_launch(&transport).unwrap_or_else(|error| unreachable!("{error}"))
+    };
     assert_eq!(
-        verify_frozen(admitted, &dispatched).map(|lineage| lineage.is_some()),
-        Ok(true)
+        owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now, &plan, Some(&launch)),
+        Ok(TransportStart::Fresh)
+    );
+
+    // The gate moved the grant to unknown: neither route derives again.
+    let ledger = owner
+        .admission_snapshot()
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    for route in [Route::Worker, Route::Exchange] {
+        assert_eq!(
+            dispatched_request(
+                route,
+                &ledger,
+                &attempt.work_identity,
+                &claim,
+                now,
+                admitted
+            )
+            .map(|bytes| bytes.into_owned()),
+            Err(LineageRefusal::ReservationUnsettled {
+                operation: attempt.identity.as_str().to_owned(),
+            })
+        );
+    }
+
+    // Recovery under a profile whose output directory moved reads exactly
+    // the recorded file.
+    let moved = profile(root, "moved", &root.join("state"));
+    let recorded =
+        match owner.begin_dispatch_transport(&attempt.identity, attempt.fence, now, &plan, None) {
+            Ok(TransportStart::Recover(Some(recorded))) => recorded,
+            other => unreachable!("{other:?}"),
+        };
+    assert_eq!(recorded, launch);
+    let recover = |admitted: &[u8]| {
+        launch_request(
+            RequestSource::Recover { launch: &recorded },
+            &moved,
+            admitted,
+        )
+    };
+    assert_eq!(recover(admitted), Ok(request.clone()));
+    assert_eq!(
+        prepare_launch_files(&moved, &request, false),
+        Ok(request.path.clone())
+    );
+    // Another admitted request is crossed with the recorded bytes.
+    let crossed = recover(b"{\"schema\":\"other\"}");
+    assert!(
+        crossed
+            .as_ref()
+            .is_err_and(|error| error.contains("(frozen_request_crossed)")
+                && error.contains("Lattice was not invoked for recovery")),
+        "{crossed:?}"
+    );
+    // So is a recorded file whose bytes changed.
+    let mut permissions = std::fs::metadata(&request.path)
+        .unwrap_or_else(|_| unreachable!())
+        .permissions();
+    #[allow(clippy::permissions_set_readonly_false)]
+    permissions.set_readonly(false);
+    std::fs::set_permissions(&request.path, permissions).unwrap_or_else(|_| unreachable!());
+    std::fs::write(&request.path, admitted).unwrap_or_else(|_| unreachable!());
+    let changed = recover(admitted);
+    assert!(
+        changed
+            .as_ref()
+            .is_err_and(|error| error.contains("(frozen_request_crossed)")),
+        "{changed:?}"
+    );
+    // A missing recorded file is never recreated from the admitted bytes.
+    std::fs::remove_file(&request.path).unwrap_or_else(|_| unreachable!());
+    let missing = recover(admitted);
+    assert!(
+        missing.as_ref().is_err_and(|error| error
+            .contains("Lattice was not invoked for recovery; the first launch may have run")),
+        "{missing:?}"
+    );
+    // A launch recorded before Kiln recorded its request sent the admitted
+    // bytes, frozen under their digest in the profile's output directory.
+    let legacy = TransportLaunch {
+        request: None,
+        ..recorded.clone()
+    };
+    assert_eq!(
+        launch_request(RequestSource::Recover { launch: &legacy }, &moved, admitted),
+        Ok(frozen(&moved, admitted))
     );
 }
