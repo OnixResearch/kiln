@@ -124,6 +124,8 @@ for rewrite in record.get("manifest_rewrites", []):
 PY
 if [[ -e "$destination" || -L "$destination" ]]; then
   # Compare bytes, symlink targets and executable bits. Never replace drift.
+  # r[impl kiln.implementation.authority.cohort]
+  # The recorded cohort is verified by crates/kiln-adapter-basalt/tests/cohort.rs.
   git diff --no-index --exit-code -- "$temporary/source" "$destination"
   printf 'verified existing vendored %s source: %s\n' "$name" "$source_commit"
   exit 0

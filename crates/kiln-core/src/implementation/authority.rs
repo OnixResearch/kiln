@@ -1172,6 +1172,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.authority.binding.scenario.candidate]
     fn authority_request_is_bounded_and_candidate_exact() {
         for operation in ProtectedOperation::ALL {
             let request = authority_request(operation);
@@ -1207,6 +1208,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.authority.binding.scenario.substitution]
     fn authority_request_identity_changes_with_every_bound_field() {
         let original = authority_request(ProtectedOperation::CandidateSubmit);
         let baseline = original.digest_hex();
@@ -1314,6 +1316,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.authority.compatibility.scenario.role]
     fn local_operator_profile_denies_roles_projection_and_missing_authority() {
         let request = authority_request(ProtectedOperation::Dispatch);
         let operator = AuthorityProfile::LocalOperator {
@@ -1359,6 +1362,75 @@ mod tests {
                 .map(|denial| denial.reason),
             Some(AuthorityDenialReason::AttemptNotCurrent)
         );
+    }
+
+    #[test]
+    // r[verify kiln.implementation.authority.separation]
+    // r[verify kiln.implementation.authority.separation.scenario.widen]
+    // r[verify kiln.implementation.authority.currentness.scenario.blocked]
+    // r[verify kiln.implementation.authority.currentness.scenario.unavailable]
+    fn dispatch_session_denies_widened_and_non_current_effects() {
+        let operator = AuthorityProfile::LocalOperator {
+            operator: "operator-a".into(),
+        };
+        let dispatch = authority_request(ProtectedOperation::Dispatch);
+        for operation in [
+            ProtectedOperation::VerificationAdmit,
+            ProtectedOperation::PublicationPublish,
+            ProtectedOperation::IntegrationLand,
+            ProtectedOperation::LifecycleComplete,
+        ] {
+            let mut guard = LocalOperatorAuthority::new("operator-a", false)
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            let session = guard
+                .admit(&dispatch, &operator, AttemptCurrentness::Current, 1)
+                .unwrap_or_else(|denial| unreachable!("{denial:?}"))
+                .session
+                .unwrap_or_else(|| unreachable!("allowed dispatch requires a session"));
+            assert_eq!(
+                guard
+                    .revalidate(
+                        session,
+                        &authority_request(operation),
+                        AttemptCurrentness::Current,
+                        2
+                    )
+                    .err()
+                    .map(|denial| denial.reason),
+                Some(AuthorityDenialReason::BindingMismatch),
+                "{operation:?}"
+            );
+        }
+        for currentness in [
+            AttemptCurrentness::Cancelled,
+            AttemptCurrentness::Superseded,
+            AttemptCurrentness::FenceReplaced,
+            AttemptCurrentness::LeaseExpired,
+            AttemptCurrentness::Unavailable,
+        ] {
+            let mut guard = LocalOperatorAuthority::new("operator-a", false)
+                .unwrap_or_else(|error| unreachable!("{error:?}"));
+            let session = guard
+                .admit(&dispatch, &operator, AttemptCurrentness::Current, 1)
+                .unwrap_or_else(|denial| unreachable!("{denial:?}"))
+                .session
+                .unwrap_or_else(|| unreachable!("allowed dispatch requires a session"));
+            assert_eq!(
+                guard
+                    .revalidate(session, &dispatch, currentness, 2)
+                    .err()
+                    .map(|denial| denial.reason),
+                Some(AuthorityDenialReason::AttemptNotCurrent),
+                "{currentness:?}"
+            );
+            assert!(
+                guard
+                    .decisions()
+                    .last()
+                    .is_some_and(|decision| !decision.allowed),
+                "{currentness:?}"
+            );
+        }
     }
 
     #[test]

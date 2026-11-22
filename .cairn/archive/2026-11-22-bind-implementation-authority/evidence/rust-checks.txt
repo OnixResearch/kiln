@@ -1,0 +1,15 @@
+# Maintained Rust gates, repository dev shell, 2026-11-22
+$ nix --option min-free 0 develop path:$PWD -c bash <gates script>
+$ cargo fmt --all --check
+EXIT[fmt]=0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings
+EXIT[clippy]=0
+$ cargo test --locked --workspace --no-fail-fast
+EXIT[test]=0 (2366 tests ok, 0 failed)
+$ scripts/check-nickel-fixtures.sh
+EXIT[nickel]=0
+# kiln-fleet --test dispatch interactive_work_is_dispatched_handed_off_and_exported: ok (dev shell)
+$ cargo fmt --all --check && cargo clippy --locked -p kiln-adapter-basalt -p onix-kiln-core --all-targets -- -D warnings && cargo test --locked -p kiln-adapter-basalt -p onix-kiln-core
+EXIT[fmt]=0 EXIT[clippy]=0 EXIT[test]=0
+  - crates/kiln-core 498 lib tests ok, including implementation::authority::tests::dispatch_session_denies_widened_and_non_current_effects
+  - crates/kiln-adapter-basalt ok, including tests/cohort.rs::recorded_import_resolves_basalt_to_the_single_vendored_ucan_cohort

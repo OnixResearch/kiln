@@ -814,6 +814,7 @@ mod tests {
     }
 
     #[test]
+    // r[verify kiln.implementation.authority.binding.scenario.substitution]
     fn local_operator_profile_admits_and_revalidates() {
         let mut authority = BasaltAuthority::local_operator("operator-a", false)
             .unwrap_or_else(|error| unreachable!("{error}"));

@@ -1,0 +1,13 @@
+# Nix gates, 2026-11-22
+$ nix --option min-free 0 build path:$PWD#checks.x86_64-linux.octet --no-link -L
+EXIT=1
+Root cause: the closure builds the Bounded Exec cargo-git fixed-output derivation for
+git.onix.computer/z2CpqLFpdP36fZXYUK5ZNWxMibpCo.git rev 29dac88ecded94457572db3fdfaaaab95fa91525,
+whose builder fails (host returns HTTP 530). This is the acquisition boundary documented in
+CONTRIBUTING.md and docs/reference-pins.md#build-source-acquisition, not a source defect.
+$ <documented seed step from docs/reference-pins.md#build-source-acquisition>
+EXIT=0 (seed path /nix/store/42kh9d4vr3zkiixs84f0vrf54n5d3x15-source)
+$ nix --option min-free 0 build path:$PWD#checks.x86_64-linux.octet --no-link -L  # retry
+EXIT=1 (same vendor-cargo-deps fixed-output derivation)
+$ nix --option min-free 0 flake check path:$PWD --no-write-lock-file -L --keep-going
+NOT RUN: the octet closure cannot be built in this environment (see above).

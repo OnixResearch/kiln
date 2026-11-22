@@ -1,0 +1,189 @@
+$ cairn traceability coverage --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --json
+{
+  "command": "traceability coverage",
+  "dangling": [],
+  "input_hash": "a87633f35d660d8cb3918db7814df56c54fb0ebf77833226b1958c69428a3bca",
+  "missing": [
+    "kiln.convergence.campaign.scenario.empty",
+    "kiln.convergence.campaign.scenario.identity",
+    "kiln.convergence.campaign.scenario.job",
+    "kiln.convergence.campaign.scenario.mint",
+    "kiln.convergence.intake.scenario.current",
+    "kiln.convergence.intake.scenario.identity",
+    "kiln.convergence.intake.scenario.oversized",
+    "kiln.convergence.intake.scenario.pilot",
+    "kiln.convergence.intake.scenario.schema",
+    "kiln.convergence.nonclaims",
+    "kiln.convergence.nonclaims.scenario.advisory",
+    "kiln.convergence.realize",
+    "kiln.convergence.realize.scenario.pilot",
+    "kiln.convergence.realize.scenario.substitution",
+    "kiln.convergence.unsatisfied.scenario.moved",
+    "kiln.convergence.unsatisfied.scenario.satisfied",
+    "kiln.convergence.unsatisfied.scenario.selection",
+    "kiln.convergence.verify.scenario.capability",
+    "kiln.convergence.verify.scenario.plan",
+    "kiln.convergence.verify.scenario.realization",
+    "kiln.convergence.verify.scenario.realization_mismatch",
+    "kiln.convergence.verify.scenario.request",
+    "kiln.mantle.foreign_realize.completion.scenario.drift",
+    "kiln.mantle.foreign_realize.completion.scenario.oversized",
+    "kiln.mantle.foreign_realize.completion.scenario.pilot",
+    "kiln.mantle.foreign_realize.dispatch",
+    "kiln.mantle.foreign_realize.dispatch.scenario.command",
+    "kiln.mantle.foreign_realize.dispatch.scenario.identity",
+    "kiln.mantle.foreign_realize.nonclaims.scenario.release",
+    "kiln.mantle.foreign_realize.profile.scenario.drift",
+    "kiln.mantle.foreign_realize.profile.scenario.match",
+    "kiln.mantle.foreign_realize.recovery.scenario.classes",
+    "kiln.mantle.foreign_realize.recovery.scenario.replay"
+  ],
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile": {
+    "anchor_kind": "exact_marker_bytes",
+    "assurance_level": "declared",
+    "evidence_sources": [
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "crates",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "ncl"
+        ],
+        "root": "crates",
+        "source_kind": "nickel_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-aspen-host",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "runtime/kiln-radicle-nix-provider",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/hosting-and-recovery.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/observation-dashboard.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": "docs/operator.md",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "js",
+          "css",
+          "html"
+        ],
+        "root": "crates",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "rs"
+        ],
+        "root": "web/dashboard-index/src",
+        "source_kind": "rust_source"
+      },
+      {
+        "extensions": [
+          "rs",
+          "ncl"
+        ],
+        "root": "tools",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs"
+        ],
+        "root": "src",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "mjs",
+          "sh"
+        ],
+        "root": "tests",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "py"
+        ],
+        "root": "scripts",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "ts"
+        ],
+        "root": "checks/bombadil",
+        "source_kind": "tool_source"
+      },
+      {
+        "extensions": [
+          "nix"
+        ],
+        "root": "flake.nix",
+        "source_kind": "tool_source"
+      }
+    ],
+    "id": "cairn-default",
+    "marker_verbs": [
+      "impl",
+      "verify",
+      "depends",
+      "related"
+    ],
+    "requirement_sources": [
+      {
+        "extensions": [
+          "md"
+        ],
+        "root": ".cairn/specs",
+        "source_kind": "accepted_specs"
+      }
+    ]
+  },
+  "profile_id": "cairn-default",
+  "receipt_hash": "6247f02486987668a3385df34f9c098f1f9129162a92363703bf47beac6de180",
+  "referenced": 2123,
+  "requirements": 2156,
+  "root": ".",
+  "source_summary": {
+    "evidence_files": 990,
+    "evidence_manifest_hash": "65159dc4d0d0355d7bb512957bd2b58c656e73af0fec73a0b8842fbbab434518",
+    "requirement_files": 171,
+    "requirement_manifest_hash": "081e29d6e93e6448d608de85ae3101744a61d58eb0478d21480be6333757931e"
+  },
+  "valid": false,
+  "verdict": "fail"
+}
+error: traceability coverage failed
+exit=1

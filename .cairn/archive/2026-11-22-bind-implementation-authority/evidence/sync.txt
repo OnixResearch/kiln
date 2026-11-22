@@ -1,0 +1,177 @@
+$ cairn sync bind-implementation-authority --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --execute
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/bind-implementation-authority/specs/implementation-authority/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/bind-implementation-authority/specs/implementation-authority/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "bind-implementation-authority",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "43beb8365894aaa7f86dbd764ff1fb13d7d58d900d02e1d9b4fd45463d5a449f",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+    "receipt_hash": "0aa82e6c4db024881bedebb8d159d15fb30ea9cc8eec4cf8904f6bd36e1cbcf9",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/bind-implementation-authority/specs/implementation-authority/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "11be17dcf3d742dbe84322c5308b5a32f936399bba97fd8ee1654fca9faabdbd",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": false,
+        "accepted_before_hash": "1b5dc850d754cb059df73364d6d888e92862db4adc9aff9efe00ada18c6b4a62",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "cabd3e1efc08e3c36eb23784c57d1888413fb6398b842ae45e98971fe5d5e175",
+        "destination": ".cairn/specs/implementation-authority/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "0ac907e5250fc868fa76ee161dddce1b44903acf0b5744368691f56d984b8bc7",
+        "operations": [
+          {
+            "block_hash": "dd1e30fc201d0a38008be2b0af028a3b24ff1c989054ddaefa4f266fcff61dea",
+            "heading": "### Requirement: Closed protected-operation coverage",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.coverage"
+          },
+          {
+            "block_hash": "74469a6bdf4bfeb079387e07cb447801711534411e7185691ccef54a87d26bc9",
+            "heading": "### Requirement: Exact request binding",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.binding"
+          },
+          {
+            "block_hash": "ea23ddca8142da969a028551e9024fc76c89e18c33056df8eed321f153cf383b",
+            "heading": "### Requirement: Verified live authority before protected effects",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.enforcement"
+          },
+          {
+            "block_hash": "13329d13ef5ef78da43b95938212cd475af1ecbb22898b5cc17f4bb18885aba8",
+            "heading": "### Requirement: Currentness blocks superseded attempts",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.currentness"
+          },
+          {
+            "block_hash": "7299543683d727abad5b48f04b122681e83c97e073eeb1df6fdb60681946909a",
+            "heading": "### Requirement: Execution authority is not verification or publication authority",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.separation"
+          },
+          {
+            "block_hash": "cbf4bd555300665679e1e1972450f2161dd753a3647128b5fe45e3295eda63e9",
+            "heading": "### Requirement: Explicit local-operator compatibility",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.compatibility"
+          },
+          {
+            "block_hash": "44df5cd84686cfca516695f391aa8acaf2f1ca1b5f432ae5ab097a997972eae1",
+            "heading": "### Requirement: One UCAN cohort and recorded Basalt import",
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.cohort"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.coverage",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.binding",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.enforcement",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.currentness",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.separation",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.compatibility",
+            "state": "applied"
+          },
+          {
+            "kind": "added",
+            "requirement_id": "kiln.implementation.authority.cohort",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/bind-implementation-authority/specs/implementation-authority/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "0ac907e5250fc868fa76ee161dddce1b44903acf0b5744368691f56d984b8bc7",
+          "exists": true,
+          "path": "./.cairn/specs/implementation-authority/spec.md"
+        }
+      ],
+      "manifest_hash": "446414a98427b88f4cdce6ac4ee3b5336f8fbaa521ccbcca7bc46f60b1f52eef"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": null,
+          "exists": false,
+          "path": "./.cairn/specs/implementation-authority/spec.md"
+        }
+      ],
+      "manifest_hash": "8ddc372f756a374ae8d37847a2cdb41b346d4f3b24fb8dd1a55724259567ba95"
+    },
+    "kind": "sync",
+    "manifest_hash": "d3d56294a58af6eb98492d09a4a4bd151d8350bd20cb4c23904bf7429b0abeeb"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "8e95283ae1bf396befb14dba77d70007adf140c1e8cbc1ae3764d674ee6f0d4f",
+  "policy": "kiln-default",
+  "policy_hash": "2ccfb9685a9a6110ec4c6a52940f60a0da70049ab1c3f765cdada8b128b602d7",
+  "profile_identity_hash": "32821040d278a621dc00f170010a6a7206a4a575505982535463e56a8c1f540a",
+  "reasons": [],
+  "receipt_hash": "5edaa94f339a7265fad0f6f6e3f2699f13e97ad4c4a247a9eba31fb48d289a24",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+exit=0
