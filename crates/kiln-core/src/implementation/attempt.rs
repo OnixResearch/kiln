@@ -1370,10 +1370,20 @@ impl AttemptLedger {
         }
         match rule {
             SupersessionRule::AbortActive => {
+                // Revoking the fence does not observe a started worker stop.
+                let started = self.dispatch_started.contains(active.identity.as_str())
+                    || active.workflow.is_some();
                 let attempt = self.attempt_mut(&active.identity)?;
                 attempt.phase = AttemptPhase::Superseded;
                 attempt.ended_at_ms = Some(now_ms);
                 attempt.superseded_by = Some(new_revision);
+                if started
+                    && attempt.failure.is_none()
+                    && attempt.candidate.is_none()
+                    && attempt.handoff.is_none()
+                {
+                    attempt.failure = Some(FailureClass::Unknown);
+                }
                 self.clear_current(canonical_key);
             }
             SupersessionRule::FinishActive => {
@@ -1498,6 +1508,13 @@ impl AttemptLedger {
                     .resolved_unknown
                     .contains_key(attempt.identity.as_str())
         })
+    }
+
+    /// Whether an independent termination observation was reconciled for this
+    /// unknown attempt.
+    #[must_use]
+    pub fn termination_observed(&self, identity: &ContentId) -> bool {
+        self.resolved_unknown.contains_key(identity.as_str())
     }
 
     /// Whether a result for this attempt may still be admitted.

@@ -71,9 +71,10 @@ its workspace/profile/deadline/effect admission remains independent.
 <!-- r[impl kiln.admission.operator_claim] -->
 Under an enabled policy, `kiln-implementer claim` selects and binds the queue
 row through the same `claim` admission command, so the queue claim and the
-attempt/fence agree before any owner request. It needs an explicit authority
-(`--local-operator`) and refuses swarm deferral; it never claims around fair
-admission. Without a policy it keeps the existing compatibility claim.
+attempt/fence agree before any owner request. It needs `--local-operator`, an
+explicit opt-in guard naming the local operator, not authentication, and refuses
+swarm deferral; it never claims around fair admission. Without a policy it keeps
+the existing compatibility claim.
 
 ## Owner authority and backpressure
 
@@ -174,13 +175,16 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   campaign share, accounting basis over provider, host and capacity dimension
   names), roots the campaign account and queues every current ready work whose
   repository and class are registered, each requiring this owner's `execution`
-  grant. Every registered repository must be enrolled. Other ready work is
-  listed as `refused` and never queued.
+  grant. Every registered repository must be enrolled. Registered work the
+  ledger does not queue is listed under `not_queued` with its reason
+  (`queue_full`, `expired` or a lineage blocker). Other ready work, including
+  unenrolled work, is listed as `refused` and never queued.
 - `host-owner-observe` retains a complete usage observation (measured zero;
   every retained debit is composed on top, so nothing resets) and one
   eligibility observation per open queued work, valid for
-  `observation_ttl_ms`, then runs the existing selection. Work that does not
-  fit the free registered capacity is observed as `waiting`.
+  `observation_ttl_ms`, then runs the existing selection. Holders stay
+  eligible; other work is eligible only up to the free registered slots
+  (claimed rows first, then queue order), and the rest is observed as `waiting`.
 - `host-owner-reserve` plans one deterministic operation for the exact queued
   claim, persists the tentative request through the `request` command and asks
   the host owner through `AdmissionOwnerPortV1`. The owner decides from the
@@ -188,10 +192,19 @@ kiln-implementer host-owner-release --database DB --enrollment ENROLL --local-op
   of this owner occupies capacity. It refuses unregistered work, a crossed
   claim, a stale or other-generation observation, a second reservation for the
   same work and a request beyond capacity. A repeat or a restart returns the
-  retained operation without a new request or debit.
+  retained operation without a new request or debit. A tentative request left
+  by an interrupted reserve is resolved first from its own record (committed,
+  or rejected/expired with refund), so a crash never wedges the slot.
 - `host-owner-release` settles the reservation only after the attempt ledger
-  records the holding attempt terminal, ended and resolved. The slot's budget is
-  consumed, never refunded. Elapsed time, restart and replay release nothing.
+  records the holding attempt terminal, ended and resolved. A reservation that
+  provably never reached transport (no dispatch intent, transport start or
+  workflow) returns without consuming the slot, matching cancellation before
+  dispatch. Once transport may have started, release also needs the worker
+  observed stopped: a reconciled termination observation
+  (`reconcile-termination`) or a retained candidate. Supersession and lease
+  expiry of a started attempt mark it unknown rather than observing a stop, so
+  its slot stays held; a possible or observed dispatch consumes the slot without
+  refund. Elapsed time, restart and replay release nothing.
 
 The owner's only capacity is its declared registration and its only occupancy
 is the ledger's retained reservations for it. It never reports remote, provider

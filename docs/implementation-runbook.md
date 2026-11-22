@@ -67,7 +67,7 @@ Configure opt-in bounded fair admission with `kiln-implementer admission --comma
 
 For one explicitly registered host-local owner, the reviewed `config/fair-admission-host-owner.ncl` export drives the native records instead of hand-written commands: `host-owner-admit` (policy, account and queue), `host-owner-observe` (fresh eligibility and usage), `host-owner-reserve --attempt ID --fence N` (the owner-committed reservation dispatch checks) and `host-owner-release --attempt ID --fence N` (settlement only after the attempt is observed terminal). See [the fair-admission guide](fair-admission.md#registered-host-local-owner).
 
-Under an enabled admission policy, `claim` selects and binds through admission's claim command so the queue/account and current attempt are associated; it needs `--local-operator` (or another configured authority). Without a policy, `claim` remains the existing configured-route compatibility consumer. `inspect-work --work ID` returns exact retained work, source versions and native acceptance digest.
+Under an enabled admission policy, `claim` selects and binds through admission's claim command so the queue/account and current attempt are associated; it needs `--local-operator`, which is an explicit opt-in guard naming the local operator, not authentication. Without a policy, `claim` remains the existing configured-route compatibility consumer. `inspect-work --work ID` returns exact retained work, source versions and native acceptance digest.
 
 ## One real bounded worker attempt
 

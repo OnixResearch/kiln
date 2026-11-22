@@ -24,7 +24,11 @@ pub struct HostOwnerAdmitted {
     pub policy: ContentId,
     pub account: ContentId,
     pub queued: Vec<HostQueuedWork>,
-    /// Current ready work this registration does not admit; never queued.
+    /// Registered work the ledger did not queue (`queue_full`, `expired` or a
+    /// lineage blocker), with that reason.
+    pub not_queued: Vec<HostQueuedWork>,
+    /// Current ready work this registration or enrollment does not admit;
+    /// never queued.
     pub refused: Vec<HostRefusedWork>,
 }
 #[derive(Clone, Debug, Serialize)]
@@ -140,6 +144,7 @@ impl Implementer {
         self.admission_apply(AdmissionCommand::Root { account }, now_ms)?;
         let ledger = self.work()?;
         let mut queued = Vec::new();
+        let mut not_queued = Vec::new();
         let mut refused = Vec::new();
         for row in ledger.ranked() {
             let Some(work) = ledger
@@ -151,6 +156,11 @@ impl Implementer {
             if !self.enrollment.repositories.contains(&work.repository)
                 || !self.enrollment.actors.contains(&work.actor)
             {
+                refused.push(HostRefusedWork {
+                    work: row.identity.clone(),
+                    repository: work.repository.clone(),
+                    cause: "host_owner_unenrolled: work repository or actor is not enrolled".into(),
+                });
                 continue;
             }
             let class = match profile.work_class(work) {
@@ -169,17 +179,30 @@ impl Implementer {
                 AdmissionResult::Queued { reason } => reason,
                 other => return Err(format!("host owner: unexpected queue result {other:?}")),
             };
-            queued.push(HostQueuedWork {
+            let entry = HostQueuedWork {
                 work: row.identity.clone(),
                 repository: work.repository.clone(),
                 class,
                 reason,
-            });
+            };
+            if matches!(
+                reason,
+                AdmissionReason::QueueFull
+                    | AdmissionReason::Expired
+                    | AdmissionReason::Denied
+                    | AdmissionReason::Cancelled
+                    | AdmissionReason::CancellationRequested
+            ) {
+                not_queued.push(entry);
+            } else {
+                queued.push(entry);
+            }
         }
         Ok(HostOwnerAdmitted {
             policy,
             account: identity,
             queued,
+            not_queued,
             refused,
         })
     }
@@ -216,6 +239,10 @@ impl Implementer {
 
     /// Commit this owner's reservation for one exact current claim through the
     /// owner port. Replay returns the retained operation without a new request.
+    /// A tentative request left by an interrupted reserve is first resolved from
+    /// its own record (committed, or rejected/expired with refund) before the
+    /// work must be current or the generation must match, so a crash between
+    /// request and reply never wedges the slot.
     pub fn host_owner_reserve(
         &mut self,
         profile: &HostOwnerProfile,
@@ -223,34 +250,54 @@ impl Implementer {
         fence: u64,
         now_ms: u64,
     ) -> Result<HostOwnerReserved, String> {
-        let ledger = self.host_owner_ledger(profile)?;
+        let mut ledger = self.host_owner_ledger(profile)?;
         let attempts = self.attempts()?;
-        let current = attempts
-            .get(attempt)
-            .filter(|current| current.fence == fence)
-            .ok_or("host owner: attempt/fence is not retained")?;
-        let work = self
-            .work()?
-            .current()
-            .find(|work| work.identity().is_ok_and(|id| id == current.work_identity))
-            .cloned()
-            .ok_or("host owner: attempt work is not current")?;
+        let works = self.work()?;
         let claim = ClaimRef {
             attempt: attempt.clone(),
             fence,
         };
+        let current = attempts
+            .get(attempt)
+            .filter(|current| current.fence == fence);
+        let work = current.and_then(|current| {
+            works
+                .current()
+                .find(|work| work.identity().is_ok_and(|id| id == current.work_identity))
+        });
+        let interrupted = ledger
+            .reservations
+            .values()
+            .find(|r| {
+                r.provider == profile.owner.provider
+                    && r.claim == claim
+                    && r.state == ReservationState::Tentative
+            })
+            .cloned();
+        if let Some(pending) = interrupted {
+            let answer = if work.is_some() && attempts.is_current(attempt, fence, now_ms) {
+                HostLocalOwner::new(profile, ledger, now_ms).reserve(&pending)
+            } else {
+                Err(OwnerPortFailure::RejectedBeforeDispatch)
+            };
+            if let Ok(committed) = self.host_owner_answer(&pending, answer, now_ms)? {
+                return Ok(HostOwnerReserved::Committed {
+                    reservation: Box::new(committed),
+                });
+            }
+            ledger = self.admission_snapshot()?;
+        }
+        let current = current.ok_or("host owner: attempt/fence is not retained")?;
+        let work = work.ok_or("host owner: attempt work is not current")?;
         let request = match profile
-            .plan_reservation(&ledger, &work, &claim, current.lease_until_ms, now_ms)
+            .plan_reservation(&ledger, work, &claim, current.lease_until_ms, now_ms)
             .map_err(diagnostic)?
         {
-            HostReservationPlan::Retained(retained)
-                if retained.state != ReservationState::Tentative =>
-            {
+            HostReservationPlan::Retained(retained) => {
                 return Ok(HostOwnerReserved::Retained {
                     reservation: Box::new(retained),
                 });
             }
-            HostReservationPlan::Retained(retained) => retained,
             HostReservationPlan::Request(request) => {
                 match self.admission_apply(
                     AdmissionCommand::Request {
@@ -272,23 +319,38 @@ impl Implementer {
             }
         };
         let snapshot = self.admission_snapshot()?;
-        let mut owner = HostLocalOwner::new(profile, snapshot, now_ms);
-        let answer = owner.reserve(&request);
-        let result = self.admission_record_port_result(&request, answer, now_ms)?;
-        let retained = self
-            .admission_snapshot()?
-            .reservations
-            .get(&request.operation)
-            .cloned()
-            .ok_or("host owner: requested operation disappeared")?;
-        if retained.state != ReservationState::Committed {
-            return Err(format!(
-                "host owner: reservation not committed ({:?}): {result:?}",
-                retained.state
-            ));
+        let answer = HostLocalOwner::new(profile, snapshot, now_ms).reserve(&request);
+        match self.host_owner_answer(&request, answer, now_ms)? {
+            Ok(committed) => Ok(HostOwnerReserved::Committed {
+                reservation: Box::new(committed),
+            }),
+            Err(result) => Err(format!("host owner: reservation not committed: {result:?}")),
         }
-        Ok(HostOwnerReserved::Committed {
-            reservation: Box::new(retained),
+    }
+
+    /// Record the owner's answer; the committed reservation, or the ledger's
+    /// outcome when the owner refused or the grant arrived late.
+    fn host_owner_answer(
+        &mut self,
+        request: &OwnerReservation,
+        answer: Result<OwnerReply, OwnerPortFailure>,
+        now_ms: u64,
+    ) -> Result<Result<OwnerReservation, AdmissionResult>, String> {
+        let receipt = answer.as_ref().ok().map(|reply| reply.receipt.clone());
+        let result = self.admission_record_port_result(request, answer, now_ms)?;
+        Ok(match (receipt, &result) {
+            (
+                Some(receipt),
+                AdmissionResult::Owner {
+                    reason: AdmissionReason::Eligible,
+                },
+            ) => {
+                let mut committed = request.clone();
+                committed.state = ReservationState::Committed;
+                committed.receipt = Some(receipt);
+                Ok(committed)
+            }
+            _ => Err(result),
         })
     }
 

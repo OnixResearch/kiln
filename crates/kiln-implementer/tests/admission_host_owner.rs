@@ -227,7 +227,16 @@ fn second_work_beyond_host_capacity_is_refused() {
     let mut i = open(&dir.path().join("work.sqlite"));
     intake(&mut i, &[&first, &second]);
     assert_eq!(ok(i.host_owner_admit(&profile, NOW)).queued.len(), 2);
-    ok(i.host_owner_observe(&profile, NOW));
+    // One free slot invites only the first queued work.
+    let observed = ok(i.host_owner_observe(&profile, NOW));
+    assert_eq!(
+        observed
+            .observations
+            .iter()
+            .filter(|input| input.reason == kiln_core::fair_admission::AdmissionReason::Eligible)
+            .count(),
+        1
+    );
     let a = claim(&mut i, NOW + 1);
     reserved(ok(i.host_owner_reserve(
         &profile,
@@ -235,6 +244,21 @@ fn second_work_beyond_host_capacity_is_refused() {
         a.fence,
         NOW + 2,
     )));
+    // No claim is invited for the second work while the slot is held.
+    assert!(matches!(
+        ok(i.admission_apply(
+            Cmd::Claim {
+                inputs: Vec::new(),
+                lease_ms: LEASE_MS,
+            },
+            NOW + 3,
+        )),
+        AdmissionResult::Claimed { attempt: None }
+    ));
+    // A misregistered two-slot observation invites it; the owner still refuses.
+    let mut wide = profile.clone();
+    wide.owner.capacity = BTreeMap::from([(ok(kiln_core::types::Alias::new("worker_slots")), 2)]);
+    ok(i.host_owner_observe(&wide, NOW + 3));
     let b = claim(&mut i, NOW + 3);
     assert_ne!(a.work_identity, b.work_identity);
     refused(
@@ -353,12 +377,12 @@ fn restart_replay_neither_duplicates_nor_resets_and_release_needs_observation() 
     let retained = ok(ledger.reservations.get(&reservation.operation).ok_or(()));
     assert_eq!(retained.state, ReservationState::Settled);
     let root = ok(ledger.accounts.get(&account).ok_or(()));
-    // The slot's budget is consumed, never refunded.
+    // Cancelled before any dispatch intent: the slot returns without consumption.
     assert_eq!(
         root.available,
-        BTreeMap::from([(ok(kiln_core::types::Alias::new("worker_slots")), 3)])
+        BTreeMap::from([(ok(kiln_core::types::Alias::new("worker_slots")), 4)])
     );
-    assert_eq!(root.consumed, profile.per_work);
+    assert!(root.consumed.is_empty());
     drop(i);
     let mut i = open(&path);
     let again = ok(i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 17));
@@ -368,4 +392,192 @@ fn restart_replay_neither_duplicates_nor_resets_and_release_needs_observation() 
             .and_then(serde_json::Value::as_str),
         Some("already_settled")
     );
+}
+
+fn slots(n: u64) -> BTreeMap<kiln_core::types::Alias, u64> {
+    BTreeMap::from([(ok(kiln_core::types::Alias::new("worker_slots")), n)])
+}
+
+/// Admit, observe, claim and reserve one sandbox issue.
+fn reserved_attempt(
+    i: &mut Implementer,
+    profile: &HostOwnerProfile,
+    issue: &ImplementationWork,
+) -> (
+    ImplementationAttempt,
+    kiln_core::fair_admission::OwnerReservation,
+) {
+    intake(i, &[issue]);
+    ok(i.host_owner_admit(profile, NOW));
+    ok(i.host_owner_observe(profile, NOW));
+    let attempt = claim(i, NOW + 1);
+    let reservation = reserved(ok(i.host_owner_reserve(
+        profile,
+        &attempt.identity,
+        attempt.fence,
+        NOW + 2,
+    )));
+    (attempt, reservation)
+}
+
+/// The real dispatch sequence: plan reservation, owner-grant gate, transport
+/// intent, Lattice acknowledgement and execution observation.
+fn dispatch(i: &mut Implementer, attempt: &ImplementationAttempt, now: u64) {
+    let plan = ok(ContentId::from_blake3_hex("7".repeat(64)));
+    let provider = ok(kiln_core::types::ProviderProfileId::new(
+        "onix-local-pilot-omp",
+    ));
+    ok(i.reserve_dispatch(&attempt.identity, attempt.fence, now, &plan, &provider));
+    let observations = fresh(i, now);
+    ok(i.admission_before_transport(&attempt.identity, attempt.fence, &observations, now));
+    // Transport intent needs the sealed request bytes; the acknowledged
+    // workflow below is the possible-effect fact release must respect.
+    let workflow = ok(ExternalRef::new("lattice", "workflow", "pilot-run-1"));
+    ok(i.start_execution(&attempt.identity, attempt.fence, now, &workflow));
+    ok(i.admission_execution_observed(&attempt.identity, attempt.fence, now));
+}
+
+fn reservation_state(
+    i: &mut Implementer,
+    reservation: &kiln_core::fair_admission::OwnerReservation,
+) -> ReservationState {
+    ok(ok(i.admission_snapshot())
+        .reservations
+        .get(&reservation.operation)
+        .map(|r| r.state)
+        .ok_or(()))
+}
+
+#[test]
+fn superseded_dispatched_holder_keeps_its_slot_until_termination_is_observed() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
+    dispatch(&mut i, &attempt, NOW + 3);
+    // A newer issue revision aborts the attempt without observing its worker.
+    let mut newer = issue.clone();
+    newer.revision = 2;
+    newer.title = "issue 1, edited".into();
+    ok(i.admit_with_supersession(&newer, None, SupersessionRule::AbortActive, NOW + 4));
+    refused(
+        i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 5),
+        "host_owner_release_unobserved",
+    );
+    assert_eq!(
+        reservation_state(&mut i, &reservation),
+        ReservationState::Committed
+    );
+    // An independent termination observation then releases and consumes it.
+    let stopped = ok(ExternalRef::new("lattice", "termination", "pilot-run-1"));
+    ok(i.reconcile_unknown(&attempt.identity, attempt.fence, &stopped));
+    ok(i.host_owner_release(&profile, &attempt.identity, attempt.fence, NOW + 6));
+    let ledger = ok(i.admission_snapshot());
+    let root = ok(ledger
+        .accounts
+        .get(&ok(profile.account_identity()))
+        .ok_or(()));
+    assert_eq!(root.available, slots(3));
+    assert_eq!(root.consumed, slots(1));
+}
+
+#[test]
+fn lease_expired_acknowledged_holder_keeps_its_slot() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, reservation) = reserved_attempt(&mut i, &profile, &issue);
+    dispatch(&mut i, &attempt, NOW + 3);
+    let recovery = ok(i.recover(attempt.lease_until_ms + 1));
+    assert!(recovery.expired.contains(&attempt.identity));
+    refused(
+        i.host_owner_release(
+            &profile,
+            &attempt.identity,
+            attempt.fence,
+            attempt.lease_until_ms + 2,
+        ),
+        "host_owner_release_unobserved",
+    );
+    assert_ne!(
+        reservation_state(&mut i, &reservation),
+        ReservationState::Settled
+    );
+}
+
+#[test]
+fn dispatch_refuses_a_held_grant_after_a_generation_bump() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    let (attempt, _) = reserved_attempt(&mut i, &profile, &issue);
+    let mut bumped = profile.clone();
+    bumped.owner.generation = 2;
+    ok(i.host_owner_observe(&bumped, NOW + 3));
+    let observations = fresh(&mut i, NOW + 4);
+    refused(
+        i.admission_before_transport(&attempt.identity, attempt.fence, &observations, NOW + 4),
+        "grant generation, eligibility or freshness changed",
+    );
+}
+
+#[test]
+fn interrupted_reserve_is_resolved_from_its_own_record() {
+    let dir = ok(tempfile::tempdir());
+    let profile = profile();
+    let issue = work(&profile, SANDBOX, 1);
+    let mut i = open(&dir.path().join("work.sqlite"));
+    intake(&mut i, &[&issue]);
+    ok(i.host_owner_admit(&profile, NOW));
+    ok(i.host_owner_observe(&profile, NOW));
+    let attempt = claim(&mut i, NOW + 1);
+    let claim_ref = kiln_core::fair_admission::ClaimRef {
+        attempt: attempt.identity.clone(),
+        fence: attempt.fence,
+    };
+    // Crash after the tentative request committed, before the owner replied.
+    let snapshot = ok(i.admission_snapshot());
+    let kiln_core::fair_admission::HostReservationPlan::Request(pending) = ok(profile
+        .plan_reservation(
+            &snapshot,
+            &issue,
+            &claim_ref,
+            attempt.lease_until_ms,
+            NOW + 2,
+        ))
+    else {
+        unreachable!("fresh claim plans a request")
+    };
+    ok(i.admission_apply(
+        Cmd::Request {
+            reservation: pending.clone(),
+            inputs: Vec::new(),
+        },
+        NOW + 2,
+    ));
+    // The registration then changes generation; the stale request is rejected
+    // with refund and a fresh request of the new generation is committed.
+    let mut bumped = profile.clone();
+    bumped.owner.generation = 2;
+    ok(i.host_owner_observe(&bumped, NOW + 3));
+    let committed = reserved(ok(i.host_owner_reserve(
+        &bumped,
+        &attempt.identity,
+        attempt.fence,
+        NOW + 4,
+    )));
+    assert_eq!(committed.generation, 2);
+    assert_eq!(
+        reservation_state(&mut i, &pending),
+        ReservationState::Rejected
+    );
+    let ledger = ok(i.admission_snapshot());
+    let root = ok(ledger
+        .accounts
+        .get(&ok(profile.account_identity()))
+        .ok_or(()));
+    assert_eq!(root.available, slots(3));
 }

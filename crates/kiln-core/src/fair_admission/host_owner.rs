@@ -12,8 +12,11 @@
 //! The only capacity this owner can grant is its declared registration, and its
 //! only occupancy is the set of reservations the ledger retains for it. It never
 //! reports remote, provider or serving capacity. A slot is released only when the
-//! attempt ledger shows the holding attempt terminal and resolved; elapsed time,
-//! restart and replay never free a slot or refund budget.
+//! attempt ledger shows the holding attempt terminal and resolved and, once
+//! transport may have started, its worker observed stopped (a reconciled
+//! termination or a retained candidate). Supersession, lease expiry, elapsed
+//! time, restart and replay never free a slot or refund budget; a reservation
+//! that provably never reached transport is returned without consumption.
 use super::{
     ADMISSION_VERSION, AdmissionLedger, AdmissionPhase, AdmissionPolicy, AdmissionReason, Amounts,
     BudgetAccount, ChargeKind, ClaimRef, EligibilityInput, MAX_DIMENSIONS, MAX_RECORDS, OwnerReply,
@@ -341,29 +344,46 @@ impl HostOwnerProfile {
         })
     }
     /// One fresh eligibility observation per open queued work that needs this
-    /// owner. Work that does not fit the free registered capacity waits.
+    /// owner. Holders stay eligible; other work is eligible only while a free
+    /// registered slot remains (claimed rows first, then durable queue order),
+    /// so no claim is invited that the owner would then refuse.
     pub fn eligibility(
         &self,
         ledger: &AdmissionLedger,
         now_ms: u64,
     ) -> CoreResult<Vec<EligibilityInput>> {
         let occupied = self.occupied(ledger, None)?;
-        let fits = self.fits(&add(&occupied, &self.per_work)?);
-        let mut inputs = Vec::new();
-        for item in ledger.items.values() {
-            if item.required_owners.get(&self.owner.provider) != Some(&ChargeKind::Execution)
-                || !matches!(
-                    item.phase,
-                    AdmissionPhase::PreClaim | AdmissionPhase::PostClaim | AdmissionPhase::Reserved
-                )
-                || now_ms >= item.deadline_ms
-            {
-                continue;
-            }
-            let holds = self.holder(ledger, &item.work_version).is_some();
+        let mut free: Amounts = self
+            .owner
+            .capacity
+            .iter()
+            .map(|(dimension, capacity)| {
+                let held = occupied.get(dimension).copied().unwrap_or(0);
+                (dimension.clone(), capacity.saturating_sub(held))
+            })
+            .collect();
+        let mut rows: Vec<&QueueItem> = ledger
+            .items
+            .values()
+            .filter(|item| {
+                item.required_owners.get(&self.owner.provider) == Some(&ChargeKind::Execution)
+                    && matches!(
+                        item.phase,
+                        AdmissionPhase::PreClaim
+                            | AdmissionPhase::PostClaim
+                            | AdmissionPhase::Reserved
+                    )
+                    && now_ms < item.deadline_ms
+            })
+            .collect();
+        rows.sort_by_key(|item| (item.claim.is_none(), item.order));
+        let mut inputs = Vec::with_capacity(rows.len());
+        for item in rows {
+            let eligible =
+                self.holder(ledger, &item.work_version).is_some() || self.take(&mut free);
             inputs.push(EligibilityInput {
                 work_version: item.work_version.clone(),
-                reason: if holds || fits {
+                reason: if eligible {
                     AdmissionReason::Eligible
                 } else {
                     AdmissionReason::Waiting
@@ -521,8 +541,13 @@ impl HostOwnerProfile {
             serving_bounds: None,
         }))
     }
-    /// Settle one claim's reservation only after the attempt ledger records the
-    /// holding attempt terminal and resolved. The slot is consumed, not refunded.
+    /// Settle one claim's reservation after the attempt ledger records the
+    /// holding attempt terminal and resolved. A reservation that provably never
+    /// reached transport (no dispatch intent, transport start or workflow) is
+    /// returned without consuming the slot. Once transport may have started,
+    /// release also needs an observed worker stop: a reconciled termination
+    /// observation or an admitted candidate handoff. Supersession or lease
+    /// expiry alone never frees the slot; the slot's budget is then consumed.
     pub fn plan_release(
         &self,
         ledger: &AdmissionLedger,
@@ -554,9 +579,26 @@ impl HostOwnerProfile {
         let attempt = attempts
             .get(&claim.attempt)
             .filter(|attempt| attempt.fence == claim.fence);
+        let dispatched = reservation.state == ReservationState::Unknown
+            || ledger
+                .items
+                .get(&reservation.work_version)
+                .is_some_and(|item| {
+                    matches!(
+                        item.phase,
+                        AdmissionPhase::DispatchIntent | AdmissionPhase::Executing
+                    )
+                })
+            || attempts.dispatch_requires_recovery(&claim.attempt)
+            || attempt.is_none_or(|attempt| attempt.workflow.is_some());
         let observed = attempt.and_then(|attempt| {
+            let stopped = !dispatched
+                || attempts.termination_observed(&attempt.identity)
+                || attempt.handoff.is_some()
+                || attempt.candidate.is_some();
             (reservation.state != ReservationState::Tentative
                 && attempt.phase.is_terminal()
+                && stopped
                 && !attempts
                     .unresolved()
                     .any(|unresolved| unresolved.identity == attempt.identity))
@@ -566,7 +608,7 @@ impl HostOwnerProfile {
         let Some(ended_at_ms) = observed else {
             return Err(err(
                 "host_owner_release_unobserved",
-                "release needs a granted reservation whose attempt is observed terminal and resolved",
+                "release needs a granted reservation whose attempt is observed terminal, resolved and, after possible transport, observed stopped",
             ));
         };
         Ok(HostReleasePlan::Settle {
@@ -576,9 +618,13 @@ impl HostOwnerProfile {
             receipt: tagged(
                 "kiln.host-owner.release.v1",
                 &[reservation.operation.as_str(), claim.attempt.as_str()],
-                &[claim.fence, ended_at_ms],
+                &[claim.fence, ended_at_ms, u64::from(dispatched)],
             )?,
-            consumed: reservation.amounts.clone(),
+            consumed: if dispatched {
+                reservation.amounts.clone()
+            } else {
+                Amounts::new()
+            },
         })
     }
     /// Deterministic per-claim operation. A safely refused earlier operation of
@@ -657,9 +703,30 @@ impl HostOwnerProfile {
                         | ReservationState::Unknown
                 )
         }) {
-            held = add(&held, &r.amounts)?;
+            for (dimension, amount) in &r.amounts {
+                let total = held.entry(dimension.clone()).or_insert(0);
+                *total = total
+                    .checked_add(*amount)
+                    .ok_or_else(|| err("admission_arithmetic", "host occupancy overflow"))?;
+            }
         }
         Ok(held)
+    }
+    /// Take one work's amounts from `free` when they fit.
+    fn take(&self, free: &mut Amounts) -> bool {
+        if !self
+            .per_work
+            .iter()
+            .all(|(dimension, amount)| free.get(dimension).is_some_and(|left| left >= amount))
+        {
+            return false;
+        }
+        for (dimension, amount) in &self.per_work {
+            if let Some(left) = free.get_mut(dimension) {
+                *left -= amount;
+            }
+        }
+        true
     }
     fn fits(&self, demand: &Amounts) -> bool {
         demand.iter().all(|(dimension, amount)| {

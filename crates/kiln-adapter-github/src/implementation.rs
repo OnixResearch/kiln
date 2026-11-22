@@ -101,12 +101,13 @@ pub struct ImplementationIssuePolicy {
 }
 
 impl ImplementationIssuePolicy {
-    /// Whether one open issue is admitted as work under this policy.
+    /// Whether one open issue is admitted as work under this policy. Callers
+    /// validate the selection once per intake pass; each issue's labels are
+    /// bounded here.
     pub fn selects(&self, number: u64, labels: &[String]) -> PortResult<bool> {
         match &self.selection {
             None => Ok(true),
             Some(selection) => {
-                selection.validate()?;
                 if labels.len() > MAX_ISSUE_LABELS || labels.iter().any(|l| !valid_label(l)) {
                     return Err(invalid_issue());
                 }
@@ -243,6 +244,9 @@ pub fn admit_implementation_issue(
     }
     let action = match envelope.action.as_str() {
         "opened" | "edited" | "reopened" | "closed" => envelope.action.as_str(),
+        // Under an explicit selection, adding a selected label is an admission
+        // trigger; the sender must still be enrolled below.
+        "labeled" if policy.selection.is_some() => envelope.action.as_str(),
         _ => return Ok(None),
     };
     if envelope.issue.number == 0 {
@@ -658,6 +662,30 @@ mod tests {
             admit(&by_label, &closed),
             Ok(Some(IssueAdmission::Closed { .. }))
         ));
+        // Adding a selected label admits the issue; without a selection the
+        // event stays ignored, and an unenrolled labeller is refused.
+        let labeled = |sender: &str| {
+            serde_json::to_vec(&serde_json::json!({
+                "action": "labeled",
+                "repository": {"id": 42, "name": "kiln", "owner": {"login": "OnixResearch"}},
+                "sender": {"login": sender},
+                "label": {"name": "kiln-pilot"},
+                "issue": {
+                    "number": 46,
+                    "title": "Newly labelled pilot issue",
+                    "state": "open",
+                    "updated_at": "2026-11-11T11:00:00Z",
+                    "labels": [{"name": "kiln-pilot"}]
+                }
+            }))
+            .unwrap_or_else(|_| unreachable!())
+        };
+        assert!(matches!(
+            admit(&by_label, &labeled("operator")),
+            Ok(Some(IssueAdmission::Work(_)))
+        ));
+        assert!(matches!(admit(&policy(), &labeled("operator")), Ok(None)));
+        assert!(admit(&by_label, &labeled("stranger")).is_err());
         let mut empty = policy();
         empty.selection = Some(IssueSelection::default());
         assert!(admit(&empty, &unlabelled).is_err());

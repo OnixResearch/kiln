@@ -921,7 +921,19 @@ fn host_owner_commands_admit_claim_and_reserve_the_sandbox_issue() {
     let database = directory.path().join("work.sqlite");
     let enrollment_file = directory.path().join("enrollment.json");
     let profile_file = directory.path().join("host-owner.json");
-    write(&profile_file, PROFILE.as_bytes());
+    // A deadline relative to the wall clock the binary reads, never a fixed date.
+    let mut profile = profile;
+    profile.deadline_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_else(|_| unreachable!())
+        .as_millis()
+        .try_into()
+        .map(|now: u64| now + 86_400_000)
+        .unwrap_or_else(|_| unreachable!());
+    write(
+        &profile_file,
+        &serde_json::to_vec(&profile).unwrap_or_else(|_| unreachable!()),
+    );
     let sandbox = "onixresearch/implementer-sandbox";
     let enrollment = Enrollment {
         repositories: BTreeSet::from([sandbox.to_string()]),
@@ -1006,6 +1018,9 @@ fn host_owner_commands_admit_claim_and_reserve_the_sandbox_issue() {
         .output()
         .unwrap_or_else(|_| unreachable!());
     assert!(!unauthorized.status.success());
+    // The refused claim left no attempt behind.
+    let status = json_output(&run_implementer(&["status"], &database, &enrollment_file));
+    assert_eq!(status.get("attempts"), Some(&serde_json::json!(0)));
     let attempt = json_output(&run_implementer(&["claim"], &database, &enrollment_file));
     assert_eq!(text(&attempt, "/work_identity"), identity.as_str());
     let attempt_id = text(&attempt, "/identity");

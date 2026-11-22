@@ -1,0 +1,35 @@
+{
+  "change": "connect-host-local-admission-owner",
+  "review": "review_1 (history://AdmissionReview, hold on ff7de769)",
+  "date": "2026-11-22",
+  "base": "ff7de769",
+  "resolved": {
+    "P1": "Release refuses once transport may have started (unknown reservation, dispatch-intent/executing queue row, transport start or recorded workflow) until the worker is observed stopped: a reconciled termination observation or a retained candidate. supersede(AbortActive) of an attempt with started transport and no candidate marks it Unknown, so reconcile-termination can resolve it and release then consumes the slot. Tests: superseded dispatched holder keeps its slot until termination is reconciled; lease-expired acknowledged holder keeps its slot.",
+    "P2": "Removed vendor/{artifact,cairn,cairn-kiln-core,cairn-verifier,valence}/Cargo.lock and vendor/ucan/vendor/verified-logic/Cargo.lock; vendor/ equals 203296d4.",
+    "P3": "Interrupted tentative request resolved from its own record before currentness/generation checks (test); CLI test deadline is relative to the wall clock; 'labeled' admits under an explicit selection with an enrolled sender (test).",
+    "notes": "Never-dispatched release returns the slot without consumption; eligibility capped at free slots; host-owner-admit lists not_queued and unenrolled refused work; docs state --local-operator is an opt-in guard, not authentication; added quota-dimension negative, unauthorized-claim-leaves-no-attempt and generation-bump dispatch refusal tests; reserve loads the ledger twice (not three times), occupancy accumulates in place, selection validated once per intake pass."
+  },
+  "open_operational_limits": [
+    "Lease expiry of an acknowledged attempt is unchanged (owned by Kiln #45): expire() does not mark it Unknown, so reconcile-termination cannot bind it. Host-owner release of such a holder is refused and its slot stays held until termination is reconciled outside this flow."
+  ],
+  "pinned_source_verification": {
+    "script": "scripts/import-pinned-source.sh",
+    "verified": ["artifact", "ucan"],
+    "refused_identically_on_base_203296d4": {
+      "cairn": "source record disagrees with importer pin",
+      "valence": "source record disagrees with importer pin"
+    },
+    "not_verified_no_local_checkout": ["cairn-verifier", "cairn-kiln-core"]
+  },
+  "commands": [
+    { "command": "scripts/check-nickel-fixtures.sh", "exit": 0, "result": "102 positive, 649 negative", "ran": "before the final attempt.rs revert" },
+    { "command": "nix build --option builders '' path:$PWD#checks.x86_64-linux.octet", "exit": 0, "result": "clean, 0 findings", "ran": "before the final attempt.rs revert" },
+    { "command": "cairn validate --policy cairn-policy/generated/cairn-policy.json", "exit": 0, "ran": "before the final attempt.rs revert; rerun after this evidence correction" },
+    { "command": "cairn gate proposal|design|tasks connect-host-local-admission-owner", "exit": 0, "result": "PASS", "ran": "before the final attempt.rs revert; rerun after this evidence correction" },
+    { "command": "cairn traceability coverage --json", "exit": 1, "result": "requirements 2152, referenced 2119, missing 33, dangling 9; base 203296d4 missing 33, dangling 9; none new", "ran": "before the final attempt.rs revert" },
+    { "command": "gitleaks dir over 50 changed paths since 203296d4", "exit": 0, "result": "no leaks", "ran": "before the final attempt.rs revert; evidence file rescanned after this correction" },
+    { "command": "cargo fmt --all -- --check", "exit": 0, "ran": "after the final attempt.rs revert" },
+    { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0, "ran": "after the final attempt.rs revert" },
+    { "command": "cargo test --locked --workspace --no-fail-fast (short PATH)", "exit": 0, "result": "2389 passed, 0 failed, 16 ignored", "ran": "after the final attempt.rs revert" }
+  ]
+}

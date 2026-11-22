@@ -98,7 +98,7 @@ r[kiln.admission.profiles.scenario.exports]
 
 ### Requirement: Registered host-local owner
 
-r[kiln.admission.host_owner] For one explicitly registered host-local owner, Kiln MUST derive the admission policy, finite root account, queue rows, usage and eligibility observations, per-claim reservation and owner reply from the reviewed registration through the existing ledger transitions and owner port, with no second queue, scheduler or capacity ledger. The owner MUST grant only its declared capacity against the reservations the ledger retains for it and MUST NOT report remote, provider or serving capacity. Unregistered repositories or work classes, a crossed claim, a stale or other-generation observation, a second reservation for the same work and a request beyond capacity MUST be refused before any grant. Replay and restart MUST NOT duplicate a reservation or reset a budget, and a reservation MUST be settled only after the holding attempt is observed terminal and resolved.
+r[kiln.admission.host_owner] For one explicitly registered host-local owner, Kiln MUST derive the admission policy, finite root account, queue rows, usage and eligibility observations, per-claim reservation and owner reply from the reviewed registration through the existing ledger transitions and owner port, with no second queue, scheduler or capacity ledger. The owner MUST grant only its declared capacity against the reservations the ledger retains for it, MUST NOT invite more eligible work than its free capacity, and MUST NOT report remote, provider or serving capacity. Unregistered repositories or work classes, a crossed claim, a stale or other-generation observation, a second reservation for the same work and a request beyond capacity MUST be refused before any grant, and an interrupted tentative request MUST be resolved from its own record. Replay and restart MUST NOT duplicate a reservation or reset a budget. A reservation MUST be settled only after the holding attempt is observed terminal and resolved; one that provably never reached transport MUST return without consumption, and once transport may have started the worker MUST be observed stopped, so supersession or lease expiry alone MUST NOT free the slot.
 
 #### Scenario: Sandbox reservation passes the dispatch gate
 
@@ -122,7 +122,8 @@ r[kiln.admission.host_owner.scenario.replay]
 - GIVEN a committed host reservation and a store that is reopened
 - WHEN admit, observe and reserve run again, or a larger quota is registered
 - THEN the retained operation MUST be returned without a new request, the account and quota MUST be unchanged, and the larger quota MUST be refused
-- AND release MUST be refused until the attempt is observed terminal, then consume the slot without refund exactly once
+- AND release MUST be refused until the attempt is observed terminal, then return a never-dispatched slot without consumption exactly once
+- AND a superseded or lease-expired dispatched holder MUST keep its slot until a termination observation is reconciled
 
 ### Requirement: Typed host-owner registration
 

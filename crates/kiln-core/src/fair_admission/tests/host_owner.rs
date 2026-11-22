@@ -167,6 +167,9 @@ fn rust_readmission_refuses_what_the_contract_refuses() {
         .ok_or(()))
     .name = alias("bug");
     assert_eq!(code(class.validate()), "host_owner_profile");
+    let mut quota = profile();
+    quota.quota = BTreeMap::from([(alias("cpu_ms"), 4)]);
+    assert_eq!(code(quota.validate()), "host_owner_profile");
     let mut generation = profile();
     generation.owner.generation = 0;
     assert_eq!(code(generation.validate()), "host_owner_profile");
@@ -257,7 +260,26 @@ fn second_work_beyond_registered_capacity_is_refused_and_waits() {
     let profile = two_active();
     let first = sandbox(&profile, 1);
     let second = sandbox(&profile, 2);
-    let mut ledger = admitted(&profile, &[&first, &second]);
+    // Eligibility is capped at the one free slot: only the first queued work
+    // is invited.
+    let mut capped = AdmissionLedger::default();
+    ok(capped.configure(ok(profile.policy())));
+    ok(capped.add_root(ok(profile.root_account())));
+    for work in [&first, &second] {
+        ok(capped.enqueue(ok(profile.queue_item(work, NOW)), NOW));
+    }
+    let invited = ok(profile.eligibility(&capped, NOW));
+    assert_eq!(
+        invited
+            .iter()
+            .filter(|input| input.reason == AdmissionReason::Eligible)
+            .count(),
+        1
+    );
+    // A misregistered two-slot view invited both; the real owner still refuses.
+    let mut wide = profile.clone();
+    wide.owner.capacity = BTreeMap::from([(alias("worker_slots"), 2)]);
+    let mut ledger = admitted(&wide, &[&first, &second]);
     let (a, b) = (claim("attempt-1"), claim("attempt-2"));
     ok(ledger.bind_claim(&ok(first.identity()), a.clone()));
     ok(ledger.bind_claim(&ok(second.identity()), b.clone()));
