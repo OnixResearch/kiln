@@ -8,4 +8,6 @@
 ## Phase 2: Restricted runtime
 
 - [x] [serial] [depends:kiln.source.projection.route] Dispatch the two-project Cargo and Nix corpora through `kiln-lattice-dispatch` to the real Lattice binary under bubblewrap, run each planned build, record the confinement negatives and capture the overlay into facts. r[kiln.source.projection.runtime] r[kiln.source.projection.runtime.scenario.qualified] r[kiln.source.projection.runtime.scenario.confined]
-- [ ] [serial] Document routes, the runtime and writeback v2 in the operator guide, close the non-authority half of `materialize-projected-workspaces`, and run the gates. r[kiln.source.projection.route]
+- [x] [serial] Document routes, the runtime and writeback v2 in the operator guide, close the non-authority half of `materialize-projected-workspaces`, and run the gates. r[kiln.source.projection.route]
+
+Evidence: `evidence/verification.txt` (gates, toolchain, Cairn binary and policy) and `evidence/projected-runtime-receipt.json` (the restricted-runtime run).
