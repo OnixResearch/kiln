@@ -4048,6 +4048,32 @@ For the same commits, each file therefore carries the rows or the named
 fallback that `base=<baseline revision>&mode=structural` shows. No grammar runs
 in the browser.
 
+##### Related work: `pithings/unkernel` (preview-engine comparison only)
+
+[unkernel](https://github.com/pithings/unkernel) (pinned at
+`83c65c3cb496737390ed002eceac18de0db1f6a8`) compiles Linux 7.3.4 itself to
+WebAssembly and runs unmodified AArch64 user space on a Zig user-mode CPU
+(`kwemu`). The pinned TryNix QEMU-WASM engine (`trynix-startvm-v1`) remains the
+only supported browser preview engine in Kiln.
+
+- **Not a job-isolation backend:** unkernel is not a Kiln `VmmBackend` or
+  hosted runner and must not be used for Firecracker, Cloud Hypervisor, QEMU,
+  Unikraft, untrusted pull-request, fleet/Herdr worktree, or verifier
+  execution. Hosted no-KVM fallback stays on `kind = "qemu"` with
+  `acceleration = "tcg"`, and untrusted pull-request runs require
+  `kind = "firecracker"` with `untrusted_capable = true` and host confinement
+  (seccomp/Landlock/no-new-privs).
+- **ISA, network, and license boundaries:** Kiln's preview products today are
+  `x86_64-linux` whereas `kwemu` targets AArch64 user space only; Kiln previews
+  enforce `network_access: false` (unkernel's optional Wisp network is not
+  admitted); and unkernel splits licenses between GPL-2.0-or-later /
+  GPL-2.0-only (kernel, patches, `kwemu`) and MIT (JavaScript SDK).
+- **Precondition for any future spike:** No preview, CI, review, or merge
+  behaviour changes here. Any later engine spike must be a separate default-off
+  issue with its own protocol, started only after the ISA precondition is met
+  (either Kiln admits `aarch64-linux` preview products or an `x86_64` user-mode
+  WASM CPU exists) and measured against TryNix clean/warm boot times.
+
 The record binds the comparison identity, both commits, its settings and every
 file's outcome, plus fixed display-only provenance, under a domain-tagged BLAKE3
 identity. The settings are the preview and engine rule versions, the bounds,
