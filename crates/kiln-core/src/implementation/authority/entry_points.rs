@@ -26,9 +26,14 @@
 //!   values: no attempt phase, lease, fence or claim changes, and authority
 //!   decisions live in the separate authority state file they never open.
 //! - `OperatorConfig`: composition, source intake, admission and fleet ledger
-//!   maintenance, and durable intents that cause no external effect. The
-//!   deployment authenticates these outside implementation authority; the
-//!   effect an intent prepares is admitted at its own boundary.
+//!   maintenance, durable intents that cause no external effect, and CLI
+//!   records or settlements that check no authority. The deployment
+//!   authenticates these outside implementation authority; the effect an
+//!   intent prepares is admitted at its own boundary.
+//!
+//! An entry point loads the holder seeds of the operations its `Protected`
+//! and `Reconcile` rows name ([`super::entry_point_roles`]), so a row names
+//! an operation only when the entry point checks it.
 
 use super::{EntryClass, EntryPoint, ProtectedOperation as Op};
 
@@ -277,10 +282,14 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     protected(CLI, "recover-integration", Op::PublicationPublish),
     protected(CLI, "close-source", Op::PublicationPublish),
     observe(CLI, "source-status"),
-    reconcile(CLI, "metrics", Op::Dispatch),
+    // `metrics`, `reconcile-termination` and `host-owner-release` record a
+    // fence-checked worker metric or provider termination, or settle an
+    // already-ended owner reservation. They check no authority, so they load
+    // no holder seed and work without one.
+    operator(CLI, "metrics"),
     observe(CLI, "metrics-report"),
     operator(CLI, "recover"),
-    reconcile(CLI, "reconcile-termination", Op::Dispatch),
+    operator(CLI, "reconcile-termination"),
     operator(CLI, "attach-needs"),
     observe(CLI, "needs"),
     protected(CLI, "admission", Op::ClaimAcquire),
@@ -290,7 +299,7 @@ pub const ENTRY_POINTS: &[EntryPoint] = &[
     operator(CLI, "host-owner-admit"),
     operator(CLI, "host-owner-observe"),
     protected(CLI, "host-owner-reserve", Op::Dispatch),
-    reconcile(CLI, "host-owner-release", Op::Dispatch),
+    operator(CLI, "host-owner-release"),
     // Applies a typed command file to the campaign store; the campaign's
     // protected effects are admitted when the drive performs them.
     operator(CLI, "campaign"),

@@ -554,9 +554,11 @@ fn cli_subcommands(source: &str) -> BTreeMap<String, Option<String>> {
     subcommands
 }
 
-/// The operations an `Implementer` method's reviewed rows name, and those of
-/// every public method it calls on `self`. The rows are the reviewed bound:
-/// the first coverage test proves each body checks only what its rows name.
+/// The operations an `Implementer` method checks: those its `Protected` rows
+/// name (the first coverage test proves each body reaches them) and those its
+/// `Reconcile` rows name that its body actually reaches, plus those of every
+/// public method it calls on `self`. A `Reconcile` row that only records a
+/// fence-checked outcome checks nothing.
 ///
 /// A multiplexed method (one with an `OperatorConfig` row beside protected
 /// rows, such as `admission_apply`) is not followed from another method: the
@@ -578,7 +580,15 @@ fn method_operations(
         ENTRY_POINTS
             .iter()
             .filter(|entry| entry.path == path && entry.item == method)
-            .filter_map(|entry| entry.class.operation()),
+            .filter_map(|entry| match entry.class {
+                EntryClass::Protected(operation) => Some(operation),
+                EntryClass::Reconcile(operation)
+                    if implementer.reaches(body, operation, &mut BTreeSet::new()) =>
+                {
+                    Some(operation)
+                }
+                _ => None,
+            }),
     );
     for callee in calls(body, "self.") {
         let rows: Vec<EntryClass> = implementer
@@ -649,6 +659,7 @@ fn every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches() {
     let implementer = implementer();
     let subcommands = cli_subcommands(&source);
     let mut missing = Vec::new();
+    let mut unchecked = Vec::new();
     for (subcommand, handler) in &subcommands {
         let Some(handler) = handler else {
             continue;
@@ -672,16 +683,36 @@ fn every_cli_subcommand_loads_the_holder_role_of_every_check_it_reaches() {
             .filter(|(_, other)| other.as_deref() == Some(handler.as_str()))
             .flat_map(|(other, _)| entry_point_roles(ENTRY_POINTS, IMPLEMENTER_CLI, other))
             .collect();
+        let checked: BTreeSet<GrantRole> = reached.iter().copied().map(GrantRole::of).collect();
         missing.extend(
             reached
                 .into_iter()
                 .filter(|operation| !loaded.contains(&GrantRole::of(*operation)))
                 .map(|operation| format!("`{subcommand}` reaches {operation:?}")),
         );
+        // A subcommand with its own handler loads no seed for a role none of
+        // its checks needs: a cleanup command works without the seed.
+        let own_handler = subcommands
+            .values()
+            .filter(|other| other.as_deref() == Some(handler.as_str()))
+            .count()
+            == 1;
+        if own_handler {
+            unchecked.extend(
+                entry_point_roles(ENTRY_POINTS, IMPLEMENTER_CLI, subcommand)
+                    .into_iter()
+                    .filter(|role| !checked.contains(role))
+                    .map(|role| format!("`{subcommand}` loads {role:?}")),
+            );
+        }
     }
     assert!(
         missing.is_empty(),
         "subcommands reach checks whose holder role they do not load: {missing:?}"
+    );
+    assert!(
+        unchecked.is_empty(),
+        "subcommands load holder seeds no check of theirs needs: {unchecked:?}"
     );
 }
 
