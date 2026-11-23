@@ -275,7 +275,7 @@ impl LocalFixtureOwner {
             receipt: request.operation.clone(),
             state,
             retry_at_ms: None,
-            serving_bounds: None,
+            serving_bounds: request.serving_bounds.clone(),
         }
     }
 }
@@ -372,7 +372,18 @@ fn reserve_local_fixture(
         kind: ChargeKind::WorkerRequest,
         subject,
         accounting_basis: policy.accounting_basis.clone(),
-        serving_bounds: None,
+        // Worker requests need finite owner-aggregate serving bounds: one
+        // local request in flight, none queued.
+        serving_bounds: Some(kiln_core::fair_admission::ServingBounds {
+            scope: ContentId::from_blake3_hex(
+                blake3::hash(b"kiln-scripted-local-serving-scope")
+                    .to_hex()
+                    .to_string(),
+            )
+            .map_err(|e| format!("{}: {}", e.code, e.message))?,
+            max_ongoing: 1,
+            max_queued: 0,
+        }),
         amounts: local_amounts()?,
         expires_at_ms: item.deadline_ms.min(attempt.lease_until_ms),
         state: kiln_core::fair_admission::ReservationState::Tentative,
@@ -640,6 +651,9 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .filter(|n| *n > 0)
         .ok_or("fence must be positive")?;
     let mut owner = Implementer::open(&required(flags, "--database")?, enrollment.clone())?;
+    // The synthetic local fixture runs under the explicit local-operator
+    // profile of its one enrolled operator (`fixture_scope`).
+    owner.select_local_operator("operator")?;
     let now = clock_ms()?;
     let actual = owner.authorize_current(&attempt, fence, now)?;
     let work = owner
