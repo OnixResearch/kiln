@@ -7,7 +7,7 @@ Defines the `iroh-workflow-transport` capability.
 ## Requirements
 
 ### Requirement: Versioned execution transport profile
-r[kiln.iroh.workflow.profile] Kiln MUST pin Iroh 0.95.1 and ALPN `kiln.workflow.v1`, admit explicit stable identities, peer/relay policy, native Lattice contract profile, private local socket and positive finite frame/log/concurrency/deadline bounds before opening an execution connection. Core CI crates MUST remain provider-neutral.
+r[kiln.iroh.workflow.profile] Kiln MUST pin Iroh 1.1.0 and ALPN `kiln.workflow.v1`, admit explicit stable identities, peer/relay policy, native Lattice contract profile, private local socket and positive finite frame/log/concurrency/deadline bounds before opening an execution connection. Core CI crates MUST remain provider-neutral.
 
 #### Scenario: Admitted profile
 r[kiln.iroh.workflow.profile.scenario.valid]
