@@ -252,10 +252,6 @@ impl Implementer {
         let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
         let (mut attempts, attempt_version) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
         let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
-        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
-            &tx,
-            crate::TRANSPORT_LAUNCH_KIND,
-        )?;
         let authority_slot = &mut self.authority;
         let authority_profile = &self.authority_profile;
         let result = (|| -> Result<AdmissionResult, Diagnostic> {
@@ -529,7 +525,6 @@ impl Implementer {
                             authorize_owner_request(
                                 &work,
                                 &attempts,
-                                &launches,
                                 authority_slot,
                                 authority_profile,
                                 retained,
@@ -591,7 +586,6 @@ impl Implementer {
                     authorize_owner_request(
                         &work,
                         &attempts,
-                        &launches,
                         authority_slot,
                         authority_profile,
                         &reservation,
@@ -1165,13 +1159,13 @@ fn eligible_inputs(
 // r[impl kiln.implementation.authority.dispatch]
 /// Admit a fresh exact `Dispatch` invocation for one owner reservation before
 /// the owner may commit it: a new request, a retried one, or a tentative one
-/// resumed after an interrupted reserve. The effect identity is the attempt's
-/// dispatch reservation when one exists, else the owner operation itself, so
-/// every invocation for the same request names the same effect.
+/// resumed after an interrupted reserve. Its effect identity is the owner
+/// operation and it names no launch incarnation, so every invocation for the
+/// same reservation presents the same request with a fresh nonce, whatever
+/// dispatch reservation or launch the attempt records later.
 fn authorize_owner_request(
     work: &WorkLedger,
     attempts: &AttemptLedger,
-    launches: &kiln_core::implementation::TransportLaunches,
     authority: &mut Option<Box<dyn ProtectedAuthority>>,
     profile: &AuthoritySelection,
     reservation: &OwnerReservation,
@@ -1188,22 +1182,13 @@ fn authorize_owner_request(
                 .is_ok_and(|identity| identity == reservation.work_version)
         })
         .ok_or_else(|| refusal("reservation work missing"))?;
-    let effect = reservation_attempt
-        .dispatch
-        .as_ref()
-        .map_or(reservation.operation.as_str(), |dispatch| {
-            dispatch.effect_id.as_str()
-        });
-    let incarnation = super::authority_bridge::incarnation(
-        launches.recall(&reservation_attempt.identity).as_ref(),
-    );
     let request = super::authority_bridge::request_for(
         kiln_core::implementation::authority::ProtectedOperation::Dispatch,
         reservation_work,
         reservation_attempt,
         super::authority_bridge::PayloadBinding {
-            incarnation: incarnation.as_ref(),
-            effect,
+            incarnation: None,
+            effect: reservation.operation.as_str(),
             expected_target: kiln_core::implementation::authority::NO_EXPECTED_TARGET,
         },
         &[reservation.operation.as_str()],
@@ -1242,10 +1227,6 @@ impl Implementer {
         let tx = self.connection.transaction().map_err(text)?;
         let (work, _) = load::<WorkLedger>(&tx, WORK_KIND)?;
         let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
-        let (launches, _) = load::<kiln_core::implementation::TransportLaunches>(
-            &tx,
-            crate::TRANSPORT_LAUNCH_KIND,
-        )?;
         drop(tx);
         if !attempts.is_current(&reservation.claim.attempt, reservation.claim.fence, now_ms) {
             return Err(diagnostic(refusal("reservation claim/fence expired")));
@@ -1253,7 +1234,6 @@ impl Implementer {
         authorize_owner_request(
             &work,
             &attempts,
-            &launches,
             &mut self.authority,
             &self.authority_profile,
             reservation,

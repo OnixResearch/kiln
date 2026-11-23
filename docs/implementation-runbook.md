@@ -195,8 +195,10 @@ reservation (`admission_reserve_with_owner`, `host-owner-reserve`) admits a
 fresh `dispatch` invocation for its original effect before the owner can
 commit it: a new request inside the transaction that records it, and a
 tentative request left by an interrupted reserve, or retained and retried,
-before the owner resolves it. A denial leaves the request tentative and commits
-nothing.
+before the owner resolves it. That effect is always the owner operation, with
+no launch incarnation, so a retry presents the same request with a fresh nonce
+even after the attempt has reserved its dispatch. A denial leaves the request
+tentative and commits nothing.
 `admission_before_transport` still rechecks at transport. A command run with
 neither `--local-operator` nor `--authority-config` runs under the absent
 profile and is refused. The campaign drive passes its worker, capture and

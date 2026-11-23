@@ -314,3 +314,80 @@ fn reconciliation_reuses_the_dispatch_effect_identity_with_a_fresh_nonce() {
         "only the fresh invocation consumed replay"
     );
 }
+
+#[test]
+// r[verify kiln.implementation.authority.dispatch]
+// r[verify kiln.implementation.authority.reconcile.scenario.fresh_nonce]
+fn a_resumed_owner_request_keeps_its_effect_after_a_dispatch_reservation() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let fixture = Fixture::direct();
+    let w = work("owner-retry-identity");
+    let plan = id("dispatch-plan");
+    let profile = ProviderProfileId::new("lattice-v1").unwrap_or_else(|_| unreachable!());
+    let mut i =
+        Implementer::open(&db, enrollment()).unwrap_or_else(|error| unreachable!("{error}"));
+    let (signer, captured) = CapturingSigner::new(Box::new(fixture.signer_from(1)));
+    install(
+        &mut i,
+        durable_verified(&db, &fixture),
+        Box::new(signer),
+        None,
+        None,
+    );
+    queue(&mut i, &w);
+    let attempt = claim(&mut i, &w).unwrap_or_else(|error| unreachable!("{error}"));
+    let r = reservation(&w, &attempt);
+    let request = Cmd::Request {
+        reservation: r.clone(),
+        inputs: vec![offer(&w)],
+    };
+    let last = |i: &Implementer| {
+        let invocation = captured
+            .borrow()
+            .last()
+            .cloned()
+            .unwrap_or_else(|| unreachable!("owner request invocation"));
+        let decision = i
+            .authority_decisions()
+            .last()
+            .cloned()
+            .unwrap_or_else(|| unreachable!("owner request decision"));
+        (invocation, decision)
+    };
+
+    // The owner request is admitted and left tentative: its reply is lost.
+    i.admission_apply(request.clone(), T)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let (original, original_decision) = last(&i);
+    // The attempt then reserves its dispatch, a distinct effect identity.
+    let dispatch = i
+        .reserve_dispatch(&attempt.identity, attempt.fence, T + 1, &plan, &profile)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert_ne!(dispatch.effect_id.as_str(), r.operation.as_str());
+    // Resuming the tentative request presents the same request again.
+    i.admission_apply(request, T + 2)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let (retried, retried_decision) = last(&i);
+
+    let owner_digest = payload_digest_v2(
+        ProtectedOperation::Dispatch,
+        None,
+        r.operation.as_str(),
+        NO_EXPECTED_TARGET,
+        &[r.operation.as_str()],
+    );
+    for (invocation, decision) in [
+        (&original, &original_decision),
+        (&retried, &retried_decision),
+    ] {
+        assert_eq!(invocation.operation, ProtectedOperation::Dispatch);
+        assert_eq!(invocation.request_digest, owner_digest);
+        assert!(decision.allowed);
+    }
+    assert_eq!(
+        retried_decision.request_identity, original_decision.request_identity,
+        "the resumed owner request names the same exact request"
+    );
+    assert_ne!(retried.nonce, original.nonce, "with a fresh nonce");
+}
