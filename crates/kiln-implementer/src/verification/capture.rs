@@ -309,20 +309,25 @@ fn materialize_admitted_candidate(
         &mut baseline_bytes,
     )?;
     let candidate = capture_workspace(&repository, candidate_root)?;
-    // Byte-only native receipts cannot describe Unix mode-only changes. Reuse
-    // the producer's explicit refusal, not a silently lossy mode interpretation.
-    if candidate.iter().any(|(path, file)| {
-        baseline
-            .get(path)
-            .map_or(file.mode != 0o100644, |old| old.mode != file.mode)
-    }) {
+    // Byte-only Lattice receipts cannot describe Unix mode-only changes.
+    // Git-bound Herdr receipts commit to an exact Git tree (including 0o100644
+    // and 0o100755 modes), verified independently below (#103).
+    if matches!(receipt, AdmittedReceipt::Lattice(_))
+        && candidate.iter().any(|(path, file)| {
+            baseline
+                .get(path)
+                .map_or(file.mode != 0o100644, |old| old.mode != file.mode)
+        })
+    {
         return Err("native byte receipt cannot admit file-mode changes".into());
     }
     let changed: Vec<_> = baseline
         .keys()
         .chain(candidate.keys())
         .filter(|path| match (baseline.get(*path), candidate.get(*path)) {
-            (Some(left), Some(right)) => left.hash != right.hash || left.length != right.length,
+            (Some(left), Some(right)) => {
+                left.hash != right.hash || left.length != right.length || left.mode != right.mode
+            }
             (None, None) => false,
             _ => true,
         })

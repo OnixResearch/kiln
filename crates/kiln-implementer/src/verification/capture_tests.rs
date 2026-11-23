@@ -633,6 +633,7 @@ fn herdr_fixture(
     root: &Path,
     repository_root: &Path,
     base_oid: Oid,
+    revision: u64,
 ) -> TestResult<(
     ImplementationWork,
     ImplementationDispatchPlan,
@@ -658,11 +659,17 @@ fn herdr_fixture(
     profile.toolchain = profile.derived_toolchain_identity()?;
     profile.environment_identity = profile.derived_environment_identity()?;
     let mut work = interactive_work()?;
+    work.revision = revision;
+    for alias in &mut work.aliases {
+        alias.native_id = format!("fixture/repository#{revision}");
+        alias.source = ExternalRef::new("github", "issue", &alias.native_id)
+            .map_err(|error| format!("{error:?}"))?;
+    }
     work.verification_profile = profile.identity()?;
     work.base = Some(
         ExternalRef::new("git", "commit", &base_oid.to_string()).map_err(|error| error.message)?,
     );
-    work.permitted_paths = vec!["source.txt".into()];
+    work.permitted_paths = vec!["source.txt".into(), "scripts".into()];
     work.terminal_policy = TerminalPolicy::VerifiedOrAlreadySatisfied;
     profile.repository = work.repository.clone();
     work.verification_profile = profile.identity()?;
@@ -735,7 +742,7 @@ fn export_commit_tree_ignores_export_attributes_and_materializes_exact_tree() ->
         ],
     )?;
     let (work, dispatch, attempt, profile, authority) =
-        herdr_fixture(dir.path(), &repo_path, base_oid)?;
+        herdr_fixture(dir.path(), &repo_path, base_oid, 1)?;
 
     let export_dir = dir.path().join("export");
     fs::create_dir(&export_dir)?;
@@ -801,5 +808,241 @@ fn export_commit_tree_ignores_export_attributes_and_materializes_exact_tree() ->
     let symlink_export = dir.path().join("symlink-export");
     fs::create_dir(&symlink_export)?;
     assert!(export_commit_tree(&repo_path, &symlink_oid.to_string(), &symlink_export).is_err());
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn herdr_handoffs_preserve_executable_modes_while_lattice_receipts_refuse_mode_changes()
+-> TestResult {
+    use std::os::unix::fs::PermissionsExt as _;
+
+    let dir = tempfile::tempdir()?;
+    let repo_path = dir.path().join("authority.git");
+    let repository = Repository::init_bare(&repo_path)?;
+    let base_oid = commit_files(
+        &repository,
+        None,
+        &[
+            ("source.txt", b"hello\n", 0o100644),
+            ("scripts/existing.sh", b"#!/bin/sh\necho ok\n", 0o100755),
+        ],
+    )?;
+    let base_commit = repository.find_commit(base_oid)?;
+
+    // 1. New 0755 executable script admitted with mode 100755.
+    let new_exec_oid = commit_files(
+        &repository,
+        Some(&base_commit),
+        &[
+            ("source.txt", b"hello\n", 0o100644),
+            ("scripts/existing.sh", b"#!/bin/sh\necho ok\n", 0o100755),
+            ("scripts/new.sh", b"#!/bin/sh\necho new\n", 0o100755),
+        ],
+    )?;
+    {
+        let case_dir = dir.path().join("case-new-exec");
+        fs::create_dir(&case_dir)?;
+        let (work, dispatch, attempt, profile, authority) =
+            herdr_fixture(&case_dir, &repo_path, base_oid, 10)?;
+        let export_dir = case_dir.join("export");
+        fs::create_dir(&export_dir)?;
+        export_commit_tree(&repo_path, &new_exec_oid.to_string(), &export_dir)?;
+        let export_root = fs::canonicalize(&export_dir)?;
+        let receipt = HerdrCandidateReceipt::for_attempt(
+            &work,
+            &attempt,
+            &dispatch,
+            HerdrCandidateDisposition::Produced,
+            &new_exec_oid.to_string(),
+            &content('5')?,
+        )?;
+        let receipt_bytes = serde_json::to_vec(&receipt)?;
+        let handoff = materialize_admitted_candidate(
+            &work,
+            &attempt,
+            &dispatch,
+            &profile,
+            &authority,
+            &export_root,
+            &receipt_bytes,
+        )?;
+        assert_eq!(handoff.changed_paths, vec!["scripts/new.sh"]);
+        let tree = repository.find_commit(new_exec_oid)?.tree()?;
+        assert_eq!(handoff.tree.native_id.as_str(), tree.id().to_string());
+        let entry = tree.get_path(Path::new("scripts/new.sh"))?;
+        assert_eq!(entry.filemode(), 0o100755);
+
+        // Exported mode differing from reported commit tree is still rejected.
+        fs::set_permissions(
+            export_root.join("scripts/new.sh"),
+            fs::Permissions::from_mode(0o644),
+        )?;
+        let err = materialize_admitted_candidate(
+            &work,
+            &attempt,
+            &dispatch,
+            &profile,
+            &authority,
+            &export_root,
+            &receipt_bytes,
+        )
+        .err()
+        .ok_or("expected mode mismatch refusal")?;
+        assert!(err.contains("exported candidate tree differs"), "{err}");
+    }
+
+    // 2. Pure 0644 -> 0755 and 0755 -> 0644 mode changes with identical bytes.
+    for (rev, name, entries, expected_changed) in [
+        (
+            20,
+            "case-chmod-plus-x",
+            vec![
+                ("source.txt", b"hello\n".as_slice(), 0o100755),
+                (
+                    "scripts/existing.sh",
+                    b"#!/bin/sh\necho ok\n".as_slice(),
+                    0o100755,
+                ),
+            ],
+            vec!["source.txt"],
+        ),
+        (
+            21,
+            "case-chmod-minus-x",
+            vec![
+                ("source.txt", b"hello\n".as_slice(), 0o100644),
+                (
+                    "scripts/existing.sh",
+                    b"#!/bin/sh\necho ok\n".as_slice(),
+                    0o100644,
+                ),
+            ],
+            vec!["scripts/existing.sh"],
+        ),
+    ] {
+        let chmod_oid = commit_files(&repository, Some(&base_commit), &entries)?;
+        let case_dir = dir.path().join(name);
+        fs::create_dir(&case_dir)?;
+        let (work, dispatch, attempt, profile, authority) =
+            herdr_fixture(&case_dir, &repo_path, base_oid, rev)?;
+        let export_dir = case_dir.join("export");
+        fs::create_dir(&export_dir)?;
+        export_commit_tree(&repo_path, &chmod_oid.to_string(), &export_dir)?;
+        let export_root = fs::canonicalize(&export_dir)?;
+        let receipt = HerdrCandidateReceipt::for_attempt(
+            &work,
+            &attempt,
+            &dispatch,
+            HerdrCandidateDisposition::Produced,
+            &chmod_oid.to_string(),
+            &content('5')?,
+        )?;
+        let handoff = materialize_admitted_candidate(
+            &work,
+            &attempt,
+            &dispatch,
+            &profile,
+            &authority,
+            &export_root,
+            &serde_json::to_vec(&receipt)?,
+        )?;
+        assert_eq!(handoff.changed_paths, expected_changed);
+        assert_eq!(
+            handoff.tree.native_id.as_str(),
+            repository.find_commit(chmod_oid)?.tree_id().to_string()
+        );
+    }
+
+    // 3. Unchanged Herdr handoff enforces the explicit already-satisfied policy.
+    {
+        let case_dir = dir.path().join("case-unchanged");
+        fs::create_dir(&case_dir)?;
+        let (mut work, _dispatch, _attempt, mut profile, authority) =
+            herdr_fixture(&case_dir, &repo_path, base_oid, 30)?;
+        let export_dir = case_dir.join("export");
+        fs::create_dir(&export_dir)?;
+        export_commit_tree(&repo_path, &base_oid.to_string(), &export_dir)?;
+        let export_root = fs::canonicalize(&export_dir)?;
+
+        let (dispatch, attempt) = dispatched_as(&work, WorkspaceIsolation::InteractiveWorktree)?;
+        let receipt = HerdrCandidateReceipt::for_attempt(
+            &work,
+            &attempt,
+            &dispatch,
+            HerdrCandidateDisposition::Unchanged,
+            &base_oid.to_string(),
+            &content('5')?,
+        )?;
+        let handoff = materialize_admitted_candidate(
+            &work,
+            &attempt,
+            &dispatch,
+            &profile,
+            &authority,
+            &export_root,
+            &serde_json::to_vec(&receipt)?,
+        )?;
+        assert!(handoff.changed_paths.is_empty());
+
+        profile.allow_already_satisfied = false;
+        work.verification_profile = profile.identity()?;
+        let (dispatch2, attempt2) = dispatched_as(&work, WorkspaceIsolation::InteractiveWorktree)?;
+        let receipt2 = HerdrCandidateReceipt::for_attempt(
+            &work,
+            &attempt2,
+            &dispatch2,
+            HerdrCandidateDisposition::Unchanged,
+            &base_oid.to_string(),
+            &content('5')?,
+        )?;
+        assert!(
+            materialize_admitted_candidate(
+                &work,
+                &attempt2,
+                &dispatch2,
+                &profile,
+                &authority,
+                &export_root,
+                &serde_json::to_vec(&receipt2)?,
+            )
+            .is_err()
+        );
+    }
+
+    // 4. Lattice v1 byte receipts continue to refuse mode changes.
+    {
+        let case_dir = dir.path().join("case-lattice-mode-refusal");
+        fs::create_dir(&case_dir)?;
+        let (work, _herdr_dispatch, _herdr_attempt, profile, authority) =
+            herdr_fixture(&case_dir, &repo_path, base_oid, 40)?;
+        let (dispatch, attempt) = dispatched(&work)?;
+        let export_dir = case_dir.join("export");
+        fs::create_dir(&export_dir)?;
+        export_commit_tree(&repo_path, &new_exec_oid.to_string(), &export_dir)?;
+        let export_root = fs::canonicalize(&export_dir)?;
+        let receipt = lattice_receipt(
+            &work,
+            &attempt,
+            &dispatch,
+            LATTICE_CANDIDATE_RECEIPT_SCHEMA,
+            "produced",
+        )?;
+        let err = materialize_admitted_candidate(
+            &work,
+            &attempt,
+            &dispatch,
+            &profile,
+            &authority,
+            &export_root,
+            &serde_json::to_vec(&receipt)?,
+        )
+        .err()
+        .ok_or("expected Lattice byte receipt to refuse mode change")?;
+        assert!(
+            err.contains("native byte receipt cannot admit file-mode changes"),
+            "{err}"
+        );
+    }
     Ok(())
 }
