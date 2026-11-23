@@ -557,8 +557,8 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                 .map(kiln_core::types::ContentId::as_str)
                 .unwrap_or(execution.requirements.needs.profile_revision.as_str()),
         )
-        || request.get("network").and_then(serde_json::Value::as_bool)
-            != Some(plan.workspace.network)
+        // Lattice request v3 dropped `network` (Lattice b46deb36).
+        || crate::request_network::request_network(&request) != Some(plan.workspace.network)
     {
         return Err(
             "worker request is crossed with admitted work, attempt, workspace or model policy"

@@ -68,7 +68,7 @@ pub fn check_route(
         (Some(root), Some(read), Some(write)) => route.admits(root, &read, &write),
         _ => false,
     };
-    if !admitted || request.get("network").and_then(serde_json::Value::as_bool) != Some(false) {
+    if !admitted || crate::request_network::request_network(request) != Some(false) {
         return Err(
             "the worker request's workspace root, read paths, write paths or network differ from the projected workspace route; nothing was dispatched"
                 .into(),

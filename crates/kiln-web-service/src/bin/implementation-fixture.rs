@@ -780,7 +780,7 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         }
     };
     if !paths_bound
-        || request.get("network").and_then(Value::as_bool) != Some(false)
+        || kiln_adapter_lattice::request_network::request_network(&request) != Some(false)
         || request.get("network_namespace").is_some()
         || request.get("worker_compute") != Some(&host_local)
         || request
@@ -864,7 +864,7 @@ fn bind_execution(flags: &BTreeMap<String, String>) -> Result<Value, String> {
         .get("envelope")
         .and_then(Value::as_object)
         .ok_or("request envelope missing")?;
-    if request.get("network").and_then(Value::as_bool) != Some(false)
+    if kiln_adapter_lattice::request_network::request_network(&request) != Some(false)
         || envelope.get("workspace_id").and_then(Value::as_str)
             != Some(plan.workspace.identity.as_str())
     {
