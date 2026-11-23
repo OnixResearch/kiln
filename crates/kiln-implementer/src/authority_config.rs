@@ -24,8 +24,8 @@ use ucan::token::DenyUnknownCaveats;
 use ucan::{HolderInvocationLimits, VerificationLimits};
 
 use crate::authority_state::{
-    AuthorityStateStore, RecordingAuthority, SqliteAuthorityState, SqliteReplayLedger,
-    SqliteRevocationView, authority_state_path,
+    RecordingAuthority, SqliteAuthorityState, SqliteReplayLedger, SqliteRevocationView,
+    authority_state_path,
 };
 use crate::{Implementer, diagnostic, text};
 
@@ -389,9 +389,13 @@ fn read_proofs(directory: &Path) -> Result<Vec<String>, String> {
 /// observes revocations again. A feed observed after `now_ms` is refused, so
 /// a future-dated feed cannot extend its own freshness.
 ///
+/// The whole feed is validated before anything is written, then imported in
+/// one transaction: a malformed reference anywhere leaves no revocation and no
+/// generation change behind.
+///
 /// # Errors
-/// Returns a message for an unreadable, malformed or future-dated feed, or a
-/// failed commit.
+/// Returns a message for an unreadable, malformed, older or future-dated
+/// feed, or a failed commit.
 pub fn import_revocations(
     state: &SqliteAuthorityState,
     feed: &Path,
@@ -408,13 +412,12 @@ pub fn import_revocations(
     if feed.observed_at_ms > now_ms {
         return Err("revocation feed is observed in the future".into());
     }
-    if feed.generation < state.revocation_generation()? {
-        return Err("revocation feed is older than the recorded view".into());
-    }
-    for reference in &feed.revoked {
-        state.revoke(hex32(reference, "revoked reference")?, feed.generation)?;
-    }
-    state.observe_revocation_view(feed.generation, feed.observed_at_ms)?;
+    let revoked = feed
+        .revoked
+        .iter()
+        .map(|reference| hex32(reference, "revoked reference"))
+        .collect::<Result<Vec<_>, _>>()?;
+    state.import_revocation_feed(feed.generation, feed.observed_at_ms, &revoked)?;
     Ok(feed.generation)
 }
 

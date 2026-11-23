@@ -127,9 +127,11 @@ database denies after a bounded wait. Its tables are:
 `kiln.implementation-authority-revocations.v1` document
 (`{schema, generation, observed_at_ms, revoked: [Hex32]}`, at most 65,536
 references). `observed_at_ms` is when the feed's producer observed that
-revocation state, in Unix milliseconds. Selection imports the feed; a feed
-whose generation is older than the recorded view, or that is observed after
-the selecting process's clock, is refused. The view's age is measured from
+revocation state, in Unix milliseconds. Selection validates the whole feed,
+then imports it in one transaction: a malformed reference anywhere imports
+nothing and leaves the recorded generation unchanged. A feed whose generation
+is older than the recorded view, or that is observed after the selecting
+process's clock, is refused. The view's age is measured from
 the feed's own `observed_at_ms`, never from the import, so importing an
 unchanged feed never makes it fresh. The view fails closed: if it is absent,
 or its feed was observed more than `revocation.max_age_ms` ago, every verified

@@ -336,3 +336,68 @@ fn a_feed_observed_in_the_future_is_refused_at_selection() {
     assert!(error.contains("observed in the future"), "{error}");
     assert!(open_at(&db, &config, T + 1).is_ok());
 }
+
+fn revoked_rows(db: &std::path::Path) -> i64 {
+    rusqlite::Connection::open(authority_state_path(db))
+        .and_then(|connection| {
+            connection.query_row("SELECT count(*) FROM authority_revocation", [], |row| {
+                row.get(0)
+            })
+        })
+        .unwrap_or_else(|error| unreachable!("{error}"))
+}
+
+fn view_generation(db: &std::path::Path) -> u64 {
+    use kiln_implementer::authority_state::AuthorityStateStore as _;
+    kiln_implementer::authority_state::SqliteAuthorityState::open(&authority_state_path(db))
+        .and_then(|state| state.revocation_generation())
+        .unwrap_or_else(|error| unreachable!("{error}"))
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.revoked]
+fn a_feed_with_a_malformed_reference_imports_nothing() {
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let db = dir.path().join("ledger.db");
+    let fixture = Fixture::direct();
+    let config = write_config(dir.path(), &fixture, &[]);
+    drop(open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}")));
+    assert_eq!(view_generation(&db), 1);
+    let grant = hex(&test_support::token_ref(fixture.grant(GrantRole::Coding)));
+
+    // A valid reference followed by a malformed one: selection refuses and
+    // neither the valid revocation nor the newer generation is written.
+    write_feed(
+        dir.path(),
+        2,
+        T,
+        &[grant.clone(), "not-a-revoked-reference".into()],
+    );
+    let error = open_at(&db, &config, T)
+        .err()
+        .unwrap_or_else(|| unreachable!("a malformed feed must be refused"));
+    assert!(error.contains("revoked reference"), "{error}");
+    assert_eq!(revoked_rows(&db), 0);
+    assert_eq!(view_generation(&db), 1);
+    // The coordinator grant was never revoked, so a valid feed still admits.
+    write_feed(dir.path(), 1, T, &[]);
+    let mut i = open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}"));
+    i.admit(&work("malformed-feed"), None)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    assert!(
+        i.claim_next(T, LEASE_MS)
+            .unwrap_or_else(|error| unreachable!("{error}"))
+            .is_some()
+    );
+    drop(i);
+
+    // The well-formed feed imports every reference and its generation together.
+    write_feed(dir.path(), 2, T, &[grant]);
+    drop(open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}")));
+    assert_eq!(revoked_rows(&db), 1);
+    assert_eq!(view_generation(&db), 2);
+    // An older generation is then refused without a write.
+    write_feed(dir.path(), 1, T, &[]);
+    assert!(open_at(&db, &config, T).is_err());
+    assert_eq!(view_generation(&db), 2);
+}

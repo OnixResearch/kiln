@@ -151,6 +151,66 @@ impl SqliteAuthorityState {
         transaction.commit().map_err(text)
     }
 
+    /// Import one validated revocation feed atomically: every revoked
+    /// reference, the view's generation and its observation time commit in
+    /// one immediate transaction, or nothing does. A feed whose generation is
+    /// older than the recorded view is refused inside that transaction.
+    ///
+    /// # Errors
+    /// Returns a message for an older feed or a failed commit; nothing is
+    /// written then.
+    pub fn import_revocation_feed(
+        &self,
+        generation: u64,
+        observed_at_ms: u64,
+        revoked: &[[u8; REPLAY_DIGEST_BYTES]],
+    ) -> Result<(), String> {
+        let now_ms = super::current_unix_ms();
+        let mut connection = self.connection.borrow_mut();
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let recorded: Option<i64> = transaction
+            .query_row(
+                "SELECT revocation_generation FROM authority_revocation_view WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(text)?;
+        if recorded.unwrap_or(0) > sql_u64(generation)? {
+            return Err("revocation feed is older than the recorded view".into());
+        }
+        {
+            let mut insert = transaction
+                .prepare(
+                    "INSERT INTO authority_revocation (proof_ref, revoked_at_ms, revocation_generation)
+                     VALUES (?1, ?2, ?3) ON CONFLICT(proof_ref) DO NOTHING",
+                )
+                .map_err(text)?;
+            for reference in revoked {
+                insert
+                    .execute(params![
+                        reference.as_slice(),
+                        sql_u64(now_ms)?,
+                        sql_u64(generation)?
+                    ])
+                    .map_err(text)?;
+            }
+        }
+        transaction
+            .execute(
+                "INSERT INTO authority_revocation_view (id, revocation_generation, observed_at_ms)
+                 VALUES (1, ?1, ?2)
+                 ON CONFLICT(id) DO UPDATE SET
+                   revocation_generation = excluded.revocation_generation,
+                   observed_at_ms = excluded.observed_at_ms",
+                params![sql_u64(generation)?, sql_u64(observed_at_ms)?],
+            )
+            .map_err(text)?;
+        transaction.commit().map_err(text)
+    }
+
     /// Append one redacted decision, pruning beyond [`MAX_PERSISTED_DECISIONS`].
     ///
     /// # Errors
