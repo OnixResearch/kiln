@@ -7,21 +7,27 @@
 //! the case's projected workspace for the claimed attempt, binds it through
 //! `kiln-implementation-fixture bind-execution --projected-workspace-route`
 //! and dispatches it through `kiln-lattice-dispatch` to the real Lattice
-//! binary. The worker program is a probe placed in the Nix store: inside
-//! Lattice's bubblewrap sandbox it tries every confinement negative, runs the
-//! case's planned command, writes the shared edit through its route and
-//! reports each observation on stdout, which Lattice retains. The harness
-//! then captures the overlay, derives the projected candidate facts and
-//! writes a `kiln.projected-runtime.receipt.v1` receipt. Before the real
-//! dispatch, requests that differ from the route are refused by the
-//! dispatcher. No model is contacted: the broker reaches only a local
-//! endpoint that answers HTTP 400.
+//! binary under the operator's `kiln.implementation-authority-config.v1`
+//! (C1), which must select a verified profile with `projection_enabled`: a
+//! projected dispatch never runs under the local-operator profile, and the
+//! harness refuses to start under any other configuration. The worker
+//! program is a probe placed in the Nix store: inside Lattice's bubblewrap
+//! sandbox it tries every confinement negative, runs the case's planned
+//! command, writes the shared edit through its route and reports each
+//! observation on stdout, which Lattice retains. The harness then captures
+//! the overlay, derives the projected candidate facts and writes a
+//! `kiln.projected-runtime.receipt.v2` receipt; a case qualifies only when
+//! every probe it sent reports exactly its expected outcome. Before the real
+//! dispatch, requests that differ from the route, and the same request under
+//! the local-operator profile, are refused by the dispatcher. No model is
+//! contacted: the broker reaches only a local endpoint that answers HTTP 400.
 //!
 //! ```console
 //! nix develop -c cargo run -p kiln-web-service --example projected-runtime -- \
 //!     --lattice /nix/store/...-lattice-0.1.0/bin/lattice \
 //!     --dispatch target/debug/kiln-lattice-dispatch \
 //!     --fixture target/debug/kiln-implementation-fixture \
+//!     --authority-config /etc/kiln/implementation-authority.json \
 //!     --bwrap /nix/store/...-bubblewrap/bin/bwrap --socat /nix/store/...-socat/bin/socat \
 //!     --shell /nix/store/...-bash/bin/bash --nix /nix/store/...-nix/bin/nix \
 //!     --scratch /var/tmp/projected-runtime --out receipt.json
@@ -74,7 +80,10 @@ use serde_json::{Value, json};
 
 type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
 
-const RECEIPT_SCHEMA: &str = "kiln.projected-runtime.receipt.v1";
+const RECEIPT_SCHEMA: &str = "kiln.projected-runtime.receipt.v2";
+/// The authority configuration schema (C1) and the largest one read.
+const AUTHORITY_CONFIG_SCHEMA: &str = "kiln.implementation-authority-config.v1";
+const MAX_AUTHORITY_CONFIG_BYTES: u64 = 64 * 1024;
 const CARGO_CORPUS: &str = "fixtures/build-inputs/corpus.json";
 const NIX_CORPUS: &str = "fixtures/projected-runtime/nix-corpus.json";
 const REPOSITORY: &str = "qualification/disposable";
@@ -164,6 +173,8 @@ struct Programs {
     lattice: PathBuf,
     dispatch: PathBuf,
     fixture: PathBuf,
+    /// The C1 authority configuration every projected dispatch runs under.
+    authority_config: PathBuf,
     bwrap: PathBuf,
     socat: PathBuf,
     shell: PathBuf,
@@ -184,9 +195,65 @@ struct CaseReceipt {
     dispatch: Value,
     observations: Vec<Value>,
     command_exit: Option<i64>,
-    negatives_denied: bool,
+    /// Every probe sent reported exactly its expected outcome, once, and
+    /// nothing else was reported.
+    probes_complete: bool,
+    /// Expected probe outcomes not observed, and observations not expected.
+    missing_probes: Vec<Value>,
+    unexpected_probes: Vec<Value>,
     host_checks: Vec<Value>,
     capture: Value,
+}
+
+/// Refuse to qualify under any authority configuration but a verified
+/// profile with projection enabled (C1): the dispatcher never runs a
+/// projected workspace under the local-operator or an absent profile.
+fn projection_authority(path: &Path) -> Result<String> {
+    let metadata = fs::symlink_metadata(path)?;
+    if !metadata.is_file() || metadata.len() > MAX_AUTHORITY_CONFIG_BYTES {
+        return Err("the authority configuration is not a bounded ordinary file".into());
+    }
+    let bytes = fs::read(path)?;
+    if !enables_projection(&serde_json::from_slice(&bytes)?) {
+        return Err(format!(
+            "the authority configuration must be {AUTHORITY_CONFIG_SCHEMA} selecting verified_ucan with projection_enabled; projected dispatch never runs under the local-operator or an absent profile"
+        )
+        .into());
+    }
+    Ok(blake3::hash(&bytes).to_hex().to_string())
+}
+
+/// Whether an exported C1 configuration selects the verified profile with
+/// projection enabled.
+fn enables_projection(config: &Value) -> bool {
+    config["schema"] == AUTHORITY_CONFIG_SCHEMA
+        && config.pointer("/profile/verified_ucan/projection_enabled") == Some(&Value::Bool(true))
+}
+
+/// `beta-tests` reads a file of alpha's package that no manifest declares;
+/// the route does not hold it, so its build must fail, observed, inside the
+/// runtime rather than escape to the host checkout. Every other case's
+/// command must succeed.
+fn command_qualified(case: &str, exit: Option<i64>) -> bool {
+    if case == "beta-tests" {
+        exit.is_some_and(|code| code != 0)
+    } else {
+        exit == Some(0)
+    }
+}
+
+/// A refused dispatch qualifies when it was observed, exited non-zero and
+/// names its reason.
+fn refusal_qualified(refusal: &Value) -> bool {
+    refusal
+        .pointer("/outcome/exit")
+        .and_then(Value::as_i64)
+        .is_some_and(|exit| exit != 0)
+        && refusal
+            .pointer("/outcome/stderr")
+            .and_then(Value::as_str)
+            .zip(refusal.get("reason").and_then(Value::as_str))
+            .is_some_and(|(stderr, reason)| stderr.contains(reason))
 }
 
 fn main() -> ExitCode {
@@ -220,10 +287,13 @@ fn run() -> Result<bool> {
         .filter(|entry| entry.starts_with("/nix/store/"))
         .collect::<Vec<_>>()
         .join(":");
+    let authority_config = fs::canonicalize(flag("--authority-config")?)?;
+    let authority_config_blake3 = projection_authority(&authority_config)?;
     let mut programs = Programs {
         lattice: flag("--lattice")?,
         dispatch: fs::canonicalize(flag("--dispatch")?)?,
         fixture: fs::canonicalize(flag("--fixture")?)?,
+        authority_config,
         bwrap: fs::canonicalize(flag("--bwrap")?)?,
         socat: fs::canonicalize(flag("--socat")?)?,
         shell: fs::canonicalize(flag("--shell")?)?,
@@ -264,16 +334,14 @@ fn run() -> Result<bool> {
                 &writable_of(&case.id),
                 endpoint_port,
             )?;
-            passed &= receipt.negatives_denied
-                // `beta-tests` reads a file of alpha's package that no
-                // manifest declares; the route does not hold it, so the
-                // build must fail inside the runtime rather than escape to
-                // the host checkout.
-                && (receipt.command_exit == Some(0)) != (case.id == "beta-tests")
-                && receipt.dispatch.get("exit").and_then(Value::as_i64).is_some()
-                && receipt.refused_dispatches.iter().all(|refusal| {
-                    refusal.pointer("/outcome/exit").and_then(Value::as_i64) != Some(0)
-                })
+            passed &= receipt.probes_complete
+                && command_qualified(&case.id, receipt.command_exit)
+                && receipt.refused_dispatches.iter().all(refusal_qualified)
+                && receipt
+                    .dispatch
+                    .get("exit")
+                    .and_then(Value::as_i64)
+                    .is_some()
                 && receipt.host_checks.iter().all(|check| check["ok"] == true);
             receipts.push(receipt);
         }
@@ -282,6 +350,8 @@ fn run() -> Result<bool> {
         "schema": RECEIPT_SCHEMA,
         "lattice": programs.lattice,
         "lattice_blake3": blake3_file(&programs.lattice)?,
+        "authority_config": programs.authority_config,
+        "authority_config_blake3": authority_config_blake3,
         "probe": programs.probe,
         "bwrap": programs.bwrap,
         "cases": receipts,
@@ -591,8 +661,10 @@ fn claim(
         return Err(format!("prepare-intake failed: {stderr}").into());
     }
     let mut owner = Implementer::open(&database, enrollment)?;
-    // The local scripted route runs under the explicit local-operator
-    // compatibility profile, as `kiln-lattice-dispatch --local-operator` does.
+    // The synthetic scripted fixture claims, as `bind-execution` binds, under
+    // its explicit local-operator compatibility profile. Only the projected
+    // dispatch carries the workspace, and it runs under the authority
+    // configuration's verified profile.
     owner.select_local_operator(OPERATOR)?;
     let now = now_ms()?;
     let inputs: Vec<EligibilityInput> = owner
@@ -764,6 +836,8 @@ fn qualify(
     for word in build_plan.command() {
         prompt.push(format!("command={word}"));
     }
+    // Every confinement probe sent, with the one observation it must yield.
+    let mut expected: Vec<Value> = Vec::new();
     for target in [
         checkout.join(&read_only),
         checkout.join(".git/HEAD"),
@@ -777,41 +851,54 @@ fn qualify(
         overlay.join(&read_only),
         PathBuf::from("/nix/var/nix/daemon-socket/socket"),
     ] {
-        prompt.push(format!("deny_read={}", target.display()));
+        let target = target.display().to_string();
+        prompt.push(format!("deny_read={target}"));
+        expected.push(json!({"probe": "read", "target": target, "denied": true}));
     }
-    prompt.push(format!("allow_read=/workspace/{read_only}"));
-    for target in [
+    let allowed = format!("/workspace/{read_only}");
+    prompt.push(format!("allow_read={allowed}"));
+    expected.push(json!({"probe": "read", "target": allowed, "denied": false}));
+    let mut denied_writes = vec![
         format!("/workspace/{read_only}"),
         "/workspace/probe-root-file".to_string(),
         "/workspace/.git".to_string(),
         "/nix/store/kiln-projected-runtime-probe-write".to_string(),
         format!("{}/escape", overlay.display()),
-    ] {
-        prompt.push(format!("deny_write={target}"));
-    }
+    ];
     if let Some(top) = routed.read_paths.first() {
-        prompt.push(format!(
-            "deny_write=/workspace/{top}/probe-outside-write-paths"
-        ));
+        denied_writes.push(format!("/workspace/{top}/probe-outside-write-paths"));
     }
-    prompt.push(format!("deny_unix={}", unix_socket.display()));
-    prompt.push(format!("deny_abstract={abstract_name}"));
-    prompt.push(format!("deny_tcp={tcp_port}"));
+    for target in denied_writes {
+        prompt.push(format!("deny_write={target}"));
+        expected.push(json!({"probe": "write", "target": target, "denied": true}));
+    }
+    for (probe, target) in [
+        ("unix", unix_socket.display().to_string()),
+        ("abstract", abstract_name.clone()),
+        ("tcp", tcp_port.to_string()),
+    ] {
+        prompt.push(format!("deny_{probe}={target}"));
+        expected.push(json!({"probe": probe, "target": target, "denied": true}));
+    }
     if let Some(creation) = &creation {
-        prompt.push(format!(
-            "deny_link=/workspace/{creation}|{}",
-            checkout.join(".git").display()
-        ));
+        let git = checkout.join(".git").display().to_string();
+        prompt.push(format!("deny_link=/workspace/{creation}|{git}"));
+        expected.push(json!({"probe": "link", "target": git, "denied": true}));
     }
     prompt.push("run".into());
-    for (path, text) in &edits {
-        prompt.push(format!("write={path}:{}", base64(text.as_bytes())));
-    }
+    let mut granted: Vec<(String, &[u8])> = edits
+        .iter()
+        .map(|(path, text)| ((*path).to_string(), text.as_bytes()))
+        .collect();
     if let Some(creation) = &creation {
-        prompt.push(format!(
-            "write={creation}/probe_note.rs:{}",
-            base64(b"// Written in the restricted runtime.\n")
+        granted.push((
+            format!("{creation}/probe_note.rs"),
+            b"// Written in the restricted runtime.\n".as_slice(),
         ));
+    }
+    for (target, bytes) in granted {
+        prompt.push(format!("write={target}:{}", base64(bytes)));
+        expected.push(json!({"probe": "granted_write", "target": target, "written": true}));
     }
 
     let (request_file, plan_file, observations_file) = bind(
@@ -834,7 +921,7 @@ fn qualify(
             "executable_blake3": blake3_file(&programs.lattice)?, "state_directory": state,
             "output_directory": output}),
     )?;
-    let dispatch = |request: &Path, route: Option<&Path>| -> Result<Value> {
+    let dispatch = |request: &Path, route: Option<&Path>, authority: [&std::ffi::OsStr; 2]| {
         let mut args: Vec<&std::ffi::OsStr> = vec![
             "--database".as_ref(),
             database.as_os_str(),
@@ -848,18 +935,24 @@ fn qualify(
             transport.as_os_str(),
             "--admission-observations".as_ref(),
             observations_file.as_os_str(),
-            "--local-operator".as_ref(),
-            OPERATOR.as_ref(),
         ];
+        args.extend(authority);
         if let Some(route) = route {
             args.push("--projected-workspace-route".as_ref());
             args.push(route.as_os_str());
         }
         let (exit, stdout, stderr) = command(&programs.dispatch, &args)?;
-        Ok(json!({"exit": exit, "stdout": stdout, "stderr": stderr}))
+        Ok::<Value, Box<dyn Error>>(json!({"exit": exit, "stdout": stdout, "stderr": stderr}))
     };
-    // Requests that differ from the route, and a missing route, are refused
-    // before any durable step.
+    let verified: [&std::ffi::OsStr; 2] = [
+        "--authority-config".as_ref(),
+        programs.authority_config.as_os_str(),
+    ];
+    let local_operator: [&std::ffi::OsStr; 2] = ["--local-operator".as_ref(), OPERATOR.as_ref()];
+    // Requests that differ from the route, a missing route, and the exact
+    // request under the local-operator profile are refused, each for its
+    // reason, before any durable step.
+    let differs = "nothing was dispatched";
     let request: Value = serde_json::from_slice(&fs::read(&request_file)?)?;
     let mut refused_dispatches = Vec::new();
     // Write paths widened to whole read paths, and a read path to the Git
@@ -883,38 +976,33 @@ fn qualify(
         }
         let file = directory.join(format!("request-{label}.json"));
         write_json(&file, &changed)?;
-        let outcome = dispatch(&file, Some(&route_file))?;
-        refused_dispatches.push(json!({"case": label, "outcome": outcome}));
+        let outcome = dispatch(&file, Some(&route_file), verified)?;
+        refused_dispatches.push(json!({"case": label, "reason": differs, "outcome": outcome}));
     }
-    let missing = dispatch(&request_file, None)?;
-    refused_dispatches.push(json!({"case": "route_missing", "outcome": missing}));
+    let missing = dispatch(&request_file, None, verified)?;
+    refused_dispatches
+        .push(json!({"case": "route_missing", "reason": differs, "outcome": missing}));
+    let local = dispatch(&request_file, Some(&route_file), local_operator)?;
+    refused_dispatches.push(json!({"case": "local_operator", "reason": "projection-requires-operator", "outcome": local}));
 
     let read_only_before = fs::read(overlay.join(&read_only))?;
-    let dispatched = dispatch(&request_file, Some(&route_file))?;
+    let dispatched = dispatch(&request_file, Some(&route_file), verified)?;
     let observations = retained_events(&state)?;
-    let command_exit = observations
+    let commands: Vec<&Value> = observations
         .iter()
-        .find(|event| event["probe"] == "command")
-        .and_then(|event| event["exit"].as_i64());
-    let negatives: Vec<&Value> = observations
-        .iter()
-        .filter(|event| {
-            matches!(
-                event["probe"].as_str(),
-                Some("read" | "write" | "unix" | "abstract" | "tcp" | "link")
-            )
-        })
+        .filter(|event| event["probe"] == "command")
         .collect();
-    let positive_read = format!("/workspace/{read_only}");
-    let negatives_denied = !negatives.is_empty()
-        && negatives.iter().all(|event| {
-            let allowed = event["probe"] == "read" && event["target"] == positive_read.as_str();
-            event["denied"] == json!(!allowed)
-        })
-        && observations
-            .iter()
-            .filter(|event| event["probe"] == "granted_write")
-            .all(|event| event["written"] == true);
+    let command_exit = match commands.as_slice() {
+        [only] => only["exit"].as_i64(),
+        _ => None,
+    };
+    let probed: Vec<&Value> = observations
+        .iter()
+        .filter(|event| event["probe"] != "command")
+        .collect();
+    let (missing_probes, unexpected_probes) = probe_difference(&expected, &probed);
+    let probes_complete =
+        missing_probes.is_empty() && unexpected_probes.is_empty() && commands.len() == 1;
     let host_checks = vec![
         json!({"check": "read-only planned input unchanged in the overlay",
                "ok": fs::read(overlay.join(&read_only))? == read_only_before}),
@@ -970,10 +1058,28 @@ fn qualify(
         dispatch: dispatched,
         observations,
         command_exit,
-        negatives_denied,
+        probes_complete,
+        missing_probes,
+        unexpected_probes,
         host_checks,
         capture,
     })
+}
+
+/// The expected probe outcomes not observed, and the observations not
+/// expected, counting each repetition.
+fn probe_difference(expected: &[Value], observed: &[&Value]) -> (Vec<Value>, Vec<Value>) {
+    let mut unexpected: Vec<Value> = observed.iter().map(|event| (*event).clone()).collect();
+    let mut missing = Vec::new();
+    for probe in expected {
+        match unexpected.iter().position(|event| event == probe) {
+            Some(index) => {
+                unexpected.swap_remove(index);
+            }
+            None => missing.push(probe.clone()),
+        }
+    }
+    (missing, unexpected)
 }
 
 /// Seed, prepare, bind through the fixture and prepare again, as an operator
@@ -1202,4 +1308,108 @@ fn base64(bytes: &[u8]) -> String {
         }
     }
     encoded
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn read(target: &str, denied: bool) -> Value {
+        json!({"probe": "read", "target": target, "denied": denied})
+    }
+
+    // r[verify kiln.source.projection.runtime.scenario.confined]
+    #[test]
+    fn only_the_complete_expected_probe_set_qualifies() {
+        let denied = read("/host/checkout", true);
+        let allowed = read("/workspace/Cargo.toml", false);
+        let unix = json!({"probe": "unix", "target": "/host/sock", "denied": true});
+        let granted = json!({"probe": "granted_write", "target": "src/lib.rs", "written": true});
+        let expected = vec![
+            denied.clone(),
+            allowed.clone(),
+            unix.clone(),
+            granted.clone(),
+        ];
+        let observed = vec![&denied, &allowed, &unix, &granted];
+        assert_eq!(probe_difference(&expected, &observed), (vec![], vec![]));
+        // A probe that stopped after its first denied read qualifies nothing
+        // it did not run, the granted write included.
+        assert_eq!(
+            probe_difference(&expected, &[&denied]),
+            (vec![allowed.clone(), unix.clone(), granted.clone()], vec![])
+        );
+        // A wrong outcome is both missing and unexpected; a repeat is
+        // unexpected.
+        let escaped = read("/host/checkout", false);
+        assert_eq!(
+            probe_difference(&expected, &[&escaped, &allowed, &unix, &granted]),
+            (vec![denied.clone()], vec![escaped.clone()])
+        );
+        assert_eq!(
+            probe_difference(&expected, &[&denied, &allowed, &unix, &granted, &unix]),
+            (vec![], vec![unix])
+        );
+    }
+
+    // r[verify kiln.source.projection.runtime.scenario.qualified]
+    #[test]
+    fn the_beta_build_failure_must_be_observed() {
+        assert!(command_qualified("beta-tests", Some(101)));
+        assert!(!command_qualified("beta-tests", None));
+        assert!(!command_qualified("beta-tests", Some(0)));
+        assert!(command_qualified("alpha-tests", Some(0)));
+        assert!(!command_qualified("alpha-tests", None));
+        assert!(!command_qualified("alpha-tests", Some(1)));
+    }
+
+    // r[verify kiln.source.projection.runtime.scenario.qualified]
+    #[test]
+    fn a_refusal_qualifies_only_observed_and_for_its_reason() {
+        let refusal = |exit: Value, stderr: &str| {
+            json!({"case": "local_operator", "reason": "projection-requires-operator",
+                   "outcome": {"exit": exit, "stdout": "", "stderr": stderr}})
+        };
+        assert!(refusal_qualified(&refusal(
+            json!(2),
+            "kiln-lattice-dispatch: projection-requires-operator: …; nothing was dispatched"
+        )));
+        // Refused for another reason, not observed, or not refused at all.
+        assert!(!refusal_qualified(&refusal(
+            json!(2),
+            "kiln-lattice-dispatch: the plan pins a projected workspace and requires its route; nothing was dispatched"
+        )));
+        assert!(!refusal_qualified(&refusal(
+            Value::Null,
+            "projection-requires-operator"
+        )));
+        assert!(!refusal_qualified(&refusal(
+            json!(0),
+            "projection-requires-operator"
+        )));
+        assert!(!refusal_qualified(
+            &json!({"case": "flat", "exit": 2, "stderr": "projection-requires-operator"})
+        ));
+    }
+
+    // r[verify kiln.source.projection.runtime.scenario.qualified]
+    #[test]
+    fn only_a_projection_enabled_verified_profile_qualifies() {
+        let verified = |enabled: bool| {
+            json!({"schema": AUTHORITY_CONFIG_SCHEMA,
+                   "profile": {"verified_ucan": {"audience": "did:example:kiln", "projection_enabled": enabled}}})
+        };
+        assert!(enables_projection(&verified(true)));
+        assert!(!enables_projection(&verified(false)));
+        assert!(!enables_projection(
+            &json!({"schema": AUTHORITY_CONFIG_SCHEMA,
+            "profile": {"local_operator": {"operator": "operator"}}})
+        ));
+        assert!(!enables_projection(
+            &json!({"schema": AUTHORITY_CONFIG_SCHEMA, "profile": "absent"})
+        ));
+        let mut other = verified(true);
+        other["schema"] = json!("kiln.implementation-authority-config.v0");
+        assert!(!enables_projection(&other));
+    }
 }
