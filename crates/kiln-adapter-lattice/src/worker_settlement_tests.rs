@@ -423,3 +423,174 @@ fn recovery_closure_is_no_execution_only_as_the_exact_closure_record() {
     );
     assert!(classify_observation(&request, duplicated_null.as_bytes(), PLAN).is_err());
 }
+
+#[test]
+fn observed_draw_extracts_measured_and_fails_closed_on_unknown_missing_or_malformed() {
+    let binding = "a".repeat(64);
+    let measured = json!({
+        "schema": OBSERVATION_SCHEMA,
+        "budget_lineage": {
+            "binding": binding,
+            "usage": [{
+                "phase": "edit",
+                "iteration": 1,
+                "model_requests": 3,
+                "tool_invocations": null,
+                "provenance": "host_measured",
+                "charged": {
+                    "model_requests": 3,
+                    "tool_invocations": 0
+                }
+            }],
+            "unaccounted_dimensions": []
+        }
+    });
+    assert_eq!(
+        extract_observed_draw(measured.to_string().as_bytes()),
+        ObservedDraw::HostMeasured {
+            charged: BTreeMap::from([("model_requests".to_owned(), 3)])
+        }
+    );
+
+    // Multi-step repair observation sums distinct iterations.
+    let repair = json!({
+        "schema": "lattice.implementation-attempt-repair-observation.v1",
+        "budget_lineage": binding,
+        "usage": [
+            {
+                "phase": "edit",
+                "iteration": 1,
+                "model_requests": 2,
+                "tool_invocations": 4,
+                "provenance": "host_measured",
+                "charged": { "model_requests": 2, "tool_invocations": 4 }
+            },
+            {
+                "phase": "repair",
+                "iteration": 2,
+                "model_requests": 1,
+                "tool_invocations": 3,
+                "provenance": "host_measured",
+                "charged": { "model_requests": 1, "tool_invocations": 3 }
+            }
+        ]
+    });
+    assert_eq!(
+        extract_observed_draw(repair.to_string().as_bytes()),
+        ObservedDraw::HostMeasured {
+            charged: BTreeMap::from([
+                ("model_requests".to_owned(), 3),
+                ("tool_invocations".to_owned(), 7),
+            ])
+        }
+    );
+
+    // Unknown provenance retains reported draw (for bound refusal) while
+    // marking provenance Unknown so full reservation stays billed.
+    let unknown = json!({
+        "schema": OBSERVATION_SCHEMA,
+        "budget_lineage": {
+            "binding": binding,
+            "usage": [{
+                "phase": "edit",
+                "iteration": 1,
+                "model_requests": null,
+                "tool_invocations": null,
+                "provenance": "unknown",
+                "charged": {
+                    "model_requests": 64,
+                    "tool_invocations": 0
+                }
+            }]
+        }
+    });
+    assert_eq!(
+        extract_observed_draw(unknown.to_string().as_bytes()),
+        ObservedDraw::Unknown {
+            reported: Some(BTreeMap::from([
+                ("model_requests".to_owned(), 64),
+                ("tool_invocations".to_owned(), 0),
+            ]))
+        }
+    );
+
+    // Over-reservation draw (65) is surfaced so settlement refuses it.
+    let over = json!({
+        "schema": OBSERVATION_SCHEMA,
+        "budget_lineage": {
+            "binding": binding,
+            "usage": [{
+                "phase": "edit",
+                "iteration": 1,
+                "model_requests": 65,
+                "tool_invocations": null,
+                "provenance": "host_measured",
+                "charged": { "model_requests": 65, "tool_invocations": 0 }
+            }]
+        }
+    });
+    assert_eq!(
+        extract_observed_draw(over.to_string().as_bytes()),
+        ObservedDraw::HostMeasured {
+            charged: BTreeMap::from([("model_requests".to_owned(), 65)])
+        }
+    );
+
+    // Missing, empty, malformed, mismatched, and duplicated records fail closed.
+    let fail_closed = ObservedDraw::Unknown { reported: None };
+    let duplicate_step = json!({
+        "budget_lineage": {
+            "binding": binding,
+            "usage": [
+                {
+                    "phase": "edit",
+                    "iteration": 1,
+                    "model_requests": 1,
+                    "provenance": "host_measured",
+                    "charged": { "model_requests": 1 }
+                },
+                {
+                    "phase": "edit",
+                    "iteration": 1,
+                    "model_requests": 2,
+                    "provenance": "host_measured",
+                    "charged": { "model_requests": 2 }
+                }
+            ]
+        }
+    });
+    let mismatched = json!({
+        "budget_lineage": {
+            "binding": binding,
+            "usage": [{
+                "phase": "edit",
+                "iteration": 1,
+                "model_requests": 3,
+                "provenance": "host_measured",
+                "charged": { "model_requests": 1 }
+            }]
+        }
+    });
+    let duplicate_key = format!(
+        r#"{{"budget_lineage":{{"binding":"{binding}","usage":[{{"phase":"edit","iteration":1,"model_requests":3,"provenance":"host_measured","charged":{{"model_requests":64,"model_requests":3}}}}]}}}}"#
+    );
+    for (label, bytes) in [
+        ("missing lineage", br#"{"schema":"x"}"#.as_slice()),
+        ("null lineage", br#"{"budget_lineage":null}"#.as_slice()),
+        ("empty usage", br#"{"budget_lineage":{"usage":[]}}"#.as_slice()),
+        ("malformed json", b"{not-json".as_slice()),
+        (
+            "bad binding",
+            br#"{"budget_lineage":{"binding":"short","usage":[{"phase":"edit","iteration":1,"model_requests":1,"provenance":"host_measured","charged":{"model_requests":1}}]}}"#.as_slice(),
+        ),
+        (
+            "unknown provenance token",
+            br#"{"budget_lineage":{"usage":[{"phase":"edit","iteration":1,"model_requests":1,"provenance":"estimated","charged":{"model_requests":1}}]}}"#.as_slice(),
+        ),
+        ("duplicate step", duplicate_step.to_string().as_bytes()),
+        ("measured/charged mismatch", mismatched.to_string().as_bytes()),
+        ("duplicate JSON key", duplicate_key.as_bytes()),
+    ] {
+        assert_eq!(extract_observed_draw(bytes), fail_closed, "{label}");
+    }
+}

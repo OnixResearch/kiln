@@ -5,7 +5,9 @@
 //! The refusal vocabulary follows Lattice's coordinator transport contract
 //! (`docs/candidate-worker.md`, "Coordinator transport", Lattice `db64cd65`).
 
+use kiln_core::fair_admission::SettlementProvenance;
 use serde_json::Value;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
 
 pub const REFUSAL_SCHEMA: &str = "lattice.implementation-attempt-refusal.v1";
@@ -306,6 +308,192 @@ pub fn classify_observation(
         );
     }
     Ok(Observed::ClosedBeforeExecution)
+}
+
+/// Observed per-dimension draw extracted from a Lattice attempt or repair
+/// observation.
+///
+/// Missing, malformed, or duplicated draw records always fail closed to
+/// [`ObservedDraw::Unknown`] so the full reservation remains charged. When
+/// Lattice reports explicit `charged` numbers (including under `unknown`
+/// provenance), [`ObservedDraw::reported`] carries them so any draw exceeding
+/// the reservation is refused as a protocol violation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ObservedDraw {
+    HostMeasured {
+        charged: BTreeMap<String, u64>,
+    },
+    Unknown {
+        reported: Option<BTreeMap<String, u64>>,
+    },
+}
+
+impl ObservedDraw {
+    #[must_use]
+    pub const fn provenance(&self) -> SettlementProvenance {
+        match self {
+            Self::HostMeasured { .. } => SettlementProvenance::HostMeasured,
+            Self::Unknown { .. } => SettlementProvenance::Unknown,
+        }
+    }
+
+    #[must_use]
+    pub const fn reported(&self) -> Option<&BTreeMap<String, u64>> {
+        match self {
+            Self::HostMeasured { charged } => Some(charged),
+            Self::Unknown { reported } => reported.as_ref(),
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct ObservationDrawEnvelope {
+    #[serde(default)]
+    budget_lineage: Option<BudgetLineageDrawField>,
+    #[serde(default)]
+    usage: Option<Vec<UsageDrawRecord>>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum BudgetLineageDrawField {
+    /// Single-shot `lattice.implementation-attempt-observation.v1`:
+    /// `budget_lineage: { binding, usage: [...], ... }`.
+    Object(BudgetLineageDrawObject),
+    /// Multi-step repair `lattice.implementation-attempt-repair-observation.v1`:
+    /// `budget_lineage: "<64-hex>"` paired with top-level `usage: [...]`.
+    Binding(String),
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct BudgetLineageDrawObject {
+    #[serde(default)]
+    binding: Option<String>,
+    usage: Vec<UsageDrawRecord>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct UsageDrawRecord {
+    phase: String,
+    iteration: u64,
+    #[serde(default)]
+    model_requests: Option<u64>,
+    #[serde(default)]
+    tool_invocations: Option<u64>,
+    provenance: String,
+    charged: ChargedDrawRecord,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChargedDrawRecord {
+    model_requests: u64,
+    #[serde(default)]
+    tool_invocations: Option<u64>,
+}
+
+fn is_hex_digest(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+}
+
+/// Extract and validate Lattice's per-attempt draw from raw observation stdout.
+///
+/// Deserializing directly from raw bytes ensures duplicate JSON keys inside
+/// `budget_lineage`, `usage`, or `charged` fail closed to `Unknown` rather
+/// than silently taking the last value.
+#[must_use]
+pub fn extract_observed_draw(stdout: &[u8]) -> ObservedDraw {
+    let fail_closed = || ObservedDraw::Unknown { reported: None };
+    let Ok(envelope) = serde_json::from_slice::<ObservationDrawEnvelope>(stdout) else {
+        return fail_closed();
+    };
+    let records = match (envelope.budget_lineage, envelope.usage) {
+        (Some(BudgetLineageDrawField::Object(object)), None) => {
+            if object
+                .binding
+                .as_deref()
+                .is_some_and(|binding| !is_hex_digest(binding))
+            {
+                return fail_closed();
+            }
+            object.usage
+        }
+        (Some(BudgetLineageDrawField::Binding(binding)), Some(usage)) => {
+            if !is_hex_digest(&binding) {
+                return fail_closed();
+            }
+            usage
+        }
+        _ => return fail_closed(),
+    };
+    if records.is_empty() {
+        return fail_closed();
+    }
+    let mut seen_steps = BTreeSet::new();
+    let mut all_host_measured = true;
+    let mut all_tools_measured = true;
+    let mut model_requests_total: u64 = 0;
+    let mut tool_invocations_total: u64 = 0;
+    let mut any_tool_invocations = false;
+    for record in records {
+        if record.phase.trim().is_empty()
+            || !seen_steps.insert((record.phase.clone(), record.iteration))
+        {
+            return fail_closed();
+        }
+        let Some(next_model) = model_requests_total.checked_add(record.charged.model_requests)
+        else {
+            return fail_closed();
+        };
+        model_requests_total = next_model;
+        if let Some(tools) = record.charged.tool_invocations {
+            any_tool_invocations = true;
+            let Some(next_tools) = tool_invocations_total.checked_add(tools) else {
+                return fail_closed();
+            };
+            tool_invocations_total = next_tools;
+        }
+        match record.provenance.as_str() {
+            "host_measured" => {
+                if record.model_requests != Some(record.charged.model_requests) {
+                    return fail_closed();
+                }
+                match record.tool_invocations {
+                    Some(tools) => {
+                        if record.charged.tool_invocations != Some(tools) {
+                            return fail_closed();
+                        }
+                    }
+                    None => {
+                        all_tools_measured = false;
+                    }
+                }
+            }
+            "unknown" => {
+                all_host_measured = false;
+                all_tools_measured = false;
+            }
+            _ => return fail_closed(),
+        }
+    }
+    let mut charged = BTreeMap::new();
+    charged.insert("model_requests".to_owned(), model_requests_total);
+    if all_host_measured {
+        if any_tool_invocations && all_tools_measured {
+            charged.insert("tool_invocations".to_owned(), tool_invocations_total);
+        }
+        ObservedDraw::HostMeasured { charged }
+    } else {
+        if any_tool_invocations {
+            charged.insert("tool_invocations".to_owned(), tool_invocations_total);
+        }
+        ObservedDraw::Unknown {
+            reported: Some(charged),
+        }
+    }
 }
 
 #[cfg(test)]

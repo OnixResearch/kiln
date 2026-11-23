@@ -863,6 +863,150 @@ impl Implementer {
         tx.commit().map_err(text)?;
         Ok(())
     }
+    /// Settle every non-physical reservation of `(attempt, fence)` from an
+    /// observed worker draw (for example Lattice's `budget_lineage.usage[]`).
+    ///
+    /// - With [`SettlementProvenance::HostMeasured`], tracked dimensions in
+    ///   `reported_charged` are billed at their exact measured draw and the
+    ///   unused remainder is returned to the account.
+    /// - With [`SettlementProvenance::Unknown`], the full reserved amounts stay
+    ///   charged fail-closed.
+    /// - Any reported draw exceeding the attempt's reserved amount on a tracked
+    ///   dimension is refused as a protocol violation (`worker_draw_exceeds_reservation`).
+    /// - Replaying the exact settlement is idempotent; a conflicting replay
+    ///   after settlement is refused (`admission_settlement_conflict`) and
+    ///   never alters the settled charge.
+    pub fn admission_settle_observed_draw(
+        &mut self,
+        attempt: &ContentId,
+        fence: u64,
+        receipt: &ContentId,
+        reported_charged: Option<&std::collections::BTreeMap<String, u64>>,
+        provenance: SettlementProvenance,
+    ) -> Result<(), String> {
+        let tx = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(text)?;
+        let (attempts, _) = load::<AttemptLedger>(&tx, ATTEMPT_KIND)?;
+        let (mut ledger, version) = load::<AdmissionLedger>(&tx, ADMISSION_KIND)?;
+        if ledger.policy.is_none() {
+            tx.commit().map_err(text)?;
+            return Ok(());
+        }
+        let current = attempts
+            .get(attempt)
+            .filter(|a| a.fence == fence && a.workflow.is_some())
+            .ok_or("admission: settlement observation has no durable workflow")?;
+        let claim = ClaimRef {
+            attempt: attempt.clone(),
+            fence,
+        };
+        let matching: Vec<OwnerReservation> = ledger
+            .reservations
+            .values()
+            .filter(|r| {
+                r.work_version == current.work_identity
+                    && r.claim == claim
+                    && r.kind != ChargeKind::PhysicalDeployment
+                    && matches!(
+                        r.state,
+                        ReservationState::Committed
+                            | ReservationState::Unknown
+                            | ReservationState::Settled
+                    )
+            })
+            .cloned()
+            .collect();
+        if matching.is_empty() {
+            tx.commit().map_err(text)?;
+            return Ok(());
+        }
+        // Validate reported draw bounds against unsettled reservations first,
+        // before mutating any reservation.
+        let mut unsettled_reserved: std::collections::BTreeMap<String, u64> =
+            std::collections::BTreeMap::new();
+        let mut has_unsettled = false;
+        for reservation in &matching {
+            if matches!(
+                reservation.state,
+                ReservationState::Committed | ReservationState::Unknown
+            ) {
+                has_unsettled = true;
+                for (dimension, amount) in &reservation.amounts {
+                    let entry = unsettled_reserved
+                        .entry(dimension.as_str().to_owned())
+                        .or_insert(0);
+                    *entry = entry.checked_add(*amount).ok_or_else(|| {
+                        "admission: reserved dimension total overflowed".to_owned()
+                    })?;
+                }
+            }
+        }
+        if has_unsettled && let Some(reported) = reported_charged {
+            for (dimension, &drawn) in reported {
+                if let Some(&reserved) = unsettled_reserved.get(dimension)
+                    && drawn > reserved
+                {
+                    return Err(format!(
+                        "worker_draw_exceeds_reservation: reported draw {drawn} exceeds reservation {reserved} for {dimension}"
+                    ));
+                }
+            }
+        }
+        let mut remaining_draw = match (provenance, reported_charged) {
+            (SettlementProvenance::HostMeasured, Some(charged)) => Some(charged.clone()),
+            _ => None,
+        };
+        for reservation in &matching {
+            let consumed = match (&mut remaining_draw, reservation.state) {
+                (Some(remaining), ReservationState::Settled) => {
+                    let mut amounts = Amounts::new();
+                    for (dimension, &prior) in &reservation.amounts {
+                        let charge = if matching.len() == 1 {
+                            remaining.remove(dimension.as_str()).unwrap_or(prior)
+                        } else if let Some(left) = remaining.get_mut(dimension.as_str()) {
+                            let take = (*left).min(prior);
+                            *left -= take;
+                            take
+                        } else {
+                            prior
+                        };
+                        amounts.insert(dimension.clone(), charge);
+                    }
+                    amounts
+                }
+                (Some(remaining), _) => {
+                    let mut amounts = Amounts::new();
+                    for (dimension, &reserved) in &reservation.amounts {
+                        let charge = if let Some(left) = remaining.get_mut(dimension.as_str()) {
+                            let take = (*left).min(reserved);
+                            *left -= take;
+                            take
+                        } else {
+                            reserved
+                        };
+                        amounts.insert(dimension.clone(), charge);
+                    }
+                    amounts
+                }
+                (None, _) => reservation.amounts.clone(),
+            };
+            ledger
+                .settle_with_provenance(
+                    &reservation.operation,
+                    &reservation.provider,
+                    reservation.generation,
+                    receipt.clone(),
+                    consumed,
+                    provenance,
+                )
+                .map_err(diagnostic)?;
+        }
+        bounded_save(&tx, version, &ledger)?;
+        tx.commit().map_err(text)?;
+        Ok(())
+    }
     /// Persist request first; a retained operation is reconciled, never blindly
     /// sent as a new owner request after reconnect/restart.
     pub fn admission_reserve_with_owner(

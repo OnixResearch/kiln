@@ -1167,6 +1167,15 @@ fn run_with(
         .map_err(|error| format!("{error:?}"))?;
     implementer.reconcile_dispatch(&attempt.identity, attempt.fence, clock()?, &workflow)?;
     implementer.admission_execution_observed(&attempt.identity, attempt.fence, clock()?)?;
+    let observed_draw = settlement::extract_observed_draw(&outcome.stdout.bytes);
+    let settlement_receipt = blake3_identity(&outcome.stdout.bytes)?;
+    implementer.admission_settle_observed_draw(
+        &attempt.identity,
+        attempt.fence,
+        &settlement_receipt,
+        observed_draw.reported(),
+        observed_draw.provenance(),
+    )?;
     // Observation failure cannot turn a valid native result into a failed
     // dispatch or grant candidate authority. Raw transport evidence is retained
     // above; absent/malformed telemetry is explicit in this diagnostic.

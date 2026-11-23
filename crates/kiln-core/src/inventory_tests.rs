@@ -703,6 +703,8 @@ fn typed_fair_admission_reasons_keep_work_policy_and_freshness_exact() -> TestRe
         observation_at_ms: Some(1000),
         lineage: None,
         serving: None,
+        settled_measured: BTreeMap::new(),
+        settled_unknown: BTreeMap::new(),
     });
     let result = explain_readiness(&profile, &snapshot, &needs, 2000)?;
     assert!(

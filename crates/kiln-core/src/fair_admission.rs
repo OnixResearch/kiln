@@ -212,6 +212,17 @@ pub enum AdmissionPhase {
     Executing,
     Terminal,
 }
+/// How a settled reservation's consumed amounts were established.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SettlementProvenance {
+    /// Authoritative host-measured draw reported by the worker runtime.
+    HostMeasured,
+    /// Unknown, absent, or unverified measurement; the full reservation was
+    /// charged fail-closed.
+    Unknown,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AdmissionExplanation {
@@ -229,6 +240,12 @@ pub struct AdmissionExplanation {
     pub lineage: Option<LineageExplanation>,
     #[serde(default)]
     pub serving: Option<ServingExplanation>,
+    /// Settled charges backed by authoritative host-measured draws.
+    #[serde(default)]
+    pub settled_measured: Amounts,
+    /// Settled charges billed fail-closed with unknown measurement provenance.
+    #[serde(default)]
+    pub settled_unknown: Amounts,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -373,6 +390,9 @@ pub struct AdmissionLedger {
     /// Revoked lineage accounts; revocation never refunds outstanding usage.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
     pub revoked: BTreeSet<ContentId>,
+    /// Provenance of settled reservations, keyed by operation identity.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub settlement_provenance: BTreeMap<ContentId, SettlementProvenance>,
 }
 impl AdmissionLedger {
     pub fn configure(&mut self, policy: AdmissionPolicy) -> CoreResult<ContentId> {
@@ -1579,6 +1599,28 @@ impl AdmissionLedger {
         receipt: ContentId,
         consumed: Amounts,
     ) -> CoreResult<()> {
+        self.settle_with_provenance(
+            operation,
+            provider,
+            generation,
+            receipt,
+            consumed,
+            SettlementProvenance::Unknown,
+        )
+    }
+    /// Exact authoritative termination/usage receipt with explicit charge
+    /// provenance (`HostMeasured` vs `Unknown`). Replaying the exact receipt,
+    /// consumed amounts, and provenance is idempotent; any mismatch is refused
+    /// without mutating the already-settled charge.
+    pub fn settle_with_provenance(
+        &mut self,
+        operation: &ContentId,
+        provider: &ProviderProfileId,
+        generation: u64,
+        receipt: ContentId,
+        consumed: Amounts,
+        provenance: SettlementProvenance,
+    ) -> CoreResult<()> {
         let prior = self
             .reservations
             .get(operation)
@@ -1588,7 +1630,15 @@ impl AdmissionLedger {
             return Err(err("admission_settlement_owner", "wrong owner generation"));
         }
         if prior.state == ReservationState::Settled {
-            return if prior.receipt.as_ref() == Some(&receipt) && prior.amounts == consumed {
+            let prior_provenance = self
+                .settlement_provenance
+                .get(operation)
+                .copied()
+                .unwrap_or(SettlementProvenance::Unknown);
+            return if prior.receipt.as_ref() == Some(&receipt)
+                && prior.amounts == consumed
+                && prior_provenance == provenance
+            {
                 Ok(())
             } else {
                 Err(err(
@@ -1626,6 +1676,8 @@ impl AdmissionLedger {
         reservation.state = ReservationState::Settled;
         reservation.receipt = Some(receipt);
         reservation.amounts = consumed;
+        self.settlement_provenance
+            .insert(operation.clone(), provenance);
         let work = prior.work_version;
         if !self.reservations.values().any(|r| {
             r.work_version == work
@@ -1663,6 +1715,27 @@ impl AdmissionLedger {
                 )
         }) {
             held = add(&held, &r.amounts)?;
+        }
+        let mut settled_measured = Amounts::new();
+        let mut settled_unknown = Amounts::new();
+        for r in self
+            .reservations
+            .values()
+            .filter(|r| &r.work_version == work && r.state == ReservationState::Settled)
+        {
+            match self
+                .settlement_provenance
+                .get(&r.operation)
+                .copied()
+                .unwrap_or(SettlementProvenance::Unknown)
+            {
+                SettlementProvenance::HostMeasured => {
+                    settled_measured = add(&settled_measured, &r.amounts)?;
+                }
+                SettlementProvenance::Unknown => {
+                    settled_unknown = add(&settled_unknown, &r.amounts)?;
+                }
+            }
         }
         Ok(AdmissionExplanation {
             work_version: work.clone(),
@@ -1704,6 +1777,8 @@ impl AdmissionLedger {
             observation_at_ms: observation.map(|o| o.usage.observed_at),
             lineage: Some(self.lineage_explanation(&item.account, now_ms)?),
             serving: self.serving_explanation(item, now_ms),
+            settled_measured,
+            settled_unknown,
         })
     }
 }

@@ -1002,3 +1002,96 @@ fn caller_cannot_hide_a_fresh_competitor_by_omitting_its_offer() {
         Some(id("a2"))
     );
 }
+
+#[test]
+fn settled_explanation_distinguishes_host_measured_and_unknown_charges() {
+    let mut l = ledger(weighted());
+    let mut q1 = item("a", "a1");
+    q1.budget = amounts(64);
+    let mut q2 = item("a", "a2");
+    q2.budget = amounts(64);
+    l.enqueue(q1, 100).unwrap_or_else(|_| unreachable!());
+    l.enqueue(q2, 100).unwrap_or_else(|_| unreachable!());
+    let r1 = request(&mut l, "a", "a1", "op1", 64);
+    grant(&mut l, &r1);
+    l.settle_with_provenance(
+        &r1.operation,
+        &r1.provider,
+        1,
+        id("receipt-1"),
+        amounts(3),
+        SettlementProvenance::HostMeasured,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    // Idempotent replay with identical receipt, consumed and provenance.
+    l.settle_with_provenance(
+        &r1.operation,
+        &r1.provider,
+        1,
+        id("receipt-1"),
+        amounts(3),
+        SettlementProvenance::HostMeasured,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    // Conflicting provenance on replay is refused.
+    assert!(
+        l.settle_with_provenance(
+            &r1.operation,
+            &r1.provider,
+            1,
+            id("receipt-1"),
+            amounts(3),
+            SettlementProvenance::Unknown,
+        )
+        .is_err()
+    );
+    let exp1 = l
+        .explanation(&id("a1"), 101)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(exp1.settled_measured, amounts(3));
+    assert!(exp1.settled_unknown.is_empty());
+
+    // Account started at 100, reserved 64, charged 3, refunded 61 -> available 97.
+    let r2 = request(&mut l, "a", "a2", "op2", 64);
+    grant(&mut l, &r2);
+    // Draw above reservation (65 > 64) is refused.
+    assert!(
+        l.settle_with_provenance(
+            &r2.operation,
+            &r2.provider,
+            1,
+            id("receipt-over"),
+            amounts(65),
+            SettlementProvenance::HostMeasured,
+        )
+        .is_err()
+    );
+    l.settle_with_provenance(
+        &r2.operation,
+        &r2.provider,
+        1,
+        id("receipt-2"),
+        amounts(64),
+        SettlementProvenance::Unknown,
+    )
+    .unwrap_or_else(|_| unreachable!());
+    let exp2 = l
+        .explanation(&id("a2"), 102)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(exp2.settled_measured.is_empty());
+    assert_eq!(exp2.settled_unknown, amounts(64));
+    assert_eq!(
+        l.accounts
+            .get(&id("a"))
+            .unwrap_or_else(|| unreachable!())
+            .available,
+        amounts(33)
+    );
+    assert_eq!(
+        l.accounts
+            .get(&id("a"))
+            .unwrap_or_else(|| unreachable!())
+            .consumed,
+        amounts(67)
+    );
+}

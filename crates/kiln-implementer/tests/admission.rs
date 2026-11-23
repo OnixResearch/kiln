@@ -1446,3 +1446,292 @@ fn campaign_claim_requires_explicit_policy_instead_of_legacy_fallback() {
             .is_err()
     );
 }
+
+#[test]
+fn observed_draw_settlement_enforces_measured_unknown_missing_bounds_and_idempotency() {
+    let model_amounts = |n: u64| BTreeMap::from([(a("model_requests"), n)]);
+    let prepare = |path: &Path,
+                   label: &str|
+     -> (Implementer, ImplementationWork, ImplementationAttempt) {
+        let mut implementer = open(path);
+        implementer
+            .admission_apply(Cmd::Configure { policy: policy() }, 100)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        implementer
+            .admission_apply(
+                Cmd::Root {
+                    account: BudgetAccount {
+                        identity: id("acct"),
+                        parent: None,
+                        parent_attempt: None,
+                        campaign: a("a"),
+                        tenant: a("tenant"),
+                        deadline_ms: 1000,
+                        available: model_amounts(100),
+                        consumed: Amounts::new(),
+                        children: 0,
+                    },
+                },
+                100,
+            )
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        implementer
+            .admission_apply(
+                Cmd::Observe {
+                    observation: UsageObservation {
+                        usage: TenantUsage {
+                            tenant: a("a"),
+                            share: 1,
+                            provider: p(),
+                            interval_start: 0,
+                            interval_end: 100,
+                            observed_at: 100,
+                            resources: BTreeMap::from([(
+                                a("model_requests"),
+                                UsageValue {
+                                    amount: 0,
+                                    capacity: Some(100),
+                                },
+                            )]),
+                        },
+                        generation: 1,
+                        accounting_basis: id("basis"),
+                        covered: BTreeMap::new(),
+                        complete: true,
+                    },
+                },
+                100,
+            )
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let mut w = work(label);
+        w.base = Some(
+            ExternalRef::new("git", "commit", &"1".repeat(40)).unwrap_or_else(|_| unreachable!()),
+        );
+        implementer
+            .admit_with_supersession(&w, None, SupersessionRule::AbortActive, 100)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let work_id = w.identity().unwrap_or_else(|_| unreachable!());
+        implementer
+            .admission_apply(
+                Cmd::Enqueue {
+                    item: QueueItem {
+                        work_version: work_id.clone(),
+                        account: id("acct"),
+                        tenant: a("tenant"),
+                        campaign: a("a"),
+                        repository: a("onix/kiln"),
+                        priority: 1,
+                        bytes: 0,
+                        enqueued_at_ms: 100,
+                        deadline_ms: 900,
+                        eligible_at_ms: 100,
+                        claim: None,
+                        phase: AdmissionPhase::PreClaim,
+                        reason: AdmissionReason::Waiting,
+                        order: 0,
+                        required_owners: BTreeMap::from([(p(), ChargeKind::WorkerRequest)]),
+                        shared_allocations: Vec::new(),
+                        budget: model_amounts(64),
+                    },
+                },
+                100,
+            )
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let attempt = match implementer
+            .admission_apply(
+                Cmd::Claim {
+                    inputs: vec![offer(&w)],
+                    lease_ms: 500,
+                },
+                100,
+            )
+            .unwrap_or_else(|error| unreachable!("{error}"))
+        {
+            ResultFact::Claimed {
+                attempt: Some(attempt),
+            } => *attempt,
+            other => unreachable!("claim failed: {other:?}"),
+        };
+        let mut r = reservation(&w, &attempt, "op-model");
+        r.account = id("acct");
+        r.kind = ChargeKind::WorkerRequest;
+        r.amounts = model_amounts(64);
+        implementer
+            .admission_apply(
+                Cmd::Request {
+                    reservation: r.clone(),
+                    inputs: vec![offer(&w)],
+                },
+                100,
+            )
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        confirm(&mut implementer, &r);
+        let plan = ImplementationDispatchPlan {
+            schema: DISPATCH_PLAN_SCHEMA.into(),
+            work_identity: work_id.clone(),
+            work_revision: w.revision,
+            attempt_identity: attempt.identity.clone(),
+            fence: attempt.fence,
+            repository: w.repository.clone(),
+            base: w.base.clone(),
+            workspace: DispatchWorkspace {
+                identity: id("workspace"),
+                isolation: WorkspaceIsolation::IsolatedSnapshot,
+                network: false,
+                credentials: false,
+                projection: None,
+            },
+            provider_profile: p(),
+            permitted_paths: w.permitted_paths.clone(),
+            permitted_effects: w.permitted_effects.clone(),
+            controls: DispatchControls {
+                cancel: true,
+                pause: false,
+                resume: false,
+            },
+            deadline_minutes: 60,
+            token_budget: 1_000,
+            invocation_budget: 1,
+            expected_output: id("expected-output"),
+            execution: None,
+        };
+        let reserved = implementer
+            .reserve_dispatch_plan(&w, &attempt.identity, attempt.fence, 100, &plan)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        implementer
+            .bind_campaign_request(&w, &attempt.identity, attempt.fence, 100, b"{}")
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        implementer
+            .admission_before_transport(&attempt.identity, attempt.fence, &[offer(&w)], 101)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        implementer
+            .begin_dispatch_transport(&attempt.identity, attempt.fence, 101, &reserved.plan, None)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        let workflow = ExternalRef::new(
+            "lattice",
+            "implementation-attempt",
+            attempt.identity.as_str(),
+        )
+        .unwrap_or_else(|_| unreachable!());
+        implementer
+            .start_execution(&attempt.identity, attempt.fence, 102, &workflow)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        implementer
+            .admission_execution_observed(&attempt.identity, attempt.fence, 102)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+        (implementer, w, attempt)
+    };
+
+    // (1) Measured draw of 3 out of 64 charges 3, releases 61, and reports
+    // settled_measured distinctly in AdmissionExplanation; replay is idempotent.
+    let dir = tempfile::tempdir().unwrap_or_else(|_| unreachable!());
+    let (mut imp, w, attempt) = prepare(&dir.path().join("measured.db"), "m1");
+    let receipt = id("obs-measured");
+    let draw_3 = BTreeMap::from([("model_requests".to_owned(), 3)]);
+    imp.admission_settle_observed_draw(
+        &attempt.identity,
+        attempt.fence,
+        &receipt,
+        Some(&draw_3),
+        SettlementProvenance::HostMeasured,
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    // Replay is idempotent.
+    imp.admission_settle_observed_draw(
+        &attempt.identity,
+        attempt.fence,
+        &receipt,
+        Some(&draw_3),
+        SettlementProvenance::HostMeasured,
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    // Conflicting replay cannot alter the already-settled charge.
+    let draw_1 = BTreeMap::from([("model_requests".to_owned(), 1)]);
+    assert!(
+        imp.admission_settle_observed_draw(
+            &attempt.identity,
+            attempt.fence,
+            &receipt,
+            Some(&draw_1),
+            SettlementProvenance::HostMeasured,
+        )
+        .is_err()
+    );
+    let state = imp.admission_snapshot().unwrap_or_else(|_| unreachable!());
+    let acct = state
+        .accounts
+        .get(&id("acct"))
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(acct.available, model_amounts(97));
+    assert_eq!(acct.consumed, model_amounts(3));
+    let exp = state
+        .explanation(&w.identity().unwrap_or_else(|_| unreachable!()), 103)
+        .unwrap_or_else(|_| unreachable!());
+    assert_eq!(exp.settled_measured, model_amounts(3));
+    assert!(exp.settled_unknown.is_empty());
+
+    // (2) Unknown draw charges full 64 and records settled_unknown distinctly.
+    let (mut imp, w, attempt) = prepare(&dir.path().join("unknown.db"), "u1");
+    let draw_64 = BTreeMap::from([("model_requests".to_owned(), 64)]);
+    imp.admission_settle_observed_draw(
+        &attempt.identity,
+        attempt.fence,
+        &id("obs-unknown"),
+        Some(&draw_64),
+        SettlementProvenance::Unknown,
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    let state = imp.admission_snapshot().unwrap_or_else(|_| unreachable!());
+    let acct = state
+        .accounts
+        .get(&id("acct"))
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(acct.available, model_amounts(36));
+    assert_eq!(acct.consumed, model_amounts(64));
+    let exp = state
+        .explanation(&w.identity().unwrap_or_else(|_| unreachable!()), 103)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(exp.settled_measured.is_empty());
+    assert_eq!(exp.settled_unknown, model_amounts(64));
+
+    // (3) Missing draw charges full 64 fail-closed.
+    let (mut imp, w, attempt) = prepare(&dir.path().join("missing.db"), "miss1");
+    imp.admission_settle_observed_draw(
+        &attempt.identity,
+        attempt.fence,
+        &id("obs-missing"),
+        None,
+        SettlementProvenance::Unknown,
+    )
+    .unwrap_or_else(|error| unreachable!("{error}"));
+    let state = imp.admission_snapshot().unwrap_or_else(|_| unreachable!());
+    let acct = state
+        .accounts
+        .get(&id("acct"))
+        .unwrap_or_else(|| unreachable!());
+    assert_eq!(acct.available, model_amounts(36));
+    assert_eq!(acct.consumed, model_amounts(64));
+    let exp = state
+        .explanation(&w.identity().unwrap_or_else(|_| unreachable!()), 103)
+        .unwrap_or_else(|_| unreachable!());
+    assert!(exp.settled_measured.is_empty());
+    assert_eq!(exp.settled_unknown, model_amounts(64));
+
+    // (4) Draw of 65 out of 64 is refused as a protocol violation.
+    let (mut imp, _, attempt) = prepare(&dir.path().join("over.db"), "over1");
+    let draw_65 = BTreeMap::from([("model_requests".to_owned(), 65)]);
+    let err = imp
+        .admission_settle_observed_draw(
+            &attempt.identity,
+            attempt.fence,
+            &id("obs-over"),
+            Some(&draw_65),
+            SettlementProvenance::HostMeasured,
+        )
+        .err()
+        .unwrap_or_default();
+    assert!(
+        err.starts_with("worker_draw_exceeds_reservation:"),
+        "expected protocol violation, got {err}"
+    );
+}
