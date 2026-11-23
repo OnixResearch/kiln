@@ -147,7 +147,7 @@ let TraceabilityAssuranceLevel = std.contract.from_predicate (fun value =>
 ) in
 
 let TraceabilityAnchorKind = std.contract.from_predicate (fun value =>
-  std.is_string value && value == "exact_marker_bytes"
+  std.is_string value && (value == "exact_marker_bytes" || value == "rust_item_v1")
 ) in
 
 let TraceabilityExtension = std.contract.from_predicate (fun value =>
@@ -206,6 +206,10 @@ let GeneratedWorkflowAdapterFormat = std.contract.from_predicate (fun value =>
   std.is_string value && (
     value == "agent-skills" || value == "claude" || value == "codex"
   )
+) in
+
+let GeneratedWorkflowNativeLayout = std.contract.from_predicate (fun value =>
+  std.is_string value && value == ".cairn"
 ) in
 
 let DeveloperLoopEffectPosture = std.contract.from_predicate (fun value =>
@@ -332,6 +336,28 @@ let DeveloperLoopStatusClass = std.contract.from_predicate (fun value =>
     permission | GeneratedWorkflowPermission,
   },
 
+  GeneratedWorkflowCommand = {
+    id | NonEmptyString,
+    command_class | NonEmptyString,
+    invocation | NonEmptyString,
+  },
+
+  GeneratedWorkflowEntryGuide = {
+    id | NonEmptyString,
+    version | PositiveNumber,
+    goal | NonEmptyString,
+    layout | GeneratedWorkflowNativeLayout,
+    discovery_routes | NonEmptyArray | Array NonEmptyString,
+    readiness_routes | NonEmptyArray | Array NonEmptyString,
+    stage_route | NonEmptyString,
+    profile_route | NonEmptyString,
+    profiles | NonEmptyArray | Array NonEmptyString,
+    boundaries | NonEmptyArray | Array NonEmptyString,
+    required_evidence | NonEmptyArray | Array NonEmptyString,
+    max_bytes | PositiveNumber,
+    max_stage_route_bytes | PositiveNumber,
+  },
+
   GeneratedWorkflowDescriptor = {
     id | NonEmptyString,
     version | PositiveNumber,
@@ -362,6 +388,8 @@ let DeveloperLoopStatusClass = std.contract.from_predicate (fun value =>
     schema | NonEmptyString,
     generator_version | NonEmptyString,
     command_classes | NonEmptyArray | Array GeneratedWorkflowCommandClass,
+    command_catalog | NonEmptyArray | Array GeneratedWorkflowCommand,
+    entry | GeneratedWorkflowEntryGuide,
     descriptors | NonEmptyArray | Array GeneratedWorkflowDescriptor,
     adapters | NonEmptyArray | Array GeneratedWorkflowAdapter,
     bounds | GeneratedWorkflowBounds,
@@ -575,6 +603,7 @@ let DeveloperLoopStatusClass = std.contract.from_predicate (fun value =>
     marker_verbs | NonEmptyArray | Array TraceabilityMarkerVerb,
     assurance_level | TraceabilityAssuranceLevel,
     anchor_kind | TraceabilityAnchorKind,
+    rust_configuration_path | SafeRelativePath | optional,
   },
 
   TraceabilityPolicy = {

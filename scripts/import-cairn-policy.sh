@@ -2,12 +2,12 @@
 set -euo pipefail
 
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-revision=007ba5193dd8fec9067a1c0e0f8ef487807af872
-nar_hash='sha256-Kgx8JgsC/+26ETbL3lRaxXAYfzv2cmtG/i9OywPOz0c='
-source_default_hash=c3b5981d71789b04ff3a7567a84a7b1df29b5703dcb3a65e664143713e77a97e
-source_contracts_hash=bc537dc32ff01fc9004dc032b78ad6fb5855c5c6f0158ecda219d5912b46619c
-previous_default_hash=97c79749114d24ce963049f525ffe4e783f094a90e222fcc7fdd2487a5c8d5d8
-previous_contracts_hash=845a0f4038dfc198bc0a4aa72672b570f9d8f0e64ae821aec6c719736f53188f
+revision=9082e1aece4f04bcbead5eeea087e496bc48a675
+nar_hash='sha256-MupXo6ha88a5GtCWyurc6ogIw5N0i7nat2BQ3btglnA='
+source_default_hash=6a031f3a92ae55bc79eb2417ccb7289c2aabdeda639570563d4cdb294bd316db
+source_contracts_hash=46ebe026e1b69bb6bee7e24947bd5d18be307e4d977100dd6f8f8fc696d1a15e
+previous_default_hash=c3b5981d71789b04ff3a7567a84a7b1df29b5703dcb3a65e664143713e77a97e
+previous_contracts_hash=bc537dc32ff01fc9004dc032b78ad6fb5855c5c6f0158ecda219d5912b46619c
 
 actual_hash() { b3sum --no-names "$1"; }
 require_hash() {
