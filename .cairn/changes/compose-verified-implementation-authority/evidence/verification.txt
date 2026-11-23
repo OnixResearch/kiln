@@ -5,6 +5,45 @@ cargo --locked, CARGO_BUILD_JOBS=4 under nice -n 10, one target directory on
 the datapool; nix with --option builders '' --option min-free 0.
 Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn.
 
+== Re-review P1: the feed was read from a different path than its key ==
+ [P1] revocation_feed_key canonicalized the configured path, then the import
+   resolved the original path again; a producer re-pointing `current -> B` in
+   between stored B's fresh observation under A's key, so a configuration reading
+   A's stale feed directly admitted on B's freshness.
+   49e2a57b Key each revocation view by its configured feed path
+   (supersedes the canonical-path key of 2977781a; the per-feed design stays)
+   authority_verified: rotating_a_symlinked_feed_directory_keeps_the_configured_feed_fresh,
+     two_spellings_of_one_feed_file_keep_separate_views,
+     the_view_key_is_the_configured_path_the_feed_was_read_from (with path
+     refusals and a final-component symlink); the two-feed, expiry and monotonic
+     tests still pass
+
+Red step: the three new tests (and their helpers) appended unchanged to a
+scratch worktree at 10c60f15.
+$ cargo test --locked -p kiln-implementer --test authority_verified (the three tests) -> exit 101
+    rotating_a_symlinked_feed_directory_keeps_the_configured_feed_fresh: panicked at
+      authority_verified.rs:737:5: "a long-lived authority stays fresh when its
+      configured feed directory is re-pointed"
+    two_spellings_of_one_feed_file_keep_separate_views: panicked at
+      authority_verified.rs:761:5: "Y's stale view denies although X just imported
+      the same file fresh"
+    the_view_key_is_the_configured_path_the_feed_was_read_from: panicked at
+      authority_verified.rs:796:5: left [("<tmp>/feeds/a/revocations.json", 1499995)]
+      right [("<tmp>/current/revocations.json", 1499995)]
+
+Gates on 49e2a57b:
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo test --locked -p kiln-implementer -p kiln-adapter-basalt --no-fail-fast -> exit 0 (183 passed, 7 ignored)
+$ cargo test --locked -p kiln-implementer --test authority_coverage        -> exit 0 (9 passed)
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 1: checks.package only,
+    kiln-radicle-ci patch::tests::author_reachability_withdrawn_during_snapshot_never_reserves_or_dispatches
+    "Spawn failed: Text file busy (os error 26)", a spawn race in a crate this
+    change does not touch
+$ nix flake check path:$PWD --no-write-lock-file -L (rerun)                 -> exit 0
+$ cairn validate; cairn gate proposal|design|tasks; dev traceability       -> exit 0 (0 dangling, 0 missing)
+
 == Re-verification P1: per-feed revocation freshness ==
  [P1] A verified authority borrowed another feed's freshness: two configurations
    sharing one ledger (one <ledger>.authority) with different feed files shared
