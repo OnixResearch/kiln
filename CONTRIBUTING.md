@@ -52,9 +52,14 @@ every negative fixture is rejected; the same script runs inside
 gate commands to the current generated policy hash, so regenerate its command
 and selection hashes whenever those commands or the policy change.
 
-The development shell does not provide `cairn`; install a Cairn executable
-that accepts `cairn-policy/generated/cairn-policy.json` to run the three
-`cairn` gates. Do not replace a failing repository gate with an approximation.
+The development shell provides Kiln's pinned `cairn` executable wrapped to
+default to `cairn-policy/generated/cairn-policy.json` (`kiln-default`),
+shadowing any outer `cairn` binary or `CAIRN_POLICY` setting. Always pass
+`--policy "$PWD/cairn-policy/generated/cairn-policy.json"` explicitly on
+scripted and evidence-bearing invocations (including `sync` and `archive`), and
+record the resolved `cairn` binary path, reported `policy`, and `policy_hash`
+in retained evidence. Do not replace a failing repository gate with an
+approximation.
 
 The two `nix` gates also build the separately locked workspaces under
 `runtime/`. Their locks name the Bounded Exec source at `git.onix.computer`.

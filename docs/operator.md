@@ -30,11 +30,16 @@ An unconfigured protected operation denies before any effect.
    scripts/check-nickel-fixtures.sh
    cairn validate --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
    cairn traceability coverage --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json" --json
-   cairn release-readiness --root .
+   cairn release-readiness --root . --policy "$PWD/cairn-policy/generated/cairn-policy.json"
    nix build path:$PWD#checks.x86_64-linux.octet --no-link -L
    nix flake check path:$PWD --no-write-lock-file -L
    ```
 
+   `nix develop path:$PWD` provides Kiln's pinned `cairn` wrapper defaulting to
+   `cairn-policy/generated/cairn-policy.json` (`kiln-default`) regardless of
+   outer `PATH` or `CAIRN_POLICY`. Pass `--policy` explicitly on policy-bearing
+   commands (including `sync` and `archive`) and record the resolved binary,
+   `policy`, and `policy_hash` in retained evidence.
    `scripts/check-nickel-fixtures.sh` exports every positive fixture and
    asserts every negative fixture is rejected; the same script runs inside
    `checks.x86_64-linux.nickel`.

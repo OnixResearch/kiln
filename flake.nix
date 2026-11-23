@@ -22,6 +22,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-eval-jobs.url = "github:NixOS/nix-eval-jobs/a0cd02231c58974a6b5aaa3712069b071047162e";
+    cairn = {
+      url = "github:OnixResearch/cairn/317d3ff648f01a5ea1572e6126f4dd71bc7afa99";
+    };
     bombadil = {
       url = "github:antithesishq/bombadil/832faf4d953e2c56d1d901aca1bb2c3c3170221d";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -38,6 +41,7 @@
       lib-libelf,
       rust-overlay,
       nix-eval-jobs,
+      cairn,
       bombadil,
     }:
     let
@@ -63,6 +67,45 @@
       cairnGateSource = ./vendor/cairn;
       cairnGateRevision =
         (builtins.fromJSON (builtins.readFile ./vendor/cairn.source.json)).source_commit;
+      cairnPackageFor =
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          cairnPkg = cairn.packages.${system}.cairn;
+          kilnPolicy = ./cairn-policy/generated/cairn-policy.json;
+        in
+        pkgs.writeShellApplication {
+          name = "cairn";
+          text = ''
+            # Default to Kiln's generated policy regardless of any outer
+            # CAIRN_POLICY (for example lattice-default). Prefer the live
+            # checkout's policy when invoked inside a Kiln working tree;
+            # explicit --policy flags always override CAIRN_POLICY in cairn.
+            root=""
+            prev=""
+            for arg in "$@"; do
+              if [ "$prev" = "--root" ]; then
+                root="$arg"
+                break
+              fi
+              case "$arg" in
+                --root=*)
+                  root="''${arg#--root=}"
+                  break
+                  ;;
+              esac
+              prev="$arg"
+            done
+            if [ -n "$root" ] && [ -f "$root/cairn-policy/generated/cairn-policy.json" ]; then
+              export CAIRN_POLICY="$root/cairn-policy/generated/cairn-policy.json"
+            elif [ -f "$PWD/cairn-policy/generated/cairn-policy.json" ]; then
+              export CAIRN_POLICY="$PWD/cairn-policy/generated/cairn-policy.json"
+            else
+              export CAIRN_POLICY="${kilnPolicy}"
+            fi
+            exec "${cairnPkg}/bin/cairn" "$@"
+          '';
+        };
       mantleBuildSource = ./vendor/mantle;
       mantleBuildRevision =
         (builtins.fromJSON (builtins.readFile ./vendor/mantle.source.json)).source_commit;
@@ -275,17 +318,25 @@
             "kiln-web-service/implementation-fixtures"
           ];
           cargoBuildFlags = [
-            "-p" "kiln-adapter-github"
-            "-p" "kiln-adapter-lattice"
-            "-p" "kiln-adapter-cairn"
-            "-p" "kiln-web-service"
+            "-p"
+            "kiln-adapter-github"
+            "-p"
+            "kiln-adapter-lattice"
+            "-p"
+            "kiln-adapter-cairn"
+            "-p"
+            "kiln-web-service"
             "--bins"
           ];
           cargoTestFlags = [
-            "-p" "kiln-adapter-github"
-            "-p" "kiln-adapter-lattice"
-            "-p" "kiln-adapter-cairn"
-            "-p" "kiln-web-service"
+            "-p"
+            "kiln-adapter-github"
+            "-p"
+            "kiln-adapter-lattice"
+            "-p"
+            "kiln-adapter-cairn"
+            "-p"
+            "kiln-web-service"
           ];
           meta.description = "Explicit local scripted implementation fixtures; no production provider fallback";
         });
@@ -992,6 +1043,7 @@
         system:
         {
           kiln = packageFor system;
+          cairn = cairnPackageFor system;
           kiln-cairn-intake = kilnCairnIntakePackageFor system;
           kiln-fleet = kilnFleetPackageFor system;
           web-service = webServicePackageFor system;
@@ -2123,13 +2175,11 @@
                 python3 -m unittest discover -s scripts -p test_dashboard_refresh.py
                 touch "$out"
               '';
-          live-console-ui =
-            pkgs.runCommand "kiln-live-console-ui" { nativeBuildInputs = [ pkgs.nodejs ]; }
-              ''
-                ${copySource}
-                node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs tests/console-inventory.test.mjs
-                touch "$out"
-              '';
+          live-console-ui = pkgs.runCommand "kiln-live-console-ui" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+            ${copySource}
+            node --test tests/live-console-ui.test.mjs tests/work-views.test.mjs tests/kiln-identity.test.mjs tests/console-inventory.test.mjs
+            touch "$out"
+          '';
           # Property-based terminal rail for the operator dashboard. The
           # tool is separately executed and never linked into a Kiln package.
           # r[impl kiln.observe.dashboard.property_rail.cohort]
@@ -2199,20 +2249,36 @@
           # contract must remain byte-identical in the newer import.
           cairn-gate-cohort = pkgs.runCommand "kiln-cairn-gate-cohort" { } ''
             test '${cairnGateRevision}' = '317d3ff648f01a5ea1572e6126f4dd71bc7afa99'
+            test '${cairn.rev}' = '${cairnGateRevision}'
             cmp ${cairnGateSource}/fixtures/cairn-gate-contract/producer/fixtures-v1.json \
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/producer-fixtures-v1.json
             cmp ${cairnGateSource}/contracts/cairn-gate-contract.ncl \
               ${self}/fixtures/cairn/gate-contract/15f00875562025e7ea7e0d1f4af24d1a2e2ac06f/contract.ncl
             touch "$out"
           '';
+          cairn-policy =
+            pkgs.runCommand "kiln-cairn-policy"
+              {
+                nativeBuildInputs = [
+                  (cairnPackageFor system)
+                  pkgs.jq
+                  pkgs.nickel
+                ];
+              }
+              ''
+                ${copySource}
+                CAIRN_POLICY=/nonexistent/lattice-default.json sh tests/cairn-workflow-policy.sh
+                touch "$out"
+              '';
           mantle-build-cohort =
-            pkgs.runCommand "kiln-mantle-build-cohort" {
-              nativeBuildInputs = [
-                pkgs.b3sum
-                pkgs.jq
-                pkgs.nickel
-              ];
-            }
+            pkgs.runCommand "kiln-mantle-build-cohort"
+              {
+                nativeBuildInputs = [
+                  pkgs.b3sum
+                  pkgs.jq
+                  pkgs.nickel
+                ];
+              }
               ''
                 test '${mantleBuildRevision}' = 'd75158b00b080535f2ffea12430665ca3d57ea82'
                 nickel export ${self}/fixtures/mantle/build-contract/d75158b00b080535f2ffea12430665ca3d57ea82/source.ncl \
@@ -2594,21 +2660,33 @@
             ];
             CHROME = "${pkgs.chromium}/bin/chromium";
           };
-          default = pkgs.mkShell {
-            packages = [
-              toolchain
-              pkgs.b3sum
-              pkgs.bubblewrap
-              pkgs.cmake
-              pkgs.nickel
-              pkgs.nixfmt
-              pkgs.pkg-config
-              pkgs.python3
-              pkgs.watchexec
-              pkgs.zlib
-              pkgs.openssl
-            ];
-          };
+          default =
+            let
+              kilnCairn = cairnPackageFor system;
+            in
+            pkgs.mkShell {
+              packages = [
+                kilnCairn
+                toolchain
+                pkgs.b3sum
+                pkgs.bubblewrap
+                pkgs.cmake
+                pkgs.nickel
+                pkgs.nixfmt
+                pkgs.pkg-config
+                pkgs.python3
+                pkgs.watchexec
+                pkgs.zlib
+                pkgs.openssl
+              ];
+              shellHook = ''
+                resolved_cairn=$(command -v cairn || true)
+                if [ "$resolved_cairn" != "${kilnCairn}/bin/cairn" ]; then
+                  printf 'warning: cairn resolves to %s instead of Kiln pinned %s\n' \
+                    "$resolved_cairn" "${kilnCairn}/bin/cairn" >&2
+                fi
+              '';
+            };
         }
       );
     };
