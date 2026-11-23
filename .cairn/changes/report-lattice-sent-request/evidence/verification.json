@@ -23,7 +23,8 @@
     "commands": [
       { "command": "cargo fmt --all -- --check", "exit": 0 },
       { "command": "cargo test --locked -p kiln-adapter-lattice -p kiln-implementer --no-fail-fast", "exit": 0, "result": "221 passed, 0 failed: adapter lib 89, bin 2, tests/sent_request_cli 3 (new a_wal_mode_ledger_is_refused_without_creating_its_sidecars); implementer lib 53 (7 ignored), admission 18, admission_host_owner 22, admission_lineage 2, durable 24, fleet 6, observation 2" },
-      { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 }
+      { "command": "cargo clippy --locked --workspace --all-targets -- -D warnings", "exit": 0 },
+      { "command": "nix flake check --option builders '' --option min-free 0 -L (at 061bac878aafe87937626cefbe8432fd8889f878)", "exit": 0, "result": "all checks passed! (x86_64-linux; aarch64-linux omitted as incompatible), 6212 s", "published_tree": "Before publication the branch was rewritten to drop vendor/valence/Cargo.lock, a stray build artifact that 061bac87 had added to the vendored Valence snapshot; main at 90a9fb64 does not track it and no build reads it. The published fix commit therefore has a new SHA, and its tree equals 061bac87's tree minus that one file. The flake check was not rerun on the rewritten tree." }
     ],
     "mutations": [
       { "mutation": "WAL header check disabled", "failed": "a_wal_mode_ledger_is_refused_without_creating_its_sidecars (the directory tree changed under the report) and a_read_only_ledger_reads_the_dispatch_record_and_never_writes" },
@@ -39,7 +40,7 @@
   ],
   "example_output": "{\"schema\":\"kiln.lattice-sent-request.v1\",\"attempt\":\"78d9e7d472c410d499cd360516b7c2cc8eaa13c7c2d3d1acc23459de3eb5158d\",\"fence\":1,\"recorded\":true,\"request\":\"/var/tmp/agents/kiln-sent-request-tmp/.tmps8y33X/recorded-output/./request-e6310f745c9faf1916323b335dbca0cb12e318be8cd2827dc48a4d710bdbd8b4.json\",\"request_blake3\":\"e6310f745c9faf1916323b335dbca0cb12e318be8cd2827dc48a4d710bdbd8b4\",\"state_directory\":\"/var/tmp/agents/kiln-sent-request-tmp/.tmps8y33X/recorded-state/\"}",
   "not_run": [
-    "nix flake check: held while /nix and /tmp on the datapool are full; to be run and recorded before the last task is ticked"
+    "workspace-wide cargo test after the WAL fix: the fix touches only kiln-implementer and kiln-adapter-lattice, whose focused tests and workspace clippy ran; nix flake check covered the workspace build and its Nix checks"
   ],
   "non_claims": [
     "no live Lattice recover, cancel, inspect or export ran against a reported file",

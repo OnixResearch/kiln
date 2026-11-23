@@ -6,4 +6,4 @@
 
 ## Phase 2: Verification
 
-- [ ] [serial] [depends:kiln.admission.lattice_lineage.scenario.reported] Test the recorded lineage-bearing request, the legacy launch, every refusal, empty stdout on refusal, and that no ledger version, ledger byte or file changes; run the focused tests, workspace clippy, fmt, Cairn gates and `nix flake check`, and record them as evidence. r[kiln.admission.lattice_lineage.scenario.reported]
+- [x] [serial] [depends:kiln.admission.lattice_lineage.scenario.reported] Test the recorded lineage-bearing request, the legacy launch, every refusal, empty stdout on refusal, and that no ledger version, ledger byte or file changes; run the focused tests, workspace clippy, fmt, Cairn gates and `nix flake check`, and record them as evidence. r[kiln.admission.lattice_lineage.scenario.reported]
