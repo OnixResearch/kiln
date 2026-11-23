@@ -5,6 +5,32 @@ cargo --locked, CARGO_BUILD_JOBS=4 under nice -n 10, one target directory on
 the datapool; nix with --option builders '' --option min-free 0.
 Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn.
 
+== Verification-review fixes (two P2s introduced by the review fixes) ==
+ A [P2] The revocation view's observation time moved back within a generation
+   9b9753c3 Keep the revocation view's observation time monotonic within a generation
+   authority_verified: an_older_feed_never_moves_the_view_back_and_only_adds_revocations
+     (fresh-then-older imports on one sidecar keep the fresh time and the union of
+     revocations; an equal pair is idempotent; an older generation observed later
+     does not move the view back); a_feed_with_a_malformed_reference_imports_nothing
+     now expects an older generation to select without moving the view
+ B [P2] A resumed owner request named the later dispatch effect
+   5de66923 Bind an owner reservation's Dispatch request to its owner operation
+   authority_interleaving: a_resumed_owner_request_keeps_its_effect_after_a_dispatch_reservation
+     (pending request, reserve_dispatch, resume: same payload digest over the owner
+     operation and the same request identity, fresh nonce)
+ C Non-claim: the feed producer is trusted for freshness
+   1f5ab467 Document that the revocation feed producer is trusted for freshness
+   (runbook revocation feed section, design C3)
+
+Gates on 1f5ab467:
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo test --locked -p kiln-implementer -p kiln-adapter-basalt --no-fail-fast -> exit 0 (178 passed, 7 ignored)
+$ cargo test --locked -p kiln-implementer --test authority_coverage        -> exit 0 (9 passed)
+$ nix flake check path:$PWD --no-write-lock-file -L                         -> exit 0
+$ cairn validate; cairn gate proposal|design|tasks; dev traceability       -> exit 0 (0 dangling, 0 missing)
+
 == Review fix round (findings of the S1 review) ==
 Each finding is one commit on top of 23ccc9da; its tests are listed with it.
 Findings 10-12 concern the S4 worker route check and the sent-request readers,
