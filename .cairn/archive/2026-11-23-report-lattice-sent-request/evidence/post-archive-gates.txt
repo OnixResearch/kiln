@@ -1,0 +1,20 @@
+Archived on the Kiln authority integration branch (S1 + S4 + Cairn 317d3ff6
+re-vendor on main 09326e92), together with
+align-cairn-implementation-ready.
+After both archives and dropping report-lattice-sent-request's delta root from
+cairn-policy/development-coverage.ncl, with
+/nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn (317d3ff6)
+and P=cairn-policy/generated/cairn-policy.json (CAIRN_POLICY=$P):
+
+$ cairn validate --root . --policy "$P"
+  -> exit 0, policy kiln-default, valid, 9 active changes, 183 specs, 0 issues, 0 change, spec, profile or substance issues, 0 findings
+$ nickel export --format json cairn-policy/development-coverage.ncl > dev-policy.json
+$ cairn traceability coverage --root . --policy dev-policy.json --profile kiln-active-development --json
+  -> exit 0, verdict pass, 2297 requirements, 0 dangling, 0 missing
+$ cairn traceability coverage --root . --policy "$P" --json   # accepted-only
+  -> exit 1, verdict fail, 2257 requirements, 40 dangling, 0 missing.
+     kiln.admission.lattice_lineage.scenario.reported no longer dangles. The
+     40 dangling IDs are all kiln.implementation.authority.* (active change
+     compose-verified-implementation-authority, S1) and kiln.source.projection.*
+     (active change run-projected-workspaces, S4); they resolve when those
+     changes are archived.

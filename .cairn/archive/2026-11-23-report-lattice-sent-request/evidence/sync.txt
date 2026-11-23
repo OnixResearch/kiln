@@ -1,0 +1,111 @@
+$ CAIRN_POLICY=cairn-policy/generated/cairn-policy.json cairn sync report-lattice-sent-request --root . --policy cairn-policy/generated/cairn-policy.json --execute  # cairn /nix/store/nc498h43kyxsh3yfbrypqjprg9pzh2qs-cairn-0.2.1/bin/cairn
+{
+  "acceptance_ids": [],
+  "actions": [
+    {
+      "description": "merge delta spec into main specs: ./.cairn/changes/report-lattice-sent-request/specs/fair-admission/spec.md",
+      "kind": "sync_delta_spec",
+      "path": "./.cairn/changes/report-lattice-sent-request/specs/fair-admission/spec.md"
+    }
+  ],
+  "blocked": false,
+  "change": "report-lattice-sent-request",
+  "cross_repo_dependencies": {
+    "blocked_count": 0,
+    "dependency_count": 0,
+    "input_hash": "8ecd569530fc8b43dac7419c2d151137bf0d5e7b375e7e30e8e9f2047bd671fe",
+    "non_claims": [
+      "dependency satisfaction proves presented receipt linkage only",
+      "dependency satisfaction does not prove upstream correctness or remote trust",
+      "dependency satisfaction does not prove downstream integration correctness or release eligibility"
+    ],
+    "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+    "receipt_hash": "9af7cdcc3780f9fa889aa087c98ec2cd4fb9ffbe305b4960bc535e667b6bda53",
+    "rows": [],
+    "satisfied_count": 0,
+    "schema": "cairn.cross-repo-dependency-receipt.v1",
+    "valid": true,
+    "verdict": "PASS"
+  },
+  "cross_repo_evidence_issues": [],
+  "delta_specs": [
+    "./.cairn/changes/report-lattice-sent-request/specs/fair-admission/spec.md"
+  ],
+  "dry_run": false,
+  "input_hash": "0b91d8a33884d19b94bff5945155ebbf817c1a4b91f5ee87b4b7490ad8f1bd4e",
+  "layout": "cairn",
+  "merge_preflight": {
+    "documents": [
+      {
+        "accepted_before_exists": true,
+        "accepted_before_hash": "a97fbaec7ab49c1266fc4a9c1265309093689d893057529ae98d875825b65d67",
+        "blocked": false,
+        "changed": true,
+        "delta_hash": "2c5b90e47cbcf0c1a01090c01eae0e8caf27627d12f2b5eeedcd319f235e7332",
+        "destination": ".cairn/specs/fair-admission/spec.md",
+        "diagnostics": [],
+        "expected_after_hash": "2ff4b72351df242b3e9c4d9fc0952eb285c10cf6d018bb7ea7746b3364516fb9",
+        "operations": [
+          {
+            "block_hash": "3cc65d2553e3455ee7378190df70e9f9b6de165c71b489fb6e957691a3bca905",
+            "heading": "### Requirement: Budget lineage sent to Lattice",
+            "kind": "modified",
+            "requirement_id": "kiln.admission.lattice_lineage"
+          }
+        ],
+        "outcomes": [
+          {
+            "kind": "modified",
+            "requirement_id": "kiln.admission.lattice_lineage",
+            "state": "applied"
+          }
+        ],
+        "source": ".cairn/changes/report-lattice-sent-request/specs/fair-admission/spec.md"
+      }
+    ]
+  },
+  "mutated": true,
+  "mutation_manifest": {
+    "after": {
+      "entries": [
+        {
+          "content_hash": "2ff4b72351df242b3e9c4d9fc0952eb285c10cf6d018bb7ea7746b3364516fb9",
+          "exists": true,
+          "path": "./.cairn/specs/fair-admission/spec.md"
+        }
+      ],
+      "manifest_hash": "218ef649c0d3819cfeb3a4b15a1c17154bb7564871e47aa8134b3becb7146f12"
+    },
+    "before": {
+      "entries": [
+        {
+          "content_hash": "a97fbaec7ab49c1266fc4a9c1265309093689d893057529ae98d875825b65d67",
+          "exists": true,
+          "path": "./.cairn/specs/fair-admission/spec.md"
+        }
+      ],
+      "manifest_hash": "0d43a41d4033aca085f56dd801ca2d01b5d28a58b168691f91ce9447dbfb7530"
+    },
+    "kind": "sync",
+    "manifest_hash": "4c07b94f9b31ea6cf36153c24ff316dd75e7a4c48432bd7bf263f4366c67be6b"
+  },
+  "non_claims": [
+    "workflow state proves only the selected policy graph and observed structural artifact facts",
+    "workflow instructions do not prove artifact truth, review quality, or implementation correctness",
+    "workflow state does not satisfy proposal, design, tasks, sync, archive, evidence, or release gates",
+    "workflow commands are read-only and do not create, edit, delete, or approve lifecycle artifacts"
+  ],
+  "plan_hash": "07ab773a4aa08b3619e68ec5af52451cd319aaafffc1346324d04167fd56e557",
+  "policy": "kiln-default",
+  "policy_hash": "62b75eb1580f61c61017761c3391b5afcab0ff7d88713ba05a9d4af51f522195",
+  "profile_identity_hash": "cb45f47be5d9068df3662350a0950b5e1bf5fbe7df29a7a980fa1b04321f1db9",
+  "reasons": [],
+  "receipt_hash": "b4653fb2175e72fe8a5205f2cb182dbebee6860123c6a020170557f138d8d419",
+  "review_receipt_hashes": [],
+  "spec_effect": "delta",
+  "workflow_profile": "spec-driven",
+  "workflow_profile_compatibility_fallback": false,
+  "workflow_profile_source": "change_create",
+  "workflow_profile_version": 1
+}
+-> exit 0

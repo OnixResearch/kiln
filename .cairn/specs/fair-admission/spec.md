@@ -178,3 +178,12 @@ r[kiln.admission.lattice_lineage.scenario.refused]
 - GIVEN a tentative or unknown reservation, a reservation on another account, a required owner without a committed grant, a queue row claimed by another attempt, a grant beyond the work budget or root allocation or in an untracked dimension, a missing root or root allocation, overflowing amounts, a charged dimension the attempt does not hold, a revoked or expired lineage, a serving gate that does not admit, an uppercase identity, or an admitted request that already names a lineage
 - WHEN a dispatch route builds its request
 - THEN it MUST return the matching typed `LineageRefusal` and start nothing
+
+#### Scenario: The sent request is reported read-only
+
+r[kiln.admission.lattice_lineage.scenario.reported]
+- GIVEN an attempt whose transport intent records a launch, with or without the request that launch sent
+- WHEN a caller runs `kiln-lattice-dispatch --worker-request ADMITTED --sent-request true` with the ledger, enrollment and transport profile
+- THEN it MUST print exactly one `kiln.lattice-sent-request.v1` object naming the request file and state root the recorded launch ran, exactly as recorded and with `recorded` true, or for a launch recorded without its request the admitted request frozen in the profile's output directory with `recorded` false, after checking that the file is a bounded ordinary file hashing to the reported BLAKE3 that `verify_frozen` accepts
+- AND it MUST exit non-zero with nothing on stdout for an attempt or fence the ledger does not hold, admitted bytes that are not the request sealed at bind-dispatch, no recorded transport intent, a missing, unbounded or crossed file, or a ledger in WAL mode, which a read-only SQLite open could change by creating its `-wal` and `-shm` files
+- AND it MUST write nothing: no ledger version or byte changes, no file is created, and no owner grant, credential read or Lattice start occurs
