@@ -63,6 +63,11 @@ the decision. A `max_age_ms` below one second cannot be enforced at that
 resolution and is refused by the Nickel contract and the Rust loader. The
 view's age runs from the feed's own `observed_at_ms`; importing never
 refreshes it, and a feed is validated whole and imported in one transaction.
+The view only moves to a newer `(generation, observed_at_ms)` pair, compared
+inside that transaction. A process that imports a stale copy of the feed, or a
+second configured feed path, still adds every revocation it carries, since
+revocations are only ever added, but never moves the view back to an earlier
+observation that would fail verified sessions sharing the store.
 
 ### Holder signing
 

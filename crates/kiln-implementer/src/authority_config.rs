@@ -396,15 +396,17 @@ fn read_proofs(directory: &Path) -> Result<Vec<String>, String> {
 /// however often, and however recently, a process imports it, so a feed
 /// older than `max_age_ms` refuses every decision until its producer
 /// observes revocations again. A feed observed after `now_ms` is refused, so
-/// a future-dated feed cannot extend its own freshness.
+/// a future-dated feed cannot extend its own freshness. The view only moves
+/// to a newer `(generation, observed_at_ms)`: a feed older than the recorded
+/// view adds its revocations and leaves the view as it is.
 ///
 /// The whole feed is validated before anything is written, then imported in
 /// one transaction: a malformed reference anywhere leaves no revocation and no
 /// generation change behind.
 ///
 /// # Errors
-/// Returns a message for an unreadable, malformed, older or future-dated
-/// feed, or a failed commit.
+/// Returns a message for an unreadable, malformed or future-dated feed, or a
+/// failed commit.
 pub fn import_revocations(
     state: &SqliteAuthorityState,
     feed: &Path,

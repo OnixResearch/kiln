@@ -120,6 +120,19 @@ impl std::fmt::Debug for SqliteAuthorityState {
     }
 }
 
+/// Advance the one revocation view row to `(?1 generation, ?2 observed_at_ms)`
+/// only when that pair is newer, compared generation first: concurrent or
+/// differently configured imports can never move the view back to an older
+/// generation or an earlier observation, and an equal pair is a no-op.
+const ADVANCE_REVOCATION_VIEW: &str =
+    "INSERT INTO authority_revocation_view (id, revocation_generation, observed_at_ms)
+     VALUES (1, ?1, ?2)
+     ON CONFLICT(id) DO UPDATE SET
+       revocation_generation = excluded.revocation_generation,
+       observed_at_ms = excluded.observed_at_ms
+     WHERE (excluded.revocation_generation, excluded.observed_at_ms)
+         > (authority_revocation_view.revocation_generation, authority_revocation_view.observed_at_ms)";
+
 impl SqliteAuthorityState {
     /// Open or create the authority database.
     ///
@@ -132,7 +145,8 @@ impl SqliteAuthorityState {
     }
 
     /// Record that the revocation view was observed current at `observed_at_ms`
-    /// with `generation`. A view never moves to an older generation.
+    /// with `generation`. The view only moves to a newer
+    /// `(generation, observed_at_ms)` pair.
     ///
     /// # Errors
     /// Returns a message when the store cannot commit.
@@ -147,11 +161,7 @@ impl SqliteAuthorityState {
             .map_err(text)?;
         transaction
             .execute(
-                "INSERT INTO authority_revocation_view (id, revocation_generation, observed_at_ms)
-                 VALUES (1, ?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET
-                   revocation_generation = max(revocation_generation, excluded.revocation_generation),
-                   observed_at_ms = excluded.observed_at_ms",
+                ADVANCE_REVOCATION_VIEW,
                 params![sql_u64(generation)?, sql_u64(observed_at_ms)?],
             )
             .map_err(text)?;
@@ -159,13 +169,15 @@ impl SqliteAuthorityState {
     }
 
     /// Import one validated revocation feed atomically: every revoked
-    /// reference, the view's generation and its observation time commit in
-    /// one immediate transaction, or nothing does. A feed whose generation is
-    /// older than the recorded view is refused inside that transaction.
+    /// reference and, when the feed's `(generation, observed_at_ms)` is newer
+    /// than the recorded view, that pair commit in one immediate transaction,
+    /// or nothing does. Revocations are only ever added: an older or equal
+    /// feed still adds the references it carries but leaves the view as it
+    /// is, so a process importing a stale copy, or another configured feed
+    /// path, never moves the view back.
     ///
     /// # Errors
-    /// Returns a message for an older feed or a failed commit; nothing is
-    /// written then.
+    /// Returns a message for a failed commit; nothing is written then.
     pub fn import_revocation_feed(
         &self,
         generation: u64,
@@ -177,17 +189,6 @@ impl SqliteAuthorityState {
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(text)?;
-        let recorded: Option<i64> = transaction
-            .query_row(
-                "SELECT revocation_generation FROM authority_revocation_view WHERE id = 1",
-                [],
-                |row| row.get(0),
-            )
-            .optional()
-            .map_err(text)?;
-        if recorded.unwrap_or(0) > sql_u64(generation)? {
-            return Err("revocation feed is older than the recorded view".into());
-        }
         {
             let mut insert = transaction
                 .prepare(
@@ -207,11 +208,7 @@ impl SqliteAuthorityState {
         }
         transaction
             .execute(
-                "INSERT INTO authority_revocation_view (id, revocation_generation, observed_at_ms)
-                 VALUES (1, ?1, ?2)
-                 ON CONFLICT(id) DO UPDATE SET
-                   revocation_generation = excluded.revocation_generation,
-                   observed_at_ms = excluded.observed_at_ms",
+                ADVANCE_REVOCATION_VIEW,
                 params![sql_u64(generation)?, sql_u64(observed_at_ms)?],
             )
             .map_err(text)?;

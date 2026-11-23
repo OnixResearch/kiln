@@ -500,8 +500,77 @@ fn a_feed_with_a_malformed_reference_imports_nothing() {
     drop(open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}")));
     assert_eq!(revoked_rows(&db), 1);
     assert_eq!(view_generation(&db), 2);
-    // An older generation is then refused without a write.
+    // An older generation adds no revocation here and never moves the view back.
     write_feed(dir.path(), 1, T, &[]);
-    assert!(open_at(&db, &config, T).is_err());
+    drop(open_at(&db, &config, T).unwrap_or_else(|error| unreachable!("{error}")));
     assert_eq!(view_generation(&db), 2);
+    assert_eq!(revoked_rows(&db), 1);
+}
+
+/// The recorded `(generation, observed_at_ms)` and the revoked references of
+/// one authority file.
+fn view_and_revocations(path: &std::path::Path) -> ((u64, u64), Vec<Vec<u8>>) {
+    let connection =
+        rusqlite::Connection::open(path).unwrap_or_else(|error| unreachable!("{error}"));
+    let (generation, observed_at_ms): (i64, i64) = connection
+        .query_row(
+            "SELECT revocation_generation, observed_at_ms FROM authority_revocation_view WHERE id = 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let unsigned =
+        |value: i64| u64::try_from(value).unwrap_or_else(|error| unreachable!("{error}"));
+    let view = (unsigned(generation), unsigned(observed_at_ms));
+    let mut statement = connection
+        .prepare("SELECT proof_ref FROM authority_revocation ORDER BY proof_ref")
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    let revoked = statement
+        .query_map([], |row| row.get(0))
+        .and_then(Iterator::collect)
+        .unwrap_or_else(|error| unreachable!("{error}"));
+    (view, revoked)
+}
+
+#[test]
+// r[verify kiln.implementation.authority.state.scenario.stale]
+// r[verify kiln.implementation.authority.state.scenario.revoked]
+fn an_older_feed_never_moves_the_view_back_and_only_adds_revocations() {
+    use kiln_implementer::authority_state::SqliteAuthorityState;
+    let dir = tempfile::tempdir().unwrap_or_else(|error| unreachable!("{error}"));
+    let path = dir.path().join("ledger.db.authority");
+    let state = SqliteAuthorityState::open(&path).unwrap_or_else(|error| unreachable!("{error}"));
+    let (fresh, stale, later) = ([1; 32], [2; 32], [3; 32]);
+    let import = |generation, observed_at_ms, revoked: &[[u8; 32]]| {
+        state
+            .import_revocation_feed(generation, observed_at_ms, revoked)
+            .unwrap_or_else(|error| unreachable!("{error}"));
+    };
+
+    // Process B imports the refreshed generation-1 feed; process A then
+    // writes the copy it read earlier: the fresh time stays, and A's extra
+    // revocation is kept.
+    import(1, T + 30_000, &[fresh]);
+    import(1, T, &[stale]);
+    assert_eq!(
+        view_and_revocations(&path),
+        ((1, T + 30_000), vec![fresh.to_vec(), stale.to_vec()])
+    );
+    // An equal pair is idempotent.
+    import(1, T + 30_000, &[fresh]);
+    assert_eq!(
+        view_and_revocations(&path),
+        ((1, T + 30_000), vec![fresh.to_vec(), stale.to_vec()])
+    );
+    // A newer generation advances the view; an older one, even observed
+    // later, does not move it back but still adds its revocation.
+    import(2, T + 40_000, &[]);
+    import(1, T + 50_000, &[later]);
+    assert_eq!(
+        view_and_revocations(&path),
+        (
+            (2, T + 40_000),
+            vec![fresh.to_vec(), stale.to_vec(), later.to_vec()]
+        )
+    );
 }
