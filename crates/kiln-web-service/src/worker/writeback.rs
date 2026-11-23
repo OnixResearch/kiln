@@ -103,25 +103,39 @@ pub fn seal(
     // Read and check every captured file before anything is written.
     let mut contents = Vec::new();
     for operation in candidate.operations() {
-        if let SourceOperation::Edit {
-            destination,
-            object,
-            kind,
-            ..
-        }
-        | SourceOperation::Create {
-            destination,
-            object,
-            kind,
-            ..
-        } = operation
-        {
-            let bytes = read_file(&overlay.join(relative(destination)?))?;
-            if blob_ref(&bytes)? != *object {
-                return Err(format!("{destination}: the overlay changed after capture"));
+        let (destination, object, kind) = match operation {
+            SourceOperation::Edit {
+                destination,
+                object,
+                kind,
+                ..
             }
-            contents.push((operation.path(), bytes, file_mode(*kind)?));
+            | SourceOperation::Create {
+                destination,
+                object,
+                kind,
+                ..
+            } => (destination, object, kind),
+            // A rename or fork carries its origin's exact bytes to its new path.
+            SourceOperation::Rename {
+                destination,
+                expected,
+                kind,
+                ..
+            }
+            | SourceOperation::Fork {
+                destination,
+                expected,
+                kind,
+                ..
+            } => (destination, expected, kind),
+            SourceOperation::Delete { .. } => continue,
+        };
+        let bytes = read_file(&overlay.join(relative(destination)?))?;
+        if blob_ref(&bytes)? != *object {
+            return Err(format!("{destination}: the overlay changed after capture"));
         }
+        contents.push((operation.path(), bytes, file_mode(*kind)?));
     }
     let mut update = TreeUpdateBuilder::new();
     for (path, bytes, mode) in contents {
@@ -129,8 +143,14 @@ pub fn seal(
         update.upsert(path, oid, mode);
     }
     for operation in candidate.operations() {
-        if let SourceOperation::Delete { path, .. } = operation {
-            update.remove(path.as_str());
+        match operation {
+            SourceOperation::Delete { path, .. } => {
+                update.remove(path.as_str());
+            }
+            SourceOperation::Rename { from, .. } => {
+                update.remove(from.as_str());
+            }
+            _ => {}
         }
     }
     let tree_oid = update
@@ -140,11 +160,7 @@ pub fn seal(
         .find_tree(tree_oid)
         .map_err(|error| error.to_string())?;
     let changed = changed_paths(repository, &base_tree, &tree)?;
-    let operated: BTreeSet<String> = candidate
-        .operations()
-        .iter()
-        .map(|operation| operation.path().to_owned())
-        .collect();
+    let operated = candidate.changed_paths();
     if changed != operated {
         return Err(
             "the candidate tree differs from its base outside the captured operations".into(),

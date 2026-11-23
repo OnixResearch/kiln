@@ -726,14 +726,30 @@ pub fn run(flags: &BTreeMap<String, String>) -> Result<String, String> {
                 .map(kiln_core::types::ContentId::as_str)
                 .unwrap_or(execution.requirements.needs.profile_revision.as_str()),
         )
-        || request.get("network").and_then(serde_json::Value::as_bool)
-            != Some(plan.workspace.network)
+        // Lattice request v3 dropped `network` (Lattice b46deb36).
+        || crate::request_network::request_network(&request) != Some(plan.workspace.network)
     {
         return Err(
             "worker request is crossed with admitted work, attempt, workspace or model policy"
                 .into(),
         );
     }
+    // A pinned projected workspace runs only under a profile that enables
+    // projection and only with its exact route. This shell selects at most
+    // the local-operator profile, which never enables projection.
+    let projection_authority = if flags.contains_key("--local-operator") {
+        crate::projected_workspace::ProjectionAuthority::LocalOperator
+    } else {
+        crate::projected_workspace::ProjectionAuthority::Absent
+    };
+    crate::projected_workspace::check_route(
+        flags
+            .get(crate::projected_workspace::ROUTE_FLAG)
+            .map(Path::new),
+        &plan,
+        &request,
+        projection_authority,
+    )?;
     let ledger = implementer.work()?;
     let work = ledger
         .current()

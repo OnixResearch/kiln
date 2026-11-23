@@ -1,0 +1,92 @@
+{
+  "schema": "kiln.build-input-corpus.v1",
+  "files": [
+    {
+      "path": "flake.nix",
+      "text": "{\n  description = \"Two projects over one shared protocol\";\n  outputs = { self }: {\n    alpha = import ./projects/alpha/default.nix;\n    beta = import ./projects/beta/default.nix;\n  };\n}\n",
+      "executable": false
+    },
+    {
+      "path": "flake.lock",
+      "text": "{\n  \"nodes\": {\n    \"root\": {}\n  },\n  \"root\": \"root\",\n  \"version\": 7\n}\n",
+      "executable": false
+    },
+    {
+      "path": "projects/alpha/default.nix",
+      "text": "let proto = import ../../shared/proto/default.nix; in \"alpha against protocol ${toString proto.version}\"\n",
+      "executable": false
+    },
+    {
+      "path": "projects/beta/default.nix",
+      "text": "let proto = import ../../shared/proto/default.nix; in \"beta against protocol ${toString proto.version}\"\n",
+      "executable": false
+    },
+    {
+      "path": "shared/proto/default.nix",
+      "text": "{ version = 1; }\n",
+      "executable": false
+    }
+  ],
+  "projects": [
+    {
+      "id": "alpha",
+      "scope": {"root": "projects/alpha", "include": ["**"], "exclude": [], "depends_on": ["shared/**"], "graphs": ["nix"]}
+    },
+    {
+      "id": "beta",
+      "scope": {"root": "projects/beta", "include": ["**"], "exclude": [], "depends_on": ["shared/**"], "graphs": ["nix"]}
+    }
+  ],
+  "cases": [
+    {
+      "id": "nix-alpha",
+      "definition": {
+        "schema": "kiln.source-projection.definition.v1",
+        "id": "nix-alpha",
+        "profile": "writable",
+        "selection": {"root": "", "include": ["**"], "exclude": []},
+        "mounts": [{"source_prefix": "", "destination_prefix": ""}],
+        "dependencies": [],
+        "creation_destinations": [],
+        "required_capabilities": ["exact_tree", "executable_bit"],
+        "generated_inputs": "refused",
+        "target": {"case_sensitive": true, "max_path_bytes": 4096, "symlinks": true, "executable_bit": true}
+      },
+      "request": {
+        "schema": "kiln.build-input.request.v1",
+        "profile": "nix_compatibility.v1",
+        "targets": ["."],
+        "command": ["nix", "--extra-experimental-features", "nix-command flakes", "--offline", "--store", "/tmp/kiln-nix-store", "eval", "--raw", ".#alpha"],
+        "toolchain": {"name": "nix", "version": "2"},
+        "environment": {}
+      }
+    },
+    {
+      "id": "nix-beta",
+      "definition": {
+        "schema": "kiln.source-projection.definition.v1",
+        "id": "nix-beta",
+        "profile": "writable",
+        "selection": {"root": "", "include": ["**"], "exclude": []},
+        "mounts": [{"source_prefix": "", "destination_prefix": ""}],
+        "dependencies": [],
+        "creation_destinations": [],
+        "required_capabilities": ["exact_tree", "executable_bit"],
+        "generated_inputs": "refused",
+        "target": {"case_sensitive": true, "max_path_bytes": 4096, "symlinks": true, "executable_bit": true}
+      },
+      "request": {
+        "schema": "kiln.build-input.request.v1",
+        "profile": "nix_compatibility.v1",
+        "targets": ["."],
+        "command": ["nix", "--extra-experimental-features", "nix-command flakes", "--offline", "--store", "/tmp/kiln-nix-store", "eval", "--raw", ".#beta"],
+        "toolchain": {"name": "nix", "version": "2"},
+        "environment": {}
+      }
+    }
+  ],
+  "shared_edit": {
+    "case": "nix-alpha",
+    "file": {"path": "shared/proto/default.nix", "text": "{ version = 2; }\n", "executable": false}
+  }
+}

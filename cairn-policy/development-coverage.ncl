@@ -9,6 +9,7 @@ let ActiveRoots = [
   ".cairn/changes/integrate-retained-mobility/specs/retained-mobility-runtime/spec.md",
   ".cairn/changes/materialize-projected-workspaces/specs/source-projection/spec.md",
   ".cairn/changes/report-lattice-sent-request/specs/fair-admission/spec.md",
+  ".cairn/changes/run-projected-workspaces/specs/source-projection/spec.md",
 ]
 in
 let Active =

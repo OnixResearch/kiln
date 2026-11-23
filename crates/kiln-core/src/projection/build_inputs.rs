@@ -246,6 +246,16 @@ impl BuildInputPlan {
     pub fn profile(&self) -> BuildProfile {
         self.profile
     }
+    /// Identity of the manifest the plan was made for.
+    #[must_use]
+    pub fn manifest(&self) -> &ContentId {
+        &self.manifest
+    }
+    /// The admitted repository and exact source revision the plan reads.
+    #[must_use]
+    pub fn source(&self) -> (&ContentId, &ExternalRef) {
+        (&self.repository, &self.exact_revision)
+    }
     /// Destination directory where the command runs; empty is the root.
     #[must_use]
     pub fn build_root(&self) -> &str {

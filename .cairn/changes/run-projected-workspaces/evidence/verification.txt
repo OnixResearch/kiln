@@ -1,0 +1,89 @@
+Verification for run-projected-workspaces (Kiln authority plan slice S4), branch s4
+from main 90a9fb64 (Rust 1.97.1).
+
+Toolchain: `nix develop` (rustc 1.97.1, cargo 1.97.1), CARGO_TARGET_DIR on NVMe,
+CARGO_BUILD_JOBS=4, nice -n 10, nix --option builders '' --option min-free 0.
+Cairn: /nix/store/x37qabfj71nzk5661f3x735nni4m96qk-cairn-0.1.0/bin/cairn with
+P=cairn-policy/generated/cairn-policy.json (policy kiln-default), not the dev
+shell's Lattice wrapper (Kiln #111).
+
+Gates:
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo test --locked --workspace --no-fail-fast
+  -> exit 101: 2534 passed, 2 failed in 199 suites. Both failures are
+     kiln-fleet --test dispatch (`herdr environment PATH is invalid`), a crate
+     this change does not touch.
+$ cargo test --locked -p kiln-adapter-jj -p kiln-hosted --all-features     -> exit 0, 162 passed
+$ nix build path:$PWD#checks.x86_64-linux.dashboard-index-assets (wasm build, test, clippy) -> exit 0
+$ nix build path:$PWD#checks.x86_64-linux.octet (Octet consumer checks)    -> exit 0
+$ bash scripts/check-nickel-fixtures.sh -> exit 0 (103 positive, 655 negative)
+$ cairn gate proposal|design|tasks run-projected-workspaces --root . --policy "$P" -> exit 0 each
+$ cairn validate --root . --policy "$P"                                     -> exit 0
+$ cairn traceability coverage --policy dev-policy.json --profile kiln-active-development -> exit 0
+$ cairn traceability coverage --policy "$P" (accepted-only)
+  -> exit 1: the 16 dangling ids are exactly this change's new requirements,
+     which reach the accepted spec at `cairn sync`.
+$ gitleaks git --log-opts=90a9fb64..HEAD -> no leaks (6 commits)
+
+Review fixes (Phase 3; commits 292f4b91..HEAD on e2a2492c; same toolchain and
+Cairn binary; CARGO_BUILD_JOBS=4, nice -n 10):
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings -> exit 0
+$ cargo test --locked --manifest-path crates/kiln-core/Cargo.toml --lib projection:: -> exit 0, 81 passed
+$ cargo test --locked -p kiln-adapter-lattice                               -> exit 0, 95 passed
+$ cargo test --locked -p kiln-web-service                                   -> exit 0, 539 passed
+$ cargo test --locked -p kiln-web-service --example projected-runtime       -> exit 0, 4 passed
+$ cargo test --locked --workspace --no-fail-fast
+  -> exit 101: 2542 passed, 2 failed in 199 suites; both failures are
+     kiln-fleet --test dispatch (`herdr environment PATH is invalid`, Kiln #114).
+$ PATH=<343-byte minimal PATH: rust, gcc wrapper, git, bash, coreutils, system bin>
+  cargo test --locked -p kiln-fleet --test dispatch                         -> exit 0, 2 passed
+$ nix flake check path:$PWD --option builders '' --option min-free 0      -> exit 0 (x86_64-linux)
+$ cairn gate proposal|design|tasks run-projected-workspaces --root . --policy "$P" -> exit 0 each
+$ cairn validate --root . --policy "$P"                                     -> exit 0
+$ cairn traceability coverage --policy dev-policy.json --profile kiln-active-development -> exit 0
+$ cairn traceability coverage --policy "$P" (accepted-only)
+  -> exit 1: the same 16 dangling ids, this change's new requirements.
+$ gitleaks git --log-opts=e2a2492c..HEAD -> no leaks
+
+Verification follow-up (commits 69c3ca65 linked-root store placement,
+c55ef737 beta missing-source diagnostic; CARGO_TARGET_DIR on the datapool):
+$ cargo fmt --all --check                                                   -> exit 0
+$ cargo clippy --locked --workspace --all-targets -- -D warnings            -> exit 0
+$ cargo test --locked --manifest-path crates/kiln-core/Cargo.toml --lib projection:: -> exit 0, 82 passed
+$ cargo test --locked -p kiln-adapter-lattice                               -> exit 0, 96 passed
+$ cargo test --locked -p kiln-web-service --example projected-runtime       -> exit 0, 4 passed
+  The full gates rerun at integration.
+
+SUPERSEDED restricted-runtime run (`evidence/projected-runtime-receipt.superseded.json`).
+It ran under the local-operator profile, which never authorizes projection, and
+its receipt accepted a partial probe set and an unobserved beta command. It is
+kept for the record and is not qualification evidence; the runtime task is
+reopened until the run is repeated on S1's verified profile with
+`projection_enabled`:
+$ cargo run -p kiln-web-service --all-features --example projected-runtime -- \
+    --lattice /nix/store/7xa2qg5s2zxprxdjx0a5yryw9vwfimzy-lattice-0.1.0/bin/lattice ...
+  -> exit 0. Lattice origin/main 7fb6dc47: the cohort pin 661499d2 has no
+     `dispatch_plan` request field (added by Lattice 4f9b76da for Kiln #45),
+     so no bound request reaches it. Lattice b46deb36 had removed `network`
+     from request v3 (commit 39faef96 here). Worker: a Nix-store probe in
+     place of OMP under bubblewrap 0.11.2; no model contacted.
+  alpha-tests: cargo test passes in the route; 22 observations, all negatives
+    denied (host checkout file and directory, checkout .git, /workspace/.git,
+    store input and overlay backing paths, store root, nix daemon socket;
+    writes to a read-only planned input, the workspace root, .git, the store,
+    outside the write paths and through the host overlay path; host UNIX,
+    abstract and loopback sockets; a symlink to the checkout's .git); the
+    shared edit and a new file written through the write paths; facts select
+    alpha and beta.
+  beta-tests: the build fails (101) because beta reads an undeclared alpha
+    file the route does not hold, though the host checkout does: the read
+    did not escape. Negatives all denied.
+  nix-alpha, nix-beta: `nix eval` of each project in the whole-tree route
+    passes; negatives all denied; the shared Nix edit selects alpha and beta.
+  Each case: widened write paths, an added `.git` read path, a moved
+    workspace root and a missing route were refused by kiln-lattice-dispatch
+    before any durable step (exit 2).

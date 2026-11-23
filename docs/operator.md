@@ -2617,9 +2617,45 @@ includes the pin. A plan without one keeps its earlier identity.
 `prepare_overlay` takes the dispatch pin, refuses one that differs from the
 plan it is given, and resumes an overlay only when its
 `kiln.materialization.binding.v2` binding records exactly that pin; v1
-bindings are refused, not adopted. No worker job selects projected workspaces
-yet, and current-authority checks at retrieval and restricted runtimes are not
-wired.
+bindings are refused, not adopted.
+
+<!-- r[related kiln.source.projection.route] -->
+**Projected workspace routes.** `materialization::route` derives a
+`kiln.projected-workspace-route.v1` route from the admitted definition, the
+completeness witness, the plan and the pin: the workspace root is the overlay
+under the store, read paths are the top-level components of the planned (and,
+for a write, creation) destinations, and write paths are the overlay
+destinations of origins within the dispatch plan's permitted paths plus each
+creation destination whose every mounted source path, every origin planned at
+or below it and every mount placed below it are permitted. A creation
+directory that holds an alias of an unpermitted origin (mounts `"" → ""` and
+`private → src/private` with creation destination `src`) is not granted
+whole. Paths are relative to the overlay, as Lattice request v3 names them;
+the input root is recorded but never mounted, and the checkout, Git database
+and store stay outside. Place the store under a private state root such as
+`/var/lib/kiln`: a store at or below `/nix/store`, `/usr`, `/bin`, `/lib`,
+`/lib64` or `/run/current-system/sw/bin`, which Lattice's bubblewrap
+provider binds into every sandbox, is refused, and `kiln-lattice-dispatch`
+also refuses a store at or below the resolved target of any of these roots
+that is a link (with `/usr -> /srv`, a store under `/srv`) or a store whose
+path is not canonical; a root present but unresolvable refuses every
+dispatch. A destination with a `.git` or
+`.jj` component is refused, as Lattice would refuse it only after dispatch.
+The route carries the authored definition and resolved manifest it was
+derived from. `worker::materialize::prepare_route` creates missing creation
+destinations. `kiln-lattice-dispatch --projected-workspace-route FILE`
+refuses, before any durable step, a projected dispatch under any authority
+profile that does not enable projection (`projection-requires-operator`; the
+local-operator profile never does, so projected dispatch waits for the
+verified profile with `projection_enabled`), a pinned plan without its route,
+a route for another pin or an unpinned plan, a route that derived again for
+the plan's own permitted paths has other paths, a linked overlay root, and a
+request whose `workspace_root`, `read_paths`, `write_paths` or network
+differ; `kiln-implementation-fixture bind-execution
+--projected-workspace-route FILE` binds the same paths and emits the route. A
+file write path admits in-place edits only; removing an origin in the runtime
+needs a writable creation destination. Current-authority checks at retrieval
+and workspace effects are not wired (S7).
 
 <!-- r[related kiln.source.projection.materialization.scenario.baseline] -->
 **Materializer baseline.** `config/workspace-corpus-contracts.ncl` types a
@@ -2714,9 +2750,22 @@ candidate's Cargo graph then selects both alpha and beta, although beta is
 outside the editing view. The receipt is compared, without timings and the
 observed toolchain, to `fixtures/build-inputs/expected.json`. Cargo
 configuration above the overlay, absolute paths and the host toolchain stay
-outside the plan, and no restricted runtime confines the commands.
-Relocation, generated-input providers and joining plan identities to
-verification evidence and the build cache are later work.
+outside the plan. The off-by-default `projected-runtime` example dispatches the
+`alpha-tests` and `beta-tests` cases and the two-project Nix corpus
+(`fixtures/projected-runtime/nix-corpus.json`) through `kiln-lattice-dispatch`
+to a real Lattice binary under bubblewrap, under the
+`--authority-config` it is given, which must select the verified profile with
+`projection_enabled`. It runs each planned command inside the route, records
+the confinement probes (host checkout, `.git`, store backing paths, UNIX,
+abstract and loopback sockets, writes outside the write paths, a symlink
+escape) and the local-operator refusal, and captures the overlay into
+`kiln.projected-candidate-facts.v1` facts; a case qualifies only on the
+complete expected probe set and, for `beta-tests`, an observed build failure
+whose recorded output names the missing `alpha/assets/banner.txt`.
+The restricted runtime is not qualified: the earlier local-operator receipt
+is superseded until the run is repeated on the verified profile. Relocation,
+generated-input providers and joining plan identities to the build cache are
+later work.
 
 <!-- r[related kiln.source.projection.writeback] -->
 **Writeback.** A writable view's overlay is not a repository diff: it omits
@@ -2739,13 +2788,23 @@ manifest and the mounts:
 | A new file whose source path is outside the selection | Refused: `new_file_outside_selection` |
 | A symbolic link | Refused: `unsupported_entry` |
 
-A capture is also refused when the source moved since the view was resolved
-(`source_moved`; an explicit rebase is later work), the attempt's fence moved
-(`superseded_attempt`), the pin names another view or the witness is for a
-build. A rename is captured as a delete and a create. The sealed candidate
-(`kiln.projection.writeback-candidate.v1`) has a BLAKE3 identity over its base,
-definition, manifest, overlay pin and operations, and
-`SealedCandidate::reconstruct` applies the operations to the base entries.
+Declarations (`Rename`, `Fork`, `AliasChange`, `MembershipChange`) name what
+the overlay cannot show by itself: a rename or fork needs the origin's exact
+bytes at a new file under a creation destination; an alias or membership
+change is recorded as a view-definition operation and never changes the
+source. Without a declaration a moved file stays a delete and a create. A
+source that moved since the view was resolved yields a
+`kiln.projection.writeback-conflict.v1` outcome naming the overlapping
+canonical origins (a changed object or entry kind, a mode-only change
+included), never a sealed candidate; a rebase is a new resolution and
+overlay generation. A superseded fence (`superseded_attempt`), a pin for
+another view or a build witness is refused first. The sealed candidate
+(`kiln.projection.writeback-candidate.v2`) has a BLAKE3 identity over its base,
+definition, manifest, overlay pin, operations and view operations;
+`verify_recorded` still verifies recorded v1 candidates, read-only.
+`SealedCandidate::reconstruct` applies the operations to the base entries, and
+`candidate_facts` binds a sealed candidate to its build plan and the projects
+`monorepo::affected` selects over the full candidate.
 
 `kiln_web_service::worker::writeback::observe` hashes every overlay file as a
 Git blob without following links. `seal` re-reads each captured file, refuses

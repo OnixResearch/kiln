@@ -710,6 +710,25 @@ entry describes the source tree prepared for the first tagged release.
   comparison, and replay frozen synthetic cases (one changed, one prevented,
   one unchanged, two unavailable). (#93; pure-core, durable-store, CLI and
   Nickel-fixture tests; no captured agent plan or measured quality gain)
+- Projected workspace routes, writeback v2 and the restricted-runtime harness
+  (#77, #78, #79, non-authority half). `kiln.projected-workspace-route.v1`
+  derives a pinned overlay's Lattice root, read paths and write paths and
+  carries the definition and manifest it was derived from; it refuses stores
+  the bubblewrap provider mounts, `.git`/`.jj` destinations and creation
+  directories holding unwritable aliases. `kiln-lattice-dispatch
+  --projected-workspace-route` derives the route again for the plan's
+  permitted paths, refuses requests that differ, and refuses every projected
+  dispatch (`projection-requires-operator`) under a profile that does not
+  enable projection, the local-operator profile included; `bind-execution`
+  binds the same route. Writeback v2 adds declared renames, forks, alias and
+  membership changes and a conflict outcome for a moved source that names
+  object and mode changes; recorded v1 candidates still verify.
+  `kiln.projected-candidate-facts.v1` binds a sealed candidate to its build
+  plan and affected projects. Lattice v3 requests without `network` are read
+  as no network. The `projected-runtime` example needs an authority
+  configuration with the verified profile and `projection_enabled` and judges
+  the complete probe set; the runtime is not qualified until it runs on that
+  profile. (Authority at retrieval and workspace effects remains S7.)
 
 ### Changed
 

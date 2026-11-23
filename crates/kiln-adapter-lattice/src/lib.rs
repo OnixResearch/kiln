@@ -4,6 +4,8 @@ mod implementation;
 pub mod lineage;
 mod mapping;
 mod profile;
+pub mod projected_workspace;
+pub mod request_network;
 #[cfg(target_os = "linux")]
 mod unix;
 #[cfg(target_os = "linux")]
